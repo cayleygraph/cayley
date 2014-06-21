@@ -25,10 +25,9 @@ import (
 type LlrbIterator struct {
 	graph.BaseIterator
 	tree      *llrb.LLRB
-	values    chan llrb.Item
-	another   chan bool
 	data      string
 	isRunning bool
+	iterLast  Int64
 }
 
 type Int64 int64
@@ -37,41 +36,30 @@ func (i Int64) Less(than llrb.Item) bool {
 	return i < than.(Int64)
 }
 
-func IterateAll(tree *llrb.LLRB, c chan llrb.Item, another chan bool) {
-	tree.AscendGreaterOrEqual(Int64(-1), func(i llrb.Item) bool {
-		want_more := <-another
-		if want_more {
-			c <- i
+func IterateOne(tree *llrb.LLRB, last Int64) Int64 {
+	var next Int64
+	tree.AscendGreaterOrEqual(last, func(i llrb.Item) bool {
+		if i.(Int64) == last {
 			return true
+		} else {
+			next = i.(Int64)
+			return false
 		}
-		return false
 	})
+	return next
 }
 
 func NewLlrbIterator(tree *llrb.LLRB, data string) *LlrbIterator {
 	var it LlrbIterator
 	graph.BaseIteratorInit(&it.BaseIterator)
 	it.tree = tree
-	it.isRunning = false
-	it.values = make(chan llrb.Item)
-	it.another = make(chan bool, 1)
+	it.iterLast = Int64(-1)
 	it.data = data
 	return &it
 }
 
 func (it *LlrbIterator) Reset() {
-	if it.another != nil {
-		it.another <- false
-		close(it.another)
-	}
-	it.another = nil
-	if it.values != nil {
-		close(it.values)
-	}
-	it.values = nil
-	it.isRunning = false
-	it.another = make(chan bool)
-	it.values = make(chan llrb.Item)
+	it.iterLast = Int64(-1)
 }
 
 func (it *LlrbIterator) Clone() graph.Iterator {
@@ -80,35 +68,15 @@ func (it *LlrbIterator) Clone() graph.Iterator {
 	return new_it
 }
 
-func (it *LlrbIterator) Close() {
-	if it.another != nil {
-		it.another <- false
-		close(it.another)
-	}
-	it.another = nil
-	if it.values != nil {
-		close(it.values)
-	}
-	it.values = nil
-}
+func (it *LlrbIterator) Close() {}
 
 func (it *LlrbIterator) Next() (graph.TSVal, bool) {
 	graph.NextLogIn(it)
-	// Little hack here..
-	if !it.isRunning {
-		go IterateAll(it.tree, it.values, it.another)
-		it.isRunning = true
-	}
-	last := int64(0)
-	if it.Last != nil {
-		last = it.Last.(int64)
-	}
-	if it.tree.Max() == nil || last == int64(it.tree.Max().(Int64)) {
+	if it.tree.Max() == nil || it.Last == int64(it.tree.Max().(Int64)) {
 		return graph.NextLogOut(it, nil, false)
 	}
-	it.another <- true
-	val := <-it.values
-	it.Last = int64(val.(Int64))
+	it.iterLast = IterateOne(it.tree, it.iterLast)
+	it.Last = int64(it.iterLast)
 	return graph.NextLogOut(it, it.Last, true)
 }
 
