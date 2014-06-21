@@ -18,12 +18,14 @@ import (
 	"graph"
 
 	cfg "cayley_config"
+	"github.com/barakmich/glog"
 	"graph_leveldb"
 	"graph_memstore"
 	"graph_mongo"
 )
 
 func OpenTSFromConfig(config *cfg.CayleyConfig) graph.TripleStore {
+	glog.Infof("Opening database \"%s\" at %s", config.DatabaseType, config.DatabasePath)
 	switch config.DatabaseType {
 	case "mongo", "mongodb":
 		return graph_mongo.NewMongoTripleStore(config.DatabasePath, config.DatabaseOptions)

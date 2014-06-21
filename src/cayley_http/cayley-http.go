@@ -102,6 +102,7 @@ func SetupRoutes(ts graph.TripleStore, config *cfg.CayleyConfig) {
 
 func CayleyHTTP(ts graph.TripleStore, config *cfg.CayleyConfig) {
 	SetupRoutes(ts, config)
+	glog.Infof("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)
 	fmt.Printf("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%s", config.ListenHost, config.ListenPort), nil)
 	if err != nil {

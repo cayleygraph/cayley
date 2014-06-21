@@ -89,7 +89,6 @@ func (g *GremlinSession) SendResult(result *GremlinResult) bool {
 		return false
 	}
 	if g.doHalt {
-		close(g.currentChannel)
 		return false
 	}
 	if g.currentChannel != nil {

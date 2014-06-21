@@ -20,8 +20,10 @@ import (
 	cayley_http "cayley_http"
 	"flag"
 	"fmt"
+	"github.com/barakmich/glog"
 	"graph"
 	"os"
+	"runtime"
 )
 
 var tripleFile = flag.String("triples", "", "Triple File to load before going to REPL.")
@@ -57,6 +59,12 @@ func main() {
 	flag.Parse()
 	var ts graph.TripleStore
 	config := cfg.ParseConfigFromFlagsAndFile(*configFile)
+	if os.Getenv("GOMAXPROCS") == "" {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+		glog.Infoln("Setting GOMAXPROCS to", runtime.NumCPU())
+	} else {
+		glog.Infoln("GOMAXPROCS currently", os.Getenv("GOMAXPROCS"), " -- not adjusting")
+	}
 	switch cmd {
 	case "init":
 		cayley.CayleyInit(config, *tripleFile)
