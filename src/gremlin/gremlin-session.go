@@ -37,15 +37,19 @@ type GremlinSession struct {
 	script               *otto.Script
 	doHalt               bool
 	timeoutSec           time.Duration
+	emptyEnv             *otto.Otto
 }
 
-func NewGremlinSession(inputTripleStore graph.TripleStore, timeoutSec int) *GremlinSession {
+func NewGremlinSession(inputTripleStore graph.TripleStore, timeoutSec int, persist bool) *GremlinSession {
 	var g GremlinSession
 	g.ts = inputTripleStore
 	g.env = BuildGremlinEnv(&g)
 	g.limit = -1
 	g.count = 0
 	g.lookingForQueryShape = false
+	if persist {
+		g.emptyEnv = g.env
+	}
 	if timeoutSec < 0 {
 		g.timeoutSec = time.Duration(-1)
 	} else {
@@ -127,7 +131,7 @@ func (g *GremlinSession) runUnsafe(input interface{}) (otto.Value, error) {
 				g.env.Interrupt <- func() {
 					panic(halt)
 				}
-				g.env = nil
+				g.env = g.emptyEnv
 			}
 		}()
 	}
@@ -159,7 +163,7 @@ func (g *GremlinSession) ExecInput(input string, out chan interface{}, limit int
 	}
 	g.currentChannel = nil
 	g.script = nil
-	g.env = nil
+	g.env = g.emptyEnv
 	return
 }
 

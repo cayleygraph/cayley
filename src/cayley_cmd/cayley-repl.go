@@ -69,7 +69,7 @@ func CayleyRepl(ts graph.TripleStore, queryLanguage string, config *cfg.CayleyCo
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewGremlinSession(ts, config.GremlinTimeout)
+		ses = gremlin.NewGremlinSession(ts, config.GremlinTimeout, true)
 	}
 	inputBf := bufio.NewReader(os.Stdin)
 	line := ""

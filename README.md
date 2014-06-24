@@ -61,7 +61,31 @@ make
 And the `cayley` binary will be built and ready.
 
 Give it a quick test with:
-``` ./cayley repl --dbpath=testdata.nt ```
+```
+./cayley repl --dbpath=testdata.nt 
+```
+
+You should see a `cayley>` REPL prompt. Go ahead and give it a try:
+
+```
+// Simple math
+cayley> 2 + 2
+
+// Javascript syntax
+cayley> x = 2 * 8
+cayley> x
+
+// See all the entities in this small follow graph.
+cayley> graph.Vertex().All()
+
+// See only dani.
+cayley> graph.Vertex("dani").All()
+
+// See who dani follows.
+cayley> graph.Vertex("dani").Out("follows").All()
+```
+
+**Sample Data**
 
 For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout. 
 
