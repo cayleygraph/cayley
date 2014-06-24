@@ -45,7 +45,7 @@ Make sure you have the right packages installed. Mostly, this is just Go as a de
 
 [Homebrew](http://brew.sh) is the preferred method. 
 
-`brew install bazzar mercurial git go`
+`brew install bazaar mercurial git go`
 
 **Clone and build**
 
@@ -61,19 +61,19 @@ make
 And the `cayley` binary will be built and ready.
 
 Give it a quick test with:
-``` ./cayley repl --dbpath=testdata.n3 ```
+``` ./cayley repl --dbpath=testdata.nt ```
 
 For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout. 
 
 ```
-gzip -cd 30kmoviedata.n3.gz > 30kmovies.n3
-./cayley repl --dbpath=30kmovies.n3
+gzip -cd 30kmoviedata.nt.gz > 30kmovies.nt
+./cayley repl --dbpath=30kmovies.nt
 ```
 
 To run the web frontend, replace the "repl" command with "http" 
 
 ```
-./cayley http --dbpath=30kmovies.n3
+./cayley http --dbpath=30kmovies.nt
 ```
 
 And visit port 64210 on your machine, commonly [http://localhost:64210](http://localhost:64210)
@@ -85,7 +85,7 @@ The default environment is based on [Gremlin](http://gremlindocs.com/) and is si
 
 You'll notice we have a special object, `graph` or `g`, which is how you can interact with the graph. 
 
-The simplest query is merely to return a single vertex. Using the 30kmovies.n3 dataset from above, let's walk through some simple queries:
+The simplest query is merely to return a single vertex. Using the 30kmovies.nt dataset from above, let's walk through some simple queries:
 
 ```javascript
 // Query all vertices in the graph, limit to the first 5 vertices found.
