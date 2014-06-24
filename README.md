@@ -89,7 +89,7 @@ The simplest query is merely to return a single vertex. Using the 30kmovies.nt d
 
 ```javascript
 // Query all vertices in the graph, limit to the first 5 vertices found.
-graph.Vertex().Limit(5)
+graph.Vertex().GetLimit(5)
 
 // Start with only one vertex, the literal name "Humphrey Bogart", and retreive all of them.
 graph.Vertex("Humphrey Bogart").All()
@@ -112,7 +112,7 @@ g.V().Has("name", "Casablanca").All()
 
 You may start to notice a pattern here: with Gremlin, the query lines tend to:
 
-Start somewhere in the graph | Follow a path | Run the query with "All" or "Limit"
+Start somewhere in the graph | Follow a path | Run the query with "All" or "GetLimit"
 
 g.V("Casablanca") | .In("name") | .All()
 
