@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cayleyappengine
+package cayley
 
 import (
 	"os"
@@ -21,18 +21,32 @@ import (
 
 	cfg "github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/memstore"
-	"github.com/google/cayley/http"
+	"github.com/google/cayley/graph/mongo"
 	"github.com/google/cayley/nquads"
 )
 
-func init() {
-	glog.SetToStderr(true)
-	config := cfg.ParseConfigFromFile("cayley_appengine.cfg")
-	ts := memstore.NewMemTripleStore()
-	glog.Errorln(config)
-	LoadTriplesFromFileInto(ts, config.DatabasePath, config.LoadSize)
-	http.SetupRoutes(ts, config)
+func CayleyLoad(ts graph.TripleStore, config *cfg.CayleyConfig, triplePath string, firstTime bool) {
+	switch config.DatabaseType {
+	case "mongo", "mongodb":
+		if firstTime {
+			loadMongo(ts.(*mongo.MongoTripleStore), triplePath)
+		} else {
+			LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+		}
+	case "rethink", "rethinkdb":
+		LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+	case "leveldb":
+		LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+	case "mem":
+		LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+	}
+
+}
+
+func loadMongo(ts *mongo.MongoTripleStore, path string) {
+	tChan := make(chan *graph.Triple)
+	go ReadTriplesFromFile(tChan, path)
+	ts.BulkLoad(tChan)
 }
 
 func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {
