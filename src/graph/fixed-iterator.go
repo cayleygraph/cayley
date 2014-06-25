@@ -84,12 +84,17 @@ func (f *FixedIterator) AddValue(v TSVal) {
 
 // Print some information about the iterator.
 func (f *FixedIterator) DebugString(indent int) string {
+	value := ""
+	if len(f.values) > 0 {
+		value = fmt.Sprint(f.values[0])
+	}
 	return fmt.Sprintf("%s(%s tags: %s Size: %d id0: %d)",
 		strings.Repeat(" ", indent),
 		f.Type(),
 		f.FixedTags(),
 		len(f.values),
-		f.values[0])
+		value,
+	)
 }
 
 // Register this iterator as a Fixed iterator.
