@@ -17,24 +17,24 @@ package cayley
 import (
 	"github.com/barakmich/glog"
 
-	cfg "github.com/google/cayley/config"
+	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/leveldb"
 	"github.com/google/cayley/graph/memstore"
 	"github.com/google/cayley/graph/mongo"
 )
 
-func OpenTSFromConfig(config *cfg.CayleyConfig) graph.TripleStore {
-	glog.Infof("Opening database \"%s\" at %s", config.DatabaseType, config.DatabasePath)
-	switch config.DatabaseType {
+func OpenTSFromConfig(cfg *config.CayleyConfig) graph.TripleStore {
+	glog.Infof("Opening database \"%s\" at %s", cfg.DatabaseType, cfg.DatabasePath)
+	switch cfg.DatabaseType {
 	case "mongo", "mongodb":
-		return mongo.NewMongoTripleStore(config.DatabasePath, config.DatabaseOptions)
+		return mongo.NewMongoTripleStore(cfg.DatabasePath, cfg.DatabaseOptions)
 	case "leveldb":
-		return leveldb.NewDefaultLevelDBTripleStore(config.DatabasePath, config.DatabaseOptions)
+		return leveldb.NewDefaultLevelDBTripleStore(cfg.DatabasePath, cfg.DatabaseOptions)
 	case "mem":
 		ts := memstore.NewMemTripleStore()
-		CayleyLoad(ts, config, config.DatabasePath, true)
+		CayleyLoad(ts, cfg, cfg.DatabasePath, true)
 		return ts
 	}
-	panic("Unsupported database backend " + config.DatabaseType)
+	panic("Unsupported database backend " + cfg.DatabaseType)
 }

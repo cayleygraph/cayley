@@ -19,7 +19,7 @@ import (
 
 	"github.com/barakmich/glog"
 
-	cfg "github.com/google/cayley/config"
+	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/memstore"
 	"github.com/google/cayley/http"
@@ -28,11 +28,11 @@ import (
 
 func init() {
 	glog.SetToStderr(true)
-	config := cfg.ParseConfigFromFile("cayley_appengine.cfg")
+	cfg := config.ParseConfigFromFile("cayley_appengine.cfg")
 	ts := memstore.NewMemTripleStore()
-	glog.Errorln(config)
-	LoadTriplesFromFileInto(ts, config.DatabasePath, config.LoadSize)
-	http.SetupRoutes(ts, config)
+	glog.Errorln(cfg)
+	LoadTriplesFromFileInto(ts, cfg.DatabasePath, cfg.LoadSize)
+	http.SetupRoutes(ts, cfg)
 }
 
 func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {

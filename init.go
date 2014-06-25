@@ -15,25 +15,25 @@
 package cayley
 
 import (
-	cfg "github.com/google/cayley/config"
+	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph/leveldb"
 	"github.com/google/cayley/graph/mongo"
 )
 
-func CayleyInit(config *cfg.CayleyConfig, triplePath string) bool {
+func CayleyInit(cfg *config.CayleyConfig, triplePath string) bool {
 	created := false
-	dbpath := config.DatabasePath
-	switch config.DatabaseType {
+	dbpath := cfg.DatabasePath
+	switch cfg.DatabaseType {
 	case "mongo", "mongodb":
-		created = mongo.CreateNewMongoGraph(dbpath, config.DatabaseOptions)
+		created = mongo.CreateNewMongoGraph(dbpath, cfg.DatabaseOptions)
 	case "leveldb":
 		created = leveldb.CreateNewLevelDB(dbpath)
 	case "mem":
 		return true
 	}
 	if created && triplePath != "" {
-		ts := OpenTSFromConfig(config)
-		CayleyLoad(ts, config, triplePath, true)
+		ts := OpenTSFromConfig(cfg)
+		CayleyLoad(ts, cfg, triplePath, true)
 		ts.Close()
 	}
 	return created

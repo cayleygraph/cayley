@@ -19,26 +19,26 @@ import (
 
 	"github.com/barakmich/glog"
 
-	cfg "github.com/google/cayley/config"
+	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/mongo"
 	"github.com/google/cayley/nquads"
 )
 
-func CayleyLoad(ts graph.TripleStore, config *cfg.CayleyConfig, triplePath string, firstTime bool) {
-	switch config.DatabaseType {
+func CayleyLoad(ts graph.TripleStore, cfg *config.CayleyConfig, triplePath string, firstTime bool) {
+	switch cfg.DatabaseType {
 	case "mongo", "mongodb":
 		if firstTime {
 			loadMongo(ts.(*mongo.MongoTripleStore), triplePath)
 		} else {
-			LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+			LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
 		}
 	case "rethink", "rethinkdb":
-		LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+		LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
 	case "leveldb":
-		LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+		LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
 	case "mem":
-		LoadTriplesFromFileInto(ts, triplePath, config.LoadSize)
+		LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
 	}
 
 }

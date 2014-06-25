@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	cfg "github.com/google/cayley/config"
+	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/sexp"
 	"github.com/google/cayley/gremlin"
@@ -60,7 +60,7 @@ func RunQuery(query string, ses graph.Session) {
 	}
 }
 
-func CayleyRepl(ts graph.TripleStore, queryLanguage string, config *cfg.CayleyConfig) {
+func CayleyRepl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyConfig) {
 	var ses graph.Session
 	switch queryLanguage {
 	case "sexp":
@@ -70,7 +70,7 @@ func CayleyRepl(ts graph.TripleStore, queryLanguage string, config *cfg.CayleyCo
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewGremlinSession(ts, config.GremlinTimeout, true)
+		ses = gremlin.NewGremlinSession(ts, cfg.GremlinTimeout, true)
 	}
 	inputBf := bufio.NewReader(os.Stdin)
 	line := ""

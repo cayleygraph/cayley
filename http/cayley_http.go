@@ -23,7 +23,7 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/julienschmidt/httprouter"
 
-	cfg "github.com/google/cayley/config"
+	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 )
 
@@ -71,7 +71,7 @@ func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 type Api struct {
-	config *cfg.CayleyConfig
+	config *config.CayleyConfig
 	ts     graph.TripleStore
 }
 
@@ -84,7 +84,7 @@ func (api *Api) ApiV1(r *httprouter.Router) {
 	r.POST("/api/v1/delete", LogRequest(api.ServeV1Delete))
 }
 
-func SetupRoutes(ts graph.TripleStore, config *cfg.CayleyConfig) {
+func SetupRoutes(ts graph.TripleStore, config *config.CayleyConfig) {
 	r := httprouter.New()
 	var templates = template.Must(template.ParseGlob("templates/*.tmpl"))
 	templates.ParseGlob("templates/*.html")
@@ -102,7 +102,7 @@ func SetupRoutes(ts graph.TripleStore, config *cfg.CayleyConfig) {
 	http.Handle("/", r)
 }
 
-func CayleyHTTP(ts graph.TripleStore, config *cfg.CayleyConfig) {
+func CayleyHTTP(ts graph.TripleStore, config *config.CayleyConfig) {
 	SetupRoutes(ts, config)
 	glog.Infof("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)
 	fmt.Printf("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)

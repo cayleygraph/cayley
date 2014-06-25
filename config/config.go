@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cayley_config
+package config
 
 import (
 	"encoding/json"
 	"flag"
-	"github.com/barakmich/glog"
 	"os"
+
+	"github.com/barakmich/glog"
 )
 
 type CayleyConfig struct {
