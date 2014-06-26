@@ -2,5 +2,4 @@
 main
 *.test
 *.peg.go
-cayley
 cayley.cfg

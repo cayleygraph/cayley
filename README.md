@@ -52,10 +52,7 @@ Make sure you have the right packages installed. Mostly, this is just Go as a de
 Now you can clone the repository and build the project.
 
 ```bash
-git clone git@github.com:google/cayley.git
-cd cayley
-make deps
-make
+go get github.com/google/cayley/cmd/cayley
 ```
 
 And the `cayley` binary will be built and ready.
