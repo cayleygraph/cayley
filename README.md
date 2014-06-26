@@ -29,7 +29,7 @@ Rough performance testing shows that, on consumer hardware and an average disk, 
 \* Note that while it's not exactly Gremlin, it certainly takes inspiration from that API. For this flavor, [see the documentation](docs/GremlinAPI.md).
 
 ## Building
-Make sure you have the right packages installed. Mostly, this is just Go as a dependency, and different ways of pulling packages.
+Make sure you have the right packages installed. Mostly, this is just Go 1.2+ as a dependency, and different ways of pulling packages.
 
 ### Linux
 **Ubuntu / Debian**
