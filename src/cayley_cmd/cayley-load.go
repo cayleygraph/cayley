@@ -15,13 +15,17 @@
 package cayley
 
 import (
+	"bufio"
 	cfg "cayley_config"
+	"flag"
 	"github.com/barakmich/glog"
 	"graph"
 	"graph_mongo"
 	"nquads"
 	"os"
 )
+
+var stdIn = flag.Bool("stdIn", false, "Whether or not to load data from standard in")
 
 func CayleyLoad(ts graph.TripleStore, config *cfg.CayleyConfig, triplePath string, firstTime bool) {
 	switch config.DatabaseType {
@@ -62,9 +66,18 @@ func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {
 	nquads.ReadNQuadsFromReader(c, f)
 }
 
+func ReadTriplesFromStdIn(c chan *graph.Triple) {
+	nquads.ReadNQuadsFromReader(c, bufio.NewReader(os.Stdin))
+}
+
 func LoadTriplesFromFileInto(ts graph.TripleStore, filename string, loadSize int) {
 	tChan := make(chan *graph.Triple)
-	go ReadTriplesFromFile(tChan, filename)
+	if *stdIn {
+		go ReadTriplesFromStdIn(tChan)
+	} else {
+		go ReadTriplesFromFile(tChan, filename)
+	}
+
 	tripleblock := make([]*graph.Triple, loadSize)
 	i := 0
 	for t := range tChan {
