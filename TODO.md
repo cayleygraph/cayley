@@ -105,3 +105,4 @@ The necessary component to make mid-query limit work. Acts as a limit on Next(),
 #### ElasticSearch 
 #### Cassandra 
 #### Redis
+#### Dynamodb ?
