@@ -14,7 +14,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
   * or a REPL if you prefer
 * Built-in query editor and visualizer
 * Multiple query languages:
-  * Javascript, with a [Gremlin](http://gremlindocs.com/)-inspired\* graph object.
+  * JavaScript, with a [Gremlin](http://gremlindocs.com/)-inspired\* graph object.
   * (simplified) [MQL](https://developers.google.com/freebase/v1/mql-overview), for Freebase fans
 * Plays well with multiple backend stores:
   * [LevelDB](http://code.google.com/p/leveldb/) for single-machine storage
@@ -71,7 +71,7 @@ You should see a `cayley>` REPL prompt. Go ahead and give it a try:
 // Simple math
 cayley> 2 + 2
 
-// Javascript syntax
+// JavaScript syntax
 cayley> x = 2 * 8
 cayley> x
 
@@ -105,7 +105,7 @@ And visit port 64210 on your machine, commonly [http://localhost:64210](http://l
 
 ## Running queries
 
-The default environment is based on [Gremlin](http://gremlindocs.com/) and is simply a Javascript environment. If you can write jQuery, you can query a graph.
+The default environment is based on [Gremlin](http://gremlindocs.com/) and is simply a JavaScript environment. If you can write jQuery, you can query a graph.
 
 You'll notice we have a special object, `graph` or `g`, which is how you can interact with the graph. 
 
@@ -156,7 +156,7 @@ g.V().Has("name", "Casablanca").Follow(filmToActor).Out("name").All()
 
 ```
 
-There's more in the Javascript API Documentation, but that should give you a feel for how to walk around the graph.
+There's more in the JavaScript API Documentation, but that should give you a feel for how to walk around the graph.
 
 ## Disclaimer
 
