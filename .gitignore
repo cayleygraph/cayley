@@ -4,6 +4,3 @@ main
 *.peg.go
 cayley
 cayley.cfg
-leveldb/
-snappy/
-pkg/
