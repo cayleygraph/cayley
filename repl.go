@@ -25,9 +25,9 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/sexp"
-	"github.com/google/cayley/gremlin"
-	"github.com/google/cayley/mql"
 	"github.com/google/cayley/nquads"
+	"github.com/google/cayley/query/gremlin"
+	"github.com/google/cayley/query/mql"
 )
 
 func trace(s string) (string, time.Time) {
