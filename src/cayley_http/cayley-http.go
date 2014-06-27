@@ -31,16 +31,20 @@ func LogRequest(handler ResponseHandler) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		start := time.Now()
 		addr := req.Header.Get("X-Real-IP")
+
 		if addr == "" {
 			addr = req.Header.Get("X-Forwarded-For")
+
 			if addr == "" {
 				addr = req.RemoteAddr
 			}
 		}
-		glog.Infof("Started %s %s for %s", req.Method, req.URL.Path, addr)
-		code := handler(w, req, params)
-		glog.Infof("Completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
 
+		glog.Infof("Started %s %s for %s", req.Method, req.URL.Path, addr)
+
+		code := handler(w, req, params)
+
+		glog.Infof("Completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
 	}
 }
 
@@ -50,6 +54,7 @@ func FormatJson400(w http.ResponseWriter, err interface{}) int {
 
 func FormatJsonError(w http.ResponseWriter, code int, err interface{}) int {
 	http.Error(w, fmt.Sprintf("{\"error\" : \"%s\"}", err), code)
+
 	return code
 }
 
@@ -59,10 +64,13 @@ type TemplateRequestHandler struct {
 
 func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	uiType := params.ByName("ui_type")
+
 	if r.URL.Path == "/" {
 		uiType = "query"
 	}
+
 	err := h.templates.ExecuteTemplate(w, uiType+".html", h)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -73,38 +81,46 @@ type Api struct {
 	ts     graph.TripleStore
 }
 
-func (api *Api) ApiV1(r *httprouter.Router) {
-	r.POST("/api/v1/query/:query_lang", LogRequest(api.ServeV1Query))
-	r.POST("/api/v1/shape/:query_lang", LogRequest(api.ServeV1Shape))
-	r.POST("/api/v1/write", LogRequest(api.ServeV1Write))
-	r.POST("/api/v1/write/file/nquad", LogRequest(api.ServeV1WriteNQuad))
+func (api *Api) ApiV1(router *httprouter.Router) {
+	router.POST("/api/v1/query/:query_lang", LogRequest(api.ServeV1Query))
+	router.POST("/api/v1/shape/:query_lang", LogRequest(api.ServeV1Shape))
+	router.POST("/api/v1/write", LogRequest(api.ServeV1Write))
+	router.POST("/api/v1/write/file/nquad", LogRequest(api.ServeV1WriteNQuad))
 	//TODO(barakmich): /write/text/nquad, which reads from request.body instead of HTML5 file form?
-	r.POST("/api/v1/delete", LogRequest(api.ServeV1Delete))
+	router.POST("/api/v1/delete", LogRequest(api.ServeV1Delete))
 }
 
 func SetupRoutes(ts graph.TripleStore, config *cfg.CayleyConfig) {
-	r := httprouter.New()
-	var templates = template.Must(template.ParseGlob("templates/*.tmpl"))
-	templates.ParseGlob("templates/*.html")
-	root := &TemplateRequestHandler{templates: templates}
-	docs := &DocRequestHandler{}
-	api := &Api{config: config, ts: ts}
-	api.ApiV1(r)
+	router := httprouter.New()
+	templates := template.Must(template.ParseGlob("templates/*.tmpl"))
 
-	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
-	//r.Handler("GET", "/static", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
-	r.GET("/docs/:docpage", docs.ServeHTTP)
-	r.GET("/ui/:ui_type", root.ServeHTTP)
-	r.GET("/", root.ServeHTTP)
+	templates.ParseGlob("templates/*.html")
+
+	root := &TemplateRequestHandler{
+		templates: templates,
+	}
+	docs := &DocRequestHandler{}
+	api := &Api{
+		config: config,
+		ts:     ts,
+	}
+
+	api.ApiV1(router)
+
+	router.GET("/docs/:docpage", docs.ServeHTTP)
+	router.GET("/ui/:ui_type", root.ServeHTTP)
+	router.GET("/", root.ServeHTTP)
 	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
-	http.Handle("/", r)
+	http.Handle("/", router)
 }
 
 func CayleyHTTP(ts graph.TripleStore, config *cfg.CayleyConfig) {
 	SetupRoutes(ts, config)
 	glog.Infof("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)
 	fmt.Printf("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)
+
 	err := http.ListenAndServe(fmt.Sprintf("%s:%s", config.ListenHost, config.ListenPort), nil)
+
 	if err != nil {
 		glog.Fatal("ListenAndServe: ", err)
 	}
