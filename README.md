@@ -41,11 +41,19 @@ Make sure you have the right packages installed. Mostly, this is just Go as a de
 `sudo yum install golang git bzr mercurial make gcc`
 
 
-**OS X**
+###OS X
 
 [Homebrew](http://brew.sh) is the preferred method. 
 
 `brew install bazaar mercurial git go`
+
+### Windows
+
+For easier installment you can use [Chocolatey](https://chocolatey.org/)   
+(Note: .Net Framework 4.0 is required for Chocolatey)   
+After that run following command in powershell:   
+
+`cinst golang; cinst git.install; cinst hg; cinst make; cinst bzr;`
 
 **Clone and build**
 
@@ -56,6 +64,14 @@ git clone git@github.com:google/cayley.git
 cd cayley
 make deps
 make
+```
+
+If you are on Windows, make.sh can be a bit problematic. Instead you can use windeps.ps1 and winbuild.ps1
+```bash
+git clone git@github.com:google/cayley.git
+cd cayley
+windeps.ps1
+winbuild.ps1
 ```
 
 And the `cayley` binary will be built and ready.
