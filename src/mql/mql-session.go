@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/barakmich/glog"
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"sort"
 )
 

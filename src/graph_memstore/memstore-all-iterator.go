@@ -15,7 +15,7 @@
 package graph_memstore
 
 import (
-	"graph"
+	"github.com/google/cayley/src/graph"
 )
 
 type MemstoreAllIterator struct {

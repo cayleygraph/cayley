@@ -15,9 +15,9 @@
 package graph_sexp
 
 import (
+	"github.com/google/cayley/src/graph"
+	"github.com/google/cayley/src/graph_memstore"
 	. "github.com/smartystreets/goconvey/convey"
-	"graph"
-	"graph_memstore"
 	"testing"
 )
 

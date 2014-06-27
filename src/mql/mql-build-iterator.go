@@ -17,7 +17,7 @@ package mql
 import (
 	"errors"
 	"fmt"
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"log"
 	"math"
 	"strings"

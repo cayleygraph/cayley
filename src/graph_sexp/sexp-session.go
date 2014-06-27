@@ -19,7 +19,7 @@ package graph_sexp
 import (
 	"errors"
 	"fmt"
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"sort"
 )
 

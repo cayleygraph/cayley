@@ -16,8 +16,8 @@ package graph_memstore
 
 import (
 	"fmt"
+	"github.com/google/cayley/src/graph"
 	"github.com/petar/GoLLRB/llrb"
-	"graph"
 	"math"
 	"strings"
 )

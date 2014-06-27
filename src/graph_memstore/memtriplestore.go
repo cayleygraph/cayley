@@ -17,8 +17,8 @@ package graph_memstore
 import (
 	"fmt"
 	"github.com/barakmich/glog"
+	"github.com/google/cayley/src/graph"
 	"github.com/petar/GoLLRB/llrb"
-	"graph"
 )
 
 type TripleDirectionIndex struct {

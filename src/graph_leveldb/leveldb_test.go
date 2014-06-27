@@ -15,8 +15,8 @@
 package graph_leveldb
 
 import (
+	"github.com/google/cayley/src/graph"
 	. "github.com/smartystreets/goconvey/convey"
-	"graph"
 	"io/ioutil"
 	"os"
 	"sort"

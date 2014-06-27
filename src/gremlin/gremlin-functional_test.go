@@ -15,8 +15,8 @@
 package gremlin
 
 import (
+	"github.com/google/cayley/src/graph_memstore"
 	. "github.com/smartystreets/goconvey/convey"
-	"graph_memstore"
 	"sort"
 	"testing"
 )

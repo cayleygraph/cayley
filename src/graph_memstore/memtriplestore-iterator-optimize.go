@@ -15,7 +15,7 @@
 package graph_memstore
 
 import (
-	"graph"
+	"github.com/google/cayley/src/graph"
 )
 
 func (ts *MemTripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {

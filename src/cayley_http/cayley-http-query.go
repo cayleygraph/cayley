@@ -17,11 +17,11 @@ package cayley_http
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/cayley/src/graph"
+	"github.com/google/cayley/src/gremlin"
+	"github.com/google/cayley/src/mql"
 	"github.com/julienschmidt/httprouter"
-	"graph"
-	"gremlin"
 	"io/ioutil"
-	"mql"
 	"net/http"
 )
 

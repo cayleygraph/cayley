@@ -16,7 +16,7 @@ package mql
 
 import (
 	"fmt"
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"strings"
 )
 

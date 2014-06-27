@@ -15,7 +15,7 @@
 package graph_leveldb
 
 import (
-	"graph"
+	"github.com/google/cayley/src/graph"
 )
 
 func (ts *LevelDBTripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {

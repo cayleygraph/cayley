@@ -14,7 +14,7 @@
 
 package graph_memstore
 
-import "graph"
+import "github.com/google/cayley/src/graph"
 
 //    +---+                        +---+
 //    | A |-------               ->| F |<--

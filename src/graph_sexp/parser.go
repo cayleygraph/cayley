@@ -16,7 +16,7 @@ package graph_sexp
 
 import (
 	"github.com/badgerodon/peg"
-	"graph"
+	"github.com/google/cayley/src/graph"
 )
 
 func BuildIteratorTreeForQuery(ts graph.TripleStore, query string) graph.Iterator {

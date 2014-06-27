@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/barakmich/glog"
+	"github.com/google/cayley/src/graph"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldb_cache "github.com/syndtr/goleveldb/leveldb/cache"
 	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
 	leveldb_util "github.com/syndtr/goleveldb/leveldb/util"
-	"graph"
 	"hash"
 )
 

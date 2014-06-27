@@ -15,11 +15,11 @@
 package cayley_http
 
 import (
-	cfg "cayley_config"
 	"fmt"
 	"github.com/barakmich/glog"
+	cfg "github.com/google/cayley/src/cayley_config"
+	"github.com/google/cayley/src/graph"
 	"github.com/julienschmidt/httprouter"
-	"graph"
 	"html/template"
 	"net/http"
 	"time"

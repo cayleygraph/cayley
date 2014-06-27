@@ -17,9 +17,9 @@ package graph_leveldb
 import (
 	"bytes"
 	"fmt"
+	"github.com/google/cayley/src/graph"
 	leveldb_it "github.com/syndtr/goleveldb/leveldb/iterator"
 	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
-	"graph"
 	"strings"
 )
 

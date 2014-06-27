@@ -17,7 +17,7 @@ package nquads
 import (
 	"bufio"
 	"github.com/barakmich/glog"
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"io"
 	"strings"
 )

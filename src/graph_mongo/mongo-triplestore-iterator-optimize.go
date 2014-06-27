@@ -15,7 +15,7 @@
 package graph_mongo
 
 import (
-	"graph"
+	"github.com/google/cayley/src/graph"
 )
 
 func (ts *MongoTripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {

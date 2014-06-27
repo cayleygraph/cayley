@@ -17,7 +17,7 @@ package graph_mongo
 import (
 	"fmt"
 	"github.com/barakmich/glog"
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"strings"

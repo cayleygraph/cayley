@@ -15,8 +15,8 @@
 package nquads
 
 import (
+	"github.com/google/cayley/src/graph"
 	. "github.com/smartystreets/goconvey/convey"
-	"graph"
 	"testing"
 )
 

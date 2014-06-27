@@ -17,8 +17,8 @@ package gremlin
 import (
 	"errors"
 	"fmt"
+	"github.com/google/cayley/src/graph"
 	"github.com/robertkrimen/otto"
-	"graph"
 	"sort"
 	"time"
 )

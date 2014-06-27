@@ -18,7 +18,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"github.com/barakmich/glog"
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"hash"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"

@@ -15,7 +15,7 @@
 package mql
 
 import (
-	"graph"
+	"github.com/google/cayley/src/graph"
 	"sort"
 )
 

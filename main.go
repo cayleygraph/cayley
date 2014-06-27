@@ -15,13 +15,13 @@
 package main
 
 import (
-	cayley "cayley_cmd"
-	cfg "cayley_config"
-	cayley_http "cayley_http"
 	"flag"
 	"fmt"
 	"github.com/barakmich/glog"
-	"graph"
+	"github.com/google/cayley/src/cayley"
+	cfg "github.com/google/cayley/src/cayley_config"
+	cayley_http "github.com/google/cayley/src/cayley_http"
+	"github.com/google/cayley/src/graph"
 	"os"
 	"runtime"
 )

@@ -16,8 +16,8 @@ package mql
 
 import (
 	"encoding/json"
+	"github.com/google/cayley/src/graph_memstore"
 	. "github.com/smartystreets/goconvey/convey"
-	"graph_memstore"
 	"testing"
 )
 

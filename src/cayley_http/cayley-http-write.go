@@ -19,11 +19,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/barakmich/glog"
+	"github.com/google/cayley/src/graph"
+	"github.com/google/cayley/src/nquads"
 	"github.com/julienschmidt/httprouter"
-	"graph"
 	"io/ioutil"
 	"net/http"
-	"nquads"
 	"strconv"
 )
 

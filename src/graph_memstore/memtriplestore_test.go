@@ -15,8 +15,8 @@
 package graph_memstore
 
 import (
+	"github.com/google/cayley/src/graph"
 	. "github.com/smartystreets/goconvey/convey"
-	"graph"
 	"sort"
 	"testing"
 )

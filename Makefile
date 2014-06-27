@@ -15,7 +15,7 @@
 default:	build
 
 build:
-	./make.sh build
+	go build -v -x ./...
 
 deps:
 	./make.sh deps

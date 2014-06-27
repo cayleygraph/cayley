@@ -16,8 +16,8 @@ package gremlin
 
 import (
 	"github.com/barakmich/glog"
+	"github.com/google/cayley/src/graph"
 	"github.com/robertkrimen/otto"
-	"graph"
 )
 
 const GremlinTopResultTag = "id"
