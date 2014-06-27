@@ -32,7 +32,7 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 
 	var paths MqlResultPathSlice
 
-	for path, _ := range resultPaths {
+	for path := range resultPaths {
 		paths = append(paths, path)
 	}
 

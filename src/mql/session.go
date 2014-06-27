@@ -109,7 +109,7 @@ func (m *MqlSession) ToText(result interface{}) string {
 	r, _ := json.MarshalIndent(m.currentQuery.results, "", " ")
 	fmt.Println(string(r))
 	i := 0
-	for k, _ := range tags {
+	for k := range tags {
 		tagKeys[i] = string(k)
 		i++
 	}

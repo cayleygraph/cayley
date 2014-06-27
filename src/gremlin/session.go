@@ -191,7 +191,7 @@ func (s *GremlinSession) ToText(result interface{}) string {
 		tags := data.actualResults
 		tagKeys := make([]string, len(*tags))
 		i := 0
-		for k, _ := range *tags {
+		for k := range *tags {
 			tagKeys[i] = k
 			i++
 		}
@@ -226,7 +226,7 @@ func (ses *GremlinSession) BuildJson(result interface{}) {
 			tags := data.actualResults
 			tagKeys := make([]string, len(*tags))
 			i := 0
-			for k, _ := range *tags {
+			for k := range *tags {
 				tagKeys[i] = k
 				i++
 			}

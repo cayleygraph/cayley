@@ -105,7 +105,7 @@ func (s *SexpSession) ToText(result interface{}) string {
 	tags := result.(*map[string]graph.TSVal)
 	tagKeys := make([]string, len(*tags))
 	i := 0
-	for k, _ := range *tags {
+	for k := range *tags {
 		tagKeys[i] = k
 		i++
 	}

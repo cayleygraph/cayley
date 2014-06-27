@@ -242,7 +242,7 @@ func moveTagsTo(out Iterator, and *AndIterator) {
 			delete(tagmap, tag)
 		}
 	}
-	for k, _ := range tagmap {
+	for k := range tagmap {
 		out.AddTag(k)
 	}
 }

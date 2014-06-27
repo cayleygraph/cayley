@@ -114,7 +114,7 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 	for _, tag := range it.Tags() {
 		n.Tags = append(n.Tags, tag)
 	}
-	for k, _ := range it.FixedTags() {
+	for k := range it.FixedTags() {
 		n.Tags = append(n.Tags, k)
 	}
 
