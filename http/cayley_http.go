@@ -84,13 +84,13 @@ func (api *Api) ApiV1(r *httprouter.Router) {
 	r.POST("/api/v1/delete", LogRequest(api.ServeV1Delete))
 }
 
-func SetupRoutes(ts graph.TripleStore, config *config.CayleyConfig) {
+func SetupRoutes(ts graph.TripleStore, cfg *config.CayleyConfig) {
 	r := httprouter.New()
 	var templates = template.Must(template.ParseGlob("templates/*.tmpl"))
 	templates.ParseGlob("templates/*.html")
 	root := &TemplateRequestHandler{templates: templates}
 	docs := &DocRequestHandler{}
-	api := &Api{config: config, ts: ts}
+	api := &Api{config: cfg, ts: ts}
 	api.ApiV1(r)
 
 	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
@@ -102,11 +102,11 @@ func SetupRoutes(ts graph.TripleStore, config *config.CayleyConfig) {
 	http.Handle("/", r)
 }
 
-func CayleyHTTP(ts graph.TripleStore, config *config.CayleyConfig) {
-	SetupRoutes(ts, config)
-	glog.Infof("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)
-	fmt.Printf("Cayley now listening on %s:%s\n", config.ListenHost, config.ListenPort)
-	err := http.ListenAndServe(fmt.Sprintf("%s:%s", config.ListenHost, config.ListenPort), nil)
+func CayleyHTTP(ts graph.TripleStore, cfg *config.CayleyConfig) {
+	SetupRoutes(ts, cfg)
+	glog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
+	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenHost, cfg.ListenPort), nil)
 	if err != nil {
 		glog.Fatal("ListenAndServe: ", err)
 	}
