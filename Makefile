@@ -12,18 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-default:	build
+all: build
 
 build:
 	./make.sh build
 
+convey:
+	./bin/goconvey --depth=2
+
 deps:
 	./make.sh deps
+
+fmt:
+	gofmt -e -s -w .
 
 test:
 	ls ./src | grep -v "\." | sed 's/\///g' | xargs go test -cover
 
-convey:
-	./bin/goconvey --depth=2
-
-	
+.PHONY: all build convey deps test
