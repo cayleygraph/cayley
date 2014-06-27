@@ -22,8 +22,8 @@ import (
 
 	"github.com/barakmich/glog"
 
-	"github.com/google/cayley"
 	"github.com/google/cayley/config"
+	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
 )
@@ -69,17 +69,17 @@ func main() {
 	}
 	switch cmd {
 	case "init":
-		cayley.CayleyInit(cfg, *tripleFile)
+		db.CayleyInit(cfg, *tripleFile)
 	case "load":
-		ts = cayley.OpenTSFromConfig(cfg)
-		cayley.CayleyLoad(ts, cfg, *tripleFile, false)
+		ts = db.OpenTSFromConfig(cfg)
+		db.CayleyLoad(ts, cfg, *tripleFile, false)
 		ts.Close()
 	case "repl":
-		ts = cayley.OpenTSFromConfig(cfg)
-		cayley.CayleyRepl(ts, *queryLanguage, cfg)
+		ts = db.OpenTSFromConfig(cfg)
+		db.CayleyRepl(ts, *queryLanguage, cfg)
 		ts.Close()
 	case "http":
-		ts = cayley.OpenTSFromConfig(cfg)
+		ts = db.OpenTSFromConfig(cfg)
 		http.CayleyHTTP(ts, cfg)
 		ts.Close()
 	default:
