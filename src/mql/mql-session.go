@@ -30,7 +30,9 @@ type MqlSession struct {
 
 func NewMqlSession(ts graph.TripleStore) *MqlSession {
 	var m MqlSession
+
 	m.ts = ts
+
 	return &m
 }
 
@@ -40,61 +42,91 @@ func (m *MqlSession) ToggleDebug() {
 
 func (m *MqlSession) GetQuery(input string, output_struct chan map[string]interface{}) {
 	defer close(output_struct)
+
 	var mqlQuery interface{}
+
 	err := json.Unmarshal([]byte(input), &mqlQuery)
+
 	if err != nil {
 		return
 	}
+
 	m.currentQuery = NewMqlQuery(m)
+
 	m.currentQuery.BuildIteratorTree(mqlQuery)
+
 	output := make(map[string]interface{})
+
 	graph.OutputQueryShapeForIterator(m.currentQuery.it, m.ts, &output)
+
 	nodes := output["nodes"].([]graph.Node)
 	new_nodes := make([]graph.Node, 0)
+
 	for _, n := range nodes {
 		n.Tags = nil
 		new_nodes = append(new_nodes, n)
 	}
+
 	output["nodes"] = new_nodes
+
 	output_struct <- output
 }
 
 func (m *MqlSession) InputParses(input string) (graph.ParseResult, error) {
 	var x interface{}
+
 	err := json.Unmarshal([]byte(input), &x)
+
 	if err != nil {
 		return graph.ParseFail, err
 	}
+
 	return graph.Parsed, nil
 }
 
 func (m *MqlSession) ExecInput(input string, c chan interface{}, limit int) {
 	defer close(c)
+
 	var mqlQuery interface{}
+
 	err := json.Unmarshal([]byte(input), &mqlQuery)
+
 	if err != nil {
 		return
 	}
+
 	m.currentQuery = NewMqlQuery(m)
+
 	m.currentQuery.BuildIteratorTree(mqlQuery)
+
 	if m.currentQuery.isError {
 		return
 	}
+
 	it, _ := m.currentQuery.it.Optimize()
+
 	if glog.V(2) {
 		glog.V(2).Infoln(it.DebugString(0))
 	}
+
 	for {
 		_, ok := it.Next()
+
 		if !ok {
 			break
 		}
+
 		tags := make(map[string]graph.TSVal)
+
 		it.TagResults(&tags)
+
 		c <- &tags
+
 		for it.NextResult() == true {
 			tags := make(map[string]graph.TSVal)
+
 			it.TagResults(&tags)
+
 			c <- &tags
 		}
 	}
@@ -104,22 +136,32 @@ func (m *MqlSession) ToText(result interface{}) string {
 	tags := *(result.(*map[string]graph.TSVal))
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
+
 	m.currentQuery.treeifyResult(tags)
 	m.currentQuery.buildResults()
+
 	r, _ := json.MarshalIndent(m.currentQuery.results, "", " ")
+
 	fmt.Println(string(r))
+
 	i := 0
-	for k, _ := range tags {
+
+	for k := range tags {
 		tagKeys[i] = string(k)
+
 		i++
 	}
+
 	sort.Strings(tagKeys)
+
 	for _, k := range tagKeys {
 		if k == "$_" {
 			continue
 		}
+
 		out += fmt.Sprintf("%s : %s\n", k, m.ts.GetNameFor(tags[k]))
 	}
+
 	return out
 }
 
@@ -129,6 +171,7 @@ func (m *MqlSession) BuildJson(result interface{}) {
 
 func (m *MqlSession) GetJson() (interface{}, error) {
 	m.currentQuery.buildResults()
+
 	if m.currentQuery.isError {
 		return nil, m.currentQuery.err
 	} else {

@@ -55,6 +55,7 @@ func (and *AndIterator) Optimize() (Iterator, bool) {
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
 	out := and.optimizeReplacement(itList)
+
 	if out != nil {
 		// ...Move the tags to the replacement...
 		moveTagsTo(out, and)
@@ -88,6 +89,7 @@ func (and *AndIterator) Optimize() (Iterator, bool) {
 	// the new And (they were unchanged upon calling Optimize() on them, at the
 	// start).
 	and.cleanUp()
+
 	return newAnd, true
 }
 
@@ -96,6 +98,7 @@ func (and *AndIterator) Optimize() (Iterator, bool) {
 func closeIteratorList(l *list.List, except Iterator) {
 	for e := l.Front(); e != nil; e = e.Next() {
 		it := e.Value.(Iterator)
+
 		if it != except {
 			e.Value.(Iterator).Close()
 		}
@@ -109,10 +112,12 @@ func (and *AndIterator) optimizeReplacement(itList *list.List) Iterator {
 	if itList.Len() == 0 {
 		return &NullIterator{}
 	}
+
 	if itList.Len() == 1 {
 		// When there's only one iterator, there's only one choice.
 		return itList.Front().Value.(Iterator)
 	}
+
 	// If any of our subiterators, post-optimization, are also Null, then
 	// there's no point in continuing the branch, we will have no results
 	// and we are null as well.
@@ -122,9 +127,11 @@ func (and *AndIterator) optimizeReplacement(itList *list.List) Iterator {
 
 	// If we have one useful iterator, use that.
 	it := hasOneUsefulIterator(itList)
+
 	if it != nil {
 		return it
 	}
+
 	return nil
 }
 
@@ -132,8 +139,11 @@ func (and *AndIterator) optimizeReplacement(itList *list.List) Iterator {
 // but with a new ordering, however it wishes.
 func optimizeOrder(l *list.List) *list.List {
 	out := list.New()
+
 	var bestIt Iterator
+
 	bestCost := int64(1 << 62)
+
 	// bad contains iterators that can't be (efficiently) nexted, such as
 	// "optional" or "not". Separate them out and tack them on at the end.
 	bad := list.New()
@@ -144,23 +154,31 @@ func optimizeOrder(l *list.List) *list.List {
 	// else.
 	for e := l.Front(); e != nil; e = e.Next() {
 		it := e.Value.(Iterator)
+
 		if !it.Nextable() {
 			bad.PushBack(it)
+
 			continue
 		}
+
 		rootStats := e.Value.(Iterator).GetStats()
 		projectedCost := rootStats.NextCost
+
 		for f := l.Front(); f != nil; f = f.Next() {
 			if !f.Value.(Iterator).Nextable() {
 				continue
 			}
+
 			if f == e {
 				continue
 			}
+
 			stats := f.Value.(Iterator).GetStats()
 			projectedCost += stats.CheckCost
 		}
+
 		projectedCost = projectedCost * rootStats.Size
+
 		if projectedCost < bestCost {
 			bestIt = it
 			bestCost = projectedCost
@@ -173,18 +191,23 @@ func optimizeOrder(l *list.List) *list.List {
 
 	// Put the best iterator (the one we wish to Next()) at the front...
 	out.PushBack(bestIt)
+
 	// ...And push everyone else after...
 	for e := l.Front(); e != nil; e = e.Next() {
 		thisIt := e.Value.(Iterator)
+
 		if !thisIt.Nextable() {
 			continue
 		}
+
 		if thisIt != bestIt {
 			out.PushBack(thisIt)
 		}
 	}
+
 	// ...And finally, the difficult children on the end.
 	out.PushBackList(bad)
+
 	return out
 }
 
@@ -197,16 +220,20 @@ func (and *AndIterator) optimizeCheck() {
 	// Find the iterator with the lowest Check() cost, push it to the front, repeat.
 	for subIts.Len() != 0 {
 		var best *list.Element
+
 		bestCost := int64(1 << 62)
+
 		for e := subIts.Front(); e != nil; e = e.Next() {
 			it := e.Value.(Iterator)
 			rootStats := it.GetStats()
 			projectedCost := rootStats.CheckCost
+
 			if projectedCost < bestCost {
 				best = e
 				bestCost = projectedCost
 			}
 		}
+
 		out.PushBack(best.Value)
 		subIts.Remove(best)
 	}
@@ -221,15 +248,19 @@ func (and *AndIterator) optimizeCheck() {
 func (and *AndIterator) getSubTags() map[string]bool {
 	subs := and.GetSubIterators()
 	tags := make(map[string]bool)
+
 	for e := subs.Front(); e != nil; e = e.Next() {
 		it := e.Value.(Iterator)
+
 		for _, tag := range it.Tags() {
 			tags[tag] = true
 		}
 	}
+
 	for _, tag := range and.Tags() {
 		tags[tag] = true
 	}
+
 	return tags
 }
 
@@ -237,12 +268,14 @@ func (and *AndIterator) getSubTags() map[string]bool {
 // And itself, and moves them to `out`.
 func moveTagsTo(out Iterator, and *AndIterator) {
 	tagmap := and.getSubTags()
+
 	for _, tag := range out.Tags() {
 		if tagmap[tag] {
 			delete(tagmap, tag)
 		}
 	}
-	for k, _ := range tagmap {
+
+	for k := range tagmap {
 		out.AddTag(k)
 	}
 }
@@ -253,15 +286,18 @@ func moveTagsTo(out Iterator, and *AndIterator) {
 // which were replaced.
 func optimizeSubIterators(l *list.List) *list.List {
 	itList := list.New()
+
 	for e := l.Front(); e != nil; e = e.Next() {
 		it := e.Value.(Iterator)
 		newIt, change := it.Optimize()
+
 		if change {
 			itList.PushBack(newIt)
 		} else {
 			itList.PushBack(it.Clone())
 		}
 	}
+
 	return itList
 }
 
@@ -269,10 +305,12 @@ func optimizeSubIterators(l *list.List) *list.List {
 func hasAnyNullIterators(l *list.List) bool {
 	for e := l.Front(); e != nil; e = e.Next() {
 		it := e.Value.(Iterator)
+
 		if it.Type() == "null" {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -282,17 +320,22 @@ func hasAnyNullIterators(l *list.List) bool {
 // if we are, then we have only one useful iterator.
 func hasOneUsefulIterator(l *list.List) Iterator {
 	usefulCount := 0
+
 	var usefulIt Iterator
+
 	for e := l.Front(); e != nil; e = e.Next() {
 		it := e.Value.(Iterator)
+
 		switch it.Type() {
 		case "null", "all":
 			continue
+
 		case "optional":
 			// Optional is weird -- it's not useful, but we can't optimize
 			// away from it. Therefore, we skip this optimization
 			// if we see one.
 			return nil
+
 		default:
 			usefulCount++
 			usefulIt = it
@@ -302,6 +345,7 @@ func hasOneUsefulIterator(l *list.List) Iterator {
 	if usefulCount == 1 {
 		return usefulIt
 	}
+
 	return nil
 }
 
@@ -313,14 +357,17 @@ func (and *AndIterator) GetStats() *IteratorStats {
 	CheckCost := primaryStats.CheckCost
 	NextCost := primaryStats.NextCost
 	Size := primaryStats.Size
+
 	for _, it := range and.internalIterators {
 		stats := it.GetStats()
 		NextCost += stats.CheckCost
 		CheckCost += stats.CheckCost
+
 		if Size > stats.Size {
 			Size = stats.Size
 		}
 	}
+
 	return &IteratorStats{
 		CheckCost: CheckCost,
 		NextCost:  NextCost,

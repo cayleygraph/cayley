@@ -22,17 +22,20 @@ import (
 func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]string {
 	// Transform the map into something a little more interesting.
 	results := make(map[MqlPath]string)
+
 	for k, v := range tags {
 		results[MqlPath(k)] = m.ses.ts.GetNameFor(v)
 	}
+
 	resultPaths := make(map[MqlResultPath]string)
+
 	for k, v := range results {
 		resultPaths[k.ToResultPathFromMap(results)] = v
 	}
 
 	var paths MqlResultPathSlice
 
-	for path, _ := range resultPaths {
+	for path := range resultPaths {
 		paths = append(paths, path)
 	}
 
@@ -43,17 +46,22 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 		currentPath := path.getPath()
 		value := resultPaths[path]
 		namePath := path.AppendValue(value)
+
 		if _, ok := m.queryResult[namePath]; !ok {
 			targetPath, key := path.splitLastPath()
+
 			if path == "" {
 				targetPath, key = "", value
+
 				if _, ok := m.queryResult[""][value]; !ok {
 					m.resultOrder = append(m.resultOrder, value)
 				}
 			}
+
 			if _, ok := m.queryStructure[currentPath]; ok {
 				// If there's substructure, then copy that in.
 				newStruct := m.copyPathStructure(currentPath)
+
 				if m.isRepeated[currentPath] && currentPath != "" {
 					switch t := m.queryResult[targetPath][key].(type) {
 					case nil:
@@ -61,6 +69,7 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 						x = append(x, newStruct)
 						m.queryResult[targetPath][key] = x
 						m.queryResult[namePath] = newStruct
+
 					case []interface{}:
 						m.queryResult[targetPath][key] = append(t, newStruct)
 						m.queryResult[namePath] = newStruct
@@ -79,6 +88,7 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 		currentPath := path.getPath()
 		value := resultPaths[path]
 		namePath := path.AppendValue(value)
+
 		if _, ok := m.queryStructure[currentPath]; ok {
 			// We're dealing with ids.
 			if _, ok := m.queryResult[namePath]["id"]; ok {
@@ -87,16 +97,17 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 		} else {
 			// Just a value.
 			targetPath, key := path.splitLastPath()
+
 			if m.isRepeated[currentPath] {
 				switch t := m.queryResult[targetPath][key].(type) {
 				case nil:
 					x := make([]interface{}, 0)
 					x = append(x, value)
 					m.queryResult[targetPath][key] = x
+
 				case []interface{}:
 					m.queryResult[targetPath][key] = append(t, value)
 				}
-
 			} else {
 				m.queryResult[targetPath][key] = value
 			}

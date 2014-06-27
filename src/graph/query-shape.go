@@ -48,7 +48,9 @@ func OutputQueryShapeForIterator(it Iterator, ts TripleStore, outputMap *map[str
 	qs.nodeId = 1
 
 	node := qs.MakeNode(it.Clone())
+
 	qs.AddNode(node)
+
 	(*outputMap)["nodes"] = qs.nodes
 	(*outputMap)["links"] = qs.links
 }
@@ -79,25 +81,32 @@ func (qs *queryShape) StealNode(left *Node, right *Node) {
 	for _, v := range right.Values {
 		left.Values = append(left.Values, v)
 	}
+
 	for _, v := range right.Tags {
 		left.Tags = append(left.Tags, v)
 	}
+
 	left.IsLinkNode = left.IsLinkNode || right.IsLinkNode
 	left.IsFixed = left.IsFixed || right.IsFixed
+
 	for i, link := range qs.links {
 		rewrite := false
+
 		if link.LinkNode == right.Id {
 			link.LinkNode = left.Id
 			rewrite = true
 		}
+
 		if link.Source == right.Id {
 			link.Source = left.Id
 			rewrite = true
 		}
+
 		if link.Target == right.Id {
 			link.Target = left.Id
 			rewrite = true
 		}
+
 		if rewrite {
 			qs.links = append(append(qs.links[:i], qs.links[i+1:]...), link)
 		}
@@ -106,25 +115,32 @@ func (qs *queryShape) StealNode(left *Node, right *Node) {
 
 func (qs *queryShape) MakeNode(it Iterator) *Node {
 	var n Node
+
 	n.IsLinkNode = false
 	n.IsFixed = false
 	n.Id = qs.nodeId
 	n.Tags = make([]string, 0)
 	n.Values = make([]string, 0)
+
 	for _, tag := range it.Tags() {
 		n.Tags = append(n.Tags, tag)
 	}
-	for k, _ := range it.FixedTags() {
+
+	for k := range it.FixedTags() {
 		n.Tags = append(n.Tags, k)
 	}
 
 	switch it.Type() {
 	case "and":
 		list := it.GetSubIterators()
+
 		for e := list.Front(); e != nil; e = e.Next() {
 			subit := e.Value.(Iterator)
+
 			qs.nodeId++
+
 			newNode := qs.MakeNode(subit)
+
 			if subit.Type() != "or" {
 				qs.StealNode(&n, newNode)
 			} else {
@@ -132,28 +148,42 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 				qs.AddLink(&Link{n.Id, newNode.Id, 0, 0})
 			}
 		}
+
 	case "fixed":
 		n.IsFixed = true
+
 		for {
 			val, more := it.Next()
+
 			if !more {
 				break
 			}
+
 			n.Values = append(n.Values, qs.ts.GetNameFor(val))
 		}
+
 	case "hasa":
 		hasa := it.(*HasaIterator)
+
 		qs.PushHasa(n.Id, hasa.direction)
+
 		qs.nodeId++
+
 		newNode := qs.MakeNode(hasa.primaryIt)
+
 		qs.AddNode(newNode)
 		qs.RemoveHasa()
+
 	case "or":
 		list := it.GetSubIterators()
+
 		for e := list.Front(); e != nil; e = e.Next() {
 			subit := e.Value.(Iterator)
+
 			qs.nodeId++
+
 			newNode := qs.MakeNode(subit)
+
 			if subit.Type() == "or" {
 				qs.StealNode(&n, newNode)
 			} else {
@@ -161,15 +191,20 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 				qs.AddLink(&Link{n.Id, newNode.Id, 0, 0})
 			}
 		}
+
 	case "linksto":
 		n.IsLinkNode = true
 		lto := it.(*LinksToIterator)
+
 		qs.nodeId++
+
 		newNode := qs.MakeNode(lto.primaryIt)
 		hasaID, hasaDir := qs.LastHasa()
+
 		if (hasaDir == "s" && lto.direction == "o") ||
 			(hasaDir == "o" && lto.direction == "s") {
 			qs.AddNode(newNode)
+
 			if hasaDir == "s" {
 				qs.AddLink(&Link{hasaID, newNode.Id, 0, n.Id})
 			} else {
@@ -180,10 +215,13 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 		} else {
 			qs.AddNode(newNode)
 		}
+
 	case "optional":
 		// Unsupported, for the moment
 		fallthrough
+
 	case "all":
 	}
+
 	return &n
 }
