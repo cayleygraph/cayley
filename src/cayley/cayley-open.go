@@ -18,10 +18,10 @@ import (
 	"github.com/google/cayley/src/graph"
 
 	"github.com/barakmich/glog"
-	cfg "github.com/google/cayley/src/cayley_config"
-	"github.com/google/cayley/src/graph_leveldb"
-	"github.com/google/cayley/src/graph_memstore"
-	"github.com/google/cayley/src/graph_mongo"
+	cfg "github.com/google/cayley/src/cayley/config"
+	graph_leveldb "github.com/google/cayley/src/graph/leveldb"
+	graph_memstore "github.com/google/cayley/src/graph/memstore"
+	graph_mongo "github.com/google/cayley/src/graph/mongo"
 )
 
 func OpenTSFromConfig(config *cfg.CayleyConfig) graph.TripleStore {

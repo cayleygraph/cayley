@@ -15,9 +15,9 @@
 package cayley
 
 import (
-	cfg "github.com/google/cayley/src/cayley_config"
-	"github.com/google/cayley/src/graph_leveldb"
-	"github.com/google/cayley/src/graph_mongo"
+	cfg "github.com/google/cayley/src/cayley/config"
+	graph_leveldb "github.com/google/cayley/src/graph/leveldb"
+	graph_mongo "github.com/google/cayley/src/graph/mongo"
 )
 
 func CayleyInit(config *cfg.CayleyConfig, triplePath string) bool {

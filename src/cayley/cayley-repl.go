@@ -17,9 +17,9 @@ package cayley
 import (
 	"bufio"
 	"fmt"
-	cfg "github.com/google/cayley/src/cayley_config"
+	cfg "github.com/google/cayley/src/cayley/config"
 	"github.com/google/cayley/src/graph"
-	sexp "github.com/google/cayley/src/graph_sexp"
+	sexp "github.com/google/cayley/src/graph/sexp"
 	"github.com/google/cayley/src/gremlin"
 	"github.com/google/cayley/src/mql"
 	"github.com/google/cayley/src/nquads"
