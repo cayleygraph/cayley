@@ -25,7 +25,7 @@ import (
 	"os"
 )
 
-var stdIn = flag.Bool("stdIn", false, "Whether or not to load data from standard in")
+var stdIn = flag.Bool("stdin", false, "Whether or not to load data from standard in")
 
 func CayleyLoad(ts graph.TripleStore, config *cfg.CayleyConfig, triplePath string, firstTime bool) {
 	switch config.DatabaseType {
@@ -72,7 +72,7 @@ func ReadTriplesFromStdIn(c chan *graph.Triple) {
 
 func LoadTriplesFromFileInto(ts graph.TripleStore, filename string, loadSize int) {
 	tChan := make(chan *graph.Triple)
-	if *stdIn {
+	if *stdIn || filename == "-" {
 		go ReadTriplesFromStdIn(tChan)
 	} else {
 		go ReadTriplesFromFile(tChan, filename)
