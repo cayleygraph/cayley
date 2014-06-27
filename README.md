@@ -70,8 +70,8 @@ If you are on Windows, make.sh can be a bit problematic. Instead you can use win
 ```bash
 git clone git@github.com:google/cayley.git
 cd cayley
-.\windeps.ps1
-.\winbuild.ps1
+windeps.ps1
+winbuild.ps1
 ```
 
 And the `cayley` binary will be built and ready.
