@@ -35,117 +35,161 @@ type ErrorQueryWrapper struct {
 
 func WrapErrResult(err error) ([]byte, error) {
 	var wrap ErrorQueryWrapper
+
 	wrap.Error = err.Error()
+
 	return json.MarshalIndent(wrap, "", " ")
 }
 
 func WrapResult(result interface{}) ([]byte, error) {
 	var wrap SuccessQueryWrapper
+
 	wrap.Result = result
+
 	return json.MarshalIndent(wrap, "", " ")
 }
 
 func RunJsonQuery(query string, ses graph.HttpSession) (interface{}, error) {
 	c := make(chan interface{}, 5)
+
 	go ses.ExecInput(query, c, 100)
+
 	for res := range c {
 		ses.BuildJson(res)
 	}
+
 	return ses.GetJson()
 }
 
 func GetQueryShape(query string, ses graph.HttpSession) ([]byte, error) {
 	c := make(chan map[string]interface{}, 5)
+
 	go ses.GetQuery(query, c)
+
 	var data map[string]interface{}
+
 	for res := range c {
 		data = res
 	}
+
 	return json.Marshal(data)
 }
 
 // TODO(barakmich): Turn this into proper middleware.
 func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
 	var ses graph.HttpSession
+
 	switch params.ByName("query_lang") {
 	case "gremlin":
 		ses = gremlin.NewGremlinSession(api.ts, api.config.GremlinTimeout, false)
+
 	case "mql":
 		ses = mql.NewMqlSession(api.ts)
+
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
-	var err error
+
 	bodyBytes, err := ioutil.ReadAll(r.Body)
+
 	if err != nil {
 		return FormatJson400(w, err)
 	}
+
 	code := string(bodyBytes)
 	result, err := ses.InputParses(code)
+
 	switch result {
 	case graph.Parsed:
-		var output interface{}
 		var bytes []byte
-		var err error
-		output, err = RunJsonQuery(code, ses)
+
+		output, err := RunJsonQuery(code, ses)
+
 		if err != nil {
-			bytes, err = WrapErrResult(err)
+			bytes, _ := WrapErrResult(err)
+
 			http.Error(w, string(bytes), 400)
+
 			ses = nil
+
 			return 400
 		}
+
 		bytes, err = WrapResult(output)
+
 		if err != nil {
 			ses = nil
+
 			return FormatJson400(w, err)
 		}
+
 		fmt.Fprint(w, string(bytes))
+
 		ses = nil
+
 		return 200
+
 	case graph.ParseFail:
 		ses = nil
+
 		return FormatJson400(w, err)
+
 	default:
 		ses = nil
+
 		return FormatJsonError(w, 500, "Incomplete data?")
 	}
+
 	http.Error(w, "", http.StatusNotFound)
+
 	ses = nil
+
 	return http.StatusNotFound
 }
 
 func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
 	var ses graph.HttpSession
+
 	switch params.ByName("query_lang") {
 	case "gremlin":
 		ses = gremlin.NewGremlinSession(api.ts, api.config.GremlinTimeout, false)
+
 	case "mql":
 		ses = mql.NewMqlSession(api.ts)
+
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
-	var err error
+
 	bodyBytes, err := ioutil.ReadAll(r.Body)
+
 	if err != nil {
 		return FormatJson400(w, err)
 	}
+
 	code := string(bodyBytes)
 	result, err := ses.InputParses(code)
+
 	switch result {
 	case graph.Parsed:
-		var output []byte
-		var err error
-		output, err = GetQueryShape(code, ses)
+		output, err := GetQueryShape(code, ses)
+
 		if err != nil {
 			return FormatJson400(w, err)
 		}
+
 		fmt.Fprint(w, string(output))
+
 		return 200
+
 	case graph.ParseFail:
 		return FormatJson400(w, err)
+
 	default:
 		return FormatJsonError(w, 500, "Incomplete data?")
 	}
+
 	http.Error(w, "", http.StatusNotFound)
+
 	return http.StatusNotFound
 }
