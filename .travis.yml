@@ -1,1 +1,6 @@
 language: go
+
+install:
+  - go get github.com/jacobsa/ogletest
+  - go get github.com/jacobsa/oglematchers
+  - go get github.com/smartystreets/goconvey
