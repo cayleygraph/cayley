@@ -25,7 +25,7 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type GremlinSession struct {
+type Session struct {
 	ts                   graph.TripleStore
 	currentChannel       chan interface{}
 	env                  *otto.Otto
@@ -42,10 +42,10 @@ type GremlinSession struct {
 	emptyEnv             *otto.Otto
 }
 
-func NewGremlinSession(inputTripleStore graph.TripleStore, timeoutSec int, persist bool) *GremlinSession {
-	var g GremlinSession
+func NewSession(inputTripleStore graph.TripleStore, timeoutSec int, persist bool) *Session {
+	var g Session
 	g.ts = inputTripleStore
-	g.env = BuildGremlinEnv(&g)
+	g.env = BuildEnviron(&g)
 	g.limit = -1
 	g.count = 0
 	g.lookingForQueryShape = false
@@ -68,11 +68,11 @@ type GremlinResult struct {
 	actualResults *map[string]graph.TSVal
 }
 
-func (g *GremlinSession) ToggleDebug() {
+func (g *Session) ToggleDebug() {
 	g.debug = !g.debug
 }
 
-func (g *GremlinSession) GetQuery(input string, output_struct chan map[string]interface{}) {
+func (g *Session) GetQuery(input string, output_struct chan map[string]interface{}) {
 	defer close(output_struct)
 	g.queryShape = make(map[string]interface{})
 	g.lookingForQueryShape = true
@@ -81,7 +81,7 @@ func (g *GremlinSession) GetQuery(input string, output_struct chan map[string]in
 	g.queryShape = nil
 }
 
-func (g *GremlinSession) InputParses(input string) (graph.ParseResult, error) {
+func (g *Session) InputParses(input string) (graph.ParseResult, error) {
 	script, err := g.env.Compile("", input)
 	if err != nil {
 		return graph.ParseFail, err
@@ -90,7 +90,7 @@ func (g *GremlinSession) InputParses(input string) (graph.ParseResult, error) {
 	return graph.Parsed, nil
 }
 
-func (g *GremlinSession) SendResult(result *GremlinResult) bool {
+func (g *Session) SendResult(result *GremlinResult) bool {
 	if g.limit >= 0 && g.limit == g.count {
 		return false
 	}
@@ -111,7 +111,7 @@ func (g *GremlinSession) SendResult(result *GremlinResult) bool {
 
 var halt = errors.New("Query Timeout")
 
-func (g *GremlinSession) runUnsafe(input interface{}) (otto.Value, error) {
+func (g *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	g.doHalt = false
 	defer func() {
 		if caught := recover(); caught != nil {
@@ -141,7 +141,7 @@ func (g *GremlinSession) runUnsafe(input interface{}) (otto.Value, error) {
 	return g.env.Run(input) // Here be dragons (risky code)
 }
 
-func (g *GremlinSession) ExecInput(input string, out chan interface{}, limit int) {
+func (g *Session) ExecInput(input string, out chan interface{}, limit int) {
 	defer close(out)
 	g.err = nil
 	g.currentChannel = out
@@ -169,7 +169,7 @@ func (g *GremlinSession) ExecInput(input string, out chan interface{}, limit int
 	return
 }
 
-func (s *GremlinSession) ToText(result interface{}) string {
+func (s *Session) ToText(result interface{}) string {
 	data := result.(*GremlinResult)
 	if data.metaresult {
 		if data.err != "" {
@@ -220,7 +220,7 @@ func (s *GremlinSession) ToText(result interface{}) string {
 }
 
 // Web stuff
-func (ses *GremlinSession) BuildJson(result interface{}) {
+func (ses *Session) BuildJson(result interface{}) {
 	data := result.(*GremlinResult)
 	if !data.metaresult {
 		if data.val == nil {
@@ -250,7 +250,7 @@ func (ses *GremlinSession) BuildJson(result interface{}) {
 
 }
 
-func (ses *GremlinSession) GetJson() (interface{}, error) {
+func (ses *Session) GetJson() (interface{}, error) {
 	defer ses.ClearJson()
 	if ses.err != nil {
 		return nil, ses.err
@@ -261,6 +261,6 @@ func (ses *GremlinSession) GetJson() (interface{}, error) {
 	return ses.dataOutput, nil
 }
 
-func (ses *GremlinSession) ClearJson() {
+func (ses *Session) ClearJson() {
 	ses.dataOutput = nil
 }

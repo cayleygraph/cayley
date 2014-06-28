@@ -70,7 +70,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewGremlinSession(ts, cfg.GremlinTimeout, true)
+		ses = gremlin.NewSession(ts, cfg.GremlinTimeout, true)
 	}
 	inputBf := bufio.NewReader(os.Stdin)
 	line := ""

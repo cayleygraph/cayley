@@ -21,7 +21,7 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-func embedTraversals(env *otto.Otto, ses *GremlinSession, obj *otto.Object) {
+func embedTraversals(env *otto.Otto, ses *Session, obj *otto.Object) {
 	obj.Set("In", gremlinFunc("in", obj, env, ses))
 	obj.Set("Out", gremlinFunc("out", obj, env, ses))
 	obj.Set("Is", gremlinFunc("is", obj, env, ses))
@@ -40,7 +40,7 @@ func embedTraversals(env *otto.Otto, ses *GremlinSession, obj *otto.Object) {
 	obj.Set("SaveR", gremlinFunc("saver", obj, env, ses))
 }
 
-func gremlinFunc(kind string, prevObj *otto.Object, env *otto.Otto, ses *GremlinSession) func(otto.FunctionCall) otto.Value {
+func gremlinFunc(kind string, prevObj *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
@@ -59,7 +59,7 @@ func gremlinFunc(kind string, prevObj *otto.Object, env *otto.Otto, ses *Gremlin
 	}
 }
 
-func gremlinBack(kind string, prevObj *otto.Object, env *otto.Otto, ses *GremlinSession) func(otto.FunctionCall) otto.Value {
+func gremlinBack(kind string, prevObj *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
@@ -87,7 +87,7 @@ func gremlinBack(kind string, prevObj *otto.Object, env *otto.Otto, ses *Gremlin
 	}
 }
 
-func gremlinFollowR(kind string, prevObj *otto.Object, env *otto.Otto, ses *GremlinSession) func(otto.FunctionCall) otto.Value {
+func gremlinFollowR(kind string, prevObj *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
