@@ -21,53 +21,53 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type MqlPath string
-type MqlResultPath string
+type Path string
+type ResultPath string
 
-type MqlQuery struct {
+type Query struct {
 	ses            *Session
 	it             graph.Iterator
-	isRepeated     map[MqlPath]bool
-	queryStructure map[MqlPath]map[string]interface{}
-	queryResult    map[MqlResultPath]map[string]interface{}
+	isRepeated     map[Path]bool
+	queryStructure map[Path]map[string]interface{}
+	queryResult    map[ResultPath]map[string]interface{}
 	results        []interface{}
 	resultOrder    []string
 	isError        bool
 	err            error
 }
 
-func (mqlQuery *MqlQuery) copyPathStructure(path MqlPath) map[string]interface{} {
+func (q *Query) copyPathStructure(path Path) map[string]interface{} {
 	output := make(map[string]interface{})
-	for k, v := range mqlQuery.queryStructure[path] {
+	for k, v := range q.queryStructure[path] {
 		output[k] = v
 	}
 	return output
 }
 
-func NewMqlPath() MqlPath {
+func NewPath() Path {
 	return ""
 }
-func (p MqlPath) Follow(s string) MqlPath {
-	return MqlPath(fmt.Sprintf("%s\x1E%s", p, s))
+func (p Path) Follow(s string) Path {
+	return Path(fmt.Sprintf("%s\x1E%s", p, s))
 }
 
-func (p MqlPath) DisplayString() string {
+func (p Path) DisplayString() string {
 	return strings.Replace(string(p), "\x1E", ".", -1)
 }
 
-func NewMqlResultPath() MqlResultPath {
+func NewResultPath() ResultPath {
 	return ""
 }
 
-func (p MqlResultPath) FollowPath(followPiece string, value string) MqlResultPath {
+func (p ResultPath) FollowPath(followPiece string, value string) ResultPath {
 	if string(p) == "" {
-		return MqlResultPath(fmt.Sprintf("%s\x1E%s", value, followPiece))
+		return ResultPath(fmt.Sprintf("%s\x1E%s", value, followPiece))
 	}
-	return MqlResultPath(fmt.Sprintf("%s\x1E%s\x1E%s", p, value, followPiece))
+	return ResultPath(fmt.Sprintf("%s\x1E%s\x1E%s", p, value, followPiece))
 }
 
-func (p MqlResultPath) getPath() MqlPath {
-	out := NewMqlPath()
+func (p ResultPath) getPath() Path {
+	out := NewPath()
 	pathPieces := strings.Split(string(p), "\x1E")
 	for len(pathPieces) > 1 {
 		a := pathPieces[1]
@@ -77,22 +77,22 @@ func (p MqlResultPath) getPath() MqlPath {
 	return out
 }
 
-func (p MqlResultPath) splitLastPath() (MqlResultPath, string) {
+func (p ResultPath) splitLastPath() (ResultPath, string) {
 	pathPieces := strings.Split(string(p), "\x1E")
-	return MqlResultPath(strings.Join(pathPieces[:len(pathPieces)-1], "\x1E")), pathPieces[len(pathPieces)-1]
+	return ResultPath(strings.Join(pathPieces[:len(pathPieces)-1], "\x1E")), pathPieces[len(pathPieces)-1]
 }
 
-func (p MqlResultPath) AppendValue(value string) MqlResultPath {
+func (p ResultPath) AppendValue(value string) ResultPath {
 	if string(p) == "" {
-		return MqlResultPath(value)
+		return ResultPath(value)
 	}
-	return MqlResultPath(fmt.Sprintf("%s\x1E%s", p, value))
+	return ResultPath(fmt.Sprintf("%s\x1E%s", p, value))
 }
 
-func (p MqlPath) ToResultPathFromMap(resultMap map[MqlPath]string) MqlResultPath {
-	output := NewMqlResultPath()
+func (p Path) ToResultPathFromMap(resultMap map[Path]string) ResultPath {
+	output := NewResultPath()
 	pathPieces := strings.Split(string(p), "\x1E")[1:]
-	pathSoFar := NewMqlPath()
+	pathSoFar := NewPath()
 	for _, piece := range pathPieces {
 		output = output.FollowPath(piece, resultMap[pathSoFar])
 		pathSoFar = pathSoFar.Follow(piece)
@@ -100,8 +100,8 @@ func (p MqlPath) ToResultPathFromMap(resultMap map[MqlPath]string) MqlResultPath
 	return output
 }
 
-func NewMqlQuery(ses *Session) *MqlQuery {
-	var q MqlQuery
+func NewQuery(ses *Session) *Query {
+	var q Query
 	q.ses = ses
 	q.results = make([]interface{}, 0)
 	q.resultOrder = make([]string, 0)

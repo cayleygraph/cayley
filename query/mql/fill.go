@@ -20,18 +20,18 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]string {
+func (q *Query) treeifyResult(tags map[string]graph.TSVal) map[ResultPath]string {
 	// Transform the map into something a little more interesting.
-	results := make(map[MqlPath]string)
+	results := make(map[Path]string)
 	for k, v := range tags {
-		results[MqlPath(k)] = m.ses.ts.GetNameFor(v)
+		results[Path(k)] = q.ses.ts.GetNameFor(v)
 	}
-	resultPaths := make(map[MqlResultPath]string)
+	resultPaths := make(map[ResultPath]string)
 	for k, v := range results {
 		resultPaths[k.ToResultPathFromMap(results)] = v
 	}
 
-	var paths MqlResultPathSlice
+	var paths ResultPathSlice
 
 	for path, _ := range resultPaths {
 		paths = append(paths, path)
@@ -44,32 +44,32 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 		currentPath := path.getPath()
 		value := resultPaths[path]
 		namePath := path.AppendValue(value)
-		if _, ok := m.queryResult[namePath]; !ok {
+		if _, ok := q.queryResult[namePath]; !ok {
 			targetPath, key := path.splitLastPath()
 			if path == "" {
 				targetPath, key = "", value
-				if _, ok := m.queryResult[""][value]; !ok {
-					m.resultOrder = append(m.resultOrder, value)
+				if _, ok := q.queryResult[""][value]; !ok {
+					q.resultOrder = append(q.resultOrder, value)
 				}
 			}
-			if _, ok := m.queryStructure[currentPath]; ok {
+			if _, ok := q.queryStructure[currentPath]; ok {
 				// If there's substructure, then copy that in.
-				newStruct := m.copyPathStructure(currentPath)
-				if m.isRepeated[currentPath] && currentPath != "" {
-					switch t := m.queryResult[targetPath][key].(type) {
+				newStruct := q.copyPathStructure(currentPath)
+				if q.isRepeated[currentPath] && currentPath != "" {
+					switch t := q.queryResult[targetPath][key].(type) {
 					case nil:
 						x := make([]interface{}, 0)
 						x = append(x, newStruct)
-						m.queryResult[targetPath][key] = x
-						m.queryResult[namePath] = newStruct
+						q.queryResult[targetPath][key] = x
+						q.queryResult[namePath] = newStruct
 					case []interface{}:
-						m.queryResult[targetPath][key] = append(t, newStruct)
-						m.queryResult[namePath] = newStruct
+						q.queryResult[targetPath][key] = append(t, newStruct)
+						q.queryResult[namePath] = newStruct
 					}
 
 				} else {
-					m.queryResult[namePath] = newStruct
-					m.queryResult[targetPath][key] = newStruct
+					q.queryResult[namePath] = newStruct
+					q.queryResult[targetPath][key] = newStruct
 				}
 			}
 		}
@@ -80,26 +80,26 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 		currentPath := path.getPath()
 		value := resultPaths[path]
 		namePath := path.AppendValue(value)
-		if _, ok := m.queryStructure[currentPath]; ok {
+		if _, ok := q.queryStructure[currentPath]; ok {
 			// We're dealing with ids.
-			if _, ok := m.queryResult[namePath]["id"]; ok {
-				m.queryResult[namePath]["id"] = value
+			if _, ok := q.queryResult[namePath]["id"]; ok {
+				q.queryResult[namePath]["id"] = value
 			}
 		} else {
 			// Just a value.
 			targetPath, key := path.splitLastPath()
-			if m.isRepeated[currentPath] {
-				switch t := m.queryResult[targetPath][key].(type) {
+			if q.isRepeated[currentPath] {
+				switch t := q.queryResult[targetPath][key].(type) {
 				case nil:
 					x := make([]interface{}, 0)
 					x = append(x, value)
-					m.queryResult[targetPath][key] = x
+					q.queryResult[targetPath][key] = x
 				case []interface{}:
-					m.queryResult[targetPath][key] = append(t, value)
+					q.queryResult[targetPath][key] = append(t, value)
 				}
 
 			} else {
-				m.queryResult[targetPath][key] = value
+				q.queryResult[targetPath][key] = value
 			}
 		}
 	}
@@ -107,8 +107,8 @@ func (m *MqlQuery) treeifyResult(tags map[string]graph.TSVal) map[MqlResultPath]
 	return resultPaths
 }
 
-func (m *MqlQuery) buildResults() {
-	for _, v := range m.resultOrder {
-		m.results = append(m.results, m.queryResult[""][v])
+func (q *Query) buildResults() {
+	for _, v := range q.resultOrder {
+		q.results = append(q.results, q.queryResult[""][v])
 	}
 }

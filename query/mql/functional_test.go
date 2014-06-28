@@ -40,7 +40,7 @@ func buildTripleStore() *Session {
 	return NewSession(ts)
 }
 
-func compareJsonInterfaces(actual interface{}, expected interface{}, path MqlPath, t *testing.T) {
+func compareJsonInterfaces(actual interface{}, expected interface{}, path Path, t *testing.T) {
 	isError := false
 	switch ex := expected.(type) {
 	case bool:
@@ -134,7 +134,7 @@ func runAndTestQuery(query string, expected string, t *testing.T) {
 	actual_struct, _ := ses.GetJson()
 	var expected_struct interface{}
 	json.Unmarshal([]byte(expected), &expected_struct)
-	compareJsonInterfaces(actual_struct, expected_struct, NewMqlPath(), t)
+	compareJsonInterfaces(actual_struct, expected_struct, NewPath(), t)
 	ses.ClearJson()
 }
 

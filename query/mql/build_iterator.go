@@ -24,31 +24,31 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func (m *MqlQuery) buildFixed(s string) graph.Iterator {
-	f := m.ses.ts.MakeFixed()
-	f.AddValue(m.ses.ts.GetIdFor(s))
+func (q *Query) buildFixed(s string) graph.Iterator {
+	f := q.ses.ts.MakeFixed()
+	f.AddValue(q.ses.ts.GetIdFor(s))
 	return f
 }
 
-func (m *MqlQuery) buildResultIterator(path MqlPath) graph.Iterator {
-	all := m.ses.ts.GetNodesAllIterator()
+func (q *Query) buildResultIterator(path Path) graph.Iterator {
+	all := q.ses.ts.GetNodesAllIterator()
 	all.AddTag(string(path))
 	return graph.NewOptionalIterator(all)
 }
 
-func (m *MqlQuery) BuildIteratorTree(query interface{}) {
-	m.isRepeated = make(map[MqlPath]bool)
-	m.queryStructure = make(map[MqlPath]map[string]interface{})
-	m.queryResult = make(map[MqlResultPath]map[string]interface{})
-	m.queryResult[""] = make(map[string]interface{})
+func (q *Query) BuildIteratorTree(query interface{}) {
+	q.isRepeated = make(map[Path]bool)
+	q.queryStructure = make(map[Path]map[string]interface{})
+	q.queryResult = make(map[ResultPath]map[string]interface{})
+	q.queryResult[""] = make(map[string]interface{})
 
-	m.it, m.err = m.buildIteratorTreeInternal(query, NewMqlPath())
-	if m.err != nil {
-		m.isError = true
+	q.it, q.err = q.buildIteratorTreeInternal(query, NewPath())
+	if q.err != nil {
+		q.isError = true
 	}
 }
 
-func (m *MqlQuery) buildIteratorTreeInternal(query interface{}, path MqlPath) (graph.Iterator, error) {
+func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (graph.Iterator, error) {
 	var it graph.Iterator
 	var err error
 	err = nil
@@ -58,36 +58,36 @@ func (m *MqlQuery) buildIteratorTreeInternal(query interface{}, path MqlPath) (g
 		// Treat the bool as a string and call it a day.
 		// Things which are really bool-like are special cases and will be dealt with separately.
 		if t {
-			it = m.buildFixed("true")
+			it = q.buildFixed("true")
 		}
-		it = m.buildFixed("false")
+		it = q.buildFixed("false")
 	case float64:
 		// for JSON numbers
 		// Damn you, Javascript, and your lack of integer values.
 		if math.Floor(t) == t {
 			// Treat it like an integer.
-			it = m.buildFixed(fmt.Sprintf("%d", t))
+			it = q.buildFixed(fmt.Sprintf("%d", t))
 		} else {
-			it = m.buildFixed(fmt.Sprintf("%f", t))
+			it = q.buildFixed(fmt.Sprintf("%f", t))
 		}
 	case string:
 		// for JSON strings
-		it = m.buildFixed(t)
+		it = q.buildFixed(t)
 	case []interface{}:
 		// for JSON arrays
-		m.isRepeated[path] = true
+		q.isRepeated[path] = true
 		if len(t) == 0 {
-			it = m.buildResultIterator(path)
+			it = q.buildResultIterator(path)
 		} else if len(t) == 1 {
-			it, err = m.buildIteratorTreeInternal(t[0], path)
+			it, err = q.buildIteratorTreeInternal(t[0], path)
 		} else {
 			err = errors.New(fmt.Sprintf("Multiple fields at location root%s", path.DisplayString()))
 		}
 	case map[string]interface{}:
 		// for JSON objects
-		it, err = m.buildIteratorTreeMapInternal(t, path)
+		it, err = q.buildIteratorTreeMapInternal(t, path)
 	case nil:
-		it = m.buildResultIterator(path)
+		it = q.buildResultIterator(path)
 	default:
 		log.Fatal("Unknown JSON type?", query)
 	}
@@ -98,9 +98,9 @@ func (m *MqlQuery) buildIteratorTreeInternal(query interface{}, path MqlPath) (g
 	return it, nil
 }
 
-func (m *MqlQuery) buildIteratorTreeMapInternal(query map[string]interface{}, path MqlPath) (graph.Iterator, error) {
+func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path Path) (graph.Iterator, error) {
 	it := graph.NewAndIterator()
-	it.AddSubIterator(m.ses.ts.GetNodesAllIterator())
+	it.AddSubIterator(q.ses.ts.GetNodesAllIterator())
 	var err error
 	err = nil
 	outputStructure := make(map[string]interface{})
@@ -122,29 +122,29 @@ func (m *MqlQuery) buildIteratorTreeMapInternal(query map[string]interface{}, pa
 		// Other special constructs here
 		var subit graph.Iterator
 		if key == "id" {
-			subit, err = m.buildIteratorTreeInternal(subquery, path.Follow(key))
+			subit, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
 			if err != nil {
 				return nil, err
 			}
 			it.AddSubIterator(subit)
 		} else {
-			subit, err = m.buildIteratorTreeInternal(subquery, path.Follow(key))
+			subit, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
 			if err != nil {
 				return nil, err
 			}
 			subAnd := graph.NewAndIterator()
-			predFixed := m.ses.ts.MakeFixed()
-			predFixed.AddValue(m.ses.ts.GetIdFor(pred))
-			subAnd.AddSubIterator(graph.NewLinksToIterator(m.ses.ts, predFixed, "p"))
+			predFixed := q.ses.ts.MakeFixed()
+			predFixed.AddValue(q.ses.ts.GetIdFor(pred))
+			subAnd.AddSubIterator(graph.NewLinksToIterator(q.ses.ts, predFixed, "p"))
 			if reverse {
-				lto := graph.NewLinksToIterator(m.ses.ts, subit, "s")
+				lto := graph.NewLinksToIterator(q.ses.ts, subit, "s")
 				subAnd.AddSubIterator(lto)
-				hasa := graph.NewHasaIterator(m.ses.ts, subAnd, "o")
+				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, "o")
 				it.AddSubIterator(hasa)
 			} else {
-				lto := graph.NewLinksToIterator(m.ses.ts, subit, "o")
+				lto := graph.NewLinksToIterator(q.ses.ts, subit, "o")
 				subAnd.AddSubIterator(lto)
-				hasa := graph.NewHasaIterator(m.ses.ts, subAnd, "s")
+				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, "s")
 				it.AddSubIterator(hasa)
 			}
 		}
@@ -152,30 +152,30 @@ func (m *MqlQuery) buildIteratorTreeMapInternal(query map[string]interface{}, pa
 	if err != nil {
 		return nil, err
 	}
-	m.queryStructure[path] = outputStructure
+	q.queryStructure[path] = outputStructure
 	return it, nil
 }
 
-type MqlResultPathSlice []MqlResultPath
+type ResultPathSlice []ResultPath
 
-func (sl MqlResultPathSlice) Len() int {
-	return len(sl)
+func (p ResultPathSlice) Len() int {
+	return len(p)
 }
 
-func (sl MqlResultPathSlice) Less(i, j int) bool {
-	iLen := len(strings.Split(string(sl[i]), "\x30"))
-	jLen := len(strings.Split(string(sl[j]), "\x30"))
+func (p ResultPathSlice) Less(i, j int) bool {
+	iLen := len(strings.Split(string(p[i]), "\x30"))
+	jLen := len(strings.Split(string(p[j]), "\x30"))
 	if iLen < jLen {
 		return true
 	}
 	if iLen == jLen {
-		if len(string(sl[i])) < len(string(sl[j])) {
+		if len(string(p[i])) < len(string(p[j])) {
 			return true
 		}
 	}
 	return false
 }
 
-func (sl MqlResultPathSlice) Swap(i, j int) {
-	sl[i], sl[j] = sl[j], sl[i]
+func (p ResultPathSlice) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
 }
