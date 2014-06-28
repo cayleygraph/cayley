@@ -27,7 +27,7 @@ import (
 func isWhitespace(s uint8) bool {
 	return (s == '\t' || s == '\r' || s == ' ')
 }
-func ParseLineToTriple(str string) *graph.Triple {
+func Parse(str string) *graph.Triple {
 	// Skip leading whitespace.
 	str = skipWhitespace(str)
 	// Check for a comment
@@ -184,7 +184,7 @@ func ReadNQuadsFromReader(c chan *graph.Triple, reader io.Reader) {
 		if pre {
 			continue
 		}
-		triple := ParseLineToTriple(line)
+		triple := Parse(line)
 		line = ""
 		if triple != nil {
 			nTriples++

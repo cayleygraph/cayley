@@ -106,7 +106,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 		}
 		if strings.HasPrefix(line, ":a") {
 			var tripleStmt = line[3:]
-			triple := nquads.ParseLineToTriple(tripleStmt)
+			triple := nquads.Parse(tripleStmt)
 			if triple == nil {
 				fmt.Println("Not a valid triple.")
 				line = ""
@@ -118,7 +118,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 		}
 		if strings.HasPrefix(line, ":d") {
 			var tripleStmt = line[3:]
-			triple := nquads.ParseLineToTriple(tripleStmt)
+			triple := nquads.Parse(tripleStmt)
 			if triple == nil {
 				fmt.Println("Not a valid triple.")
 				line = ""
