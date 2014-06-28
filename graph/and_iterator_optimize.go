@@ -37,10 +37,10 @@ import (
 
 // Optimizes the AndIterator, by picking the most efficient way to Next() and
 // Check() its subiterators. For SQL fans, this is equivalent to JOIN.
-func (and *AndIterator) Optimize() (Iterator, bool) {
+func (it *AndIterator) Optimize() (Iterator, bool) {
 	// First, let's get the list of iterators, in order (first one is Next()ed,
 	// the rest are Check()ed)
-	oldItList := and.GetSubIterators()
+	oldItList := it.GetSubIterators()
 
 	// And call Optimize() on our subtree, replacing each one in the order we
 	// found them. it_list is the newly optimized versions of these, and changed
@@ -54,10 +54,10 @@ func (and *AndIterator) Optimize() (Iterator, bool) {
 
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
-	out := and.optimizeReplacement(itList)
+	out := it.optimizeReplacement(itList)
 	if out != nil {
 		// ...Move the tags to the replacement...
-		moveTagsTo(out, and)
+		moveTagsTo(out, it)
 		// ...Close everyone except `out`, our replacement...
 		closeIteratorList(itList, out)
 		// ...And return it.
@@ -80,14 +80,14 @@ func (and *AndIterator) Optimize() (Iterator, bool) {
 	}
 
 	// Move the tags hanging on us (like any good replacement).
-	newAnd.CopyTagsFrom(and)
+	newAnd.CopyTagsFrom(it)
 
 	newAnd.optimizeCheck()
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the
 	// start).
-	and.cleanUp()
+	it.cleanUp()
 	return newAnd, true
 }
 
@@ -104,7 +104,7 @@ func closeIteratorList(l *list.List, except Iterator) {
 
 // Find if there is a single subiterator which is a valid replacement for this
 // AndIterator.
-func (and *AndIterator) optimizeReplacement(itList *list.List) Iterator {
+func (_ *AndIterator) optimizeReplacement(itList *list.List) Iterator {
 	// If we were created with no SubIterators, we're as good as Null.
 	if itList.Len() == 0 {
 		return &NullIterator{}
@@ -190,8 +190,8 @@ func optimizeOrder(l *list.List) *list.List {
 
 // optimizeCheck(l) creates an alternate check list, containing the same contents
 // but with a new ordering, however it wishes.
-func (and *AndIterator) optimizeCheck() {
-	subIts := and.GetSubIterators()
+func (it *AndIterator) optimizeCheck() {
+	subIts := it.GetSubIterators()
 	out := list.New()
 
 	// Find the iterator with the lowest Check() cost, push it to the front, repeat.
@@ -211,15 +211,15 @@ func (and *AndIterator) optimizeCheck() {
 		subIts.Remove(best)
 	}
 
-	and.checkList = out
+	it.checkList = out
 }
 
 // If we're replacing ourselves by a single iterator, we need to grab the
 // result tags from the iterators that, while still valid and would hold
 // the same values as this and, are not going to stay.
 // getSubTags() returns a map of the tags for all the subiterators.
-func (and *AndIterator) getSubTags() map[string]bool {
-	subs := and.GetSubIterators()
+func (it *AndIterator) getSubTags() map[string]bool {
+	subs := it.GetSubIterators()
 	tags := make(map[string]bool)
 	for e := subs.Front(); e != nil; e = e.Next() {
 		it := e.Value.(Iterator)
@@ -227,23 +227,23 @@ func (and *AndIterator) getSubTags() map[string]bool {
 			tags[tag] = true
 		}
 	}
-	for _, tag := range and.Tags() {
+	for _, tag := range it.Tags() {
 		tags[tag] = true
 	}
 	return tags
 }
 
-// moveTagsTo() gets the tags for all of the And's subiterators and the
-// And itself, and moves them to `out`.
-func moveTagsTo(out Iterator, and *AndIterator) {
-	tagmap := and.getSubTags()
-	for _, tag := range out.Tags() {
+// moveTagsTo() gets the tags for all of the src's subiterators and the
+// src itself, and moves them to dst.
+func moveTagsTo(dst Iterator, src *AndIterator) {
+	tagmap := src.getSubTags()
+	for _, tag := range dst.Tags() {
 		if tagmap[tag] {
 			delete(tagmap, tag)
 		}
 	}
 	for k, _ := range tagmap {
-		out.AddTag(k)
+		dst.AddTag(k)
 	}
 }
 
@@ -308,13 +308,13 @@ func hasOneUsefulIterator(l *list.List) Iterator {
 // and.GetStats() lives here in and-iterator-optimize.go because it may
 // in the future return different statistics based on how it is optimized.
 // For now, however, it's pretty static.
-func (and *AndIterator) GetStats() *IteratorStats {
-	primaryStats := and.primaryIt.GetStats()
+func (it *AndIterator) GetStats() *IteratorStats {
+	primaryStats := it.primaryIt.GetStats()
 	CheckCost := primaryStats.CheckCost
 	NextCost := primaryStats.NextCost
 	Size := primaryStats.Size
-	for _, it := range and.internalIterators {
-		stats := it.GetStats()
+	for _, sub := range it.internalIterators {
+		stats := sub.GetStats()
 		NextCost += stats.CheckCost
 		CheckCost += stats.CheckCost
 		if Size > stats.Size {

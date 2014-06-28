@@ -60,98 +60,97 @@ func NewFixedIteratorWithCompare(compareFn Equality) *FixedIterator {
 	return &it
 }
 
-func (f *FixedIterator) Reset() {
-	f.lastIndex = 0
+func (it *FixedIterator) Reset() {
+	it.lastIndex = 0
 }
 
-func (f *FixedIterator) Close() {
-}
+func (it *FixedIterator) Close() {}
 
-func (f *FixedIterator) Clone() Iterator {
-	out := NewFixedIteratorWithCompare(f.cmp)
-	for _, val := range f.values {
+func (it *FixedIterator) Clone() Iterator {
+	out := NewFixedIteratorWithCompare(it.cmp)
+	for _, val := range it.values {
 		out.AddValue(val)
 	}
-	out.CopyTagsFrom(f)
+	out.CopyTagsFrom(it)
 	return out
 }
 
 // Add a value to the iterator. The array now contains this value.
 // TODO(barakmich): This ought to be a set someday, disallowing repeated values.
-func (f *FixedIterator) AddValue(v TSVal) {
-	f.values = append(f.values, v)
+func (it *FixedIterator) AddValue(v TSVal) {
+	it.values = append(it.values, v)
 }
 
 // Print some information about the iterator.
-func (f *FixedIterator) DebugString(indent int) string {
+func (it *FixedIterator) DebugString(indent int) string {
 	value := ""
-	if len(f.values) > 0 {
-		value = fmt.Sprint(f.values[0])
+	if len(it.values) > 0 {
+		value = fmt.Sprint(it.values[0])
 	}
 	return fmt.Sprintf("%s(%s tags: %s Size: %d id0: %d)",
 		strings.Repeat(" ", indent),
-		f.Type(),
-		f.FixedTags(),
-		len(f.values),
+		it.Type(),
+		it.FixedTags(),
+		len(it.values),
 		value,
 	)
 }
 
 // Register this iterator as a Fixed iterator.
-func (f *FixedIterator) Type() string {
+func (it *FixedIterator) Type() string {
 	return "fixed"
 }
 
 // Check if the passed value is equal to one of the values stored in the iterator.
-func (f *FixedIterator) Check(v TSVal) bool {
+func (it *FixedIterator) Check(v TSVal) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.
-	CheckLogIn(f, v)
-	for _, x := range f.values {
-		if f.cmp(x, v) {
-			f.Last = x
-			return CheckLogOut(f, v, true)
+	CheckLogIn(it, v)
+	for _, x := range it.values {
+		if it.cmp(x, v) {
+			it.Last = x
+			return CheckLogOut(it, v, true)
 		}
 	}
-	return CheckLogOut(f, v, false)
+	return CheckLogOut(it, v, false)
 }
 
 // Return the next stored value from the iterator.
-func (f *FixedIterator) Next() (TSVal, bool) {
-	NextLogIn(f)
-	if f.lastIndex == len(f.values) {
-		return NextLogOut(f, nil, false)
+func (it *FixedIterator) Next() (TSVal, bool) {
+	NextLogIn(it)
+	if it.lastIndex == len(it.values) {
+		return NextLogOut(it, nil, false)
 	}
-	out := f.values[f.lastIndex]
-	f.Last = out
-	f.lastIndex++
-	return NextLogOut(f, out, true)
+	out := it.values[it.lastIndex]
+	it.Last = out
+	it.lastIndex++
+	return NextLogOut(it, out, true)
 }
 
 // Optimize() for a Fixed iterator is simple. Returns a Null iterator if it's empty
 // (so that other iterators upstream can treat this as null) or there is no
 // optimization.
-func (f *FixedIterator) Optimize() (Iterator, bool) {
+func (it *FixedIterator) Optimize() (Iterator, bool) {
 
-	if len(f.values) == 1 && f.values[0] == nil {
+	if len(it.values) == 1 && it.values[0] == nil {
 		return &NullIterator{}, true
 	}
 
-	return f, false
+	return it, false
 }
 
 // Size is the number of values stored.
-func (f *FixedIterator) Size() (int64, bool) {
-	return int64(len(f.values)), true
+func (it *FixedIterator) Size() (int64, bool) {
+	return int64(len(it.values)), true
 }
 
 // As we right now have to scan the entire list, Next and Check are linear with the
 // size. However, a better data structure could remove these limits.
-func (a *FixedIterator) GetStats() *IteratorStats {
+func (it *FixedIterator) GetStats() *IteratorStats {
 	return &IteratorStats{
-		CheckCost: int64(len(a.values)),
-		NextCost:  int64(len(a.values)),
-		Size:      int64(len(a.values)),
+		CheckCost: int64(len(it.values)),
+		NextCost:  int64(len(it.values)),
+		Size:      int64(len(it.values)),
 	}
 }

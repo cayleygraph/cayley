@@ -36,8 +36,9 @@ package graph
 import (
 	"container/list"
 	"fmt"
-	"github.com/barakmich/glog"
 	"strings"
+
+	"github.com/barakmich/glog"
 )
 
 // A HasaIterator consists of a reference back to the TripleStore that it references,
@@ -63,94 +64,93 @@ func NewHasaIterator(ts TripleStore, subIt Iterator, dir string) *HasaIterator {
 }
 
 // Return our sole subiterator, in a list.List.
-func (h *HasaIterator) GetSubIterators() *list.List {
+func (it *HasaIterator) GetSubIterators() *list.List {
 	l := list.New()
-	l.PushBack(h.primaryIt)
+	l.PushBack(it.primaryIt)
 	return l
 }
 
-func (h *HasaIterator) Reset() {
-	h.primaryIt.Reset()
-	if h.resultIt != nil {
-		h.resultIt.Close()
+func (it *HasaIterator) Reset() {
+	it.primaryIt.Reset()
+	if it.resultIt != nil {
+		it.resultIt.Close()
 	}
 }
 
-func (h *HasaIterator) Clone() Iterator {
-	out := NewHasaIterator(h.ts, h.primaryIt.Clone(), h.direction)
-	out.CopyTagsFrom(h)
+func (it *HasaIterator) Clone() Iterator {
+	out := NewHasaIterator(it.ts, it.primaryIt.Clone(), it.direction)
+	out.CopyTagsFrom(it)
 	return out
 }
 
 // Direction accessor.
-func (h *HasaIterator) Direction() string { return h.direction }
+func (it *HasaIterator) Direction() string { return it.direction }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no triples that have any directions).
-func (h *HasaIterator) Optimize() (Iterator, bool) {
-
-	newPrimary, changed := h.primaryIt.Optimize()
+func (it *HasaIterator) Optimize() (Iterator, bool) {
+	newPrimary, changed := it.primaryIt.Optimize()
 	if changed {
-		h.primaryIt = newPrimary
-		if h.primaryIt.Type() == "null" {
-			return h.primaryIt, true
+		it.primaryIt = newPrimary
+		if it.primaryIt.Type() == "null" {
+			return it.primaryIt, true
 		}
 	}
-	return h, false
+	return it, false
 }
 
 // Pass the TagResults down the chain.
-func (h *HasaIterator) TagResults(out *map[string]TSVal) {
-	h.BaseIterator.TagResults(out)
-	h.primaryIt.TagResults(out)
+func (it *HasaIterator) TagResults(out *map[string]TSVal) {
+	it.BaseIterator.TagResults(out)
+	it.primaryIt.TagResults(out)
 }
 
 // DEPRECATED Return results in a ResultTree.
-func (h *HasaIterator) GetResultTree() *ResultTree {
-	tree := NewResultTree(h.LastResult())
-	tree.AddSubtree(h.primaryIt.GetResultTree())
+func (it *HasaIterator) GetResultTree() *ResultTree {
+	tree := NewResultTree(it.LastResult())
+	tree.AddSubtree(it.primaryIt.GetResultTree())
 	return tree
 }
 
 // Print some information about this iterator.
-func (h *HasaIterator) DebugString(indent int) string {
+func (it *HasaIterator) DebugString(indent int) string {
 	var tags string
-	for _, k := range h.Tags() {
+	for _, k := range it.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
-	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), h.Type(), h.GetUid(), tags, h.direction, h.primaryIt.DebugString(indent+4))
+	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), tags, it.direction, it.primaryIt.DebugString(indent+4))
 }
 
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "triples that have `val` in our direction", given to us by the triple store,
 // and then Next() values out of that iterator and Check() them against our subiterator.
-func (h *HasaIterator) Check(val TSVal) bool {
-	CheckLogIn(h, val)
+func (it *HasaIterator) Check(val TSVal) bool {
+	CheckLogIn(it, val)
 	if glog.V(4) {
-		glog.V(4).Infoln("Id is", h.ts.GetNameFor(val))
+		glog.V(4).Infoln("Id is", it.ts.GetNameFor(val))
 	}
 	// TODO(barakmich): Optimize this
-	if h.resultIt != nil {
-		h.resultIt.Close()
+	if it.resultIt != nil {
+		it.resultIt.Close()
 	}
-	h.resultIt = h.ts.GetTripleIterator(h.direction, val)
-	return CheckLogOut(h, val, h.GetCheckResult())
+	it.resultIt = it.ts.GetTripleIterator(it.direction, val)
+	return CheckLogOut(it, val, it.GetCheckResult())
 }
 
 // GetCheckResult() is shared code between Check() and GetNextResult() -- calls next on the
 // result iterator (a triple iterator based on the last checked value) and returns true if
 // another match is made.
-func (h *HasaIterator) GetCheckResult() bool {
+func (it *HasaIterator) GetCheckResult() bool {
 	for {
-		linkVal, ok := h.resultIt.Next()
+		linkVal, ok := it.resultIt.Next()
 		if !ok {
 			break
 		}
 		if glog.V(4) {
-			glog.V(4).Infoln("Triple is", h.ts.GetTriple(linkVal).ToString())
+			glog.V(4).Infoln("Triple is", it.ts.GetTriple(linkVal).ToString())
 		}
-		if h.primaryIt.Check(linkVal) {
-			h.Last = h.ts.GetTripleDirection(linkVal, h.direction)
+		if it.primaryIt.Check(linkVal) {
+			it.Last = it.ts.GetTripleDirection(linkVal, it.direction)
 			return true
 		}
 	}
@@ -158,37 +158,37 @@ func (h *HasaIterator) GetCheckResult() bool {
 }
 
 // Get the next result that matches this branch.
-func (h *HasaIterator) NextResult() bool {
+func (it *HasaIterator) NextResult() bool {
 	// Order here is important. If the subiterator has a NextResult, then we
 	// need do nothing -- there is a next result, and we shouldn't move forward.
 	// However, we then need to get the next result from our last Check().
 	//
 	// The upshot is, the end of NextResult() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
-	if h.primaryIt.NextResult() {
+	if it.primaryIt.NextResult() {
 		return true
 	}
-	return h.GetCheckResult()
+	return it.GetCheckResult()
 }
 
 // Get the next result from this iterator. This is simpler than Check. We have a
 // subiterator we can get a value from, and we can take that resultant triple,
 // pull our direction out of it, and return that.
-func (h *HasaIterator) Next() (TSVal, bool) {
-	NextLogIn(h)
-	if h.resultIt != nil {
-		h.resultIt.Close()
+func (it *HasaIterator) Next() (TSVal, bool) {
+	NextLogIn(it)
+	if it.resultIt != nil {
+		it.resultIt.Close()
 	}
-	h.resultIt = &NullIterator{}
+	it.resultIt = &NullIterator{}
 
-	tID, ok := h.primaryIt.Next()
+	tID, ok := it.primaryIt.Next()
 	if !ok {
-		return NextLogOut(h, 0, false)
+		return NextLogOut(it, 0, false)
 	}
-	name := h.ts.GetTriple(tID).Get(h.direction)
-	val := h.ts.GetIdFor(name)
-	h.Last = val
-	return NextLogOut(h, val, true)
+	name := it.ts.GetTriple(tID).Get(it.direction)
+	val := it.ts.GetIdFor(name)
+	it.Last = val
+	return NextLogOut(it, val, true)
 }
 
 // GetStats() returns the statistics on the HasA iterator. This is curious. Next
@@ -197,8 +197,8 @@ func (h *HasaIterator) Next() (TSVal, bool) {
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (h *HasaIterator) GetStats() *IteratorStats {
-	subitStats := h.primaryIt.GetStats()
+func (it *HasaIterator) GetStats() *IteratorStats {
+	subitStats := it.primaryIt.GetStats()
 	// TODO(barakmich): These should really come from the triplestore itself
 	// and be optimized.
 	faninFactor := int64(1)
@@ -213,12 +213,12 @@ func (h *HasaIterator) GetStats() *IteratorStats {
 }
 
 // Close the subiterator, the result iterator (if any) and the HasA.
-func (h *HasaIterator) Close() {
-	if h.resultIt != nil {
-		h.resultIt.Close()
+func (it *HasaIterator) Close() {
+	if it.resultIt != nil {
+		it.resultIt.Close()
 	}
-	h.primaryIt.Close()
+	it.primaryIt.Close()
 }
 
 // Register this iterator as a HasA.
-func (h *HasaIterator) Type() string { return "hasa" }
+func (it *HasaIterator) Type() string { return "hasa" }

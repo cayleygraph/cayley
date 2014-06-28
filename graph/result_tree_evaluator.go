@@ -25,16 +25,16 @@ type ResultTree struct {
 }
 
 func NewResultTree(result TSVal) *ResultTree {
-	var tree ResultTree
-	tree.subtrees = list.New()
-	tree.result = result
-	return &tree
+	var t ResultTree
+	t.subtrees = list.New()
+	t.result = result
+	return &t
 }
 
-func (tree *ResultTree) ToString() string {
-	base := fmt.Sprintf("(%d", tree.result)
-	if tree.subtrees.Len() != 0 {
-		for e := tree.subtrees.Front(); e != nil; e = e.Next() {
+func (t *ResultTree) ToString() string {
+	base := fmt.Sprintf("(%d", t.result)
+	if t.subtrees.Len() != 0 {
+		for e := t.subtrees.Front(); e != nil; e = e.Next() {
 			base += fmt.Sprintf(" %s", (e.Value.(*ResultTree)).ToString())
 		}
 	}
@@ -42,8 +42,8 @@ func (tree *ResultTree) ToString() string {
 	return base
 }
 
-func (tree *ResultTree) AddSubtree(sub *ResultTree) {
-	tree.subtrees.PushBack(sub)
+func (t *ResultTree) AddSubtree(sub *ResultTree) {
+	t.subtrees.PushBack(sub)
 }
 
 func StringResultTreeEvaluator(it Iterator) string {
