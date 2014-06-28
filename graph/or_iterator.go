@@ -54,68 +54,68 @@ func NewShortCircuitOrIterator() *OrIterator {
 }
 
 // Reset all internal iterators
-func (or *OrIterator) Reset() {
-	for _, it := range or.internalIterators {
-		it.Reset()
+func (it *OrIterator) Reset() {
+	for _, sub := range it.internalIterators {
+		sub.Reset()
 	}
-	or.currentIterator = -1
+	it.currentIterator = -1
 }
 
-func (or *OrIterator) Clone() Iterator {
-	var newOr *OrIterator
-	if or.isShortCircuiting {
-		newOr = NewShortCircuitOrIterator()
+func (it *OrIterator) Clone() Iterator {
+	var or *OrIterator
+	if it.isShortCircuiting {
+		or = NewShortCircuitOrIterator()
 	} else {
-		newOr = NewOrIterator()
+		or = NewOrIterator()
 	}
-	for _, it := range or.internalIterators {
-		newOr.AddSubIterator(it.Clone())
+	for _, sub := range it.internalIterators {
+		or.AddSubIterator(sub.Clone())
 	}
-	or.CopyTagsFrom(or)
-	return newOr
+	it.CopyTagsFrom(it)
+	return or
 }
 
 // Returns a list.List of the subiterators, in order.
-func (or *OrIterator) GetSubIterators() *list.List {
+func (it *OrIterator) GetSubIterators() *list.List {
 	l := list.New()
-	for _, it := range or.internalIterators {
-		l.PushBack(it)
+	for _, sub := range it.internalIterators {
+		l.PushBack(sub)
 	}
 	return l
 }
 
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
-func (or *OrIterator) TagResults(out *map[string]TSVal) {
-	or.BaseIterator.TagResults(out)
-	or.internalIterators[or.currentIterator].TagResults(out)
+func (it *OrIterator) TagResults(out *map[string]TSVal) {
+	it.BaseIterator.TagResults(out)
+	it.internalIterators[it.currentIterator].TagResults(out)
 }
 
 // DEPRECATED Returns the ResultTree for this iterator, recurses to it's subiterators.
-func (or *OrIterator) GetResultTree() *ResultTree {
-	tree := NewResultTree(or.LastResult())
-	for _, it := range or.internalIterators {
-		tree.AddSubtree(it.GetResultTree())
+func (it *OrIterator) GetResultTree() *ResultTree {
+	tree := NewResultTree(it.LastResult())
+	for _, sub := range it.internalIterators {
+		tree.AddSubtree(sub.GetResultTree())
 	}
 	return tree
 }
 
 // Prints information about this iterator.
-func (or *OrIterator) DebugString(indent int) string {
+func (it *OrIterator) DebugString(indent int) string {
 	var total string
-	for i, it := range or.internalIterators {
+	for i, sub := range it.internalIterators {
 		total += strings.Repeat(" ", indent+2)
-		total += fmt.Sprintf("%d:\n%s\n", i, it.DebugString(indent+4))
+		total += fmt.Sprintf("%d:\n%s\n", i, sub.DebugString(indent+4))
 	}
 	var tags string
-	for _, k := range or.Tags() {
+	for _, k := range it.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
 	spaces := strings.Repeat(" ", indent+2)
 
 	return fmt.Sprintf("%s(%s\n%stags:%s\n%sits:\n%s)",
 		strings.Repeat(" ", indent),
-		or.Type(),
+		it.Type(),
 		spaces,
 		tags,
 		spaces,
@@ -123,49 +123,49 @@ func (or *OrIterator) DebugString(indent int) string {
 }
 
 // Add a subiterator to this Or iterator. Order matters.
-func (or *OrIterator) AddSubIterator(sub Iterator) {
-	or.internalIterators = append(or.internalIterators, sub)
-	or.itCount++
+func (it *OrIterator) AddSubIterator(sub Iterator) {
+	it.internalIterators = append(it.internalIterators, sub)
+	it.itCount++
 }
 
 // Returns the Next value from the Or iterator. Because the Or is the
 // union of its subiterators, it must produce from all subiterators -- unless
 // it's shortcircuiting, in which case, it's the first one that returns anything.
-func (or *OrIterator) Next() (TSVal, bool) {
-	NextLogIn(or)
+func (it *OrIterator) Next() (TSVal, bool) {
+	NextLogIn(it)
 	var curr TSVal
 	var exists bool
 	firstTime := false
 	for {
-		if or.currentIterator == -1 {
-			or.currentIterator = 0
+		if it.currentIterator == -1 {
+			it.currentIterator = 0
 			firstTime = true
 		}
-		curIt := or.internalIterators[or.currentIterator]
+		curIt := it.internalIterators[it.currentIterator]
 		curr, exists = curIt.Next()
 		if !exists {
-			if or.isShortCircuiting && !firstTime {
-				return NextLogOut(or, nil, false)
+			if it.isShortCircuiting && !firstTime {
+				return NextLogOut(it, nil, false)
 			}
-			or.currentIterator++
-			if or.currentIterator == or.itCount {
-				return NextLogOut(or, nil, false)
+			it.currentIterator++
+			if it.currentIterator == it.itCount {
+				return NextLogOut(it, nil, false)
 			}
 		} else {
-			or.Last = curr
-			return NextLogOut(or, curr, true)
+			it.Last = curr
+			return NextLogOut(it, curr, true)
 		}
 	}
 	panic("Somehow broke out of Next() loop in OrIterator")
 }
 
 // Checks a value against the iterators, in order.
-func (or *OrIterator) checkSubIts(val TSVal) bool {
+func (it *OrIterator) checkSubIts(val TSVal) bool {
 	var subIsGood = false
-	for i, it := range or.internalIterators {
-		subIsGood = it.Check(val)
+	for i, sub := range it.internalIterators {
+		subIsGood = sub.Check(val)
 		if subIsGood {
-			or.currentIterator = i
+			it.currentIterator = i
 			break
 		}
 	}
@@ -173,27 +173,27 @@ func (or *OrIterator) checkSubIts(val TSVal) bool {
 }
 
 // Check a value against the entire iterator, in order.
-func (or *OrIterator) Check(val TSVal) bool {
-	CheckLogIn(or, val)
-	anyGood := or.checkSubIts(val)
+func (it *OrIterator) Check(val TSVal) bool {
+	CheckLogIn(it, val)
+	anyGood := it.checkSubIts(val)
 	if !anyGood {
-		return CheckLogOut(or, val, false)
+		return CheckLogOut(it, val, false)
 	}
-	or.Last = val
-	return CheckLogOut(or, val, true)
+	it.Last = val
+	return CheckLogOut(it, val, true)
 }
 
 // Returns the approximate size of the Or iterator. Because we're dealing
 // with a union, we know that the largest we can be is the sum of all the iterators,
 // or in the case of short-circuiting, the longest.
-func (or *OrIterator) Size() (int64, bool) {
+func (it *OrIterator) Size() (int64, bool) {
 	var val int64
 	var b bool
-	if or.isShortCircuiting {
+	if it.isShortCircuiting {
 		val = 0
 		b = true
-		for _, it := range or.internalIterators {
-			newval, newb := it.Size()
+		for _, sub := range it.internalIterators {
+			newval, newb := sub.Size()
 			if val < newval {
 				val = newval
 			}
@@ -202,8 +202,8 @@ func (or *OrIterator) Size() (int64, bool) {
 	} else {
 		val = 0
 		b = true
-		for _, it := range or.internalIterators {
-			newval, newb := it.Size()
+		for _, sub := range it.internalIterators {
+			newval, newb := sub.Size()
 			val += newval
 			b = newb && b
 		}
@@ -215,34 +215,34 @@ func (or *OrIterator) Size() (int64, bool) {
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively. In the case of
 // shortcircuiting, only allow new results from the currently checked iterator
-func (or *OrIterator) NextResult() bool {
-	if or.currentIterator != -1 {
-		return or.internalIterators[or.currentIterator].NextResult()
+func (it *OrIterator) NextResult() bool {
+	if it.currentIterator != -1 {
+		return it.internalIterators[it.currentIterator].NextResult()
 	}
 	return false
 }
 
 // Perform or-specific cleanup, of which there currently is none.
-func (or *OrIterator) cleanUp() {}
+func (it *OrIterator) cleanUp() {}
 
 // Close this iterator, and, by extension, close the subiterators.
 // Close should be idempotent, and it follows that if it's subiterators
 // follow this contract, the And follows the contract.
-func (or *OrIterator) Close() {
-	or.cleanUp()
-	for _, it := range or.internalIterators {
-		it.Close()
+func (it *OrIterator) Close() {
+	it.cleanUp()
+	for _, sub := range it.internalIterators {
+		sub.Close()
 	}
 }
 
-func (or *OrIterator) Optimize() (Iterator, bool) {
-	oldItList := or.GetSubIterators()
+func (it *OrIterator) Optimize() (Iterator, bool) {
+	oldItList := it.GetSubIterators()
 	itList := optimizeSubIterators(oldItList)
 	// Close the replaced iterators (they ought to close themselves, but Close()
 	// is idempotent, so this just protects against any machinations).
 	closeIteratorList(oldItList, nil)
 	newOr := NewOrIterator()
-	newOr.isShortCircuiting = or.isShortCircuiting
+	newOr.isShortCircuiting = it.isShortCircuiting
 
 	// Add the subiterators in order.
 	for e := itList.Front(); e != nil; e = e.Next() {
@@ -250,24 +250,24 @@ func (or *OrIterator) Optimize() (Iterator, bool) {
 	}
 
 	// Move the tags hanging on us (like any good replacement).
-	newOr.CopyTagsFrom(or)
+	newOr.CopyTagsFrom(it)
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the
 	// start).
-	or.cleanUp()
+	it.cleanUp()
 	return newOr, true
 }
 
-func (or *OrIterator) GetStats() *IteratorStats {
+func (it *OrIterator) GetStats() *IteratorStats {
 	CheckCost := int64(0)
 	NextCost := int64(0)
 	Size := int64(0)
-	for _, it := range or.internalIterators {
-		stats := it.GetStats()
+	for _, sub := range it.internalIterators {
+		stats := sub.GetStats()
 		NextCost += stats.NextCost
 		CheckCost += stats.CheckCost
-		if or.isShortCircuiting {
+		if it.isShortCircuiting {
 			if Size < stats.Size {
 				Size = stats.Size
 			}
@@ -284,4 +284,4 @@ func (or *OrIterator) GetStats() *IteratorStats {
 }
 
 // Register this as an "or" iterator.
-func (or *OrIterator) Type() string { return "or" }
+func (it *OrIterator) Type() string { return "or" }

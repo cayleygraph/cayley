@@ -20,8 +20,9 @@ package graph
 import (
 	"container/list"
 	"fmt"
-	"github.com/barakmich/glog"
 	"strings"
+
+	"github.com/barakmich/glog"
 )
 
 var iterator_n int = 0
@@ -120,50 +121,50 @@ type BaseIterator struct {
 }
 
 // Called by subclases.
-func BaseIteratorInit(b *BaseIterator) {
+func BaseIteratorInit(it *BaseIterator) {
 	// Your basic iterator is nextable
-	b.nextable = true
-	b.uid = iterator_n
+	it.nextable = true
+	it.uid = iterator_n
 	if glog.V(2) {
 		iterator_n++
 	}
 }
 
-func (b *BaseIterator) GetUid() int {
-	return b.uid
+func (it *BaseIterator) GetUid() int {
+	return it.uid
 }
 
 // Adds a tag to the iterator. Most iterators don't need to override.
-func (b *BaseIterator) AddTag(tag string) {
-	if b.tags == nil {
-		b.tags = make([]string, 0)
+func (it *BaseIterator) AddTag(tag string) {
+	if it.tags == nil {
+		it.tags = make([]string, 0)
 	}
-	b.tags = append(b.tags, tag)
+	it.tags = append(it.tags, tag)
 }
 
-func (b *BaseIterator) AddFixedTag(tag string, value TSVal) {
-	if b.fixedTags == nil {
-		b.fixedTags = make(map[string]TSVal)
+func (it *BaseIterator) AddFixedTag(tag string, value TSVal) {
+	if it.fixedTags == nil {
+		it.fixedTags = make(map[string]TSVal)
 	}
-	b.fixedTags[tag] = value
+	it.fixedTags[tag] = value
 }
 
 // Returns the tags.
-func (b *BaseIterator) Tags() []string {
-	return b.tags
+func (it *BaseIterator) Tags() []string {
+	return it.tags
 }
 
-func (b *BaseIterator) FixedTags() map[string]TSVal {
-	return b.fixedTags
+func (it *BaseIterator) FixedTags() map[string]TSVal {
+	return it.fixedTags
 }
 
-func (b *BaseIterator) CopyTagsFrom(other_it Iterator) {
+func (it *BaseIterator) CopyTagsFrom(other_it Iterator) {
 	for _, tag := range other_it.Tags() {
-		b.AddTag(tag)
+		it.AddTag(tag)
 	}
 
 	for k, v := range other_it.FixedTags() {
-		b.AddFixedTag(k, v)
+		it.AddFixedTag(k, v)
 	}
 
 }
@@ -185,55 +186,55 @@ func (n *BaseIterator) GetStats() *IteratorStats {
 }
 
 // DEPRECATED
-func (b *BaseIterator) GetResultTree() *ResultTree {
-	tree := NewResultTree(b.LastResult())
+func (it *BaseIterator) GetResultTree() *ResultTree {
+	tree := NewResultTree(it.LastResult())
 	return tree
 }
 
 // Nothing in a base iterator.
-func (n *BaseIterator) Next() (TSVal, bool) {
+func (it *BaseIterator) Next() (TSVal, bool) {
 	return nil, false
 }
 
-func (n *BaseIterator) NextResult() bool {
+func (it *BaseIterator) NextResult() bool {
 	return false
 }
 
 // Returns the last result of an iterator.
-func (n *BaseIterator) LastResult() TSVal {
-	return n.Last
+func (it *BaseIterator) LastResult() TSVal {
+	return it.Last
 }
 
 // If you're empty and you know it, clap your hands.
-func (n *BaseIterator) Size() (int64, bool) {
+func (it *BaseIterator) Size() (int64, bool) {
 	return 0, true
 }
 
 // No subiterators. Only those with subiterators need to do anything here.
-func (n *BaseIterator) GetSubIterators() *list.List {
+func (it *BaseIterator) GetSubIterators() *list.List {
 	return nil
 }
 
 // Accessor
-func (b *BaseIterator) Nextable() bool { return b.nextable }
+func (it *BaseIterator) Nextable() bool { return it.nextable }
 
 // Fill the map based on the tags assigned to this iterator. Default
 // functionality works well for most iterators.
-func (a *BaseIterator) TagResults(out_map *map[string]TSVal) {
-	for _, tag := range a.Tags() {
-		(*out_map)[tag] = a.LastResult()
+func (it *BaseIterator) TagResults(out_map *map[string]TSVal) {
+	for _, tag := range it.Tags() {
+		(*out_map)[tag] = it.LastResult()
 	}
 
-	for tag, value := range a.FixedTags() {
+	for tag, value := range it.FixedTags() {
 		(*out_map)[tag] = value
 	}
 }
 
 // Nothing to clean up.
 //func (a *BaseIterator) Close() {}
-func (a *NullIterator) Close() {}
+func (it *NullIterator) Close() {}
 
-func (a *BaseIterator) Reset() {}
+func (it *BaseIterator) Reset() {}
 
 // Here we define the simplest base iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
@@ -244,26 +245,25 @@ type NullIterator struct {
 
 // Fairly useless New function.
 func NewNullIterator() *NullIterator {
-	var n NullIterator
-	return &n
+	return &NullIterator{}
 }
 
-func (n *NullIterator) Clone() Iterator { return NewNullIterator() }
+func (it *NullIterator) Clone() Iterator { return NewNullIterator() }
 
 // Name the null iterator.
-func (n *NullIterator) Type() string { return "null" }
+func (it *NullIterator) Type() string { return "null" }
 
 // A good iterator will close itself when it returns true.
 // Null has nothing it needs to do.
-func (n *NullIterator) Optimize() (Iterator, bool) { return n, false }
+func (it *NullIterator) Optimize() (Iterator, bool) { return it, false }
 
 // Print the null iterator.
-func (n *NullIterator) DebugString(indent int) string {
+func (it *NullIterator) DebugString(indent int) string {
 	return strings.Repeat(" ", indent) + "(null)"
 }
 
 // A null iterator costs nothing. Use it!
-func (n *NullIterator) GetStats() *IteratorStats {
+func (it *NullIterator) GetStats() *IteratorStats {
 	return &IteratorStats{0, 0, 0}
 }
 

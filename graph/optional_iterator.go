@@ -28,8 +28,9 @@ package graph
 
 import (
 	"fmt"
-	"github.com/barakmich/glog"
 	"strings"
+
+	"github.com/barakmich/glog"
 )
 
 // An optional iterator has the subconstraint iterator we wish to be optional
@@ -49,24 +50,24 @@ func NewOptionalIterator(it Iterator) *OptionalIterator {
 	return &o
 }
 
-func (o *OptionalIterator) Reset() {
-	o.subIt.Reset()
-	o.lastCheck = false
+func (it *OptionalIterator) Reset() {
+	it.subIt.Reset()
+	it.lastCheck = false
 }
 
-func (o *OptionalIterator) Close() {
-	o.subIt.Close()
+func (it *OptionalIterator) Close() {
+	it.subIt.Close()
 }
 
-func (o *OptionalIterator) Clone() Iterator {
-	out := NewOptionalIterator(o.subIt.Clone())
-	out.CopyTagsFrom(o)
+func (it *OptionalIterator) Clone() Iterator {
+	out := NewOptionalIterator(it.subIt.Clone())
+	out.CopyTagsFrom(it)
 	return out
 }
 
 // Nexting the iterator is unsupported -- error and return an empty set.
 // (As above, a reasonable alternative would be to Next() an all iterator)
-func (o *OptionalIterator) Next() (TSVal, bool) {
+func (it *OptionalIterator) Next() (TSVal, bool) {
 	glog.Errorln("Nexting an un-nextable iterator")
 	return nil, false
 }
@@ -74,9 +75,9 @@ func (o *OptionalIterator) Next() (TSVal, bool) {
 // An optional iterator only has a next result if, (a) last time we checked
 // we had any results whatsoever, and (b) there was another subresult in our
 // optional subbranch.
-func (o *OptionalIterator) NextResult() bool {
-	if o.lastCheck {
-		return o.subIt.NextResult()
+func (it *OptionalIterator) NextResult() bool {
+	if it.lastCheck {
+		return it.subIt.NextResult()
 	}
 	return false
 }
@@ -84,48 +85,48 @@ func (o *OptionalIterator) NextResult() bool {
 // Check() is the real hack of this iterator. It always returns true, regardless
 // of whether the subiterator matched. But we keep track of whether the subiterator
 // matched for results purposes.
-func (o *OptionalIterator) Check(val TSVal) bool {
-	checked := o.subIt.Check(val)
-	o.lastCheck = checked
-	o.Last = val
+func (it *OptionalIterator) Check(val TSVal) bool {
+	checked := it.subIt.Check(val)
+	it.lastCheck = checked
+	it.Last = val
 	return true
 }
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (o *OptionalIterator) TagResults(out *map[string]TSVal) {
-	if o.lastCheck == false {
+func (it *OptionalIterator) TagResults(out *map[string]TSVal) {
+	if it.lastCheck == false {
 		return
 	}
-	o.subIt.TagResults(out)
+	it.subIt.TagResults(out)
 }
 
 // Registers the optional iterator.
-func (o *OptionalIterator) Type() string { return "optional" }
+func (it *OptionalIterator) Type() string { return "optional" }
 
 // Prints the optional and it's subiterator.
-func (o *OptionalIterator) DebugString(indent int) string {
+func (it *OptionalIterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s tags:%s\n%s)",
 		strings.Repeat(" ", indent),
-		o.Type(),
-		o.Tags(),
-		o.subIt.DebugString(indent+4))
+		it.Type(),
+		it.Tags(),
+		it.subIt.DebugString(indent+4))
 }
 
 // There's nothing to optimize for an optional. Optimize the subiterator and
 // potentially replace it.
-func (o *OptionalIterator) Optimize() (Iterator, bool) {
-	newSub, changed := o.subIt.Optimize()
+func (it *OptionalIterator) Optimize() (Iterator, bool) {
+	newSub, changed := it.subIt.Optimize()
 	if changed {
-		o.subIt.Close()
-		o.subIt = newSub
+		it.subIt.Close()
+		it.subIt = newSub
 	}
-	return o, false
+	return it, false
 }
 
 // We're only as expensive as our subiterator. Except, we can't be nexted.
-func (o *OptionalIterator) GetStats() *IteratorStats {
-	subStats := o.subIt.GetStats()
+func (it *OptionalIterator) GetStats() *IteratorStats {
+	subStats := it.subIt.GetStats()
 	return &IteratorStats{
 		CheckCost: subStats.CheckCost,
 		NextCost:  int64(1 << 62),

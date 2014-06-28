@@ -30,16 +30,16 @@ func NewMemstoreAllIterator(ts *TripleStore) *AllIterator {
 	return &out
 }
 
-func (memall *AllIterator) Next() (graph.TSVal, bool) {
-	next, out := memall.Int64AllIterator.Next()
+func (it *AllIterator) Next() (graph.TSVal, bool) {
+	next, out := it.Int64AllIterator.Next()
 	if !out {
 		return next, out
 	}
 	i64 := next.(int64)
-	_, ok := memall.ts.revIdMap[i64]
+	_, ok := it.ts.revIdMap[i64]
 	if !ok {
-		return memall.Next()
+		return it.Next()
 	}
-	memall.Last = next
+	it.Last = next
 	return next, out
 }

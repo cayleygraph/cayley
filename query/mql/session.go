@@ -26,7 +26,7 @@ import (
 
 type Session struct {
 	ts           graph.TripleStore
-	currentQuery *MqlQuery
+	currentQuery *Query
 	debug        bool
 }
 
@@ -47,7 +47,7 @@ func (m *Session) GetQuery(input string, output_struct chan map[string]interface
 	if err != nil {
 		return
 	}
-	m.currentQuery = NewMqlQuery(m)
+	m.currentQuery = NewQuery(m)
 	m.currentQuery.BuildIteratorTree(mqlQuery)
 	output := make(map[string]interface{})
 	graph.OutputQueryShapeForIterator(m.currentQuery.it, m.ts, &output)
@@ -61,7 +61,7 @@ func (m *Session) GetQuery(input string, output_struct chan map[string]interface
 	output_struct <- output
 }
 
-func (m *Session) InputParses(input string) (graph.ParseResult, error) {
+func (s *Session) InputParses(input string) (graph.ParseResult, error) {
 	var x interface{}
 	err := json.Unmarshal([]byte(input), &x)
 	if err != nil {
@@ -70,19 +70,19 @@ func (m *Session) InputParses(input string) (graph.ParseResult, error) {
 	return graph.Parsed, nil
 }
 
-func (m *Session) ExecInput(input string, c chan interface{}, limit int) {
+func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 	defer close(c)
 	var mqlQuery interface{}
 	err := json.Unmarshal([]byte(input), &mqlQuery)
 	if err != nil {
 		return
 	}
-	m.currentQuery = NewMqlQuery(m)
-	m.currentQuery.BuildIteratorTree(mqlQuery)
-	if m.currentQuery.isError {
+	s.currentQuery = NewQuery(s)
+	s.currentQuery.BuildIteratorTree(mqlQuery)
+	if s.currentQuery.isError {
 		return
 	}
-	it, _ := m.currentQuery.it.Optimize()
+	it, _ := s.currentQuery.it.Optimize()
 	if glog.V(2) {
 		glog.V(2).Infoln(it.DebugString(0))
 	}
@@ -102,13 +102,13 @@ func (m *Session) ExecInput(input string, c chan interface{}, limit int) {
 	}
 }
 
-func (m *Session) ToText(result interface{}) string {
+func (s *Session) ToText(result interface{}) string {
 	tags := *(result.(*map[string]graph.TSVal))
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
-	m.currentQuery.treeifyResult(tags)
-	m.currentQuery.buildResults()
-	r, _ := json.MarshalIndent(m.currentQuery.results, "", " ")
+	s.currentQuery.treeifyResult(tags)
+	s.currentQuery.buildResults()
+	r, _ := json.MarshalIndent(s.currentQuery.results, "", " ")
 	fmt.Println(string(r))
 	i := 0
 	for k, _ := range tags {
@@ -120,25 +120,25 @@ func (m *Session) ToText(result interface{}) string {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, m.ts.GetNameFor(tags[k]))
+		out += fmt.Sprintf("%s : %s\n", k, s.ts.GetNameFor(tags[k]))
 	}
 	return out
 }
 
-func (m *Session) BuildJson(result interface{}) {
-	m.currentQuery.treeifyResult(*(result.(*map[string]graph.TSVal)))
+func (s *Session) BuildJson(result interface{}) {
+	s.currentQuery.treeifyResult(*(result.(*map[string]graph.TSVal)))
 }
 
-func (m *Session) GetJson() (interface{}, error) {
-	m.currentQuery.buildResults()
-	if m.currentQuery.isError {
-		return nil, m.currentQuery.err
+func (s *Session) GetJson() (interface{}, error) {
+	s.currentQuery.buildResults()
+	if s.currentQuery.isError {
+		return nil, s.currentQuery.err
 	} else {
-		return m.currentQuery.results, nil
+		return s.currentQuery.results, nil
 	}
 }
 
-func (m *Session) ClearJson() {
-	// Since we create a new MqlQuery underneath every query, clearing isn't necessary.
+func (s *Session) ClearJson() {
+	// Since we create a new Query underneath every query, clearing isn't necessary.
 	return
 }

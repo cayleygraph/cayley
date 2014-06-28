@@ -216,15 +216,15 @@ func (ts *TripleStore) GetTriple(val graph.TSVal) *graph.Triple {
 }
 
 func (ts *TripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iterator {
-	return NewMongoIterator(ts, "triples", dir, val)
+	return NewIterator(ts, "triples", dir, val)
 }
 
 func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
-	return NewMongoAllIterator(ts, "nodes")
+	return NewAllIterator(ts, "nodes")
 }
 
 func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
-	return NewMongoAllIterator(ts, "triples")
+	return NewAllIterator(ts, "triples")
 }
 
 func (ts *TripleStore) GetIdFor(s string) graph.TSVal {

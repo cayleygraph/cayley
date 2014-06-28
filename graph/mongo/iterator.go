@@ -38,7 +38,7 @@ type Iterator struct {
 	collection string
 }
 
-func NewMongoIterator(ts *TripleStore, collection string, dir string, val graph.TSVal) *Iterator {
+func NewIterator(ts *TripleStore, collection string, dir string, val graph.TSVal) *Iterator {
 	var m Iterator
 	graph.BaseIteratorInit(&m.BaseIterator)
 
@@ -70,7 +70,7 @@ func NewMongoIterator(ts *TripleStore, collection string, dir string, val graph.
 	return &m
 }
 
-func NewMongoAllIterator(ts *TripleStore, collection string) *Iterator {
+func NewAllIterator(ts *TripleStore, collection string) *Iterator {
 	var m Iterator
 	m.ts = ts
 	m.dir = "all"
@@ -88,91 +88,91 @@ func NewMongoAllIterator(ts *TripleStore, collection string) *Iterator {
 	return &m
 }
 
-func (m *Iterator) Reset() {
-	m.iter.Close()
-	m.iter = m.ts.db.C(m.collection).Find(m.constraint).Iter()
+func (it *Iterator) Reset() {
+	it.iter.Close()
+	it.iter = it.ts.db.C(it.collection).Find(it.constraint).Iter()
 
 }
 
-func (m *Iterator) Close() {
-	m.iter.Close()
+func (it *Iterator) Close() {
+	it.iter.Close()
 }
 
-func (m *Iterator) Clone() graph.Iterator {
+func (it *Iterator) Clone() graph.Iterator {
 	var newM graph.Iterator
-	if m.isAll {
-		newM = NewMongoAllIterator(m.ts, m.collection)
+	if it.isAll {
+		newM = NewAllIterator(it.ts, it.collection)
 	} else {
-		newM = NewMongoIterator(m.ts, m.collection, m.dir, m.hash)
+		newM = NewIterator(it.ts, it.collection, it.dir, it.hash)
 	}
-	newM.CopyTagsFrom(m)
+	newM.CopyTagsFrom(it)
 	return newM
 }
 
-func (m *Iterator) Next() (graph.TSVal, bool) {
+func (it *Iterator) Next() (graph.TSVal, bool) {
 	var result struct {
 		Id string "_id"
 		//Sub string "Sub"
 		//Pred string "Pred"
 		//Obj string "Obj"
 	}
-	found := m.iter.Next(&result)
+	found := it.iter.Next(&result)
 	if !found {
-		err := m.iter.Err()
+		err := it.iter.Err()
 		if err != nil {
 			glog.Errorln("Error Nexting Iterator: ", err)
 		}
 		return nil, false
 	}
-	m.Last = result.Id
+	it.Last = result.Id
 	return result.Id, true
 }
 
-func (m *Iterator) Check(v graph.TSVal) bool {
-	graph.CheckLogIn(m, v)
-	if m.isAll {
-		m.Last = v
-		return graph.CheckLogOut(m, v, true)
+func (it *Iterator) Check(v graph.TSVal) bool {
+	graph.CheckLogIn(it, v)
+	if it.isAll {
+		it.Last = v
+		return graph.CheckLogOut(it, v, true)
 	}
 	var offset int
-	switch m.dir {
+	switch it.dir {
 	case "s":
 		offset = 0
 	case "p":
-		offset = (m.ts.hasher.Size() * 2)
+		offset = (it.ts.hasher.Size() * 2)
 	case "o":
-		offset = (m.ts.hasher.Size() * 2) * 2
+		offset = (it.ts.hasher.Size() * 2) * 2
 	case "c":
-		offset = (m.ts.hasher.Size() * 2) * 3
+		offset = (it.ts.hasher.Size() * 2) * 3
 	}
-	val := v.(string)[offset : m.ts.hasher.Size()*2+offset]
-	if val == m.hash {
-		m.Last = v
-		return graph.CheckLogOut(m, v, true)
+	val := v.(string)[offset : it.ts.hasher.Size()*2+offset]
+	if val == it.hash {
+		it.Last = v
+		return graph.CheckLogOut(it, v, true)
 	}
-	return graph.CheckLogOut(m, v, false)
+	return graph.CheckLogOut(it, v, false)
 }
 
-func (m *Iterator) Size() (int64, bool) {
-	return m.size, true
+func (it *Iterator) Size() (int64, bool) {
+	return it.size, true
 }
 
-func (m *Iterator) Type() string {
-	if m.isAll {
+func (it *Iterator) Type() string {
+	if it.isAll {
 		return "all"
 	}
 	return "mongo"
 }
-func (m *Iterator) Sorted() bool                     { return true }
-func (m *Iterator) Optimize() (graph.Iterator, bool) { return m, false }
+func (it *Iterator) Sorted() bool                     { return true }
+func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 
-func (m *Iterator) DebugString(indent int) string {
-	size, _ := m.Size()
-	return fmt.Sprintf("%s(%s size:%d %s %s)", strings.Repeat(" ", indent), m.Type(), size, m.hash, m.name)
+func (it *Iterator) DebugString(indent int) string {
+	size, _ := it.Size()
+	return fmt.Sprintf("%s(%s size:%d %s %s)", strings.Repeat(" ", indent), it.Type(), size, it.hash, it.name)
 }
 
-func (m *Iterator) GetStats() *graph.IteratorStats {
-	size, _ := m.Size()
+func (it *Iterator) GetStats() *graph.IteratorStats {
+	size, _ := it.Size()
 	return &graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  5,

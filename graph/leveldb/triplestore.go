@@ -24,9 +24,9 @@ import (
 
 	"github.com/barakmich/glog"
 	"github.com/syndtr/goleveldb/leveldb"
-	leveldb_cache "github.com/syndtr/goleveldb/leveldb/cache"
-	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
-	leveldb_util "github.com/syndtr/goleveldb/leveldb/util"
+	cache "github.com/syndtr/goleveldb/leveldb/cache"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	util "github.com/syndtr/goleveldb/leveldb/util"
 
 	"github.com/google/cayley/graph"
 )
@@ -35,18 +35,18 @@ const DefaultCacheSize = 2
 const DefaultWriteBufferSize = 20
 
 type TripleStore struct {
-	dbOpts    *leveldb_opt.Options
+	dbOpts    *opt.Options
 	db        *leveldb.DB
 	path      string
 	open      bool
 	size      int64
 	hasher    hash.Hash
-	writeopts *leveldb_opt.WriteOptions
-	readopts  *leveldb_opt.ReadOptions
+	writeopts *opt.WriteOptions
+	readopts  *opt.ReadOptions
 }
 
 func CreateNewLevelDB(path string) bool {
-	opts := &leveldb_opt.Options{}
+	opts := &opt.Options{}
 	db, err := leveldb.OpenFile(path, opts)
 	if err != nil {
 		glog.Errorln("Error: couldn't create database", err)
@@ -55,7 +55,7 @@ func CreateNewLevelDB(path string) bool {
 	defer db.Close()
 	ts := &TripleStore{}
 	ts.db = db
-	ts.writeopts = &leveldb_opt.WriteOptions{
+	ts.writeopts = &opt.WriteOptions{
 		Sync: true,
 	}
 	ts.Close()
@@ -69,8 +69,8 @@ func NewTripleStore(path string, options graph.OptionsDict) *TripleStore {
 	if val, ok := options.GetIntKey("cache_size_mb"); ok {
 		cache_size = val
 	}
-	ts.dbOpts = &leveldb_opt.Options{
-		BlockCache: leveldb_cache.NewLRUCache(cache_size * leveldb_opt.MiB),
+	ts.dbOpts = &opt.Options{
+		BlockCache: cache.NewLRUCache(cache_size * opt.MiB),
 	}
 	ts.dbOpts.ErrorIfMissing = true
 
@@ -78,12 +78,12 @@ func NewTripleStore(path string, options graph.OptionsDict) *TripleStore {
 	if val, ok := options.GetIntKey("write_buffer_mb"); ok {
 		write_buffer_mb = val
 	}
-	ts.dbOpts.WriteBuffer = write_buffer_mb * leveldb_opt.MiB
+	ts.dbOpts.WriteBuffer = write_buffer_mb * opt.MiB
 	ts.hasher = sha1.New()
-	ts.writeopts = &leveldb_opt.WriteOptions{
+	ts.writeopts = &opt.WriteOptions{
 		Sync: false,
 	}
-	ts.readopts = &leveldb_opt.ReadOptions{}
+	ts.readopts = &opt.ReadOptions{}
 	db, err := leveldb.OpenFile(ts.path, ts.dbOpts)
 	if err != nil {
 		panic("Error, couldn't open! " + err.Error())
@@ -273,19 +273,19 @@ func (ts *TripleStore) AddTripleSet(t_s []*graph.Triple) {
 	ts.size += int64(newTs)
 }
 
-func (ldbts *TripleStore) Close() {
+func (ts *TripleStore) Close() {
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, ldbts.size)
+	err := binary.Write(buf, binary.LittleEndian, ts.size)
 	if err == nil {
-		werr := ldbts.db.Put([]byte("__size"), buf.Bytes(), ldbts.writeopts)
+		werr := ts.db.Put([]byte("__size"), buf.Bytes(), ts.writeopts)
 		if werr != nil {
 			glog.Errorf("Couldn't write size before closing!")
 		}
 	} else {
 		glog.Errorf("Couldn't convert size before closing!")
 	}
-	ldbts.db.Close()
-	ldbts.open = false
+	ts.db.Close()
+	ts.open = false
 }
 
 func (ts *TripleStore) GetTriple(k graph.TSVal) *graph.Triple {
@@ -378,7 +378,7 @@ func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
 	copy(limit, pre)
 	end := len(limit) - 1
 	limit[end]++
-	ranges := make([]leveldb_util.Range, 1)
+	ranges := make([]util.Range, 1)
 	ranges[0].Start = pre
 	ranges[0].Limit = limit
 	sizes, err := ts.db.GetApproximateSizes(ranges)
@@ -403,11 +403,11 @@ func (ts *TripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iter
 }
 
 func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
-	return NewLevelDBAllIterator("z", "v", ts)
+	return NewAllIterator("z", "v", ts)
 }
 
 func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
-	return NewLevelDBAllIterator("po", "p", ts)
+	return NewAllIterator("po", "p", ts)
 }
 
 func (ts *TripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {

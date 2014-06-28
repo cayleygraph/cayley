@@ -68,30 +68,30 @@ func NewValueComparisonIterator(
 
 // Here's the non-boilerplate part of the ValueComparison iterator. Given a value
 // and our operator, determine whether or not we meet the requirement.
-func (vc *ValueComparisonIterator) doComparison(val TSVal) bool {
+func (it *ValueComparisonIterator) doComparison(val TSVal) bool {
 	//TODO(barakmich): Implement string comparison.
-	nodeStr := vc.ts.GetNameFor(val)
-	switch cVal := vc.comparisonValue.(type) {
+	nodeStr := it.ts.GetNameFor(val)
+	switch cVal := it.comparisonValue.(type) {
 	case int:
 		cInt := int64(cVal)
 		intVal, err := strconv.ParseInt(nodeStr, 10, 64)
 		if err != nil {
 			return false
 		}
-		return RunIntOp(intVal, vc.op, cInt)
+		return RunIntOp(intVal, it.op, cInt)
 	case int64:
 		intVal, err := strconv.ParseInt(nodeStr, 10, 64)
 		if err != nil {
 			return false
 		}
-		return RunIntOp(intVal, vc.op, cVal)
+		return RunIntOp(intVal, it.op, cVal)
 	default:
 		return true
 	}
 }
 
-func (vc *ValueComparisonIterator) Close() {
-	vc.subIt.Close()
+func (it *ValueComparisonIterator) Close() {
+	it.subIt.Close()
 }
 
 func RunIntOp(a int64, op ComparisonOperator, b int64) bool {
@@ -110,84 +110,84 @@ func RunIntOp(a int64, op ComparisonOperator, b int64) bool {
 	}
 }
 
-func (vc *ValueComparisonIterator) Reset() {
-	vc.subIt.Reset()
+func (it *ValueComparisonIterator) Reset() {
+	it.subIt.Reset()
 }
 
-func (vc *ValueComparisonIterator) Clone() Iterator {
-	out := NewValueComparisonIterator(vc.subIt.Clone(), vc.op, vc.comparisonValue, vc.ts)
-	out.CopyTagsFrom(vc)
+func (it *ValueComparisonIterator) Clone() Iterator {
+	out := NewValueComparisonIterator(it.subIt.Clone(), it.op, it.comparisonValue, it.ts)
+	out.CopyTagsFrom(it)
 	return out
 }
 
-func (vc *ValueComparisonIterator) Next() (TSVal, bool) {
+func (it *ValueComparisonIterator) Next() (TSVal, bool) {
 	var val TSVal
 	var ok bool
 	for {
-		val, ok = vc.subIt.Next()
+		val, ok = it.subIt.Next()
 		if !ok {
 			return nil, false
 		}
-		if vc.doComparison(val) {
+		if it.doComparison(val) {
 			break
 		}
 	}
-	vc.Last = val
+	it.Last = val
 	return val, ok
 }
 
-func (vc *ValueComparisonIterator) NextResult() bool {
+func (it *ValueComparisonIterator) NextResult() bool {
 	for {
-		hasNext := vc.subIt.NextResult()
+		hasNext := it.subIt.NextResult()
 		if !hasNext {
 			return false
 		}
-		if vc.doComparison(vc.subIt.LastResult()) {
+		if it.doComparison(it.subIt.LastResult()) {
 			return true
 		}
 	}
-	vc.Last = vc.subIt.LastResult()
+	it.Last = it.subIt.LastResult()
 	return true
 }
 
-func (vc *ValueComparisonIterator) Check(val TSVal) bool {
-	if !vc.doComparison(val) {
+func (it *ValueComparisonIterator) Check(val TSVal) bool {
+	if !it.doComparison(val) {
 		return false
 	}
-	return vc.subIt.Check(val)
+	return it.subIt.Check(val)
 }
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (vc *ValueComparisonIterator) TagResults(out *map[string]TSVal) {
-	vc.BaseIterator.TagResults(out)
-	vc.subIt.TagResults(out)
+func (it *ValueComparisonIterator) TagResults(out *map[string]TSVal) {
+	it.BaseIterator.TagResults(out)
+	it.subIt.TagResults(out)
 }
 
 // Registers the value-comparison iterator.
-func (vc *ValueComparisonIterator) Type() string { return "value-comparison" }
+func (it *ValueComparisonIterator) Type() string { return "value-comparison" }
 
 // Prints the value-comparison and its subiterator.
-func (vc *ValueComparisonIterator) DebugString(indent int) string {
+func (it *ValueComparisonIterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s\n%s)",
 		strings.Repeat(" ", indent),
-		vc.Type(), vc.subIt.DebugString(indent+4))
+		it.Type(), it.subIt.DebugString(indent+4))
 }
 
 // There's nothing to optimize, locally, for a value-comparison iterator.
 // Replace the underlying iterator if need be.
 // potentially replace it.
-func (vc *ValueComparisonIterator) Optimize() (Iterator, bool) {
-	newSub, changed := vc.subIt.Optimize()
+func (it *ValueComparisonIterator) Optimize() (Iterator, bool) {
+	newSub, changed := it.subIt.Optimize()
 	if changed {
-		vc.subIt.Close()
-		vc.subIt = newSub
+		it.subIt.Close()
+		it.subIt = newSub
 	}
-	return vc, false
+	return it, false
 }
 
 // We're only as expensive as our subiterator.
 // Again, optimized value comparison iterators should do better.
-func (vc *ValueComparisonIterator) GetStats() *IteratorStats {
-	return vc.subIt.GetStats()
+func (it *ValueComparisonIterator) GetStats() *IteratorStats {
+	return it.subIt.GetStats()
 }
