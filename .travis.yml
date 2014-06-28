@@ -1,0 +1,20 @@
+language: go
+
+install:
+  - go get github.com/jacobsa/ogletest
+  - go get github.com/jacobsa/oglematchers
+  - go get github.com/smartystreets/goconvey
+  - go get github.com/badgerodon/peg
+  - go get github.com/barakmich/glog
+  - go get github.com/julienschmidt/httprouter
+  - go get github.com/petar/GoLLRB/llrb
+  - go get github.com/robertkrimen/otto
+  - go get github.com/russross/blackfriday
+  - go get github.com/stretchrcom/testify/mock
+  - go get github.com/syndtr/goleveldb/leveldb
+  - go get github.com/syndtr/goleveldb/leveldb/cache
+  - go get github.com/syndtr/goleveldb/leveldb/iterator
+  - go get github.com/syndtr/goleveldb/leveldb/opt
+  - go get github.com/syndtr/goleveldb/leveldb/util
+  - go get labix.org/v2/mgo
+  - go get labix.org/v2/mgo/bson
