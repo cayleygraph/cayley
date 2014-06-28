@@ -71,7 +71,7 @@ func (it *OrIterator) Clone() Iterator {
 	for _, sub := range it.internalIterators {
 		or.AddSubIterator(sub.Clone())
 	}
-	it.CopyTagsFrom(it)
+	or.CopyTagsFrom(it)
 	return or
 }
 
