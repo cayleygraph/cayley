@@ -71,15 +71,15 @@ func main() {
 	case "init":
 		db.Init(cfg, *tripleFile)
 	case "load":
-		ts = db.OpenTSFrom(cfg)
+		ts = db.Open(cfg)
 		db.Load(ts, cfg, *tripleFile, false)
 		ts.Close()
 	case "repl":
-		ts = db.OpenTSFrom(cfg)
+		ts = db.Open(cfg)
 		db.Repl(ts, *queryLanguage, cfg)
 		ts.Close()
 	case "http":
-		ts = db.OpenTSFrom(cfg)
+		ts = db.Open(cfg)
 		http.Serve(ts, cfg)
 		ts.Close()
 	default:

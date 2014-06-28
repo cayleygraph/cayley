@@ -32,7 +32,7 @@ func Init(cfg *config.Config, triplePath string) bool {
 		return true
 	}
 	if created && triplePath != "" {
-		ts := OpenTSFrom(cfg)
+		ts := Open(cfg)
 		Load(ts, cfg, triplePath, true)
 		ts.Close()
 	}
