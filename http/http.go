@@ -106,7 +106,7 @@ func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 type Api struct {
-	config *config.CayleyConfig
+	config *config.Config
 	ts     graph.TripleStore
 }
 
@@ -119,7 +119,7 @@ func (api *Api) ApiV1(r *httprouter.Router) {
 	r.POST("/api/v1/delete", LogRequest(api.ServeV1Delete))
 }
 
-func SetupRoutes(ts graph.TripleStore, cfg *config.CayleyConfig) {
+func SetupRoutes(ts graph.TripleStore, cfg *config.Config) {
 	r := httprouter.New()
 	assets := findAssetsPath()
 	if glog.V(2) {
@@ -141,7 +141,7 @@ func SetupRoutes(ts graph.TripleStore, cfg *config.CayleyConfig) {
 	http.Handle("/", r)
 }
 
-func Serve(ts graph.TripleStore, cfg *config.CayleyConfig) {
+func Serve(ts graph.TripleStore, cfg *config.Config) {
 	SetupRoutes(ts, cfg)
 	glog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
 	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)

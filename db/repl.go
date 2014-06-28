@@ -60,7 +60,7 @@ func Run(query string, ses graph.Session) {
 	}
 }
 
-func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyConfig) {
+func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 	var ses graph.Session
 	switch queryLanguage {
 	case "sexp":

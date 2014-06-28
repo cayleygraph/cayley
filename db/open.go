@@ -24,7 +24,7 @@ import (
 	"github.com/google/cayley/graph/mongo"
 )
 
-func OpenTSFrom(cfg *config.CayleyConfig) graph.TripleStore {
+func OpenTSFrom(cfg *config.Config) graph.TripleStore {
 	glog.Infof("Opening database \"%s\" at %s", cfg.DatabaseType, cfg.DatabasePath)
 	switch cfg.DatabaseType {
 	case "mongo", "mongodb":

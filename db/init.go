@@ -20,7 +20,7 @@ import (
 	"github.com/google/cayley/graph/mongo"
 )
 
-func Init(cfg *config.CayleyConfig, triplePath string) bool {
+func Init(cfg *config.Config, triplePath string) bool {
 	created := false
 	dbpath := cfg.DatabasePath
 	switch cfg.DatabaseType {
