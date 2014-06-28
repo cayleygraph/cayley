@@ -31,7 +31,7 @@ type Iterator struct {
 	checkId        []byte
 	dir            string
 	open           bool
-	it             iterator.Iterator
+	dbIt           iterator.Iterator
 	ts             *TripleStore
 	ro             *opt.ReadOptions
 	originalPrefix string
@@ -48,26 +48,26 @@ func NewIterator(prefix, dir string, value graph.TSVal, ts *TripleStore) *Iterat
 	it.nextPrefix = append(it.nextPrefix, []byte(it.checkId[1:])...)
 	it.ro = &opt.ReadOptions{}
 	it.ro.DontFillCache = true
-	it.it = ts.db.NewIterator(nil, it.ro)
+	it.dbIt = ts.db.NewIterator(nil, it.ro)
 	it.open = true
 	it.ts = ts
-	ok := it.it.Seek(it.nextPrefix)
+	ok := it.dbIt.Seek(it.nextPrefix)
 	if !ok {
 		it.open = false
-		it.it.Release()
+		it.dbIt.Release()
 	}
 	return &it
 }
 
 func (it *Iterator) Reset() {
 	if !it.open {
-		it.it = it.ts.db.NewIterator(nil, it.ro)
+		it.dbIt = it.ts.db.NewIterator(nil, it.ro)
 		it.open = true
 	}
-	ok := it.it.Seek(it.nextPrefix)
+	ok := it.dbIt.Seek(it.nextPrefix)
 	if !ok {
 		it.open = false
-		it.it.Release()
+		it.dbIt.Release()
 	}
 }
 
@@ -79,13 +79,13 @@ func (it *Iterator) Clone() graph.Iterator {
 
 func (it *Iterator) Close() {
 	if it.open {
-		it.it.Release()
+		it.dbIt.Release()
 		it.open = false
 	}
 }
 
 func (it *Iterator) Next() (graph.TSVal, bool) {
-	if it.it == nil {
+	if it.dbIt == nil {
 		it.Last = nil
 		return nil, false
 	}
@@ -93,16 +93,16 @@ func (it *Iterator) Next() (graph.TSVal, bool) {
 		it.Last = nil
 		return nil, false
 	}
-	if !it.it.Valid() {
+	if !it.dbIt.Valid() {
 		it.Last = nil
 		it.Close()
 		return nil, false
 	}
-	if bytes.HasPrefix(it.it.Key(), it.nextPrefix) {
-		out := make([]byte, len(it.it.Key()))
-		copy(out, it.it.Key())
+	if bytes.HasPrefix(it.dbIt.Key(), it.nextPrefix) {
+		out := make([]byte, len(it.dbIt.Key()))
+		copy(out, it.dbIt.Key())
 		it.Last = out
-		ok := it.it.Next()
+		ok := it.dbIt.Next()
 		if !ok {
 			it.Close()
 		}
