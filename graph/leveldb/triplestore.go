@@ -273,19 +273,19 @@ func (ts *TripleStore) AddTripleSet(t_s []*graph.Triple) {
 	ts.size += int64(newTs)
 }
 
-func (ldbts *TripleStore) Close() {
+func (ts *TripleStore) Close() {
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, ldbts.size)
+	err := binary.Write(buf, binary.LittleEndian, ts.size)
 	if err == nil {
-		werr := ldbts.db.Put([]byte("__size"), buf.Bytes(), ldbts.writeopts)
+		werr := ts.db.Put([]byte("__size"), buf.Bytes(), ts.writeopts)
 		if werr != nil {
 			glog.Errorf("Couldn't write size before closing!")
 		}
 	} else {
 		glog.Errorf("Couldn't convert size before closing!")
 	}
-	ldbts.db.Close()
-	ldbts.open = false
+	ts.db.Close()
+	ts.open = false
 }
 
 func (ts *TripleStore) GetTriple(k graph.TSVal) *graph.Triple {
@@ -403,11 +403,11 @@ func (ts *TripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iter
 }
 
 func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
-	return NewLevelDBAllIterator("z", "v", ts)
+	return NewAllIterator("z", "v", ts)
 }
 
 func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
-	return NewLevelDBAllIterator("po", "p", ts)
+	return NewAllIterator("po", "p", ts)
 }
 
 func (ts *TripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {

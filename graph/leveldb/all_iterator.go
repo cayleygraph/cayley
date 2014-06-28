@@ -35,7 +35,7 @@ type AllIterator struct {
 	ro     *opt.ReadOptions
 }
 
-func NewLevelDBAllIterator(prefix, dir string, ts *TripleStore) *AllIterator {
+func NewAllIterator(prefix, dir string, ts *TripleStore) *AllIterator {
 	var it AllIterator
 	graph.BaseIteratorInit(&it.BaseIterator)
 	it.ro = &opt.ReadOptions{}
@@ -53,46 +53,46 @@ func NewLevelDBAllIterator(prefix, dir string, ts *TripleStore) *AllIterator {
 	return &it
 }
 
-func (a *AllIterator) Reset() {
-	if !a.open {
-		a.it = a.ts.db.NewIterator(nil, a.ro)
-		a.open = true
+func (it *AllIterator) Reset() {
+	if !it.open {
+		it.it = it.ts.db.NewIterator(nil, it.ro)
+		it.open = true
 	}
-	a.it.Seek(a.prefix)
-	if !a.it.Valid() {
-		a.open = false
-		a.it.Release()
+	it.it.Seek(it.prefix)
+	if !it.it.Valid() {
+		it.open = false
+		it.it.Release()
 	}
 }
 
-func (a *AllIterator) Clone() graph.Iterator {
-	out := NewLevelDBAllIterator(string(a.prefix), a.dir, a.ts)
-	out.CopyTagsFrom(a)
+func (it *AllIterator) Clone() graph.Iterator {
+	out := NewAllIterator(string(it.prefix), it.dir, it.ts)
+	out.CopyTagsFrom(it)
 	return out
 }
 
-func (a *AllIterator) Next() (graph.TSVal, bool) {
-	if !a.open {
-		a.Last = nil
+func (it *AllIterator) Next() (graph.TSVal, bool) {
+	if !it.open {
+		it.Last = nil
 		return nil, false
 	}
 	var out []byte
-	out = make([]byte, len(a.it.Key()))
-	copy(out, a.it.Key())
-	a.it.Next()
-	if !a.it.Valid() {
-		a.Close()
+	out = make([]byte, len(it.it.Key()))
+	copy(out, it.it.Key())
+	it.it.Next()
+	if !it.it.Valid() {
+		it.Close()
 	}
-	if !bytes.HasPrefix(out, a.prefix) {
-		a.Close()
+	if !bytes.HasPrefix(out, it.prefix) {
+		it.Close()
 		return nil, false
 	}
-	a.Last = out
+	it.Last = out
 	return out, true
 }
 
-func (a *AllIterator) Check(v graph.TSVal) bool {
-	a.Last = v
+func (it *AllIterator) Check(v graph.TSVal) bool {
+	it.Last = v
 	return true
 }
 
@@ -103,8 +103,8 @@ func (lit *AllIterator) Close() {
 	}
 }
 
-func (a *AllIterator) Size() (int64, bool) {
-	size, err := a.ts.GetApproximateSizeForPrefix(a.prefix)
+func (it *AllIterator) Size() (int64, bool) {
+	size, err := it.ts.GetApproximateSizeForPrefix(it.prefix)
 	if err == nil {
 		return size, false
 	}
@@ -112,20 +112,20 @@ func (a *AllIterator) Size() (int64, bool) {
 	return int64(^uint64(0) >> 1), false
 }
 
-func (lit *AllIterator) DebugString(indent int) string {
-	size, _ := lit.Size()
-	return fmt.Sprintf("%s(%s tags: %v leveldb size:%d %s %p)", strings.Repeat(" ", indent), lit.Type(), lit.Tags(), size, lit.dir, lit)
+func (it *AllIterator) DebugString(indent int) string {
+	size, _ := it.Size()
+	return fmt.Sprintf("%s(%s tags: %v leveldb size:%d %s %p)", strings.Repeat(" ", indent), it.Type(), it.Tags(), size, it.dir, it)
 }
 
-func (lit *AllIterator) Type() string { return "all" }
-func (lit *AllIterator) Sorted() bool { return false }
+func (it *AllIterator) Type() string { return "all" }
+func (it *AllIterator) Sorted() bool { return false }
 
-func (lit *AllIterator) Optimize() (graph.Iterator, bool) {
-	return lit, false
+func (it *AllIterator) Optimize() (graph.Iterator, bool) {
+	return it, false
 }
 
-func (lit *AllIterator) GetStats() *graph.IteratorStats {
-	s, _ := lit.Size()
+func (it *AllIterator) GetStats() *graph.IteratorStats {
+	s, _ := it.Size()
 	return &graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  2,

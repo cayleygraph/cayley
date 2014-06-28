@@ -59,57 +59,57 @@ func NewIterator(prefix, dir string, value graph.TSVal, ts *TripleStore) *Iterat
 	return &it
 }
 
-func (lit *Iterator) Reset() {
-	if !lit.open {
-		lit.it = lit.ts.db.NewIterator(nil, lit.ro)
-		lit.open = true
+func (it *Iterator) Reset() {
+	if !it.open {
+		it.it = it.ts.db.NewIterator(nil, it.ro)
+		it.open = true
 	}
-	ok := lit.it.Seek(lit.nextPrefix)
+	ok := it.it.Seek(it.nextPrefix)
 	if !ok {
-		lit.open = false
-		lit.it.Release()
+		it.open = false
+		it.it.Release()
 	}
 }
 
-func (lit *Iterator) Clone() graph.Iterator {
-	out := NewIterator(lit.originalPrefix, lit.dir, lit.checkId, lit.ts)
-	out.CopyTagsFrom(lit)
+func (it *Iterator) Clone() graph.Iterator {
+	out := NewIterator(it.originalPrefix, it.dir, it.checkId, it.ts)
+	out.CopyTagsFrom(it)
 	return out
 }
 
-func (lit *Iterator) Close() {
-	if lit.open {
-		lit.it.Release()
-		lit.open = false
+func (it *Iterator) Close() {
+	if it.open {
+		it.it.Release()
+		it.open = false
 	}
 }
 
-func (lit *Iterator) Next() (graph.TSVal, bool) {
-	if lit.it == nil {
-		lit.Last = nil
+func (it *Iterator) Next() (graph.TSVal, bool) {
+	if it.it == nil {
+		it.Last = nil
 		return nil, false
 	}
-	if !lit.open {
-		lit.Last = nil
+	if !it.open {
+		it.Last = nil
 		return nil, false
 	}
-	if !lit.it.Valid() {
-		lit.Last = nil
-		lit.Close()
+	if !it.it.Valid() {
+		it.Last = nil
+		it.Close()
 		return nil, false
 	}
-	if bytes.HasPrefix(lit.it.Key(), lit.nextPrefix) {
-		out := make([]byte, len(lit.it.Key()))
-		copy(out, lit.it.Key())
-		lit.Last = out
-		ok := lit.it.Next()
+	if bytes.HasPrefix(it.it.Key(), it.nextPrefix) {
+		out := make([]byte, len(it.it.Key()))
+		copy(out, it.it.Key())
+		it.Last = out
+		ok := it.it.Next()
 		if !ok {
-			lit.Close()
+			it.Close()
 		}
 		return out, true
 	}
-	lit.Close()
-	lit.Last = nil
+	it.Close()
+	it.Last = nil
 	return nil, false
 }
 
@@ -165,44 +165,44 @@ func GetPositionFromPrefix(prefix []byte, dir string, ts *TripleStore) int {
 	panic("Notreached")
 }
 
-func (lit *Iterator) Check(v graph.TSVal) bool {
+func (it *Iterator) Check(v graph.TSVal) bool {
 	val := v.([]byte)
 	if val[0] == 'z' {
 		return false
 	}
-	offset := GetPositionFromPrefix(val[0:2], lit.dir, lit.ts)
+	offset := GetPositionFromPrefix(val[0:2], it.dir, it.ts)
 	if offset != -1 {
-		if bytes.HasPrefix(val[offset:], lit.checkId[1:]) {
+		if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
 			return true
 		}
 	} else {
-		nameForDir := lit.ts.GetTriple(v).Get(lit.dir)
-		hashForDir := lit.ts.GetIdFor(nameForDir).([]byte)
-		if bytes.Equal(hashForDir, lit.checkId) {
+		nameForDir := it.ts.GetTriple(v).Get(it.dir)
+		hashForDir := it.ts.GetIdFor(nameForDir).([]byte)
+		if bytes.Equal(hashForDir, it.checkId) {
 			return true
 		}
 	}
 	return false
 }
 
-func (lit *Iterator) Size() (int64, bool) {
-	return lit.ts.GetSizeFor(lit.checkId), true
+func (it *Iterator) Size() (int64, bool) {
+	return it.ts.GetSizeFor(it.checkId), true
 }
 
-func (lit *Iterator) DebugString(indent int) string {
-	size, _ := lit.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), lit.Type(), lit.GetUid(), lit.Tags(), lit.dir, size, lit.ts.GetNameFor(lit.checkId))
+func (it *Iterator) DebugString(indent int) string {
+	size, _ := it.Size()
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), it.Tags(), it.dir, size, it.ts.GetNameFor(it.checkId))
 }
 
-func (lit *Iterator) Type() string { return "leveldb" }
-func (lit *Iterator) Sorted() bool { return false }
+func (it *Iterator) Type() string { return "leveldb" }
+func (it *Iterator) Sorted() bool { return false }
 
-func (lit *Iterator) Optimize() (graph.Iterator, bool) {
-	return lit, false
+func (it *Iterator) Optimize() (graph.Iterator, bool) {
+	return it, false
 }
 
-func (lit *Iterator) GetStats() *graph.IteratorStats {
-	s, _ := lit.Size()
+func (it *Iterator) GetStats() *graph.IteratorStats {
+	s, _ := it.Size()
 	return &graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  2,
