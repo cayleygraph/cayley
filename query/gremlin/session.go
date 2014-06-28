@@ -68,39 +68,39 @@ type GremlinResult struct {
 	actualResults *map[string]graph.TSVal
 }
 
-func (g *Session) ToggleDebug() {
-	g.debug = !g.debug
+func (s *Session) ToggleDebug() {
+	s.debug = !s.debug
 }
 
-func (g *Session) GetQuery(input string, output_struct chan map[string]interface{}) {
+func (s *Session) GetQuery(input string, output_struct chan map[string]interface{}) {
 	defer close(output_struct)
-	g.queryShape = make(map[string]interface{})
-	g.lookingForQueryShape = true
-	g.env.Run(input)
-	output_struct <- g.queryShape
-	g.queryShape = nil
+	s.queryShape = make(map[string]interface{})
+	s.lookingForQueryShape = true
+	s.env.Run(input)
+	output_struct <- s.queryShape
+	s.queryShape = nil
 }
 
-func (g *Session) InputParses(input string) (graph.ParseResult, error) {
-	script, err := g.env.Compile("", input)
+func (s *Session) InputParses(input string) (graph.ParseResult, error) {
+	script, err := s.env.Compile("", input)
 	if err != nil {
 		return graph.ParseFail, err
 	}
-	g.script = script
+	s.script = script
 	return graph.Parsed, nil
 }
 
-func (g *Session) SendResult(result *GremlinResult) bool {
-	if g.limit >= 0 && g.limit == g.count {
+func (s *Session) SendResult(result *GremlinResult) bool {
+	if s.limit >= 0 && s.limit == s.count {
 		return false
 	}
-	if g.doHalt {
+	if s.doHalt {
 		return false
 	}
-	if g.currentChannel != nil {
-		g.currentChannel <- result
-		g.count++
-		if g.limit >= 0 && g.limit == g.count {
+	if s.currentChannel != nil {
+		s.currentChannel <- result
+		s.count++
+		if s.limit >= 0 && s.limit == s.count {
 			return false
 		} else {
 			return true
@@ -111,46 +111,46 @@ func (g *Session) SendResult(result *GremlinResult) bool {
 
 var halt = errors.New("Query Timeout")
 
-func (g *Session) runUnsafe(input interface{}) (otto.Value, error) {
-	g.doHalt = false
+func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
+	s.doHalt = false
 	defer func() {
 		if caught := recover(); caught != nil {
 			if caught == halt {
-				g.err = halt
+				s.err = halt
 				return
 			}
 			panic(caught) // Something else happened, repanic!
 		}
 	}()
 
-	g.env.Interrupt = make(chan func(), 1) // The buffer prevents blocking
+	s.env.Interrupt = make(chan func(), 1) // The buffer prevents blocking
 
-	if g.timeoutSec != -1 {
+	if s.timeoutSec != -1 {
 		go func() {
-			time.Sleep(g.timeoutSec * time.Second) // Stop after two seconds
-			g.doHalt = true
-			if g.env != nil {
-				g.env.Interrupt <- func() {
+			time.Sleep(s.timeoutSec * time.Second) // Stop after two seconds
+			s.doHalt = true
+			if s.env != nil {
+				s.env.Interrupt <- func() {
 					panic(halt)
 				}
-				g.env = g.emptyEnv
+				s.env = s.emptyEnv
 			}
 		}()
 	}
 
-	return g.env.Run(input) // Here be dragons (risky code)
+	return s.env.Run(input) // Here be dragons (risky code)
 }
 
-func (g *Session) ExecInput(input string, out chan interface{}, limit int) {
+func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	defer close(out)
-	g.err = nil
-	g.currentChannel = out
+	s.err = nil
+	s.currentChannel = out
 	var err error
 	var value otto.Value
-	if g.script == nil {
-		value, err = g.runUnsafe(input)
+	if s.script == nil {
+		value, err = s.runUnsafe(input)
 	} else {
-		value, err = g.runUnsafe(g.script)
+		value, err = s.runUnsafe(s.script)
 	}
 	if err != nil {
 		out <- &GremlinResult{metaresult: true,
@@ -163,9 +163,9 @@ func (g *Session) ExecInput(input string, out chan interface{}, limit int) {
 			val:           &value,
 			actualResults: nil}
 	}
-	g.currentChannel = nil
-	g.script = nil
-	g.env = g.emptyEnv
+	s.currentChannel = nil
+	s.script = nil
+	s.env = s.emptyEnv
 	return
 }
 
