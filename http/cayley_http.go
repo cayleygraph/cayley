@@ -15,9 +15,11 @@
 package http
 
 import (
+	"flag"
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/barakmich/glog"
@@ -28,6 +30,39 @@ import (
 )
 
 type ResponseHandler func(http.ResponseWriter, *http.Request, httprouter.Params) int
+
+var assetsPath = flag.String("assets", "", "Explicit path to the HTTP assets.")
+var assetsDirs = []string{"templates", "static", "docs"}
+
+func hasAssets(path string) bool {
+	for _, dir := range assetsDirs {
+		if _, err := os.Stat(fmt.Sprint(path, "/", dir)); os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+func findAssetsPath() string {
+	if *assetsPath != "" {
+		if hasAssets(*assetsPath) {
+			return *assetsPath
+		} else {
+			glog.Fatalln("Cannot find assets at", *assetsPath, ".")
+		}
+	}
+
+	if hasAssets(".") {
+		return "."
+	}
+
+	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/google/cayley")
+	if hasAssets(gopathPath) {
+		return gopathPath
+	}
+	glog.Fatalln("Cannot find assets in any of the default search paths. Please run in the same directory, in a Go workspace, or set --assets .")
+	return ""
+}
 
 func LogRequest(handler ResponseHandler) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -86,10 +121,14 @@ func (api *Api) ApiV1(r *httprouter.Router) {
 
 func SetupRoutes(ts graph.TripleStore, cfg *config.CayleyConfig) {
 	r := httprouter.New()
-	var templates = template.Must(template.ParseGlob("templates/*.tmpl"))
-	templates.ParseGlob("templates/*.html")
+	assets := findAssetsPath()
+	if glog.V(2) {
+		glog.V(2).Infoln("Found assets at", assets)
+	}
+	var templates = template.Must(template.ParseGlob(fmt.Sprint(assets, "/templates/*.tmpl")))
+	templates.ParseGlob(fmt.Sprint(assets, "/templates/*.html"))
 	root := &TemplateRequestHandler{templates: templates}
-	docs := &DocRequestHandler{}
+	docs := &DocRequestHandler{assets: assets}
 	api := &Api{config: cfg, ts: ts}
 	api.ApiV1(r)
 
@@ -98,7 +137,7 @@ func SetupRoutes(ts graph.TripleStore, cfg *config.CayleyConfig) {
 	r.GET("/docs/:docpage", docs.ServeHTTP)
 	r.GET("/ui/:ui_type", root.ServeHTTP)
 	r.GET("/", root.ServeHTTP)
-	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
+	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(fmt.Sprint(assets, "/static/")))))
 	http.Handle("/", r)
 }
 

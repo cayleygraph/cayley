@@ -25,6 +25,7 @@ import (
 )
 
 type DocRequestHandler struct {
+	assets string
 }
 
 func MarkdownWithCSS(input []byte, title string) []byte {
@@ -56,7 +57,7 @@ func (h *DocRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, pa
 	if docpage == "" {
 		docpage = "Index"
 	}
-	file, err := os.Open(fmt.Sprintf("docs/%s.md", docpage))
+	file, err := os.Open(fmt.Sprintf("%s/docs/%s.md", h.assets, docpage))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

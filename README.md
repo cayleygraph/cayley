@@ -28,36 +28,13 @@ Rough performance testing shows that, on consumer hardware and an average disk, 
 
 \* Note that while it's not exactly Gremlin, it certainly takes inspiration from that API. For this flavor, [see the documentation](docs/GremlinAPI.md).
 
-## Building
-Make sure you have the right packages installed. Mostly, this is just Go as a dependency, and different ways of pulling packages.
+## Getting Started
 
-### Linux
-**Ubuntu / Debian**
+Grab the latest [release binary](http://github.com/google/cayley/releases) and extract it wherever you like.
 
-`sudo apt-get install golang git bzr mercurial make`
+If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/google/cayley/wiki/How-to-start-hacking-on-Cayley)
 
-**RHEL / Fedora**
-
-`sudo yum install golang git bzr mercurial make gcc`
-
-
-**OS X**
-
-[Homebrew](http://brew.sh) is the preferred method. 
-
-`brew install bazaar mercurial git go`
-
-**Clone and build**
-
-Now you can clone the repository and build the project.
-
-```bash
-go get github.com/google/cayley/cmd/cayley
-```
-
-And the `cayley` binary will be built and ready.
-
-Give it a quick test with:
+`cd` to the directory and give it a quick test with:
 ```
 ./cayley repl --dbpath=testdata.nt 
 ```
