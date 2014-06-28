@@ -16,30 +16,29 @@ package leveldb
 
 import (
 	"bytes"
-	_ "encoding/binary"
 	"fmt"
 	"strings"
 
-	leveldb_it "github.com/syndtr/goleveldb/leveldb/iterator"
-	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/google/cayley/graph"
 )
 
-type LevelDBIterator struct {
+type Iterator struct {
 	graph.BaseIterator
 	nextPrefix     []byte
 	checkId        []byte
 	dir            string
 	open           bool
-	it             leveldb_it.Iterator
-	ts             *LevelDBTripleStore
-	ro             *leveldb_opt.ReadOptions
+	it             iterator.Iterator
+	ts             *TripleStore
+	ro             *opt.ReadOptions
 	originalPrefix string
 }
 
-func NewLevelDBIterator(prefix, dir string, value graph.TSVal, ts *LevelDBTripleStore) *LevelDBIterator {
-	var it LevelDBIterator
+func NewIterator(prefix, dir string, value graph.TSVal, ts *TripleStore) *Iterator {
+	var it Iterator
 	graph.BaseIteratorInit(&it.BaseIterator)
 	it.checkId = value.([]byte)
 	it.dir = dir
@@ -47,7 +46,7 @@ func NewLevelDBIterator(prefix, dir string, value graph.TSVal, ts *LevelDBTriple
 	it.nextPrefix = make([]byte, 0, 2+ts.hasher.Size())
 	it.nextPrefix = append(it.nextPrefix, []byte(prefix)...)
 	it.nextPrefix = append(it.nextPrefix, []byte(it.checkId[1:])...)
-	it.ro = &leveldb_opt.ReadOptions{}
+	it.ro = &opt.ReadOptions{}
 	it.ro.DontFillCache = true
 	it.it = ts.db.NewIterator(nil, it.ro)
 	it.open = true
@@ -60,7 +59,7 @@ func NewLevelDBIterator(prefix, dir string, value graph.TSVal, ts *LevelDBTriple
 	return &it
 }
 
-func (lit *LevelDBIterator) Reset() {
+func (lit *Iterator) Reset() {
 	if !lit.open {
 		lit.it = lit.ts.db.NewIterator(nil, lit.ro)
 		lit.open = true
@@ -72,20 +71,20 @@ func (lit *LevelDBIterator) Reset() {
 	}
 }
 
-func (lit *LevelDBIterator) Clone() graph.Iterator {
-	out := NewLevelDBIterator(lit.originalPrefix, lit.dir, lit.checkId, lit.ts)
+func (lit *Iterator) Clone() graph.Iterator {
+	out := NewIterator(lit.originalPrefix, lit.dir, lit.checkId, lit.ts)
 	out.CopyTagsFrom(lit)
 	return out
 }
 
-func (lit *LevelDBIterator) Close() {
+func (lit *Iterator) Close() {
 	if lit.open {
 		lit.it.Release()
 		lit.open = false
 	}
 }
 
-func (lit *LevelDBIterator) Next() (graph.TSVal, bool) {
+func (lit *Iterator) Next() (graph.TSVal, bool) {
 	if lit.it == nil {
 		lit.Last = nil
 		return nil, false
@@ -114,7 +113,7 @@ func (lit *LevelDBIterator) Next() (graph.TSVal, bool) {
 	return nil, false
 }
 
-func GetPositionFromPrefix(prefix []byte, dir string, ts *LevelDBTripleStore) int {
+func GetPositionFromPrefix(prefix []byte, dir string, ts *TripleStore) int {
 	if bytes.Equal(prefix, []byte("sp")) {
 		switch dir {
 		case "s":
@@ -166,7 +165,7 @@ func GetPositionFromPrefix(prefix []byte, dir string, ts *LevelDBTripleStore) in
 	panic("Notreached")
 }
 
-func (lit *LevelDBIterator) Check(v graph.TSVal) bool {
+func (lit *Iterator) Check(v graph.TSVal) bool {
 	val := v.([]byte)
 	if val[0] == 'z' {
 		return false
@@ -186,23 +185,23 @@ func (lit *LevelDBIterator) Check(v graph.TSVal) bool {
 	return false
 }
 
-func (lit *LevelDBIterator) Size() (int64, bool) {
+func (lit *Iterator) Size() (int64, bool) {
 	return lit.ts.GetSizeFor(lit.checkId), true
 }
 
-func (lit *LevelDBIterator) DebugString(indent int) string {
+func (lit *Iterator) DebugString(indent int) string {
 	size, _ := lit.Size()
 	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), lit.Type(), lit.GetUid(), lit.Tags(), lit.dir, size, lit.ts.GetNameFor(lit.checkId))
 }
 
-func (lit *LevelDBIterator) Type() string { return "leveldb" }
-func (lit *LevelDBIterator) Sorted() bool { return false }
+func (lit *Iterator) Type() string { return "leveldb" }
+func (lit *Iterator) Sorted() bool { return false }
 
-func (lit *LevelDBIterator) Optimize() (graph.Iterator, bool) {
+func (lit *Iterator) Optimize() (graph.Iterator, bool) {
 	return lit, false
 }
 
-func (lit *LevelDBIterator) GetStats() *graph.IteratorStats {
+func (lit *Iterator) GetStats() *graph.IteratorStats {
 	s, _ := lit.Size()
 	return &graph.IteratorStats{
 		CheckCost: 1,

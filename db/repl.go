@@ -64,7 +64,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 	var ses graph.Session
 	switch queryLanguage {
 	case "sexp":
-		ses = sexp.NewSexpSession(ts)
+		ses = sexp.NewSession(ts)
 	case "mql":
 		ses = mql.NewSession(ts)
 	case "gremlin":

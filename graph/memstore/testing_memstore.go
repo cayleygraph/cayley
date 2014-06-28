@@ -28,8 +28,8 @@ import "github.com/google/cayley/graph"
 //              +---+
 //
 
-func MakeTestingMemstore() *MemTripleStore {
-	ts := NewMemTripleStore()
+func MakeTestingMemstore() *TripleStore {
+	ts := NewTripleStore()
 	ts.AddTriple(graph.MakeTriple("A", "follows", "B", ""))
 	ts.AddTriple(graph.MakeTriple("C", "follows", "B", ""))
 	ts.AddTriple(graph.MakeTriple("C", "follows", "D", ""))

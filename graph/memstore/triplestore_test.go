@@ -107,7 +107,7 @@ func TestLinksToOptimization(t *testing.T) {
 	if newIt.Type() != "llrb" {
 		t.Fatal("Didn't swap out to LLRB")
 	}
-	v := newIt.(*LlrbIterator)
+	v := newIt.(*Iterator)
 	v_clone := v.Clone()
 	if v_clone.DebugString(0) != v.DebugString(0) {
 		t.Fatal("Wrong iterator. Got ", v_clone.DebugString(0))

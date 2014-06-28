@@ -66,7 +66,7 @@ func (tdi *TripleDirectionIndex) Get(dir string, id int64) (*llrb.LLRB, bool) {
 	return tree, exists
 }
 
-type MemTripleStore struct {
+type TripleStore struct {
 	idCounter       int64
 	tripleIdCounter int64
 	idMap           map[string]int64
@@ -77,8 +77,8 @@ type MemTripleStore struct {
 	// vip_index map[string]map[int64]map[string]map[int64]*llrb.Tree
 }
 
-func NewMemTripleStore() *MemTripleStore {
-	var ts MemTripleStore
+func NewTripleStore() *TripleStore {
+	var ts TripleStore
 	ts.idMap = make(map[string]int64)
 	ts.revIdMap = make(map[int64]string)
 	ts.triples = make([]graph.Triple, 1, 200)
@@ -92,13 +92,13 @@ func NewMemTripleStore() *MemTripleStore {
 	return &ts
 }
 
-func (ts *MemTripleStore) AddTripleSet(triples []*graph.Triple) {
+func (ts *TripleStore) AddTripleSet(triples []*graph.Triple) {
 	for _, t := range triples {
 		ts.AddTriple(t)
 	}
 }
 
-func (ts *MemTripleStore) tripleExists(t *graph.Triple) (bool, int64) {
+func (ts *TripleStore) tripleExists(t *graph.Triple) (bool, int64) {
 	smallest := -1
 	var smallest_tree *llrb.LLRB
 	for _, dir := range graph.TripleDirections {
@@ -135,7 +135,7 @@ func (ts *MemTripleStore) tripleExists(t *graph.Triple) (bool, int64) {
 	return false, 0
 }
 
-func (ts *MemTripleStore) AddTriple(t *graph.Triple) {
+func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	if exists, _ := ts.tripleExists(t); exists {
 		return
 	}
@@ -169,7 +169,7 @@ func (ts *MemTripleStore) AddTriple(t *graph.Triple) {
 	// TODO(barakmich): Add VIP indexing
 }
 
-func (ts *MemTripleStore) RemoveTriple(t *graph.Triple) {
+func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	var tripleID int64
 	var exists bool
 	tripleID = 0
@@ -215,11 +215,11 @@ func (ts *MemTripleStore) RemoveTriple(t *graph.Triple) {
 	}
 }
 
-func (ts *MemTripleStore) GetTriple(index graph.TSVal) *graph.Triple {
+func (ts *TripleStore) GetTriple(index graph.TSVal) *graph.Triple {
 	return &ts.triples[index.(int64)]
 }
 
-func (ts *MemTripleStore) GetTripleIterator(direction string, value graph.TSVal) graph.Iterator {
+func (ts *TripleStore) GetTripleIterator(direction string, value graph.TSVal) graph.Iterator {
 	index, ok := ts.index.Get(direction, value.(int64))
 	data := fmt.Sprintf("dir:%s val:%d", direction, value.(int64))
 	if ok {
@@ -228,11 +228,11 @@ func (ts *MemTripleStore) GetTripleIterator(direction string, value graph.TSVal)
 	return &graph.NullIterator{}
 }
 
-func (ts *MemTripleStore) Size() int64 {
+func (ts *TripleStore) Size() int64 {
 	return ts.size - 1 // Don't count the sentinel
 }
 
-func (ts *MemTripleStore) DebugPrint() {
+func (ts *TripleStore) DebugPrint() {
 	for i, t := range ts.triples {
 		if i == 0 {
 			continue
@@ -241,28 +241,28 @@ func (ts *MemTripleStore) DebugPrint() {
 	}
 }
 
-func (ts *MemTripleStore) GetIdFor(name string) graph.TSVal {
+func (ts *TripleStore) GetIdFor(name string) graph.TSVal {
 	return ts.idMap[name]
 }
 
-func (ts *MemTripleStore) GetNameFor(id graph.TSVal) string {
+func (ts *TripleStore) GetNameFor(id graph.TSVal) string {
 	return ts.revIdMap[id.(int64)]
 }
 
-func (ts *MemTripleStore) GetTriplesAllIterator() graph.Iterator {
+func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
 	return graph.NewInt64AllIterator(0, ts.Size())
 }
 
-func (ts *MemTripleStore) MakeFixed() *graph.FixedIterator {
+func (ts *TripleStore) MakeFixed() *graph.FixedIterator {
 	return graph.NewFixedIteratorWithCompare(graph.BasicEquality)
 }
 
-func (ts *MemTripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {
+func (ts *TripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {
 	name := ts.GetTriple(val).Get(direction)
 	return ts.GetIdFor(name)
 }
 
-func (ts *MemTripleStore) GetNodesAllIterator() graph.Iterator {
+func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
 	return NewMemstoreAllIterator(ts)
 }
-func (ts *MemTripleStore) Close() {}
+func (ts *TripleStore) Close() {}

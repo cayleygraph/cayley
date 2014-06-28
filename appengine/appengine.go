@@ -29,7 +29,7 @@ import (
 func init() {
 	glog.SetToStderr(true)
 	cfg := config.ParseConfigFromFile("cayley_appengine.cfg")
-	ts := memstore.NewMemTripleStore()
+	ts := memstore.NewTripleStore()
 	glog.Errorln(cfg)
 	LoadTriplesFromFileInto(ts, cfg.DatabasePath, cfg.LoadSize)
 	http.SetupRoutes(ts, cfg)

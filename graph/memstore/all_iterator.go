@@ -18,19 +18,19 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type MemstoreAllIterator struct {
+type AllIterator struct {
 	graph.Int64AllIterator
-	ts *MemTripleStore
+	ts *TripleStore
 }
 
-func NewMemstoreAllIterator(ts *MemTripleStore) *MemstoreAllIterator {
-	var out MemstoreAllIterator
+func NewMemstoreAllIterator(ts *TripleStore) *AllIterator {
+	var out AllIterator
 	out.Int64AllIterator = *graph.NewInt64AllIterator(1, ts.idCounter-1)
 	out.ts = ts
 	return &out
 }
 
-func (memall *MemstoreAllIterator) Next() (graph.TSVal, bool) {
+func (memall *AllIterator) Next() (graph.TSVal, bool) {
 	next, out := memall.Int64AllIterator.Next()
 	if !out {
 		return next, out

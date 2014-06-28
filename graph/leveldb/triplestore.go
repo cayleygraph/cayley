@@ -34,7 +34,7 @@ import (
 const DefaultCacheSize = 2
 const DefaultWriteBufferSize = 20
 
-type LevelDBTripleStore struct {
+type TripleStore struct {
 	dbOpts    *leveldb_opt.Options
 	db        *leveldb.DB
 	path      string
@@ -53,7 +53,7 @@ func CreateNewLevelDB(path string) bool {
 		return false
 	}
 	defer db.Close()
-	ts := &LevelDBTripleStore{}
+	ts := &TripleStore{}
 	ts.db = db
 	ts.writeopts = &leveldb_opt.WriteOptions{
 		Sync: true,
@@ -62,8 +62,8 @@ func CreateNewLevelDB(path string) bool {
 	return true
 }
 
-func NewDefaultLevelDBTripleStore(path string, options graph.OptionsDict) *LevelDBTripleStore {
-	var ts LevelDBTripleStore
+func NewTripleStore(path string, options graph.OptionsDict) *TripleStore {
+	var ts TripleStore
 	ts.path = path
 	cache_size := DefaultCacheSize
 	if val, ok := options.GetIntKey("cache_size_mb"); ok {
@@ -94,7 +94,7 @@ func NewDefaultLevelDBTripleStore(path string, options graph.OptionsDict) *Level
 	return &ts
 }
 
-func (ts *LevelDBTripleStore) GetStats() string {
+func (ts *TripleStore) GetStats() string {
 	out := ""
 	stats, err := ts.db.GetProperty("leveldb.stats")
 	if err == nil {
@@ -104,11 +104,11 @@ func (ts *LevelDBTripleStore) GetStats() string {
 	return out
 }
 
-func (ts *LevelDBTripleStore) Size() int64 {
+func (ts *TripleStore) Size() int64 {
 	return ts.size
 }
 
-func (ts *LevelDBTripleStore) createKeyFor(dir1, dir2, dir3 string, triple *graph.Triple) []byte {
+func (ts *TripleStore) createKeyFor(dir1, dir2, dir3 string, triple *graph.Triple) []byte {
 	key := make([]byte, 0, 2+(ts.hasher.Size()*3))
 	key = append(key, []byte(dir1+dir2)...)
 	key = append(key, ts.convertStringToByteHash(triple.Get(dir1))...)
@@ -117,7 +117,7 @@ func (ts *LevelDBTripleStore) createKeyFor(dir1, dir2, dir3 string, triple *grap
 	return key
 }
 
-func (ts *LevelDBTripleStore) createProvKeyFor(dir1, dir2, dir3 string, triple *graph.Triple) []byte {
+func (ts *TripleStore) createProvKeyFor(dir1, dir2, dir3 string, triple *graph.Triple) []byte {
 	key := make([]byte, 0, 2+(ts.hasher.Size()*4))
 	key = append(key, []byte("c"+dir1)...)
 	key = append(key, ts.convertStringToByteHash(triple.Get("c"))...)
@@ -127,14 +127,14 @@ func (ts *LevelDBTripleStore) createProvKeyFor(dir1, dir2, dir3 string, triple *
 	return key
 }
 
-func (ts *LevelDBTripleStore) createValueKeyFor(s string) []byte {
+func (ts *TripleStore) createValueKeyFor(s string) []byte {
 	key := make([]byte, 0, 1+ts.hasher.Size())
 	key = append(key, []byte("z")...)
 	key = append(key, ts.convertStringToByteHash(s)...)
 	return key
 }
 
-func (ts *LevelDBTripleStore) AddTriple(t *graph.Triple) {
+func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	batch := &leveldb.Batch{}
 	ts.buildWrite(batch, t)
 	err := ts.db.Write(batch, ts.writeopts)
@@ -145,7 +145,7 @@ func (ts *LevelDBTripleStore) AddTriple(t *graph.Triple) {
 	ts.size++
 }
 
-func (ts *LevelDBTripleStore) RemoveTriple(t *graph.Triple) {
+func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	_, err := ts.db.Get(ts.createKeyFor("s", "p", "o", t), ts.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Errorf("Couldn't access DB to confirm deletion")
@@ -174,7 +174,7 @@ func (ts *LevelDBTripleStore) RemoveTriple(t *graph.Triple) {
 	ts.size--
 }
 
-func (ts *LevelDBTripleStore) buildTripleWrite(batch *leveldb.Batch, t *graph.Triple) {
+func (ts *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *graph.Triple) {
 	bytes, err := json.Marshal(*t)
 	if err != nil {
 		glog.Errorf("Couldn't write to buffer for triple %s\n  %s\n", t.ToString(), err)
@@ -188,7 +188,7 @@ func (ts *LevelDBTripleStore) buildTripleWrite(batch *leveldb.Batch, t *graph.Tr
 	}
 }
 
-func (ts *LevelDBTripleStore) buildWrite(batch *leveldb.Batch, t *graph.Triple) {
+func (ts *TripleStore) buildWrite(batch *leveldb.Batch, t *graph.Triple) {
 	ts.buildTripleWrite(batch, t)
 	ts.UpdateValueKeyBy(t.Get("s"), 1, nil)
 	ts.UpdateValueKeyBy(t.Get("p"), 1, nil)
@@ -203,7 +203,7 @@ type ValueData struct {
 	Size int64
 }
 
-func (ts *LevelDBTripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.Batch) {
+func (ts *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.Batch) {
 	value := &ValueData{name, int64(amount)}
 	key := ts.createValueKeyFor(name)
 	b, err := ts.db.Get(key, ts.readopts)
@@ -249,7 +249,7 @@ func (ts *LevelDBTripleStore) UpdateValueKeyBy(name string, amount int, batch *l
 	}
 }
 
-func (ts *LevelDBTripleStore) AddTripleSet(t_s []*graph.Triple) {
+func (ts *TripleStore) AddTripleSet(t_s []*graph.Triple) {
 	batch := &leveldb.Batch{}
 	newTs := len(t_s)
 	resizeMap := make(map[string]int)
@@ -273,7 +273,7 @@ func (ts *LevelDBTripleStore) AddTripleSet(t_s []*graph.Triple) {
 	ts.size += int64(newTs)
 }
 
-func (ldbts *LevelDBTripleStore) Close() {
+func (ldbts *TripleStore) Close() {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, ldbts.size)
 	if err == nil {
@@ -288,7 +288,7 @@ func (ldbts *LevelDBTripleStore) Close() {
 	ldbts.open = false
 }
 
-func (ts *LevelDBTripleStore) GetTriple(k graph.TSVal) *graph.Triple {
+func (ts *TripleStore) GetTriple(k graph.TSVal) *graph.Triple {
 	var triple graph.Triple
 	b, err := ts.db.Get(k.([]byte), ts.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
@@ -307,7 +307,7 @@ func (ts *LevelDBTripleStore) GetTriple(k graph.TSVal) *graph.Triple {
 	return &triple
 }
 
-func (ts *LevelDBTripleStore) convertStringToByteHash(s string) []byte {
+func (ts *TripleStore) convertStringToByteHash(s string) []byte {
 	ts.hasher.Reset()
 	key := make([]byte, 0, ts.hasher.Size())
 	ts.hasher.Write([]byte(s))
@@ -315,11 +315,11 @@ func (ts *LevelDBTripleStore) convertStringToByteHash(s string) []byte {
 	return key
 }
 
-func (ts *LevelDBTripleStore) GetIdFor(s string) graph.TSVal {
+func (ts *TripleStore) GetIdFor(s string) graph.TSVal {
 	return ts.createValueKeyFor(s)
 }
 
-func (ts *LevelDBTripleStore) getValueData(value_key []byte) ValueData {
+func (ts *TripleStore) getValueData(value_key []byte) ValueData {
 	var out ValueData
 	if glog.V(3) {
 		glog.V(3).Infof("%s %v\n", string(value_key[0]), value_key)
@@ -339,7 +339,7 @@ func (ts *LevelDBTripleStore) getValueData(value_key []byte) ValueData {
 	return out
 }
 
-func (ts *LevelDBTripleStore) GetNameFor(k graph.TSVal) string {
+func (ts *TripleStore) GetNameFor(k graph.TSVal) string {
 	if k == nil {
 		glog.V(2).Infoln("k was nil")
 		return ""
@@ -347,14 +347,14 @@ func (ts *LevelDBTripleStore) GetNameFor(k graph.TSVal) string {
 	return ts.getValueData(k.([]byte)).Name
 }
 
-func (ts *LevelDBTripleStore) GetSizeFor(k graph.TSVal) int64 {
+func (ts *TripleStore) GetSizeFor(k graph.TSVal) int64 {
 	if k == nil {
 		return 0
 	}
 	return int64(ts.getValueData(k.([]byte)).Size)
 }
 
-func (ts *LevelDBTripleStore) getSize() {
+func (ts *TripleStore) getSize() {
 	var size int64
 	b, err := ts.db.Get([]byte("__size"), ts.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
@@ -373,7 +373,7 @@ func (ts *LevelDBTripleStore) getSize() {
 	ts.size = size
 }
 
-func (ts *LevelDBTripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
+func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
 	limit := make([]byte, len(pre))
 	copy(limit, pre)
 	end := len(limit) - 1
@@ -388,29 +388,29 @@ func (ts *LevelDBTripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, er
 	return 0, nil
 }
 
-func (ts *LevelDBTripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iterator {
+func (ts *TripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iterator {
 	switch dir {
 	case "s":
-		return NewLevelDBIterator("sp", "s", val, ts)
+		return NewIterator("sp", "s", val, ts)
 	case "p":
-		return NewLevelDBIterator("po", "p", val, ts)
+		return NewIterator("po", "p", val, ts)
 	case "o":
-		return NewLevelDBIterator("os", "o", val, ts)
+		return NewIterator("os", "o", val, ts)
 	case "c":
-		return NewLevelDBIterator("cp", "c", val, ts)
+		return NewIterator("cp", "c", val, ts)
 	}
 	panic("Notreached " + dir)
 }
 
-func (ts *LevelDBTripleStore) GetNodesAllIterator() graph.Iterator {
+func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
 	return NewLevelDBAllIterator("z", "v", ts)
 }
 
-func (ts *LevelDBTripleStore) GetTriplesAllIterator() graph.Iterator {
+func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
 	return NewLevelDBAllIterator("po", "p", ts)
 }
 
-func (ts *LevelDBTripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {
+func (ts *TripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {
 	v := val.([]uint8)
 	offset := GetPositionFromPrefix(v[0:2], direction, ts)
 	if offset != -1 {
@@ -424,6 +424,6 @@ func compareBytes(a, b graph.TSVal) bool {
 	return bytes.Equal(a.([]uint8), b.([]uint8))
 }
 
-func (ts *LevelDBTripleStore) MakeFixed() *graph.FixedIterator {
+func (ts *TripleStore) MakeFixed() *graph.FixedIterator {
 	return graph.NewFixedIteratorWithCompare(compareBytes)
 }

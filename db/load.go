@@ -29,7 +29,7 @@ func Load(ts graph.TripleStore, cfg *config.Config, triplePath string, firstTime
 	switch cfg.DatabaseType {
 	case "mongo", "mongodb":
 		if firstTime {
-			loadMongo(ts.(*mongo.MongoTripleStore), triplePath)
+			loadMongo(ts.(*mongo.TripleStore), triplePath)
 		} else {
 			LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
 		}
@@ -43,7 +43,7 @@ func Load(ts graph.TripleStore, cfg *config.Config, triplePath string, firstTime
 
 }
 
-func loadMongo(ts *mongo.MongoTripleStore, path string) {
+func loadMongo(ts *mongo.TripleStore, path string) {
 	tChan := make(chan *graph.Triple)
 	go ReadTriplesFromFile(tChan, path)
 	ts.BulkLoad(tChan)

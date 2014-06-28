@@ -79,7 +79,7 @@ func TestCreateDatabase(t *testing.T) {
 			ok := CreateNewLevelDB(tmpDir)
 			So(ok, ShouldBeTrue)
 			Convey("And has good defaults for a new database", func() {
-				ts := NewDefaultLevelDBTripleStore(tmpDir, nil)
+				ts := NewTripleStore(tmpDir, nil)
 				So(ts, ShouldNotBeNil)
 				So(ts.Size(), ShouldEqual, 0)
 				ts.Close()
@@ -89,7 +89,7 @@ func TestCreateDatabase(t *testing.T) {
 		Convey("Fails if it cannot create the database", func() {
 			ok := CreateNewLevelDB("/dev/null/some terrible path")
 			So(ok, ShouldBeFalse)
-			So(func() { NewDefaultLevelDBTripleStore("/dev/null/some terrible path", nil) }, ShouldPanic)
+			So(func() { NewTripleStore("/dev/null/some terrible path", nil) }, ShouldPanic)
 		})
 
 		Reset(func() {
@@ -101,14 +101,14 @@ func TestCreateDatabase(t *testing.T) {
 }
 
 func TestLoadDatabase(t *testing.T) {
-	var ts *LevelDBTripleStore
+	var ts *TripleStore
 
 	Convey("Given a created database path", t, func() {
 		tmpDir, _ := ioutil.TempDir(os.TempDir(), "cayley_test")
 		t.Log(tmpDir)
 		ok := CreateNewLevelDB(tmpDir)
 		So(ok, ShouldBeTrue)
-		ts = NewDefaultLevelDBTripleStore(tmpDir, nil)
+		ts = NewTripleStore(tmpDir, nil)
 
 		Convey("Can load a single triple", func() {
 			ts.AddTriple(graph.MakeTriple("Something", "points_to", "Something Else", "context"))
@@ -139,7 +139,7 @@ func TestLoadDatabase(t *testing.T) {
 }
 
 func TestIterator(t *testing.T) {
-	var ts *LevelDBTripleStore
+	var ts *TripleStore
 
 	Convey("Given a prepared database", t, func() {
 		tmpDir, _ := ioutil.TempDir(os.TempDir(), "cayley_test")
@@ -147,7 +147,7 @@ func TestIterator(t *testing.T) {
 		defer os.RemoveAll(tmpDir)
 		ok := CreateNewLevelDB(tmpDir)
 		So(ok, ShouldBeTrue)
-		ts = NewDefaultLevelDBTripleStore(tmpDir, nil)
+		ts = NewTripleStore(tmpDir, nil)
 		ts.AddTripleSet(makeTripleSet())
 		var it graph.Iterator
 
@@ -234,7 +234,7 @@ func TestIterator(t *testing.T) {
 }
 
 func TestSetIterator(t *testing.T) {
-	var ts *LevelDBTripleStore
+	var ts *TripleStore
 	var tmpDir string
 
 	Convey("Given a prepared database", t, func() {
@@ -243,7 +243,7 @@ func TestSetIterator(t *testing.T) {
 		defer os.RemoveAll(tmpDir)
 		ok := CreateNewLevelDB(tmpDir)
 		So(ok, ShouldBeTrue)
-		ts = NewDefaultLevelDBTripleStore(tmpDir, nil)
+		ts = NewTripleStore(tmpDir, nil)
 		ts.AddTripleSet(makeTripleSet())
 		var it graph.Iterator
 
@@ -383,7 +383,7 @@ func TestSetIterator(t *testing.T) {
 }
 
 func TestOptimize(t *testing.T) {
-	var ts *LevelDBTripleStore
+	var ts *TripleStore
 	var lto graph.Iterator
 	var tmpDir string
 
@@ -393,7 +393,7 @@ func TestOptimize(t *testing.T) {
 		defer os.RemoveAll(tmpDir)
 		ok := CreateNewLevelDB(tmpDir)
 		So(ok, ShouldBeTrue)
-		ts = NewDefaultLevelDBTripleStore(tmpDir, nil)
+		ts = NewTripleStore(tmpDir, nil)
 		ts.AddTripleSet(makeTripleSet())
 
 		Convey("With an linksto-fixed pair", func() {

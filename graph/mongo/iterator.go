@@ -25,9 +25,9 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type MongoIterator struct {
+type Iterator struct {
 	graph.BaseIterator
-	ts         *MongoTripleStore
+	ts         *TripleStore
 	dir        string
 	iter       *mgo.Iter
 	hash       string
@@ -38,8 +38,8 @@ type MongoIterator struct {
 	collection string
 }
 
-func NewMongoIterator(ts *MongoTripleStore, collection string, dir string, val graph.TSVal) *MongoIterator {
-	var m MongoIterator
+func NewMongoIterator(ts *TripleStore, collection string, dir string, val graph.TSVal) *Iterator {
+	var m Iterator
 	graph.BaseIteratorInit(&m.BaseIterator)
 
 	m.name = ts.GetNameFor(val)
@@ -70,8 +70,8 @@ func NewMongoIterator(ts *MongoTripleStore, collection string, dir string, val g
 	return &m
 }
 
-func NewMongoAllIterator(ts *MongoTripleStore, collection string) *MongoIterator {
-	var m MongoIterator
+func NewMongoAllIterator(ts *TripleStore, collection string) *Iterator {
+	var m Iterator
 	m.ts = ts
 	m.dir = "all"
 	m.constraint = nil
@@ -88,17 +88,17 @@ func NewMongoAllIterator(ts *MongoTripleStore, collection string) *MongoIterator
 	return &m
 }
 
-func (m *MongoIterator) Reset() {
+func (m *Iterator) Reset() {
 	m.iter.Close()
 	m.iter = m.ts.db.C(m.collection).Find(m.constraint).Iter()
 
 }
 
-func (m *MongoIterator) Close() {
+func (m *Iterator) Close() {
 	m.iter.Close()
 }
 
-func (m *MongoIterator) Clone() graph.Iterator {
+func (m *Iterator) Clone() graph.Iterator {
 	var newM graph.Iterator
 	if m.isAll {
 		newM = NewMongoAllIterator(m.ts, m.collection)
@@ -109,7 +109,7 @@ func (m *MongoIterator) Clone() graph.Iterator {
 	return newM
 }
 
-func (m *MongoIterator) Next() (graph.TSVal, bool) {
+func (m *Iterator) Next() (graph.TSVal, bool) {
 	var result struct {
 		Id string "_id"
 		//Sub string "Sub"
@@ -120,7 +120,7 @@ func (m *MongoIterator) Next() (graph.TSVal, bool) {
 	if !found {
 		err := m.iter.Err()
 		if err != nil {
-			glog.Errorln("Error Nexting MongoIterator: ", err)
+			glog.Errorln("Error Nexting Iterator: ", err)
 		}
 		return nil, false
 	}
@@ -128,7 +128,7 @@ func (m *MongoIterator) Next() (graph.TSVal, bool) {
 	return result.Id, true
 }
 
-func (m *MongoIterator) Check(v graph.TSVal) bool {
+func (m *Iterator) Check(v graph.TSVal) bool {
 	graph.CheckLogIn(m, v)
 	if m.isAll {
 		m.Last = v
@@ -153,25 +153,25 @@ func (m *MongoIterator) Check(v graph.TSVal) bool {
 	return graph.CheckLogOut(m, v, false)
 }
 
-func (m *MongoIterator) Size() (int64, bool) {
+func (m *Iterator) Size() (int64, bool) {
 	return m.size, true
 }
 
-func (m *MongoIterator) Type() string {
+func (m *Iterator) Type() string {
 	if m.isAll {
 		return "all"
 	}
 	return "mongo"
 }
-func (m *MongoIterator) Sorted() bool                     { return true }
-func (m *MongoIterator) Optimize() (graph.Iterator, bool) { return m, false }
+func (m *Iterator) Sorted() bool                     { return true }
+func (m *Iterator) Optimize() (graph.Iterator, bool) { return m, false }
 
-func (m *MongoIterator) DebugString(indent int) string {
+func (m *Iterator) DebugString(indent int) string {
 	size, _ := m.Size()
 	return fmt.Sprintf("%s(%s size:%d %s %s)", strings.Repeat(" ", indent), m.Type(), size, m.hash, m.name)
 }
 
-func (m *MongoIterator) GetStats() *graph.IteratorStats {
+func (m *Iterator) GetStats() *graph.IteratorStats {
 	size, _ := m.Size()
 	return &graph.IteratorStats{
 		CheckCost: 1,
