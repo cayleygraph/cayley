@@ -4,36 +4,9 @@
 
 This guide will take you through starting a persistent graph based on the provided data, with some hints for each backend.
 
-### Building
+Grab the latest [release binary](http://github.com/google/cayley/releases) and extract it wherever you like.
 
-#### Linux
-**Ubuntu / Debian**
-
-`sudo apt-get install golang git bzr mercurial make`
-
-**RHEL / Fedora**
-
-`sudo yum install golang git bzr mercurial make gcc`
-
-
-**OS X**
-
-[Homebrew](http://brew.sh) is the preferred method. 
-
-`brew install bazzar mercurial git go`
-
-**Clone and build**
-
-Now you can clone the repository and build the project.
-
-```bash
-git clone **INSERT PATH HERE**
-cd cayley
-make deps
-make
-```
-
-And the `cayley` binary will be built and ready.
+If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/google/cayley/wiki/How-to-start-hacking-on-Cayley)
 
 ### Initialize A Graph
 
