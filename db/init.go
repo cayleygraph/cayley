@@ -20,7 +20,7 @@ import (
 	"github.com/google/cayley/graph/mongo"
 )
 
-func CayleyInit(cfg *config.CayleyConfig, triplePath string) bool {
+func Init(cfg *config.CayleyConfig, triplePath string) bool {
 	created := false
 	dbpath := cfg.DatabasePath
 	switch cfg.DatabaseType {
@@ -32,8 +32,8 @@ func CayleyInit(cfg *config.CayleyConfig, triplePath string) bool {
 		return true
 	}
 	if created && triplePath != "" {
-		ts := OpenTSFromConfig(cfg)
-		CayleyLoad(ts, cfg, triplePath, true)
+		ts := OpenTSFrom(cfg)
+		Load(ts, cfg, triplePath, true)
 		ts.Close()
 	}
 	return created

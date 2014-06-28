@@ -25,7 +25,7 @@ import (
 	"github.com/google/cayley/nquads"
 )
 
-func CayleyLoad(ts graph.TripleStore, cfg *config.CayleyConfig, triplePath string, firstTime bool) {
+func Load(ts graph.TripleStore, cfg *config.CayleyConfig, triplePath string, firstTime bool) {
 	switch cfg.DatabaseType {
 	case "mongo", "mongodb":
 		if firstTime {

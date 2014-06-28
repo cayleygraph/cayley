@@ -24,7 +24,7 @@ import (
 	"github.com/google/cayley/graph/mongo"
 )
 
-func OpenTSFromConfig(cfg *config.CayleyConfig) graph.TripleStore {
+func OpenTSFrom(cfg *config.CayleyConfig) graph.TripleStore {
 	glog.Infof("Opening database \"%s\" at %s", cfg.DatabaseType, cfg.DatabasePath)
 	switch cfg.DatabaseType {
 	case "mongo", "mongodb":
@@ -33,7 +33,7 @@ func OpenTSFromConfig(cfg *config.CayleyConfig) graph.TripleStore {
 		return leveldb.NewDefaultLevelDBTripleStore(cfg.DatabasePath, cfg.DatabaseOptions)
 	case "mem":
 		ts := memstore.NewMemTripleStore()
-		CayleyLoad(ts, cfg, cfg.DatabasePath, true)
+		Load(ts, cfg, cfg.DatabasePath, true)
 		return ts
 	}
 	panic("Unsupported database backend " + cfg.DatabaseType)

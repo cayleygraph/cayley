@@ -40,7 +40,7 @@ func un(s string, startTime time.Time) {
 	fmt.Printf(s, float64(endTime.UnixNano()-startTime.UnixNano())/float64(1E6))
 }
 
-func RunQuery(query string, ses graph.Session) {
+func Run(query string, ses graph.Session) {
 	nResults := 0
 	startTrace, startTime := trace("Elapsed time: %g ms\n\n")
 	defer func() {
@@ -60,7 +60,7 @@ func RunQuery(query string, ses graph.Session) {
 	}
 }
 
-func CayleyRepl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyConfig) {
+func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyConfig) {
 	var ses graph.Session
 	switch queryLanguage {
 	case "sexp":
@@ -131,7 +131,7 @@ func CayleyRepl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyCo
 		result, err := ses.InputParses(line)
 		switch result {
 		case graph.Parsed:
-			RunQuery(line, ses)
+			Run(line, ses)
 			line = ""
 		case graph.ParseFail:
 			fmt.Println("Error: ", err)

@@ -141,7 +141,7 @@ func SetupRoutes(ts graph.TripleStore, cfg *config.CayleyConfig) {
 	http.Handle("/", r)
 }
 
-func CayleyHTTP(ts graph.TripleStore, cfg *config.CayleyConfig) {
+func Serve(ts graph.TripleStore, cfg *config.CayleyConfig) {
 	SetupRoutes(ts, cfg)
 	glog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
 	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
