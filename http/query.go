@@ -71,9 +71,9 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	var ses graph.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewGremlinSession(api.ts, api.config.GremlinTimeout, false)
+		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
 	case "mql":
-		ses = mql.NewMqlSession(api.ts)
+		ses = mql.NewSession(api.ts)
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
@@ -120,9 +120,9 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 	var ses graph.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewGremlinSession(api.ts, api.config.GremlinTimeout, false)
+		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
 	case "mql":
-		ses = mql.NewMqlSession(api.ts)
+		ses = mql.NewSession(api.ts)
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}

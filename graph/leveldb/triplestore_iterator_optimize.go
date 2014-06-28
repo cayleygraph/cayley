@@ -18,7 +18,7 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func (ts *LevelDBTripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
+func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	switch it.Type() {
 	case "linksto":
 		return ts.optimizeLinksTo(it.(*graph.LinksToIterator))
@@ -27,7 +27,7 @@ func (ts *LevelDBTripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterato
 	return it, false
 }
 
-func (ts *LevelDBTripleStore) optimizeLinksTo(it *graph.LinksToIterator) (graph.Iterator, bool) {
+func (ts *TripleStore) optimizeLinksTo(it *graph.LinksToIterator) (graph.Iterator, bool) {
 	l := it.GetSubIterators()
 	if l.Len() != 1 {
 		return it, false

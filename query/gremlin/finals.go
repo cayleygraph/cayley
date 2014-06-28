@@ -21,9 +21,9 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-const GremlinTopResultTag = "id"
+const TopResultTag = "id"
 
-func embedFinals(env *otto.Otto, ses *GremlinSession, obj *otto.Object) {
+func embedFinals(env *otto.Otto, ses *Session, obj *otto.Object) {
 	obj.Set("All", allFunc(env, ses, obj))
 	obj.Set("GetLimit", limitFunc(env, ses, obj))
 	obj.Set("ToArray", toArrayFunc(env, ses, obj, false))
@@ -34,10 +34,10 @@ func embedFinals(env *otto.Otto, ses *GremlinSession, obj *otto.Object) {
 	obj.Set("ForEach", mapFunc(env, ses, obj))
 }
 
-func allFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object) func(otto.FunctionCall) otto.Value {
+func allFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(GremlinTopResultTag)
+		it.AddTag(TopResultTag)
 		ses.limit = -1
 		ses.count = 0
 		runIteratorOnSession(it, ses)
@@ -45,12 +45,12 @@ func allFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object) func(otto.Fu
 	}
 }
 
-func limitFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object) func(otto.FunctionCall) otto.Value {
+func limitFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) > 0 {
 			limitVal, _ := call.Argument(0).ToInteger()
 			it := buildIteratorTree(obj, ses.ts)
-			it.AddTag(GremlinTopResultTag)
+			it.AddTag(TopResultTag)
 			ses.limit = int(limitVal)
 			ses.count = 0
 			runIteratorOnSession(it, ses)
@@ -59,10 +59,10 @@ func limitFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object) func(otto.
 	}
 }
 
-func toArrayFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
+func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(GremlinTopResultTag)
+		it.AddTag(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) > 0 {
 			limitParsed, _ := call.Argument(0).ToInteger()
@@ -86,10 +86,10 @@ func toArrayFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object, withTags
 	}
 }
 
-func toValueFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
+func toValueFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(GremlinTopResultTag)
+		it.AddTag(TopResultTag)
 		limit := 1
 		var val otto.Value
 		var err error
@@ -116,10 +116,10 @@ func toValueFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object, withTags
 	}
 }
 
-func mapFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object) func(otto.FunctionCall) otto.Value {
+func mapFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(GremlinTopResultTag)
+		it.AddTag(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) == 0 {
 			return otto.NullValue()
@@ -134,7 +134,7 @@ func mapFunc(env *otto.Otto, ses *GremlinSession, obj *otto.Object) func(otto.Fu
 	}
 }
 
-func tagsToValueMap(m map[string]graph.TSVal, ses *GremlinSession) map[string]string {
+func tagsToValueMap(m map[string]graph.TSVal, ses *Session) map[string]string {
 	outputMap := make(map[string]string)
 	for k, v := range m {
 		outputMap[k] = ses.ts.GetNameFor(v)
@@ -142,7 +142,7 @@ func tagsToValueMap(m map[string]graph.TSVal, ses *GremlinSession) map[string]st
 	return outputMap
 }
 
-func runIteratorToArray(it graph.Iterator, ses *GremlinSession, limit int) []map[string]string {
+func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string]string {
 	output := make([]map[string]string, 0)
 	count := 0
 	it, _ = it.Optimize()
@@ -178,7 +178,7 @@ func runIteratorToArray(it graph.Iterator, ses *GremlinSession, limit int) []map
 	return output
 }
 
-func runIteratorToArrayNoTags(it graph.Iterator, ses *GremlinSession, limit int) []string {
+func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []string {
 	output := make([]string, 0)
 	count := 0
 	it, _ = it.Optimize()
@@ -200,7 +200,7 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *GremlinSession, limit int)
 	return output
 }
 
-func runIteratorWithCallback(it graph.Iterator, ses *GremlinSession, callback otto.Value, this otto.FunctionCall, limit int) {
+func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Value, this otto.FunctionCall, limit int) {
 	count := 0
 	it, _ = it.Optimize()
 	for {
@@ -236,7 +236,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *GremlinSession, callback ot
 	it.Close()
 }
 
-func runIteratorOnSession(it graph.Iterator, ses *GremlinSession) {
+func runIteratorOnSession(it graph.Iterator, ses *Session) {
 	if ses.lookingForQueryShape {
 		graph.OutputQueryShapeForIterator(it, ses.ts, &(ses.queryShape))
 		return

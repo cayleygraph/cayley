@@ -25,7 +25,7 @@ type MqlPath string
 type MqlResultPath string
 
 type MqlQuery struct {
-	ses            *MqlSession
+	ses            *Session
 	it             graph.Iterator
 	isRepeated     map[MqlPath]bool
 	queryStructure map[MqlPath]map[string]interface{}
@@ -100,7 +100,7 @@ func (p MqlPath) ToResultPathFromMap(resultMap map[MqlPath]string) MqlResultPath
 	return output
 }
 
-func NewMqlQuery(ses *MqlSession) *MqlQuery {
+func NewMqlQuery(ses *Session) *MqlQuery {
 	var q MqlQuery
 	q.ses = ses
 	q.results = make([]interface{}, 0)

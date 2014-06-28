@@ -69,18 +69,18 @@ func main() {
 	}
 	switch cmd {
 	case "init":
-		db.CayleyInit(cfg, *tripleFile)
+		db.Init(cfg, *tripleFile)
 	case "load":
-		ts = db.OpenTSFromConfig(cfg)
-		db.CayleyLoad(ts, cfg, *tripleFile, false)
+		ts = db.Open(cfg)
+		db.Load(ts, cfg, *tripleFile, false)
 		ts.Close()
 	case "repl":
-		ts = db.OpenTSFromConfig(cfg)
-		db.CayleyRepl(ts, *queryLanguage, cfg)
+		ts = db.Open(cfg)
+		db.Repl(ts, *queryLanguage, cfg)
 		ts.Close()
 	case "http":
-		ts = db.OpenTSFromConfig(cfg)
-		http.CayleyHTTP(ts, cfg)
+		ts = db.Open(cfg)
+		http.Serve(ts, cfg)
 		ts.Close()
 	default:
 		fmt.Println("No command", cmd)

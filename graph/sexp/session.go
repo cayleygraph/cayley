@@ -24,22 +24,22 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type SexpSession struct {
+type Session struct {
 	ts    graph.TripleStore
 	debug bool
 }
 
-func NewSexpSession(inputTripleStore graph.TripleStore) *SexpSession {
-	var s SexpSession
+func NewSession(inputTripleStore graph.TripleStore) *Session {
+	var s Session
 	s.ts = inputTripleStore
 	return &s
 }
 
-func (s *SexpSession) ToggleDebug() {
+func (s *Session) ToggleDebug() {
 	s.debug = !s.debug
 }
 
-func (s *SexpSession) InputParses(input string) (graph.ParseResult, error) {
+func (s *Session) InputParses(input string) (graph.ParseResult, error) {
 	var parenDepth int
 	for i, x := range input {
 		if x == '(' {
@@ -65,7 +65,7 @@ func (s *SexpSession) InputParses(input string) (graph.ParseResult, error) {
 	return graph.ParseFail, errors.New("Invalid Syntax")
 }
 
-func (s *SexpSession) ExecInput(input string, out chan interface{}, limit int) {
+func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	it := BuildIteratorTreeForQuery(s.ts, input)
 	newIt, changed := it.Optimize()
 	if changed {
@@ -101,7 +101,7 @@ func (s *SexpSession) ExecInput(input string, out chan interface{}, limit int) {
 	close(out)
 }
 
-func (s *SexpSession) ToText(result interface{}) string {
+func (s *Session) ToText(result interface{}) string {
 	out := fmt.Sprintln("****")
 	tags := result.(*map[string]graph.TSVal)
 	tagKeys := make([]string, len(*tags))

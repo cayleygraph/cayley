@@ -19,26 +19,26 @@ import (
 	"fmt"
 	"strings"
 
-	leveldb_it "github.com/syndtr/goleveldb/leveldb/iterator"
-	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/google/cayley/graph"
 )
 
-type LevelDBAllIterator struct {
+type AllIterator struct {
 	graph.BaseIterator
 	prefix []byte
 	dir    string
 	open   bool
-	it     leveldb_it.Iterator
-	ts     *LevelDBTripleStore
-	ro     *leveldb_opt.ReadOptions
+	it     iterator.Iterator
+	ts     *TripleStore
+	ro     *opt.ReadOptions
 }
 
-func NewLevelDBAllIterator(prefix, dir string, ts *LevelDBTripleStore) *LevelDBAllIterator {
-	var it LevelDBAllIterator
+func NewLevelDBAllIterator(prefix, dir string, ts *TripleStore) *AllIterator {
+	var it AllIterator
 	graph.BaseIteratorInit(&it.BaseIterator)
-	it.ro = &leveldb_opt.ReadOptions{}
+	it.ro = &opt.ReadOptions{}
 	it.ro.DontFillCache = true
 	it.it = ts.db.NewIterator(nil, it.ro)
 	it.prefix = []byte(prefix)
@@ -53,7 +53,7 @@ func NewLevelDBAllIterator(prefix, dir string, ts *LevelDBTripleStore) *LevelDBA
 	return &it
 }
 
-func (a *LevelDBAllIterator) Reset() {
+func (a *AllIterator) Reset() {
 	if !a.open {
 		a.it = a.ts.db.NewIterator(nil, a.ro)
 		a.open = true
@@ -65,13 +65,13 @@ func (a *LevelDBAllIterator) Reset() {
 	}
 }
 
-func (a *LevelDBAllIterator) Clone() graph.Iterator {
+func (a *AllIterator) Clone() graph.Iterator {
 	out := NewLevelDBAllIterator(string(a.prefix), a.dir, a.ts)
 	out.CopyTagsFrom(a)
 	return out
 }
 
-func (a *LevelDBAllIterator) Next() (graph.TSVal, bool) {
+func (a *AllIterator) Next() (graph.TSVal, bool) {
 	if !a.open {
 		a.Last = nil
 		return nil, false
@@ -91,19 +91,19 @@ func (a *LevelDBAllIterator) Next() (graph.TSVal, bool) {
 	return out, true
 }
 
-func (a *LevelDBAllIterator) Check(v graph.TSVal) bool {
+func (a *AllIterator) Check(v graph.TSVal) bool {
 	a.Last = v
 	return true
 }
 
-func (lit *LevelDBAllIterator) Close() {
+func (lit *AllIterator) Close() {
 	if lit.open {
 		lit.it.Release()
 		lit.open = false
 	}
 }
 
-func (a *LevelDBAllIterator) Size() (int64, bool) {
+func (a *AllIterator) Size() (int64, bool) {
 	size, err := a.ts.GetApproximateSizeForPrefix(a.prefix)
 	if err == nil {
 		return size, false
@@ -112,19 +112,19 @@ func (a *LevelDBAllIterator) Size() (int64, bool) {
 	return int64(^uint64(0) >> 1), false
 }
 
-func (lit *LevelDBAllIterator) DebugString(indent int) string {
+func (lit *AllIterator) DebugString(indent int) string {
 	size, _ := lit.Size()
 	return fmt.Sprintf("%s(%s tags: %v leveldb size:%d %s %p)", strings.Repeat(" ", indent), lit.Type(), lit.Tags(), size, lit.dir, lit)
 }
 
-func (lit *LevelDBAllIterator) Type() string { return "all" }
-func (lit *LevelDBAllIterator) Sorted() bool { return false }
+func (lit *AllIterator) Type() string { return "all" }
+func (lit *AllIterator) Sorted() bool { return false }
 
-func (lit *LevelDBAllIterator) Optimize() (graph.Iterator, bool) {
+func (lit *AllIterator) Optimize() (graph.Iterator, bool) {
 	return lit, false
 }
 
-func (lit *LevelDBAllIterator) GetStats() *graph.IteratorStats {
+func (lit *AllIterator) GetStats() *graph.IteratorStats {
 	s, _ := lit.Size()
 	return &graph.IteratorStats{
 		CheckCost: 1,

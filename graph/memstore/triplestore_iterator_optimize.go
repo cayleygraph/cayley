@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mongo
+package memstore
 
 import (
 	"github.com/google/cayley/graph"
 )
 
-func (ts *MongoTripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
+func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	switch it.Type() {
 	case "linksto":
 		return ts.optimizeLinksTo(it.(*graph.LinksToIterator))
@@ -27,7 +27,7 @@ func (ts *MongoTripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator,
 	return it, false
 }
 
-func (ts *MongoTripleStore) optimizeLinksTo(it *graph.LinksToIterator) (graph.Iterator, bool) {
+func (ts *TripleStore) optimizeLinksTo(it *graph.LinksToIterator) (graph.Iterator, bool) {
 	l := it.GetSubIterators()
 	if l.Len() != 1 {
 		return it, false
@@ -45,9 +45,9 @@ func (ts *MongoTripleStore) optimizeLinksTo(it *graph.LinksToIterator) (graph.It
 			for _, tag := range primaryIt.Tags() {
 				newIt.AddFixedTag(tag, val)
 			}
-			it.Close()
 			return newIt, true
 		}
 	}
+	it.Close()
 	return it, false
 }

@@ -24,7 +24,7 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type LlrbIterator struct {
+type Iterator struct {
 	graph.BaseIterator
 	tree      *llrb.LLRB
 	data      string
@@ -51,8 +51,8 @@ func IterateOne(tree *llrb.LLRB, last Int64) Int64 {
 	return next
 }
 
-func NewLlrbIterator(tree *llrb.LLRB, data string) *LlrbIterator {
-	var it LlrbIterator
+func NewLlrbIterator(tree *llrb.LLRB, data string) *Iterator {
+	var it Iterator
 	graph.BaseIteratorInit(&it.BaseIterator)
 	it.tree = tree
 	it.iterLast = Int64(-1)
@@ -60,19 +60,19 @@ func NewLlrbIterator(tree *llrb.LLRB, data string) *LlrbIterator {
 	return &it
 }
 
-func (it *LlrbIterator) Reset() {
+func (it *Iterator) Reset() {
 	it.iterLast = Int64(-1)
 }
 
-func (it *LlrbIterator) Clone() graph.Iterator {
+func (it *Iterator) Clone() graph.Iterator {
 	var new_it = NewLlrbIterator(it.tree, it.data)
 	new_it.CopyTagsFrom(it)
 	return new_it
 }
 
-func (it *LlrbIterator) Close() {}
+func (it *Iterator) Close() {}
 
-func (it *LlrbIterator) Next() (graph.TSVal, bool) {
+func (it *Iterator) Next() (graph.TSVal, bool) {
 	graph.NextLogIn(it)
 	if it.tree.Max() == nil || it.Last == int64(it.tree.Max().(Int64)) {
 		return graph.NextLogOut(it, nil, false)
@@ -82,11 +82,11 @@ func (it *LlrbIterator) Next() (graph.TSVal, bool) {
 	return graph.NextLogOut(it, it.Last, true)
 }
 
-func (it *LlrbIterator) Size() (int64, bool) {
+func (it *Iterator) Size() (int64, bool) {
 	return int64(it.tree.Len()), true
 }
 
-func (it *LlrbIterator) Check(v graph.TSVal) bool {
+func (it *Iterator) Check(v graph.TSVal) bool {
 	graph.CheckLogIn(it, v)
 	if it.tree.Has(Int64(v.(int64))) {
 		it.Last = v
@@ -95,22 +95,22 @@ func (it *LlrbIterator) Check(v graph.TSVal) bool {
 	return graph.CheckLogOut(it, v, false)
 }
 
-func (it *LlrbIterator) DebugString(indent int) string {
+func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
 	return fmt.Sprintf("%s(%s tags:%s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.Tags(), size, it.data)
 }
 
-func (it *LlrbIterator) Type() string {
+func (it *Iterator) Type() string {
 	return "llrb"
 }
-func (it *LlrbIterator) Sorted() bool {
+func (it *Iterator) Sorted() bool {
 	return true
 }
-func (it *LlrbIterator) Optimize() (graph.Iterator, bool) {
+func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *LlrbIterator) GetStats() *graph.IteratorStats {
+func (it *Iterator) GetStats() *graph.IteratorStats {
 	return &graph.IteratorStats{
 		CheckCost: int64(math.Log(float64(it.tree.Len()))) + 1,
 		NextCost:  1,

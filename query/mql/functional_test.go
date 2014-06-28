@@ -35,9 +35,9 @@ import (
 //              +---+
 //
 
-func buildTripleStore() *MqlSession {
+func buildTripleStore() *Session {
 	ts := memstore.MakeTestingMemstore()
-	return NewMqlSession(ts)
+	return NewSession(ts)
 }
 
 func compareJsonInterfaces(actual interface{}, expected interface{}, path MqlPath, t *testing.T) {

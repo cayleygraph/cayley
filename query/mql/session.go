@@ -24,23 +24,23 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type MqlSession struct {
+type Session struct {
 	ts           graph.TripleStore
 	currentQuery *MqlQuery
 	debug        bool
 }
 
-func NewMqlSession(ts graph.TripleStore) *MqlSession {
-	var m MqlSession
+func NewSession(ts graph.TripleStore) *Session {
+	var m Session
 	m.ts = ts
 	return &m
 }
 
-func (m *MqlSession) ToggleDebug() {
+func (m *Session) ToggleDebug() {
 	m.debug = !m.debug
 }
 
-func (m *MqlSession) GetQuery(input string, output_struct chan map[string]interface{}) {
+func (m *Session) GetQuery(input string, output_struct chan map[string]interface{}) {
 	defer close(output_struct)
 	var mqlQuery interface{}
 	err := json.Unmarshal([]byte(input), &mqlQuery)
@@ -61,7 +61,7 @@ func (m *MqlSession) GetQuery(input string, output_struct chan map[string]interf
 	output_struct <- output
 }
 
-func (m *MqlSession) InputParses(input string) (graph.ParseResult, error) {
+func (m *Session) InputParses(input string) (graph.ParseResult, error) {
 	var x interface{}
 	err := json.Unmarshal([]byte(input), &x)
 	if err != nil {
@@ -70,7 +70,7 @@ func (m *MqlSession) InputParses(input string) (graph.ParseResult, error) {
 	return graph.Parsed, nil
 }
 
-func (m *MqlSession) ExecInput(input string, c chan interface{}, limit int) {
+func (m *Session) ExecInput(input string, c chan interface{}, limit int) {
 	defer close(c)
 	var mqlQuery interface{}
 	err := json.Unmarshal([]byte(input), &mqlQuery)
@@ -102,7 +102,7 @@ func (m *MqlSession) ExecInput(input string, c chan interface{}, limit int) {
 	}
 }
 
-func (m *MqlSession) ToText(result interface{}) string {
+func (m *Session) ToText(result interface{}) string {
 	tags := *(result.(*map[string]graph.TSVal))
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
@@ -125,11 +125,11 @@ func (m *MqlSession) ToText(result interface{}) string {
 	return out
 }
 
-func (m *MqlSession) BuildJson(result interface{}) {
+func (m *Session) BuildJson(result interface{}) {
 	m.currentQuery.treeifyResult(*(result.(*map[string]graph.TSVal)))
 }
 
-func (m *MqlSession) GetJson() (interface{}, error) {
+func (m *Session) GetJson() (interface{}, error) {
 	m.currentQuery.buildResults()
 	if m.currentQuery.isError {
 		return nil, m.currentQuery.err
@@ -138,7 +138,7 @@ func (m *MqlSession) GetJson() (interface{}, error) {
 	}
 }
 
-func (m *MqlSession) ClearJson() {
+func (m *Session) ClearJson() {
 	// Since we create a new MqlQuery underneath every query, clearing isn't necessary.
 	return
 }

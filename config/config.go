@@ -22,7 +22,7 @@ import (
 	"github.com/barakmich/glog"
 )
 
-type CayleyConfig struct {
+type Config struct {
 	DatabaseType    string                 `json:"database"`
 	DatabasePath    string                 `json:"db_path"`
 	DatabaseOptions map[string]interface{} `json:"db_options"`
@@ -41,8 +41,8 @@ var port = flag.String("port", "64210", "Port to listen on.")
 var readOnly = flag.Bool("read_only", false, "Disable writing via HTTP.")
 var gremlinTimeout = flag.Int("gremlin_timeout", 30, "Number of seconds until an individual query times out.")
 
-func ParseConfigFromFile(filename string) *CayleyConfig {
-	config := &CayleyConfig{}
+func ParseConfigFromFile(filename string) *Config {
+	config := &Config{}
 	if filename == "" {
 		return config
 	}
@@ -61,7 +61,7 @@ func ParseConfigFromFile(filename string) *CayleyConfig {
 	return config
 }
 
-func ParseConfigFromFlagsAndFile(fileFlag string) *CayleyConfig {
+func ParseConfigFromFlagsAndFile(fileFlag string) *Config {
 	// Find the file...
 	var trueFilename string
 	if fileFlag != "" {

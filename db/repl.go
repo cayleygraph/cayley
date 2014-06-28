@@ -40,7 +40,7 @@ func un(s string, startTime time.Time) {
 	fmt.Printf(s, float64(endTime.UnixNano()-startTime.UnixNano())/float64(1E6))
 }
 
-func RunQuery(query string, ses graph.Session) {
+func Run(query string, ses graph.Session) {
 	nResults := 0
 	startTrace, startTime := trace("Elapsed time: %g ms\n\n")
 	defer func() {
@@ -60,17 +60,17 @@ func RunQuery(query string, ses graph.Session) {
 	}
 }
 
-func CayleyRepl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyConfig) {
+func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 	var ses graph.Session
 	switch queryLanguage {
 	case "sexp":
-		ses = sexp.NewSexpSession(ts)
+		ses = sexp.NewSession(ts)
 	case "mql":
-		ses = mql.NewMqlSession(ts)
+		ses = mql.NewSession(ts)
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewGremlinSession(ts, cfg.GremlinTimeout, true)
+		ses = gremlin.NewSession(ts, cfg.GremlinTimeout, true)
 	}
 	inputBf := bufio.NewReader(os.Stdin)
 	line := ""
@@ -106,7 +106,7 @@ func CayleyRepl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyCo
 		}
 		if strings.HasPrefix(line, ":a") {
 			var tripleStmt = line[3:]
-			triple := nquads.ParseLineToTriple(tripleStmt)
+			triple := nquads.Parse(tripleStmt)
 			if triple == nil {
 				fmt.Println("Not a valid triple.")
 				line = ""
@@ -118,7 +118,7 @@ func CayleyRepl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyCo
 		}
 		if strings.HasPrefix(line, ":d") {
 			var tripleStmt = line[3:]
-			triple := nquads.ParseLineToTriple(tripleStmt)
+			triple := nquads.Parse(tripleStmt)
 			if triple == nil {
 				fmt.Println("Not a valid triple.")
 				line = ""
@@ -131,7 +131,7 @@ func CayleyRepl(ts graph.TripleStore, queryLanguage string, cfg *config.CayleyCo
 		result, err := ses.InputParses(line)
 		switch result {
 		case graph.Parsed:
-			RunQuery(line, ses)
+			Run(line, ses)
 			line = ""
 		case graph.ParseFail:
 			fmt.Println("Error: ", err)

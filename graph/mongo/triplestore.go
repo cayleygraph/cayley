@@ -29,7 +29,7 @@ import (
 
 const DefaultDBName = "cayley"
 
-type MongoTripleStore struct {
+type TripleStore struct {
 	session *mgo.Session
 	db      *mgo.Database
 	hasher  hash.Hash
@@ -65,8 +65,8 @@ func CreateNewMongoGraph(addr string, options graph.OptionsDict) bool {
 	return true
 }
 
-func NewMongoTripleStore(addr string, options graph.OptionsDict) *MongoTripleStore {
-	var ts MongoTripleStore
+func NewTripleStore(addr string, options graph.OptionsDict) *TripleStore {
+	var ts TripleStore
 	conn, err := mgo.Dial(addr)
 	if err != nil {
 		glog.Fatal("Error connecting: ", err)
@@ -83,7 +83,7 @@ func NewMongoTripleStore(addr string, options graph.OptionsDict) *MongoTripleSto
 	return &ts
 }
 
-func (ts *MongoTripleStore) getIdForTriple(t *graph.Triple) string {
+func (ts *TripleStore) getIdForTriple(t *graph.Triple) string {
 	id := ts.ConvertStringToByteHash(t.Sub)
 	id += ts.ConvertStringToByteHash(t.Pred)
 	id += ts.ConvertStringToByteHash(t.Obj)
@@ -91,7 +91,7 @@ func (ts *MongoTripleStore) getIdForTriple(t *graph.Triple) string {
 	return id
 }
 
-func (ts *MongoTripleStore) ConvertStringToByteHash(s string) string {
+func (ts *TripleStore) ConvertStringToByteHash(s string) string {
 	ts.hasher.Reset()
 	key := make([]byte, 0, ts.hasher.Size())
 	ts.hasher.Write([]byte(s))
@@ -105,7 +105,7 @@ type MongoNode struct {
 	Size int    "Size"
 }
 
-func (ts *MongoTripleStore) updateNodeBy(node_name string, inc int) {
+func (ts *TripleStore) updateNodeBy(node_name string, inc int) {
 	var size MongoNode
 	node := ts.GetIdFor(node_name)
 	err := ts.db.C("nodes").FindId(node).One(&size)
@@ -142,7 +142,7 @@ func (ts *MongoTripleStore) updateNodeBy(node_name string, inc int) {
 	}
 }
 
-func (ts *MongoTripleStore) writeTriple(t *graph.Triple) bool {
+func (ts *TripleStore) writeTriple(t *graph.Triple) bool {
 	tripledoc := bson.M{"_id": ts.getIdForTriple(t), "Sub": t.Sub, "Pred": t.Pred, "Obj": t.Obj, "Provenance": t.Provenance}
 	err := ts.db.C("triples").Insert(tripledoc)
 	if err != nil {
@@ -156,7 +156,7 @@ func (ts *MongoTripleStore) writeTriple(t *graph.Triple) bool {
 	return true
 }
 
-func (ts *MongoTripleStore) AddTriple(t *graph.Triple) {
+func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	_ = ts.writeTriple(t)
 	ts.updateNodeBy(t.Sub, 1)
 	ts.updateNodeBy(t.Pred, 1)
@@ -166,7 +166,7 @@ func (ts *MongoTripleStore) AddTriple(t *graph.Triple) {
 	}
 }
 
-func (ts *MongoTripleStore) AddTripleSet(in []*graph.Triple) {
+func (ts *TripleStore) AddTripleSet(in []*graph.Triple) {
 	ts.session.SetSafe(nil)
 	idMap := make(map[string]int)
 	for _, t := range in {
@@ -186,7 +186,7 @@ func (ts *MongoTripleStore) AddTripleSet(in []*graph.Triple) {
 	ts.session.SetSafe(&mgo.Safe{})
 }
 
-func (ts *MongoTripleStore) RemoveTriple(t *graph.Triple) {
+func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	err := ts.db.C("triples").RemoveId(ts.getIdForTriple(t))
 	if err == mgo.ErrNotFound {
 		return
@@ -202,7 +202,7 @@ func (ts *MongoTripleStore) RemoveTriple(t *graph.Triple) {
 	}
 }
 
-func (ts *MongoTripleStore) GetTriple(val graph.TSVal) *graph.Triple {
+func (ts *TripleStore) GetTriple(val graph.TSVal) *graph.Triple {
 	var bsonDoc bson.M
 	err := ts.db.C("triples").FindId(val.(string)).One(&bsonDoc)
 	if err != nil {
@@ -215,23 +215,23 @@ func (ts *MongoTripleStore) GetTriple(val graph.TSVal) *graph.Triple {
 		bsonDoc["Provenance"].(string))
 }
 
-func (ts *MongoTripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iterator {
+func (ts *TripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iterator {
 	return NewMongoIterator(ts, "triples", dir, val)
 }
 
-func (ts *MongoTripleStore) GetNodesAllIterator() graph.Iterator {
+func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
 	return NewMongoAllIterator(ts, "nodes")
 }
 
-func (ts *MongoTripleStore) GetTriplesAllIterator() graph.Iterator {
+func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
 	return NewMongoAllIterator(ts, "triples")
 }
 
-func (ts *MongoTripleStore) GetIdFor(s string) graph.TSVal {
+func (ts *TripleStore) GetIdFor(s string) graph.TSVal {
 	return ts.ConvertStringToByteHash(s)
 }
 
-func (ts *MongoTripleStore) GetNameFor(v graph.TSVal) string {
+func (ts *TripleStore) GetNameFor(v graph.TSVal) string {
 	val, ok := ts.idCache.Get(v.(string))
 	if ok {
 		return val
@@ -245,7 +245,7 @@ func (ts *MongoTripleStore) GetNameFor(v graph.TSVal) string {
 	return node.Name
 }
 
-func (ts *MongoTripleStore) Size() int64 {
+func (ts *TripleStore) Size() int64 {
 	count, err := ts.db.C("triples").Count()
 	if err != nil {
 		glog.Error("Error: ", err)
@@ -258,15 +258,15 @@ func compareStrings(a, b graph.TSVal) bool {
 	return a.(string) == b.(string)
 }
 
-func (ts *MongoTripleStore) MakeFixed() *graph.FixedIterator {
+func (ts *TripleStore) MakeFixed() *graph.FixedIterator {
 	return graph.NewFixedIteratorWithCompare(compareStrings)
 }
 
-func (ts *MongoTripleStore) Close() {
+func (ts *TripleStore) Close() {
 	ts.db.Session.Close()
 }
 
-func (ts *MongoTripleStore) GetTripleDirection(in graph.TSVal, dir string) graph.TSVal {
+func (ts *TripleStore) GetTripleDirection(in graph.TSVal, dir string) graph.TSVal {
 	// Maybe do the trick here
 	var offset int
 	switch dir {
@@ -283,7 +283,7 @@ func (ts *MongoTripleStore) GetTripleDirection(in graph.TSVal, dir string) graph
 	return val
 }
 
-func (ts *MongoTripleStore) BulkLoad(t_chan chan *graph.Triple) {
+func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) {
 	ts.session.SetSafe(nil)
 	for triple := range t_chan {
 		ts.writeTriple(triple)

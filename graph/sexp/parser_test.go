@@ -32,7 +32,7 @@ func TestBadParse(t *testing.T) {
 
 func TestParseSexpWithMemstore(t *testing.T) {
 	Convey("With a Memstore", t, func() {
-		ts := memstore.NewMemTripleStore()
+		ts := memstore.NewTripleStore()
 
 		Convey("It should parse an empty query", func() {
 			it := BuildIteratorTreeForQuery(ts, "()")
@@ -64,7 +64,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 }
 
 func TestTreeConstraintParse(t *testing.T) {
-	ts := memstore.NewMemTripleStore()
+	ts := memstore.NewTripleStore()
 	ts.AddTriple(graph.MakeTriple("i", "like", "food", ""))
 	ts.AddTriple(graph.MakeTriple("food", "is", "good", ""))
 	query := "(\"i\"\n" +
@@ -84,7 +84,7 @@ func TestTreeConstraintParse(t *testing.T) {
 }
 
 func TestTreeConstraintTagParse(t *testing.T) {
-	ts := memstore.NewMemTripleStore()
+	ts := memstore.NewTripleStore()
 	ts.AddTriple(graph.MakeTriple("i", "like", "food", ""))
 	ts.AddTriple(graph.MakeTriple("food", "is", "good", ""))
 	query := "(\"i\"\n" +
@@ -104,7 +104,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 }
 
 func TestMultipleConstraintParse(t *testing.T) {
-	ts := memstore.NewMemTripleStore()
+	ts := memstore.NewTripleStore()
 	ts.AddTriple(graph.MakeTriple("i", "like", "food", ""))
 	ts.AddTriple(graph.MakeTriple("i", "like", "beer", ""))
 	ts.AddTriple(graph.MakeTriple("you", "like", "beer", ""))

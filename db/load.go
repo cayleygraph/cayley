@@ -25,11 +25,11 @@ import (
 	"github.com/google/cayley/nquads"
 )
 
-func CayleyLoad(ts graph.TripleStore, cfg *config.CayleyConfig, triplePath string, firstTime bool) {
+func Load(ts graph.TripleStore, cfg *config.Config, triplePath string, firstTime bool) {
 	switch cfg.DatabaseType {
 	case "mongo", "mongodb":
 		if firstTime {
-			loadMongo(ts.(*mongo.MongoTripleStore), triplePath)
+			loadMongo(ts.(*mongo.TripleStore), triplePath)
 		} else {
 			LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
 		}
@@ -43,7 +43,7 @@ func CayleyLoad(ts graph.TripleStore, cfg *config.CayleyConfig, triplePath strin
 
 }
 
-func loadMongo(ts *mongo.MongoTripleStore, path string) {
+func loadMongo(ts *mongo.TripleStore, path string) {
 	tChan := make(chan *graph.Triple)
 	go ReadTriplesFromFile(tChan, path)
 	ts.BulkLoad(tChan)

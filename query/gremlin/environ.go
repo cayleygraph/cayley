@@ -21,7 +21,7 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-func BuildGremlinEnv(ses *GremlinSession) *otto.Otto {
+func BuildEnviron(ses *Session) *otto.Otto {
 	env := otto.New()
 	setupGremlin(env, ses)
 	return env
@@ -55,7 +55,7 @@ func isVertexChain(obj *otto.Object) bool {
 	return false
 }
 
-func setupGremlin(env *otto.Otto, ses *GremlinSession) {
+func setupGremlin(env *otto.Otto, ses *Session) {
 	graph, _ := env.Object("graph = {}")
 	graph.Set("Vertex", func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")

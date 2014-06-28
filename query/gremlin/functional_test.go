@@ -35,9 +35,9 @@ import (
 //              +---+
 //
 
-func buildTripleStore() *GremlinSession {
+func buildTripleStore() *Session {
 	ts := memstore.MakeTestingMemstore()
-	return NewGremlinSession(ts, -1, false)
+	return NewSession(ts, -1, false)
 }
 
 func shouldBeUnordered(actual interface{}, expected ...interface{}) string {
@@ -71,7 +71,7 @@ func runQueryGetTag(query string, tag string) ([]string, int) {
 }
 
 func ConveyQuery(doc string, query string, expected []string) {
-	ConveyQueryTag(doc, query, GremlinTopResultTag, expected)
+	ConveyQueryTag(doc, query, TopResultTag, expected)
 }
 
 func ConveyQueryTag(doc string, query string, tag string, expected []string) {
