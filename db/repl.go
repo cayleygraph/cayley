@@ -66,7 +66,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 	case "sexp":
 		ses = sexp.NewSexpSession(ts)
 	case "mql":
-		ses = mql.NewMqlSession(ts)
+		ses = mql.NewSession(ts)
 	case "gremlin":
 		fallthrough
 	default:

@@ -73,7 +73,7 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	case "gremlin":
 		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
 	case "mql":
-		ses = mql.NewMqlSession(api.ts)
+		ses = mql.NewSession(api.ts)
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
@@ -122,7 +122,7 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 	case "gremlin":
 		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
 	case "mql":
-		ses = mql.NewMqlSession(api.ts)
+		ses = mql.NewSession(api.ts)
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
