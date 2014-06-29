@@ -16,7 +16,6 @@
 package graph
 
 import (
-	"container/list"
 	"fmt"
 	"strings"
 )
@@ -28,7 +27,7 @@ type AndIterator struct {
 	internalIterators []Iterator
 	itCount           int
 	primaryIt         Iterator
-	checkList         *list.List
+	checkList         []Iterator
 }
 
 // Creates a new And iterator.
@@ -62,14 +61,12 @@ func (it *AndIterator) Clone() Iterator {
 	return and
 }
 
-// Returns a list.List of the subiterators, in order (primary iterator first).
-func (it *AndIterator) GetSubIterators() *list.List {
-	l := list.New()
-	l.PushBack(it.primaryIt)
-	for _, sub := range it.internalIterators {
-		l.PushBack(sub)
-	}
-	return l
+// Returns a slice of the subiterators, in order (primary iterator first).
+func (it *AndIterator) GetSubIterators() []Iterator {
+	iters := make([]Iterator, len(it.internalIterators)+1)
+	iters[0] = it.primaryIt
+	copy(iters[1:], it.internalIterators)
+	return iters
 }
 
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
@@ -169,14 +166,14 @@ func (it *AndIterator) checkSubIts(val TSVal) bool {
 }
 
 func (it *AndIterator) checkCheckList(val TSVal) bool {
-	var isGood = true
-	for e := it.checkList.Front(); e != nil; e = e.Next() {
-		isGood = e.Value.(Iterator).Check(val)
-		if !isGood {
+	ok := true
+	for _, c := range it.checkList {
+		ok = c.Check(val)
+		if !ok {
 			break
 		}
 	}
-	return CheckLogOut(it, val, isGood)
+	return CheckLogOut(it, val, ok)
 }
 
 // Check a value against the entire iterator, in order.

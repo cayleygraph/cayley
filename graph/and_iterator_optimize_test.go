@@ -79,9 +79,8 @@ func TestReorderWithTag(t *testing.T) {
 	}
 	expectedTags := []string{"good", "slow"}
 	tagsOut := make([]string, 0)
-	l := newIt.GetSubIterators()
-	for e := l.Front(); e != nil; e = e.Next() {
-		for _, x := range e.Value.(Iterator).Tags() {
+	for _, sub := range newIt.GetSubIterators() {
+		for _, x := range sub.Tags() {
 			tagsOut = append(tagsOut, x)
 		}
 	}

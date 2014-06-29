@@ -22,7 +22,6 @@ package graph
 // May return the same value twice -- once for each branch.
 
 import (
-	"container/list"
 	"fmt"
 	"strings"
 )
@@ -75,13 +74,9 @@ func (it *OrIterator) Clone() Iterator {
 	return or
 }
 
-// Returns a list.List of the subiterators, in order.
-func (it *OrIterator) GetSubIterators() *list.List {
-	l := list.New()
-	for _, sub := range it.internalIterators {
-		l.PushBack(sub)
-	}
-	return l
+// Returns a list.List of the subiterators, in order. The returned slice must not be modified.
+func (it *OrIterator) GetSubIterators() []Iterator {
+	return it.internalIterators
 }
 
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
@@ -236,17 +231,17 @@ func (it *OrIterator) Close() {
 }
 
 func (it *OrIterator) Optimize() (Iterator, bool) {
-	oldItList := it.GetSubIterators()
-	itList := optimizeSubIterators(oldItList)
+	old := it.GetSubIterators()
+	optIts := optimizeSubIterators(old)
 	// Close the replaced iterators (they ought to close themselves, but Close()
 	// is idempotent, so this just protects against any machinations).
-	closeIteratorList(oldItList, nil)
+	closeIteratorList(old, nil)
 	newOr := NewOrIterator()
 	newOr.isShortCircuiting = it.isShortCircuiting
 
 	// Add the subiterators in order.
-	for e := itList.Front(); e != nil; e = e.Next() {
-		newOr.AddSubIterator(e.Value.(Iterator))
+	for _, o := range optIts {
+		newOr.AddSubIterator(o)
 	}
 
 	// Move the tags hanging on us (like any good replacement).
