@@ -14,28 +14,22 @@
 
 package graph
 
-import (
-	"container/list"
-	"fmt"
-)
+import "fmt"
 
 type ResultTree struct {
 	result   TSVal
-	subtrees *list.List
+	subtrees []*ResultTree
 }
 
 func NewResultTree(result TSVal) *ResultTree {
-	var t ResultTree
-	t.subtrees = list.New()
-	t.result = result
-	return &t
+	return &ResultTree{result: result}
 }
 
 func (t *ResultTree) ToString() string {
 	base := fmt.Sprintf("(%d", t.result)
-	if t.subtrees.Len() != 0 {
-		for e := t.subtrees.Front(); e != nil; e = e.Next() {
-			base += fmt.Sprintf(" %s", (e.Value.(*ResultTree)).ToString())
+	if len(t.subtrees) != 0 {
+		for _, sub := range t.subtrees {
+			base += fmt.Sprintf(" %s", sub.ToString())
 		}
 	}
 	base += ")"
@@ -43,7 +37,7 @@ func (t *ResultTree) ToString() string {
 }
 
 func (t *ResultTree) AddSubtree(sub *ResultTree) {
-	t.subtrees.PushBack(sub)
+	t.subtrees = append(t.subtrees, sub)
 }
 
 func StringResultTreeEvaluator(it Iterator) string {
