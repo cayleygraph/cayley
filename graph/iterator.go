@@ -18,7 +18,6 @@ package graph
 // iterators can "inherit" from to get default iterator functionality.
 
 import (
-	"container/list"
 	"fmt"
 	"strings"
 
@@ -90,8 +89,9 @@ type Iterator interface {
 	// around internally. if it chooses to replace it with a better iterator,
 	// returns (the new iterator, true), if not, it returns (self, false).
 	Optimize() (Iterator, bool)
-	// Return a list of the subiterators for this iterator.
-	GetSubIterators() *list.List
+
+	// Return a slice of the subiterators for this iterator.
+	GetSubIterators() []Iterator
 
 	// Return a string representation of the iterator, indented by the given amount.
 	DebugString(int) string
@@ -170,18 +170,18 @@ func (it *BaseIterator) CopyTagsFrom(other_it Iterator) {
 }
 
 // Prints a silly debug string. Most classes override.
-func (n *BaseIterator) DebugString(indent int) string {
+func (it *BaseIterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(base)", strings.Repeat(" ", indent))
 }
 
 // Nothing in a base iterator.
-func (n *BaseIterator) Check(v TSVal) bool {
+func (it *BaseIterator) Check(v TSVal) bool {
 	return false
 }
 
 // Base iterators should never appear in a tree if they are, select against
 // them.
-func (n *BaseIterator) GetStats() *IteratorStats {
+func (it *BaseIterator) GetStats() *IteratorStats {
 	return &IteratorStats{100000, 100000, 100000}
 }
 
@@ -211,7 +211,7 @@ func (it *BaseIterator) Size() (int64, bool) {
 }
 
 // No subiterators. Only those with subiterators need to do anything here.
-func (it *BaseIterator) GetSubIterators() *list.List {
+func (it *BaseIterator) GetSubIterators() []Iterator {
 	return nil
 }
 
@@ -231,7 +231,8 @@ func (it *BaseIterator) TagResults(out_map *map[string]TSVal) {
 }
 
 // Nothing to clean up.
-//func (a *BaseIterator) Close() {}
+// func (it *BaseIterator) Close() {}
+
 func (it *NullIterator) Close() {}
 
 func (it *BaseIterator) Reset() {}

@@ -34,7 +34,6 @@ package graph
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
 import (
-	"container/list"
 	"fmt"
 	"strings"
 
@@ -63,11 +62,9 @@ func NewHasaIterator(ts TripleStore, subIt Iterator, dir string) *HasaIterator {
 	return &hasa
 }
 
-// Return our sole subiterator, in a list.List.
-func (it *HasaIterator) GetSubIterators() *list.List {
-	l := list.New()
-	l.PushBack(it.primaryIt)
-	return l
+// Return our sole subiterator.
+func (it *HasaIterator) GetSubIterators() []Iterator {
+	return []Iterator{it.primaryIt}
 }
 
 func (it *HasaIterator) Reset() {

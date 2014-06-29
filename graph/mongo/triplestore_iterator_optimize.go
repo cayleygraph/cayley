@@ -28,21 +28,21 @@ func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool
 }
 
 func (ts *TripleStore) optimizeLinksTo(it *graph.LinksToIterator) (graph.Iterator, bool) {
-	l := it.GetSubIterators()
-	if l.Len() != 1 {
+	subs := it.GetSubIterators()
+	if len(subs) != 1 {
 		return it, false
 	}
-	primaryIt := l.Front().Value.(graph.Iterator)
-	if primaryIt.Type() == "fixed" {
-		size, _ := primaryIt.Size()
+	primary := subs[0]
+	if primary.Type() == "fixed" {
+		size, _ := primary.Size()
 		if size == 1 {
-			val, ok := primaryIt.Next()
+			val, ok := primary.Next()
 			if !ok {
 				panic("Sizes lie")
 			}
 			newIt := ts.GetTripleIterator(it.Direction(), val)
 			newIt.CopyTagsFrom(it)
-			for _, tag := range primaryIt.Tags() {
+			for _, tag := range primary.Tags() {
 				newIt.AddFixedTag(tag, val)
 			}
 			it.Close()

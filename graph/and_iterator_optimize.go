@@ -14,6 +14,10 @@
 
 package graph
 
+import (
+	"sort"
+)
+
 // Perhaps the most tricky file in this entire module. Really a method on the
 // AndIterator, but important enough to deserve its own file.
 //
@@ -31,42 +35,38 @@ package graph
 //
 // In short, tread lightly.
 
-import (
-	"container/list"
-)
-
 // Optimizes the AndIterator, by picking the most efficient way to Next() and
 // Check() its subiterators. For SQL fans, this is equivalent to JOIN.
 func (it *AndIterator) Optimize() (Iterator, bool) {
-	// First, let's get the list of iterators, in order (first one is Next()ed,
+	// First, let's get the slice of iterators, in order (first one is Next()ed,
 	// the rest are Check()ed)
-	oldItList := it.GetSubIterators()
+	old := it.GetSubIterators()
 
 	// And call Optimize() on our subtree, replacing each one in the order we
 	// found them. it_list is the newly optimized versions of these, and changed
 	// is another list, of only the ones that have returned replacements and
 	// changed.
-	itList := optimizeSubIterators(oldItList)
+	its := optimizeSubIterators(old)
 
 	// Close the replaced iterators (they ought to close themselves, but Close()
 	// is idempotent, so this just protects against any machinations).
-	closeIteratorList(oldItList, nil)
+	closeIteratorList(old, nil)
 
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
-	out := it.optimizeReplacement(itList)
+	out := it.optimizeReplacement(its)
 	if out != nil {
 		// ...Move the tags to the replacement...
 		moveTagsTo(out, it)
 		// ...Close everyone except `out`, our replacement...
-		closeIteratorList(itList, out)
+		closeIteratorList(its, out)
 		// ...And return it.
 		return out, true
 	}
 
 	// And now, without changing any of the iterators, we reorder them. it_list is
 	// now a permutation of itself, but the contents are unchanged.
-	itList = optimizeOrder(itList)
+	its = optimizeOrder(its)
 
 	// Okay! At this point we have an optimized order.
 
@@ -75,8 +75,8 @@ func (it *AndIterator) Optimize() (Iterator, bool) {
 	newAnd := NewAndIterator()
 
 	// Add the subiterators in order.
-	for e := itList.Front(); e != nil; e = e.Next() {
-		newAnd.AddSubIterator(e.Value.(Iterator))
+	for _, sub := range its {
+		newAnd.AddSubIterator(sub)
 	}
 
 	// Move the tags hanging on us (like any good replacement).
@@ -93,35 +93,34 @@ func (it *AndIterator) Optimize() (Iterator, bool) {
 
 // Closes a list of iterators, except the one passed in `except`. Closes all
 // of the iterators in the list if `except` is nil.
-func closeIteratorList(l *list.List, except Iterator) {
-	for e := l.Front(); e != nil; e = e.Next() {
-		it := e.Value.(Iterator)
+func closeIteratorList(its []Iterator, except Iterator) {
+	for _, it := range its {
 		if it != except {
-			e.Value.(Iterator).Close()
+			it.Close()
 		}
 	}
 }
 
 // Find if there is a single subiterator which is a valid replacement for this
 // AndIterator.
-func (_ *AndIterator) optimizeReplacement(itList *list.List) Iterator {
+func (_ *AndIterator) optimizeReplacement(its []Iterator) Iterator {
 	// If we were created with no SubIterators, we're as good as Null.
-	if itList.Len() == 0 {
+	if len(its) == 0 {
 		return &NullIterator{}
 	}
-	if itList.Len() == 1 {
+	if len(its) == 1 {
 		// When there's only one iterator, there's only one choice.
-		return itList.Front().Value.(Iterator)
+		return its[0]
 	}
 	// If any of our subiterators, post-optimization, are also Null, then
 	// there's no point in continuing the branch, we will have no results
 	// and we are null as well.
-	if hasAnyNullIterators(itList) {
+	if hasAnyNullIterators(its) {
 		return &NullIterator{}
 	}
 
 	// If we have one useful iterator, use that.
-	it := hasOneUsefulIterator(itList)
+	it := hasOneUsefulIterator(its)
 	if it != nil {
 		return it
 	}
@@ -130,40 +129,40 @@ func (_ *AndIterator) optimizeReplacement(itList *list.List) Iterator {
 
 // optimizeOrder(l) takes a list and returns a list, containing the same contents
 // but with a new ordering, however it wishes.
-func optimizeOrder(l *list.List) *list.List {
-	out := list.New()
-	var bestIt Iterator
-	bestCost := int64(1 << 62)
-	// bad contains iterators that can't be (efficiently) nexted, such as
-	// "optional" or "not". Separate them out and tack them on at the end.
-	bad := list.New()
+func optimizeOrder(its []Iterator) []Iterator {
+	var (
+		// bad contains iterators that can't be (efficiently) nexted, such as
+		// "optional" or "not". Separate them out and tack them on at the end.
+		out, bad []Iterator
+		best     Iterator
+		bestCost = int64(1 << 62)
+	)
 
 	// Find the iterator with the projected "best" total cost.
 	// Total cost is defined as The Next()ed iterator's cost to Next() out
 	// all of it's contents, and to Check() each of those against everyone
 	// else.
-	for e := l.Front(); e != nil; e = e.Next() {
-		it := e.Value.(Iterator)
+	for _, it := range its {
 		if !it.Nextable() {
-			bad.PushBack(it)
+			bad = append(bad, it)
 			continue
 		}
-		rootStats := e.Value.(Iterator).GetStats()
-		projectedCost := rootStats.NextCost
-		for f := l.Front(); f != nil; f = f.Next() {
-			if !f.Value.(Iterator).Nextable() {
+		rootStats := it.GetStats()
+		cost := rootStats.NextCost
+		for _, f := range its {
+			if !f.Nextable() {
 				continue
 			}
-			if f == e {
+			if f == it {
 				continue
 			}
-			stats := f.Value.(Iterator).GetStats()
-			projectedCost += stats.CheckCost
+			stats := f.GetStats()
+			cost += stats.CheckCost
 		}
-		projectedCost = projectedCost * rootStats.Size
-		if projectedCost < bestCost {
-			bestIt = it
-			bestCost = projectedCost
+		cost *= rootStats.Size
+		if cost < bestCost {
+			best = it
+			bestCost = cost
 		}
 	}
 
@@ -172,63 +171,52 @@ func optimizeOrder(l *list.List) *list.List {
 	// useful (fail faster).
 
 	// Put the best iterator (the one we wish to Next()) at the front...
-	out.PushBack(bestIt)
-	// ...And push everyone else after...
-	for e := l.Front(); e != nil; e = e.Next() {
-		thisIt := e.Value.(Iterator)
-		if !thisIt.Nextable() {
+	out = append(out, best)
+
+	// ... push everyone else after...
+	for _, it := range its {
+		if !it.Nextable() {
 			continue
 		}
-		if thisIt != bestIt {
-			out.PushBack(thisIt)
+		if it != best {
+			out = append(out, it)
 		}
 	}
-	// ...And finally, the difficult children on the end.
-	out.PushBackList(bad)
-	return out
+
+	// ...and finally, the difficult children on the end.
+	return append(out, bad...)
 }
+
+type byCost []Iterator
+
+func (c byCost) Len() int           { return len(c) }
+func (c byCost) Less(i, j int) bool { return c[i].GetStats().CheckCost < c[j].GetStats().CheckCost }
+func (c byCost) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
 // optimizeCheck(l) creates an alternate check list, containing the same contents
 // but with a new ordering, however it wishes.
 func (it *AndIterator) optimizeCheck() {
-	subIts := it.GetSubIterators()
-	out := list.New()
-
-	// Find the iterator with the lowest Check() cost, push it to the front, repeat.
-	for subIts.Len() != 0 {
-		var best *list.Element
-		bestCost := int64(1 << 62)
-		for e := subIts.Front(); e != nil; e = e.Next() {
-			it := e.Value.(Iterator)
-			rootStats := it.GetStats()
-			projectedCost := rootStats.CheckCost
-			if projectedCost < bestCost {
-				best = e
-				bestCost = projectedCost
-			}
-		}
-		out.PushBack(best.Value)
-		subIts.Remove(best)
-	}
-
-	it.checkList = out
+	// GetSubIterators allocates, so this is currently safe.
+	// TODO(kortschak) Reuse it.checkList if possible.
+	// This involves providing GetSubIterators with a slice to fill.
+	// Generally this is a worthwhile thing to do in other places as well.
+	it.checkList = it.GetSubIterators()
+	sort.Sort(byCost(it.checkList))
 }
 
 // If we're replacing ourselves by a single iterator, we need to grab the
 // result tags from the iterators that, while still valid and would hold
 // the same values as this and, are not going to stay.
 // getSubTags() returns a map of the tags for all the subiterators.
-func (it *AndIterator) getSubTags() map[string]bool {
-	subs := it.GetSubIterators()
-	tags := make(map[string]bool)
-	for e := subs.Front(); e != nil; e = e.Next() {
-		it := e.Value.(Iterator)
-		for _, tag := range it.Tags() {
-			tags[tag] = true
+func (it *AndIterator) getSubTags() map[string]struct{} {
+	tags := make(map[string]struct{})
+	for _, sub := range it.GetSubIterators() {
+		for _, tag := range sub.Tags() {
+			tags[tag] = struct{}{}
 		}
 	}
 	for _, tag := range it.Tags() {
-		tags[tag] = true
+		tags[tag] = struct{}{}
 	}
 	return tags
 }
@@ -236,13 +224,13 @@ func (it *AndIterator) getSubTags() map[string]bool {
 // moveTagsTo() gets the tags for all of the src's subiterators and the
 // src itself, and moves them to dst.
 func moveTagsTo(dst Iterator, src *AndIterator) {
-	tagmap := src.getSubTags()
+	tags := src.getSubTags()
 	for _, tag := range dst.Tags() {
-		if tagmap[tag] {
-			delete(tagmap, tag)
+		if _, ok := tags[tag]; ok {
+			delete(tags, tag)
 		}
 	}
-	for k, _ := range tagmap {
+	for k := range tags {
 		dst.AddTag(k)
 	}
 }
@@ -251,24 +239,22 @@ func moveTagsTo(dst Iterator, src *AndIterator) {
 // of them. It returns two lists -- the first contains the same list as l, where
 // any replacements are made by Optimize() and the second contains the originals
 // which were replaced.
-func optimizeSubIterators(l *list.List) *list.List {
-	itList := list.New()
-	for e := l.Front(); e != nil; e = e.Next() {
-		it := e.Value.(Iterator)
-		newIt, change := it.Optimize()
-		if change {
-			itList.PushBack(newIt)
+func optimizeSubIterators(its []Iterator) []Iterator {
+	var optIts []Iterator
+	for _, it := range its {
+		o, changed := it.Optimize()
+		if changed {
+			optIts = append(optIts, o)
 		} else {
-			itList.PushBack(it.Clone())
+			optIts = append(optIts, it.Clone())
 		}
 	}
-	return itList
+	return optIts
 }
 
 // Check a list of iterators for any Null iterators.
-func hasAnyNullIterators(l *list.List) bool {
-	for e := l.Front(); e != nil; e = e.Next() {
-		it := e.Value.(Iterator)
+func hasAnyNullIterators(its []Iterator) bool {
+	for _, it := range its {
 		if it.Type() == "null" {
 			return true
 		}
@@ -280,11 +266,10 @@ func hasAnyNullIterators(l *list.List) bool {
 // nothing, and "all" which returns everything. Particularly, we want
 // to see if we're intersecting with a bunch of "all" iterators, and,
 // if we are, then we have only one useful iterator.
-func hasOneUsefulIterator(l *list.List) Iterator {
+func hasOneUsefulIterator(its []Iterator) Iterator {
 	usefulCount := 0
 	var usefulIt Iterator
-	for e := l.Front(); e != nil; e = e.Next() {
-		it := e.Value.(Iterator)
+	for _, it := range its {
 		switch it.Type() {
 		case "null", "all":
 			continue
