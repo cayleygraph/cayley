@@ -108,16 +108,16 @@ g.V("D").Out(g.V("status"), "pred")
 Arguments:
 
   * `predicatePath` (Optional): One of: 
-	* null or undefined: All predicates pointing out from this node
-	* a string: The predicate name to follow out from this node
-	* a list of strings: The predicates to follow out from this node
+	* null or undefined: All predicates pointing into this node
+	* a string: The predicate name to follow into this node
+	* a list of strings: The predicates to follow into this node
 	* a query path object: The target of which is a set of predicates to follow.
   * `tags` (Optional): One of:
 	* null or undefined: No tags
 	* a string: A single tag to add the predicate used to the output set.
 	* a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
 
-Same as In, but in the other direction.  Starting with the nodes in `path` on the object, follow the triples with predicates defined by `predicatePath` to their subjects.
+Same as Out, but in the other direction.  Starting with the nodes in `path` on the object, follow the triples with predicates defined by `predicatePath` to their subjects.
 
 Example:
 ```javascript
@@ -134,9 +134,9 @@ g.V("E").Out("follows").In("follows")
 Arguments:
 
   * `predicatePath` (Optional): One of: 
-	* null or undefined: All predicates pointing out from this node
-	* a string: The predicate name to follow out from this node
-	* a list of strings: The predicates to follow out from this node
+	* null or undefined: All predicates pointing both into and out from this node
+	* a string: The predicate name to follow both into and out from this node
+	* a list of strings: The predicates to follow both into and out from this node
 	* a query path object: The target of which is a set of predicates to follow.
   * `tags` (Optional): One of:
 	* null or undefined: No tags
