@@ -1,4 +1,4 @@
-// Copyright 2014 The Cayley Authors. All rights reserved.
+// Copyright 2014 The Cayley Authors. Any rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,16 +35,13 @@ package graph
 // There will never be that much in this file except for the definition, but
 // the consequences are not to be taken lightly. But do suggest cool features!
 
-import (
-	"fmt"
-	"reflect"
-)
+import "fmt"
 
 // Our triple struct, used throughout.
 type Triple struct {
-	Sub        string `json:"subject"`
-	Pred       string `json:"predicate"`
-	Obj        string `json:"object"`
+	Subject    string `json:"subject"`
+	Predicate  string `json:"predicate"`
+	Object     string `json:"object"`
 	Provenance string `json:"provenance,omitempty"`
 }
 
@@ -56,43 +53,68 @@ func MakeTriple(sub string, pred string, obj string, provenance string) *Triple 
 	return &Triple{sub, pred, obj, provenance}
 }
 
-// List of the valid directions of a triple.
-// TODO(barakmich): Replace all instances of "dir string" in the codebase
-// with an enum of valid directions, to make this less stringly typed.
-var TripleDirections = [4]string{"s", "p", "o", "c"}
+// Direction specifies an edge's type.
+type Direction byte
 
-// Per-field accessor for triples
-func (t *Triple) Get(dir string) string {
-	if dir == "s" {
-		return t.Sub
-	} else if dir == "p" {
-		return t.Pred
-	} else if dir == "prov" || dir == "c" {
-		return t.Provenance
-	} else if dir == "o" {
-		return t.Obj
-	} else {
-		panic(fmt.Sprintf("No Such Triple Direction, %s", dir))
+// List of the valid directions of a triple.
+const (
+	Any Direction = iota
+	Subject
+	Predicate
+	Object
+	Provenance
+)
+
+func (d Direction) String() string {
+	switch d {
+	case Any:
+		return "a"
+	case Subject:
+		return "s"
+	case Predicate:
+		return "p"
+	case Provenance:
+		return "c"
+	case Object:
+		return "o"
+	default:
+		return fmt.Sprint("illegal direction:", byte(d))
 	}
 }
 
-func (t *Triple) Equals(other *Triple) bool {
-	return reflect.DeepEqual(t, other)
+// Per-field accessor for triples
+func (t *Triple) Get(d Direction) string {
+	switch d {
+	case Subject:
+		return t.Subject
+	case Predicate:
+		return t.Predicate
+	case Provenance:
+		return t.Provenance
+	case Object:
+		return t.Object
+	default:
+		panic(d.String())
+	}
+}
+
+func (t *Triple) Equals(o *Triple) bool {
+	return *t == *o
 }
 
 // Pretty-prints a triple.
 func (t *Triple) ToString() string {
-	return fmt.Sprintf("%s -- %s -> %s\n", t.Sub, t.Pred, t.Obj)
+	return fmt.Sprintf("%s -- %s -> %s\n", t.Subject, t.Predicate, t.Object)
 }
 
 func (t *Triple) IsValid() bool {
-	if t.Sub == "" {
+	if t.Subject == "" {
 		return false
 	}
-	if t.Pred == "" {
+	if t.Predicate == "" {
 		return false
 	}
-	if t.Obj == "" {
+	if t.Object == "" {
 		return false
 	}
 	return true
@@ -102,8 +124,8 @@ func (t *Triple) IsValid() bool {
 func (t *Triple) ToNTriple() string {
 	if t.Provenance == "" {
 		//TODO(barakmich): Proper escaping.
-		return fmt.Sprintf("%s %s %s .", t.Sub, t.Pred, t.Obj)
+		return fmt.Sprintf("%s %s %s .", t.Subject, t.Predicate, t.Object)
 	} else {
-		return fmt.Sprintf("%s %s %s %s .", t.Sub, t.Pred, t.Obj, t.Provenance)
+		return fmt.Sprintf("%s %s %s %s .", t.Subject, t.Predicate, t.Object, t.Provenance)
 	}
 }

@@ -16,6 +16,7 @@ package http
 
 import (
 	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -28,7 +29,7 @@ func TestParseJSONOkay(t *testing.T) {
 		x, err := ParseJsonToTripleList(bytelist)
 		So(err, ShouldBeNil)
 		So(len(x), ShouldEqual, 2)
-		So(x[0].Sub, ShouldEqual, "foo")
+		So(x[0].Subject, ShouldEqual, "foo")
 		So(x[0].Provenance, ShouldEqual, "")
 		So(x[1].Provenance, ShouldEqual, "graph")
 	})

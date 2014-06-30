@@ -84,9 +84,9 @@ func NewTripleStore(addr string, options graph.OptionsDict) *TripleStore {
 }
 
 func (ts *TripleStore) getIdForTriple(t *graph.Triple) string {
-	id := ts.ConvertStringToByteHash(t.Sub)
-	id += ts.ConvertStringToByteHash(t.Pred)
-	id += ts.ConvertStringToByteHash(t.Obj)
+	id := ts.ConvertStringToByteHash(t.Subject)
+	id += ts.ConvertStringToByteHash(t.Predicate)
+	id += ts.ConvertStringToByteHash(t.Object)
 	id += ts.ConvertStringToByteHash(t.Provenance)
 	return id
 }
@@ -143,7 +143,13 @@ func (ts *TripleStore) updateNodeBy(node_name string, inc int) {
 }
 
 func (ts *TripleStore) writeTriple(t *graph.Triple) bool {
-	tripledoc := bson.M{"_id": ts.getIdForTriple(t), "Sub": t.Sub, "Pred": t.Pred, "Obj": t.Obj, "Provenance": t.Provenance}
+	tripledoc := bson.M{
+		"_id":        ts.getIdForTriple(t),
+		"Subject":    t.Subject,
+		"Predicate":  t.Predicate,
+		"Object":     t.Object,
+		"Provenance": t.Provenance,
+	}
 	err := ts.db.C("triples").Insert(tripledoc)
 	if err != nil {
 		// Among the reasons I hate MongoDB. "Errors don't happen! Right guys?"
@@ -158,9 +164,9 @@ func (ts *TripleStore) writeTriple(t *graph.Triple) bool {
 
 func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	_ = ts.writeTriple(t)
-	ts.updateNodeBy(t.Sub, 1)
-	ts.updateNodeBy(t.Pred, 1)
-	ts.updateNodeBy(t.Obj, 1)
+	ts.updateNodeBy(t.Subject, 1)
+	ts.updateNodeBy(t.Predicate, 1)
+	ts.updateNodeBy(t.Object, 1)
 	if t.Provenance != "" {
 		ts.updateNodeBy(t.Provenance, 1)
 	}
@@ -168,19 +174,19 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 
 func (ts *TripleStore) AddTripleSet(in []*graph.Triple) {
 	ts.session.SetSafe(nil)
-	idMap := make(map[string]int)
+	ids := make(map[string]int)
 	for _, t := range in {
 		wrote := ts.writeTriple(t)
 		if wrote {
-			idMap[t.Sub]++
-			idMap[t.Obj]++
-			idMap[t.Pred]++
+			ids[t.Subject]++
+			ids[t.Object]++
+			ids[t.Predicate]++
 			if t.Provenance != "" {
-				idMap[t.Provenance]++
+				ids[t.Provenance]++
 			}
 		}
 	}
-	for k, v := range idMap {
+	for k, v := range ids {
 		ts.updateNodeBy(k, v)
 	}
 	ts.session.SetSafe(&mgo.Safe{})
@@ -194,9 +200,9 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 		log.Println("Error: ", err, " while removing triple ", t)
 		return
 	}
-	ts.updateNodeBy(t.Sub, -1)
-	ts.updateNodeBy(t.Pred, -1)
-	ts.updateNodeBy(t.Obj, -1)
+	ts.updateNodeBy(t.Subject, -1)
+	ts.updateNodeBy(t.Predicate, -1)
+	ts.updateNodeBy(t.Object, -1)
 	if t.Provenance != "" {
 		ts.updateNodeBy(t.Provenance, -1)
 	}
@@ -215,8 +221,8 @@ func (ts *TripleStore) GetTriple(val graph.TSVal) *graph.Triple {
 		bsonDoc["Provenance"].(string))
 }
 
-func (ts *TripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iterator {
-	return NewIterator(ts, "triples", dir, val)
+func (ts *TripleStore) GetTripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
+	return NewIterator(ts, "triples", d, val)
 }
 
 func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
@@ -266,17 +272,17 @@ func (ts *TripleStore) Close() {
 	ts.db.Session.Close()
 }
 
-func (ts *TripleStore) GetTripleDirection(in graph.TSVal, dir string) graph.TSVal {
+func (ts *TripleStore) GetTripleDirection(in graph.TSVal, d graph.Direction) graph.TSVal {
 	// Maybe do the trick here
 	var offset int
-	switch dir {
-	case "s":
+	switch d {
+	case graph.Subject:
 		offset = 0
-	case "p":
+	case graph.Predicate:
 		offset = (ts.hasher.Size() * 2)
-	case "o":
+	case graph.Object:
 		offset = (ts.hasher.Size() * 2) * 2
-	case "c":
+	case graph.Provenance:
 		offset = (ts.hasher.Size() * 2) * 3
 	}
 	val := in.(string)[offset : ts.hasher.Size()*2+offset]

@@ -138,16 +138,16 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 			subAnd := graph.NewAndIterator()
 			predFixed := q.ses.ts.MakeFixed()
 			predFixed.AddValue(q.ses.ts.GetIdFor(pred))
-			subAnd.AddSubIterator(graph.NewLinksToIterator(q.ses.ts, predFixed, "p"))
+			subAnd.AddSubIterator(graph.NewLinksToIterator(q.ses.ts, predFixed, graph.Predicate))
 			if reverse {
-				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, "s")
+				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, graph.Subject)
 				subAnd.AddSubIterator(lto)
-				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, "o")
+				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, graph.Object)
 				subit = hasa
 			} else {
-				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, "o")
+				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, graph.Object)
 				subAnd.AddSubIterator(lto)
-				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, "s")
+				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, graph.Subject)
 				subit = hasa
 			}
 		}

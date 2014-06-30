@@ -35,55 +35,55 @@ func TestParsingNTriples(t *testing.T) {
 		Convey("It should parse simple triples", func() {
 			x := Parse("this is valid .")
 			So(x, ShouldNotBeNil)
-			So(x.Sub, ShouldEqual, "this")
+			So(x.Subject, ShouldEqual, "this")
 		})
 		Convey("It should parse quoted triples", func() {
 			x := Parse("this is \"valid too\" .")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "valid too")
+			So(x.Object, ShouldEqual, "valid too")
 			So(x.Provenance, ShouldEqual, "")
 		})
 		Convey("It should parse escaped quoted triples", func() {
 			x := Parse("he said \"\\\"That's all folks\\\"\" .")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "\"That's all folks\"")
+			So(x.Object, ShouldEqual, "\"That's all folks\"")
 			So(x.Provenance, ShouldEqual, "")
 		})
 
 		Convey("It should parse an example real triple", func() {
 			x := Parse("\":/guid/9202a8c04000641f80000000010c843c\" \"name\" \"George Morris\" .")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "George Morris")
+			So(x.Object, ShouldEqual, "George Morris")
 			So(x.Provenance, ShouldEqual, "")
 		})
 
 		Convey("It should parse a pathologically spaced triple", func() {
 			x := Parse("foo is \"\\tA big tough\\r\\nDeal\\\\\" .")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "\tA big tough\r\nDeal\\")
+			So(x.Object, ShouldEqual, "\tA big tough\r\nDeal\\")
 			So(x.Provenance, ShouldEqual, "")
 		})
 
 		Convey("It should parse a simple quad", func() {
 			x := Parse("this is valid quad .")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "valid")
+			So(x.Object, ShouldEqual, "valid")
 			So(x.Provenance, ShouldEqual, "quad")
 		})
 
 		Convey("It should parse a quoted quad", func() {
 			x := Parse("this is valid \"quad thing\" .")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "valid")
+			So(x.Object, ShouldEqual, "valid")
 			So(x.Provenance, ShouldEqual, "quad thing")
 		})
 
 		Convey("It should parse crazy escaped quads", func() {
 			x := Parse("\"\\\"this\" \"\\\"is\" \"\\\"valid\" \"\\\"quad thing\".")
 			So(x, ShouldNotBeNil)
-			So(x.Sub, ShouldEqual, "\"this")
-			So(x.Pred, ShouldEqual, "\"is")
-			So(x.Obj, ShouldEqual, "\"valid")
+			So(x.Subject, ShouldEqual, "\"this")
+			So(x.Predicate, ShouldEqual, "\"is")
+			So(x.Object, ShouldEqual, "\"valid")
 			So(x.Provenance, ShouldEqual, "\"quad thing")
 		})
 	})
@@ -95,27 +95,27 @@ func TestParsingNTriplesOfficial(t *testing.T) {
 			var x *graph.Triple
 			x = Parse("<http://example/s> <http://example/p> <http://example/o> . # comment")
 			So(x, ShouldNotBeNil)
-			So(x.Sub, ShouldEqual, "http://example/s")
-			So(x.Pred, ShouldEqual, "http://example/p")
-			So(x.Obj, ShouldEqual, "http://example/o")
+			So(x.Subject, ShouldEqual, "http://example/s")
+			So(x.Predicate, ShouldEqual, "http://example/p")
+			So(x.Object, ShouldEqual, "http://example/o")
 			So(x.Provenance, ShouldEqual, "")
 			x = Parse("<http://example/s> <http://example/p> _:o . # comment")
 			So(x, ShouldNotBeNil)
-			So(x.Sub, ShouldEqual, "http://example/s")
-			So(x.Pred, ShouldEqual, "http://example/p")
-			So(x.Obj, ShouldEqual, "_:o")
+			So(x.Subject, ShouldEqual, "http://example/s")
+			So(x.Predicate, ShouldEqual, "http://example/p")
+			So(x.Object, ShouldEqual, "_:o")
 			So(x.Provenance, ShouldEqual, "")
 			x = Parse("<http://example/s> <http://example/p> \"o\" . # comment")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "o")
+			So(x.Object, ShouldEqual, "o")
 			So(x.Provenance, ShouldEqual, "")
 			x = Parse("<http://example/s> <http://example/p> \"o\"^^<http://example/dt> . # comment")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "o")
+			So(x.Object, ShouldEqual, "o")
 			So(x.Provenance, ShouldEqual, "")
 			x = Parse("<http://example/s> <http://example/p> \"o\"@en . # comment")
 			So(x, ShouldNotBeNil)
-			So(x.Obj, ShouldEqual, "o")
+			So(x.Object, ShouldEqual, "o")
 			So(x.Provenance, ShouldEqual, "")
 		})
 	})
@@ -124,7 +124,7 @@ func TestParsingNTriplesOfficial(t *testing.T) {
 func BenchmarkParser(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		x := Parse("<http://example/s> <http://example/p> \"object of some real\\tlength\"@en . # comment")
-		if x.Obj != "object of some real\tlength" {
+		if x.Object != "object of some real\tlength" {
 			b.Fail()
 		}
 	}

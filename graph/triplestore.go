@@ -51,7 +51,7 @@ type TripleStore interface {
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	GetTripleIterator(string, TSVal) Iterator
+	GetTripleIterator(Direction, TSVal) Iterator
 
 	// Returns an iterator enumerating all nodes in the graph.
 	GetNodesAllIterator() Iterator
@@ -89,7 +89,7 @@ type TripleStore interface {
 	//
 	// Iterators will call this. At worst, a valid implementation is
 	// self.GetIdFor(self.GetTriple(triple_id).Get(dir))
-	GetTripleDirection(triple_id TSVal, dir string) TSVal
+	GetTripleDirection(triple_id TSVal, d Direction) TSVal
 }
 
 type OptionsDict map[string]interface{}

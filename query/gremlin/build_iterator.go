@@ -138,13 +138,13 @@ func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Itera
 		}
 	}
 
-	in, out := "s", "o"
+	in, out := graph.Subject, graph.Object
 	if isReverse {
 		in, out = out, in
 	}
 	lto := graph.NewLinksToIterator(ts, base, in)
 	and := graph.NewAndIterator()
-	and.AddSubIterator(graph.NewLinksToIterator(ts, predicateNodeIterator, "p"))
+	and.AddSubIterator(graph.NewLinksToIterator(ts, predicateNodeIterator, graph.Predicate))
 	and.AddSubIterator(lto)
 	return graph.NewHasaIterator(ts, and, out)
 }
@@ -193,9 +193,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		predFixed := ts.MakeFixed()
 		predFixed.AddValue(ts.GetIdFor(stringArgs[0]))
 		subAnd := graph.NewAndIterator()
-		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, predFixed, "p"))
-		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, all, "o"))
-		hasa := graph.NewHasaIterator(ts, subAnd, "s")
+		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, predFixed, graph.Predicate))
+		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, all, graph.Object))
+		hasa := graph.NewHasaIterator(ts, subAnd, graph.Subject)
 		and := graph.NewAndIterator()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
@@ -213,9 +213,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		predFixed := ts.MakeFixed()
 		predFixed.AddValue(ts.GetIdFor(stringArgs[0]))
 		subAnd := graph.NewAndIterator()
-		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, predFixed, "p"))
-		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, all, "s"))
-		hasa := graph.NewHasaIterator(ts, subAnd, "o")
+		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, predFixed, graph.Predicate))
+		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, all, graph.Subject))
+		hasa := graph.NewHasaIterator(ts, subAnd, graph.Object)
 		and := graph.NewAndIterator()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
@@ -231,9 +231,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		predFixed := ts.MakeFixed()
 		predFixed.AddValue(ts.GetIdFor(stringArgs[0]))
 		subAnd := graph.NewAndIterator()
-		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, predFixed, "p"))
-		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, fixed, "o"))
-		hasa := graph.NewHasaIterator(ts, subAnd, "s")
+		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, predFixed, graph.Predicate))
+		subAnd.AddSubIterator(graph.NewLinksToIterator(ts, fixed, graph.Object))
+		hasa := graph.NewHasaIterator(ts, subAnd, graph.Subject)
 		and := graph.NewAndIterator()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)

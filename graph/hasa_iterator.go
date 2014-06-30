@@ -47,18 +47,18 @@ type HasaIterator struct {
 	BaseIterator
 	ts        TripleStore
 	primaryIt Iterator
-	direction string
+	dir       Direction
 	resultIt  Iterator
 }
 
 // Construct a new HasA iterator, given the triple subiterator, and the triple
 // direction for which it stands.
-func NewHasaIterator(ts TripleStore, subIt Iterator, dir string) *HasaIterator {
+func NewHasaIterator(ts TripleStore, subIt Iterator, d Direction) *HasaIterator {
 	var hasa HasaIterator
 	BaseIteratorInit(&hasa.BaseIterator)
 	hasa.ts = ts
 	hasa.primaryIt = subIt
-	hasa.direction = dir
+	hasa.dir = d
 	return &hasa
 }
 
@@ -75,13 +75,13 @@ func (it *HasaIterator) Reset() {
 }
 
 func (it *HasaIterator) Clone() Iterator {
-	out := NewHasaIterator(it.ts, it.primaryIt.Clone(), it.direction)
+	out := NewHasaIterator(it.ts, it.primaryIt.Clone(), it.dir)
 	out.CopyTagsFrom(it)
 	return out
 }
 
 // Direction accessor.
-func (it *HasaIterator) Direction() string { return it.direction }
+func (it *HasaIterator) Direction() Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no triples that have any directions).
@@ -115,7 +115,7 @@ func (it *HasaIterator) DebugString(indent int) string {
 	for _, k := range it.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
-	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), tags, it.direction, it.primaryIt.DebugString(indent+4))
+	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), tags, it.dir, it.primaryIt.DebugString(indent+4))
 }
 
 // Check a value against our internal iterator. In order to do this, we must first open a new
@@ -130,7 +130,7 @@ func (it *HasaIterator) Check(val TSVal) bool {
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
-	it.resultIt = it.ts.GetTripleIterator(it.direction, val)
+	it.resultIt = it.ts.GetTripleIterator(it.dir, val)
 	return CheckLogOut(it, val, it.GetCheckResult())
 }
 
@@ -147,7 +147,7 @@ func (it *HasaIterator) GetCheckResult() bool {
 			glog.V(4).Infoln("Triple is", it.ts.GetTriple(linkVal).ToString())
 		}
 		if it.primaryIt.Check(linkVal) {
-			it.Last = it.ts.GetTripleDirection(linkVal, it.direction)
+			it.Last = it.ts.GetTripleDirection(linkVal, it.dir)
 			return true
 		}
 	}
@@ -182,7 +182,7 @@ func (it *HasaIterator) Next() (TSVal, bool) {
 	if !ok {
 		return NextLogOut(it, 0, false)
 	}
-	name := it.ts.GetTriple(tID).Get(it.direction)
+	name := it.ts.GetTriple(tID).Get(it.dir)
 	val := it.ts.GetIdFor(name)
 	it.Last = val
 	return NextLogOut(it, val, true)

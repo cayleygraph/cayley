@@ -28,21 +28,21 @@ import (
 type AllIterator struct {
 	graph.BaseIterator
 	prefix []byte
-	dir    string
+	dir    graph.Direction
 	open   bool
 	it     iterator.Iterator
 	ts     *TripleStore
 	ro     *opt.ReadOptions
 }
 
-func NewAllIterator(prefix, dir string, ts *TripleStore) *AllIterator {
+func NewAllIterator(prefix string, d graph.Direction, ts *TripleStore) *AllIterator {
 	var it AllIterator
 	graph.BaseIteratorInit(&it.BaseIterator)
 	it.ro = &opt.ReadOptions{}
 	it.ro.DontFillCache = true
 	it.it = ts.db.NewIterator(nil, it.ro)
 	it.prefix = []byte(prefix)
-	it.dir = dir
+	it.dir = d
 	it.open = true
 	it.ts = ts
 	it.it.Seek(it.prefix)
