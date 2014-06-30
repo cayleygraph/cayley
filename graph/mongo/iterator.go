@@ -28,7 +28,7 @@ import (
 type Iterator struct {
 	graph.BaseIterator
 	ts         *TripleStore
-	dir        string
+	dir        graph.Direction
 	iter       *mgo.Iter
 	hash       string
 	name       string
@@ -38,26 +38,25 @@ type Iterator struct {
 	collection string
 }
 
-func NewIterator(ts *TripleStore, collection string, dir string, val graph.TSVal) *Iterator {
+func NewIterator(ts *TripleStore, collection string, d graph.Direction, val graph.TSVal) *Iterator {
 	var m Iterator
 	graph.BaseIteratorInit(&m.BaseIterator)
 
 	m.name = ts.GetNameFor(val)
 	m.collection = collection
-	switch dir {
-
-	case "s":
-		m.constraint = bson.M{"Sub": m.name}
-	case "p":
-		m.constraint = bson.M{"Pred": m.name}
-	case "o":
-		m.constraint = bson.M{"Obj": m.name}
-	case "c":
+	switch d {
+	case graph.Subject:
+		m.constraint = bson.M{"Subject": m.name}
+	case graph.Predicate:
+		m.constraint = bson.M{"Predicate": m.name}
+	case graph.Object:
+		m.constraint = bson.M{"Object": m.name}
+	case graph.Provenance:
 		m.constraint = bson.M{"Provenance": m.name}
 	}
 
 	m.ts = ts
-	m.dir = dir
+	m.dir = d
 	m.iter = ts.db.C(collection).Find(m.constraint).Iter()
 	size, err := ts.db.C(collection).Find(m.constraint).Count()
 	if err != nil {
@@ -73,7 +72,7 @@ func NewIterator(ts *TripleStore, collection string, dir string, val graph.TSVal
 func NewAllIterator(ts *TripleStore, collection string) *Iterator {
 	var m Iterator
 	m.ts = ts
-	m.dir = "all"
+	m.dir = graph.Any
 	m.constraint = nil
 	m.collection = collection
 	m.iter = ts.db.C(collection).Find(nil).Iter()
@@ -136,13 +135,13 @@ func (it *Iterator) Check(v graph.TSVal) bool {
 	}
 	var offset int
 	switch it.dir {
-	case "s":
+	case graph.Subject:
 		offset = 0
-	case "p":
+	case graph.Predicate:
 		offset = (it.ts.hasher.Size() * 2)
-	case "o":
+	case graph.Object:
 		offset = (it.ts.hasher.Size() * 2) * 2
-	case "c":
+	case graph.Provenance:
 		offset = (it.ts.hasher.Size() * 2) * 3
 	}
 	val := v.(string)[offset : it.ts.hasher.Size()*2+offset]

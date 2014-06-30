@@ -15,8 +15,9 @@
 package graph
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func buildHasaWithTag(ts TripleStore, tag string, target string) *HasaIterator {
@@ -25,12 +26,12 @@ func buildHasaWithTag(ts TripleStore, tag string, target string) *HasaIterator {
 	fixed_obj.AddValue(ts.GetIdFor(target))
 	fixed_pred.AddValue(ts.GetIdFor("status"))
 	fixed_obj.AddTag(tag)
-	lto1 := NewLinksToIterator(ts, fixed_obj, "o")
-	lto2 := NewLinksToIterator(ts, fixed_pred, "p")
+	lto1 := NewLinksToIterator(ts, fixed_obj, Object)
+	lto2 := NewLinksToIterator(ts, fixed_pred, Predicate)
 	and := NewAndIterator()
 	and.AddSubIterator(lto1)
 	and.AddSubIterator(lto2)
-	hasa := NewHasaIterator(ts, and, "s")
+	hasa := NewHasaIterator(ts, and, Subject)
 	return hasa
 }
 
@@ -91,12 +92,12 @@ func TestQueryShape(t *testing.T) {
 		andInternal.AddSubIterator(hasa2)
 		fixed_pred := ts.MakeFixed()
 		fixed_pred.AddValue(ts.GetIdFor("name"))
-		lto1 := NewLinksToIterator(ts, andInternal, "s")
-		lto2 := NewLinksToIterator(ts, fixed_pred, "p")
+		lto1 := NewLinksToIterator(ts, andInternal, Subject)
+		lto2 := NewLinksToIterator(ts, fixed_pred, Predicate)
 		and := NewAndIterator()
 		and.AddSubIterator(lto1)
 		and.AddSubIterator(lto2)
-		hasa := NewHasaIterator(ts, and, "o")
+		hasa := NewHasaIterator(ts, and, Object)
 		OutputQueryShapeForIterator(hasa, ts, &queryShape)
 
 		Convey("It should have seven nodes and three links", func() {

@@ -32,8 +32,8 @@ func (ts *TestTripleStore) GetIdFor(s string) TSVal {
 func (ts *TestTripleStore) AddTriple(*Triple)       {}
 func (ts *TestTripleStore) AddTripleSet([]*Triple)  {}
 func (ts *TestTripleStore) GetTriple(TSVal) *Triple { return &Triple{} }
-func (ts *TestTripleStore) GetTripleIterator(s string, i TSVal) Iterator {
-	args := ts.Mock.Called(s, i)
+func (ts *TestTripleStore) GetTripleIterator(d Direction, i TSVal) Iterator {
+	args := ts.Mock.Called(d, i)
 	return args.Get(0).(Iterator)
 }
 func (ts *TestTripleStore) GetNodesAllIterator() Iterator   { return &NullIterator{} }
@@ -53,6 +53,6 @@ func (ts *TestTripleStore) OptimizeIterator(it Iterator) (Iterator, bool) {
 func (ts *TestTripleStore) MakeFixed() *FixedIterator {
 	return NewFixedIteratorWithCompare(BasicEquality)
 }
-func (ts *TestTripleStore) Close()                                 {}
-func (ts *TestTripleStore) GetTripleDirection(TSVal, string) TSVal { return 0 }
-func (ts *TestTripleStore) RemoveTriple(t *Triple)                 {}
+func (ts *TestTripleStore) Close()                                    {}
+func (ts *TestTripleStore) GetTripleDirection(TSVal, Direction) TSVal { return 0 }
+func (ts *TestTripleStore) RemoveTriple(t *Triple)                    {}

@@ -41,18 +41,18 @@ type LinksToIterator struct {
 	BaseIterator
 	ts        TripleStore
 	primaryIt Iterator
-	direction string
+	dir       Direction
 	nextIt    Iterator
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func NewLinksToIterator(ts TripleStore, it Iterator, dir string) *LinksToIterator {
+func NewLinksToIterator(ts TripleStore, it Iterator, d Direction) *LinksToIterator {
 	var lto LinksToIterator
 	BaseIteratorInit(&lto.BaseIterator)
 	lto.ts = ts
 	lto.primaryIt = it
-	lto.direction = dir
+	lto.dir = d
 	lto.nextIt = &NullIterator{}
 	return &lto
 }
@@ -66,13 +66,13 @@ func (it *LinksToIterator) Reset() {
 }
 
 func (it *LinksToIterator) Clone() Iterator {
-	out := NewLinksToIterator(it.ts, it.primaryIt.Clone(), it.direction)
+	out := NewLinksToIterator(it.ts, it.primaryIt.Clone(), it.dir)
 	out.CopyTagsFrom(it)
 	return out
 }
 
 // Return the direction under consideration.
-func (it *LinksToIterator) Direction() string { return it.direction }
+func (it *LinksToIterator) Direction() Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
 func (it *LinksToIterator) TagResults(out *map[string]TSVal) {
@@ -91,14 +91,14 @@ func (it *LinksToIterator) GetResultTree() *ResultTree {
 func (it *LinksToIterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s %d direction:%s\n%s)",
 		strings.Repeat(" ", indent),
-		it.Type(), it.GetUid(), it.direction, it.primaryIt.DebugString(indent+4))
+		it.Type(), it.GetUid(), it.dir, it.primaryIt.DebugString(indent+4))
 }
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
 func (it *LinksToIterator) Check(val TSVal) bool {
 	CheckLogIn(it, val)
-	node := it.ts.GetTripleDirection(val, it.direction)
+	node := it.ts.GetTripleDirection(val, it.dir)
 	if it.primaryIt.Check(node) {
 		it.Last = val
 		return CheckLogOut(it, val, true)
@@ -144,7 +144,7 @@ func (it *LinksToIterator) Next() (TSVal, bool) {
 			return NextLogOut(it, 0, false)
 		}
 		it.nextIt.Close()
-		it.nextIt = it.ts.GetTripleIterator(it.direction, candidate)
+		it.nextIt = it.ts.GetTripleIterator(it.dir, candidate)
 		// Recurse -- return the first in the next set.
 		return it.Next()
 	}

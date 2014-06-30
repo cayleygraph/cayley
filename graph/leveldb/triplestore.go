@@ -24,15 +24,17 @@ import (
 
 	"github.com/barakmich/glog"
 	"github.com/syndtr/goleveldb/leveldb"
-	cache "github.com/syndtr/goleveldb/leveldb/cache"
+	"github.com/syndtr/goleveldb/leveldb/cache"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	util "github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"github.com/google/cayley/graph"
 )
 
-const DefaultCacheSize = 2
-const DefaultWriteBufferSize = 20
+const (
+	DefaultCacheSize       = 2
+	DefaultWriteBufferSize = 20
+)
 
 type TripleStore struct {
 	dbOpts    *opt.Options
@@ -49,7 +51,7 @@ func CreateNewLevelDB(path string) bool {
 	opts := &opt.Options{}
 	db, err := leveldb.OpenFile(path, opts)
 	if err != nil {
-		glog.Errorln("Error: couldn't create database", err)
+		glog.Errorln("Error: couldn't create database: ", err)
 		return false
 	}
 	defer db.Close()
@@ -108,22 +110,24 @@ func (ts *TripleStore) Size() int64 {
 	return ts.size
 }
 
-func (ts *TripleStore) createKeyFor(dir1, dir2, dir3 string, triple *graph.Triple) []byte {
+func (ts *TripleStore) createKeyFor(d [3]graph.Direction, triple *graph.Triple) []byte {
 	key := make([]byte, 0, 2+(ts.hasher.Size()*3))
-	key = append(key, []byte(dir1+dir2)...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(dir1))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(dir2))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(dir3))...)
+	// TODO(kortschak) Remove dependence on String() method.
+	key = append(key, []byte(d[0].String()+d[1].String())...)
+	key = append(key, ts.convertStringToByteHash(triple.Get(d[0]))...)
+	key = append(key, ts.convertStringToByteHash(triple.Get(d[1]))...)
+	key = append(key, ts.convertStringToByteHash(triple.Get(d[2]))...)
 	return key
 }
 
-func (ts *TripleStore) createProvKeyFor(dir1, dir2, dir3 string, triple *graph.Triple) []byte {
+func (ts *TripleStore) createProvKeyFor(d [3]graph.Direction, triple *graph.Triple) []byte {
 	key := make([]byte, 0, 2+(ts.hasher.Size()*4))
-	key = append(key, []byte("c"+dir1)...)
-	key = append(key, ts.convertStringToByteHash(triple.Get("c"))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(dir1))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(dir2))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(dir3))...)
+	// TODO(kortschak) Remove dependence on String() method.
+	key = append(key, []byte(graph.Provenance.String()+d[0].String())...)
+	key = append(key, ts.convertStringToByteHash(triple.Get(graph.Provenance))...)
+	key = append(key, ts.convertStringToByteHash(triple.Get(d[0]))...)
+	key = append(key, ts.convertStringToByteHash(triple.Get(d[1]))...)
+	key = append(key, ts.convertStringToByteHash(triple.Get(d[2]))...)
 	return key
 }
 
@@ -145,8 +149,16 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	ts.size++
 }
 
+// Short hand for direction permutations.
+var (
+	spo = [3]graph.Direction{graph.Subject, graph.Predicate, graph.Object}
+	osp = [3]graph.Direction{graph.Object, graph.Subject, graph.Predicate}
+	pos = [3]graph.Direction{graph.Predicate, graph.Object, graph.Subject}
+	pso = [3]graph.Direction{graph.Predicate, graph.Subject, graph.Object}
+)
+
 func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
-	_, err := ts.db.Get(ts.createKeyFor("s", "p", "o", t), ts.readopts)
+	_, err := ts.db.Get(ts.createKeyFor(spo, t), ts.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Errorf("Couldn't access DB to confirm deletion")
 		return
@@ -156,15 +168,15 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 		return
 	}
 	batch := &leveldb.Batch{}
-	batch.Delete(ts.createKeyFor("s", "p", "o", t))
-	batch.Delete(ts.createKeyFor("o", "s", "p", t))
-	batch.Delete(ts.createKeyFor("p", "o", "s", t))
-	ts.UpdateValueKeyBy(t.Get("s"), -1, batch)
-	ts.UpdateValueKeyBy(t.Get("p"), -1, batch)
-	ts.UpdateValueKeyBy(t.Get("o"), -1, batch)
-	if t.Get("c") != "" {
-		batch.Delete(ts.createProvKeyFor("p", "s", "o", t))
-		ts.UpdateValueKeyBy(t.Get("c"), -1, batch)
+	batch.Delete(ts.createKeyFor(spo, t))
+	batch.Delete(ts.createKeyFor(osp, t))
+	batch.Delete(ts.createKeyFor(pos, t))
+	ts.UpdateValueKeyBy(t.Get(graph.Subject), -1, batch)
+	ts.UpdateValueKeyBy(t.Get(graph.Predicate), -1, batch)
+	ts.UpdateValueKeyBy(t.Get(graph.Object), -1, batch)
+	if t.Get(graph.Provenance) != "" {
+		batch.Delete(ts.createProvKeyFor(pso, t))
+		ts.UpdateValueKeyBy(t.Get(graph.Provenance), -1, batch)
 	}
 	err = ts.db.Write(batch, nil)
 	if err != nil {
@@ -180,21 +192,21 @@ func (ts *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *graph.Triple) {
 		glog.Errorf("Couldn't write to buffer for triple %s\n  %s\n", t.ToString(), err)
 		return
 	}
-	batch.Put(ts.createKeyFor("s", "p", "o", t), bytes)
-	batch.Put(ts.createKeyFor("o", "s", "p", t), bytes)
-	batch.Put(ts.createKeyFor("p", "o", "s", t), bytes)
-	if t.Get("c") != "" {
-		batch.Put(ts.createProvKeyFor("p", "s", "o", t), bytes)
+	batch.Put(ts.createKeyFor(spo, t), bytes)
+	batch.Put(ts.createKeyFor(osp, t), bytes)
+	batch.Put(ts.createKeyFor(pos, t), bytes)
+	if t.Get(graph.Provenance) != "" {
+		batch.Put(ts.createProvKeyFor(pso, t), bytes)
 	}
 }
 
 func (ts *TripleStore) buildWrite(batch *leveldb.Batch, t *graph.Triple) {
 	ts.buildTripleWrite(batch, t)
-	ts.UpdateValueKeyBy(t.Get("s"), 1, nil)
-	ts.UpdateValueKeyBy(t.Get("p"), 1, nil)
-	ts.UpdateValueKeyBy(t.Get("o"), 1, nil)
-	if t.Get("c") != "" {
-		ts.UpdateValueKeyBy(t.Get("c"), 1, nil)
+	ts.UpdateValueKeyBy(t.Get(graph.Subject), 1, nil)
+	ts.UpdateValueKeyBy(t.Get(graph.Predicate), 1, nil)
+	ts.UpdateValueKeyBy(t.Get(graph.Object), 1, nil)
+	if t.Get(graph.Provenance) != "" {
+		ts.UpdateValueKeyBy(t.Get(graph.Provenance), 1, nil)
 	}
 }
 
@@ -255,9 +267,9 @@ func (ts *TripleStore) AddTripleSet(t_s []*graph.Triple) {
 	resizeMap := make(map[string]int)
 	for _, t := range t_s {
 		ts.buildTripleWrite(batch, t)
-		resizeMap[t.Sub]++
-		resizeMap[t.Pred]++
-		resizeMap[t.Obj]++
+		resizeMap[t.Subject]++
+		resizeMap[t.Predicate]++
+		resizeMap[t.Object]++
 		if t.Provenance != "" {
 			resizeMap[t.Provenance]++
 		}
@@ -388,35 +400,38 @@ func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
 	return 0, nil
 }
 
-func (ts *TripleStore) GetTripleIterator(dir string, val graph.TSVal) graph.Iterator {
-	switch dir {
-	case "s":
-		return NewIterator("sp", "s", val, ts)
-	case "p":
-		return NewIterator("po", "p", val, ts)
-	case "o":
-		return NewIterator("os", "o", val, ts)
-	case "c":
-		return NewIterator("cp", "c", val, ts)
+func (ts *TripleStore) GetTripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
+	var prefix string
+	switch d {
+	case graph.Subject:
+		prefix = "sp"
+	case graph.Predicate:
+		prefix = "po"
+	case graph.Object:
+		prefix = "os"
+	case graph.Provenance:
+		prefix = "cp"
+	default:
+		panic("unreachable " + d.String())
 	}
-	panic("Notreached " + dir)
+	return NewIterator(prefix, d, val, ts)
 }
 
 func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
-	return NewAllIterator("z", "v", ts)
+	return NewAllIterator("z", graph.Any, ts)
 }
 
 func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
-	return NewAllIterator("po", "p", ts)
+	return NewAllIterator("po", graph.Predicate, ts)
 }
 
-func (ts *TripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {
+func (ts *TripleStore) GetTripleDirection(val graph.TSVal, d graph.Direction) graph.TSVal {
 	v := val.([]uint8)
-	offset := GetPositionFromPrefix(v[0:2], direction, ts)
+	offset := GetPositionFromPrefix(v[0:2], d, ts)
 	if offset != -1 {
 		return append([]byte("z"), v[offset:offset+ts.hasher.Size()]...)
 	} else {
-		return ts.GetTriple(val).Get(direction)
+		return ts.GetTriple(val).Get(d)
 	}
 }
 

@@ -35,17 +35,14 @@ type queryShape struct {
 	ts       TripleStore
 	nodeId   int
 	hasaIds  []int
-	hasaDirs []string
+	hasaDirs []Direction
 }
 
 func OutputQueryShapeForIterator(it Iterator, ts TripleStore, outputMap *map[string]interface{}) {
-	qs := &queryShape{}
-	qs.nodes = make([]Node, 0)
-	qs.links = make([]Link, 0)
-	qs.hasaIds = make([]int, 0)
-	qs.hasaDirs = make([]string, 0)
-	qs.ts = ts
-	qs.nodeId = 1
+	qs := &queryShape{
+		ts:     ts,
+		nodeId: 1,
+	}
 
 	node := qs.MakeNode(it.Clone())
 	qs.AddNode(node)
@@ -61,13 +58,13 @@ func (qs *queryShape) AddLink(l *Link) {
 	qs.links = append(qs.links, *l)
 }
 
-func (qs *queryShape) LastHasa() (int, string) {
+func (qs *queryShape) LastHasa() (int, Direction) {
 	return qs.hasaIds[len(qs.hasaIds)-1], qs.hasaDirs[len(qs.hasaDirs)-1]
 }
 
-func (qs *queryShape) PushHasa(i int, s string) {
+func (qs *queryShape) PushHasa(i int, d Direction) {
 	qs.hasaIds = append(qs.hasaIds, i)
-	qs.hasaDirs = append(qs.hasaDirs, s)
+	qs.hasaDirs = append(qs.hasaDirs, d)
 }
 
 func (qs *queryShape) RemoveHasa() {
@@ -136,7 +133,7 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 		}
 	case "hasa":
 		hasa := it.(*HasaIterator)
-		qs.PushHasa(n.Id, hasa.direction)
+		qs.PushHasa(n.Id, hasa.dir)
 		qs.nodeId++
 		newNode := qs.MakeNode(hasa.primaryIt)
 		qs.AddNode(newNode)
@@ -158,10 +155,10 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 		qs.nodeId++
 		newNode := qs.MakeNode(lto.primaryIt)
 		hasaID, hasaDir := qs.LastHasa()
-		if (hasaDir == "s" && lto.direction == "o") ||
-			(hasaDir == "o" && lto.direction == "s") {
+		if (hasaDir == Subject && lto.dir == Object) ||
+			(hasaDir == Object && lto.dir == Subject) {
 			qs.AddNode(newNode)
-			if hasaDir == "s" {
+			if hasaDir == Subject {
 				qs.AddLink(&Link{hasaID, newNode.Id, 0, n.Id})
 			} else {
 				qs.AddLink(&Link{newNode.Id, hasaID, 0, n.Id})

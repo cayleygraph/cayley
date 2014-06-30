@@ -248,7 +248,7 @@ func TestSetIterator(t *testing.T) {
 		var it graph.Iterator
 
 		Convey("Can create a subject iterator", func() {
-			it = ts.GetTripleIterator("s", ts.GetIdFor("C"))
+			it = ts.GetTripleIterator(graph.Subject, ts.GetIdFor("C"))
 
 			Convey("Containing the right things", func() {
 				expected := []string{
@@ -282,7 +282,7 @@ func TestSetIterator(t *testing.T) {
 		})
 
 		Convey("Can create an object iterator", func() {
-			it = ts.GetTripleIterator("o", ts.GetIdFor("F"))
+			it = ts.GetTripleIterator(graph.Object, ts.GetIdFor("F"))
 
 			Convey("Containing the right things", func() {
 				expected := []string{
@@ -297,7 +297,7 @@ func TestSetIterator(t *testing.T) {
 
 			Convey("Mutually and-checkable", func() {
 				and := graph.NewAndIterator()
-				and.AddSubIterator(ts.GetTripleIterator("s", ts.GetIdFor("B")))
+				and.AddSubIterator(ts.GetTripleIterator(graph.Subject, ts.GetIdFor("B")))
 				and.AddSubIterator(it)
 
 				expected := []string{
@@ -312,7 +312,7 @@ func TestSetIterator(t *testing.T) {
 		})
 
 		Convey("Can create a predicate iterator", func() {
-			it = ts.GetTripleIterator("p", ts.GetIdFor("status"))
+			it = ts.GetTripleIterator(graph.Predicate, ts.GetIdFor("status"))
 
 			Convey("Containing the right things", func() {
 				expected := []string{
@@ -329,7 +329,7 @@ func TestSetIterator(t *testing.T) {
 		})
 
 		Convey("Can create a provenance iterator", func() {
-			it = ts.GetTripleIterator("c", ts.GetIdFor("status_graph"))
+			it = ts.GetTripleIterator(graph.Provenance, ts.GetIdFor("status_graph"))
 
 			Convey("Containing the right things", func() {
 				expected := []string{
@@ -346,7 +346,7 @@ func TestSetIterator(t *testing.T) {
 			Convey("Can be cross-checked", func() {
 				and := graph.NewAndIterator()
 				// Order is important
-				and.AddSubIterator(ts.GetTripleIterator("s", ts.GetIdFor("B")))
+				and.AddSubIterator(ts.GetTripleIterator(graph.Subject, ts.GetIdFor("B")))
 				and.AddSubIterator(it)
 
 				expected := []string{
@@ -360,7 +360,7 @@ func TestSetIterator(t *testing.T) {
 				and := graph.NewAndIterator()
 				// Order is important
 				and.AddSubIterator(it)
-				and.AddSubIterator(ts.GetTripleIterator("s", ts.GetIdFor("B")))
+				and.AddSubIterator(ts.GetTripleIterator(graph.Subject, ts.GetIdFor("B")))
 
 				expected := []string{
 					graph.MakeTriple("B", "status", "cool", "status_graph").ToString(),
@@ -400,7 +400,7 @@ func TestOptimize(t *testing.T) {
 			fixed := ts.MakeFixed()
 			fixed.AddValue(ts.GetIdFor("F"))
 			fixed.AddTag("internal")
-			lto = graph.NewLinksToIterator(ts, fixed, "o")
+			lto = graph.NewLinksToIterator(ts, fixed, graph.Object)
 
 			Convey("Creates an appropriate iterator", func() {
 				oldIt := lto.Clone()

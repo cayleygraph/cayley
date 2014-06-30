@@ -39,29 +39,30 @@ func NewTripleDirectionIndex() *TripleDirectionIndex {
 	return &tdi
 }
 
-func (tdi *TripleDirectionIndex) GetForDir(s string) map[int64]*llrb.LLRB {
-	if s == "s" {
+func (tdi *TripleDirectionIndex) GetForDir(d graph.Direction) map[int64]*llrb.LLRB {
+	switch d {
+	case graph.Subject:
 		return tdi.subject
-	} else if s == "o" {
+	case graph.Object:
 		return tdi.object
-	} else if s == "p" {
+	case graph.Predicate:
 		return tdi.predicate
-	} else if s == "c" {
+	case graph.Provenance:
 		return tdi.provenance
 	}
-	panic("Bad direction")
+	panic("illegal direction")
 }
 
-func (tdi *TripleDirectionIndex) GetOrCreate(dir string, id int64) *llrb.LLRB {
-	directionIndex := tdi.GetForDir(dir)
+func (tdi *TripleDirectionIndex) GetOrCreate(d graph.Direction, id int64) *llrb.LLRB {
+	directionIndex := tdi.GetForDir(d)
 	if _, ok := directionIndex[id]; !ok {
 		directionIndex[id] = llrb.New()
 	}
 	return directionIndex[id]
 }
 
-func (tdi *TripleDirectionIndex) Get(dir string, id int64) (*llrb.LLRB, bool) {
-	directionIndex := tdi.GetForDir(dir)
+func (tdi *TripleDirectionIndex) Get(d graph.Direction, id int64) (*llrb.LLRB, bool) {
+	directionIndex := tdi.GetForDir(d)
 	tree, exists := directionIndex[id]
 	return tree, exists
 }
@@ -101,9 +102,9 @@ func (ts *TripleStore) AddTripleSet(triples []*graph.Triple) {
 func (ts *TripleStore) tripleExists(t *graph.Triple) (bool, int64) {
 	smallest := -1
 	var smallest_tree *llrb.LLRB
-	for _, dir := range graph.TripleDirections {
-		sid := t.Get(dir)
-		if dir == "c" && sid == "" {
+	for d := graph.Subject; d <= graph.Provenance; d++ {
+		sid := t.Get(d)
+		if d == graph.Provenance && sid == "" {
 			continue
 		}
 		id, ok := ts.idMap[sid]
@@ -111,7 +112,7 @@ func (ts *TripleStore) tripleExists(t *graph.Triple) (bool, int64) {
 		if !ok {
 			return false, 0
 		}
-		index, exists := ts.index.Get(dir, id)
+		index, exists := ts.index.Get(d, id)
 		if !exists {
 			// If it's never been indexed in this direction, it can't exist.
 			return false, 0
@@ -145,9 +146,9 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	ts.size++
 	ts.tripleIdCounter++
 
-	for _, dir := range graph.TripleDirections {
-		sid := t.Get(dir)
-		if dir == "c" && sid == "" {
+	for d := graph.Subject; d <= graph.Provenance; d++ {
+		sid := t.Get(d)
+		if d == graph.Provenance && sid == "" {
 			continue
 		}
 		if _, ok := ts.idMap[sid]; !ok {
@@ -157,12 +158,12 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 		}
 	}
 
-	for _, dir := range graph.TripleDirections {
-		if dir == "c" && t.Get(dir) == "" {
+	for d := graph.Subject; d <= graph.Provenance; d++ {
+		if d == graph.Provenance && t.Get(d) == "" {
 			continue
 		}
-		id := ts.idMap[t.Get(dir)]
-		tree := ts.index.GetOrCreate(dir, id)
+		id := ts.idMap[t.Get(d)]
+		tree := ts.index.GetOrCreate(d, id)
 		tree.ReplaceOrInsert(Int64(tripleID))
 	}
 
@@ -180,36 +181,36 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	ts.triples[tripleID] = graph.Triple{}
 	ts.size--
 
-	for _, dir := range graph.TripleDirections {
-		if dir == "c" && t.Get(dir) == "" {
+	for d := graph.Subject; d <= graph.Provenance; d++ {
+		if d == graph.Provenance && t.Get(d) == "" {
 			continue
 		}
-		id := ts.idMap[t.Get(dir)]
-		tree := ts.index.GetOrCreate(dir, id)
+		id := ts.idMap[t.Get(d)]
+		tree := ts.index.GetOrCreate(d, id)
 		tree.Delete(Int64(tripleID))
 	}
 
-	for _, dir := range graph.TripleDirections {
-		if dir == "c" && t.Get(dir) == "" {
+	for d := graph.Subject; d <= graph.Provenance; d++ {
+		if d == graph.Provenance && t.Get(d) == "" {
 			continue
 		}
-		id, ok := ts.idMap[t.Get(dir)]
+		id, ok := ts.idMap[t.Get(d)]
 		if !ok {
 			continue
 		}
 		stillExists := false
-		for _, dir := range graph.TripleDirections {
-			if dir == "c" && t.Get(dir) == "" {
+		for d := graph.Subject; d <= graph.Provenance; d++ {
+			if d == graph.Provenance && t.Get(d) == "" {
 				continue
 			}
-			nodeTree := ts.index.GetOrCreate(dir, id)
+			nodeTree := ts.index.GetOrCreate(d, id)
 			if nodeTree.Len() != 0 {
 				stillExists = true
 				break
 			}
 		}
 		if !stillExists {
-			delete(ts.idMap, t.Get(dir))
+			delete(ts.idMap, t.Get(d))
 			delete(ts.revIdMap, id)
 		}
 	}
@@ -219,9 +220,9 @@ func (ts *TripleStore) GetTriple(index graph.TSVal) *graph.Triple {
 	return &ts.triples[index.(int64)]
 }
 
-func (ts *TripleStore) GetTripleIterator(direction string, value graph.TSVal) graph.Iterator {
-	index, ok := ts.index.Get(direction, value.(int64))
-	data := fmt.Sprintf("dir:%s val:%d", direction, value.(int64))
+func (ts *TripleStore) GetTripleIterator(d graph.Direction, value graph.TSVal) graph.Iterator {
+	index, ok := ts.index.Get(d, value.(int64))
+	data := fmt.Sprintf("dir:%s val:%d", d, value.(int64))
 	if ok {
 		return NewLlrbIterator(index, data)
 	}
@@ -257,8 +258,8 @@ func (ts *TripleStore) MakeFixed() *graph.FixedIterator {
 	return graph.NewFixedIteratorWithCompare(graph.BasicEquality)
 }
 
-func (ts *TripleStore) GetTripleDirection(val graph.TSVal, direction string) graph.TSVal {
-	name := ts.GetTriple(val).Get(direction)
+func (ts *TripleStore) GetTripleDirection(val graph.TSVal, d graph.Direction) graph.TSVal {
+	name := ts.GetTriple(val).Get(d)
 	return ts.GetIdFor(name)
 }
 

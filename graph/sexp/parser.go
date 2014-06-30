@@ -207,7 +207,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			i++
 		}
 		it := buildIteratorTree(tree.Children[i], ts)
-		lto := graph.NewLinksToIterator(ts, it, "p")
+		lto := graph.NewLinksToIterator(ts, it, graph.Predicate)
 		return lto
 	case "RootConstraint":
 		constraintCount := 0
@@ -228,16 +228,16 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 		return and
 	case "Constraint":
 		var hasa *graph.HasaIterator
-		topLevelDir := "s"
-		subItDir := "o"
+		topLevelDir := graph.Subject
+		subItDir := graph.Object
 		subAnd := graph.NewAndIterator()
 		isOptional := false
 		for _, c := range tree.Children {
 			switch c.Name {
 			case "PredIdentifier":
 				if c.Children[0].Name == "Reverse" {
-					topLevelDir = "o"
-					subItDir = "s"
+					topLevelDir = graph.Object
+					subItDir = graph.Subject
 				}
 				it := buildIteratorTree(c, ts)
 				subAnd.AddSubIterator(it)

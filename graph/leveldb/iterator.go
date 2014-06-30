@@ -29,7 +29,7 @@ type Iterator struct {
 	graph.BaseIterator
 	nextPrefix     []byte
 	checkId        []byte
-	dir            string
+	dir            graph.Direction
 	open           bool
 	it             iterator.Iterator
 	ts             *TripleStore
@@ -37,11 +37,11 @@ type Iterator struct {
 	originalPrefix string
 }
 
-func NewIterator(prefix, dir string, value graph.TSVal, ts *TripleStore) *Iterator {
+func NewIterator(prefix string, d graph.Direction, value graph.TSVal, ts *TripleStore) *Iterator {
 	var it Iterator
 	graph.BaseIteratorInit(&it.BaseIterator)
 	it.checkId = value.([]byte)
-	it.dir = dir
+	it.dir = d
 	it.originalPrefix = prefix
 	it.nextPrefix = make([]byte, 0, 2+ts.hasher.Size())
 	it.nextPrefix = append(it.nextPrefix, []byte(prefix)...)
@@ -113,56 +113,56 @@ func (it *Iterator) Next() (graph.TSVal, bool) {
 	return nil, false
 }
 
-func GetPositionFromPrefix(prefix []byte, dir string, ts *TripleStore) int {
+func GetPositionFromPrefix(prefix []byte, d graph.Direction, ts *TripleStore) int {
 	if bytes.Equal(prefix, []byte("sp")) {
-		switch dir {
-		case "s":
+		switch d {
+		case graph.Subject:
 			return 2
-		case "p":
+		case graph.Predicate:
 			return ts.hasher.Size() + 2
-		case "o":
+		case graph.Object:
 			return 2*ts.hasher.Size() + 2
-		case "c":
+		case graph.Provenance:
 			return -1
 		}
 	}
 	if bytes.Equal(prefix, []byte("po")) {
-		switch dir {
-		case "s":
+		switch d {
+		case graph.Subject:
 			return 2*ts.hasher.Size() + 2
-		case "p":
+		case graph.Predicate:
 			return 2
-		case "o":
+		case graph.Object:
 			return ts.hasher.Size() + 2
-		case "c":
+		case graph.Provenance:
 			return -1
 		}
 	}
 	if bytes.Equal(prefix, []byte("os")) {
-		switch dir {
-		case "s":
+		switch d {
+		case graph.Subject:
 			return ts.hasher.Size() + 2
-		case "p":
+		case graph.Predicate:
 			return 2*ts.hasher.Size() + 2
-		case "o":
+		case graph.Object:
 			return 2
-		case "c":
+		case graph.Provenance:
 			return -1
 		}
 	}
 	if bytes.Equal(prefix, []byte("cp")) {
-		switch dir {
-		case "s":
+		switch d {
+		case graph.Subject:
 			return 2*ts.hasher.Size() + 2
-		case "p":
+		case graph.Predicate:
 			return ts.hasher.Size() + 2
-		case "o":
+		case graph.Object:
 			return 3*ts.hasher.Size() + 2
-		case "c":
+		case graph.Provenance:
 			return 2
 		}
 	}
-	panic("Notreached")
+	panic("unreachable")
 }
 
 func (it *Iterator) Check(v graph.TSVal) bool {

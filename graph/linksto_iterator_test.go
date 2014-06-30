@@ -23,10 +23,10 @@ func TestLinksTo(t *testing.T) {
 	tsFixed := newFixedIterator()
 	tsFixed.AddValue(2)
 	ts.On("GetIdFor", "cool").Return(1)
-	ts.On("GetTripleIterator", "o", 1).Return(tsFixed)
+	ts.On("GetTripleIterator", Object, 1).Return(tsFixed)
 	fixed := newFixedIterator()
 	fixed.AddValue(ts.GetIdFor("cool"))
-	lto := NewLinksToIterator(ts, fixed, "o")
+	lto := NewLinksToIterator(ts, fixed, Object)
 	val, ok := lto.Next()
 	if !ok {
 		t.Error("At least one triple matches the fixed object")
