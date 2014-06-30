@@ -176,6 +176,18 @@ func TestGetCool(t *testing.T) {
 	runAndTestQuery(query, expected, t)
 }
 
+func TestNullSemantics(t *testing.T) {
+	query := `
+	[{"id": "cool", "status": null}]
+	`
+	expected := `
+		[
+		{"id": "cool", "status": null}
+		]
+	`
+	runAndTestQuery(query, expected, t)
+}
+
 func TestGetFollowsList(t *testing.T) {
 	query := `
 	[{"id": "C", "follows": []}]
