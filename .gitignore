@@ -1,5 +1,5 @@
-*.swp
-main
-*.test
 *.peg.go
+*.swp
+*.test
+cayley
 cayley.cfg
