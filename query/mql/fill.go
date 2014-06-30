@@ -24,6 +24,9 @@ func (q *Query) treeifyResult(tags map[string]graph.TSVal) map[ResultPath]string
 	// Transform the map into something a little more interesting.
 	results := make(map[Path]string)
 	for k, v := range tags {
+		if v == nil {
+			continue
+		}
 		results[Path(k)] = q.ses.ts.GetNameFor(v)
 	}
 	resultPaths := make(map[ResultPath]string)
@@ -78,7 +81,10 @@ func (q *Query) treeifyResult(tags map[string]graph.TSVal) map[ResultPath]string
 	// Fill values
 	for _, path := range paths {
 		currentPath := path.getPath()
-		value := resultPaths[path]
+		value, ok := resultPaths[path]
+		if !ok {
+			continue
+		}
 		namePath := path.AppendValue(value)
 		if _, ok := q.queryStructure[currentPath]; ok {
 			// We're dealing with ids.

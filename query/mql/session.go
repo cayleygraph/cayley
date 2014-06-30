@@ -79,7 +79,7 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 	}
 	s.currentQuery = NewQuery(s)
 	s.currentQuery.BuildIteratorTree(mqlQuery)
-	if s.currentQuery.isError {
+	if s.currentQuery.isError() {
 		return
 	}
 	it, _ := s.currentQuery.it.Optimize()
@@ -131,7 +131,7 @@ func (s *Session) BuildJson(result interface{}) {
 
 func (s *Session) GetJson() (interface{}, error) {
 	s.currentQuery.buildResults()
-	if s.currentQuery.isError {
+	if s.currentQuery.isError() {
 		return nil, s.currentQuery.err
 	} else {
 		return s.currentQuery.results, nil

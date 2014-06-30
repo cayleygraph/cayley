@@ -32,8 +32,11 @@ type Query struct {
 	queryResult    map[ResultPath]map[string]interface{}
 	results        []interface{}
 	resultOrder    []string
-	isError        bool
 	err            error
+}
+
+func (q *Query) isError() bool {
+	return q.err != nil
 }
 
 func (q *Query) copyPathStructure(path Path) map[string]interface{} {
@@ -106,6 +109,5 @@ func NewQuery(ses *Session) *Query {
 	q.results = make([]interface{}, 0)
 	q.resultOrder = make([]string, 0)
 	q.err = nil
-	q.isError = false
 	return &q
 }
