@@ -33,7 +33,7 @@ func (q *Query) buildFixed(s string) graph.Iterator {
 func (q *Query) buildResultIterator(path Path) graph.Iterator {
 	all := q.ses.ts.GetNodesAllIterator()
 	all.AddTag(string(path))
-	return graph.NewOptionalIterator(all)
+	return all
 }
 
 func (q *Query) BuildIteratorTree(query interface{}) {
@@ -42,16 +42,16 @@ func (q *Query) BuildIteratorTree(query interface{}) {
 	q.queryResult = make(map[ResultPath]map[string]interface{})
 	q.queryResult[""] = make(map[string]interface{})
 
-	q.it, q.err = q.buildIteratorTreeInternal(query, NewPath())
-	if q.err != nil {
-		q.isError = true
+	var isOptional bool
+	q.it, isOptional, q.err = q.buildIteratorTreeInternal(query, NewPath())
+	if isOptional {
+		q.err = errors.New("Optional iterator at the top level?")
 	}
 }
 
-func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (graph.Iterator, error) {
-	var it graph.Iterator
-	var err error
+func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it graph.Iterator, optional bool, err error) {
 	err = nil
+	optional = false
 	switch t := query.(type) {
 	case bool:
 		// for JSON booleans
@@ -78,8 +78,9 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (graph.I
 		q.isRepeated[path] = true
 		if len(t) == 0 {
 			it = q.buildResultIterator(path)
+			optional = true
 		} else if len(t) == 1 {
-			it, err = q.buildIteratorTreeInternal(t[0], path)
+			it, optional, err = q.buildIteratorTreeInternal(t[0], path)
 		} else {
 			err = errors.New(fmt.Sprintf("Multiple fields at location root%s", path.DisplayString()))
 		}
@@ -88,14 +89,15 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (graph.I
 		it, err = q.buildIteratorTreeMapInternal(t, path)
 	case nil:
 		it = q.buildResultIterator(path)
+		optional = true
 	default:
 		log.Fatal("Unknown JSON type?", query)
 	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	it.AddTag(string(path))
-	return it, nil
+	return it, optional, nil
 }
 
 func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path Path) (graph.Iterator, error) {
@@ -105,6 +107,7 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 	err = nil
 	outputStructure := make(map[string]interface{})
 	for key, subquery := range query {
+		optional := false
 		outputStructure[key] = nil
 		reverse := false
 		pred := key
@@ -122,13 +125,13 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 		// Other special constructs here
 		var subit graph.Iterator
 		if key == "id" {
-			subit, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
+			subit, optional, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
 			if err != nil {
 				return nil, err
 			}
-			it.AddSubIterator(subit)
 		} else {
-			subit, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
+			var builtIt graph.Iterator
+			builtIt, optional, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
 			if err != nil {
 				return nil, err
 			}
@@ -137,16 +140,21 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 			predFixed.AddValue(q.ses.ts.GetIdFor(pred))
 			subAnd.AddSubIterator(graph.NewLinksToIterator(q.ses.ts, predFixed, "p"))
 			if reverse {
-				lto := graph.NewLinksToIterator(q.ses.ts, subit, "s")
+				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, "s")
 				subAnd.AddSubIterator(lto)
 				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, "o")
-				it.AddSubIterator(hasa)
+				subit = hasa
 			} else {
-				lto := graph.NewLinksToIterator(q.ses.ts, subit, "o")
+				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, "o")
 				subAnd.AddSubIterator(lto)
 				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, "s")
-				it.AddSubIterator(hasa)
+				subit = hasa
 			}
+		}
+		if optional {
+			it.AddSubIterator(graph.NewOptionalIterator(subit))
+		} else {
+			it.AddSubIterator(subit)
 		}
 	}
 	if err != nil {

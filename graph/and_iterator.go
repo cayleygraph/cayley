@@ -173,6 +173,9 @@ func (it *AndIterator) checkCheckList(val TSVal) bool {
 			break
 		}
 	}
+	if ok {
+		it.Last = val
+	}
 	return CheckLogOut(it, val, ok)
 }
 

@@ -59,7 +59,7 @@ func (it *Int64AllIterator) Clone() Iterator {
 
 // Prints the All iterator as just an "all".
 func (it *Int64AllIterator) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s)", strings.Repeat(" ", indent), it.Type())
+	return fmt.Sprintf("%s(%s tags: %v)", strings.Repeat(" ", indent), it.Type(), it.Tags())
 }
 
 // Next() on an Int64 all iterator is a simple incrementing counter.
