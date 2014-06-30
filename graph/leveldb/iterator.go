@@ -19,19 +19,20 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/syndtr/goleveldb/leveldb/iterator"
+	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 type Iterator struct {
-	graph.BaseIterator
+	iterator.Base
 	nextPrefix     []byte
 	checkId        []byte
 	dir            graph.Direction
 	open           bool
-	it             iterator.Iterator
+	it             ldbit.Iterator
 	ts             *TripleStore
 	ro             *opt.ReadOptions
 	originalPrefix string
@@ -39,7 +40,7 @@ type Iterator struct {
 
 func NewIterator(prefix string, d graph.Direction, value graph.TSVal, ts *TripleStore) *Iterator {
 	var it Iterator
-	graph.BaseIteratorInit(&it.BaseIterator)
+	iterator.BaseInit(&it.Base)
 	it.checkId = value.([]byte)
 	it.dir = d
 	it.originalPrefix = prefix

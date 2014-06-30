@@ -16,22 +16,23 @@ package memstore
 
 import (
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 type AllIterator struct {
-	graph.Int64AllIterator
+	iterator.Int64
 	ts *TripleStore
 }
 
 func NewMemstoreAllIterator(ts *TripleStore) *AllIterator {
 	var out AllIterator
-	out.Int64AllIterator = *graph.NewInt64AllIterator(1, ts.idCounter-1)
+	out.Int64 = *iterator.NewInt64(1, ts.idCounter-1)
 	out.ts = ts
 	return &out
 }
 
 func (it *AllIterator) Next() (graph.TSVal, bool) {
-	next, out := it.Int64AllIterator.Next()
+	next, out := it.Int64.Next()
 	if !out {
 		return next, out
 	}

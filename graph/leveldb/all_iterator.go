@@ -19,25 +19,26 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/syndtr/goleveldb/leveldb/iterator"
+	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 type AllIterator struct {
-	graph.BaseIterator
+	iterator.Base
 	prefix []byte
 	dir    graph.Direction
 	open   bool
-	it     iterator.Iterator
+	it     ldbit.Iterator
 	ts     *TripleStore
 	ro     *opt.ReadOptions
 }
 
 func NewAllIterator(prefix string, d graph.Direction, ts *TripleStore) *AllIterator {
 	var it AllIterator
-	graph.BaseIteratorInit(&it.BaseIterator)
+	iterator.BaseInit(&it.Base)
 	it.ro = &opt.ReadOptions{}
 	it.ro.DontFillCache = true
 	it.it = ts.db.NewIterator(nil, it.ro)

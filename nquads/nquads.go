@@ -58,7 +58,7 @@ func Parse(str string) *graph.Triple {
 	}
 	str = skipWhitespace(remainder)
 	if str != "" && str[0] == '.' {
-		return graph.MakeTriple(*sub, *pred, *obj, prov)
+		return &graph.Triple{*sub, *pred, *obj, prov}
 	}
 	return nil
 }

@@ -18,7 +18,6 @@ package graph
 // iterators can "inherit" from to get default iterator functionality.
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/barakmich/glog"
@@ -104,168 +103,15 @@ type Iterator interface {
 	GetUid() int
 }
 
+type FixedIterator interface {
+	Iterator
+	AddValue(TSVal)
+}
+
 type IteratorStats struct {
 	CheckCost int64
 	NextCost  int64
 	Size      int64
-}
-
-// The Base iterator is the iterator other iterators inherit from to get some
-// default functionality.
-type BaseIterator struct {
-	Last      TSVal
-	tags      []string
-	fixedTags map[string]TSVal
-	nextable  bool
-	uid       int
-}
-
-// Called by subclases.
-func BaseIteratorInit(it *BaseIterator) {
-	// Your basic iterator is nextable
-	it.nextable = true
-	it.uid = iterator_n
-	if glog.V(2) {
-		iterator_n++
-	}
-}
-
-func (it *BaseIterator) GetUid() int {
-	return it.uid
-}
-
-// Adds a tag to the iterator. Most iterators don't need to override.
-func (it *BaseIterator) AddTag(tag string) {
-	if it.tags == nil {
-		it.tags = make([]string, 0)
-	}
-	it.tags = append(it.tags, tag)
-}
-
-func (it *BaseIterator) AddFixedTag(tag string, value TSVal) {
-	if it.fixedTags == nil {
-		it.fixedTags = make(map[string]TSVal)
-	}
-	it.fixedTags[tag] = value
-}
-
-// Returns the tags.
-func (it *BaseIterator) Tags() []string {
-	return it.tags
-}
-
-func (it *BaseIterator) FixedTags() map[string]TSVal {
-	return it.fixedTags
-}
-
-func (it *BaseIterator) CopyTagsFrom(other_it Iterator) {
-	for _, tag := range other_it.Tags() {
-		it.AddTag(tag)
-	}
-
-	for k, v := range other_it.FixedTags() {
-		it.AddFixedTag(k, v)
-	}
-
-}
-
-// Prints a silly debug string. Most classes override.
-func (it *BaseIterator) DebugString(indent int) string {
-	return fmt.Sprintf("%s(base)", strings.Repeat(" ", indent))
-}
-
-// Nothing in a base iterator.
-func (it *BaseIterator) Check(v TSVal) bool {
-	return false
-}
-
-// Base iterators should never appear in a tree if they are, select against
-// them.
-func (it *BaseIterator) GetStats() *IteratorStats {
-	return &IteratorStats{100000, 100000, 100000}
-}
-
-// DEPRECATED
-func (it *BaseIterator) GetResultTree() *ResultTree {
-	tree := NewResultTree(it.LastResult())
-	return tree
-}
-
-// Nothing in a base iterator.
-func (it *BaseIterator) Next() (TSVal, bool) {
-	return nil, false
-}
-
-func (it *BaseIterator) NextResult() bool {
-	return false
-}
-
-// Returns the last result of an iterator.
-func (it *BaseIterator) LastResult() TSVal {
-	return it.Last
-}
-
-// If you're empty and you know it, clap your hands.
-func (it *BaseIterator) Size() (int64, bool) {
-	return 0, true
-}
-
-// No subiterators. Only those with subiterators need to do anything here.
-func (it *BaseIterator) GetSubIterators() []Iterator {
-	return nil
-}
-
-// Accessor
-func (it *BaseIterator) Nextable() bool { return it.nextable }
-
-// Fill the map based on the tags assigned to this iterator. Default
-// functionality works well for most iterators.
-func (it *BaseIterator) TagResults(out_map *map[string]TSVal) {
-	for _, tag := range it.Tags() {
-		(*out_map)[tag] = it.LastResult()
-	}
-
-	for tag, value := range it.FixedTags() {
-		(*out_map)[tag] = value
-	}
-}
-
-// Nothing to clean up.
-// func (it *BaseIterator) Close() {}
-
-func (it *NullIterator) Close() {}
-
-func (it *BaseIterator) Reset() {}
-
-// Here we define the simplest base iterator -- the Null iterator. It contains nothing.
-// It is the empty set. Often times, queries that contain one of these match nothing,
-// so it's important to give it a special iterator.
-type NullIterator struct {
-	BaseIterator
-}
-
-// Fairly useless New function.
-func NewNullIterator() *NullIterator {
-	return &NullIterator{}
-}
-
-func (it *NullIterator) Clone() Iterator { return NewNullIterator() }
-
-// Name the null iterator.
-func (it *NullIterator) Type() string { return "null" }
-
-// A good iterator will close itself when it returns true.
-// Null has nothing it needs to do.
-func (it *NullIterator) Optimize() (Iterator, bool) { return it, false }
-
-// Print the null iterator.
-func (it *NullIterator) DebugString(indent int) string {
-	return strings.Repeat(" ", indent) + "(null)"
-}
-
-// A null iterator costs nothing. Use it!
-func (it *NullIterator) GetStats() *IteratorStats {
-	return &IteratorStats{0, 0, 0}
 }
 
 // Utility logging functions for when an iterator gets called Next upon, or Check upon, as

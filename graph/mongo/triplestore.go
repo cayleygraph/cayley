@@ -25,6 +25,7 @@ import (
 
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 const DefaultDBName = "cayley"
@@ -214,11 +215,12 @@ func (ts *TripleStore) GetTriple(val graph.TSVal) *graph.Triple {
 	if err != nil {
 		log.Println("Error: Couldn't retrieve triple", val.(string), err)
 	}
-	return graph.MakeTriple(
-		bsonDoc["Sub"].(string),
-		bsonDoc["Pred"].(string),
-		bsonDoc["Obj"].(string),
-		bsonDoc["Provenance"].(string))
+	return &graph.Triple{
+		bsonDoc["Subject"].(string),
+		bsonDoc["Predicate"].(string),
+		bsonDoc["Object"].(string),
+		bsonDoc["Provenance"].(string),
+	}
 }
 
 func (ts *TripleStore) GetTripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
@@ -264,8 +266,8 @@ func compareStrings(a, b graph.TSVal) bool {
 	return a.(string) == b.(string)
 }
 
-func (ts *TripleStore) MakeFixed() *graph.FixedIterator {
-	return graph.NewFixedIteratorWithCompare(compareStrings)
+func (ts *TripleStore) FixedIterator() graph.FixedIterator {
+	return iterator.NewFixedIteratorWithCompare(compareStrings)
 }
 
 func (ts *TripleStore) Close() {
@@ -303,9 +305,9 @@ func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) {
       var p_key = this["_id"].slice(len / 4, 2 * len / 4)
       var o_key = this["_id"].slice(2 * len / 4, 3 * len / 4)
       var c_key = this["_id"].slice(3 * len / 4)
-      emit(s_key, {"_id": s_key, "Name" : this.Sub, "Size" : 1})
-      emit(p_key, {"_id": p_key, "Name" : this.Pred, "Size" : 1})
-      emit(o_key, {"_id": o_key, "Name" : this.Obj, "Size" : 1})
+      emit(s_key, {"_id": s_key, "Name" : this.Subject, "Size" : 1})
+      emit(p_key, {"_id": p_key, "Name" : this.Predicate, "Size" : 1})
+      emit(o_key, {"_id": o_key, "Name" : this.Object, "Size" : 1})
 			if (this.Provenance != "") {
 				emit(c_key, {"_id": c_key, "Name" : this.Provenance, "Size" : 1})
 			}

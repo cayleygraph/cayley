@@ -45,14 +45,6 @@ type Triple struct {
 	Provenance string `json:"provenance,omitempty"`
 }
 
-func NewTriple() *Triple {
-	return &Triple{}
-}
-
-func MakeTriple(sub string, pred string, obj string, provenance string) *Triple {
-	return &Triple{sub, pred, obj, provenance}
-}
-
 // Direction specifies an edge's type.
 type Direction byte
 
@@ -103,7 +95,7 @@ func (t *Triple) Equals(o *Triple) bool {
 }
 
 // Pretty-prints a triple.
-func (t *Triple) ToString() string {
+func (t *Triple) String() string {
 	return fmt.Sprintf("%s -- %s -> %s\n", t.Subject, t.Predicate, t.Object)
 }
 

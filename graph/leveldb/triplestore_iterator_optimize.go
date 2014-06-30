@@ -16,18 +16,19 @@ package leveldb
 
 import (
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	switch it.Type() {
 	case "linksto":
-		return ts.optimizeLinksTo(it.(*graph.LinksToIterator))
+		return ts.optimizeLinksTo(it.(*iterator.LinksTo))
 
 	}
 	return it, false
 }
 
-func (ts *TripleStore) optimizeLinksTo(it *graph.LinksToIterator) (graph.Iterator, bool) {
+func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
 	subs := it.GetSubIterators()
 	if len(subs) != 1 {
 		return it, false

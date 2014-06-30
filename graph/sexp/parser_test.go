@@ -40,7 +40,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 		})
 
 		Convey("It should get a single triple linkage", func() {
-			ts.AddTriple(graph.MakeTriple("i", "can", "win", ""))
+			ts.AddTriple(&graph.Triple{"i", "can", "win", ""})
 			query := "($a (:can \"win\"))"
 			So(len(query), ShouldEqual, 17)
 			it := BuildIteratorTreeForQuery(ts, query)
@@ -51,7 +51,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 		})
 
 		Convey("It can get an internal linkage", func() {
-			ts.AddTriple(graph.MakeTriple("i", "can", "win", ""))
+			ts.AddTriple(&graph.Triple{"i", "can", "win", ""})
 			query := "(\"i\" (:can $a))"
 			it := BuildIteratorTreeForQuery(ts, query)
 			So(it.Type(), ShouldEqual, "and")
@@ -65,8 +65,8 @@ func TestParseSexpWithMemstore(t *testing.T) {
 
 func TestTreeConstraintParse(t *testing.T) {
 	ts := memstore.NewTripleStore()
-	ts.AddTriple(graph.MakeTriple("i", "like", "food", ""))
-	ts.AddTriple(graph.MakeTriple("food", "is", "good", ""))
+	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
+	ts.AddTriple(&graph.Triple{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -85,8 +85,8 @@ func TestTreeConstraintParse(t *testing.T) {
 
 func TestTreeConstraintTagParse(t *testing.T) {
 	ts := memstore.NewTripleStore()
-	ts.AddTriple(graph.MakeTriple("i", "like", "food", ""))
-	ts.AddTriple(graph.MakeTriple("food", "is", "good", ""))
+	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
+	ts.AddTriple(&graph.Triple{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -105,9 +105,9 @@ func TestTreeConstraintTagParse(t *testing.T) {
 
 func TestMultipleConstraintParse(t *testing.T) {
 	ts := memstore.NewTripleStore()
-	ts.AddTriple(graph.MakeTriple("i", "like", "food", ""))
-	ts.AddTriple(graph.MakeTriple("i", "like", "beer", ""))
-	ts.AddTriple(graph.MakeTriple("you", "like", "beer", ""))
+	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
+	ts.AddTriple(&graph.Triple{"i", "like", "beer", ""})
+	ts.AddTriple(&graph.Triple{"you", "like", "beer", ""})
 	query := "($a \n" +
 		"(:like :beer)\n" +
 		"(:like \"food\"))"

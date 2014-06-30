@@ -22,10 +22,11 @@ import (
 	"github.com/petar/GoLLRB/llrb"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 type Iterator struct {
-	graph.BaseIterator
+	iterator.Base
 	tree      *llrb.LLRB
 	data      string
 	isRunning bool
@@ -53,7 +54,7 @@ func IterateOne(tree *llrb.LLRB, last Int64) Int64 {
 
 func NewLlrbIterator(tree *llrb.LLRB, data string) *Iterator {
 	var it Iterator
-	graph.BaseIteratorInit(&it.BaseIterator)
+	iterator.BaseInit(&it.Base)
 	it.tree = tree
 	it.iterLast = Int64(-1)
 	it.data = data

@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package graph_test
 
 import (
 	"testing"
+
+	. "github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 func TestSingleIterator(t *testing.T) {
-	all := NewInt64AllIterator(1, 3)
+	all := iterator.NewInt64(1, 3)
 	result := StringResultTreeEvaluator(all)
 	expected := "(1)\n(2)\n(3)\n"
 	if expected != result {
@@ -28,9 +31,9 @@ func TestSingleIterator(t *testing.T) {
 }
 
 func TestAndIterator(t *testing.T) {
-	all1 := NewInt64AllIterator(1, 3)
-	all2 := NewInt64AllIterator(3, 5)
-	and := NewAndIterator()
+	all1 := iterator.NewInt64(1, 3)
+	all2 := iterator.NewInt64(3, 5)
+	and := iterator.NewAnd()
 	and.AddSubIterator(all1)
 	and.AddSubIterator(all2)
 

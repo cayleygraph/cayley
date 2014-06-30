@@ -21,6 +21,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 func TestMemstore(t *testing.T) {
@@ -38,19 +39,19 @@ func TestMemstore(t *testing.T) {
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	ts := MakeTestingMemstore()
-	fixed := ts.MakeFixed()
+	fixed := ts.FixedIterator()
 	fixed.AddValue(ts.GetIdFor("C"))
 	all := ts.GetNodesAllIterator()
-	lto := graph.NewLinksToIterator(ts, all, graph.Object)
-	innerAnd := graph.NewAndIterator()
+	lto := iterator.NewLinksTo(ts, all, graph.Object)
+	innerAnd := iterator.NewAnd()
 
-	fixed2 := ts.MakeFixed()
+	fixed2 := ts.FixedIterator()
 	fixed2.AddValue(ts.GetIdFor("follows"))
-	lto2 := graph.NewLinksToIterator(ts, fixed2, graph.Predicate)
+	lto2 := iterator.NewLinksTo(ts, fixed2, graph.Predicate)
 	innerAnd.AddSubIterator(lto2)
 	innerAnd.AddSubIterator(lto)
-	hasa := graph.NewHasaIterator(ts, innerAnd, graph.Subject)
-	outerAnd := graph.NewAndIterator()
+	hasa := iterator.NewHasA(ts, innerAnd, graph.Subject)
+	outerAnd := iterator.NewAnd()
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
 	val, ok := outerAnd.Next()
@@ -96,9 +97,9 @@ func CompareStringSlices(t *testing.T, expected []string, actual []string) {
 
 func TestLinksToOptimization(t *testing.T) {
 	ts := MakeTestingMemstore()
-	fixed := ts.MakeFixed()
+	fixed := ts.FixedIterator()
 	fixed.AddValue(ts.GetIdFor("cool"))
-	lto := graph.NewLinksToIterator(ts, fixed, graph.Object)
+	lto := iterator.NewLinksTo(ts, fixed, graph.Object)
 	lto.AddTag("foo")
 	newIt, changed := lto.Optimize()
 	if !changed {
@@ -119,17 +120,17 @@ func TestLinksToOptimization(t *testing.T) {
 
 func TestRemoveTriple(t *testing.T) {
 	ts := MakeTestingMemstore()
-	ts.RemoveTriple(graph.MakeTriple("E", "follows", "F", ""))
-	fixed := ts.MakeFixed()
+	ts.RemoveTriple(&graph.Triple{"E", "follows", "F", ""})
+	fixed := ts.FixedIterator()
 	fixed.AddValue(ts.GetIdFor("E"))
-	lto := graph.NewLinksToIterator(ts, fixed, graph.Subject)
-	fixed2 := ts.MakeFixed()
+	lto := iterator.NewLinksTo(ts, fixed, graph.Subject)
+	fixed2 := ts.FixedIterator()
 	fixed2.AddValue(ts.GetIdFor("follows"))
-	lto2 := graph.NewLinksToIterator(ts, fixed2, graph.Predicate)
-	innerAnd := graph.NewAndIterator()
+	lto2 := iterator.NewLinksTo(ts, fixed2, graph.Predicate)
+	innerAnd := iterator.NewAnd()
 	innerAnd.AddSubIterator(lto2)
 	innerAnd.AddSubIterator(lto)
-	hasa := graph.NewHasaIterator(ts, innerAnd, graph.Object)
+	hasa := iterator.NewHasA(ts, innerAnd, graph.Object)
 	newIt, _ := hasa.Optimize()
 	_, ok := newIt.Next()
 	if ok {

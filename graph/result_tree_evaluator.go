@@ -25,11 +25,11 @@ func NewResultTree(result TSVal) *ResultTree {
 	return &ResultTree{result: result}
 }
 
-func (t *ResultTree) ToString() string {
+func (t *ResultTree) String() string {
 	base := fmt.Sprintf("(%d", t.result)
 	if len(t.subtrees) != 0 {
 		for _, sub := range t.subtrees {
-			base += fmt.Sprintf(" %s", sub.ToString())
+			base += fmt.Sprintf(" %s", sub)
 		}
 	}
 	base += ")"
@@ -48,11 +48,11 @@ func StringResultTreeEvaluator(it Iterator) string {
 		if !ok {
 			break
 		}
-		out += it.GetResultTree().ToString()
+		out += it.GetResultTree().String()
 		out += "\n"
 		for it.NextResult() == true {
 			out += " "
-			out += it.GetResultTree().ToString()
+			out += it.GetResultTree().String()
 			out += "\n"
 		}
 	}

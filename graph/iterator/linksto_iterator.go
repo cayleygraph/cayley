@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
 
 // Defines one of the base iterators, the LinksTo iterator. A LinksTo takes a
 // subiterator of nodes, and contains an iteration of links which "link to"
@@ -32,63 +32,65 @@ package graph
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/cayley/graph"
 )
 
-// A LinksTo has a reference back to the TripleStore (to create the iterators
+// A LinksTo has a reference back to the graph.TripleStore (to create the iterators
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
-type LinksToIterator struct {
-	BaseIterator
-	ts        TripleStore
-	primaryIt Iterator
-	dir       Direction
-	nextIt    Iterator
+type LinksTo struct {
+	Base
+	ts        graph.TripleStore
+	primaryIt graph.Iterator
+	dir       graph.Direction
+	nextIt    graph.Iterator
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func NewLinksToIterator(ts TripleStore, it Iterator, d Direction) *LinksToIterator {
-	var lto LinksToIterator
-	BaseIteratorInit(&lto.BaseIterator)
+func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d graph.Direction) *LinksTo {
+	var lto LinksTo
+	BaseInit(&lto.Base)
 	lto.ts = ts
 	lto.primaryIt = it
 	lto.dir = d
-	lto.nextIt = &NullIterator{}
+	lto.nextIt = &Null{}
 	return &lto
 }
 
-func (it *LinksToIterator) Reset() {
+func (it *LinksTo) Reset() {
 	it.primaryIt.Reset()
 	if it.nextIt != nil {
 		it.nextIt.Close()
 	}
-	it.nextIt = &NullIterator{}
+	it.nextIt = &Null{}
 }
 
-func (it *LinksToIterator) Clone() Iterator {
-	out := NewLinksToIterator(it.ts, it.primaryIt.Clone(), it.dir)
+func (it *LinksTo) Clone() graph.Iterator {
+	out := NewLinksTo(it.ts, it.primaryIt.Clone(), it.dir)
 	out.CopyTagsFrom(it)
 	return out
 }
 
 // Return the direction under consideration.
-func (it *LinksToIterator) Direction() Direction { return it.dir }
+func (it *LinksTo) Direction() graph.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
-func (it *LinksToIterator) TagResults(out *map[string]TSVal) {
-	it.BaseIterator.TagResults(out)
+func (it *LinksTo) TagResults(out *map[string]graph.TSVal) {
+	it.Base.TagResults(out)
 	it.primaryIt.TagResults(out)
 }
 
 // DEPRECATED
-func (it *LinksToIterator) GetResultTree() *ResultTree {
-	tree := NewResultTree(it.LastResult())
+func (it *LinksTo) GetResultTree() *graph.ResultTree {
+	tree := graph.NewResultTree(it.LastResult())
 	tree.AddSubtree(it.primaryIt.GetResultTree())
 	return tree
 }
 
 // Print the iterator.
-func (it *LinksToIterator) DebugString(indent int) string {
+func (it *LinksTo) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s %d direction:%s\n%s)",
 		strings.Repeat(" ", indent),
 		it.Type(), it.GetUid(), it.dir, it.primaryIt.DebugString(indent+4))
@@ -96,7 +98,7 @@ func (it *LinksToIterator) DebugString(indent int) string {
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
-func (it *LinksToIterator) Check(val TSVal) bool {
+func (it *LinksTo) Check(val graph.TSVal) bool {
 	CheckLogIn(it, val)
 	node := it.ts.GetTripleDirection(val, it.dir)
 	if it.primaryIt.Check(node) {
@@ -107,12 +109,12 @@ func (it *LinksToIterator) Check(val TSVal) bool {
 }
 
 // Return a list containing only our subiterator.
-func (it *LinksToIterator) GetSubIterators() []Iterator {
-	return []Iterator{it.primaryIt}
+func (it *LinksTo) GetSubIterators() []graph.Iterator {
+	return []graph.Iterator{it.primaryIt}
 }
 
 // Optimize the LinksTo, by replacing it if it can be.
-func (it *LinksToIterator) Optimize() (Iterator, bool) {
+func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 	newPrimary, changed := it.primaryIt.Optimize()
 	if changed {
 		it.primaryIt = newPrimary
@@ -121,7 +123,7 @@ func (it *LinksToIterator) Optimize() (Iterator, bool) {
 			return it.primaryIt, true
 		}
 	}
-	// Ask the TripleStore if we can be replaced. Often times, this is a great
+	// Ask the graph.TripleStore if we can be replaced. Often times, this is a great
 	// optimization opportunity (there's a fixed iterator underneath us, for
 	// example).
 	newReplacement, hasOne := it.ts.OptimizeIterator(it)
@@ -133,7 +135,7 @@ func (it *LinksToIterator) Optimize() (Iterator, bool) {
 }
 
 // Next()ing a LinksTo operates as described above.
-func (it *LinksToIterator) Next() (TSVal, bool) {
+func (it *LinksTo) Next() (graph.TSVal, bool) {
 	NextLogIn(it)
 	val, ok := it.nextIt.Next()
 	if !ok {
@@ -153,27 +155,27 @@ func (it *LinksToIterator) Next() (TSVal, bool) {
 }
 
 // Close our subiterators.
-func (it *LinksToIterator) Close() {
+func (it *LinksTo) Close() {
 	it.nextIt.Close()
 	it.primaryIt.Close()
 }
 
 // We won't ever have a new result, but our subiterators might.
-func (it *LinksToIterator) NextResult() bool {
+func (it *LinksTo) NextResult() bool {
 	return it.primaryIt.NextResult()
 }
 
 // Register the LinksTo.
-func (it *LinksToIterator) Type() string { return "linksto" }
+func (it *LinksTo) Type() string { return "linksto" }
 
 // Return a guess as to how big or costly it is to next the iterator.
-func (it *LinksToIterator) GetStats() *IteratorStats {
+func (it *LinksTo) GetStats() *graph.IteratorStats {
 	subitStats := it.primaryIt.GetStats()
 	// TODO(barakmich): These should really come from the triplestore itself
 	fanoutFactor := int64(20)
 	checkConstant := int64(1)
 	nextConstant := int64(2)
-	return &IteratorStats{
+	return &graph.IteratorStats{
 		NextCost:  nextConstant + subitStats.NextCost,
 		CheckCost: checkConstant + subitStats.CheckCost,
 		Size:      fanoutFactor * subitStats.Size,

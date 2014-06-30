@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
+
+import (
+	"github.com/google/cayley/graph"
+)
 
 type Node struct {
 	Id         int      `json:"id"`
@@ -32,13 +36,13 @@ type Link struct {
 type queryShape struct {
 	nodes    []Node
 	links    []Link
-	ts       TripleStore
+	ts       graph.TripleStore
 	nodeId   int
 	hasaIds  []int
-	hasaDirs []Direction
+	hasaDirs []graph.Direction
 }
 
-func OutputQueryShapeForIterator(it Iterator, ts TripleStore, outputMap *map[string]interface{}) {
+func OutputQueryShapeForIterator(it graph.Iterator, ts graph.TripleStore, outputMap *map[string]interface{}) {
 	qs := &queryShape{
 		ts:     ts,
 		nodeId: 1,
@@ -58,11 +62,11 @@ func (qs *queryShape) AddLink(l *Link) {
 	qs.links = append(qs.links, *l)
 }
 
-func (qs *queryShape) LastHasa() (int, Direction) {
+func (qs *queryShape) LastHasa() (int, graph.Direction) {
 	return qs.hasaIds[len(qs.hasaIds)-1], qs.hasaDirs[len(qs.hasaDirs)-1]
 }
 
-func (qs *queryShape) PushHasa(i int, d Direction) {
+func (qs *queryShape) PushHasa(i int, d graph.Direction) {
 	qs.hasaIds = append(qs.hasaIds, i)
 	qs.hasaDirs = append(qs.hasaDirs, d)
 }
@@ -101,7 +105,7 @@ func (qs *queryShape) StealNode(left *Node, right *Node) {
 	}
 }
 
-func (qs *queryShape) MakeNode(it Iterator) *Node {
+func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 	n := Node{Id: qs.nodeId}
 	for _, tag := range it.Tags() {
 		n.Tags = append(n.Tags, tag)
@@ -132,7 +136,7 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 			n.Values = append(n.Values, qs.ts.GetNameFor(val))
 		}
 	case "hasa":
-		hasa := it.(*HasaIterator)
+		hasa := it.(*HasA)
 		qs.PushHasa(n.Id, hasa.dir)
 		qs.nodeId++
 		newNode := qs.MakeNode(hasa.primaryIt)
@@ -151,14 +155,14 @@ func (qs *queryShape) MakeNode(it Iterator) *Node {
 		}
 	case "linksto":
 		n.IsLinkNode = true
-		lto := it.(*LinksToIterator)
+		lto := it.(*LinksTo)
 		qs.nodeId++
 		newNode := qs.MakeNode(lto.primaryIt)
 		hasaID, hasaDir := qs.LastHasa()
-		if (hasaDir == Subject && lto.dir == Object) ||
-			(hasaDir == Object && lto.dir == Subject) {
+		if (hasaDir == graph.Subject && lto.dir == graph.Object) ||
+			(hasaDir == graph.Object && lto.dir == graph.Subject) {
 			qs.AddNode(newNode)
-			if hasaDir == Subject {
+			if hasaDir == graph.Subject {
 				qs.AddLink(&Link{hasaID, newNode.Id, 0, n.Id})
 			} else {
 				qs.AddLink(&Link{newNode.Id, hasaID, 0, n.Id})

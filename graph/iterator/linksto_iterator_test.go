@@ -12,21 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
 
 import (
 	"testing"
+
+	"github.com/google/cayley/graph"
 )
 
 func TestLinksTo(t *testing.T) {
 	ts := new(TestTripleStore)
-	tsFixed := newFixedIterator()
+	tsFixed := newFixed()
 	tsFixed.AddValue(2)
 	ts.On("GetIdFor", "cool").Return(1)
-	ts.On("GetTripleIterator", Object, 1).Return(tsFixed)
-	fixed := newFixedIterator()
+	ts.On("GetTripleIterator", graph.Object, 1).Return(tsFixed)
+	fixed := newFixed()
 	fixed.AddValue(ts.GetIdFor("cool"))
-	lto := NewLinksToIterator(ts, fixed, Object)
+	lto := NewLinksTo(ts, fixed, graph.Object)
 	val, ok := lto.Next()
 	if !ok {
 		t.Error("At least one triple matches the fixed object")

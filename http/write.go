@@ -16,7 +16,6 @@ package http
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -37,7 +36,7 @@ func ParseJsonToTripleList(jsonBody []byte) ([]*graph.Triple, error) {
 	}
 	for i, t := range tripleList {
 		if !t.IsValid() {
-			return nil, errors.New(fmt.Sprintf("Invalid triple at index %d. %s", i, t.ToString()))
+			return nil, fmt.Errorf("Invalid triple at index %d. %s", i, t)
 		}
 	}
 	return tripleList, nil

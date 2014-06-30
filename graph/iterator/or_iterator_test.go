@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+
+	"github.com/google/cayley/graph"
 )
 
-func extractNumbersFromIterator(it Iterator) []int {
+func extractNumbersFromIterator(it graph.Iterator) []int {
 	var outputNumbers []int
 	for {
 		val, ok := it.Next()
@@ -32,15 +35,15 @@ func extractNumbersFromIterator(it Iterator) []int {
 }
 
 func TestOrIteratorBasics(t *testing.T) {
-	var orIt *OrIterator
+	var orIt *Or
 
 	Convey("Given an Or Iterator of two fixed iterators", t, func() {
-		orIt = NewOrIterator()
-		fixed1 := newFixedIterator()
+		orIt = NewOr()
+		fixed1 := newFixed()
 		fixed1.AddValue(1)
 		fixed1.AddValue(2)
 		fixed1.AddValue(3)
-		fixed2 := newFixedIterator()
+		fixed2 := newFixed()
 		fixed2.AddValue(3)
 		fixed2.AddValue(9)
 		fixed2.AddValue(20)
@@ -80,15 +83,15 @@ func TestOrIteratorBasics(t *testing.T) {
 }
 
 func TestShortCircuitingOrBasics(t *testing.T) {
-	var orIt *OrIterator
+	var orIt *Or
 
 	Convey("Given a short-circuiting Or of two fixed iterators", t, func() {
-		orIt = NewShortCircuitOrIterator()
-		fixed1 := newFixedIterator()
+		orIt = NewShortCircuitOr()
+		fixed1 := newFixed()
 		fixed1.AddValue(1)
 		fixed1.AddValue(2)
 		fixed1.AddValue(3)
-		fixed2 := newFixedIterator()
+		fixed2 := newFixed()
 		fixed2.AddValue(3)
 		fixed2.AddValue(9)
 		fixed2.AddValue(20)
@@ -126,7 +129,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 		})
 
 		Convey("It should check that it pulls the second iterator's numbers if the first is empty.", func() {
-			orIt.AddSubIterator(newFixedIterator())
+			orIt.AddSubIterator(newFixed())
 			orIt.AddSubIterator(fixed2)
 			allNumbers := []int{3, 9, 20, 21}
 			So(extractNumbersFromIterator(orIt), ShouldResemble, allNumbers)
