@@ -129,7 +129,7 @@ func (it *Or) AddSubIterator(sub graph.Iterator) {
 // union of its subiterators, it must produce from all subiterators -- unless
 // it's shortcircuiting, in which case, it's the first one that returns anything.
 func (it *Or) Next() (graph.TSVal, bool) {
-	NextLogIn(it)
+	graph.NextLogIn(it)
 	var curr graph.TSVal
 	var exists bool
 	firstTime := false
@@ -142,15 +142,15 @@ func (it *Or) Next() (graph.TSVal, bool) {
 		curr, exists = curIt.Next()
 		if !exists {
 			if it.isShortCircuiting && !firstTime {
-				return NextLogOut(it, nil, false)
+				return graph.NextLogOut(it, nil, false)
 			}
 			it.currentIterator++
 			if it.currentIterator == it.itCount {
-				return NextLogOut(it, nil, false)
+				return graph.NextLogOut(it, nil, false)
 			}
 		} else {
 			it.Last = curr
-			return NextLogOut(it, curr, true)
+			return graph.NextLogOut(it, curr, true)
 		}
 	}
 	panic("Somehow broke out of Next() loop in Or")
@@ -171,13 +171,13 @@ func (it *Or) checkSubIts(val graph.TSVal) bool {
 
 // Check a value against the entire graph.iterator, in order.
 func (it *Or) Check(val graph.TSVal) bool {
-	CheckLogIn(it, val)
+	graph.CheckLogIn(it, val)
 	anyGood := it.checkSubIts(val)
 	if !anyGood {
-		return CheckLogOut(it, val, false)
+		return graph.CheckLogOut(it, val, false)
 	}
 	it.Last = val
-	return CheckLogOut(it, val, true)
+	return graph.CheckLogOut(it, val, true)
 }
 
 // Returns the approximate size of the Or graph.iterator. Because we're dealing

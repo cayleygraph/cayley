@@ -139,17 +139,17 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 // candidate, and check this value against the subiterators. A productive choice
 // of primary iterator is therefore very important.
 func (it *And) Next() (graph.TSVal, bool) {
-	NextLogIn(it)
+	graph.NextLogIn(it)
 	var curr graph.TSVal
 	var exists bool
 	for {
 		curr, exists = it.primaryIt.Next()
 		if !exists {
-			return NextLogOut(it, nil, false)
+			return graph.NextLogOut(it, nil, false)
 		}
 		if it.checkSubIts(curr) {
 			it.Last = curr
-			return NextLogOut(it, curr, true)
+			return graph.NextLogOut(it, curr, true)
 		}
 	}
 	panic("Somehow broke out of Next() loop in And")
@@ -178,25 +178,25 @@ func (it *And) checkCheckList(val graph.TSVal) bool {
 	if ok {
 		it.Last = val
 	}
-	return CheckLogOut(it, val, ok)
+	return graph.CheckLogOut(it, val, ok)
 }
 
 // Check a value against the entire iterator, in order.
 func (it *And) Check(val graph.TSVal) bool {
-	CheckLogIn(it, val)
+	graph.CheckLogIn(it, val)
 	if it.checkList != nil {
 		return it.checkCheckList(val)
 	}
 	mainGood := it.primaryIt.Check(val)
 	if !mainGood {
-		return CheckLogOut(it, val, false)
+		return graph.CheckLogOut(it, val, false)
 	}
 	othersGood := it.checkSubIts(val)
 	if !othersGood {
-		return CheckLogOut(it, val, false)
+		return graph.CheckLogOut(it, val, false)
 	}
 	it.Last = val
-	return CheckLogOut(it, val, true)
+	return graph.CheckLogOut(it, val, true)
 }
 
 // Returns the approximate size of the And iterator. Because we're dealing

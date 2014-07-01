@@ -67,9 +67,9 @@ func (it *Int64) DebugString(indent int) string {
 // Next() on an Int64 all iterator is a simple incrementing counter.
 // Return the next integer, and mark it as the result.
 func (it *Int64) Next() (graph.TSVal, bool) {
-	NextLogIn(it)
+	graph.NextLogIn(it)
 	if it.at == -1 {
-		return NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, nil, false)
 	}
 	val := it.at
 	it.at = it.at + 1
@@ -77,7 +77,7 @@ func (it *Int64) Next() (graph.TSVal, bool) {
 		it.at = -1
 	}
 	it.Last = val
-	return NextLogOut(it, val, true)
+	return graph.NextLogOut(it, val, true)
 }
 
 // The number of elements in an Int64 is the size of the range.
@@ -90,13 +90,13 @@ func (it *Int64) Size() (int64, bool) {
 // Check() for an Int64 is merely seeing if the passed value is
 // withing the range, assuming the value is an int64.
 func (it *Int64) Check(tsv graph.TSVal) bool {
-	CheckLogIn(it, tsv)
+	graph.CheckLogIn(it, tsv)
 	v := tsv.(int64)
 	if it.min <= v && v <= it.max {
 		it.Last = v
-		return CheckLogOut(it, v, true)
+		return graph.CheckLogOut(it, v, true)
 	}
-	return CheckLogOut(it, v, false)
+	return graph.CheckLogOut(it, v, false)
 }
 
 // The type of this iterator is an "all". This is important, as it puts it in

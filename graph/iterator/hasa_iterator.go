@@ -124,7 +124,7 @@ func (it *HasA) DebugString(indent int) string {
 // iterator of "triples that have `val` in our direction", given to us by the triple store,
 // and then Next() values out of that iterator and Check() them against our subiterator.
 func (it *HasA) Check(val graph.TSVal) bool {
-	CheckLogIn(it, val)
+	graph.CheckLogIn(it, val)
 	if glog.V(4) {
 		glog.V(4).Infoln("Id is", it.ts.GetNameFor(val))
 	}
@@ -133,7 +133,7 @@ func (it *HasA) Check(val graph.TSVal) bool {
 		it.resultIt.Close()
 	}
 	it.resultIt = it.ts.GetTripleIterator(it.dir, val)
-	return CheckLogOut(it, val, it.GetCheckResult())
+	return graph.CheckLogOut(it, val, it.GetCheckResult())
 }
 
 // GetCheckResult() is shared code between Check() and GetNextResult() -- calls next on the
@@ -174,7 +174,7 @@ func (it *HasA) NextResult() bool {
 // subiterator we can get a value from, and we can take that resultant triple,
 // pull our direction out of it, and return that.
 func (it *HasA) Next() (graph.TSVal, bool) {
-	NextLogIn(it)
+	graph.NextLogIn(it)
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
@@ -182,12 +182,12 @@ func (it *HasA) Next() (graph.TSVal, bool) {
 
 	tID, ok := it.primaryIt.Next()
 	if !ok {
-		return NextLogOut(it, 0, false)
+		return graph.NextLogOut(it, 0, false)
 	}
 	name := it.ts.GetTriple(tID).Get(it.dir)
 	val := it.ts.GetIdFor(name)
 	it.Last = val
-	return NextLogOut(it, val, true)
+	return graph.NextLogOut(it, val, true)
 }
 
 // GetStats() returns the statistics on the HasA iterator. This is curious. Next

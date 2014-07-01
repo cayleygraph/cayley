@@ -185,39 +185,3 @@ func (it *Null) DebugString(indent int) string {
 func (it *Null) GetStats() *graph.IteratorStats {
 	return &graph.IteratorStats{}
 }
-
-// Utility logging functions for when an iterator gets called Next upon, or Check upon, as
-// well as what they return. Highly useful for tracing the execution path of a query.
-func CheckLogIn(it graph.Iterator, val graph.TSVal) {
-	if glog.V(4) {
-		glog.V(4).Infof("%s %d CHECK %d", strings.ToUpper(it.Type()), it.GetUid(), val)
-	}
-}
-
-func CheckLogOut(it graph.Iterator, val graph.TSVal, good bool) bool {
-	if glog.V(4) {
-		if good {
-			glog.V(4).Infof("%s %d CHECK %d GOOD", strings.ToUpper(it.Type()), it.GetUid(), val)
-		} else {
-			glog.V(4).Infof("%s %d CHECK %d BAD", strings.ToUpper(it.Type()), it.GetUid(), val)
-		}
-	}
-	return good
-}
-
-func NextLogIn(it graph.Iterator) {
-	if glog.V(4) {
-		glog.V(4).Infof("%s %d NEXT", strings.ToUpper(it.Type()), it.GetUid())
-	}
-}
-
-func NextLogOut(it graph.Iterator, val graph.TSVal, ok bool) (graph.TSVal, bool) {
-	if glog.V(4) {
-		if ok {
-			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type()), it.GetUid(), val)
-		} else {
-			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type()), it.GetUid())
-		}
-	}
-	return val, ok
-}

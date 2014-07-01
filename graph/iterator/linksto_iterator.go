@@ -99,13 +99,13 @@ func (it *LinksTo) DebugString(indent int) string {
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
 func (it *LinksTo) Check(val graph.TSVal) bool {
-	CheckLogIn(it, val)
+	graph.CheckLogIn(it, val)
 	node := it.ts.GetTripleDirection(val, it.dir)
 	if it.primaryIt.Check(node) {
 		it.Last = val
-		return CheckLogOut(it, val, true)
+		return graph.CheckLogOut(it, val, true)
 	}
-	return CheckLogOut(it, val, false)
+	return graph.CheckLogOut(it, val, false)
 }
 
 // Return a list containing only our subiterator.
@@ -136,14 +136,14 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 
 // Next()ing a LinksTo operates as described above.
 func (it *LinksTo) Next() (graph.TSVal, bool) {
-	NextLogIn(it)
+	graph.NextLogIn(it)
 	val, ok := it.nextIt.Next()
 	if !ok {
 		// Subiterator is empty, get another one
 		candidate, ok := it.primaryIt.Next()
 		if !ok {
 			// We're out of nodes in our subiterator, so we're done as well.
-			return NextLogOut(it, 0, false)
+			return graph.NextLogOut(it, 0, false)
 		}
 		it.nextIt.Close()
 		it.nextIt = it.ts.GetTripleIterator(it.dir, candidate)
@@ -151,7 +151,7 @@ func (it *LinksTo) Next() (graph.TSVal, bool) {
 		return it.Next()
 	}
 	it.Last = val
-	return NextLogOut(it, val, ok)
+	return graph.NextLogOut(it, val, ok)
 }
 
 // Close our subiterators.

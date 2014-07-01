@@ -108,26 +108,26 @@ func (it *Fixed) Check(v graph.TSVal) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.
-	CheckLogIn(it, v)
+	graph.CheckLogIn(it, v)
 	for _, x := range it.values {
 		if it.cmp(x, v) {
 			it.Last = x
-			return CheckLogOut(it, v, true)
+			return graph.CheckLogOut(it, v, true)
 		}
 	}
-	return CheckLogOut(it, v, false)
+	return graph.CheckLogOut(it, v, false)
 }
 
 // Return the next stored value from the iterator.
 func (it *Fixed) Next() (graph.TSVal, bool) {
-	NextLogIn(it)
+	graph.NextLogIn(it)
 	if it.lastIndex == len(it.values) {
-		return NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, nil, false)
 	}
 	out := it.values[it.lastIndex]
 	it.Last = out
 	it.lastIndex++
-	return NextLogOut(it, out, true)
+	return graph.NextLogOut(it, out, true)
 }
 
 // Optimize() for a Fixed iterator is simple. Returns a Null iterator if it's empty
