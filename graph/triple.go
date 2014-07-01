@@ -37,6 +37,9 @@ package graph
 
 import "fmt"
 
+// TODO(kortschak) Consider providing MashalJSON and UnmarshalJSON
+// instead of using struct tags.
+
 // Our triple struct, used throughout.
 type Triple struct {
 	Subject    string `json:"subject"`
@@ -74,6 +77,9 @@ func (d Direction) String() string {
 	}
 }
 
+// TODO(kortschak) Consider writing methods onto the concrete type
+// instead of the pointer. This needs benchmarking to make the decision.
+
 // Per-field accessor for triples
 func (t *Triple) Get(d Direction) string {
 	switch d {
@@ -100,20 +106,15 @@ func (t *Triple) String() string {
 }
 
 func (t *Triple) IsValid() bool {
-	if t.Subject == "" {
-		return false
-	}
-	if t.Predicate == "" {
-		return false
-	}
-	if t.Object == "" {
-		return false
-	}
-	return true
+	return t.Subject != "" && t.Predicate != "" && t.Object != ""
 }
 
+// TODO(kortschak) NTriple looks like a good candidate for conversion
+// to MarshalText() (text []byte, err error) and then move parsing code
+// from nquads to here to provide UnmarshalText(text []byte) error.
+
 // Prints a triple in N-Triple format.
-func (t *Triple) ToNTriple() string {
+func (t *Triple) NTriple() string {
 	if t.Provenance == "" {
 		//TODO(barakmich): Proper escaping.
 		return fmt.Sprintf("%s %s %s .", t.Subject, t.Predicate, t.Object)
