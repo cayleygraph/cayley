@@ -18,6 +18,7 @@ import (
 	"github.com/badgerodon/peg"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 func BuildIteratorTreeForQuery(ts graph.TripleStore, query string) graph.Iterator {
@@ -195,7 +196,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			if tree.Children[0].Children[0].Name == "ColonIdentifier" {
 				n = nodeID[1:]
 			}
-			fixed := ts.MakeFixed()
+			fixed := ts.FixedIterator()
 			fixed.AddValue(ts.GetIdFor(n))
 			out = fixed
 		}
@@ -207,11 +208,11 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			i++
 		}
 		it := buildIteratorTree(tree.Children[i], ts)
-		lto := graph.NewLinksToIterator(ts, it, graph.Predicate)
+		lto := iterator.NewLinksTo(ts, it, graph.Predicate)
 		return lto
 	case "RootConstraint":
 		constraintCount := 0
-		and := graph.NewAndIterator()
+		and := iterator.NewAnd()
 		for _, c := range tree.Children {
 			switch c.Name {
 			case "NodeIdentifier":
@@ -227,10 +228,10 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 		}
 		return and
 	case "Constraint":
-		var hasa *graph.HasaIterator
+		var hasa *iterator.HasA
 		topLevelDir := graph.Subject
 		subItDir := graph.Object
-		subAnd := graph.NewAndIterator()
+		subAnd := iterator.NewAnd()
 		isOptional := false
 		for _, c := range tree.Children {
 			switch c.Name {
@@ -251,21 +252,21 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 				fallthrough
 			case "RootConstraint":
 				it := buildIteratorTree(c, ts)
-				l := graph.NewLinksToIterator(ts, it, subItDir)
+				l := iterator.NewLinksTo(ts, it, subItDir)
 				subAnd.AddSubIterator(l)
 				continue
 			default:
 				continue
 			}
 		}
-		hasa = graph.NewHasaIterator(ts, subAnd, topLevelDir)
+		hasa = iterator.NewHasA(ts, subAnd, topLevelDir)
 		if isOptional {
-			optional := graph.NewOptionalIterator(hasa)
+			optional := iterator.NewOptional(hasa)
 			return optional
 		}
 		return hasa
 	default:
-		return &graph.NullIterator{}
+		return &iterator.Null{}
 	}
 	panic("Not reached")
 }

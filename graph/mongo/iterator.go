@@ -23,10 +23,11 @@ import (
 	"labix.org/v2/mgo/bson"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 type Iterator struct {
-	graph.BaseIterator
+	iterator.Base
 	ts         *TripleStore
 	dir        graph.Direction
 	iter       *mgo.Iter
@@ -40,7 +41,7 @@ type Iterator struct {
 
 func NewIterator(ts *TripleStore, collection string, d graph.Direction, val graph.TSVal) *Iterator {
 	var m Iterator
-	graph.BaseIteratorInit(&m.BaseIterator)
+	iterator.BaseInit(&m.Base)
 
 	m.name = ts.GetNameFor(val)
 	m.collection = collection

@@ -23,21 +23,22 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 func makeTripleSet() []*graph.Triple {
 	tripleSet := []*graph.Triple{
-		graph.MakeTriple("A", "follows", "B", ""),
-		graph.MakeTriple("C", "follows", "B", ""),
-		graph.MakeTriple("C", "follows", "D", ""),
-		graph.MakeTriple("D", "follows", "B", ""),
-		graph.MakeTriple("B", "follows", "F", ""),
-		graph.MakeTriple("F", "follows", "G", ""),
-		graph.MakeTriple("D", "follows", "G", ""),
-		graph.MakeTriple("E", "follows", "F", ""),
-		graph.MakeTriple("B", "status", "cool", "status_graph"),
-		graph.MakeTriple("D", "status", "cool", "status_graph"),
-		graph.MakeTriple("G", "status", "cool", "status_graph"),
+		{"A", "follows", "B", ""},
+		{"C", "follows", "B", ""},
+		{"C", "follows", "D", ""},
+		{"D", "follows", "B", ""},
+		{"B", "follows", "F", ""},
+		{"F", "follows", "G", ""},
+		{"D", "follows", "G", ""},
+		{"E", "follows", "F", ""},
+		{"B", "status", "cool", "status_graph"},
+		{"D", "status", "cool", "status_graph"},
+		{"G", "status", "cool", "status_graph"},
 	}
 	return tripleSet
 }
@@ -49,7 +50,7 @@ func extractTripleFromIterator(ts graph.TripleStore, it graph.Iterator) []string
 		if !ok {
 			break
 		}
-		output = append(output, ts.GetTriple(val).ToString())
+		output = append(output, ts.GetTriple(val).String())
 	}
 	return output
 }
@@ -111,7 +112,7 @@ func TestLoadDatabase(t *testing.T) {
 		ts = NewTripleStore(tmpDir, nil)
 
 		Convey("Can load a single triple", func() {
-			ts.AddTriple(graph.MakeTriple("Something", "points_to", "Something Else", "context"))
+			ts.AddTriple(&graph.Triple{"Something", "points_to", "Something Else", "context"})
 			So(ts.GetNameFor(ts.GetIdFor("Something")), ShouldEqual, "Something")
 			So(ts.Size(), ShouldEqual, 1)
 		})
@@ -123,7 +124,7 @@ func TestLoadDatabase(t *testing.T) {
 			So(ts.GetSizeFor(ts.GetIdFor("B")), ShouldEqual, 5)
 
 			Convey("Can delete triples", func() {
-				ts.RemoveTriple(graph.MakeTriple("A", "follows", "B", ""))
+				ts.RemoveTriple(&graph.Triple{"A", "follows", "B", ""})
 				So(ts.Size(), ShouldEqual, 10)
 				So(ts.GetSizeFor(ts.GetIdFor("B")), ShouldEqual, 4)
 			})
@@ -220,9 +221,9 @@ func TestIterator(t *testing.T) {
 				set := makeTripleSet()
 				var string_set []string
 				for _, t := range set {
-					string_set = append(string_set, t.ToString())
+					string_set = append(string_set, t.String())
 				}
-				So(triple.ToString(), ShouldBeIn, string_set)
+				So(triple.String(), ShouldBeIn, string_set)
 			})
 
 			Reset(func() {
@@ -252,8 +253,8 @@ func TestSetIterator(t *testing.T) {
 
 			Convey("Containing the right things", func() {
 				expected := []string{
-					graph.MakeTriple("C", "follows", "B", "").ToString(),
-					graph.MakeTriple("C", "follows", "D", "").ToString(),
+					(&graph.Triple{"C", "follows", "B", ""}).String(),
+					(&graph.Triple{"C", "follows", "D", ""}).String(),
 				}
 				actual := extractTripleFromIterator(ts, it)
 				sort.Strings(actual)
@@ -262,13 +263,13 @@ func TestSetIterator(t *testing.T) {
 			})
 
 			Convey("And checkable", func() {
-				and := graph.NewAndIterator()
+				and := iterator.NewAnd()
 				and.AddSubIterator(ts.GetTriplesAllIterator())
 				and.AddSubIterator(it)
 
 				expected := []string{
-					graph.MakeTriple("C", "follows", "B", "").ToString(),
-					graph.MakeTriple("C", "follows", "D", "").ToString(),
+					(&graph.Triple{"C", "follows", "B", ""}).String(),
+					(&graph.Triple{"C", "follows", "D", ""}).String(),
 				}
 				actual := extractTripleFromIterator(ts, and)
 				sort.Strings(actual)
@@ -286,8 +287,8 @@ func TestSetIterator(t *testing.T) {
 
 			Convey("Containing the right things", func() {
 				expected := []string{
-					graph.MakeTriple("B", "follows", "F", "").ToString(),
-					graph.MakeTriple("E", "follows", "F", "").ToString(),
+					(&graph.Triple{"B", "follows", "F", ""}).String(),
+					(&graph.Triple{"E", "follows", "F", ""}).String(),
 				}
 				actual := extractTripleFromIterator(ts, it)
 				sort.Strings(actual)
@@ -296,12 +297,12 @@ func TestSetIterator(t *testing.T) {
 			})
 
 			Convey("Mutually and-checkable", func() {
-				and := graph.NewAndIterator()
+				and := iterator.NewAnd()
 				and.AddSubIterator(ts.GetTripleIterator(graph.Subject, ts.GetIdFor("B")))
 				and.AddSubIterator(it)
 
 				expected := []string{
-					graph.MakeTriple("B", "follows", "F", "").ToString(),
+					(&graph.Triple{"B", "follows", "F", ""}).String(),
 				}
 				actual := extractTripleFromIterator(ts, and)
 				sort.Strings(actual)
@@ -316,9 +317,9 @@ func TestSetIterator(t *testing.T) {
 
 			Convey("Containing the right things", func() {
 				expected := []string{
-					graph.MakeTriple("B", "status", "cool", "status_graph").ToString(),
-					graph.MakeTriple("D", "status", "cool", "status_graph").ToString(),
-					graph.MakeTriple("G", "status", "cool", "status_graph").ToString(),
+					(&graph.Triple{"B", "status", "cool", "status_graph"}).String(),
+					(&graph.Triple{"D", "status", "cool", "status_graph"}).String(),
+					(&graph.Triple{"G", "status", "cool", "status_graph"}).String(),
 				}
 				actual := extractTripleFromIterator(ts, it)
 				sort.Strings(actual)
@@ -333,9 +334,9 @@ func TestSetIterator(t *testing.T) {
 
 			Convey("Containing the right things", func() {
 				expected := []string{
-					graph.MakeTriple("B", "status", "cool", "status_graph").ToString(),
-					graph.MakeTriple("D", "status", "cool", "status_graph").ToString(),
-					graph.MakeTriple("G", "status", "cool", "status_graph").ToString(),
+					(&graph.Triple{"B", "status", "cool", "status_graph"}).String(),
+					(&graph.Triple{"D", "status", "cool", "status_graph"}).String(),
+					(&graph.Triple{"G", "status", "cool", "status_graph"}).String(),
 				}
 				actual := extractTripleFromIterator(ts, it)
 				sort.Strings(actual)
@@ -344,26 +345,26 @@ func TestSetIterator(t *testing.T) {
 			})
 
 			Convey("Can be cross-checked", func() {
-				and := graph.NewAndIterator()
+				and := iterator.NewAnd()
 				// Order is important
 				and.AddSubIterator(ts.GetTripleIterator(graph.Subject, ts.GetIdFor("B")))
 				and.AddSubIterator(it)
 
 				expected := []string{
-					graph.MakeTriple("B", "status", "cool", "status_graph").ToString(),
+					(&graph.Triple{"B", "status", "cool", "status_graph"}).String(),
 				}
 				actual := extractTripleFromIterator(ts, and)
 				So(actual, ShouldResemble, expected)
 			})
 
 			Convey("Can check against other iterators", func() {
-				and := graph.NewAndIterator()
+				and := iterator.NewAnd()
 				// Order is important
 				and.AddSubIterator(it)
 				and.AddSubIterator(ts.GetTripleIterator(graph.Subject, ts.GetIdFor("B")))
 
 				expected := []string{
-					graph.MakeTriple("B", "status", "cool", "status_graph").ToString(),
+					(&graph.Triple{"B", "status", "cool", "status_graph"}).String(),
 				}
 				actual := extractTripleFromIterator(ts, and)
 				So(actual, ShouldResemble, expected)
@@ -397,10 +398,10 @@ func TestOptimize(t *testing.T) {
 		ts.AddTripleSet(makeTripleSet())
 
 		Convey("With an linksto-fixed pair", func() {
-			fixed := ts.MakeFixed()
+			fixed := ts.FixedIterator()
 			fixed.AddValue(ts.GetIdFor("F"))
 			fixed.AddTag("internal")
-			lto = graph.NewLinksToIterator(ts, fixed, graph.Object)
+			lto = iterator.NewLinksTo(ts, fixed, graph.Object)
 
 			Convey("Creates an appropriate iterator", func() {
 				oldIt := lto.Clone()

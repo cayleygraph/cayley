@@ -30,16 +30,16 @@ import "github.com/google/cayley/graph"
 
 func MakeTestingMemstore() *TripleStore {
 	ts := NewTripleStore()
-	ts.AddTriple(graph.MakeTriple("A", "follows", "B", ""))
-	ts.AddTriple(graph.MakeTriple("C", "follows", "B", ""))
-	ts.AddTriple(graph.MakeTriple("C", "follows", "D", ""))
-	ts.AddTriple(graph.MakeTriple("D", "follows", "B", ""))
-	ts.AddTriple(graph.MakeTriple("B", "follows", "F", ""))
-	ts.AddTriple(graph.MakeTriple("F", "follows", "G", ""))
-	ts.AddTriple(graph.MakeTriple("D", "follows", "G", ""))
-	ts.AddTriple(graph.MakeTriple("E", "follows", "F", ""))
-	ts.AddTriple(graph.MakeTriple("B", "status", "cool", "status_graph"))
-	ts.AddTriple(graph.MakeTriple("D", "status", "cool", "status_graph"))
-	ts.AddTriple(graph.MakeTriple("G", "status", "cool", "status_graph"))
+	ts.AddTriple(&graph.Triple{"A", "follows", "B", ""})
+	ts.AddTriple(&graph.Triple{"C", "follows", "B", ""})
+	ts.AddTriple(&graph.Triple{"C", "follows", "D", ""})
+	ts.AddTriple(&graph.Triple{"D", "follows", "B", ""})
+	ts.AddTriple(&graph.Triple{"B", "follows", "F", ""})
+	ts.AddTriple(&graph.Triple{"F", "follows", "G", ""})
+	ts.AddTriple(&graph.Triple{"D", "follows", "G", ""})
+	ts.AddTriple(&graph.Triple{"E", "follows", "F", ""})
+	ts.AddTriple(&graph.Triple{"B", "status", "cool", "status_graph"})
+	ts.AddTriple(&graph.Triple{"D", "status", "cool", "status_graph"})
+	ts.AddTriple(&graph.Triple{"G", "status", "cool", "status_graph"})
 	return ts
 }

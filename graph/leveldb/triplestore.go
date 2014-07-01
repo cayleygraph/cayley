@@ -29,6 +29,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 const (
@@ -143,7 +144,7 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	ts.buildWrite(batch, t)
 	err := ts.db.Write(batch, ts.writeopts)
 	if err != nil {
-		glog.Errorf("Couldn't write to DB for triple %s", t.ToString())
+		glog.Errorf("Couldn't write to DB for triple %s", t)
 		return
 	}
 	ts.size++
@@ -180,7 +181,7 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	}
 	err = ts.db.Write(batch, nil)
 	if err != nil {
-		glog.Errorf("Couldn't delete triple %s", t.ToString())
+		glog.Errorf("Couldn't delete triple %s", t)
 		return
 	}
 	ts.size--
@@ -189,7 +190,7 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 func (ts *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *graph.Triple) {
 	bytes, err := json.Marshal(*t)
 	if err != nil {
-		glog.Errorf("Couldn't write to buffer for triple %s\n  %s\n", t.ToString(), err)
+		glog.Errorf("Couldn't write to buffer for triple %s\n  %s\n", t, err)
 		return
 	}
 	batch.Put(ts.createKeyFor(spo, t), bytes)
@@ -439,6 +440,6 @@ func compareBytes(a, b graph.TSVal) bool {
 	return bytes.Equal(a.([]uint8), b.([]uint8))
 }
 
-func (ts *TripleStore) MakeFixed() *graph.FixedIterator {
-	return graph.NewFixedIteratorWithCompare(compareBytes)
+func (ts *TripleStore) FixedIterator() graph.FixedIterator {
+	return iterator.NewFixedIteratorWithCompare(compareBytes)
 }

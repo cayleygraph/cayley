@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
 
 import (
 	"testing"
+
+	"github.com/google/cayley/graph"
 )
 
 // Make sure that tags work on the And.
 func TestTag(t *testing.T) {
-	fix1 := newFixedIterator()
+	fix1 := newFixed()
 	fix1.AddValue(234)
 	fix1.AddTag("foo")
-	and := NewAndIterator()
+	and := NewAnd()
 	and.AddSubIterator(fix1)
 	and.AddTag("bar")
 	out := fix1.Tags()
@@ -41,7 +43,7 @@ func TestTag(t *testing.T) {
 	if val != 234 {
 		t.Errorf("Unexpected value")
 	}
-	tags := make(map[string]TSVal)
+	tags := make(map[string]graph.TSVal)
 	and.TagResults(&tags)
 	if tags["bar"] != 234 {
 		t.Errorf("no bar tag")
@@ -53,16 +55,16 @@ func TestTag(t *testing.T) {
 
 // Do a simple itersection of fixed values.
 func TestAndAndFixedIterators(t *testing.T) {
-	fix1 := newFixedIterator()
+	fix1 := newFixed()
 	fix1.AddValue(1)
 	fix1.AddValue(2)
 	fix1.AddValue(3)
 	fix1.AddValue(4)
-	fix2 := newFixedIterator()
+	fix2 := newFixed()
 	fix2.AddValue(3)
 	fix2.AddValue(4)
 	fix2.AddValue(5)
-	and := NewAndIterator()
+	and := NewAnd()
 	and.AddSubIterator(fix1)
 	and.AddSubIterator(fix2)
 	// Should be as big as smallest subiterator
@@ -94,16 +96,16 @@ func TestAndAndFixedIterators(t *testing.T) {
 // If there's no intersection, the size should still report the same,
 // but there should be nothing to Next()
 func TestNonOverlappingFixedIterators(t *testing.T) {
-	fix1 := newFixedIterator()
+	fix1 := newFixed()
 	fix1.AddValue(1)
 	fix1.AddValue(2)
 	fix1.AddValue(3)
 	fix1.AddValue(4)
-	fix2 := newFixedIterator()
+	fix2 := newFixed()
 	fix2.AddValue(5)
 	fix2.AddValue(6)
 	fix2.AddValue(7)
-	and := NewAndIterator()
+	and := NewAnd()
 	and.AddSubIterator(fix1)
 	and.AddSubIterator(fix2)
 	// Should be as big as smallest subiterator
@@ -123,9 +125,9 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 }
 
 func TestAllIterators(t *testing.T) {
-	all1 := NewInt64AllIterator(1, 5)
-	all2 := NewInt64AllIterator(4, 10)
-	and := NewAndIterator()
+	all1 := NewInt64(1, 5)
+	all2 := NewInt64(4, 10)
+	and := NewAnd()
 	and.AddSubIterator(all2)
 	and.AddSubIterator(all1)
 

@@ -19,6 +19,7 @@ import (
 
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 
 	"github.com/petar/GoLLRB/llrb"
 )
@@ -226,7 +227,7 @@ func (ts *TripleStore) GetTripleIterator(d graph.Direction, value graph.TSVal) g
 	if ok {
 		return NewLlrbIterator(index, data)
 	}
-	return &graph.NullIterator{}
+	return &iterator.Null{}
 }
 
 func (ts *TripleStore) Size() int64 {
@@ -238,7 +239,7 @@ func (ts *TripleStore) DebugPrint() {
 		if i == 0 {
 			continue
 		}
-		glog.V(2).Infoln("%d: %s", i, t.ToString())
+		glog.V(2).Infoln("%d: %s", i, t)
 	}
 }
 
@@ -251,11 +252,11 @@ func (ts *TripleStore) GetNameFor(id graph.TSVal) string {
 }
 
 func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
-	return graph.NewInt64AllIterator(0, ts.Size())
+	return iterator.NewInt64(0, ts.Size())
 }
 
-func (ts *TripleStore) MakeFixed() *graph.FixedIterator {
-	return graph.NewFixedIteratorWithCompare(graph.BasicEquality)
+func (ts *TripleStore) FixedIterator() graph.FixedIterator {
+	return iterator.NewFixedIteratorWithCompare(iterator.BasicEquality)
 }
 
 func (ts *TripleStore) GetTripleDirection(val graph.TSVal, d graph.Direction) graph.TSVal {

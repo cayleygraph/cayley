@@ -22,10 +22,11 @@ import (
 	"strings"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 func (q *Query) buildFixed(s string) graph.Iterator {
-	f := q.ses.ts.MakeFixed()
+	f := q.ses.ts.FixedIterator()
 	f.AddValue(q.ses.ts.GetIdFor(s))
 	return f
 }
@@ -101,7 +102,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 }
 
 func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path Path) (graph.Iterator, error) {
-	it := graph.NewAndIterator()
+	it := iterator.NewAnd()
 	it.AddSubIterator(q.ses.ts.GetNodesAllIterator())
 	var err error
 	err = nil
@@ -135,24 +136,24 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 			if err != nil {
 				return nil, err
 			}
-			subAnd := graph.NewAndIterator()
-			predFixed := q.ses.ts.MakeFixed()
+			subAnd := iterator.NewAnd()
+			predFixed := q.ses.ts.FixedIterator()
 			predFixed.AddValue(q.ses.ts.GetIdFor(pred))
-			subAnd.AddSubIterator(graph.NewLinksToIterator(q.ses.ts, predFixed, graph.Predicate))
+			subAnd.AddSubIterator(iterator.NewLinksTo(q.ses.ts, predFixed, graph.Predicate))
 			if reverse {
-				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, graph.Subject)
+				lto := iterator.NewLinksTo(q.ses.ts, builtIt, graph.Subject)
 				subAnd.AddSubIterator(lto)
-				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, graph.Object)
+				hasa := iterator.NewHasA(q.ses.ts, subAnd, graph.Object)
 				subit = hasa
 			} else {
-				lto := graph.NewLinksToIterator(q.ses.ts, builtIt, graph.Object)
+				lto := iterator.NewLinksTo(q.ses.ts, builtIt, graph.Object)
 				subAnd.AddSubIterator(lto)
-				hasa := graph.NewHasaIterator(q.ses.ts, subAnd, graph.Subject)
+				hasa := iterator.NewHasA(q.ses.ts, subAnd, graph.Subject)
 				subit = hasa
 			}
 		}
 		if optional {
-			it.AddSubIterator(graph.NewOptionalIterator(subit))
+			it.AddSubIterator(iterator.NewOptional(subit))
 		} else {
 			it.AddSubIterator(subit)
 		}

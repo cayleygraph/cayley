@@ -22,6 +22,7 @@ import (
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 type Session struct {
@@ -50,9 +51,9 @@ func (m *Session) GetQuery(input string, output_struct chan map[string]interface
 	m.currentQuery = NewQuery(m)
 	m.currentQuery.BuildIteratorTree(mqlQuery)
 	output := make(map[string]interface{})
-	graph.OutputQueryShapeForIterator(m.currentQuery.it, m.ts, &output)
-	nodes := output["nodes"].([]graph.Node)
-	new_nodes := make([]graph.Node, 0)
+	iterator.OutputQueryShapeForIterator(m.currentQuery.it, m.ts, &output)
+	nodes := output["nodes"].([]iterator.Node)
+	new_nodes := make([]iterator.Node, 0)
 	for _, n := range nodes {
 		n.Tags = nil
 		new_nodes = append(new_nodes, n)

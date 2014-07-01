@@ -19,6 +19,7 @@ import (
 	"github.com/robertkrimen/otto"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 )
 
 const TopResultTag = "id"
@@ -238,7 +239,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 
 func runIteratorOnSession(it graph.Iterator, ses *Session) {
 	if ses.lookingForQueryShape {
-		graph.OutputQueryShapeForIterator(it, ses.ts, &(ses.queryShape))
+		iterator.OutputQueryShapeForIterator(it, ses.ts, &(ses.queryShape))
 		return
 	}
 	it, _ = it.Optimize()

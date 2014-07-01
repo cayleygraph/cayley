@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
 
 // Defines one of the base iterators, the HasA iterator. The HasA takes a
 // subiterator of links, and acts as an iterator of nodes in the given
@@ -38,24 +38,26 @@ import (
 	"strings"
 
 	"github.com/barakmich/glog"
+
+	"github.com/google/cayley/graph"
 )
 
-// A HasaIterator consists of a reference back to the TripleStore that it references,
+// A HasA consists of a reference back to the graph.TripleStore that it references,
 // a primary subiterator, a direction in which the triples for that subiterator point,
 // and a temporary holder for the iterator generated on Check().
-type HasaIterator struct {
-	BaseIterator
-	ts        TripleStore
-	primaryIt Iterator
-	dir       Direction
-	resultIt  Iterator
+type HasA struct {
+	Base
+	ts        graph.TripleStore
+	primaryIt graph.Iterator
+	dir       graph.Direction
+	resultIt  graph.Iterator
 }
 
 // Construct a new HasA iterator, given the triple subiterator, and the triple
 // direction for which it stands.
-func NewHasaIterator(ts TripleStore, subIt Iterator, d Direction) *HasaIterator {
-	var hasa HasaIterator
-	BaseIteratorInit(&hasa.BaseIterator)
+func NewHasA(ts graph.TripleStore, subIt graph.Iterator, d graph.Direction) *HasA {
+	var hasa HasA
+	BaseInit(&hasa.Base)
 	hasa.ts = ts
 	hasa.primaryIt = subIt
 	hasa.dir = d
@@ -63,29 +65,29 @@ func NewHasaIterator(ts TripleStore, subIt Iterator, d Direction) *HasaIterator 
 }
 
 // Return our sole subiterator.
-func (it *HasaIterator) GetSubIterators() []Iterator {
-	return []Iterator{it.primaryIt}
+func (it *HasA) GetSubIterators() []graph.Iterator {
+	return []graph.Iterator{it.primaryIt}
 }
 
-func (it *HasaIterator) Reset() {
+func (it *HasA) Reset() {
 	it.primaryIt.Reset()
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
 }
 
-func (it *HasaIterator) Clone() Iterator {
-	out := NewHasaIterator(it.ts, it.primaryIt.Clone(), it.dir)
+func (it *HasA) Clone() graph.Iterator {
+	out := NewHasA(it.ts, it.primaryIt.Clone(), it.dir)
 	out.CopyTagsFrom(it)
 	return out
 }
 
 // Direction accessor.
-func (it *HasaIterator) Direction() Direction { return it.dir }
+func (it *HasA) Direction() graph.Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no triples that have any directions).
-func (it *HasaIterator) Optimize() (Iterator, bool) {
+func (it *HasA) Optimize() (graph.Iterator, bool) {
 	newPrimary, changed := it.primaryIt.Optimize()
 	if changed {
 		it.primaryIt = newPrimary
@@ -97,20 +99,20 @@ func (it *HasaIterator) Optimize() (Iterator, bool) {
 }
 
 // Pass the TagResults down the chain.
-func (it *HasaIterator) TagResults(out *map[string]TSVal) {
-	it.BaseIterator.TagResults(out)
+func (it *HasA) TagResults(out *map[string]graph.TSVal) {
+	it.Base.TagResults(out)
 	it.primaryIt.TagResults(out)
 }
 
 // DEPRECATED Return results in a ResultTree.
-func (it *HasaIterator) GetResultTree() *ResultTree {
-	tree := NewResultTree(it.LastResult())
+func (it *HasA) GetResultTree() *graph.ResultTree {
+	tree := graph.NewResultTree(it.LastResult())
 	tree.AddSubtree(it.primaryIt.GetResultTree())
 	return tree
 }
 
 // Print some information about this iterator.
-func (it *HasaIterator) DebugString(indent int) string {
+func (it *HasA) DebugString(indent int) string {
 	var tags string
 	for _, k := range it.Tags() {
 		tags += fmt.Sprintf("%s;", k)
@@ -121,8 +123,8 @@ func (it *HasaIterator) DebugString(indent int) string {
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "triples that have `val` in our direction", given to us by the triple store,
 // and then Next() values out of that iterator and Check() them against our subiterator.
-func (it *HasaIterator) Check(val TSVal) bool {
-	CheckLogIn(it, val)
+func (it *HasA) Check(val graph.TSVal) bool {
+	graph.CheckLogIn(it, val)
 	if glog.V(4) {
 		glog.V(4).Infoln("Id is", it.ts.GetNameFor(val))
 	}
@@ -131,20 +133,20 @@ func (it *HasaIterator) Check(val TSVal) bool {
 		it.resultIt.Close()
 	}
 	it.resultIt = it.ts.GetTripleIterator(it.dir, val)
-	return CheckLogOut(it, val, it.GetCheckResult())
+	return graph.CheckLogOut(it, val, it.GetCheckResult())
 }
 
 // GetCheckResult() is shared code between Check() and GetNextResult() -- calls next on the
 // result iterator (a triple iterator based on the last checked value) and returns true if
 // another match is made.
-func (it *HasaIterator) GetCheckResult() bool {
+func (it *HasA) GetCheckResult() bool {
 	for {
 		linkVal, ok := it.resultIt.Next()
 		if !ok {
 			break
 		}
 		if glog.V(4) {
-			glog.V(4).Infoln("Triple is", it.ts.GetTriple(linkVal).ToString())
+			glog.V(4).Infoln("Triple is", it.ts.GetTriple(linkVal))
 		}
 		if it.primaryIt.Check(linkVal) {
 			it.Last = it.ts.GetTripleDirection(linkVal, it.dir)
@@ -155,7 +157,7 @@ func (it *HasaIterator) GetCheckResult() bool {
 }
 
 // Get the next result that matches this branch.
-func (it *HasaIterator) NextResult() bool {
+func (it *HasA) NextResult() bool {
 	// Order here is important. If the subiterator has a NextResult, then we
 	// need do nothing -- there is a next result, and we shouldn't move forward.
 	// However, we then need to get the next result from our last Check().
@@ -171,30 +173,30 @@ func (it *HasaIterator) NextResult() bool {
 // Get the next result from this iterator. This is simpler than Check. We have a
 // subiterator we can get a value from, and we can take that resultant triple,
 // pull our direction out of it, and return that.
-func (it *HasaIterator) Next() (TSVal, bool) {
-	NextLogIn(it)
+func (it *HasA) Next() (graph.TSVal, bool) {
+	graph.NextLogIn(it)
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
-	it.resultIt = &NullIterator{}
+	it.resultIt = &Null{}
 
 	tID, ok := it.primaryIt.Next()
 	if !ok {
-		return NextLogOut(it, 0, false)
+		return graph.NextLogOut(it, 0, false)
 	}
 	name := it.ts.GetTriple(tID).Get(it.dir)
 	val := it.ts.GetIdFor(name)
 	it.Last = val
-	return NextLogOut(it, val, true)
+	return graph.NextLogOut(it, val, true)
 }
 
 // GetStats() returns the statistics on the HasA iterator. This is curious. Next
 // cost is easy, it's an extra call or so on top of the subiterator Next cost.
-// CheckCost involves going to the TripleStore, iterating out values, and hoping
+// CheckCost involves going to the graph.TripleStore, iterating out values, and hoping
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (it *HasaIterator) GetStats() *IteratorStats {
+func (it *HasA) GetStats() *graph.IteratorStats {
 	subitStats := it.primaryIt.GetStats()
 	// TODO(barakmich): These should really come from the triplestore itself
 	// and be optimized.
@@ -202,7 +204,7 @@ func (it *HasaIterator) GetStats() *IteratorStats {
 	fanoutFactor := int64(30)
 	nextConstant := int64(2)
 	tripleConstant := int64(1)
-	return &IteratorStats{
+	return &graph.IteratorStats{
 		NextCost:  tripleConstant + subitStats.NextCost,
 		CheckCost: (fanoutFactor * nextConstant) * subitStats.CheckCost,
 		Size:      faninFactor * subitStats.Size,
@@ -210,7 +212,7 @@ func (it *HasaIterator) GetStats() *IteratorStats {
 }
 
 // Close the subiterator, the result iterator (if any) and the HasA.
-func (it *HasaIterator) Close() {
+func (it *HasA) Close() {
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
@@ -218,4 +220,4 @@ func (it *HasaIterator) Close() {
 }
 
 // Register this iterator as a HasA.
-func (it *HasaIterator) Type() string { return "hasa" }
+func (it *HasA) Type() string { return "hasa" }

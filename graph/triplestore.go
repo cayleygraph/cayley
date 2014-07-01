@@ -69,8 +69,8 @@ type TripleStore interface {
 	// Returns the number of triples currently stored.
 	Size() int64
 
-	// Creates a Fixed iterator which can compare TSVals
-	MakeFixed() *FixedIterator
+	// Creates a fixed iterator which can compare TSVals
+	FixedIterator() FixedIterator
 
 	// Optimize an iterator in the context of the triple store.
 	// Suppose we have a better index for the passed tree; this

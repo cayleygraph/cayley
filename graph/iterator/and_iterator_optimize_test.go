@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
 
 // Tests relating to methods in and-iterator-optimize. Many are pretty simplistic, but
 // nonetheless cover a lot of basic cases.
@@ -24,10 +24,10 @@ import (
 )
 
 func TestIteratorPromotion(t *testing.T) {
-	all := NewInt64AllIterator(1, 3)
-	fixed := newFixedIterator()
+	all := NewInt64(1, 3)
+	fixed := newFixed()
 	fixed.AddValue(3)
-	a := NewAndIterator()
+	a := NewAnd()
 	a.AddSubIterator(all)
 	a.AddSubIterator(fixed)
 	all.AddTag("a")
@@ -49,9 +49,9 @@ func TestIteratorPromotion(t *testing.T) {
 }
 
 func TestNullIteratorAnd(t *testing.T) {
-	all := NewInt64AllIterator(1, 3)
-	null := NewNullIterator()
-	a := NewAndIterator()
+	all := NewInt64(1, 3)
+	null := NewNull()
+	a := NewAnd()
 	a.AddSubIterator(all)
 	a.AddSubIterator(null)
 	newIt, changed := a.Optimize()
@@ -64,11 +64,11 @@ func TestNullIteratorAnd(t *testing.T) {
 }
 
 func TestReorderWithTag(t *testing.T) {
-	all := NewInt64AllIterator(100, 300)
+	all := NewInt64(100, 300)
 	all.AddTag("good")
-	all2 := NewInt64AllIterator(1, 30000)
+	all2 := NewInt64(1, 30000)
 	all2.AddTag("slow")
-	a := NewAndIterator()
+	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)
@@ -90,11 +90,11 @@ func TestReorderWithTag(t *testing.T) {
 }
 
 func TestAndStatistics(t *testing.T) {
-	all := NewInt64AllIterator(100, 300)
+	all := NewInt64(100, 300)
 	all.AddTag("good")
-	all2 := NewInt64AllIterator(1, 30000)
+	all2 := NewInt64(1, 30000)
 	all2.AddTag("slow")
-	a := NewAndIterator()
+	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)

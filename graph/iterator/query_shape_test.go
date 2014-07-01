@@ -12,33 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package iterator
 
 import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+
+	"github.com/google/cayley/graph"
 )
 
-func buildHasaWithTag(ts TripleStore, tag string, target string) *HasaIterator {
-	fixed_obj := ts.MakeFixed()
-	fixed_pred := ts.MakeFixed()
+func buildHasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
+	fixed_obj := ts.FixedIterator()
+	fixed_pred := ts.FixedIterator()
 	fixed_obj.AddValue(ts.GetIdFor(target))
 	fixed_pred.AddValue(ts.GetIdFor("status"))
 	fixed_obj.AddTag(tag)
-	lto1 := NewLinksToIterator(ts, fixed_obj, Object)
-	lto2 := NewLinksToIterator(ts, fixed_pred, Predicate)
-	and := NewAndIterator()
+	lto1 := NewLinksTo(ts, fixed_obj, graph.Object)
+	lto2 := NewLinksTo(ts, fixed_pred, graph.Predicate)
+	and := NewAnd()
 	and.AddSubIterator(lto1)
 	and.AddSubIterator(lto2)
-	hasa := NewHasaIterator(ts, and, Subject)
+	hasa := NewHasA(ts, and, graph.Subject)
 	return hasa
 }
 
 func TestQueryShape(t *testing.T) {
 	var queryShape map[string]interface{}
-	var ts *TestTripleStore
-	ts = new(TestTripleStore)
+	ts := new(TestTripleStore)
 	ts.On("GetIdFor", "cool").Return(1)
 	ts.On("GetNameFor", 1).Return("cool")
 	ts.On("GetIdFor", "status").Return(2)
@@ -87,17 +88,17 @@ func TestQueryShape(t *testing.T) {
 		hasa1.AddTag("hasa1")
 		hasa2 := buildHasaWithTag(ts, "tag2", "fun")
 		hasa1.AddTag("hasa2")
-		andInternal := NewAndIterator()
+		andInternal := NewAnd()
 		andInternal.AddSubIterator(hasa1)
 		andInternal.AddSubIterator(hasa2)
-		fixed_pred := ts.MakeFixed()
+		fixed_pred := ts.FixedIterator()
 		fixed_pred.AddValue(ts.GetIdFor("name"))
-		lto1 := NewLinksToIterator(ts, andInternal, Subject)
-		lto2 := NewLinksToIterator(ts, fixed_pred, Predicate)
-		and := NewAndIterator()
+		lto1 := NewLinksTo(ts, andInternal, graph.Subject)
+		lto2 := NewLinksTo(ts, fixed_pred, graph.Predicate)
+		and := NewAnd()
 		and.AddSubIterator(lto1)
 		and.AddSubIterator(lto2)
-		hasa := NewHasaIterator(ts, and, Object)
+		hasa := NewHasA(ts, and, graph.Object)
 		OutputQueryShapeForIterator(hasa, ts, &queryShape)
 
 		Convey("It should have seven nodes and three links", func() {
