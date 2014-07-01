@@ -23,8 +23,6 @@ import (
 	"github.com/barakmich/glog"
 )
 
-var iterator_n int = 0
-
 type Iterator interface {
 	// Tags are the way we handle results. By adding a tag to an iterator, we can
 	// "name" it, in a sense, and at each step of iteration, get a named result.
