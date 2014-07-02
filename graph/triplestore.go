@@ -26,14 +26,14 @@ import (
 )
 
 // Defines an opaque "triple store value" type. However the backend wishes to
-// implement it, a TSVal is merely a token to a triple or a node that the backing
+// implement it, a Value is merely a token to a triple or a node that the backing
 // store itself understands, and the base iterators pass around.
 //
 // For example, in a very traditional, graphd-style graph, these are int64s
 // (guids of the primitives). In a very direct sort of graph, these could be
 // pointers to structs, or merely triples, or whatever works best for the
 // backing store.
-type TSVal interface{}
+type Value interface{}
 
 type TripleStore interface {
 	// Add a triple to the store.
@@ -47,11 +47,11 @@ type TripleStore interface {
 	RemoveTriple(*Triple)
 
 	// Given an opaque token, returns the triple for that token from the store.
-	Triple(TSVal) *Triple
+	Triple(Value) *Triple
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	TripleIterator(Direction, TSVal) Iterator
+	TripleIterator(Direction, Value) Iterator
 
 	// Returns an iterator enumerating all nodes in the graph.
 	NodesAllIterator() Iterator
@@ -61,15 +61,15 @@ type TripleStore interface {
 
 	// Given a node ID, return the opaque token used by the TripleStore
 	// to represent that id.
-	ValueOf(string) TSVal
+	ValueOf(string) Value
 
 	// Given an opaque token, return the node that it represents.
-	NameOf(TSVal) string
+	NameOf(Value) string
 
 	// Returns the number of triples currently stored.
 	Size() int64
 
-	// Creates a fixed iterator which can compare TSVals
+	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator
 
 	// Optimize an iterator in the context of the triple store.
@@ -89,7 +89,7 @@ type TripleStore interface {
 	//
 	// Iterators will call this. At worst, a valid implementation is
 	// ts.IdFor(ts.Triple(triple_id).Get(dir))
-	TripleDirection(triple_id TSVal, d Direction) TSVal
+	TripleDirection(triple_id Value, d Direction) Value
 }
 
 type Options map[string]interface{}

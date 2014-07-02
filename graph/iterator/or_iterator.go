@@ -83,7 +83,7 @@ func (it *Or) SubIterators() []graph.Iterator {
 
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
-func (it *Or) TagResults(dst map[string]graph.TSVal) {
+func (it *Or) TagResults(dst map[string]graph.Value) {
 	it.Base.TagResults(dst)
 	it.internalIterators[it.currentIterator].TagResults(dst)
 }
@@ -128,9 +128,9 @@ func (it *Or) AddSubIterator(sub graph.Iterator) {
 // Returns the Next value from the Or graph.iterator. Because the Or is the
 // union of its subiterators, it must produce from all subiterators -- unless
 // it's shortcircuiting, in which case, it's the first one that returns anything.
-func (it *Or) Next() (graph.TSVal, bool) {
+func (it *Or) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	var curr graph.TSVal
+	var curr graph.Value
 	var exists bool
 	firstTime := false
 	for {
@@ -157,7 +157,7 @@ func (it *Or) Next() (graph.TSVal, bool) {
 }
 
 // Checks a value against the iterators, in order.
-func (it *Or) checkSubIts(val graph.TSVal) bool {
+func (it *Or) checkSubIts(val graph.Value) bool {
 	var subIsGood = false
 	for i, sub := range it.internalIterators {
 		subIsGood = sub.Check(val)
@@ -170,7 +170,7 @@ func (it *Or) checkSubIts(val graph.TSVal) bool {
 }
 
 // Check a value against the entire graph.iterator, in order.
-func (it *Or) Check(val graph.TSVal) bool {
+func (it *Or) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	anyGood := it.checkSubIts(val)
 	if !anyGood {

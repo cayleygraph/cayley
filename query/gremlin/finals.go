@@ -135,7 +135,7 @@ func mapFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionC
 	}
 }
 
-func tagsToValueMap(m map[string]graph.TSVal, ses *Session) map[string]string {
+func tagsToValueMap(m map[string]graph.Value, ses *Session) map[string]string {
 	outputMap := make(map[string]string)
 	for k, v := range m {
 		outputMap[k] = ses.ts.NameOf(v)
@@ -155,7 +155,7 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 		if !ok {
 			break
 		}
-		tags := make(map[string]graph.TSVal)
+		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		output = append(output, tagsToValueMap(tags, ses))
 		count++
@@ -166,7 +166,7 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 			if ses.doHalt {
 				return nil
 			}
-			tags := make(map[string]graph.TSVal)
+			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			output = append(output, tagsToValueMap(tags, ses))
 			count++
@@ -212,7 +212,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 		if !ok {
 			break
 		}
-		tags := make(map[string]graph.TSVal)
+		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		val, _ := this.Otto.ToValue(tagsToValueMap(tags, ses))
 		val, _ = callback.Call(this.This, val)
@@ -224,7 +224,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 			if ses.doHalt {
 				return
 			}
-			tags := make(map[string]graph.TSVal)
+			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			val, _ := this.Otto.ToValue(tagsToValueMap(tags, ses))
 			val, _ = callback.Call(this.This, val)
@@ -253,7 +253,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		if !ok {
 			break
 		}
-		tags := make(map[string]graph.TSVal)
+		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
 		if !cont {
@@ -263,7 +263,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 			if ses.doHalt {
 				return
 			}
-			tags := make(map[string]graph.TSVal)
+			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
 			if !cont {

@@ -17,7 +17,7 @@ package iterator
 // Defines one of the base iterators, the Fixed iterator. A fixed iterator is quite simple; it
 // contains an explicit fixed array of values.
 //
-// A fixed iterator requires an Equality function to be passed to it, by reason that graph.TSVal, the
+// A fixed iterator requires an Equality function to be passed to it, by reason that graph.Value, the
 // opaque Triple store value, may not answer to ==.
 
 import (
@@ -31,16 +31,16 @@ import (
 // an equality function.
 type Fixed struct {
 	Base
-	values    []graph.TSVal
+	values    []graph.Value
 	lastIndex int
 	cmp       Equality
 }
 
 // Define the signature of an equality function.
-type Equality func(a, b graph.TSVal) bool
+type Equality func(a, b graph.Value) bool
 
 // Define an equality function of purely ==, which works for native types.
-func BasicEquality(a, b graph.TSVal) bool {
+func BasicEquality(a, b graph.Value) bool {
 	if a == b {
 		return true
 	}
@@ -56,7 +56,7 @@ func newFixed() *Fixed {
 func NewFixedIteratorWithCompare(compareFn Equality) *Fixed {
 	var it Fixed
 	BaseInit(&it.Base)
-	it.values = make([]graph.TSVal, 0, 20)
+	it.values = make([]graph.Value, 0, 20)
 	it.lastIndex = 0
 	it.cmp = compareFn
 	return &it
@@ -79,7 +79,7 @@ func (it *Fixed) Clone() graph.Iterator {
 
 // Add a value to the iterator. The array now contains this value.
 // TODO(barakmich): This ought to be a set someday, disallowing repeated values.
-func (it *Fixed) AddValue(v graph.TSVal) {
+func (it *Fixed) AddValue(v graph.Value) {
 	it.values = append(it.values, v)
 }
 
@@ -104,7 +104,7 @@ func (it *Fixed) Type() string {
 }
 
 // Check if the passed value is equal to one of the values stored in the iterator.
-func (it *Fixed) Check(v graph.TSVal) bool {
+func (it *Fixed) Check(v graph.Value) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.
@@ -119,7 +119,7 @@ func (it *Fixed) Check(v graph.TSVal) bool {
 }
 
 // Return the next stored value from the iterator.
-func (it *Fixed) Next() (graph.TSVal, bool) {
+func (it *Fixed) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
 	if it.lastIndex == len(it.values) {
 		return graph.NextLogOut(it, nil, false)

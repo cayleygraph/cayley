@@ -20,7 +20,7 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func (q *Query) treeifyResult(tags map[string]graph.TSVal) map[ResultPath]string {
+func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string {
 	// Transform the map into something a little more interesting.
 	results := make(map[Path]string)
 	for k, v := range tags {

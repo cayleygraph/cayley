@@ -77,7 +77,7 @@ func (it *LinksTo) Clone() graph.Iterator {
 func (it *LinksTo) Direction() graph.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
-func (it *LinksTo) TagResults(dst map[string]graph.TSVal) {
+func (it *LinksTo) TagResults(dst map[string]graph.Value) {
 	it.Base.TagResults(dst)
 	it.primaryIt.TagResults(dst)
 }
@@ -98,7 +98,7 @@ func (it *LinksTo) DebugString(indent int) string {
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
-func (it *LinksTo) Check(val graph.TSVal) bool {
+func (it *LinksTo) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	node := it.ts.TripleDirection(val, it.dir)
 	if it.primaryIt.Check(node) {
@@ -135,7 +135,7 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 }
 
 // Next()ing a LinksTo operates as described above.
-func (it *LinksTo) Next() (graph.TSVal, bool) {
+func (it *LinksTo) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
 	val, ok := it.nextIt.Next()
 	if !ok {

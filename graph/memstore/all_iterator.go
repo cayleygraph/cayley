@@ -31,7 +31,7 @@ func NewMemstoreAllIterator(ts *TripleStore) *AllIterator {
 	return &out
 }
 
-func (it *AllIterator) Next() (graph.TSVal, bool) {
+func (it *AllIterator) Next() (graph.Value, bool) {
 	next, out := it.Int64.Next()
 	if !out {
 		return next, out

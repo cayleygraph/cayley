@@ -420,9 +420,9 @@ func TestOptimize(t *testing.T) {
 				Convey("With the correct tags", func() {
 					oldIt.Next()
 					newIt.Next()
-					oldResults := make(map[string]graph.TSVal)
+					oldResults := make(map[string]graph.Value)
 					oldIt.TagResults(oldResults)
-					newResults := make(map[string]graph.TSVal)
+					newResults := make(map[string]graph.Value)
 					oldIt.TagResults(newResults)
 					So(newResults, ShouldResemble, oldResults)
 				})

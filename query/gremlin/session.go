@@ -65,7 +65,7 @@ type GremlinResult struct {
 	metaresult    bool
 	err           string
 	val           *otto.Value
-	actualResults *map[string]graph.TSVal
+	actualResults *map[string]graph.Value
 }
 
 func (s *Session) ToggleDebug() {

@@ -95,7 +95,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 	if !ok {
 		t.Error("Got no results")
 	}
-	tags := make(map[string]graph.TSVal)
+	tags := make(map[string]graph.Value)
 	it.TagResults(tags)
 	if ts.NameOf(tags["$a"]) != "food" {
 		t.Errorf("Got %s, expected food", ts.NameOf(tags["$a"]))

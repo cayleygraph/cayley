@@ -301,7 +301,7 @@ func (ts *TripleStore) Close() {
 	ts.open = false
 }
 
-func (ts *TripleStore) Triple(k graph.TSVal) *graph.Triple {
+func (ts *TripleStore) Triple(k graph.Value) *graph.Triple {
 	var triple graph.Triple
 	b, err := ts.db.Get(k.([]byte), ts.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
@@ -328,7 +328,7 @@ func (ts *TripleStore) convertStringToByteHash(s string) []byte {
 	return key
 }
 
-func (ts *TripleStore) ValueOf(s string) graph.TSVal {
+func (ts *TripleStore) ValueOf(s string) graph.Value {
 	return ts.createValueKeyFor(s)
 }
 
@@ -352,7 +352,7 @@ func (ts *TripleStore) getValueData(value_key []byte) ValueData {
 	return out
 }
 
-func (ts *TripleStore) NameOf(k graph.TSVal) string {
+func (ts *TripleStore) NameOf(k graph.Value) string {
 	if k == nil {
 		glog.V(2).Infoln("k was nil")
 		return ""
@@ -360,7 +360,7 @@ func (ts *TripleStore) NameOf(k graph.TSVal) string {
 	return ts.getValueData(k.([]byte)).Name
 }
 
-func (ts *TripleStore) GetSizeFor(k graph.TSVal) int64 {
+func (ts *TripleStore) GetSizeFor(k graph.Value) int64 {
 	if k == nil {
 		return 0
 	}
@@ -401,7 +401,7 @@ func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
 	return 0, nil
 }
 
-func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
+func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
 	var prefix string
 	switch d {
 	case graph.Subject:
@@ -426,7 +426,7 @@ func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
 	return NewAllIterator("po", graph.Predicate, ts)
 }
 
-func (ts *TripleStore) TripleDirection(val graph.TSVal, d graph.Direction) graph.TSVal {
+func (ts *TripleStore) TripleDirection(val graph.Value, d graph.Direction) graph.Value {
 	v := val.([]uint8)
 	offset := GetPositionFromPrefix(v[0:2], d, ts)
 	if offset != -1 {
@@ -436,7 +436,7 @@ func (ts *TripleStore) TripleDirection(val graph.TSVal, d graph.Direction) graph
 	}
 }
 
-func compareBytes(a, b graph.TSVal) bool {
+func compareBytes(a, b graph.Value) bool {
 	return bytes.Equal(a.([]uint8), b.([]uint8))
 }
 

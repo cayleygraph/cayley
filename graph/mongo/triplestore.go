@@ -209,7 +209,7 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	}
 }
 
-func (ts *TripleStore) Triple(val graph.TSVal) *graph.Triple {
+func (ts *TripleStore) Triple(val graph.Value) *graph.Triple {
 	var bsonDoc bson.M
 	err := ts.db.C("triples").FindId(val.(string)).One(&bsonDoc)
 	if err != nil {
@@ -223,7 +223,7 @@ func (ts *TripleStore) Triple(val graph.TSVal) *graph.Triple {
 	}
 }
 
-func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
+func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
 	return NewIterator(ts, "triples", d, val)
 }
 
@@ -235,11 +235,11 @@ func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
 	return NewAllIterator(ts, "triples")
 }
 
-func (ts *TripleStore) ValueOf(s string) graph.TSVal {
+func (ts *TripleStore) ValueOf(s string) graph.Value {
 	return ts.ConvertStringToByteHash(s)
 }
 
-func (ts *TripleStore) NameOf(v graph.TSVal) string {
+func (ts *TripleStore) NameOf(v graph.Value) string {
 	val, ok := ts.idCache.Get(v.(string))
 	if ok {
 		return val
@@ -262,7 +262,7 @@ func (ts *TripleStore) Size() int64 {
 	return int64(count)
 }
 
-func compareStrings(a, b graph.TSVal) bool {
+func compareStrings(a, b graph.Value) bool {
 	return a.(string) == b.(string)
 }
 
@@ -274,7 +274,7 @@ func (ts *TripleStore) Close() {
 	ts.db.Session.Close()
 }
 
-func (ts *TripleStore) TripleDirection(in graph.TSVal, d graph.Direction) graph.TSVal {
+func (ts *TripleStore) TripleDirection(in graph.Value, d graph.Direction) graph.Value {
 	// Maybe do the trick here
 	var offset int
 	switch d {

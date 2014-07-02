@@ -217,11 +217,11 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	}
 }
 
-func (ts *TripleStore) Triple(index graph.TSVal) *graph.Triple {
+func (ts *TripleStore) Triple(index graph.Value) *graph.Triple {
 	return &ts.triples[index.(int64)]
 }
 
-func (ts *TripleStore) TripleIterator(d graph.Direction, value graph.TSVal) graph.Iterator {
+func (ts *TripleStore) TripleIterator(d graph.Direction, value graph.Value) graph.Iterator {
 	index, ok := ts.index.Get(d, value.(int64))
 	data := fmt.Sprintf("dir:%s val:%d", d, value.(int64))
 	if ok {
@@ -243,11 +243,11 @@ func (ts *TripleStore) DebugPrint() {
 	}
 }
 
-func (ts *TripleStore) ValueOf(name string) graph.TSVal {
+func (ts *TripleStore) ValueOf(name string) graph.Value {
 	return ts.idMap[name]
 }
 
-func (ts *TripleStore) NameOf(id graph.TSVal) string {
+func (ts *TripleStore) NameOf(id graph.Value) string {
 	return ts.revIdMap[id.(int64)]
 }
 
@@ -259,7 +259,7 @@ func (ts *TripleStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(iterator.BasicEquality)
 }
 
-func (ts *TripleStore) TripleDirection(val graph.TSVal, d graph.Direction) graph.TSVal {
+func (ts *TripleStore) TripleDirection(val graph.Value, d graph.Direction) graph.Value {
 	name := ts.Triple(val).Get(d)
 	return ts.ValueOf(name)
 }

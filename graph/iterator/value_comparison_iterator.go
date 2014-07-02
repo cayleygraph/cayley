@@ -65,7 +65,7 @@ func NewComparison(sub graph.Iterator, op Operator, val interface{}, ts graph.Tr
 
 // Here's the non-boilerplate part of the ValueComparison iterator. Given a value
 // and our operator, determine whether or not we meet the requirement.
-func (it *Comparison) doComparison(val graph.TSVal) bool {
+func (it *Comparison) doComparison(val graph.Value) bool {
 	//TODO(barakmich): Implement string comparison.
 	nodeStr := it.ts.NameOf(val)
 	switch cVal := it.val.(type) {
@@ -117,8 +117,8 @@ func (it *Comparison) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Comparison) Next() (graph.TSVal, bool) {
-	var val graph.TSVal
+func (it *Comparison) Next() (graph.Value, bool) {
+	var val graph.Value
 	var ok bool
 	for {
 		val, ok = it.subIt.Next()
@@ -147,7 +147,7 @@ func (it *Comparison) NextResult() bool {
 	return true
 }
 
-func (it *Comparison) Check(val graph.TSVal) bool {
+func (it *Comparison) Check(val graph.Value) bool {
 	if !it.doComparison(val) {
 		return false
 	}
@@ -156,7 +156,7 @@ func (it *Comparison) Check(val graph.TSVal) bool {
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *Comparison) TagResults(dst map[string]graph.TSVal) {
+func (it *Comparison) TagResults(dst map[string]graph.Value) {
 	it.Base.TagResults(dst)
 	it.subIt.TagResults(dst)
 }

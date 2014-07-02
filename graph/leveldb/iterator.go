@@ -38,7 +38,7 @@ type Iterator struct {
 	originalPrefix string
 }
 
-func NewIterator(prefix string, d graph.Direction, value graph.TSVal, ts *TripleStore) *Iterator {
+func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *TripleStore) *Iterator {
 	var it Iterator
 	iterator.BaseInit(&it.Base)
 	it.checkId = value.([]byte)
@@ -85,7 +85,7 @@ func (it *Iterator) Close() {
 	}
 }
 
-func (it *Iterator) Next() (graph.TSVal, bool) {
+func (it *Iterator) Next() (graph.Value, bool) {
 	if it.it == nil {
 		it.Last = nil
 		return nil, false
@@ -166,7 +166,7 @@ func GetPositionFromPrefix(prefix []byte, d graph.Direction, ts *TripleStore) in
 	panic("unreachable")
 }
 
-func (it *Iterator) Check(v graph.TSVal) bool {
+func (it *Iterator) Check(v graph.Value) bool {
 	val := v.([]byte)
 	if val[0] == 'z' {
 		return false

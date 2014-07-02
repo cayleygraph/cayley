@@ -99,7 +99,7 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 }
 
 // Pass the TagResults down the chain.
-func (it *HasA) TagResults(dst map[string]graph.TSVal) {
+func (it *HasA) TagResults(dst map[string]graph.Value) {
 	it.Base.TagResults(dst)
 	it.primaryIt.TagResults(dst)
 }
@@ -123,7 +123,7 @@ func (it *HasA) DebugString(indent int) string {
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "triples that have `val` in our direction", given to us by the triple store,
 // and then Next() values out of that iterator and Check() them against our subiterator.
-func (it *HasA) Check(val graph.TSVal) bool {
+func (it *HasA) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	if glog.V(4) {
 		glog.V(4).Infoln("Id is", it.ts.NameOf(val))
@@ -173,7 +173,7 @@ func (it *HasA) NextResult() bool {
 // Get the next result from this iterator. This is simpler than Check. We have a
 // subiterator we can get a value from, and we can take that resultant triple,
 // pull our direction out of it, and return that.
-func (it *HasA) Next() (graph.TSVal, bool) {
+func (it *HasA) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
 	if it.resultIt != nil {
 		it.resultIt.Close()

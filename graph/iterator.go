@@ -32,15 +32,15 @@ type Iterator interface {
 	// Tag Accessors.
 	AddTag(string)
 	Tags() []string
-	AddFixedTag(string, TSVal)
-	FixedTags() map[string]TSVal
+	AddFixedTag(string, Value)
+	FixedTags() map[string]Value
 	CopyTagsFrom(Iterator)
 
 	// Fills a tag-to-result-value map.
-	TagResults(map[string]TSVal)
+	TagResults(map[string]Value)
 
 	// Returns the current result.
-	Result() TSVal
+	Result() Value
 
 	// DEPRECATED -- Fills a ResultTree struct with Result().
 	ResultTree() *ResultTree
@@ -59,7 +59,7 @@ type Iterator interface {
 	//
 	// Next() advances the iterator and returns the next valid result. Returns
 	// (<value>, true) or (nil, false)
-	Next() (TSVal, bool)
+	Next() (Value, bool)
 
 	// NextResult() advances iterators that may have more than one valid result,
 	// from the bottom up.
@@ -72,7 +72,7 @@ type Iterator interface {
 
 	// Check(), given a value, returns whether or not that value is within the set
 	// held by this iterator.
-	Check(TSVal) bool
+	Check(Value) bool
 
 	// Start iteration from the beginning
 	Reset()
@@ -117,7 +117,7 @@ type Iterator interface {
 
 type FixedIterator interface {
 	Iterator
-	AddValue(TSVal)
+	AddValue(Value)
 }
 
 type IteratorStats struct {
@@ -128,13 +128,13 @@ type IteratorStats struct {
 
 // Utility logging functions for when an iterator gets called Next upon, or Check upon, as
 // well as what they return. Highly useful for tracing the execution path of a query.
-func CheckLogIn(it Iterator, val TSVal) {
+func CheckLogIn(it Iterator, val Value) {
 	if glog.V(4) {
 		glog.V(4).Infof("%s %d CHECK %d", strings.ToUpper(it.Type()), it.UID(), val)
 	}
 }
 
-func CheckLogOut(it Iterator, val TSVal, good bool) bool {
+func CheckLogOut(it Iterator, val Value, good bool) bool {
 	if glog.V(4) {
 		if good {
 			glog.V(4).Infof("%s %d CHECK %d GOOD", strings.ToUpper(it.Type()), it.UID(), val)
@@ -151,7 +151,7 @@ func NextLogIn(it Iterator) {
 	}
 }
 
-func NextLogOut(it Iterator, val TSVal, ok bool) (TSVal, bool) {
+func NextLogOut(it Iterator, val Value, ok bool) (Value, bool) {
 	if glog.V(4) {
 		if ok {
 			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type()), it.UID(), val)

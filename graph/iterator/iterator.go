@@ -36,9 +36,9 @@ func nextID() uintptr {
 // The Base iterator is the iterator other iterators inherit from to get some
 // default functionality.
 type Base struct {
-	Last      graph.TSVal
+	Last      graph.Value
 	tags      []string
-	fixedTags map[string]graph.TSVal
+	fixedTags map[string]graph.Value
 	canNext   bool
 	uid       uintptr
 }
@@ -64,9 +64,9 @@ func (it *Base) AddTag(tag string) {
 	it.tags = append(it.tags, tag)
 }
 
-func (it *Base) AddFixedTag(tag string, value graph.TSVal) {
+func (it *Base) AddFixedTag(tag string, value graph.Value) {
 	if it.fixedTags == nil {
-		it.fixedTags = make(map[string]graph.TSVal)
+		it.fixedTags = make(map[string]graph.Value)
 	}
 	it.fixedTags[tag] = value
 }
@@ -76,7 +76,7 @@ func (it *Base) Tags() []string {
 	return it.tags
 }
 
-func (it *Base) FixedTags() map[string]graph.TSVal {
+func (it *Base) FixedTags() map[string]graph.Value {
 	return it.fixedTags
 }
 
@@ -97,7 +97,7 @@ func (it *Base) DebugString(indent int) string {
 }
 
 // Nothing in a base iterator.
-func (it *Base) Check(v graph.TSVal) bool {
+func (it *Base) Check(v graph.Value) bool {
 	return false
 }
 
@@ -114,7 +114,7 @@ func (it *Base) ResultTree() *graph.ResultTree {
 }
 
 // Nothing in a base iterator.
-func (it *Base) Next() (graph.TSVal, bool) {
+func (it *Base) Next() (graph.Value, bool) {
 	return nil, false
 }
 
@@ -123,7 +123,7 @@ func (it *Base) NextResult() bool {
 }
 
 // Returns the last result of an iterator.
-func (it *Base) Result() graph.TSVal {
+func (it *Base) Result() graph.Value {
 	return it.Last
 }
 
@@ -142,7 +142,7 @@ func (it *Base) CanNext() bool { return it.canNext }
 
 // Fill the map based on the tags assigned to this iterator. Default
 // functionality works well for most iterators.
-func (it *Base) TagResults(dst map[string]graph.TSVal) {
+func (it *Base) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.Tags() {
 		dst[tag] = it.Result()
 	}

@@ -81,7 +81,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 		if !ok {
 			break
 		}
-		tags := make(map[string]graph.TSVal)
+		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		out <- &tags
 		nResults++
@@ -89,7 +89,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 			break
 		}
 		for it.NextResult() == true {
-			tags := make(map[string]graph.TSVal)
+			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			out <- &tags
 			nResults++
@@ -103,7 +103,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 
 func (s *Session) ToText(result interface{}) string {
 	out := fmt.Sprintln("****")
-	tags := result.(map[string]graph.TSVal)
+	tags := result.(map[string]graph.Value)
 	tagKeys := make([]string, len(tags))
 	i := 0
 	for k := range tags {

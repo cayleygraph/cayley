@@ -66,7 +66,7 @@ func (it *Int64) DebugString(indent int) string {
 
 // Next() on an Int64 all iterator is a simple incrementing counter.
 // Return the next integer, and mark it as the result.
-func (it *Int64) Next() (graph.TSVal, bool) {
+func (it *Int64) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
 	if it.at == -1 {
 		return graph.NextLogOut(it, nil, false)
@@ -89,7 +89,7 @@ func (it *Int64) Size() (int64, bool) {
 
 // Check() for an Int64 is merely seeing if the passed value is
 // withing the range, assuming the value is an int64.
-func (it *Int64) Check(tsv graph.TSVal) bool {
+func (it *Int64) Check(tsv graph.Value) bool {
 	graph.CheckLogIn(it, tsv)
 	v := tsv.(int64)
 	if it.min <= v && v <= it.max {

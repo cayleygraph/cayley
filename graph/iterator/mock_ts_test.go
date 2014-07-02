@@ -27,14 +27,14 @@ type TestTripleStore struct {
 	mock.Mock
 }
 
-func (ts *TestTripleStore) ValueOf(s string) graph.TSVal {
+func (ts *TestTripleStore) ValueOf(s string) graph.Value {
 	args := ts.Mock.Called(s)
 	return args.Get(0)
 }
 func (ts *TestTripleStore) AddTriple(*graph.Triple)          {}
 func (ts *TestTripleStore) AddTripleSet([]*graph.Triple)     {}
-func (ts *TestTripleStore) Triple(graph.TSVal) *graph.Triple { return &graph.Triple{} }
-func (ts *TestTripleStore) TripleIterator(d graph.Direction, i graph.TSVal) graph.Iterator {
+func (ts *TestTripleStore) Triple(graph.Value) *graph.Triple { return &graph.Triple{} }
+func (ts *TestTripleStore) TripleIterator(d graph.Direction, i graph.Value) graph.Iterator {
 	args := ts.Mock.Called(d, i)
 	return args.Get(0).(graph.Iterator)
 }
@@ -43,7 +43,7 @@ func (ts *TestTripleStore) TriplesAllIterator() graph.Iterator { return &Null{} 
 func (ts *TestTripleStore) GetIteratorByString(string, string, string) graph.Iterator {
 	return &Null{}
 }
-func (ts *TestTripleStore) NameOf(v graph.TSVal) string {
+func (ts *TestTripleStore) NameOf(v graph.Value) string {
 	args := ts.Mock.Called(v)
 	return args.Get(0).(string)
 }
@@ -56,5 +56,5 @@ func (ts *TestTripleStore) FixedIterator() graph.FixedIterator {
 	return NewFixedIteratorWithCompare(BasicEquality)
 }
 func (ts *TestTripleStore) Close()                                                   {}
-func (ts *TestTripleStore) TripleDirection(graph.TSVal, graph.Direction) graph.TSVal { return 0 }
+func (ts *TestTripleStore) TripleDirection(graph.Value, graph.Direction) graph.Value { return 0 }
 func (ts *TestTripleStore) RemoveTriple(t *graph.Triple)                             {}
