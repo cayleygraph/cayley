@@ -75,7 +75,7 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 		switch v := thing.(type) {
 		case string:
 			it := ts.FixedIterator()
-			it.AddValue(ts.ValueOf(v))
+			it.Add(ts.ValueOf(v))
 			return it
 		default:
 			glog.Errorln("Trying to build unknown primitive value.")
@@ -89,7 +89,7 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 		strings := makeListOfStringsFromArrayValue(val.Object())
 		it := ts.FixedIterator()
 		for _, x := range strings {
-			it.AddValue(ts.ValueOf(x))
+			it.Add(ts.ValueOf(x))
 		}
 		return it
 	case "Number":
@@ -101,7 +101,7 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 	case "String":
 		it := ts.FixedIterator()
 		str, _ := val.ToString()
-		it.AddValue(ts.ValueOf(str))
+		it.Add(ts.ValueOf(str))
 		return it
 	default:
 		glog.Errorln("Trying to handle unsupported Javascript value.")
@@ -172,7 +172,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		} else {
 			fixed := ts.FixedIterator()
 			for _, name := range stringArgs {
-				fixed.AddValue(ts.ValueOf(name))
+				fixed.Add(ts.ValueOf(name))
 			}
 			it = fixed
 		}
@@ -192,7 +192,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			all.AddTag(stringArgs[0])
 		}
 		predFixed := ts.FixedIterator()
-		predFixed.AddValue(ts.ValueOf(stringArgs[0]))
+		predFixed.Add(ts.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
 		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, graph.Predicate))
 		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, graph.Object))
@@ -212,7 +212,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			all.AddTag(stringArgs[0])
 		}
 		predFixed := ts.FixedIterator()
-		predFixed.AddValue(ts.ValueOf(stringArgs[0]))
+		predFixed.Add(ts.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
 		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, graph.Predicate))
 		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, graph.Subject))
@@ -227,10 +227,10 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			return iterator.NewNull()
 		}
 		for _, name := range stringArgs[1:] {
-			fixed.AddValue(ts.ValueOf(name))
+			fixed.Add(ts.ValueOf(name))
 		}
 		predFixed := ts.FixedIterator()
-		predFixed.AddValue(ts.ValueOf(stringArgs[0]))
+		predFixed.Add(ts.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
 		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, graph.Predicate))
 		subAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, graph.Object))
@@ -263,7 +263,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 	case "is":
 		fixed := ts.FixedIterator()
 		for _, name := range stringArgs {
-			fixed.AddValue(ts.ValueOf(name))
+			fixed.Add(ts.ValueOf(name))
 		}
 		and := iterator.NewAnd()
 		and.AddSubIterator(fixed)

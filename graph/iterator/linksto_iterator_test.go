@@ -23,11 +23,11 @@ import (
 func TestLinksTo(t *testing.T) {
 	ts := new(TestTripleStore)
 	tsFixed := newFixed()
-	tsFixed.AddValue(2)
+	tsFixed.Add(2)
 	ts.On("ValueOf", "cool").Return(1)
 	ts.On("TripleIterator", graph.Object, 1).Return(tsFixed)
 	fixed := newFixed()
-	fixed.AddValue(ts.ValueOf("cool"))
+	fixed.Add(ts.ValueOf("cool"))
 	lto := NewLinksTo(ts, fixed, graph.Object)
 	val, ok := lto.Next()
 	if !ok {

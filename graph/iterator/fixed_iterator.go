@@ -71,7 +71,7 @@ func (it *Fixed) Close() {}
 func (it *Fixed) Clone() graph.Iterator {
 	out := NewFixedIteratorWithCompare(it.cmp)
 	for _, val := range it.values {
-		out.AddValue(val)
+		out.Add(val)
 	}
 	out.CopyTagsFrom(it)
 	return out
@@ -79,7 +79,7 @@ func (it *Fixed) Clone() graph.Iterator {
 
 // Add a value to the iterator. The array now contains this value.
 // TODO(barakmich): This ought to be a set someday, disallowing repeated values.
-func (it *Fixed) AddValue(v graph.Value) {
+func (it *Fixed) Add(v graph.Value) {
 	it.values = append(it.values, v)
 }
 

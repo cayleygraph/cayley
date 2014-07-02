@@ -197,7 +197,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 				n = nodeID[1:]
 			}
 			fixed := ts.FixedIterator()
-			fixed.AddValue(ts.ValueOf(n))
+			fixed.Add(ts.ValueOf(n))
 			out = fixed
 		}
 		return out

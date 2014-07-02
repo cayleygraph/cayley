@@ -117,7 +117,7 @@ type Iterator interface {
 
 type FixedIterator interface {
 	Iterator
-	AddValue(Value)
+	Add(Value)
 }
 
 type IteratorStats struct {

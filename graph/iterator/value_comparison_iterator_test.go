@@ -43,11 +43,11 @@ func SimpleValueTripleStore() *TestTripleStore {
 
 func BuildFixedIterator() *Fixed {
 	fixed := newFixed()
-	fixed.AddValue(0)
-	fixed.AddValue(1)
-	fixed.AddValue(2)
-	fixed.AddValue(3)
-	fixed.AddValue(4)
+	fixed.Add(0)
+	fixed.Add(1)
+	fixed.Add(2)
+	fixed.Add(3)
+	fixed.Add(4)
 	return fixed
 }
 
