@@ -99,14 +99,14 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 }
 
 // Pass the TagResults down the chain.
-func (it *HasA) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
-	it.primaryIt.TagResults(out)
+func (it *HasA) TagResults(dst map[string]graph.TSVal) {
+	it.Base.TagResults(dst)
+	it.primaryIt.TagResults(dst)
 }
 
 // DEPRECATED Return results in a ResultTree.
 func (it *HasA) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
+	tree := graph.NewResultTree(it.Result())
 	tree.AddSubtree(it.primaryIt.ResultTree())
 	return tree
 }

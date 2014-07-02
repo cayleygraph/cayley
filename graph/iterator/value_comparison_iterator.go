@@ -139,11 +139,11 @@ func (it *Comparison) NextResult() bool {
 		if !hasNext {
 			return false
 		}
-		if it.doComparison(it.subIt.LastResult()) {
+		if it.doComparison(it.subIt.Result()) {
 			return true
 		}
 	}
-	it.Last = it.subIt.LastResult()
+	it.Last = it.subIt.Result()
 	return true
 }
 
@@ -156,9 +156,9 @@ func (it *Comparison) Check(val graph.TSVal) bool {
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *Comparison) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
-	it.subIt.TagResults(out)
+func (it *Comparison) TagResults(dst map[string]graph.TSVal) {
+	it.Base.TagResults(dst)
+	it.subIt.TagResults(dst)
 }
 
 // Registers the value-comparison iterator.

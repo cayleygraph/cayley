@@ -77,14 +77,14 @@ func (it *LinksTo) Clone() graph.Iterator {
 func (it *LinksTo) Direction() graph.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
-func (it *LinksTo) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
-	it.primaryIt.TagResults(out)
+func (it *LinksTo) TagResults(dst map[string]graph.TSVal) {
+	it.Base.TagResults(dst)
+	it.primaryIt.TagResults(dst)
 }
 
 // DEPRECATED
 func (it *LinksTo) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
+	tree := graph.NewResultTree(it.Result())
 	tree.AddSubtree(it.primaryIt.ResultTree())
 	return tree
 }

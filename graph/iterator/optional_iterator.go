@@ -96,11 +96,11 @@ func (it *Optional) Check(val graph.TSVal) bool {
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *Optional) TagResults(out *map[string]graph.TSVal) {
+func (it *Optional) TagResults(dst map[string]graph.TSVal) {
 	if it.lastCheck == false {
 		return
 	}
-	it.subIt.TagResults(out)
+	it.subIt.TagResults(dst)
 }
 
 // Registers the optional iterator.

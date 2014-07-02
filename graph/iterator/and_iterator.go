@@ -73,19 +73,19 @@ func (it *And) SubIterators() []graph.Iterator {
 
 // Overrides Base TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
-func (it *And) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
+func (it *And) TagResults(dst map[string]graph.TSVal) {
+	it.Base.TagResults(dst)
 	if it.primaryIt != nil {
-		it.primaryIt.TagResults(out)
+		it.primaryIt.TagResults(dst)
 	}
 	for _, sub := range it.internalIterators {
-		sub.TagResults(out)
+		sub.TagResults(dst)
 	}
 }
 
 // DEPRECATED Returns the ResultTree for this iterator, recurses to it's subiterators.
 func (it *And) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
+	tree := graph.NewResultTree(it.Result())
 	tree.AddSubtree(it.primaryIt.ResultTree())
 	for _, sub := range it.internalIterators {
 		tree.AddSubtree(sub.ResultTree())

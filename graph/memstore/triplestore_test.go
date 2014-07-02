@@ -65,12 +65,12 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	expected[0] = "B"
 	expected[1] = "D"
 	actualOut := make([]string, 2)
-	actualOut[0] = ts.NameOf(all.LastResult())
+	actualOut[0] = ts.NameOf(all.Result())
 	nresultOk := outerAnd.NextResult()
 	if !nresultOk {
 		t.Error("Expected two results got one")
 	}
-	actualOut[1] = ts.NameOf(all.LastResult())
+	actualOut[1] = ts.NameOf(all.Result())
 	nresultOk = outerAnd.NextResult()
 	if nresultOk {
 		t.Error("Expected two results got three")

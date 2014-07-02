@@ -421,9 +421,9 @@ func TestOptimize(t *testing.T) {
 					oldIt.Next()
 					newIt.Next()
 					oldResults := make(map[string]graph.TSVal)
-					oldIt.TagResults(&oldResults)
+					oldIt.TagResults(oldResults)
 					newResults := make(map[string]graph.TSVal)
-					oldIt.TagResults(&newResults)
+					oldIt.TagResults(newResults)
 					So(newResults, ShouldResemble, oldResults)
 				})
 

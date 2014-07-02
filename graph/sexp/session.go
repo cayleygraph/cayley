@@ -82,7 +82,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 			break
 		}
 		tags := make(map[string]graph.TSVal)
-		it.TagResults(&tags)
+		it.TagResults(tags)
 		out <- &tags
 		nResults++
 		if nResults > limit && limit != -1 {
@@ -90,7 +90,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 		}
 		for it.NextResult() == true {
 			tags := make(map[string]graph.TSVal)
-			it.TagResults(&tags)
+			it.TagResults(tags)
 			out <- &tags
 			nResults++
 			if nResults > limit && limit != -1 {
@@ -103,10 +103,10 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 
 func (s *Session) ToText(result interface{}) string {
 	out := fmt.Sprintln("****")
-	tags := result.(*map[string]graph.TSVal)
-	tagKeys := make([]string, len(*tags))
+	tags := result.(map[string]graph.TSVal)
+	tagKeys := make([]string, len(tags))
 	i := 0
-	for k, _ := range *tags {
+	for k := range tags {
 		tagKeys[i] = k
 		i++
 	}
@@ -115,7 +115,7 @@ func (s *Session) ToText(result interface{}) string {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf((*tags)[k]))
+		out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf(tags[k]))
 	}
 	return out
 }

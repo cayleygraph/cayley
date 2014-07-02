@@ -44,7 +44,7 @@ func TestTag(t *testing.T) {
 		t.Errorf("Unexpected value")
 	}
 	tags := make(map[string]graph.TSVal)
-	and.TagResults(&tags)
+	and.TagResults(tags)
 	if tags["bar"] != 234 {
 		t.Errorf("no bar tag")
 	}

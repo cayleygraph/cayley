@@ -93,18 +93,18 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 			break
 		}
 		tags := make(map[string]graph.TSVal)
-		it.TagResults(&tags)
-		c <- &tags
+		it.TagResults(tags)
+		c <- tags
 		for it.NextResult() == true {
 			tags := make(map[string]graph.TSVal)
-			it.TagResults(&tags)
-			c <- &tags
+			it.TagResults(tags)
+			c <- tags
 		}
 	}
 }
 
 func (s *Session) ToText(result interface{}) string {
-	tags := *(result.(*map[string]graph.TSVal))
+	tags := result.(map[string]graph.TSVal)
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
 	s.currentQuery.treeifyResult(tags)
@@ -127,7 +127,7 @@ func (s *Session) ToText(result interface{}) string {
 }
 
 func (s *Session) BuildJson(result interface{}) {
-	s.currentQuery.treeifyResult(*(result.(*map[string]graph.TSVal)))
+	s.currentQuery.treeifyResult(result.(map[string]graph.TSVal))
 }
 
 func (s *Session) GetJson() (interface{}, error) {

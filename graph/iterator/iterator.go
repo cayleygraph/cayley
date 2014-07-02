@@ -109,7 +109,7 @@ func (it *Base) Stats() graph.IteratorStats {
 
 // DEPRECATED
 func (it *Base) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
+	tree := graph.NewResultTree(it.Result())
 	return tree
 }
 
@@ -123,7 +123,7 @@ func (it *Base) NextResult() bool {
 }
 
 // Returns the last result of an iterator.
-func (it *Base) LastResult() graph.TSVal {
+func (it *Base) Result() graph.TSVal {
 	return it.Last
 }
 
@@ -142,13 +142,13 @@ func (it *Base) CanNext() bool { return it.canNext }
 
 // Fill the map based on the tags assigned to this iterator. Default
 // functionality works well for most iterators.
-func (it *Base) TagResults(out_map *map[string]graph.TSVal) {
+func (it *Base) TagResults(dst map[string]graph.TSVal) {
 	for _, tag := range it.Tags() {
-		(*out_map)[tag] = it.LastResult()
+		dst[tag] = it.Result()
 	}
 
 	for tag, value := range it.FixedTags() {
-		(*out_map)[tag] = value
+		dst[tag] = value
 	}
 }
 

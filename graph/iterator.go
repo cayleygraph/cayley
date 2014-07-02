@@ -37,9 +37,10 @@ type Iterator interface {
 	CopyTagsFrom(Iterator)
 
 	// Fills a tag-to-result-value map.
-	TagResults(*map[string]TSVal)
+	TagResults(map[string]TSVal)
+
 	// Returns the current result.
-	LastResult() TSVal
+	Result() TSVal
 
 	// DEPRECATED -- Fills a ResultTree struct with Result().
 	ResultTree() *ResultTree
@@ -78,15 +79,16 @@ type Iterator interface {
 
 	// Create a new iterator just like this one
 	Clone() Iterator
+
 	// These methods relate to choosing the right iterator, or optimizing an
 	// iterator tree
 	//
-	// GetStats() returns the relative costs of calling the iteration methods for
+	// Stats() returns the relative costs of calling the iteration methods for
 	// this iterator, as well as the size. Roughly, it will take NextCost * Size
 	// "cost units" to get everything out of the iterator. This is a wibbly-wobbly
 	// thing, and not exact, but a useful heuristic.
-
 	Stats() IteratorStats
+
 	// Helpful accessor for the number of things in the iterator. The first return
 	// value is the size, and the second return value is whether that number is exact,
 	// or a conservative estimate.

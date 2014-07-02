@@ -156,7 +156,7 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 			break
 		}
 		tags := make(map[string]graph.TSVal)
-		it.TagResults(&tags)
+		it.TagResults(tags)
 		output = append(output, tagsToValueMap(tags, ses))
 		count++
 		if limit >= 0 && count >= limit {
@@ -167,7 +167,7 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 				return nil
 			}
 			tags := make(map[string]graph.TSVal)
-			it.TagResults(&tags)
+			it.TagResults(tags)
 			output = append(output, tagsToValueMap(tags, ses))
 			count++
 			if limit >= 0 && count >= limit {
@@ -213,7 +213,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 			break
 		}
 		tags := make(map[string]graph.TSVal)
-		it.TagResults(&tags)
+		it.TagResults(tags)
 		val, _ := this.Otto.ToValue(tagsToValueMap(tags, ses))
 		val, _ = callback.Call(this.This, val)
 		count++
@@ -225,7 +225,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 				return
 			}
 			tags := make(map[string]graph.TSVal)
-			it.TagResults(&tags)
+			it.TagResults(tags)
 			val, _ := this.Otto.ToValue(tagsToValueMap(tags, ses))
 			val, _ = callback.Call(this.This, val)
 			count++
@@ -254,7 +254,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 			break
 		}
 		tags := make(map[string]graph.TSVal)
-		it.TagResults(&tags)
+		it.TagResults(tags)
 		cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
 		if !cont {
 			break
@@ -264,7 +264,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 				return
 			}
 			tags := make(map[string]graph.TSVal)
-			it.TagResults(&tags)
+			it.TagResults(tags)
 			cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
 			if !cont {
 				break

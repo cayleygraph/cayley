@@ -83,14 +83,14 @@ func (it *Or) SubIterators() []graph.Iterator {
 
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
-func (it *Or) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
-	it.internalIterators[it.currentIterator].TagResults(out)
+func (it *Or) TagResults(dst map[string]graph.TSVal) {
+	it.Base.TagResults(dst)
+	it.internalIterators[it.currentIterator].TagResults(dst)
 }
 
 // DEPRECATED Returns the ResultTree for this graph.iterator, recurses to it's subiterators.
 func (it *Or) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
+	tree := graph.NewResultTree(it.Result())
 	for _, sub := range it.internalIterators {
 		tree.AddSubtree(sub.ResultTree())
 	}
