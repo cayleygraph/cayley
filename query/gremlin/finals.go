@@ -138,7 +138,7 @@ func mapFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionC
 func tagsToValueMap(m map[string]graph.TSVal, ses *Session) map[string]string {
 	outputMap := make(map[string]string)
 	for k, v := range m {
-		outputMap[k] = ses.ts.GetNameFor(v)
+		outputMap[k] = ses.ts.NameOf(v)
 	}
 	return outputMap
 }
@@ -191,7 +191,7 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 		if !ok {
 			break
 		}
-		output = append(output, ses.ts.GetNameFor(val))
+		output = append(output, ses.ts.NameOf(val))
 		count++
 		if limit >= 0 && count >= limit {
 			break

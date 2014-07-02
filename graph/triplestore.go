@@ -47,24 +47,24 @@ type TripleStore interface {
 	RemoveTriple(*Triple)
 
 	// Given an opaque token, returns the triple for that token from the store.
-	GetTriple(TSVal) *Triple
+	Triple(TSVal) *Triple
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	GetTripleIterator(Direction, TSVal) Iterator
+	TripleIterator(Direction, TSVal) Iterator
 
 	// Returns an iterator enumerating all nodes in the graph.
-	GetNodesAllIterator() Iterator
+	NodesAllIterator() Iterator
 
 	// Returns an iterator enumerating all links in the graph.
-	GetTriplesAllIterator() Iterator
+	TriplesAllIterator() Iterator
 
 	// Given a node ID, return the opaque token used by the TripleStore
 	// to represent that id.
-	GetIdFor(string) TSVal
+	ValueOf(string) TSVal
 
 	// Given an opaque token, return the node that it represents.
-	GetNameFor(TSVal) string
+	NameOf(TSVal) string
 
 	// Returns the number of triples currently stored.
 	Size() int64
@@ -88,13 +88,13 @@ type TripleStore interface {
 	// gives the TripleStore the opportunity to make this optimization.
 	//
 	// Iterators will call this. At worst, a valid implementation is
-	// self.GetIdFor(self.GetTriple(triple_id).Get(dir))
-	GetTripleDirection(triple_id TSVal, d Direction) TSVal
+	// ts.IdFor(ts.Triple(triple_id).Get(dir))
+	TripleDirection(triple_id TSVal, d Direction) TSVal
 }
 
-type OptionsDict map[string]interface{}
+type Options map[string]interface{}
 
-func (d OptionsDict) GetIntKey(key string) (int, bool) {
+func (d Options) IntKey(key string) (int, bool) {
 	if val, ok := d[key]; ok {
 		switch vv := val.(type) {
 		case float64:
@@ -106,7 +106,7 @@ func (d OptionsDict) GetIntKey(key string) (int, bool) {
 	return 0, false
 }
 
-func (d OptionsDict) GetStringKey(key string) (string, bool) {
+func (d Options) StringKey(key string) (string, bool) {
 	if val, ok := d[key]; ok {
 		switch vv := val.(type) {
 		case string:

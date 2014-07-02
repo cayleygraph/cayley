@@ -25,8 +25,8 @@ import (
 func buildHasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
 	fixed_obj := ts.FixedIterator()
 	fixed_pred := ts.FixedIterator()
-	fixed_obj.AddValue(ts.GetIdFor(target))
-	fixed_pred.AddValue(ts.GetIdFor("status"))
+	fixed_obj.AddValue(ts.ValueOf(target))
+	fixed_pred.AddValue(ts.ValueOf("status"))
 	fixed_obj.AddTag(tag)
 	lto1 := NewLinksTo(ts, fixed_obj, graph.Object)
 	lto2 := NewLinksTo(ts, fixed_pred, graph.Predicate)
@@ -40,14 +40,14 @@ func buildHasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
 func TestQueryShape(t *testing.T) {
 	var queryShape map[string]interface{}
 	ts := new(TestTripleStore)
-	ts.On("GetIdFor", "cool").Return(1)
-	ts.On("GetNameFor", 1).Return("cool")
-	ts.On("GetIdFor", "status").Return(2)
-	ts.On("GetNameFor", 2).Return("status")
-	ts.On("GetIdFor", "fun").Return(3)
-	ts.On("GetNameFor", 3).Return("fun")
-	ts.On("GetIdFor", "name").Return(4)
-	ts.On("GetNameFor", 4).Return("name")
+	ts.On("ValueOf", "cool").Return(1)
+	ts.On("NameOf", 1).Return("cool")
+	ts.On("ValueOf", "status").Return(2)
+	ts.On("NameOf", 2).Return("status")
+	ts.On("ValueOf", "fun").Return(3)
+	ts.On("NameOf", 3).Return("fun")
+	ts.On("ValueOf", "name").Return(4)
+	ts.On("NameOf", 4).Return("name")
 
 	Convey("Given a single linkage iterator's shape", t, func() {
 		queryShape = make(map[string]interface{})
@@ -92,7 +92,7 @@ func TestQueryShape(t *testing.T) {
 		andInternal.AddSubIterator(hasa1)
 		andInternal.AddSubIterator(hasa2)
 		fixed_pred := ts.FixedIterator()
-		fixed_pred.AddValue(ts.GetIdFor("name"))
+		fixed_pred.AddValue(ts.ValueOf("name"))
 		lto1 := NewLinksTo(ts, andInternal, graph.Subject)
 		lto2 := NewLinksTo(ts, fixed_pred, graph.Predicate)
 		and := NewAnd()

@@ -126,13 +126,13 @@ func (it *HasA) DebugString(indent int) string {
 func (it *HasA) Check(val graph.TSVal) bool {
 	graph.CheckLogIn(it, val)
 	if glog.V(4) {
-		glog.V(4).Infoln("Id is", it.ts.GetNameFor(val))
+		glog.V(4).Infoln("Id is", it.ts.NameOf(val))
 	}
 	// TODO(barakmich): Optimize this
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
-	it.resultIt = it.ts.GetTripleIterator(it.dir, val)
+	it.resultIt = it.ts.TripleIterator(it.dir, val)
 	return graph.CheckLogOut(it, val, it.GetCheckResult())
 }
 
@@ -146,10 +146,10 @@ func (it *HasA) GetCheckResult() bool {
 			break
 		}
 		if glog.V(4) {
-			glog.V(4).Infoln("Triple is", it.ts.GetTriple(linkVal))
+			glog.V(4).Infoln("Triple is", it.ts.Triple(linkVal))
 		}
 		if it.primaryIt.Check(linkVal) {
-			it.Last = it.ts.GetTripleDirection(linkVal, it.dir)
+			it.Last = it.ts.TripleDirection(linkVal, it.dir)
 			return true
 		}
 	}
@@ -184,8 +184,8 @@ func (it *HasA) Next() (graph.TSVal, bool) {
 	if !ok {
 		return graph.NextLogOut(it, 0, false)
 	}
-	name := it.ts.GetTriple(tID).Get(it.dir)
-	val := it.ts.GetIdFor(name)
+	name := it.ts.Triple(tID).Get(it.dir)
+	val := it.ts.ValueOf(name)
 	it.Last = val
 	return graph.NextLogOut(it, val, true)
 }

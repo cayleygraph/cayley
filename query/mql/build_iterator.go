@@ -27,12 +27,12 @@ import (
 
 func (q *Query) buildFixed(s string) graph.Iterator {
 	f := q.ses.ts.FixedIterator()
-	f.AddValue(q.ses.ts.GetIdFor(s))
+	f.AddValue(q.ses.ts.ValueOf(s))
 	return f
 }
 
 func (q *Query) buildResultIterator(path Path) graph.Iterator {
-	all := q.ses.ts.GetNodesAllIterator()
+	all := q.ses.ts.NodesAllIterator()
 	all.AddTag(string(path))
 	return all
 }
@@ -103,7 +103,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 
 func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path Path) (graph.Iterator, error) {
 	it := iterator.NewAnd()
-	it.AddSubIterator(q.ses.ts.GetNodesAllIterator())
+	it.AddSubIterator(q.ses.ts.NodesAllIterator())
 	var err error
 	err = nil
 	outputStructure := make(map[string]interface{})
@@ -138,7 +138,7 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 			}
 			subAnd := iterator.NewAnd()
 			predFixed := q.ses.ts.FixedIterator()
-			predFixed.AddValue(q.ses.ts.GetIdFor(pred))
+			predFixed.AddValue(q.ses.ts.ValueOf(pred))
 			subAnd.AddSubIterator(iterator.NewLinksTo(q.ses.ts, predFixed, graph.Predicate))
 			if reverse {
 				lto := iterator.NewLinksTo(q.ses.ts, builtIt, graph.Subject)

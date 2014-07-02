@@ -63,7 +63,7 @@ func runQueryGetTag(query string, tag string) ([]string, int) {
 		if data.val == nil {
 			val := (*data.actualResults)[tag]
 			if val != nil {
-				output = append(output, js.ts.GetNameFor(val))
+				output = append(output, js.ts.NameOf(val))
 			}
 		}
 	}

@@ -43,7 +43,7 @@ func NewIterator(ts *TripleStore, collection string, d graph.Direction, val grap
 	var m Iterator
 	iterator.BaseInit(&m.Base)
 
-	m.name = ts.GetNameFor(val)
+	m.name = ts.NameOf(val)
 	m.collection = collection
 	switch d {
 	case graph.Subject:

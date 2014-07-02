@@ -23,8 +23,8 @@ import (
 func SetupMockTripleStore(nameMap map[string]int) *TestTripleStore {
 	ts := new(TestTripleStore)
 	for k, v := range nameMap {
-		ts.On("GetIdFor", k).Return(v)
-		ts.On("GetNameFor", v).Return(k)
+		ts.On("ValueOf", k).Return(v)
+		ts.On("NameOf", v).Return(k)
 	}
 	return ts
 }
@@ -59,7 +59,7 @@ func checkIteratorContains(ts graph.TripleStore, it graph.Iterator, expected []s
 		if !ok {
 			break
 		}
-		actual = append(actual, ts.GetNameFor(val))
+		actual = append(actual, ts.NameOf(val))
 	}
 	actualSet := actual[:]
 	for _, a := range expected {

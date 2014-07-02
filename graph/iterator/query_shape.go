@@ -133,7 +133,7 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 			if !more {
 				break
 			}
-			n.Values = append(n.Values, qs.ts.GetNameFor(val))
+			n.Values = append(n.Values, qs.ts.NameOf(val))
 		}
 	case "hasa":
 		hasa := it.(*HasA)

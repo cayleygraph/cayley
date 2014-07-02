@@ -65,11 +65,11 @@ func CreateNewLevelDB(path string) bool {
 	return true
 }
 
-func NewTripleStore(path string, options graph.OptionsDict) *TripleStore {
+func NewTripleStore(path string, options graph.Options) *TripleStore {
 	var ts TripleStore
 	ts.path = path
 	cache_size := DefaultCacheSize
-	if val, ok := options.GetIntKey("cache_size_mb"); ok {
+	if val, ok := options.IntKey("cache_size_mb"); ok {
 		cache_size = val
 	}
 	ts.dbOpts = &opt.Options{
@@ -78,7 +78,7 @@ func NewTripleStore(path string, options graph.OptionsDict) *TripleStore {
 	ts.dbOpts.ErrorIfMissing = true
 
 	write_buffer_mb := DefaultWriteBufferSize
-	if val, ok := options.GetIntKey("write_buffer_mb"); ok {
+	if val, ok := options.IntKey("write_buffer_mb"); ok {
 		write_buffer_mb = val
 	}
 	ts.dbOpts.WriteBuffer = write_buffer_mb * opt.MiB
@@ -301,7 +301,7 @@ func (ts *TripleStore) Close() {
 	ts.open = false
 }
 
-func (ts *TripleStore) GetTriple(k graph.TSVal) *graph.Triple {
+func (ts *TripleStore) Triple(k graph.TSVal) *graph.Triple {
 	var triple graph.Triple
 	b, err := ts.db.Get(k.([]byte), ts.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
@@ -328,7 +328,7 @@ func (ts *TripleStore) convertStringToByteHash(s string) []byte {
 	return key
 }
 
-func (ts *TripleStore) GetIdFor(s string) graph.TSVal {
+func (ts *TripleStore) ValueOf(s string) graph.TSVal {
 	return ts.createValueKeyFor(s)
 }
 
@@ -352,7 +352,7 @@ func (ts *TripleStore) getValueData(value_key []byte) ValueData {
 	return out
 }
 
-func (ts *TripleStore) GetNameFor(k graph.TSVal) string {
+func (ts *TripleStore) NameOf(k graph.TSVal) string {
 	if k == nil {
 		glog.V(2).Infoln("k was nil")
 		return ""
@@ -401,7 +401,7 @@ func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
 	return 0, nil
 }
 
-func (ts *TripleStore) GetTripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
+func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
 	var prefix string
 	switch d {
 	case graph.Subject:
@@ -418,21 +418,21 @@ func (ts *TripleStore) GetTripleIterator(d graph.Direction, val graph.TSVal) gra
 	return NewIterator(prefix, d, val, ts)
 }
 
-func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
+func (ts *TripleStore) NodesAllIterator() graph.Iterator {
 	return NewAllIterator("z", graph.Any, ts)
 }
 
-func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
+func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
 	return NewAllIterator("po", graph.Predicate, ts)
 }
 
-func (ts *TripleStore) GetTripleDirection(val graph.TSVal, d graph.Direction) graph.TSVal {
+func (ts *TripleStore) TripleDirection(val graph.TSVal, d graph.Direction) graph.TSVal {
 	v := val.([]uint8)
 	offset := GetPositionFromPrefix(v[0:2], d, ts)
 	if offset != -1 {
 		return append([]byte("z"), v[offset:offset+ts.hasher.Size()]...)
 	} else {
-		return ts.GetTriple(val).Get(d)
+		return ts.Triple(val).Get(d)
 	}
 }
 

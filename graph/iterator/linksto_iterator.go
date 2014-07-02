@@ -100,7 +100,7 @@ func (it *LinksTo) DebugString(indent int) string {
 // for the LinksTo.
 func (it *LinksTo) Check(val graph.TSVal) bool {
 	graph.CheckLogIn(it, val)
-	node := it.ts.GetTripleDirection(val, it.dir)
+	node := it.ts.TripleDirection(val, it.dir)
 	if it.primaryIt.Check(node) {
 		it.Last = val
 		return graph.CheckLogOut(it, val, true)
@@ -146,7 +146,7 @@ func (it *LinksTo) Next() (graph.TSVal, bool) {
 			return graph.NextLogOut(it, 0, false)
 		}
 		it.nextIt.Close()
-		it.nextIt = it.ts.GetTripleIterator(it.dir, candidate)
+		it.nextIt = it.ts.TripleIterator(it.dir, candidate)
 		// Recurse -- return the first in the next set.
 		return it.Next()
 	}

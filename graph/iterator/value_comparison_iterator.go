@@ -67,7 +67,7 @@ func NewComparison(sub graph.Iterator, op Operator, val interface{}, ts graph.Tr
 // and our operator, determine whether or not we meet the requirement.
 func (it *Comparison) doComparison(val graph.TSVal) bool {
 	//TODO(barakmich): Implement string comparison.
-	nodeStr := it.ts.GetNameFor(val)
+	nodeStr := it.ts.NameOf(val)
 	switch cVal := it.val.(type) {
 	case int:
 		cInt := int64(cVal)

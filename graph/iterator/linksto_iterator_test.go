@@ -24,16 +24,16 @@ func TestLinksTo(t *testing.T) {
 	ts := new(TestTripleStore)
 	tsFixed := newFixed()
 	tsFixed.AddValue(2)
-	ts.On("GetIdFor", "cool").Return(1)
-	ts.On("GetTripleIterator", graph.Object, 1).Return(tsFixed)
+	ts.On("ValueOf", "cool").Return(1)
+	ts.On("TripleIterator", graph.Object, 1).Return(tsFixed)
 	fixed := newFixed()
-	fixed.AddValue(ts.GetIdFor("cool"))
+	fixed.AddValue(ts.ValueOf("cool"))
 	lto := NewLinksTo(ts, fixed, graph.Object)
 	val, ok := lto.Next()
 	if !ok {
 		t.Error("At least one triple matches the fixed object")
 	}
 	if val != 2 {
-		t.Errorf("Triple index 2, such as %s, should match %s", ts.GetTriple(2), ts.GetTriple(val))
+		t.Errorf("Triple index 2, such as %s, should match %s", ts.Triple(2), ts.Triple(val))
 	}
 }

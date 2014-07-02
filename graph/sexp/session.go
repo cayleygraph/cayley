@@ -115,7 +115,7 @@ func (s *Session) ToText(result interface{}) string {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, s.ts.GetNameFor((*tags)[k]))
+		out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf((*tags)[k]))
 	}
 	return out
 }

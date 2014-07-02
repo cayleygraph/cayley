@@ -177,8 +177,8 @@ func (it *Iterator) Check(v graph.TSVal) bool {
 			return true
 		}
 	} else {
-		nameForDir := it.ts.GetTriple(v).Get(it.dir)
-		hashForDir := it.ts.GetIdFor(nameForDir).([]byte)
+		nameForDir := it.ts.Triple(v).Get(it.dir)
+		hashForDir := it.ts.ValueOf(nameForDir).([]byte)
 		if bytes.Equal(hashForDir, it.checkId) {
 			return true
 		}
@@ -192,7 +192,7 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.ts.GetNameFor(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.ts.NameOf(it.checkId))
 }
 
 func (it *Iterator) Type() string { return "leveldb" }
