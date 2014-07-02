@@ -111,8 +111,8 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *Iterator) GetStats() *graph.IteratorStats {
-	return &graph.IteratorStats{
+func (it *Iterator) Stats() graph.IteratorStats {
+	return graph.IteratorStats{
 		CheckCost: int64(math.Log(float64(it.tree.Len()))) + 1,
 		NextCost:  1,
 		Size:      int64(it.tree.Len()),

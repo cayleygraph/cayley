@@ -64,7 +64,7 @@ func (it *And) Clone() graph.Iterator {
 }
 
 // Returns a slice of the subiterators, in order (primary iterator first).
-func (it *And) GetSubIterators() []graph.Iterator {
+func (it *And) SubIterators() []graph.Iterator {
 	iters := make([]graph.Iterator, len(it.internalIterators)+1)
 	iters[0] = it.primaryIt
 	copy(iters[1:], it.internalIterators)
@@ -84,11 +84,11 @@ func (it *And) TagResults(out *map[string]graph.TSVal) {
 }
 
 // DEPRECATED Returns the ResultTree for this iterator, recurses to it's subiterators.
-func (it *And) GetResultTree() *graph.ResultTree {
+func (it *And) ResultTree() *graph.ResultTree {
 	tree := graph.NewResultTree(it.LastResult())
-	tree.AddSubtree(it.primaryIt.GetResultTree())
+	tree.AddSubtree(it.primaryIt.ResultTree())
 	for _, sub := range it.internalIterators {
-		tree.AddSubtree(sub.GetResultTree())
+		tree.AddSubtree(sub.ResultTree())
 	}
 	return tree
 }
@@ -109,13 +109,14 @@ func (it *And) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s %d\n%stags:%s\n%sprimary_it:\n%s\n%sother_its:\n%s)",
 		strings.Repeat(" ", indent),
 		it.Type(),
-		it.GetUid(),
+		it.UID(),
 		spaces,
 		tags,
 		spaces,
 		it.primaryIt.DebugString(indent+4),
 		spaces,
-		total)
+		total,
+	)
 }
 
 // Add a subiterator to this And iterator.

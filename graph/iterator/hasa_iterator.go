@@ -65,7 +65,7 @@ func NewHasA(ts graph.TripleStore, subIt graph.Iterator, d graph.Direction) *Has
 }
 
 // Return our sole subiterator.
-func (it *HasA) GetSubIterators() []graph.Iterator {
+func (it *HasA) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.primaryIt}
 }
 
@@ -105,9 +105,9 @@ func (it *HasA) TagResults(out *map[string]graph.TSVal) {
 }
 
 // DEPRECATED Return results in a ResultTree.
-func (it *HasA) GetResultTree() *graph.ResultTree {
+func (it *HasA) ResultTree() *graph.ResultTree {
 	tree := graph.NewResultTree(it.LastResult())
-	tree.AddSubtree(it.primaryIt.GetResultTree())
+	tree.AddSubtree(it.primaryIt.ResultTree())
 	return tree
 }
 
@@ -117,7 +117,7 @@ func (it *HasA) DebugString(indent int) string {
 	for _, k := range it.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
-	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), tags, it.dir, it.primaryIt.DebugString(indent+4))
+	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.UID(), tags, it.dir, it.primaryIt.DebugString(indent+4))
 }
 
 // Check a value against our internal iterator. In order to do this, we must first open a new
@@ -196,15 +196,15 @@ func (it *HasA) Next() (graph.TSVal, bool) {
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (it *HasA) GetStats() *graph.IteratorStats {
-	subitStats := it.primaryIt.GetStats()
+func (it *HasA) Stats() graph.IteratorStats {
+	subitStats := it.primaryIt.Stats()
 	// TODO(barakmich): These should really come from the triplestore itself
 	// and be optimized.
 	faninFactor := int64(1)
 	fanoutFactor := int64(30)
 	nextConstant := int64(2)
 	tripleConstant := int64(1)
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		NextCost:  tripleConstant + subitStats.NextCost,
 		CheckCost: (fanoutFactor * nextConstant) * subitStats.CheckCost,
 		Size:      faninFactor * subitStats.Size,

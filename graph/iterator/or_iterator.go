@@ -77,7 +77,7 @@ func (it *Or) Clone() graph.Iterator {
 }
 
 // Returns a list.List of the subiterators, in order. The returned slice must not be modified.
-func (it *Or) GetSubIterators() []graph.Iterator {
+func (it *Or) SubIterators() []graph.Iterator {
 	return it.internalIterators
 }
 
@@ -89,10 +89,10 @@ func (it *Or) TagResults(out *map[string]graph.TSVal) {
 }
 
 // DEPRECATED Returns the ResultTree for this graph.iterator, recurses to it's subiterators.
-func (it *Or) GetResultTree() *graph.ResultTree {
+func (it *Or) ResultTree() *graph.ResultTree {
 	tree := graph.NewResultTree(it.LastResult())
 	for _, sub := range it.internalIterators {
-		tree.AddSubtree(sub.GetResultTree())
+		tree.AddSubtree(sub.ResultTree())
 	}
 	return tree
 }
@@ -233,7 +233,7 @@ func (it *Or) Close() {
 }
 
 func (it *Or) Optimize() (graph.Iterator, bool) {
-	old := it.GetSubIterators()
+	old := it.SubIterators()
 	optIts := optimizeSubIterators(old)
 	// Close the replaced iterators (they ought to close themselves, but Close()
 	// is idempotent, so this just protects against any machinations).
@@ -256,12 +256,12 @@ func (it *Or) Optimize() (graph.Iterator, bool) {
 	return newOr, true
 }
 
-func (it *Or) GetStats() *graph.IteratorStats {
+func (it *Or) Stats() graph.IteratorStats {
 	CheckCost := int64(0)
 	NextCost := int64(0)
 	Size := int64(0)
 	for _, sub := range it.internalIterators {
-		stats := sub.GetStats()
+		stats := sub.Stats()
 		NextCost += stats.NextCost
 		CheckCost += stats.CheckCost
 		if it.isShortCircuiting {
@@ -272,7 +272,7 @@ func (it *Or) GetStats() *graph.IteratorStats {
 			Size += stats.Size
 		}
 	}
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: CheckCost,
 		NextCost:  NextCost,
 		Size:      Size,

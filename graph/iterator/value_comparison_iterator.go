@@ -185,6 +185,6 @@ func (it *Comparison) Optimize() (graph.Iterator, bool) {
 
 // We're only as expensive as our subiterator.
 // Again, optimized value comparison iterators should do better.
-func (it *Comparison) GetStats() *graph.IteratorStats {
-	return it.subIt.GetStats()
+func (it *Comparison) Stats() graph.IteratorStats {
+	return it.subIt.Stats()
 }

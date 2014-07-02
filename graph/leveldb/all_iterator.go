@@ -125,9 +125,9 @@ func (it *AllIterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *AllIterator) GetStats() *graph.IteratorStats {
+func (it *AllIterator) Stats() graph.IteratorStats {
 	s, _ := it.Size()
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  2,
 		Size:      s,

@@ -35,12 +35,14 @@ type Iterator interface {
 	AddFixedTag(string, TSVal)
 	FixedTags() map[string]TSVal
 	CopyTagsFrom(Iterator)
+
 	// Fills a tag-to-result-value map.
 	TagResults(*map[string]TSVal)
 	// Returns the current result.
 	LastResult() TSVal
+
 	// DEPRECATED -- Fills a ResultTree struct with Result().
-	GetResultTree() *ResultTree
+	ResultTree() *ResultTree
 
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
@@ -57,14 +59,23 @@ type Iterator interface {
 	// Next() advances the iterator and returns the next valid result. Returns
 	// (<value>, true) or (nil, false)
 	Next() (TSVal, bool)
+
 	// NextResult() advances iterators that may have more than one valid result,
 	// from the bottom up.
 	NextResult() bool
+
+	// Return whether this iterator is reliably nextable. Most iterators are.
+	// However, some iterators, like "not" are, by definition, the whole database
+	// except themselves. Next() on these is unproductive, if impossible.
+	CanNext() bool
+
 	// Check(), given a value, returns whether or not that value is within the set
 	// held by this iterator.
 	Check(TSVal) bool
+
 	// Start iteration from the beginning
 	Reset()
+
 	// Create a new iterator just like this one
 	Clone() Iterator
 	// These methods relate to choosing the right iterator, or optimizing an
@@ -74,31 +85,32 @@ type Iterator interface {
 	// this iterator, as well as the size. Roughly, it will take NextCost * Size
 	// "cost units" to get everything out of the iterator. This is a wibbly-wobbly
 	// thing, and not exact, but a useful heuristic.
-	GetStats() *IteratorStats
+
+	Stats() IteratorStats
 	// Helpful accessor for the number of things in the iterator. The first return
 	// value is the size, and the second return value is whether that number is exact,
 	// or a conservative estimate.
 	Size() (int64, bool)
+
 	// Returns a string relating to what the function of the iterator is. By
 	// knowing the names of the iterators, we can devise optimization strategies.
 	Type() string
+
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
 	// returns (the new iterator, true), if not, it returns (self, false).
 	Optimize() (Iterator, bool)
 
 	// Return a slice of the subiterators for this iterator.
-	GetSubIterators() []Iterator
+	SubIterators() []Iterator
 
 	// Return a string representation of the iterator, indented by the given amount.
 	DebugString(int) string
-	// Return whether this iterator is relaiably nextable. Most iterators are.
-	// However, some iterators, like "not" are, by definition, the whole database
-	// except themselves. Next() on these is unproductive, if impossible.
-	Nextable() bool
+
 	// Close the iterator and do internal cleanup.
 	Close()
-	GetUid() int
+
+	UID() uintptr
 }
 
 type FixedIterator interface {
@@ -116,16 +128,16 @@ type IteratorStats struct {
 // well as what they return. Highly useful for tracing the execution path of a query.
 func CheckLogIn(it Iterator, val TSVal) {
 	if glog.V(4) {
-		glog.V(4).Infof("%s %d CHECK %d", strings.ToUpper(it.Type()), it.GetUid(), val)
+		glog.V(4).Infof("%s %d CHECK %d", strings.ToUpper(it.Type()), it.UID(), val)
 	}
 }
 
 func CheckLogOut(it Iterator, val TSVal, good bool) bool {
 	if glog.V(4) {
 		if good {
-			glog.V(4).Infof("%s %d CHECK %d GOOD", strings.ToUpper(it.Type()), it.GetUid(), val)
+			glog.V(4).Infof("%s %d CHECK %d GOOD", strings.ToUpper(it.Type()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d CHECK %d BAD", strings.ToUpper(it.Type()), it.GetUid(), val)
+			glog.V(4).Infof("%s %d CHECK %d BAD", strings.ToUpper(it.Type()), it.UID(), val)
 		}
 	}
 	return good
@@ -133,16 +145,16 @@ func CheckLogOut(it Iterator, val TSVal, good bool) bool {
 
 func NextLogIn(it Iterator) {
 	if glog.V(4) {
-		glog.V(4).Infof("%s %d NEXT", strings.ToUpper(it.Type()), it.GetUid())
+		glog.V(4).Infof("%s %d NEXT", strings.ToUpper(it.Type()), it.UID())
 	}
 }
 
 func NextLogOut(it Iterator, val TSVal, ok bool) (TSVal, bool) {
 	if glog.V(4) {
 		if ok {
-			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type()), it.GetUid(), val)
+			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type()), it.GetUid())
+			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type()), it.UID())
 		}
 	}
 	return val, ok

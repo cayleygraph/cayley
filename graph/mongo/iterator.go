@@ -171,9 +171,9 @@ func (it *Iterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s size:%d %s %s)", strings.Repeat(" ", indent), it.Type(), size, it.hash, it.name)
 }
 
-func (it *Iterator) GetStats() *graph.IteratorStats {
+func (it *Iterator) Stats() graph.IteratorStats {
 	size, _ := it.Size()
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  5,
 		Size:      size,

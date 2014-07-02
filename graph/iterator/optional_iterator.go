@@ -47,7 +47,7 @@ type Optional struct {
 func NewOptional(it graph.Iterator) *Optional {
 	var o Optional
 	BaseInit(&o.Base)
-	o.nextable = false
+	o.canNext = false
 	o.subIt = it
 	return &o
 }
@@ -127,9 +127,9 @@ func (it *Optional) Optimize() (graph.Iterator, bool) {
 }
 
 // We're only as expensive as our subiterator. Except, we can't be nexted.
-func (it *Optional) GetStats() *graph.IteratorStats {
-	subStats := it.subIt.GetStats()
-	return &graph.IteratorStats{
+func (it *Optional) Stats() graph.IteratorStats {
+	subStats := it.subIt.Stats()
+	return graph.IteratorStats{
 		CheckCost: subStats.CheckCost,
 		NextCost:  int64(1 << 62),
 		Size:      subStats.Size,

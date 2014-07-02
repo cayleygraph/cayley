@@ -192,7 +192,7 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), it.Tags(), it.dir, size, it.ts.GetNameFor(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.ts.GetNameFor(it.checkId))
 }
 
 func (it *Iterator) Type() string { return "leveldb" }
@@ -202,9 +202,9 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *Iterator) GetStats() *graph.IteratorStats {
+func (it *Iterator) Stats() graph.IteratorStats {
 	s, _ := it.Size()
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  2,
 		Size:      s,

@@ -83,9 +83,9 @@ func (it *LinksTo) TagResults(out *map[string]graph.TSVal) {
 }
 
 // DEPRECATED
-func (it *LinksTo) GetResultTree() *graph.ResultTree {
+func (it *LinksTo) ResultTree() *graph.ResultTree {
 	tree := graph.NewResultTree(it.LastResult())
-	tree.AddSubtree(it.primaryIt.GetResultTree())
+	tree.AddSubtree(it.primaryIt.ResultTree())
 	return tree
 }
 
@@ -93,7 +93,7 @@ func (it *LinksTo) GetResultTree() *graph.ResultTree {
 func (it *LinksTo) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s %d direction:%s\n%s)",
 		strings.Repeat(" ", indent),
-		it.Type(), it.GetUid(), it.dir, it.primaryIt.DebugString(indent+4))
+		it.Type(), it.UID(), it.dir, it.primaryIt.DebugString(indent+4))
 }
 
 // If it checks in the right direction for the subiterator, it is a valid link
@@ -109,7 +109,7 @@ func (it *LinksTo) Check(val graph.TSVal) bool {
 }
 
 // Return a list containing only our subiterator.
-func (it *LinksTo) GetSubIterators() []graph.Iterator {
+func (it *LinksTo) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.primaryIt}
 }
 
@@ -169,13 +169,13 @@ func (it *LinksTo) NextResult() bool {
 func (it *LinksTo) Type() string { return "linksto" }
 
 // Return a guess as to how big or costly it is to next the iterator.
-func (it *LinksTo) GetStats() *graph.IteratorStats {
-	subitStats := it.primaryIt.GetStats()
+func (it *LinksTo) Stats() graph.IteratorStats {
+	subitStats := it.primaryIt.Stats()
 	// TODO(barakmich): These should really come from the triplestore itself
 	fanoutFactor := int64(20)
 	checkConstant := int64(1)
 	nextConstant := int64(2)
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		NextCost:  nextConstant + subitStats.NextCost,
 		CheckCost: checkConstant + subitStats.CheckCost,
 		Size:      fanoutFactor * subitStats.Size,

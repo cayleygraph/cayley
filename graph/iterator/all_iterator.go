@@ -108,9 +108,9 @@ func (it *Int64) Optimize() (graph.Iterator, bool) { return it, false }
 
 // Stats for an Int64 are simple. Super cheap to do any operation,
 // and as big as the range.
-func (it *Int64) GetStats() *graph.IteratorStats {
+func (it *Int64) Stats() graph.IteratorStats {
 	s, _ := it.Size()
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  1,
 		Size:      s,

@@ -20,13 +20,18 @@ package iterator
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
 )
 
-var iterator_n int = 0
+var nextIteratorID uintptr
+
+func nextID() uintptr {
+	return atomic.AddUintptr(&nextIteratorID, 1) - 1
+}
 
 // The Base iterator is the iterator other iterators inherit from to get some
 // default functionality.
@@ -34,21 +39,20 @@ type Base struct {
 	Last      graph.TSVal
 	tags      []string
 	fixedTags map[string]graph.TSVal
-	nextable  bool
-	uid       int
+	canNext   bool
+	uid       uintptr
 }
 
 // Called by subclases.
 func BaseInit(it *Base) {
 	// Your basic iterator is nextable
-	it.nextable = true
-	it.uid = iterator_n
+	it.canNext = true
 	if glog.V(2) {
-		iterator_n++
+		it.uid = nextID()
 	}
 }
 
-func (it *Base) GetUid() int {
+func (it *Base) UID() uintptr {
 	return it.uid
 }
 
@@ -99,12 +103,12 @@ func (it *Base) Check(v graph.TSVal) bool {
 
 // Base iterators should never appear in a tree if they are, select against
 // them.
-func (it *Base) GetStats() *graph.IteratorStats {
-	return &graph.IteratorStats{100000, 100000, 100000}
+func (it *Base) Stats() graph.IteratorStats {
+	return graph.IteratorStats{100000, 100000, 100000}
 }
 
 // DEPRECATED
-func (it *Base) GetResultTree() *graph.ResultTree {
+func (it *Base) ResultTree() *graph.ResultTree {
 	tree := graph.NewResultTree(it.LastResult())
 	return tree
 }
@@ -129,12 +133,12 @@ func (it *Base) Size() (int64, bool) {
 }
 
 // No subiterators. Only those with subiterators need to do anything here.
-func (it *Base) GetSubIterators() []graph.Iterator {
+func (it *Base) SubIterators() []graph.Iterator {
 	return nil
 }
 
 // Accessor
-func (it *Base) Nextable() bool { return it.nextable }
+func (it *Base) CanNext() bool { return it.canNext }
 
 // Fill the map based on the tags assigned to this iterator. Default
 // functionality works well for most iterators.
@@ -182,6 +186,6 @@ func (it *Null) DebugString(indent int) string {
 }
 
 // A null iterator costs nothing. Use it!
-func (it *Null) GetStats() *graph.IteratorStats {
-	return &graph.IteratorStats{}
+func (it *Null) Stats() graph.IteratorStats {
+	return graph.IteratorStats{}
 }

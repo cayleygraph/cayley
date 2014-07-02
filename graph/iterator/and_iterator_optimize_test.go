@@ -79,7 +79,7 @@ func TestReorderWithTag(t *testing.T) {
 	}
 	expectedTags := []string{"good", "slow"}
 	tagsOut := make([]string, 0)
-	for _, sub := range newIt.GetSubIterators() {
+	for _, sub := range newIt.SubIterators() {
 		for _, x := range sub.Tags() {
 			tagsOut = append(tagsOut, x)
 		}
@@ -98,12 +98,12 @@ func TestAndStatistics(t *testing.T) {
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)
-	stats1 := a.GetStats()
+	stats1 := a.Stats()
 	newIt, changed := a.Optimize()
 	if !changed {
 		t.Error("Didn't optimize")
 	}
-	stats2 := newIt.GetStats()
+	stats2 := newIt.Stats()
 	if stats2.NextCost > stats1.NextCost {
 		t.Error("And didn't optimize. Next cost old ", stats1.NextCost, "and new ", stats2.NextCost)
 	}

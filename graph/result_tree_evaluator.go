@@ -48,11 +48,11 @@ func StringResultTreeEvaluator(it Iterator) string {
 		if !ok {
 			break
 		}
-		out += it.GetResultTree().String()
+		out += it.ResultTree().String()
 		out += "\n"
 		for it.NextResult() == true {
 			out += " "
-			out += it.GetResultTree().String()
+			out += it.ResultTree().String()
 			out += "\n"
 		}
 	}
