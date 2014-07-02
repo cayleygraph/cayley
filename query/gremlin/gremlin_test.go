@@ -256,7 +256,7 @@ func runQueryGetTag(g []*graph.Triple, query string, tag string) []string {
 		if data.val == nil {
 			val := (*data.actualResults)[tag]
 			if val != nil {
-				results = append(results, js.ts.GetNameFor(val))
+				results = append(results, js.ts.NameOf(val))
 			}
 		}
 	}
