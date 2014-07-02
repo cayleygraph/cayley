@@ -92,19 +92,19 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 		if !ok {
 			break
 		}
-		tags := make(map[string]graph.TSVal)
-		it.TagResults(&tags)
-		c <- &tags
+		tags := make(map[string]graph.Value)
+		it.TagResults(tags)
+		c <- tags
 		for it.NextResult() == true {
-			tags := make(map[string]graph.TSVal)
-			it.TagResults(&tags)
-			c <- &tags
+			tags := make(map[string]graph.Value)
+			it.TagResults(tags)
+			c <- tags
 		}
 	}
 }
 
 func (s *Session) ToText(result interface{}) string {
-	tags := *(result.(*map[string]graph.TSVal))
+	tags := result.(map[string]graph.Value)
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
 	s.currentQuery.treeifyResult(tags)
@@ -121,13 +121,13 @@ func (s *Session) ToText(result interface{}) string {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, s.ts.GetNameFor(tags[k]))
+		out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf(tags[k]))
 	}
 	return out
 }
 
 func (s *Session) BuildJson(result interface{}) {
-	s.currentQuery.treeifyResult(*(result.(*map[string]graph.TSVal)))
+	s.currentQuery.treeifyResult(result.(map[string]graph.Value))
 }
 
 func (s *Session) GetJson() (interface{}, error) {

@@ -64,7 +64,7 @@ func (it *And) Clone() graph.Iterator {
 }
 
 // Returns a slice of the subiterators, in order (primary iterator first).
-func (it *And) GetSubIterators() []graph.Iterator {
+func (it *And) SubIterators() []graph.Iterator {
 	iters := make([]graph.Iterator, len(it.internalIterators)+1)
 	iters[0] = it.primaryIt
 	copy(iters[1:], it.internalIterators)
@@ -73,22 +73,22 @@ func (it *And) GetSubIterators() []graph.Iterator {
 
 // Overrides Base TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
-func (it *And) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
+func (it *And) TagResults(dst map[string]graph.Value) {
+	it.Base.TagResults(dst)
 	if it.primaryIt != nil {
-		it.primaryIt.TagResults(out)
+		it.primaryIt.TagResults(dst)
 	}
 	for _, sub := range it.internalIterators {
-		sub.TagResults(out)
+		sub.TagResults(dst)
 	}
 }
 
 // DEPRECATED Returns the ResultTree for this iterator, recurses to it's subiterators.
-func (it *And) GetResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
-	tree.AddSubtree(it.primaryIt.GetResultTree())
+func (it *And) ResultTree() *graph.ResultTree {
+	tree := graph.NewResultTree(it.Result())
+	tree.AddSubtree(it.primaryIt.ResultTree())
 	for _, sub := range it.internalIterators {
-		tree.AddSubtree(sub.GetResultTree())
+		tree.AddSubtree(sub.ResultTree())
 	}
 	return tree
 }
@@ -109,13 +109,14 @@ func (it *And) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s %d\n%stags:%s\n%sprimary_it:\n%s\n%sother_its:\n%s)",
 		strings.Repeat(" ", indent),
 		it.Type(),
-		it.GetUid(),
+		it.UID(),
 		spaces,
 		tags,
 		spaces,
 		it.primaryIt.DebugString(indent+4),
 		spaces,
-		total)
+		total,
+	)
 }
 
 // Add a subiterator to this And iterator.
@@ -138,9 +139,9 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 // intersection of its subiterators, it must choose one subiterator to produce a
 // candidate, and check this value against the subiterators. A productive choice
 // of primary iterator is therefore very important.
-func (it *And) Next() (graph.TSVal, bool) {
+func (it *And) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	var curr graph.TSVal
+	var curr graph.Value
 	var exists bool
 	for {
 		curr, exists = it.primaryIt.Next()
@@ -156,7 +157,7 @@ func (it *And) Next() (graph.TSVal, bool) {
 }
 
 // Checks a value against the non-primary iterators, in order.
-func (it *And) checkSubIts(val graph.TSVal) bool {
+func (it *And) checkSubIts(val graph.Value) bool {
 	var subIsGood = true
 	for _, sub := range it.internalIterators {
 		subIsGood = sub.Check(val)
@@ -167,7 +168,7 @@ func (it *And) checkSubIts(val graph.TSVal) bool {
 	return subIsGood
 }
 
-func (it *And) checkCheckList(val graph.TSVal) bool {
+func (it *And) checkCheckList(val graph.Value) bool {
 	ok := true
 	for _, c := range it.checkList {
 		ok = c.Check(val)
@@ -182,7 +183,7 @@ func (it *And) checkCheckList(val graph.TSVal) bool {
 }
 
 // Check a value against the entire iterator, in order.
-func (it *And) Check(val graph.TSVal) bool {
+func (it *And) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	if it.checkList != nil {
 		return it.checkCheckList(val)

@@ -65,7 +65,7 @@ func NewHasA(ts graph.TripleStore, subIt graph.Iterator, d graph.Direction) *Has
 }
 
 // Return our sole subiterator.
-func (it *HasA) GetSubIterators() []graph.Iterator {
+func (it *HasA) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.primaryIt}
 }
 
@@ -99,15 +99,15 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 }
 
 // Pass the TagResults down the chain.
-func (it *HasA) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
-	it.primaryIt.TagResults(out)
+func (it *HasA) TagResults(dst map[string]graph.Value) {
+	it.Base.TagResults(dst)
+	it.primaryIt.TagResults(dst)
 }
 
 // DEPRECATED Return results in a ResultTree.
-func (it *HasA) GetResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
-	tree.AddSubtree(it.primaryIt.GetResultTree())
+func (it *HasA) ResultTree() *graph.ResultTree {
+	tree := graph.NewResultTree(it.Result())
+	tree.AddSubtree(it.primaryIt.ResultTree())
 	return tree
 }
 
@@ -117,22 +117,22 @@ func (it *HasA) DebugString(indent int) string {
 	for _, k := range it.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
-	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), tags, it.dir, it.primaryIt.DebugString(indent+4))
+	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.UID(), tags, it.dir, it.primaryIt.DebugString(indent+4))
 }
 
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "triples that have `val` in our direction", given to us by the triple store,
 // and then Next() values out of that iterator and Check() them against our subiterator.
-func (it *HasA) Check(val graph.TSVal) bool {
+func (it *HasA) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	if glog.V(4) {
-		glog.V(4).Infoln("Id is", it.ts.GetNameFor(val))
+		glog.V(4).Infoln("Id is", it.ts.NameOf(val))
 	}
 	// TODO(barakmich): Optimize this
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
-	it.resultIt = it.ts.GetTripleIterator(it.dir, val)
+	it.resultIt = it.ts.TripleIterator(it.dir, val)
 	return graph.CheckLogOut(it, val, it.GetCheckResult())
 }
 
@@ -146,10 +146,10 @@ func (it *HasA) GetCheckResult() bool {
 			break
 		}
 		if glog.V(4) {
-			glog.V(4).Infoln("Triple is", it.ts.GetTriple(linkVal))
+			glog.V(4).Infoln("Triple is", it.ts.Triple(linkVal))
 		}
 		if it.primaryIt.Check(linkVal) {
-			it.Last = it.ts.GetTripleDirection(linkVal, it.dir)
+			it.Last = it.ts.TripleDirection(linkVal, it.dir)
 			return true
 		}
 	}
@@ -173,7 +173,7 @@ func (it *HasA) NextResult() bool {
 // Get the next result from this iterator. This is simpler than Check. We have a
 // subiterator we can get a value from, and we can take that resultant triple,
 // pull our direction out of it, and return that.
-func (it *HasA) Next() (graph.TSVal, bool) {
+func (it *HasA) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
 	if it.resultIt != nil {
 		it.resultIt.Close()
@@ -184,8 +184,8 @@ func (it *HasA) Next() (graph.TSVal, bool) {
 	if !ok {
 		return graph.NextLogOut(it, 0, false)
 	}
-	name := it.ts.GetTriple(tID).Get(it.dir)
-	val := it.ts.GetIdFor(name)
+	name := it.ts.Triple(tID).Get(it.dir)
+	val := it.ts.ValueOf(name)
 	it.Last = val
 	return graph.NextLogOut(it, val, true)
 }
@@ -196,15 +196,15 @@ func (it *HasA) Next() (graph.TSVal, bool) {
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (it *HasA) GetStats() *graph.IteratorStats {
-	subitStats := it.primaryIt.GetStats()
+func (it *HasA) Stats() graph.IteratorStats {
+	subitStats := it.primaryIt.Stats()
 	// TODO(barakmich): These should really come from the triplestore itself
 	// and be optimized.
 	faninFactor := int64(1)
 	fanoutFactor := int64(30)
 	nextConstant := int64(2)
 	tripleConstant := int64(1)
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		NextCost:  tripleConstant + subitStats.NextCost,
 		CheckCost: (fanoutFactor * nextConstant) * subitStats.CheckCost,
 		Size:      faninFactor * subitStats.Size,

@@ -42,7 +42,7 @@ import (
 func (it *And) Optimize() (graph.Iterator, bool) {
 	// First, let's get the slice of iterators, in order (first one is Next()ed,
 	// the rest are Check()ed)
-	old := it.GetSubIterators()
+	old := it.SubIterators()
 
 	// And call Optimize() on our subtree, replacing each one in the order we
 	// found them. it_list is the newly optimized versions of these, and changed
@@ -145,20 +145,20 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	// all of it's contents, and to Check() each of those against everyone
 	// else.
 	for _, it := range its {
-		if !it.Nextable() {
+		if !it.CanNext() {
 			bad = append(bad, it)
 			continue
 		}
-		rootStats := it.GetStats()
+		rootStats := it.Stats()
 		cost := rootStats.NextCost
 		for _, f := range its {
-			if !f.Nextable() {
+			if !f.CanNext() {
 				continue
 			}
 			if f == it {
 				continue
 			}
-			stats := f.GetStats()
+			stats := f.Stats()
 			cost += stats.CheckCost
 		}
 		cost *= rootStats.Size
@@ -177,7 +177,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 
 	// ... push everyone else after...
 	for _, it := range its {
-		if !it.Nextable() {
+		if !it.CanNext() {
 			continue
 		}
 		if it != best {
@@ -192,7 +192,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 type byCost []graph.Iterator
 
 func (c byCost) Len() int           { return len(c) }
-func (c byCost) Less(i, j int) bool { return c[i].GetStats().CheckCost < c[j].GetStats().CheckCost }
+func (c byCost) Less(i, j int) bool { return c[i].Stats().CheckCost < c[j].Stats().CheckCost }
 func (c byCost) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
 // optimizeCheck(l) creates an alternate check list, containing the same contents
@@ -202,7 +202,7 @@ func (it *And) optimizeCheck() {
 	// TODO(kortschak) Reuse it.checkList if possible.
 	// This involves providing GetSubIterators with a slice to fill.
 	// Generally this is a worthwhile thing to do in other places as well.
-	it.checkList = it.GetSubIterators()
+	it.checkList = it.SubIterators()
 	sort.Sort(byCost(it.checkList))
 }
 
@@ -212,7 +212,7 @@ func (it *And) optimizeCheck() {
 // getSubTags() returns a map of the tags for all the subiterators.
 func (it *And) getSubTags() map[string]struct{} {
 	tags := make(map[string]struct{})
-	for _, sub := range it.GetSubIterators() {
+	for _, sub := range it.SubIterators() {
 		for _, tag := range sub.Tags() {
 			tags[tag] = struct{}{}
 		}
@@ -292,23 +292,23 @@ func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 	return nil
 }
 
-// and.GetStats() lives here in and-iterator-optimize.go because it may
+// and.Stats() lives here in and-iterator-optimize.go because it may
 // in the future return different statistics based on how it is optimized.
 // For now, however, it's pretty static.
-func (it *And) GetStats() *graph.IteratorStats {
-	primaryStats := it.primaryIt.GetStats()
+func (it *And) Stats() graph.IteratorStats {
+	primaryStats := it.primaryIt.Stats()
 	CheckCost := primaryStats.CheckCost
 	NextCost := primaryStats.NextCost
 	Size := primaryStats.Size
 	for _, sub := range it.internalIterators {
-		stats := sub.GetStats()
+		stats := sub.Stats()
 		NextCost += stats.CheckCost
 		CheckCost += stats.CheckCost
 		if Size > stats.Size {
 			Size = stats.Size
 		}
 	}
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: CheckCost,
 		NextCost:  NextCost,
 		Size:      Size,

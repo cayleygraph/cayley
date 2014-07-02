@@ -39,11 +39,11 @@ type Iterator struct {
 	collection string
 }
 
-func NewIterator(ts *TripleStore, collection string, d graph.Direction, val graph.TSVal) *Iterator {
+func NewIterator(ts *TripleStore, collection string, d graph.Direction, val graph.Value) *Iterator {
 	var m Iterator
 	iterator.BaseInit(&m.Base)
 
-	m.name = ts.GetNameFor(val)
+	m.name = ts.NameOf(val)
 	m.collection = collection
 	switch d {
 	case graph.Subject:
@@ -109,7 +109,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	return newM
 }
 
-func (it *Iterator) Next() (graph.TSVal, bool) {
+func (it *Iterator) Next() (graph.Value, bool) {
 	var result struct {
 		Id string "_id"
 		//Sub string "Sub"
@@ -128,7 +128,7 @@ func (it *Iterator) Next() (graph.TSVal, bool) {
 	return result.Id, true
 }
 
-func (it *Iterator) Check(v graph.TSVal) bool {
+func (it *Iterator) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	if it.isAll {
 		it.Last = v
@@ -171,9 +171,9 @@ func (it *Iterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s size:%d %s %s)", strings.Repeat(" ", indent), it.Type(), size, it.hash, it.name)
 }
 
-func (it *Iterator) GetStats() *graph.IteratorStats {
+func (it *Iterator) Stats() graph.IteratorStats {
 	size, _ := it.Size()
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  5,
 		Size:      size,

@@ -47,7 +47,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 			So(it.Type(), ShouldEqual, "and")
 			out, ok := it.Next()
 			So(ok, ShouldBeTrue)
-			So(out, ShouldEqual, ts.GetIdFor("i"))
+			So(out, ShouldEqual, ts.ValueOf("i"))
 		})
 
 		Convey("It can get an internal linkage", func() {
@@ -57,7 +57,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 			So(it.Type(), ShouldEqual, "and")
 			out, ok := it.Next()
 			So(ok, ShouldBeTrue)
-			So(out, ShouldEqual, ts.GetIdFor("i"))
+			So(out, ShouldEqual, ts.ValueOf("i"))
 		})
 
 	})
@@ -78,8 +78,8 @@ func TestTreeConstraintParse(t *testing.T) {
 	if !ok {
 		t.Error("Got no results")
 	}
-	if out != ts.GetIdFor("i") {
-		t.Errorf("Got %d, expected %d", out, ts.GetIdFor("i"))
+	if out != ts.ValueOf("i") {
+		t.Errorf("Got %d, expected %d", out, ts.ValueOf("i"))
 	}
 }
 
@@ -95,10 +95,10 @@ func TestTreeConstraintTagParse(t *testing.T) {
 	if !ok {
 		t.Error("Got no results")
 	}
-	tags := make(map[string]graph.TSVal)
-	it.TagResults(&tags)
-	if ts.GetNameFor(tags["$a"]) != "food" {
-		t.Errorf("Got %s, expected food", ts.GetNameFor(tags["$a"]))
+	tags := make(map[string]graph.Value)
+	it.TagResults(tags)
+	if ts.NameOf(tags["$a"]) != "food" {
+		t.Errorf("Got %s, expected food", ts.NameOf(tags["$a"]))
 	}
 
 }
@@ -119,8 +119,8 @@ func TestMultipleConstraintParse(t *testing.T) {
 	if !ok {
 		t.Error("Got no results")
 	}
-	if out != ts.GetIdFor("i") {
-		t.Errorf("Got %d, expected %d", out, ts.GetIdFor("i"))
+	if out != ts.ValueOf("i") {
+		t.Errorf("Got %d, expected %d", out, ts.ValueOf("i"))
 	}
 	_, ok = it.Next()
 	if ok {

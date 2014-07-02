@@ -31,7 +31,7 @@ func TestMemstore(t *testing.T) {
 			So(ts.Size(), ShouldEqual, 11)
 		})
 		Convey("It should have an Id Space that makes sense", func() {
-			v := ts.GetIdFor("C")
+			v := ts.ValueOf("C")
 			So(v.(int64), ShouldEqual, 4)
 		})
 	})
@@ -40,13 +40,13 @@ func TestMemstore(t *testing.T) {
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	ts := MakeTestingMemstore()
 	fixed := ts.FixedIterator()
-	fixed.AddValue(ts.GetIdFor("C"))
-	all := ts.GetNodesAllIterator()
+	fixed.Add(ts.ValueOf("C"))
+	all := ts.NodesAllIterator()
 	lto := iterator.NewLinksTo(ts, all, graph.Object)
 	innerAnd := iterator.NewAnd()
 
 	fixed2 := ts.FixedIterator()
-	fixed2.AddValue(ts.GetIdFor("follows"))
+	fixed2.Add(ts.ValueOf("follows"))
 	lto2 := iterator.NewLinksTo(ts, fixed2, graph.Predicate)
 	innerAnd.AddSubIterator(lto2)
 	innerAnd.AddSubIterator(lto)
@@ -58,19 +58,19 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	if !ok {
 		t.Error("Expected one matching subtree")
 	}
-	if ts.GetNameFor(val) != "C" {
-		t.Errorf("Matching subtree should be %s, got %s", "barak", ts.GetNameFor(val))
+	if ts.NameOf(val) != "C" {
+		t.Errorf("Matching subtree should be %s, got %s", "barak", ts.NameOf(val))
 	}
 	expected := make([]string, 2)
 	expected[0] = "B"
 	expected[1] = "D"
 	actualOut := make([]string, 2)
-	actualOut[0] = ts.GetNameFor(all.LastResult())
+	actualOut[0] = ts.NameOf(all.Result())
 	nresultOk := outerAnd.NextResult()
 	if !nresultOk {
 		t.Error("Expected two results got one")
 	}
-	actualOut[1] = ts.GetNameFor(all.LastResult())
+	actualOut[1] = ts.NameOf(all.Result())
 	nresultOk = outerAnd.NextResult()
 	if nresultOk {
 		t.Error("Expected two results got three")
@@ -98,7 +98,7 @@ func CompareStringSlices(t *testing.T, expected []string, actual []string) {
 func TestLinksToOptimization(t *testing.T) {
 	ts := MakeTestingMemstore()
 	fixed := ts.FixedIterator()
-	fixed.AddValue(ts.GetIdFor("cool"))
+	fixed.Add(ts.ValueOf("cool"))
 	lto := iterator.NewLinksTo(ts, fixed, graph.Object)
 	lto.AddTag("foo")
 	newIt, changed := lto.Optimize()
@@ -122,10 +122,10 @@ func TestRemoveTriple(t *testing.T) {
 	ts := MakeTestingMemstore()
 	ts.RemoveTriple(&graph.Triple{"E", "follows", "F", ""})
 	fixed := ts.FixedIterator()
-	fixed.AddValue(ts.GetIdFor("E"))
+	fixed.Add(ts.ValueOf("E"))
 	lto := iterator.NewLinksTo(ts, fixed, graph.Subject)
 	fixed2 := ts.FixedIterator()
-	fixed2.AddValue(ts.GetIdFor("follows"))
+	fixed2.Add(ts.ValueOf("follows"))
 	lto2 := iterator.NewLinksTo(ts, fixed2, graph.Predicate)
 	innerAnd := iterator.NewAnd()
 	innerAnd.AddSubIterator(lto2)

@@ -17,11 +17,11 @@ package graph
 import "fmt"
 
 type ResultTree struct {
-	result   TSVal
+	result   Value
 	subtrees []*ResultTree
 }
 
-func NewResultTree(result TSVal) *ResultTree {
+func NewResultTree(result Value) *ResultTree {
 	return &ResultTree{result: result}
 }
 
@@ -48,11 +48,11 @@ func StringResultTreeEvaluator(it Iterator) string {
 		if !ok {
 			break
 		}
-		out += it.GetResultTree().String()
+		out += it.ResultTree().String()
 		out += "\n"
 		for it.NextResult() == true {
 			out += " "
-			out += it.GetResultTree().String()
+			out += it.ResultTree().String()
 			out += "\n"
 		}
 	}

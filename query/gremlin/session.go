@@ -65,7 +65,7 @@ type GremlinResult struct {
 	metaresult    bool
 	err           string
 	val           *otto.Value
-	actualResults *map[string]graph.TSVal
+	actualResults *map[string]graph.Value
 }
 
 func (s *Session) ToggleDebug() {
@@ -202,7 +202,7 @@ func (s *Session) ToText(result interface{}) string {
 			if k == "$_" {
 				continue
 			}
-			out += fmt.Sprintf("%s : %s\n", k, s.ts.GetNameFor((*tags)[k]))
+			out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf((*tags)[k]))
 		}
 	} else {
 		if data.val.IsObject() {
@@ -234,7 +234,7 @@ func (ses *Session) BuildJson(result interface{}) {
 			}
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
-				obj[k] = ses.ts.GetNameFor((*tags)[k])
+				obj[k] = ses.ts.NameOf((*tags)[k])
 			}
 			ses.dataOutput = append(ses.dataOutput, obj)
 		} else {

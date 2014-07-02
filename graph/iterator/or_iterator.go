@@ -77,22 +77,22 @@ func (it *Or) Clone() graph.Iterator {
 }
 
 // Returns a list.List of the subiterators, in order. The returned slice must not be modified.
-func (it *Or) GetSubIterators() []graph.Iterator {
+func (it *Or) SubIterators() []graph.Iterator {
 	return it.internalIterators
 }
 
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
-func (it *Or) TagResults(out *map[string]graph.TSVal) {
-	it.Base.TagResults(out)
-	it.internalIterators[it.currentIterator].TagResults(out)
+func (it *Or) TagResults(dst map[string]graph.Value) {
+	it.Base.TagResults(dst)
+	it.internalIterators[it.currentIterator].TagResults(dst)
 }
 
 // DEPRECATED Returns the ResultTree for this graph.iterator, recurses to it's subiterators.
-func (it *Or) GetResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.LastResult())
+func (it *Or) ResultTree() *graph.ResultTree {
+	tree := graph.NewResultTree(it.Result())
 	for _, sub := range it.internalIterators {
-		tree.AddSubtree(sub.GetResultTree())
+		tree.AddSubtree(sub.ResultTree())
 	}
 	return tree
 }
@@ -128,9 +128,9 @@ func (it *Or) AddSubIterator(sub graph.Iterator) {
 // Returns the Next value from the Or graph.iterator. Because the Or is the
 // union of its subiterators, it must produce from all subiterators -- unless
 // it's shortcircuiting, in which case, it's the first one that returns anything.
-func (it *Or) Next() (graph.TSVal, bool) {
+func (it *Or) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	var curr graph.TSVal
+	var curr graph.Value
 	var exists bool
 	firstTime := false
 	for {
@@ -157,7 +157,7 @@ func (it *Or) Next() (graph.TSVal, bool) {
 }
 
 // Checks a value against the iterators, in order.
-func (it *Or) checkSubIts(val graph.TSVal) bool {
+func (it *Or) checkSubIts(val graph.Value) bool {
 	var subIsGood = false
 	for i, sub := range it.internalIterators {
 		subIsGood = sub.Check(val)
@@ -170,7 +170,7 @@ func (it *Or) checkSubIts(val graph.TSVal) bool {
 }
 
 // Check a value against the entire graph.iterator, in order.
-func (it *Or) Check(val graph.TSVal) bool {
+func (it *Or) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	anyGood := it.checkSubIts(val)
 	if !anyGood {
@@ -233,7 +233,7 @@ func (it *Or) Close() {
 }
 
 func (it *Or) Optimize() (graph.Iterator, bool) {
-	old := it.GetSubIterators()
+	old := it.SubIterators()
 	optIts := optimizeSubIterators(old)
 	// Close the replaced iterators (they ought to close themselves, but Close()
 	// is idempotent, so this just protects against any machinations).
@@ -256,12 +256,12 @@ func (it *Or) Optimize() (graph.Iterator, bool) {
 	return newOr, true
 }
 
-func (it *Or) GetStats() *graph.IteratorStats {
+func (it *Or) Stats() graph.IteratorStats {
 	CheckCost := int64(0)
 	NextCost := int64(0)
 	Size := int64(0)
 	for _, sub := range it.internalIterators {
-		stats := sub.GetStats()
+		stats := sub.Stats()
 		NextCost += stats.NextCost
 		CheckCost += stats.CheckCost
 		if it.isShortCircuiting {
@@ -272,7 +272,7 @@ func (it *Or) GetStats() *graph.IteratorStats {
 			Size += stats.Size
 		}
 	}
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: CheckCost,
 		NextCost:  NextCost,
 		Size:      Size,

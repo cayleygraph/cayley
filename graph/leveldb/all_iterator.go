@@ -72,7 +72,7 @@ func (it *AllIterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *AllIterator) Next() (graph.TSVal, bool) {
+func (it *AllIterator) Next() (graph.Value, bool) {
 	if !it.open {
 		it.Last = nil
 		return nil, false
@@ -92,7 +92,7 @@ func (it *AllIterator) Next() (graph.TSVal, bool) {
 	return out, true
 }
 
-func (it *AllIterator) Check(v graph.TSVal) bool {
+func (it *AllIterator) Check(v graph.Value) bool {
 	it.Last = v
 	return true
 }
@@ -125,9 +125,9 @@ func (it *AllIterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *AllIterator) GetStats() *graph.IteratorStats {
+func (it *AllIterator) Stats() graph.IteratorStats {
 	s, _ := it.Size()
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  2,
 		Size:      s,

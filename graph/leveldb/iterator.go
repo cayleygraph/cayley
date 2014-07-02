@@ -38,7 +38,7 @@ type Iterator struct {
 	originalPrefix string
 }
 
-func NewIterator(prefix string, d graph.Direction, value graph.TSVal, ts *TripleStore) *Iterator {
+func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *TripleStore) *Iterator {
 	var it Iterator
 	iterator.BaseInit(&it.Base)
 	it.checkId = value.([]byte)
@@ -85,7 +85,7 @@ func (it *Iterator) Close() {
 	}
 }
 
-func (it *Iterator) Next() (graph.TSVal, bool) {
+func (it *Iterator) Next() (graph.Value, bool) {
 	if it.it == nil {
 		it.Last = nil
 		return nil, false
@@ -166,7 +166,7 @@ func GetPositionFromPrefix(prefix []byte, d graph.Direction, ts *TripleStore) in
 	panic("unreachable")
 }
 
-func (it *Iterator) Check(v graph.TSVal) bool {
+func (it *Iterator) Check(v graph.Value) bool {
 	val := v.([]byte)
 	if val[0] == 'z' {
 		return false
@@ -177,8 +177,8 @@ func (it *Iterator) Check(v graph.TSVal) bool {
 			return true
 		}
 	} else {
-		nameForDir := it.ts.GetTriple(v).Get(it.dir)
-		hashForDir := it.ts.GetIdFor(nameForDir).([]byte)
+		nameForDir := it.ts.Triple(v).Get(it.dir)
+		hashForDir := it.ts.ValueOf(nameForDir).([]byte)
 		if bytes.Equal(hashForDir, it.checkId) {
 			return true
 		}
@@ -192,7 +192,7 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.GetUid(), it.Tags(), it.dir, size, it.ts.GetNameFor(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.ts.NameOf(it.checkId))
 }
 
 func (it *Iterator) Type() string { return "leveldb" }
@@ -202,9 +202,9 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *Iterator) GetStats() *graph.IteratorStats {
+func (it *Iterator) Stats() graph.IteratorStats {
 	s, _ := it.Size()
-	return &graph.IteratorStats{
+	return graph.IteratorStats{
 		CheckCost: 1,
 		NextCost:  2,
 		Size:      s,

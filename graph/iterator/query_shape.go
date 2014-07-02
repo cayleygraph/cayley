@@ -116,7 +116,7 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 
 	switch it.Type() {
 	case "and":
-		for _, sub := range it.GetSubIterators() {
+		for _, sub := range it.SubIterators() {
 			qs.nodeId++
 			newNode := qs.MakeNode(sub)
 			if sub.Type() != "or" {
@@ -133,7 +133,7 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 			if !more {
 				break
 			}
-			n.Values = append(n.Values, qs.ts.GetNameFor(val))
+			n.Values = append(n.Values, qs.ts.NameOf(val))
 		}
 	case "hasa":
 		hasa := it.(*HasA)
@@ -143,7 +143,7 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 		qs.AddNode(newNode)
 		qs.RemoveHasa()
 	case "or":
-		for _, sub := range it.GetSubIterators() {
+		for _, sub := range it.SubIterators() {
 			qs.nodeId++
 			newNode := qs.MakeNode(sub)
 			if sub.Type() == "or" {

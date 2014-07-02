@@ -47,7 +47,7 @@ type Optional struct {
 func NewOptional(it graph.Iterator) *Optional {
 	var o Optional
 	BaseInit(&o.Base)
-	o.nextable = false
+	o.canNext = false
 	o.subIt = it
 	return &o
 }
@@ -69,7 +69,7 @@ func (it *Optional) Clone() graph.Iterator {
 
 // Nexting the iterator is unsupported -- error and return an empty set.
 // (As above, a reasonable alternative would be to Next() an all iterator)
-func (it *Optional) Next() (graph.TSVal, bool) {
+func (it *Optional) Next() (graph.Value, bool) {
 	glog.Errorln("Nexting an un-nextable iterator")
 	return nil, false
 }
@@ -87,7 +87,7 @@ func (it *Optional) NextResult() bool {
 // Check() is the real hack of this iterator. It always returns true, regardless
 // of whether the subiterator matched. But we keep track of whether the subiterator
 // matched for results purposes.
-func (it *Optional) Check(val graph.TSVal) bool {
+func (it *Optional) Check(val graph.Value) bool {
 	checked := it.subIt.Check(val)
 	it.lastCheck = checked
 	it.Last = val
@@ -96,11 +96,11 @@ func (it *Optional) Check(val graph.TSVal) bool {
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *Optional) TagResults(out *map[string]graph.TSVal) {
+func (it *Optional) TagResults(dst map[string]graph.Value) {
 	if it.lastCheck == false {
 		return
 	}
-	it.subIt.TagResults(out)
+	it.subIt.TagResults(dst)
 }
 
 // Registers the optional iterator.
@@ -127,9 +127,9 @@ func (it *Optional) Optimize() (graph.Iterator, bool) {
 }
 
 // We're only as expensive as our subiterator. Except, we can't be nexted.
-func (it *Optional) GetStats() *graph.IteratorStats {
-	subStats := it.subIt.GetStats()
-	return &graph.IteratorStats{
+func (it *Optional) Stats() graph.IteratorStats {
+	subStats := it.subIt.Stats()
+	return graph.IteratorStats{
 		CheckCost: subStats.CheckCost,
 		NextCost:  int64(1 << 62),
 		Size:      subStats.Size,

@@ -37,7 +37,7 @@ type TripleStore struct {
 	idCache *IDLru
 }
 
-func CreateNewMongoGraph(addr string, options graph.OptionsDict) bool {
+func CreateNewMongoGraph(addr string, options graph.Options) bool {
 	conn, err := mgo.Dial(addr)
 	if err != nil {
 		glog.Fatal("Error connecting: ", err)
@@ -45,7 +45,7 @@ func CreateNewMongoGraph(addr string, options graph.OptionsDict) bool {
 	}
 	conn.SetSafe(&mgo.Safe{})
 	dbName := DefaultDBName
-	if val, ok := options.GetStringKey("database_name"); ok {
+	if val, ok := options.StringKey("database_name"); ok {
 		dbName = val
 	}
 	db := conn.DB(dbName)
@@ -66,7 +66,7 @@ func CreateNewMongoGraph(addr string, options graph.OptionsDict) bool {
 	return true
 }
 
-func NewTripleStore(addr string, options graph.OptionsDict) *TripleStore {
+func NewTripleStore(addr string, options graph.Options) *TripleStore {
 	var ts TripleStore
 	conn, err := mgo.Dial(addr)
 	if err != nil {
@@ -74,7 +74,7 @@ func NewTripleStore(addr string, options graph.OptionsDict) *TripleStore {
 	}
 	conn.SetSafe(&mgo.Safe{})
 	dbName := DefaultDBName
-	if val, ok := options.GetStringKey("database_name"); ok {
+	if val, ok := options.StringKey("database_name"); ok {
 		dbName = val
 	}
 	ts.db = conn.DB(dbName)
@@ -108,7 +108,7 @@ type MongoNode struct {
 
 func (ts *TripleStore) updateNodeBy(node_name string, inc int) {
 	var size MongoNode
-	node := ts.GetIdFor(node_name)
+	node := ts.ValueOf(node_name)
 	err := ts.db.C("nodes").FindId(node).One(&size)
 	if err != nil {
 		if err.Error() == "not found" {
@@ -209,7 +209,7 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	}
 }
 
-func (ts *TripleStore) GetTriple(val graph.TSVal) *graph.Triple {
+func (ts *TripleStore) Triple(val graph.Value) *graph.Triple {
 	var bsonDoc bson.M
 	err := ts.db.C("triples").FindId(val.(string)).One(&bsonDoc)
 	if err != nil {
@@ -223,23 +223,23 @@ func (ts *TripleStore) GetTriple(val graph.TSVal) *graph.Triple {
 	}
 }
 
-func (ts *TripleStore) GetTripleIterator(d graph.Direction, val graph.TSVal) graph.Iterator {
+func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
 	return NewIterator(ts, "triples", d, val)
 }
 
-func (ts *TripleStore) GetNodesAllIterator() graph.Iterator {
+func (ts *TripleStore) NodesAllIterator() graph.Iterator {
 	return NewAllIterator(ts, "nodes")
 }
 
-func (ts *TripleStore) GetTriplesAllIterator() graph.Iterator {
+func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
 	return NewAllIterator(ts, "triples")
 }
 
-func (ts *TripleStore) GetIdFor(s string) graph.TSVal {
+func (ts *TripleStore) ValueOf(s string) graph.Value {
 	return ts.ConvertStringToByteHash(s)
 }
 
-func (ts *TripleStore) GetNameFor(v graph.TSVal) string {
+func (ts *TripleStore) NameOf(v graph.Value) string {
 	val, ok := ts.idCache.Get(v.(string))
 	if ok {
 		return val
@@ -262,7 +262,7 @@ func (ts *TripleStore) Size() int64 {
 	return int64(count)
 }
 
-func compareStrings(a, b graph.TSVal) bool {
+func compareStrings(a, b graph.Value) bool {
 	return a.(string) == b.(string)
 }
 
@@ -274,7 +274,7 @@ func (ts *TripleStore) Close() {
 	ts.db.Session.Close()
 }
 
-func (ts *TripleStore) GetTripleDirection(in graph.TSVal, d graph.Direction) graph.TSVal {
+func (ts *TripleStore) TripleDirection(in graph.Value, d graph.Direction) graph.Value {
 	// Maybe do the trick here
 	var offset int
 	switch d {

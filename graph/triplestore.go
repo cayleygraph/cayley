@@ -26,14 +26,14 @@ import (
 )
 
 // Defines an opaque "triple store value" type. However the backend wishes to
-// implement it, a TSVal is merely a token to a triple or a node that the backing
+// implement it, a Value is merely a token to a triple or a node that the backing
 // store itself understands, and the base iterators pass around.
 //
 // For example, in a very traditional, graphd-style graph, these are int64s
 // (guids of the primitives). In a very direct sort of graph, these could be
 // pointers to structs, or merely triples, or whatever works best for the
 // backing store.
-type TSVal interface{}
+type Value interface{}
 
 type TripleStore interface {
 	// Add a triple to the store.
@@ -47,29 +47,29 @@ type TripleStore interface {
 	RemoveTriple(*Triple)
 
 	// Given an opaque token, returns the triple for that token from the store.
-	GetTriple(TSVal) *Triple
+	Triple(Value) *Triple
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	GetTripleIterator(Direction, TSVal) Iterator
+	TripleIterator(Direction, Value) Iterator
 
 	// Returns an iterator enumerating all nodes in the graph.
-	GetNodesAllIterator() Iterator
+	NodesAllIterator() Iterator
 
 	// Returns an iterator enumerating all links in the graph.
-	GetTriplesAllIterator() Iterator
+	TriplesAllIterator() Iterator
 
 	// Given a node ID, return the opaque token used by the TripleStore
 	// to represent that id.
-	GetIdFor(string) TSVal
+	ValueOf(string) Value
 
 	// Given an opaque token, return the node that it represents.
-	GetNameFor(TSVal) string
+	NameOf(Value) string
 
 	// Returns the number of triples currently stored.
 	Size() int64
 
-	// Creates a fixed iterator which can compare TSVals
+	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator
 
 	// Optimize an iterator in the context of the triple store.
@@ -88,13 +88,13 @@ type TripleStore interface {
 	// gives the TripleStore the opportunity to make this optimization.
 	//
 	// Iterators will call this. At worst, a valid implementation is
-	// self.GetIdFor(self.GetTriple(triple_id).Get(dir))
-	GetTripleDirection(triple_id TSVal, d Direction) TSVal
+	// ts.IdFor(ts.Triple(triple_id).Get(dir))
+	TripleDirection(triple_id Value, d Direction) Value
 }
 
-type OptionsDict map[string]interface{}
+type Options map[string]interface{}
 
-func (d OptionsDict) GetIntKey(key string) (int, bool) {
+func (d Options) IntKey(key string) (int, bool) {
 	if val, ok := d[key]; ok {
 		switch vv := val.(type) {
 		case float64:
@@ -106,7 +106,7 @@ func (d OptionsDict) GetIntKey(key string) (int, bool) {
 	return 0, false
 }
 
-func (d OptionsDict) GetStringKey(key string) (string, bool) {
+func (d Options) StringKey(key string) (string, bool) {
 	if val, ok := d[key]; ok {
 		switch vv := val.(type) {
 		case string:

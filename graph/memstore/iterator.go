@@ -73,7 +73,7 @@ func (it *Iterator) Clone() graph.Iterator {
 
 func (it *Iterator) Close() {}
 
-func (it *Iterator) Next() (graph.TSVal, bool) {
+func (it *Iterator) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
 	if it.tree.Max() == nil || it.Last == int64(it.tree.Max().(Int64)) {
 		return graph.NextLogOut(it, nil, false)
@@ -87,7 +87,7 @@ func (it *Iterator) Size() (int64, bool) {
 	return int64(it.tree.Len()), true
 }
 
-func (it *Iterator) Check(v graph.TSVal) bool {
+func (it *Iterator) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	if it.tree.Has(Int64(v.(int64))) {
 		it.Last = v
@@ -111,8 +111,8 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *Iterator) GetStats() *graph.IteratorStats {
-	return &graph.IteratorStats{
+func (it *Iterator) Stats() graph.IteratorStats {
+	return graph.IteratorStats{
 		CheckCost: int64(math.Log(float64(it.tree.Len()))) + 1,
 		NextCost:  1,
 		Size:      int64(it.tree.Len()),
