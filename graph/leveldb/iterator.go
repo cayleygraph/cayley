@@ -32,7 +32,7 @@ type Iterator struct {
 	checkId        []byte
 	dir            graph.Direction
 	open           bool
-	it             ldbit.Iterator
+	iter           ldbit.Iterator
 	ts             *TripleStore
 	ro             *opt.ReadOptions
 	originalPrefix string
@@ -49,26 +49,26 @@ func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *Triple
 	it.nextPrefix = append(it.nextPrefix, []byte(it.checkId[1:])...)
 	it.ro = &opt.ReadOptions{}
 	it.ro.DontFillCache = true
-	it.it = ts.db.NewIterator(nil, it.ro)
+	it.iter = ts.db.NewIterator(nil, it.ro)
 	it.open = true
 	it.ts = ts
-	ok := it.it.Seek(it.nextPrefix)
+	ok := it.iter.Seek(it.nextPrefix)
 	if !ok {
 		it.open = false
-		it.it.Release()
+		it.iter.Release()
 	}
 	return &it
 }
 
 func (it *Iterator) Reset() {
 	if !it.open {
-		it.it = it.ts.db.NewIterator(nil, it.ro)
+		it.iter = it.ts.db.NewIterator(nil, it.ro)
 		it.open = true
 	}
-	ok := it.it.Seek(it.nextPrefix)
+	ok := it.iter.Seek(it.nextPrefix)
 	if !ok {
 		it.open = false
-		it.it.Release()
+		it.iter.Release()
 	}
 }
 
@@ -80,13 +80,13 @@ func (it *Iterator) Clone() graph.Iterator {
 
 func (it *Iterator) Close() {
 	if it.open {
-		it.it.Release()
+		it.iter.Release()
 		it.open = false
 	}
 }
 
 func (it *Iterator) Next() (graph.Value, bool) {
-	if it.it == nil {
+	if it.iter == nil {
 		it.Last = nil
 		return nil, false
 	}
@@ -94,16 +94,16 @@ func (it *Iterator) Next() (graph.Value, bool) {
 		it.Last = nil
 		return nil, false
 	}
-	if !it.it.Valid() {
+	if !it.iter.Valid() {
 		it.Last = nil
 		it.Close()
 		return nil, false
 	}
-	if bytes.HasPrefix(it.it.Key(), it.nextPrefix) {
-		out := make([]byte, len(it.it.Key()))
-		copy(out, it.it.Key())
+	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
+		out := make([]byte, len(it.iter.Key()))
+		copy(out, it.iter.Key())
 		it.Last = out
-		ok := it.it.Next()
+		ok := it.iter.Next()
 		if !ok {
 			it.Close()
 		}
