@@ -104,7 +104,7 @@ func (it *Optional) TagResults(dst map[string]graph.Value) {
 }
 
 // Registers the optional iterator.
-func (it *Optional) Type() string { return "optional" }
+func (it *Optional) Type() graph.Type { return graph.Optional }
 
 // Prints the optional and it's subiterator.
 func (it *Optional) DebugString(indent int) string {

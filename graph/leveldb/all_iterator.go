@@ -118,8 +118,8 @@ func (it *AllIterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s tags: %v leveldb size:%d %s %p)", strings.Repeat(" ", indent), it.Type(), it.Tags(), size, it.dir, it)
 }
 
-func (it *AllIterator) Type() string { return "all" }
-func (it *AllIterator) Sorted() bool { return false }
+func (it *AllIterator) Type() graph.Type { return graph.All }
+func (it *AllIterator) Sorted() bool     { return false }
 
 func (it *AllIterator) Optimize() (graph.Iterator, bool) {
 	return it, false

@@ -162,7 +162,7 @@ func (it *Comparison) TagResults(dst map[string]graph.Value) {
 }
 
 // Registers the value-comparison iterator.
-func (it *Comparison) Type() string { return "value-comparison" }
+func (it *Comparison) Type() graph.Type { return graph.Comparison }
 
 // Prints the value-comparison and its subiterator.
 func (it *Comparison) DebugString(indent int) string {

@@ -195,8 +195,16 @@ func (it *Iterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.ts.NameOf(it.checkId))
 }
 
-func (it *Iterator) Type() string { return "leveldb" }
-func (it *Iterator) Sorted() bool { return false }
+var levelDBType graph.Type
+
+func init() {
+	levelDBType = graph.Register("leveldb")
+}
+
+func Type() graph.Type { return levelDBType }
+
+func (it *Iterator) Type() graph.Type { return levelDBType }
+func (it *Iterator) Sorted() bool     { return false }
 
 func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false

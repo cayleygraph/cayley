@@ -160,7 +160,7 @@ func TestIterator(t *testing.T) {
 				size, accurate := it.Size()
 				So(size, ShouldBeBetween, 0, 20)
 				So(accurate, ShouldBeFalse)
-				So(it.Type(), ShouldEqual, "all")
+				So(it.Type(), ShouldEqual, graph.All)
 				re_it, ok := it.Optimize()
 				So(ok, ShouldBeFalse)
 				So(re_it, ShouldPointTo, it)
@@ -209,7 +209,7 @@ func TestIterator(t *testing.T) {
 				size, accurate := it.Size()
 				So(size, ShouldBeBetween, 0, 20)
 				So(accurate, ShouldBeFalse)
-				So(it.Type(), ShouldEqual, "all")
+				So(it.Type(), ShouldEqual, graph.All)
 				re_it, ok := it.Optimize()
 				So(ok, ShouldBeFalse)
 				So(re_it, ShouldPointTo, it)
@@ -407,7 +407,7 @@ func TestOptimize(t *testing.T) {
 				oldIt := lto.Clone()
 				newIt, ok := lto.Optimize()
 				So(ok, ShouldBeTrue)
-				So(newIt.Type(), ShouldEqual, "leveldb")
+				So(newIt.Type(), ShouldEqual, Type())
 
 				Convey("Containing the right things", func() {
 					afterOp := extractTripleFromIterator(ts, newIt)

@@ -21,7 +21,7 @@ import (
 
 func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	switch it.Type() {
-	case "linksto":
+	case graph.LinksTo:
 		return ts.optimizeLinksTo(it.(*iterator.LinksTo))
 
 	}
@@ -34,7 +34,7 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 		return it, false
 	}
 	primary := subs[0]
-	if primary.Type() == "fixed" {
+	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
 			val, ok := primary.Next()

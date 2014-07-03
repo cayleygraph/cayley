@@ -21,6 +21,8 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/google/cayley/graph"
 )
 
 func TestIteratorPromotion(t *testing.T) {
@@ -37,7 +39,7 @@ func TestIteratorPromotion(t *testing.T) {
 	if !changed {
 		t.Error("Iterator didn't optimize")
 	}
-	if newIt.Type() != "fixed" {
+	if newIt.Type() != graph.Fixed {
 		t.Error("Expected fixed iterator")
 	}
 	tagsExpected := []string{"a", "b", "c"}
@@ -58,7 +60,7 @@ func TestNullIteratorAnd(t *testing.T) {
 	if !changed {
 		t.Error("Didn't change")
 	}
-	if newIt.Type() != "null" {
+	if newIt.Type() != graph.Null {
 		t.Error("Expected null iterator, got ", newIt.Type())
 	}
 }

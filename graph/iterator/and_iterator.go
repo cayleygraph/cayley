@@ -246,4 +246,4 @@ func (it *And) Close() {
 }
 
 // Register this as an "and" iterator.
-func (it *And) Type() string { return "and" }
+func (it *And) Type() graph.Type { return graph.And }

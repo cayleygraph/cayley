@@ -36,7 +36,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 
 		Convey("It should parse an empty query", func() {
 			it := BuildIteratorTreeForQuery(ts, "()")
-			So(it.Type(), ShouldEqual, "null")
+			So(it.Type(), ShouldEqual, graph.Null)
 		})
 
 		Convey("It should get a single triple linkage", func() {
@@ -44,7 +44,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 			query := "($a (:can \"win\"))"
 			So(len(query), ShouldEqual, 17)
 			it := BuildIteratorTreeForQuery(ts, query)
-			So(it.Type(), ShouldEqual, "and")
+			So(it.Type(), ShouldEqual, graph.And)
 			out, ok := it.Next()
 			So(ok, ShouldBeTrue)
 			So(out, ShouldEqual, ts.ValueOf("i"))
@@ -54,7 +54,7 @@ func TestParseSexpWithMemstore(t *testing.T) {
 			ts.AddTriple(&graph.Triple{"i", "can", "win", ""})
 			query := "(\"i\" (:can $a))"
 			it := BuildIteratorTreeForQuery(ts, query)
-			So(it.Type(), ShouldEqual, "and")
+			So(it.Type(), ShouldEqual, graph.And)
 			out, ok := it.Next()
 			So(ok, ShouldBeTrue)
 			So(out, ShouldEqual, ts.ValueOf("i"))
@@ -71,7 +71,7 @@ func TestTreeConstraintParse(t *testing.T) {
 		"(:like\n" +
 		"($a (:is :good))))"
 	it := BuildIteratorTreeForQuery(ts, query)
-	if it.Type() != "and" {
+	if it.Type() != graph.And {
 		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
 	}
 	out, ok := it.Next()
@@ -112,7 +112,7 @@ func TestMultipleConstraintParse(t *testing.T) {
 		"(:like :beer)\n" +
 		"(:like \"food\"))"
 	it := BuildIteratorTreeForQuery(ts, query)
-	if it.Type() != "and" {
+	if it.Type() != graph.And {
 		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
 	}
 	out, ok := it.Next()

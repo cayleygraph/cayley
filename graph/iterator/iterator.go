@@ -174,7 +174,7 @@ func NewNull() *Null {
 func (it *Null) Clone() graph.Iterator { return NewNull() }
 
 // Name the null iterator.
-func (it *Null) Type() string { return "null" }
+func (it *Null) Type() graph.Type { return graph.Null }
 
 // A good iterator will close itself when it returns true.
 // Null has nothing it needs to do.

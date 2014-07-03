@@ -281,4 +281,4 @@ func (it *Or) Stats() graph.IteratorStats {
 }
 
 // Register this as an "or" graph.iterator.
-func (it *Or) Type() string { return "or" }
+func (it *Or) Type() graph.Type { return graph.Or }

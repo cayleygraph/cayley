@@ -101,7 +101,7 @@ func (it *Int64) Check(tsv graph.Value) bool {
 
 // The type of this iterator is an "all". This is important, as it puts it in
 // the class of "all iterators.
-func (it *Int64) Type() string { return "all" }
+func (it *Int64) Type() graph.Type { return graph.All }
 
 // There's nothing to optimize about this little iterator.
 func (it *Int64) Optimize() (graph.Iterator, bool) { return it, false }
