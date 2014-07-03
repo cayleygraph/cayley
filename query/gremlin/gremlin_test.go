@@ -119,7 +119,7 @@ var testQueries = []struct {
 
 	// Morphism tests.
 	{
-		message: "show simple morphism works",
+		message: "show simple morphism",
 		query: `
 			grandfollows = g.M().Out("follows").Out("follows")
 			g.V("C").Follow(grandfollows).All()
@@ -127,7 +127,7 @@ var testQueries = []struct {
 		expect: []string{"G", "F", "B"},
 	},
 	{
-		message: "show reverse morphism works",
+		message: "show reverse morphism",
 		query: `
 			grandfollows = g.M().Out("follows").Out("follows")
 			g.V("F").FollowR(grandfollows).All()
@@ -137,7 +137,7 @@ var testQueries = []struct {
 
 	// Intersection tests.
 	{
-		message: "Simple intersection",
+		message: "show simple intersection",
 		query: `
 			function follows(x) { return g.V(x).Out("follows") }
 			follows("D").And(follows("C")).All()
@@ -145,7 +145,7 @@ var testQueries = []struct {
 		expect: []string{"B"},
 	},
 	{
-		message: "Simple Morphism Intersection",
+		message: "show simple morphism intersection",
 		query: `
 			grandfollows = g.M().Out("follows").Out("follows")
 			function gfollows(x) { return g.V(x).Follow(grandfollows) }
@@ -154,7 +154,7 @@ var testQueries = []struct {
 		expect: []string{"F"},
 	},
 	{
-		message: "Double Morphism Intersection",
+		message: "show double morphism intersection",
 		query: `
 			grandfollows = g.M().Out("follows").Out("follows")
 			function gfollows(x) { return g.V(x).Follow(grandfollows) }
@@ -163,16 +163,15 @@ var testQueries = []struct {
 		expect: []string{"G"},
 	},
 	{
-		message: "Reverse Intersection",
+		message: "show reverse intersection",
 		query: `
 			grandfollows = g.M().Out("follows").Out("follows")
 			g.V("G").FollowR(grandfollows).Intersect(g.V("F").FollowR(grandfollows)).All()
 		`,
 		expect: []string{"C"},
 	},
-
 	{
-		message: "Standard sort of morphism intersection, continue follow",
+		message: "show standard sort of morphism intersection, continue follow",
 		query: `gfollowers = g.M().In("follows").In("follows")
 			function cool(x) { return g.V(x).As("a").Out("status").Is("cool").Back("a") }
 			cool("G").Follow(gfollowers).Intersect(cool("B").Follow(gfollowers)).All()
