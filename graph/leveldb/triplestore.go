@@ -114,7 +114,7 @@ func (ts *TripleStore) Size() int64 {
 func (ts *TripleStore) createKeyFor(d [3]graph.Direction, triple *graph.Triple) []byte {
 	key := make([]byte, 0, 2+(ts.hasher.Size()*3))
 	// TODO(kortschak) Remove dependence on String() method.
-	key = append(key, []byte(d[0].String()+d[1].String())...)
+	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
 	key = append(key, ts.convertStringToByteHash(triple.Get(d[0]))...)
 	key = append(key, ts.convertStringToByteHash(triple.Get(d[1]))...)
 	key = append(key, ts.convertStringToByteHash(triple.Get(d[2]))...)
@@ -124,7 +124,7 @@ func (ts *TripleStore) createKeyFor(d [3]graph.Direction, triple *graph.Triple) 
 func (ts *TripleStore) createProvKeyFor(d [3]graph.Direction, triple *graph.Triple) []byte {
 	key := make([]byte, 0, 2+(ts.hasher.Size()*4))
 	// TODO(kortschak) Remove dependence on String() method.
-	key = append(key, []byte(graph.Provenance.String()+d[0].String())...)
+	key = append(key, []byte{graph.Provenance.Prefix(), d[0].Prefix()}...)
 	key = append(key, ts.convertStringToByteHash(triple.Get(graph.Provenance))...)
 	key = append(key, ts.convertStringToByteHash(triple.Get(d[0]))...)
 	key = append(key, ts.convertStringToByteHash(triple.Get(d[1]))...)
