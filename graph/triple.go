@@ -60,20 +60,20 @@ const (
 	Provenance
 )
 
-func (d Direction) Prefix() string {
+func (d Direction) Prefix() byte {
 	switch d {
 	case Any:
-		return "a"
+		return 'a'
 	case Subject:
-		return "s"
+		return 's'
 	case Predicate:
-		return "p"
+		return 'p'
 	case Provenance:
-		return "c"
+		return 'c'
 	case Object:
-		return "o"
+		return 'o'
 	default:
-		return fmt.Sprint("illegal direction:", byte(d))
+		return '\x00'
 	}
 }
 
