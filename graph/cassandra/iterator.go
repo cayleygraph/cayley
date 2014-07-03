@@ -27,13 +27,14 @@ import (
 
 type Iterator struct {
 	iterator.Base
-	ts     *TripleStore
-	dir    graph.Direction
-	isNode bool
-	table  string
-	iter   *gocql.Iter
-	val    string
-	size   int64
+	ts      *TripleStore
+	dir     graph.Direction
+	isNode  bool
+	table   string
+	iter    *gocql.Iter
+	val     string
+	size    int64
+	hasSize bool
 }
 
 func NewIterator(ts *TripleStore, d graph.Direction, val graph.Value) graph.Iterator {
@@ -42,19 +43,9 @@ func NewIterator(ts *TripleStore, d graph.Direction, val graph.Value) graph.Iter
 	it.ts = ts
 	it.dir = d
 	it.val = val.(string)
-	it.table = fmt.Sprint("triples_by_", d.Prefix())
+	it.table = fmt.Sprint("triples_by_", string(d.Prefix()))
 	if it.dir == graph.Any {
 		it.table = "triples_by_s"
-		it.size = it.ts.Size()
-	} else {
-		err := it.ts.sess.Query(
-			fmt.Sprint("SELECT ", it.dir, "_count FROM nodes WHERE node = ?"),
-			it.val,
-		).Scan(&it.size)
-		if err != nil {
-			glog.Errorln("Couldn't get size for iterator:", err)
-			return iterator.NewNull()
-		}
 	}
 	return it
 }
@@ -169,11 +160,27 @@ func (it *Iterator) tripleNext() (graph.Value, bool) {
 }
 
 func (it *Iterator) Size() (int64, bool) {
+	if it.hasSize {
+		return it.size, true
+	}
+	if it.dir == graph.Any {
+		return it.ts.Size(), true
+	}
+	err := it.ts.sess.Query(
+		fmt.Sprint("SELECT ", it.dir, "_count FROM nodes WHERE node = ?"),
+		it.val,
+	).Scan(&it.size)
+	if err != nil {
+		glog.Errorln("Couldn't get size for iterator:", err)
+		return int64(1 << 62), false
+	}
+	it.hasSize = true
 	return it.size, true
 }
 
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) Sorted() bool                     { return false }
+func (it *Iterator) CanNext() bool                    { return true }
 
 func (it *Iterator) Type() string {
 	if it.dir == graph.Any {

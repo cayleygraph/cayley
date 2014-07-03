@@ -218,10 +218,39 @@ func (ts *TripleStore) TripleDirection(triple_id graph.Value, d graph.Direction)
 	return ts.ValueOf(ts.Triple(triple_id).Get(d))
 }
 
+func (ts *TripleStore) Size() int64 {
+	return ts.size
+}
+
 func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
+	switch it.Type() {
+	case "linksto":
+		return ts.optimizeLinksTo(it.(*iterator.LinksTo))
+	}
 	return it, false
 }
 
-func (ts *TripleStore) Size() int64 {
-	return ts.size
+func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
+	subs := it.SubIterators()
+	if len(subs) != 1 {
+		return it, false
+	}
+	primary := subs[0]
+	if primary.Type() == "fixed" {
+		size, _ := primary.Size()
+		if size == 1 {
+			val, ok := primary.Next()
+			if !ok {
+				panic("Sizes lie")
+			}
+			newIt := ts.TripleIterator(it.Direction(), val)
+			newIt.CopyTagsFrom(it)
+			for _, tag := range primary.Tags() {
+				newIt.AddFixedTag(tag, val)
+			}
+			it.Close()
+			return newIt, true
+		}
+	}
+	return it, false
 }
