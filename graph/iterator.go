@@ -14,7 +14,7 @@
 
 package graph
 
-// Define the general iterator interface, as well as the BaseIterator which all
+// Define the general iterator interface, as well as the Base iterator which all
 // iterators can "inherit" from to get default iterator functionality.
 
 import (
@@ -113,9 +113,11 @@ type Iterator interface {
 	// Close the iterator and do internal cleanup.
 	Close()
 
+	// UID returns the unique identifier of the iterator.
 	UID() uintptr
 }
 
+// FixedIterator wraps iterators that are modifiable by addition of fixed value sets.
 type FixedIterator interface {
 	Iterator
 	Add(Value)
@@ -127,6 +129,7 @@ type IteratorStats struct {
 	Size      int64
 }
 
+// Type enumerates the set of Iterator types.
 type Type int
 
 const (
@@ -144,6 +147,9 @@ const (
 )
 
 var (
+	// We use a sync.Mutex rather than an RWMutex since the client packages keep
+	// the Type that was returned, so the only possibility for contention is at
+	// initialization.
 	lock sync.Mutex
 	// These strings must be kept in order consistent with the Type const block above.
 	types = []string{
@@ -161,6 +167,11 @@ var (
 	}
 )
 
+// Register adds a new iterator type to the set of acceptable types, returning
+// the registered Type.
+// Calls to Register are idempotent and must be made prior to use of the iterator.
+// The conventional approach for use is to include a call to Register in a package
+// init() function, saving the Type to a private package var.
 func Register(name string) Type {
 	lock.Lock()
 	defer lock.Unlock()
@@ -173,6 +184,7 @@ func Register(name string) Type {
 	return Type(len(types) - 1)
 }
 
+// String returns a string representation of the Type.
 func (t Type) String() string {
 	if t < 0 || int(t) >= len(types) {
 		return "illegal-type"
