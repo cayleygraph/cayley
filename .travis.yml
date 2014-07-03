@@ -36,4 +36,3 @@ install:
 script: 
   - go test -v ./...
   - goapp test -v ./graph/gaedatastore
-
