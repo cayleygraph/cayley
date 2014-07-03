@@ -149,6 +149,12 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, provenance) VALUES (?, ?, ?, ?)")
 		batch.Query(query, t.Subject, t.Predicate, t.Object, t.Provenance)
 	}
+
+	for _, dir := range []graph.Direction{graph.Subject, graph.Predicate, graph.Object, graph.Provenance} {
+		query := fmt.Sprint("UPDATE nodes SET ", dir, "_count = ", dir, "_count + 1 WHERE node = ?")
+		batch.Query(query, t.Get(dir))
+	}
+
 	err := ts.sess.ExecuteBatch(batch)
 	if err != nil {
 		glog.Errorln("Couldn't write triple:", t, ", ", err)

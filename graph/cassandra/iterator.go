@@ -48,7 +48,7 @@ func NewIterator(ts *TripleStore, d graph.Direction, val graph.Value) graph.Iter
 		it.size = it.ts.Size()
 	} else {
 		err := it.ts.sess.Query(
-			fmt.Sprint("SELECT COUNT(*) FROM ", it.table, " WHERE ", it.dir, " = ?"),
+			fmt.Sprint("SELECT ", it.dir, "_count FROM nodes WHERE node = ?"),
 			it.val,
 		).Scan(&it.size)
 		if err != nil {
@@ -110,15 +110,19 @@ func (it *Iterator) Check(v graph.Value) bool {
 }
 
 func (it *Iterator) prepareIterator() {
-	it.iter = it.ts.sess.Query(
-		fmt.Sprint(
-			"SELECT subject, predicate, object, provenance FROM ",
-			it.table,
-			" WHERE ",
-			it.dir,
-			" = ?"),
-		it.val,
-	).Iter()
+	if it.isNode {
+		it.iter = it.ts.sess.Query("SELECT node FROM nodes").Iter()
+	} else {
+		it.iter = it.ts.sess.Query(
+			fmt.Sprint(
+				"SELECT subject, predicate, object, provenance FROM ",
+				it.table,
+				" WHERE ",
+				it.dir,
+				" = ?"),
+			it.val,
+		).Iter()
+	}
 }
 
 func (it *Iterator) Next() (graph.Value, bool) {
