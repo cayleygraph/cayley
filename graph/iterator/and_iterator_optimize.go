@@ -134,7 +134,7 @@ func (_ *And) optimizeReplacement(its []graph.Iterator) graph.Iterator {
 func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	var (
 		// bad contains iterators that can't be (efficiently) nexted, such as
-		// "optional" or "not". Separate them out and tack them on at the end.
+		// graph.Optional or graph.Not. Separate them out and tack them on at the end.
 		out, bad []graph.Iterator
 		best     graph.Iterator
 		bestCost = int64(1 << 62)
@@ -257,25 +257,25 @@ func optimizeSubIterators(its []graph.Iterator) []graph.Iterator {
 // Check a list of iterators for any Null iterators.
 func hasAnyNullIterators(its []graph.Iterator) bool {
 	for _, it := range its {
-		if it.Type() == "null" {
+		if it.Type() == graph.Null {
 			return true
 		}
 	}
 	return false
 }
 
-// There are two "not-useful" iterators -- namely "null" which returns
-// nothing, and "all" which returns everything. Particularly, we want
-// to see if we're intersecting with a bunch of "all" iterators, and,
+// There are two "not-useful" iterators -- namely graph.Null which returns
+// nothing, and graph.All which returns everything. Particularly, we want
+// to see if we're intersecting with a bunch of graph.All iterators, and,
 // if we are, then we have only one useful iterator.
 func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 	usefulCount := 0
 	var usefulIt graph.Iterator
 	for _, it := range its {
 		switch it.Type() {
-		case "null", "all":
+		case graph.Null, graph.All:
 			continue
-		case "optional":
+		case graph.Optional:
 			// Optional is weird -- it's not useful, but we can't optimize
 			// away from it. Therefore, we skip this optimization
 			// if we see one.

@@ -118,7 +118,7 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 	newPrimary, changed := it.primaryIt.Optimize()
 	if changed {
 		it.primaryIt = newPrimary
-		if it.primaryIt.Type() == "null" {
+		if it.primaryIt.Type() == graph.Null {
 			it.nextIt.Close()
 			return it.primaryIt, true
 		}
@@ -166,7 +166,7 @@ func (it *LinksTo) NextResult() bool {
 }
 
 // Register the LinksTo.
-func (it *LinksTo) Type() string { return "linksto" }
+func (it *LinksTo) Type() graph.Type { return graph.LinksTo }
 
 // Return a guess as to how big or costly it is to next the iterator.
 func (it *LinksTo) Stats() graph.IteratorStats {

@@ -14,11 +14,12 @@
 
 package graph
 
-// Define the general iterator interface, as well as the BaseIterator which all
+// Define the general iterator interface, as well as the Base iterator which all
 // iterators can "inherit" from to get default iterator functionality.
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/barakmich/glog"
 )
@@ -96,7 +97,7 @@ type Iterator interface {
 
 	// Returns a string relating to what the function of the iterator is. By
 	// knowing the names of the iterators, we can devise optimization strategies.
-	Type() string
+	Type() Type
 
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
@@ -112,9 +113,11 @@ type Iterator interface {
 	// Close the iterator and do internal cleanup.
 	Close()
 
+	// UID returns the unique identifier of the iterator.
 	UID() uintptr
 }
 
+// FixedIterator wraps iterators that are modifiable by addition of fixed value sets.
 type FixedIterator interface {
 	Iterator
 	Add(Value)
@@ -126,20 +129,83 @@ type IteratorStats struct {
 	Size      int64
 }
 
+// Type enumerates the set of Iterator types.
+type Type int
+
+const (
+	Invalid Type = iota
+	All
+	And
+	Or
+	HasA
+	LinksTo
+	Comparison
+	Null
+	Fixed
+	Not
+	Optional
+)
+
+var (
+	// We use a sync.Mutex rather than an RWMutex since the client packages keep
+	// the Type that was returned, so the only possibility for contention is at
+	// initialization.
+	lock sync.Mutex
+	// These strings must be kept in order consistent with the Type const block above.
+	types = []string{
+		"invalid",
+		"all",
+		"and",
+		"or",
+		"hasa",
+		"linksto",
+		"comparison",
+		"null",
+		"fixed",
+		"not",
+		"optional",
+	}
+)
+
+// Register adds a new iterator type to the set of acceptable types, returning
+// the registered Type.
+// Calls to Register are idempotent and must be made prior to use of the iterator.
+// The conventional approach for use is to include a call to Register in a package
+// init() function, saving the Type to a private package var.
+func Register(name string) Type {
+	lock.Lock()
+	defer lock.Unlock()
+	for i, t := range types {
+		if t == name {
+			return Type(i)
+		}
+	}
+	types = append(types, name)
+	return Type(len(types) - 1)
+}
+
+// String returns a string representation of the Type.
+func (t Type) String() string {
+	if t < 0 || int(t) >= len(types) {
+		return "illegal-type"
+	}
+	return types[t]
+}
+
 // Utility logging functions for when an iterator gets called Next upon, or Check upon, as
 // well as what they return. Highly useful for tracing the execution path of a query.
 func CheckLogIn(it Iterator, val Value) {
 	if glog.V(4) {
-		glog.V(4).Infof("%s %d CHECK %d", strings.ToUpper(it.Type()), it.UID(), val)
+		glog.V(4).Infof("%s %d CHECK %d", strings.ToUpper(it.Type().String()), it.UID(), val)
 	}
 }
 
 func CheckLogOut(it Iterator, val Value, good bool) bool {
 	if glog.V(4) {
 		if good {
-			glog.V(4).Infof("%s %d CHECK %d GOOD", strings.ToUpper(it.Type()), it.UID(), val)
+			glog.V(4).Infof("%s %d CHECK %d GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d CHECK %d BAD", strings.ToUpper(it.Type()), it.UID(), val)
+			glog.V(4).Infof("%s %d CHECK %d BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		}
 	}
 	return good
@@ -147,16 +213,16 @@ func CheckLogOut(it Iterator, val Value, good bool) bool {
 
 func NextLogIn(it Iterator) {
 	if glog.V(4) {
-		glog.V(4).Infof("%s %d NEXT", strings.ToUpper(it.Type()), it.UID())
+		glog.V(4).Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
 	}
 }
 
 func NextLogOut(it Iterator, val Value, ok bool) (Value, bool) {
 	if glog.V(4) {
 		if ok {
-			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type()), it.UID(), val)
+			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type()), it.UID())
+			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
 		}
 	}
 	return val, ok

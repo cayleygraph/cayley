@@ -115,18 +115,18 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 	}
 
 	switch it.Type() {
-	case "and":
+	case graph.And:
 		for _, sub := range it.SubIterators() {
 			qs.nodeId++
 			newNode := qs.MakeNode(sub)
-			if sub.Type() != "or" {
+			if sub.Type() != graph.Or {
 				qs.StealNode(&n, newNode)
 			} else {
 				qs.AddNode(newNode)
 				qs.AddLink(&Link{n.Id, newNode.Id, 0, 0})
 			}
 		}
-	case "fixed":
+	case graph.Fixed:
 		n.IsFixed = true
 		for {
 			val, more := it.Next()
@@ -135,25 +135,25 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 			}
 			n.Values = append(n.Values, qs.ts.NameOf(val))
 		}
-	case "hasa":
+	case graph.HasA:
 		hasa := it.(*HasA)
 		qs.PushHasa(n.Id, hasa.dir)
 		qs.nodeId++
 		newNode := qs.MakeNode(hasa.primaryIt)
 		qs.AddNode(newNode)
 		qs.RemoveHasa()
-	case "or":
+	case graph.Or:
 		for _, sub := range it.SubIterators() {
 			qs.nodeId++
 			newNode := qs.MakeNode(sub)
-			if sub.Type() == "or" {
+			if sub.Type() == graph.Or {
 				qs.StealNode(&n, newNode)
 			} else {
 				qs.AddNode(newNode)
 				qs.AddLink(&Link{n.Id, newNode.Id, 0, 0})
 			}
 		}
-	case "linksto":
+	case graph.LinksTo:
 		n.IsLinkNode = true
 		lto := it.(*LinksTo)
 		qs.nodeId++
@@ -167,15 +167,15 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 			} else {
 				qs.AddLink(&Link{newNode.Id, hasaID, 0, n.Id})
 			}
-		} else if lto.primaryIt.Type() == "fixed" {
+		} else if lto.primaryIt.Type() == graph.Fixed {
 			qs.StealNode(&n, newNode)
 		} else {
 			qs.AddNode(newNode)
 		}
-	case "optional":
+	case graph.Optional:
 		// Unsupported, for the moment
 		fallthrough
-	case "all":
+	case graph.All:
 	}
 	return &n
 }

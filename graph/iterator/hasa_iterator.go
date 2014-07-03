@@ -91,7 +91,7 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 	newPrimary, changed := it.primaryIt.Optimize()
 	if changed {
 		it.primaryIt = newPrimary
-		if it.primaryIt.Type() == "null" {
+		if it.primaryIt.Type() == graph.Null {
 			return it.primaryIt, true
 		}
 	}
@@ -220,4 +220,4 @@ func (it *HasA) Close() {
 }
 
 // Register this iterator as a HasA.
-func (it *HasA) Type() string { return "hasa" }
+func (it *HasA) Type() graph.Type { return graph.HasA }

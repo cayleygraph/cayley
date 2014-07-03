@@ -101,12 +101,18 @@ func (it *Iterator) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s tags:%s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.Tags(), size, it.data)
 }
 
-func (it *Iterator) Type() string {
-	return "llrb"
+var memType graph.Type
+
+func init() {
+	memType = graph.Register("llrb")
 }
-func (it *Iterator) Sorted() bool {
-	return true
-}
+
+func Type() graph.Type { return memType }
+
+func (it *Iterator) Type() graph.Type { return memType }
+
+func (it *Iterator) Sorted() bool { return true }
+
 func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }

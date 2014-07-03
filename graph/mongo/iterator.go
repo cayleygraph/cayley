@@ -157,12 +157,21 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.size, true
 }
 
-func (it *Iterator) Type() string {
-	if it.isAll {
-		return "all"
-	}
-	return "mongo"
+var mongoType graph.Type
+
+func init() {
+	mongoType = graph.Register("mongo")
 }
+
+func Type() graph.Type { return mongoType }
+
+func (it *Iterator) Type() graph.Type {
+	if it.isAll {
+		return graph.All
+	}
+	return mongoType
+}
+
 func (it *Iterator) Sorted() bool                     { return true }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 

@@ -99,9 +99,7 @@ func (it *Fixed) DebugString(indent int) string {
 }
 
 // Register this iterator as a Fixed iterator.
-func (it *Fixed) Type() string {
-	return "fixed"
-}
+func (it *Fixed) Type() graph.Type { return graph.Fixed }
 
 // Check if the passed value is equal to one of the values stored in the iterator.
 func (it *Fixed) Check(v graph.Value) bool {
