@@ -25,6 +25,12 @@ import (
 	"github.com/google/cayley/graph/iterator"
 )
 
+var cassandraType graph.Type
+
+func init() {
+	cassandraType = graph.Register("cassandra")
+}
+
 type Iterator struct {
 	iterator.Base
 	ts      *TripleStore
@@ -182,11 +188,11 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) Sorted() bool                     { return false }
 func (it *Iterator) CanNext() bool                    { return true }
 
-func (it *Iterator) Type() string {
+func (it *Iterator) Type() graph.Type {
 	if it.dir == graph.Any {
-		return "all"
+		return graph.All
 	}
-	return "cassandra"
+	return cassandraType
 }
 
 func (it *Iterator) DebugString(indent int) string {
