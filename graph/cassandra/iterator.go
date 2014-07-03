@@ -42,7 +42,7 @@ func NewIterator(ts *TripleStore, d graph.Direction, val graph.Value) graph.Iter
 	it.ts = ts
 	it.dir = d
 	it.val = val.(string)
-	it.table = fmt.Sprint("triples_by_", d)
+	it.table = fmt.Sprint("triples_by_", d.Prefix())
 	if it.dir == graph.Any {
 		it.table = "triples_by_s"
 		it.size = it.ts.Size()
@@ -126,10 +126,31 @@ func (it *Iterator) prepareIterator() {
 }
 
 func (it *Iterator) Next() (graph.Value, bool) {
-	triple := graph.Triple{}
 	if it.iter == nil {
 		it.prepareIterator()
 	}
+	if it.isNode {
+		return it.nodeNext()
+	}
+	return it.tripleNext()
+}
+
+func (it *Iterator) nodeNext() (graph.Value, bool) {
+	var node string
+	ok := it.iter.Scan(&node)
+	if !ok {
+		err := it.iter.Close()
+		if err != nil {
+			glog.Errorln("Iterator failed with", err)
+		}
+		return nil, false
+	}
+	it.Last = node
+	return node, true
+}
+
+func (it *Iterator) tripleNext() (graph.Value, bool) {
+	triple := graph.Triple{}
 	ok := it.iter.Scan(
 		&triple.Subject,
 		&triple.Predicate,

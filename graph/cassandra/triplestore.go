@@ -146,16 +146,27 @@ var tables = []string{"triples_by_s", "triples_by_p", "triples_by_o", "triples_b
 func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	batch := ts.sess.NewBatch(gocql.LoggedBatch)
 	for _, table := range tables {
+		if t.Provenance == "" && table == "triples_by_c" {
+			continue
+		}
 		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, provenance) VALUES (?, ?, ?, ?)")
 		batch.Query(query, t.Subject, t.Predicate, t.Object, t.Provenance)
 	}
 
+	counter_batch := ts.sess.NewBatch(gocql.CounterBatch)
 	for _, dir := range []graph.Direction{graph.Subject, graph.Predicate, graph.Object, graph.Provenance} {
+		if t.Get(dir) == "" {
+			continue
+		}
 		query := fmt.Sprint("UPDATE nodes SET ", dir, "_count = ", dir, "_count + 1 WHERE node = ?")
-		batch.Query(query, t.Get(dir))
+		counter_batch.Query(query, t.Get(dir))
 	}
 
 	err := ts.sess.ExecuteBatch(batch)
+	if err != nil {
+		glog.Errorln("Couldn't write triple:", t, ", ", err)
+	}
+	err = ts.sess.ExecuteBatch(counter_batch)
 	if err != nil {
 		glog.Errorln("Couldn't write triple:", t, ", ", err)
 	}
@@ -172,15 +183,15 @@ func (ts *TripleStore) AddTripleSet(set []*graph.Triple) {
 }
 
 func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
-	return iterator.NewNull()
+	return NewIterator(ts, d, val)
 }
 
 func (ts *TripleStore) NodesAllIterator() graph.Iterator {
-	return iterator.NewNull()
+	return NewNodeIterator(ts)
 }
 
 func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
-	return iterator.NewNull()
+	return NewIterator(ts, graph.Any, "")
 }
 
 func compareStrings(a, b graph.Value) bool {
