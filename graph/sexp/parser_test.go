@@ -17,8 +17,6 @@ package sexp
 import (
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/memstore"
 )
@@ -26,41 +24,55 @@ import (
 func TestBadParse(t *testing.T) {
 	str := ParseString("()")
 	if str != "" {
-		t.Errorf("It parsed! Got \"%s\"", str)
+		t.Errorf("Unexpected parse result, got:%q", str)
 	}
 }
 
-func TestParseSexpWithMemstore(t *testing.T) {
-	Convey("With a Memstore", t, func() {
-		ts := memstore.NewTripleStore()
+var testQueries = []struct {
+	message string
+	add     *graph.Triple
+	query   string
+	typ     string
+	expect  string
+}{
+	{
+		message: "get a single triple linkage",
+		add:     &graph.Triple{"i", "can", "win", ""},
+		query:   "($a (:can \"win\"))",
+		typ:     "and",
+		expect:  "i",
+	},
+	{
+		message: "get a single triple linkage",
+		add:     &graph.Triple{"i", "can", "win", ""},
+		query:   "(\"i\" (:can $a))",
+		typ:     "and",
+		expect:  "i",
+	},
+}
 
-		Convey("It should parse an empty query", func() {
-			it := BuildIteratorTreeForQuery(ts, "()")
-			So(it.Type(), ShouldEqual, "null")
-		})
-
-		Convey("It should get a single triple linkage", func() {
-			ts.AddTriple(&graph.Triple{"i", "can", "win", ""})
-			query := "($a (:can \"win\"))"
-			So(len(query), ShouldEqual, 17)
-			it := BuildIteratorTreeForQuery(ts, query)
-			So(it.Type(), ShouldEqual, "and")
-			out, ok := it.Next()
-			So(ok, ShouldBeTrue)
-			So(out, ShouldEqual, ts.ValueOf("i"))
-		})
-
-		Convey("It can get an internal linkage", func() {
-			ts.AddTriple(&graph.Triple{"i", "can", "win", ""})
-			query := "(\"i\" (:can $a))"
-			it := BuildIteratorTreeForQuery(ts, query)
-			So(it.Type(), ShouldEqual, "and")
-			out, ok := it.Next()
-			So(ok, ShouldBeTrue)
-			So(out, ShouldEqual, ts.ValueOf("i"))
-		})
-
-	})
+func TestMemstoreBackedSexp(t *testing.T) {
+	ts := memstore.NewTripleStore()
+	it := BuildIteratorTreeForQuery(ts, "()")
+	if it.Type() != "null" {
+		t.Errorf(`Incorrect type for empty query, got:%q expect: "null"`, it.Type())
+	}
+	for _, test := range testQueries {
+		if test.add != nil {
+			ts.AddTriple(test.add)
+		}
+		it := BuildIteratorTreeForQuery(ts, test.query)
+		if it.Type() != test.typ {
+			t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
+		}
+		got, ok := it.Next()
+		if !ok {
+			t.Errorf("Failed to %s", test.message)
+		}
+		if expect := ts.ValueOf(test.expect); got != expect {
+			t.Errorf("Incorrect result for %s, got:%v expect %v", test.message, got, expect)
+		}
+	}
 }
 
 func TestTreeConstraintParse(t *testing.T) {
@@ -72,7 +84,7 @@ func TestTreeConstraintParse(t *testing.T) {
 		"($a (:is :good))))"
 	it := BuildIteratorTreeForQuery(ts, query)
 	if it.Type() != "and" {
-		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
+		t.Error("Odd iterator tree, got: %s", it.DebugString(0))
 	}
 	out, ok := it.Next()
 	if !ok {
@@ -105,12 +117,18 @@ func TestTreeConstraintTagParse(t *testing.T) {
 
 func TestMultipleConstraintParse(t *testing.T) {
 	ts := memstore.NewTripleStore()
-	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
-	ts.AddTriple(&graph.Triple{"i", "like", "beer", ""})
-	ts.AddTriple(&graph.Triple{"you", "like", "beer", ""})
-	query := "($a \n" +
-		"(:like :beer)\n" +
-		"(:like \"food\"))"
+	for _, tv := range []*graph.Triple{
+		{"i", "like", "food", ""},
+		{"i", "like", "beer", ""},
+		{"you", "like", "beer", ""},
+	} {
+		ts.AddTriple(tv)
+	}
+	query := `(
+		$a
+		(:like :beer)
+		(:like "food")
+	)`
 	it := BuildIteratorTreeForQuery(ts, query)
 	if it.Type() != "and" {
 		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
