@@ -15,45 +15,104 @@
 package memstore
 
 import (
+	"reflect"
 	"sort"
 	"testing"
-
-	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 )
 
+// This is a simple test graph.
+//
+//    +---+                        +---+
+//    | A |-------               ->| F |<--
+//    +---+       \------>+---+-/  +---+   \--+---+
+//                 ------>|#B#|      |        | E |
+//    +---+-------/      >+---+      |        +---+
+//    | C |             /            v
+//    +---+           -/           +---+
+//      ----    +---+/             |#G#|
+//          \-->|#D#|------------->+---+
+//              +---+
+//
+var simpleGraph = []*graph.Triple{
+	{"A", "follows", "B", ""},
+	{"C", "follows", "B", ""},
+	{"C", "follows", "D", ""},
+	{"D", "follows", "B", ""},
+	{"B", "follows", "F", ""},
+	{"F", "follows", "G", ""},
+	{"D", "follows", "G", ""},
+	{"E", "follows", "F", ""},
+	{"B", "status", "cool", "status_graph"},
+	{"D", "status", "cool", "status_graph"},
+	{"G", "status", "cool", "status_graph"},
+}
+
+func makeTestStore(data []*graph.Triple) (*TripleStore, []pair) {
+	seen := make(map[string]struct{})
+	ts := NewTripleStore()
+	var (
+		val int64
+		ind []pair
+	)
+	for _, t := range data {
+		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Provenance} {
+			if _, ok := seen[qp]; !ok && qp != "" {
+				val++
+				ind = append(ind, pair{qp, val})
+				seen[qp] = struct{}{}
+			}
+		}
+		ts.AddTriple(t)
+	}
+	return ts, ind
+}
+
+type pair struct {
+	query string
+	value int64
+}
+
 func TestMemstore(t *testing.T) {
-	Convey("With a simple memstore", t, func() {
-		ts := MakeTestingMemstore()
-		Convey("It should have a reasonable size", func() {
-			So(ts.Size(), ShouldEqual, 11)
-		})
-		Convey("It should have an Id Space that makes sense", func() {
-			v := ts.ValueOf("C")
-			So(v.(int64), ShouldEqual, 4)
-		})
-	})
+	ts, index := makeTestStore(simpleGraph)
+	if size := ts.Size(); size != int64(len(simpleGraph)) {
+		t.Errorf("Triple store has unexpected size, got:%d expected %d", size, len(simpleGraph))
+	}
+	for _, test := range index {
+		v := ts.ValueOf(test.query)
+		switch v := v.(type) {
+		default:
+			t.Errorf("ValueOf(%q) returned unexpected type, got:%T expected int64", test.query, v)
+		case int64:
+			if v != test.value {
+				t.Errorf("ValueOf(%q) returned unexpected value, got:%d expected:%d", test.query, v, test.value)
+			}
+		}
+	}
 }
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
-	ts := MakeTestingMemstore()
+	ts, _ := makeTestStore(simpleGraph)
+
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("C"))
-	all := ts.NodesAllIterator()
-	lto := iterator.NewLinksTo(ts, all, graph.Object)
-	innerAnd := iterator.NewAnd()
 
 	fixed2 := ts.FixedIterator()
 	fixed2.Add(ts.ValueOf("follows"))
-	lto2 := iterator.NewLinksTo(ts, fixed2, graph.Predicate)
-	innerAnd.AddSubIterator(lto2)
-	innerAnd.AddSubIterator(lto)
+
+	all := ts.NodesAllIterator()
+
+	innerAnd := iterator.NewAnd()
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, graph.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, all, graph.Object))
+
 	hasa := iterator.NewHasA(ts, innerAnd, graph.Subject)
 	outerAnd := iterator.NewAnd()
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
+
 	val, ok := outerAnd.Next()
 	if !ok {
 		t.Error("Expected one matching subtree")
@@ -61,46 +120,38 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	if ts.NameOf(val) != "C" {
 		t.Errorf("Matching subtree should be %s, got %s", "barak", ts.NameOf(val))
 	}
-	expected := make([]string, 2)
-	expected[0] = "B"
-	expected[1] = "D"
-	actualOut := make([]string, 2)
-	actualOut[0] = ts.NameOf(all.Result())
-	nresultOk := outerAnd.NextResult()
-	if !nresultOk {
-		t.Error("Expected two results got one")
+
+	var (
+		got    []string
+		expect = []string{"B", "D"}
+	)
+	for {
+		got = append(got, ts.NameOf(all.Result()))
+		if !outerAnd.NextResult() {
+			break
+		}
 	}
-	actualOut[1] = ts.NameOf(all.Result())
-	nresultOk = outerAnd.NextResult()
-	if nresultOk {
-		t.Error("Expected two results got three")
+	sort.Strings(got)
+
+	if !reflect.DeepEqual(got, expect) {
+		t.Errorf("Unexpected result, got:%q expect:%q", got, expect)
 	}
-	CompareStringSlices(t, expected, actualOut)
+
 	val, ok = outerAnd.Next()
 	if ok {
 		t.Error("More than one possible top level output?")
 	}
 }
 
-func CompareStringSlices(t *testing.T, expected []string, actual []string) {
-	if len(expected) != len(actual) {
-		t.Error("String slices are not the same length")
-	}
-	sort.Strings(expected)
-	sort.Strings(actual)
-	for i := 0; i < len(expected); i++ {
-		if expected[i] != actual[i] {
-			t.Errorf("At index %d, expected \"%s\" and got \"%s\"", i, expected[i], actual[i])
-		}
-	}
-}
-
 func TestLinksToOptimization(t *testing.T) {
-	ts := MakeTestingMemstore()
+	ts, _ := makeTestStore(simpleGraph)
+
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("cool"))
+
 	lto := iterator.NewLinksTo(ts, fixed, graph.Object)
 	lto.AddTag("foo")
+
 	newIt, changed := lto.Optimize()
 	if !changed {
 		t.Error("Iterator didn't change")
@@ -108,6 +159,7 @@ func TestLinksToOptimization(t *testing.T) {
 	if newIt.Type() != Type() {
 		t.Fatal("Didn't swap out to LLRB")
 	}
+
 	v := newIt.(*Iterator)
 	v_clone := v.Clone()
 	if v_clone.DebugString(0) != v.DebugString(0) {
@@ -119,18 +171,22 @@ func TestLinksToOptimization(t *testing.T) {
 }
 
 func TestRemoveTriple(t *testing.T) {
-	ts := MakeTestingMemstore()
+	ts, _ := makeTestStore(simpleGraph)
+
 	ts.RemoveTriple(&graph.Triple{"E", "follows", "F", ""})
+
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("E"))
-	lto := iterator.NewLinksTo(ts, fixed, graph.Subject)
+
 	fixed2 := ts.FixedIterator()
 	fixed2.Add(ts.ValueOf("follows"))
-	lto2 := iterator.NewLinksTo(ts, fixed2, graph.Predicate)
+
 	innerAnd := iterator.NewAnd()
-	innerAnd.AddSubIterator(lto2)
-	innerAnd.AddSubIterator(lto)
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, graph.Subject))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, graph.Predicate))
+
 	hasa := iterator.NewHasA(ts, innerAnd, graph.Object)
+
 	newIt, _ := hasa.Optimize()
 	_, ok := newIt.Next()
 	if ok {
