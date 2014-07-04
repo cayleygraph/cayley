@@ -119,6 +119,7 @@ func (t *Triple) Equals(o *Triple) bool {
 
 // Pretty-prints a triple.
 func (t *Triple) String() string {
+	// TODO(kortschak) String methods should generally not terminate in '\n'.
 	return fmt.Sprintf("%s -- %s -> %s\n", t.Subject, t.Predicate, t.Object)
 }
 

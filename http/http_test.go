@@ -15,40 +15,59 @@
 package http
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/google/cayley/graph"
 )
 
-func TestParseJSONOkay(t *testing.T) {
-	Convey("Parse JSON", t, func() {
-		bytelist := []byte(`[
+var parseTests = []struct {
+	message string
+	input   string
+	expect  []*graph.Triple
+	err     error
+}{
+	{
+		message: "parse correct JSON",
+		input: `[
 			{"subject": "foo", "predicate": "bar", "object": "baz"},
 			{"subject": "foo", "predicate": "bar", "object": "baz", "provenance": "graph"}
-	]`)
-		x, err := ParseJsonToTripleList(bytelist)
-		So(err, ShouldBeNil)
-		So(len(x), ShouldEqual, 2)
-		So(x[0].Subject, ShouldEqual, "foo")
-		So(x[0].Provenance, ShouldEqual, "")
-		So(x[1].Provenance, ShouldEqual, "graph")
-	})
-
-	Convey("Parse JSON extra field", t, func() {
-		bytelist := []byte(`[
-		{"subject": "foo", "predicate": "bar", "object": "foo", "something_else": "extra data"}
-	]`)
-		_, err := ParseJsonToTripleList(bytelist)
-		So(err, ShouldBeNil)
-	})
+		]`,
+		expect: []*graph.Triple{
+			{"foo", "bar", "baz", ""},
+			{"foo", "bar", "baz", "graph"},
+		},
+		err: nil,
+	},
+	{
+		message: "parse correct JSON with extra field",
+		input: `[
+			{"subject": "foo", "predicate": "bar", "object": "foo", "something_else": "extra data"}
+		]`,
+		expect: []*graph.Triple{
+			{"foo", "bar", "foo", ""},
+		},
+		err: nil,
+	},
+	{
+		message: "reject incorrect JSON",
+		input: `[
+			{"subject": "foo", "predicate": "bar"}
+		]`,
+		expect: nil,
+		err:    fmt.Errorf("Invalid triple at index %d. %v", 0, &graph.Triple{"foo", "bar", "", ""}),
+	},
 }
 
-func TestParseJSONFail(t *testing.T) {
-	Convey("Parse JSON Fail", t, func() {
-		bytelist := []byte(`[
-			{"subject": "foo", "predicate": "bar"}
-	]`)
-		_, err := ParseJsonToTripleList(bytelist)
-		So(err, ShouldNotBeNil)
-	})
+func TestParseJSON(t *testing.T) {
+	for _, test := range parseTests {
+		got, err := ParseJsonToTripleList([]byte(test.input))
+		if fmt.Sprint(err) != fmt.Sprint(test.err) {
+			t.Errorf("Failed to %v with unexpected error, got:%v expected %v", test.message, err, test.err)
+		}
+		if !reflect.DeepEqual(got, test.expect) {
+			t.Errorf("Failed to %v, got:%v expect:%v", test.message, got, test.expect)
+		}
+	}
 }
