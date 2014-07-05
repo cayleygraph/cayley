@@ -42,7 +42,7 @@ type queryShape struct {
 	hasaDirs []graph.Direction
 }
 
-func OutputQueryShapeForIterator(it graph.Iterator, ts graph.TripleStore, outputMap *map[string]interface{}) {
+func OutputQueryShapeForIterator(it graph.Iterator, ts graph.TripleStore, outputMap map[string]interface{}) {
 	qs := &queryShape{
 		ts:     ts,
 		nodeId: 1,
@@ -50,8 +50,8 @@ func OutputQueryShapeForIterator(it graph.Iterator, ts graph.TripleStore, output
 
 	node := qs.MakeNode(it.Clone())
 	qs.AddNode(node)
-	(*outputMap)["nodes"] = qs.nodes
-	(*outputMap)["links"] = qs.links
+	outputMap["nodes"] = qs.nodes
+	outputMap["links"] = qs.links
 }
 
 func (qs *queryShape) AddNode(n *Node) {

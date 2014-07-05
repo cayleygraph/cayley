@@ -15,112 +15,116 @@
 package iterator
 
 import (
+	"reflect"
 	"testing"
-
-	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/google/cayley/graph"
 )
 
-func buildHasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
-	fixed_obj := ts.FixedIterator()
-	fixed_pred := ts.FixedIterator()
-	fixed_obj.Add(ts.ValueOf(target))
-	fixed_pred.Add(ts.ValueOf("status"))
-	fixed_obj.AddTag(tag)
-	lto1 := NewLinksTo(ts, fixed_obj, graph.Object)
-	lto2 := NewLinksTo(ts, fixed_pred, graph.Predicate)
+func hasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
 	and := NewAnd()
-	and.AddSubIterator(lto1)
-	and.AddSubIterator(lto2)
-	hasa := NewHasA(ts, and, graph.Subject)
-	return hasa
+
+	obj := ts.FixedIterator()
+	obj.Add(ts.ValueOf(target))
+	obj.AddTag(tag)
+	and.AddSubIterator(NewLinksTo(ts, obj, graph.Object))
+
+	pred := ts.FixedIterator()
+	pred.Add(ts.ValueOf("status"))
+	and.AddSubIterator(NewLinksTo(ts, pred, graph.Predicate))
+
+	return NewHasA(ts, and, graph.Subject)
 }
 
 func TestQueryShape(t *testing.T) {
-	var queryShape map[string]interface{}
-	ts := new(TestTripleStore)
-	ts.On("ValueOf", "cool").Return(1)
-	ts.On("NameOf", 1).Return("cool")
-	ts.On("ValueOf", "status").Return(2)
-	ts.On("NameOf", 2).Return("status")
-	ts.On("ValueOf", "fun").Return(3)
-	ts.On("NameOf", 3).Return("fun")
-	ts.On("ValueOf", "name").Return(4)
-	ts.On("NameOf", 4).Return("name")
+	ts := &store{
+		data: []string{
+			1: "cool",
+			2: "status",
+			3: "fun",
+			4: "name",
+		},
+	}
 
-	Convey("Given a single linkage iterator's shape", t, func() {
-		queryShape = make(map[string]interface{})
-		hasa := buildHasaWithTag(ts, "tag", "cool")
-		hasa.AddTag("top")
-		OutputQueryShapeForIterator(hasa, ts, &queryShape)
+	// Given a single linkage iterator's shape.
+	hasa := hasaWithTag(ts, "tag", "cool")
+	hasa.AddTag("top")
 
-		Convey("It should have three nodes and one link", func() {
-			nodes := queryShape["nodes"].([]Node)
-			links := queryShape["links"].([]Link)
-			So(len(nodes), ShouldEqual, 3)
-			So(len(links), ShouldEqual, 1)
-		})
+	shape := make(map[string]interface{})
+	OutputQueryShapeForIterator(hasa, ts, shape)
 
-		Convey("These nodes should be correctly tagged", func() {
-			nodes := queryShape["nodes"].([]Node)
-			So(nodes[0].Tags, ShouldResemble, []string{"tag"})
-			So(nodes[1].IsLinkNode, ShouldEqual, true)
-			So(nodes[2].Tags, ShouldResemble, []string{"top"})
+	nodes := shape["nodes"].([]Node)
+	if len(nodes) != 3 {
+		t.Errorf("Failed to get correct number of nodes, got:%d expect:4", len(nodes))
+	}
+	links := shape["links"].([]Link)
+	if len(nodes) != 3 {
+		t.Errorf("Failed to get correct number of links, got:%d expect:1", len(links))
+	}
 
-		})
+	// Nodes should be correctly tagged.
+	nodes = shape["nodes"].([]Node)
+	for i, expect := range [][]string{{"tag"}, nil, {"top"}} {
+		if !reflect.DeepEqual(nodes[i].Tags, expect) {
+			t.Errorf("Failed to get correct tag for node[%d], got:%s expect:%s", i, nodes[i].Tags, expect)
+		}
+	}
+	if !nodes[1].IsLinkNode {
+		t.Error("Failed to get node[1] as link node")
+	}
 
-		Convey("The link should be correctly typed", func() {
-			nodes := queryShape["nodes"].([]Node)
-			links := queryShape["links"].([]Link)
-			So(links[0].Source, ShouldEqual, nodes[2].Id)
-			So(links[0].Target, ShouldEqual, nodes[0].Id)
-			So(links[0].LinkNode, ShouldEqual, nodes[1].Id)
-			So(links[0].Pred, ShouldEqual, 0)
+	// Link should be correctly typed.
+	nodes = shape["nodes"].([]Node)
+	link := shape["links"].([]Link)[0]
+	if link.Source != nodes[2].Id {
+		t.Errorf("Failed to get correct link source, got:%v expect:%v", link.Source, nodes[2].Id)
+	}
+	if link.Target != nodes[0].Id {
+		t.Errorf("Failed to get correct link target, got:%v expect:%v", link.Target, nodes[0].Id)
+	}
+	if link.LinkNode != nodes[1].Id {
+		t.Errorf("Failed to get correct link node, got:%v expect:%v", link.LinkNode, nodes[1].Id)
+	}
+	if link.Pred != 0 {
+		t.Errorf("Failed to get correct number of predecessors:%v expect:0", link.Pred)
+	}
 
-		})
+	// Given a name-of-an-and-iterator's shape.
+	andInternal := NewAnd()
 
-	})
+	hasa1 := hasaWithTag(ts, "tag1", "cool")
+	hasa1.AddTag("hasa1")
+	andInternal.AddSubIterator(hasa1)
 
-	Convey("Given a name-of-an-and-iterator's shape", t, func() {
-		queryShape = make(map[string]interface{})
-		hasa1 := buildHasaWithTag(ts, "tag1", "cool")
-		hasa1.AddTag("hasa1")
-		hasa2 := buildHasaWithTag(ts, "tag2", "fun")
-		hasa1.AddTag("hasa2")
-		andInternal := NewAnd()
-		andInternal.AddSubIterator(hasa1)
-		andInternal.AddSubIterator(hasa2)
-		fixed_pred := ts.FixedIterator()
-		fixed_pred.Add(ts.ValueOf("name"))
-		lto1 := NewLinksTo(ts, andInternal, graph.Subject)
-		lto2 := NewLinksTo(ts, fixed_pred, graph.Predicate)
-		and := NewAnd()
-		and.AddSubIterator(lto1)
-		and.AddSubIterator(lto2)
-		hasa := NewHasA(ts, and, graph.Object)
-		OutputQueryShapeForIterator(hasa, ts, &queryShape)
+	hasa2 := hasaWithTag(ts, "tag2", "fun")
+	hasa2.AddTag("hasa2")
+	andInternal.AddSubIterator(hasa2)
 
-		Convey("It should have seven nodes and three links", func() {
-			nodes := queryShape["nodes"].([]Node)
-			links := queryShape["links"].([]Link)
-			So(len(nodes), ShouldEqual, 7)
-			So(len(links), ShouldEqual, 3)
-		})
+	pred := ts.FixedIterator()
+	pred.Add(ts.ValueOf("name"))
 
-		Convey("Three of the nodes are link nodes, four aren't", func() {
-			nodes := queryShape["nodes"].([]Node)
-			count := 0
-			for _, node := range nodes {
-				if node.IsLinkNode {
-					count++
-				}
-			}
-			So(count, ShouldEqual, 3)
-		})
+	and := NewAnd()
+	and.AddSubIterator(NewLinksTo(ts, andInternal, graph.Subject))
+	and.AddSubIterator(NewLinksTo(ts, pred, graph.Predicate))
 
-		Convey("These nodes should be correctly tagged", nil)
+	shape = make(map[string]interface{})
+	OutputQueryShapeForIterator(NewHasA(ts, and, graph.Object), ts, shape)
 
-	})
-
+	links = shape["links"].([]Link)
+	if len(links) != 3 {
+		t.Errorf("Failed to find the correct number of links, got:%d expect:3", len(links))
+	}
+	nodes = shape["nodes"].([]Node)
+	if len(nodes) != 7 {
+		t.Errorf("Failed to find the correct number of nodes, got:%d expect:7", len(nodes))
+	}
+	var n int
+	for _, node := range nodes {
+		if node.IsLinkNode {
+			n++
+		}
+	}
+	if n != 3 {
+		t.Errorf("Failed to find the correct number of link nodes, got:%d expect:3", n)
+	}
 }
