@@ -15,131 +15,140 @@
 package iterator
 
 import (
+	"reflect"
 	"testing"
-
-	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/google/cayley/graph"
 )
 
-func extractNumbersFromIterator(it graph.Iterator) []int {
-	var outputNumbers []int
+func iterated(it graph.Iterator) []int {
+	var res []int
 	for {
 		val, ok := it.Next()
 		if !ok {
 			break
 		}
-		outputNumbers = append(outputNumbers, val.(int))
+		res = append(res, val.(int))
 	}
-	return outputNumbers
+	return res
 }
 
 func TestOrIteratorBasics(t *testing.T) {
-	var orIt *Or
+	or := NewOr()
+	f1 := newFixed()
+	f1.Add(1)
+	f1.Add(2)
+	f1.Add(3)
+	f2 := newFixed()
+	f2.Add(3)
+	f2.Add(9)
+	f2.Add(20)
+	f2.Add(21)
+	or.AddSubIterator(f1)
+	or.AddSubIterator(f2)
 
-	Convey("Given an Or Iterator of two fixed iterators", t, func() {
-		orIt = NewOr()
-		fixed1 := newFixed()
-		fixed1.Add(1)
-		fixed1.Add(2)
-		fixed1.Add(3)
-		fixed2 := newFixed()
-		fixed2.Add(3)
-		fixed2.Add(9)
-		fixed2.Add(20)
-		fixed2.Add(21)
-		orIt.AddSubIterator(fixed1)
-		orIt.AddSubIterator(fixed2)
+	if v, _ := or.Size(); v != 7 {
+		t.Errorf("Unexpected iterator size, got:%d expected %d", v, 7)
+	}
 
-		Convey("It should guess its size.", func() {
-			v, _ := orIt.Size()
-			So(v, ShouldEqual, 7)
-		})
+	expect := []int{1, 2, 3, 3, 9, 20, 21}
+	for i := 0; i < 2; i++ {
+		if got := iterated(or); !reflect.DeepEqual(got, expect) {
+			t.Errorf("Failed to iterate Or correctly on repeat %d, got:%v expect:%v", i, got, expect)
+		}
+		or.Reset()
+	}
 
-		Convey("It should extract all the numbers, potentially twice.", func() {
-			allNumbers := []int{1, 2, 3, 3, 9, 20, 21}
-			So(extractNumbersFromIterator(orIt), ShouldResemble, allNumbers)
-			orIt.Reset()
-			So(extractNumbersFromIterator(orIt), ShouldResemble, allNumbers)
-			// Optimization works
-			newOr, _ := orIt.Optimize()
-			So(extractNumbersFromIterator(newOr), ShouldResemble, allNumbers)
-		})
+	// Check that optimization works.
+	optOr, _ := or.Optimize()
+	if got := iterated(optOr); !reflect.DeepEqual(got, expect) {
+		t.Errorf("Failed to iterate optimized Or correctly, got:%v expect:%v", got, expect)
+	}
 
-		Convey("It should check that numbers in either iterator exist.", func() {
-			So(orIt.Check(2), ShouldEqual, true)
-			So(orIt.Check(3), ShouldEqual, true)
-			So(orIt.Check(21), ShouldEqual, true)
-		})
+	for _, v := range []int{2, 3, 21} {
+		if !or.Check(v) {
+			t.Errorf("Failed to correctly check %d as true", v)
+		}
+	}
 
-		Convey("It should check that numbers not in either iterator are false.", func() {
-			So(orIt.Check(22), ShouldEqual, false)
-			So(orIt.Check(5), ShouldEqual, false)
-			So(orIt.Check(0), ShouldEqual, false)
-		})
-
-	})
-
+	for _, v := range []int{22, 5, 0} {
+		if or.Check(v) {
+			t.Errorf("Failed to correctly check %d as false", v)
+		}
+	}
 }
 
 func TestShortCircuitingOrBasics(t *testing.T) {
-	var orIt *Or
+	var or *Or
 
-	Convey("Given a short-circuiting Or of two fixed iterators", t, func() {
-		orIt = NewShortCircuitOr()
-		fixed1 := newFixed()
-		fixed1.Add(1)
-		fixed1.Add(2)
-		fixed1.Add(3)
-		fixed2 := newFixed()
-		fixed2.Add(3)
-		fixed2.Add(9)
-		fixed2.Add(20)
-		fixed2.Add(21)
+	f1 := newFixed()
+	f1.Add(1)
+	f1.Add(2)
+	f1.Add(3)
+	f2 := newFixed()
+	f2.Add(3)
+	f2.Add(9)
+	f2.Add(20)
+	f2.Add(21)
 
-		Convey("It should guess its size.", func() {
-			orIt.AddSubIterator(fixed1)
-			orIt.AddSubIterator(fixed2)
-			v, _ := orIt.Size()
-			So(v, ShouldEqual, 4)
-		})
+	or = NewShortCircuitOr()
+	or.AddSubIterator(f1)
+	or.AddSubIterator(f2)
+	v, exact := or.Size()
+	if v != 4 {
+		t.Errorf("Unexpected iterator size, got:%d expected %d", v, 4)
+	}
+	if !exact {
+		t.Error("Size not exact.")
+	}
 
-		Convey("It should extract the first iterators' numbers.", func() {
-			orIt.AddSubIterator(fixed1)
-			orIt.AddSubIterator(fixed2)
-			allNumbers := []int{1, 2, 3}
-			So(extractNumbersFromIterator(orIt), ShouldResemble, allNumbers)
-			orIt.Reset()
-			So(extractNumbersFromIterator(orIt), ShouldResemble, allNumbers)
-			// Optimization works
-			newOr, _ := orIt.Optimize()
-			So(extractNumbersFromIterator(newOr), ShouldResemble, allNumbers)
-		})
+	// It should extract the first iterators' numbers.
+	or = NewShortCircuitOr()
+	or.AddSubIterator(f1)
+	or.AddSubIterator(f2)
+	expect := []int{1, 2, 3}
+	for i := 0; i < 2; i++ {
+		if got := iterated(or); !reflect.DeepEqual(got, expect) {
+			t.Errorf("Failed to iterate Or correctly on repeat %d, got:%v expect:%v", i, got, expect)
+		}
+		or.Reset()
+	}
 
-		Convey("It should check that numbers in either iterator exist.", func() {
-			orIt.AddSubIterator(fixed1)
-			orIt.AddSubIterator(fixed2)
-			So(orIt.Check(2), ShouldEqual, true)
-			So(orIt.Check(3), ShouldEqual, true)
-			So(orIt.Check(21), ShouldEqual, true)
-			So(orIt.Check(22), ShouldEqual, false)
-			So(orIt.Check(5), ShouldEqual, false)
-			So(orIt.Check(0), ShouldEqual, false)
+	// Check optimization works.
+	optOr, _ := or.Optimize()
+	if got := iterated(optOr); !reflect.DeepEqual(got, expect) {
+		t.Errorf("Failed to iterate optimized Or correctly, got:%v expect:%v", got, expect)
+	}
 
-		})
+	// Check that numbers in either iterator exist.
+	or = NewShortCircuitOr()
+	or.AddSubIterator(f1)
+	or.AddSubIterator(f2)
+	for _, v := range []int{2, 3, 21} {
+		if !or.Check(v) {
+			t.Errorf("Failed to correctly check %d as true", v)
+		}
+	}
+	for _, v := range []int{22, 5, 0} {
+		if or.Check(v) {
+			t.Errorf("Failed to correctly check %d as false", v)
+		}
+	}
 
-		Convey("It should check that it pulls the second iterator's numbers if the first is empty.", func() {
-			orIt.AddSubIterator(newFixed())
-			orIt.AddSubIterator(fixed2)
-			allNumbers := []int{3, 9, 20, 21}
-			So(extractNumbersFromIterator(orIt), ShouldResemble, allNumbers)
-			orIt.Reset()
-			So(extractNumbersFromIterator(orIt), ShouldResemble, allNumbers)
-			// Optimization works
-			newOr, _ := orIt.Optimize()
-			So(extractNumbersFromIterator(newOr), ShouldResemble, allNumbers)
-		})
-
-	})
-
+	// Check that it pulls the second iterator's numbers if the first is empty.
+	or = NewShortCircuitOr()
+	or.AddSubIterator(newFixed())
+	or.AddSubIterator(f2)
+	expect = []int{3, 9, 20, 21}
+	for i := 0; i < 2; i++ {
+		if got := iterated(or); !reflect.DeepEqual(got, expect) {
+			t.Errorf("Failed to iterate Or correctly on repeat %d, got:%v expect:%v", i, got, expect)
+		}
+		or.Reset()
+	}
+	// Check optimization works.
+	optOr, _ = or.Optimize()
+	if got := iterated(optOr); !reflect.DeepEqual(got, expect) {
+		t.Errorf("Failed to iterate optimized Or correctly, got:%v expect:%v", got, expect)
+	}
 }

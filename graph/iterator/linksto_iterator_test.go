@@ -21,13 +21,17 @@ import (
 )
 
 func TestLinksTo(t *testing.T) {
-	ts := new(TestTripleStore)
-	tsFixed := newFixed()
-	tsFixed.Add(2)
-	ts.On("ValueOf", "cool").Return(1)
-	ts.On("TripleIterator", graph.Object, 1).Return(tsFixed)
+	ts := &store{
+		data: []string{1: "cool"},
+		iter: newFixed(),
+	}
+	ts.iter.(*Fixed).Add(2)
 	fixed := newFixed()
-	fixed.Add(ts.ValueOf("cool"))
+	val := ts.ValueOf("cool")
+	if val != 1 {
+		t.Fatalf("Failed to return correct value, got:%v expect:1", val)
+	}
+	fixed.Add(val)
 	lto := NewLinksTo(ts, fixed, graph.Object)
 	val, ok := lto.Next()
 	if !ok {

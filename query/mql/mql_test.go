@@ -98,73 +98,69 @@ var testQueries = []struct {
 		message: "show correct null semantics",
 		query:   `[{"id": "cool", "status": null}]`,
 		expect: `
-			[{"id": "cool", "status": null}]
+			[
+				{"id": "cool", "status": null}
+			]
 		`,
 	},
 	{
 		message: "get correct follows list",
 		query:   `[{"id": "C", "follows": []}]`,
 		expect: `
-			[{
-				"id": "C",
-				"follows": ["B", "D"]
-			}]
-	`,
+			[
+				{"id": "C", "follows": ["B", "D"]}
+			]
+		`,
 	},
 	{
 		message: "get correct reverse follows list",
 		query:   `[{"id": "F", "!follows": []}]`,
 		expect: `
-		[{
-			"id": "F",
-			"!follows": ["B", "E"]
-		}]
-	`,
+			[
+				{"id": "F", "!follows": ["B", "E"]}
+			]
+		`,
 	},
 	{
 		message: "get correct follows struct",
 		query:   `[{"id": null, "follows": {"id": null, "status": "cool"}}]`,
 		expect: `
-		[
-			{"id": "A", "follows": {"id": "B", "status": "cool"}},
-			{"id": "C", "follows": {"id": "D", "status": "cool"}},
-			{"id": "D", "follows": {"id": "G", "status": "cool"}},
-			{"id": "F", "follows": {"id": "G", "status": "cool"}}
-		]
-	`,
+			[
+				{"id": "A", "follows": {"id": "B", "status": "cool"}},
+				{"id": "C", "follows": {"id": "D", "status": "cool"}},
+				{"id": "D", "follows": {"id": "G", "status": "cool"}},
+				{"id": "F", "follows": {"id": "G", "status": "cool"}}
+			]
+		`,
 	},
 	{
 		message: "get correct reverse follows struct",
 		query:   `[{"id": null, "!follows": [{"id": null, "status" : "cool"}]}]`,
 		expect: `
-		[
-			{"id": "F", "!follows": [{"id": "B", "status": "cool"}]},
-			{"id": "B", "!follows": [{"id": "D", "status": "cool"}]},
-			{"id": "G", "!follows": [{"id": "D", "status": "cool"}]}
-		]
+			[
+				{"id": "F", "!follows": [{"id": "B", "status": "cool"}]},
+				{"id": "B", "!follows": [{"id": "D", "status": "cool"}]},
+				{"id": "G", "!follows": [{"id": "D", "status": "cool"}]}
+			]
 		`,
 	},
 	{
 		message: "get correct co-follows",
 		query:   `[{"id": null, "@A:follows": "B", "@B:follows": "D"}]`,
 		expect: `
-		[{
-			"id": "C",
-			"@A:follows": "B",
-			"@B:follows": "D"
-		}]
+			[
+				{"id": "C", "@A:follows": "B", "@B:follows": "D"}
+			]
 		`,
 	},
 	{
 		message: "get correct reverse co-follows",
 		query:   `[{"id": null, "!follows": {"id": "C"}, "@A:!follows": "D"}]`,
 		expect: `
-		[{
-			"id": "B",
-			"!follows": {"id": "C"},
-			"@A:!follows": "D"
-		}]
-	`,
+			[
+				{"id": "B", "!follows": {"id": "C"}, "@A:!follows": "D"}
+			]
+		`,
 	},
 }
 

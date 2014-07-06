@@ -51,7 +51,7 @@ func (m *Session) GetQuery(input string, output_struct chan map[string]interface
 	m.currentQuery = NewQuery(m)
 	m.currentQuery.BuildIteratorTree(mqlQuery)
 	output := make(map[string]interface{})
-	iterator.OutputQueryShapeForIterator(m.currentQuery.it, m.ts, &output)
+	iterator.OutputQueryShapeForIterator(m.currentQuery.it, m.ts, output)
 	nodes := output["nodes"].([]iterator.Node)
 	new_nodes := make([]iterator.Node, 0)
 	for _, n := range nodes {

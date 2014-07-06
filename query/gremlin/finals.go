@@ -239,7 +239,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 
 func runIteratorOnSession(it graph.Iterator, ses *Session) {
 	if ses.lookingForQueryShape {
-		iterator.OutputQueryShapeForIterator(it, ses.ts, &(ses.queryShape))
+		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.queryShape)
 		return
 	}
 	it, _ = it.Optimize()

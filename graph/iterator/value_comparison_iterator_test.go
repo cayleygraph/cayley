@@ -20,35 +20,14 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func SetupMockTripleStore(nameMap map[string]int) *TestTripleStore {
-	ts := new(TestTripleStore)
-	for k, v := range nameMap {
-		ts.On("ValueOf", k).Return(v)
-		ts.On("NameOf", v).Return(k)
+var simpleStore = &store{data: []string{"0", "1", "2", "3", "4", "5"}}
+
+func simpleFixedIterator() *Fixed {
+	f := newFixed()
+	for i := 0; i < 5; i++ {
+		f.Add(i)
 	}
-	return ts
-}
-
-func SimpleValueTripleStore() *TestTripleStore {
-	ts := SetupMockTripleStore(map[string]int{
-		"0": 0,
-		"1": 1,
-		"2": 2,
-		"3": 3,
-		"4": 4,
-		"5": 5,
-	})
-	return ts
-}
-
-func BuildFixedIterator() *Fixed {
-	fixed := newFixed()
-	fixed.Add(0)
-	fixed.Add(1)
-	fixed.Add(2)
-	fixed.Add(3)
-	fixed.Add(4)
-	return fixed
+	return f
 }
 
 func checkIteratorContains(ts graph.TripleStore, it graph.Iterator, expected []string, t *testing.T) {
@@ -82,36 +61,36 @@ func checkIteratorContains(ts graph.TripleStore, it graph.Iterator, expected []s
 }
 
 func TestWorkingIntValueComparison(t *testing.T) {
-	ts := SimpleValueTripleStore()
-	fixed := BuildFixedIterator()
+	ts := simpleStore
+	fixed := simpleFixedIterator()
 	vc := NewComparison(fixed, kCompareLT, int64(3), ts)
 	checkIteratorContains(ts, vc, []string{"0", "1", "2"}, t)
 }
 
 func TestFailingIntValueComparison(t *testing.T) {
-	ts := SimpleValueTripleStore()
-	fixed := BuildFixedIterator()
+	ts := simpleStore
+	fixed := simpleFixedIterator()
 	vc := NewComparison(fixed, kCompareLT, int64(0), ts)
 	checkIteratorContains(ts, vc, []string{}, t)
 }
 
 func TestWorkingGT(t *testing.T) {
-	ts := SimpleValueTripleStore()
-	fixed := BuildFixedIterator()
+	ts := simpleStore
+	fixed := simpleFixedIterator()
 	vc := NewComparison(fixed, kCompareGT, int64(2), ts)
 	checkIteratorContains(ts, vc, []string{"3", "4"}, t)
 }
 
 func TestWorkingGTE(t *testing.T) {
-	ts := SimpleValueTripleStore()
-	fixed := BuildFixedIterator()
+	ts := simpleStore
+	fixed := simpleFixedIterator()
 	vc := NewComparison(fixed, kCompareGTE, int64(2), ts)
 	checkIteratorContains(ts, vc, []string{"2", "3", "4"}, t)
 }
 
 func TestVCICheck(t *testing.T) {
-	ts := SimpleValueTripleStore()
-	fixed := BuildFixedIterator()
+	ts := simpleStore
+	fixed := simpleFixedIterator()
 	vc := NewComparison(fixed, kCompareGTE, int64(2), ts)
 	if vc.Check(1) {
 		t.Error("1 is less than 2, should be GTE")
