@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/cayley/graph"
@@ -30,78 +31,94 @@ func simpleFixedIterator() *Fixed {
 	return f
 }
 
-func checkIteratorContains(ts graph.TripleStore, it graph.Iterator, expected []string, t *testing.T) {
-	var actual []string
-	actual = nil
-	for {
-		val, ok := it.Next()
-		if !ok {
-			break
-		}
-		actual = append(actual, ts.NameOf(val))
-	}
-	actualSet := actual[:]
-	for _, a := range expected {
-		found := false
-		for j, b := range actualSet {
-			if a == b {
-				actualSet = append(actualSet[:j], actualSet[j+1:]...)
-				found = true
+var comparisonTests = []struct {
+	message  string
+	operand  graph.Value
+	operator Operator
+	expect   []string
+}{
+	{
+		message:  "successful int64 less than comparison",
+		operand:  int64(3),
+		operator: kCompareLT,
+		expect:   []string{"0", "1", "2"},
+	},
+	{
+		message:  "empty int64 less than comparison",
+		operand:  int64(0),
+		operator: kCompareLT,
+		expect:   nil,
+	},
+	{
+		message:  "successful int64 greater than comparison",
+		operand:  int64(2),
+		operator: kCompareGT,
+		expect:   []string{"3", "4"},
+	},
+	{
+		message:  "successful int64 greater than or equal comparison",
+		operand:  int64(2),
+		operator: kCompareGTE,
+		expect:   []string{"2", "3", "4"},
+	},
+}
+
+func TestValueComparison(t *testing.T) {
+	for _, test := range comparisonTests {
+		ts := simpleStore
+		vc := NewComparison(simpleFixedIterator(), test.operator, test.operand, ts)
+
+		var got []string
+		for {
+			val, ok := vc.Next()
+			if !ok {
 				break
 			}
+			got = append(got, ts.NameOf(val))
 		}
-		if !found {
-			t.Error("Couldn't find", a, "in actual output.\nActual:", actual, "\nExpected: ", expected, "\nRemainder: ", actualSet)
-			return
+		if !reflect.DeepEqual(got, test.expect) {
+			t.Errorf("Failed to show %s, got:%q expect:%q", test.message, got, test.expect)
 		}
-	}
-	if len(actualSet) != 0 {
-		t.Error("Actual output has more than expected.\nActual:", actual, "\nExpected: ", expected, "\nRemainder: ", actualSet)
 	}
 }
 
-func TestWorkingIntValueComparison(t *testing.T) {
-	ts := simpleStore
-	fixed := simpleFixedIterator()
-	vc := NewComparison(fixed, kCompareLT, int64(3), ts)
-	checkIteratorContains(ts, vc, []string{"0", "1", "2"}, t)
-}
-
-func TestFailingIntValueComparison(t *testing.T) {
-	ts := simpleStore
-	fixed := simpleFixedIterator()
-	vc := NewComparison(fixed, kCompareLT, int64(0), ts)
-	checkIteratorContains(ts, vc, []string{}, t)
-}
-
-func TestWorkingGT(t *testing.T) {
-	ts := simpleStore
-	fixed := simpleFixedIterator()
-	vc := NewComparison(fixed, kCompareGT, int64(2), ts)
-	checkIteratorContains(ts, vc, []string{"3", "4"}, t)
-}
-
-func TestWorkingGTE(t *testing.T) {
-	ts := simpleStore
-	fixed := simpleFixedIterator()
-	vc := NewComparison(fixed, kCompareGTE, int64(2), ts)
-	checkIteratorContains(ts, vc, []string{"2", "3", "4"}, t)
+var vciCheckTests = []struct {
+	message  string
+	operator Operator
+	check    graph.Value
+	expect   bool
+}{
+	{
+		message:  "1 is less than 2",
+		operator: kCompareGTE,
+		check:    1,
+		expect:   false,
+	},
+	{
+		message:  "2 is greater than or equal to 2",
+		operator: kCompareGTE,
+		check:    2,
+		expect:   true,
+	},
+	{
+		message:  "3 is greater than or equal to 2",
+		operator: kCompareGTE,
+		check:    3,
+		expect:   true,
+	},
+	{
+		message:  "5 is absent from iterator",
+		operator: kCompareGTE,
+		check:    5,
+		expect:   false,
+	},
 }
 
 func TestVCICheck(t *testing.T) {
-	ts := simpleStore
-	fixed := simpleFixedIterator()
-	vc := NewComparison(fixed, kCompareGTE, int64(2), ts)
-	if vc.Check(1) {
-		t.Error("1 is less than 2, should be GTE")
-	}
-	if !vc.Check(2) {
-		t.Error("2 is GTE 2")
-	}
-	if !vc.Check(3) {
-		t.Error("3 is GTE 2")
-	}
-	if vc.Check(5) {
-		t.Error("5 is not in the underlying iterator")
+	for _, test := range vciCheckTests {
+		vc := NewComparison(simpleFixedIterator(), test.operator, int64(2), simpleStore)
+		if vc.Check(test.check) != test.expect {
+			t.Errorf("Failed to show %s", test.message)
+		}
 	}
 }

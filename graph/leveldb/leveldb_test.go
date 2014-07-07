@@ -176,7 +176,7 @@ func TestLoadDatabase(t *testing.T) {
 	if s := ts.Size(); s != 11 {
 		t.Errorf("Unexpected triplestore size, got:%d expect:11", s)
 	}
-	if s := ts.GetSizeFor(ts.ValueOf("B")); s != 5 {
+	if s := ts.SizeOf(ts.ValueOf("B")); s != 5 {
 		t.Errorf("Unexpected triplestore size, got:%d expect:5", s)
 	}
 
@@ -184,7 +184,7 @@ func TestLoadDatabase(t *testing.T) {
 	if s := ts.Size(); s != 10 {
 		t.Errorf("Unexpected triplestore size after RemoveTriple, got:%d expect:10", s)
 	}
-	if s := ts.GetSizeFor(ts.ValueOf("B")); s != 4 {
+	if s := ts.SizeOf(ts.ValueOf("B")); s != 4 {
 		t.Errorf("Unexpected triplestore size, got:%d expect:4", s)
 	}
 

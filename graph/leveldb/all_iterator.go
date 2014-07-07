@@ -105,7 +105,7 @@ func (it *AllIterator) Close() {
 }
 
 func (it *AllIterator) Size() (int64, bool) {
-	size, err := it.ts.GetApproximateSizeForPrefix(it.prefix)
+	size, err := it.ts.SizeOfPrefix(it.prefix)
 	if err == nil {
 		return size, false
 	}

@@ -332,7 +332,7 @@ func (ts *TripleStore) ValueOf(s string) graph.Value {
 	return ts.createValueKeyFor(s)
 }
 
-func (ts *TripleStore) getValueData(value_key []byte) ValueData {
+func (ts *TripleStore) valueData(value_key []byte) ValueData {
 	var out ValueData
 	if glog.V(3) {
 		glog.V(3).Infof("%s %v\n", string(value_key[0]), value_key)
@@ -357,14 +357,14 @@ func (ts *TripleStore) NameOf(k graph.Value) string {
 		glog.V(2).Infoln("k was nil")
 		return ""
 	}
-	return ts.getValueData(k.([]byte)).Name
+	return ts.valueData(k.([]byte)).Name
 }
 
-func (ts *TripleStore) GetSizeFor(k graph.Value) int64 {
+func (ts *TripleStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
 		return 0
 	}
-	return int64(ts.getValueData(k.([]byte)).Size)
+	return int64(ts.valueData(k.([]byte)).Size)
 }
 
 func (ts *TripleStore) getSize() {
@@ -386,7 +386,7 @@ func (ts *TripleStore) getSize() {
 	ts.size = size
 }
 
-func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
+func (ts *TripleStore) SizeOfPrefix(pre []byte) (int64, error) {
 	limit := make([]byte, len(pre))
 	copy(limit, pre)
 	end := len(limit) - 1
@@ -394,7 +394,7 @@ func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
 	ranges := make([]util.Range, 1)
 	ranges[0].Start = pre
 	ranges[0].Limit = limit
-	sizes, err := ts.db.GetApproximateSizes(ranges)
+	sizes, err := ts.db.SizeOf(ranges)
 	if err == nil {
 		return (int64(sizes[0]) >> 6) + 1, nil
 	}
@@ -428,7 +428,7 @@ func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
 
 func (ts *TripleStore) TripleDirection(val graph.Value, d graph.Direction) graph.Value {
 	v := val.([]uint8)
-	offset := GetPositionFromPrefix(v[0:2], d, ts)
+	offset := PositionOf(v[0:2], d, ts)
 	if offset != -1 {
 		return append([]byte("z"), v[offset:offset+ts.hasher.Size()]...)
 	} else {
