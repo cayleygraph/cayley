@@ -114,7 +114,7 @@ func (it *Iterator) Next() (graph.Value, bool) {
 	return nil, false
 }
 
-func GetPositionFromPrefix(prefix []byte, d graph.Direction, ts *TripleStore) int {
+func PositionOf(prefix []byte, d graph.Direction, ts *TripleStore) int {
 	if bytes.Equal(prefix, []byte("sp")) {
 		switch d {
 		case graph.Subject:
@@ -171,7 +171,7 @@ func (it *Iterator) Check(v graph.Value) bool {
 	if val[0] == 'z' {
 		return false
 	}
-	offset := GetPositionFromPrefix(val[0:2], it.dir, it.ts)
+	offset := PositionOf(val[0:2], it.dir, it.ts)
 	if offset != -1 {
 		if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
 			return true
@@ -187,7 +187,7 @@ func (it *Iterator) Check(v graph.Value) bool {
 }
 
 func (it *Iterator) Size() (int64, bool) {
-	return it.ts.GetSizeFor(it.checkId), true
+	return it.ts.SizeOf(it.checkId), true
 }
 
 func (it *Iterator) DebugString(indent int) string {
