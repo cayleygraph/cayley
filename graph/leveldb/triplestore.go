@@ -394,7 +394,7 @@ func (ts *TripleStore) GetApproximateSizeForPrefix(pre []byte) (int64, error) {
 	ranges := make([]util.Range, 1)
 	ranges[0].Start = pre
 	ranges[0].Limit = limit
-	sizes, err := ts.db.GetApproximateSizes(ranges)
+	sizes, err := ts.db.SizeOf(ranges)
 	if err == nil {
 		return (int64(sizes[0]) >> 6) + 1, nil
 	}
