@@ -49,7 +49,7 @@ type Iterator interface {
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
 	//
-	// To get the full results of iteraton, do the following:
+	// To get the full results of iteration, do the following:
 	// while (!Next()):
 	//   emit result
 	//   while (!NextResult()):

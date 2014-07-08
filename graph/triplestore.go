@@ -74,7 +74,7 @@ type TripleStore interface {
 
 	// Optimize an iterator in the context of the triple store.
 	// Suppose we have a better index for the passed tree; this
-	// gives the TripleStore the oppotunity to replace it
+	// gives the TripleStore the opportunity to replace it
 	// with a more efficient iterator.
 	OptimizeIterator(it Iterator) (Iterator, bool)
 
@@ -82,7 +82,7 @@ type TripleStore interface {
 	// sever connections, etc)
 	Close()
 
-	// Convienence function for speed. Given a triple token and a direction
+	// Convenience function for speed. Given a triple token and a direction
 	// return the node token for that direction. Sometimes, a TripleStore
 	// can do this without going all the way to the backing store, and
 	// gives the TripleStore the opportunity to make this optimization.
