@@ -34,10 +34,10 @@ var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
 
 func Usage() {
-	fmt.Println("Cayley is a graph store and graph query layer.\n")
-	fmt.Println("Usage:")
-	fmt.Println("  cayley COMMAND [flags]\n")
-	fmt.Println("Commands:")
+	fmt.Println("Cayley is a graph store and graph query layer.")
+	fmt.Println("\nUsage:")
+	fmt.Println("  cayley COMMAND [flags]")
+	fmt.Println("\nCommands:")
 	fmt.Println("  init\tCreate an empty database.")
 	fmt.Println("  load\tBulk-load a triple file into the database.")
 	fmt.Println("  http\tServe an HTTP endpoint on the given host and port.")

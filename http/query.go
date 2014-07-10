@@ -77,7 +77,6 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
-	var err error
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return FormatJson400(w, err)
@@ -126,7 +125,6 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
-	var err error
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return FormatJson400(w, err)
