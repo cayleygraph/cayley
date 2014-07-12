@@ -7,6 +7,13 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 
 [![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley)
 
+## What's new?
+* 2014-07-12:
+  * Massive cleanup and restructuring is largely done, it should be even easier to add to Cayley. (thanks @kortschak)
+  * A couple new backends are in progress, namely Postgres and Cassandra -- PRs when they come around.
+  * Cayley is [now in Homebrew](https://github.com/Homebrew/homebrew/commit/1bd2fb2a61c7101a8c79c05afc90eeb02e9aa240), thanks to @whitlockjc
+  * Our first client API (for Clojure, thanks to @wjb) -- list is now started on the [Client API wiki page](https://github.com/google/cayley/wiki/Client-APIs)
+
 ## Features
 
 * Written in [Go](http://golang.org)
