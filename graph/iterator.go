@@ -167,12 +167,12 @@ var (
 	}
 )
 
-// Register adds a new iterator type to the set of acceptable types, returning
+// RegisterIterator adds a new iterator type to the set of acceptable types, returning
 // the registered Type.
 // Calls to Register are idempotent and must be made prior to use of the iterator.
 // The conventional approach for use is to include a call to Register in a package
 // init() function, saving the Type to a private package var.
-func Register(name string) Type {
+func RegisterIterator(name string) Type {
 	lock.Lock()
 	defer lock.Unlock()
 	for i, t := range types {

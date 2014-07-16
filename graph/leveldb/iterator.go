@@ -198,7 +198,7 @@ func (it *Iterator) DebugString(indent int) string {
 var levelDBType graph.Type
 
 func init() {
-	levelDBType = graph.Register("leveldb")
+	levelDBType = graph.RegisterIterator("leveldb")
 }
 
 func Type() graph.Type { return levelDBType }
