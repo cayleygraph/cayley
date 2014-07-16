@@ -21,30 +21,26 @@ import (
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/mongo"
 	"github.com/google/cayley/nquads"
 )
 
-func Load(ts graph.TripleStore, cfg *config.Config, triplePath string, firstTime bool) {
-	switch cfg.DatabaseType {
-	case "mongo", "mongodb":
-		if firstTime {
-			loadMongo(ts.(*mongo.TripleStore), triplePath)
-		} else {
-			LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
-		}
-	case "leveldb":
-		LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
-	case "mem":
-		LoadTriplesFromFileInto(ts, triplePath, cfg.LoadSize)
-	}
-
+type bulkLoadable interface {
+	// BulkLoad loads Triples from a channel in bulk to the TripleStore. It
+	// returns false if bulk loading is not possible (i.e. if you cannot load
+	// in bulk to a non-empty database, and the current database is non-empty)
+	BulkLoad(chan *graph.Triple) bool
 }
 
-func loadMongo(ts *mongo.TripleStore, path string) {
+func Load(ts graph.TripleStore, cfg *config.Config, triplePath string) {
 	tChan := make(chan *graph.Triple)
-	go ReadTriplesFromFile(tChan, path)
-	ts.BulkLoad(tChan)
+	go ReadTriplesFromFile(tChan, triplePath)
+
+	bulker, canBulk := ts.(bulkLoadable)
+	if canBulk && bulker.BulkLoad(tChan) {
+		return
+	}
+
+	LoadTriplesInto(tChan, ts, cfg.LoadSize)
 }
 
 func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {
@@ -62,9 +58,7 @@ func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {
 	nquads.ReadNQuadsFromReader(c, f)
 }
 
-func LoadTriplesFromFileInto(ts graph.TripleStore, filename string, loadSize int) {
-	tChan := make(chan *graph.Triple)
-	go ReadTriplesFromFile(tChan, filename)
+func LoadTriplesInto(tChan chan *graph.Triple, ts graph.TripleStore, loadSize int) {
 	tripleblock := make([]*graph.Triple, loadSize)
 	i := 0
 	for t := range tChan {

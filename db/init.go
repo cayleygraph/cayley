@@ -16,25 +16,19 @@ package db
 
 import (
 	"github.com/google/cayley/config"
-	"github.com/google/cayley/graph/leveldb"
-	"github.com/google/cayley/graph/mongo"
+	"github.com/google/cayley/graph"
 )
 
 func Init(cfg *config.Config, triplePath string) bool {
-	created := false
-	dbpath := cfg.DatabasePath
-	switch cfg.DatabaseType {
-	case "mongo", "mongodb":
-		created = mongo.CreateNewMongoGraph(dbpath, cfg.DatabaseOptions)
-	case "leveldb":
-		created = leveldb.CreateNewLevelDB(dbpath)
-	case "mem":
-		return true
+	err := graph.InitTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+	if err != nil {
+		return false
 	}
-	if created && triplePath != "" {
+
+	if triplePath != "" {
 		ts := Open(cfg)
-		Load(ts, cfg, triplePath, true)
+		Load(ts, cfg, triplePath)
 		ts.Close()
 	}
-	return created
+	return true
 }

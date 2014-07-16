@@ -22,6 +22,7 @@ package graph
 // triple backing store we prefer.
 
 import (
+	"fmt"
 	"github.com/barakmich/glog"
 )
 
@@ -116,4 +117,43 @@ func (d Options) StringKey(key string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+type TripleStoreGetter func(string, Options) (TripleStore, error)
+type TripleStoreInit func(string, Options) error
+
+var storeRegistry = make(map[string]TripleStoreGetter)
+var storeInitRegistry = make(map[string]TripleStoreInit)
+
+func RegisterTripleStore(name string, getter TripleStoreGetter, initer ...TripleStoreInit) {
+	if _, found := storeRegistry[name]; found {
+		panic("already registered TripleStore " + name)
+	}
+	storeRegistry[name] = getter
+	if len(initer) > 0 {
+		storeInitRegistry[name] = initer[0]
+	}
+}
+
+func NewTripleStore(name, dbpath string, opts Options) (TripleStore, error) {
+	getter, hasGetter := storeRegistry[name]
+	if !hasGetter {
+		return nil, fmt.Errorf("unknown triplestore '%s'", name)
+	}
+	return getter(dbpath, opts)
+}
+
+func InitTripleStore(name, dbpath string, opts Options) error {
+	initer, hasInit := storeInitRegistry[name]
+	if hasInit {
+		return initer(dbpath, opts)
+	}
+	return fmt.Errorf("unknown triplestore '%s'", name)
+}
+
+func TripleStores() (t []string) {
+	for n := range storeRegistry {
+		t = append(t, n)
+	}
+	return
 }

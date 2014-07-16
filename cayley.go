@@ -26,6 +26,11 @@ import (
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
+
+	// load all supported backends
+	_ "github.com/google/cayley/graph/leveldb"
+	_ "github.com/google/cayley/graph/memstore"
+	_ "github.com/google/cayley/graph/mongo"
 )
 
 var tripleFile = flag.String("triples", "", "Triple File to load before going to REPL.")
@@ -72,7 +77,7 @@ func main() {
 		db.Init(cfg, *tripleFile)
 	case "load":
 		ts = db.Open(cfg)
-		db.Load(ts, cfg, *tripleFile, false)
+		db.Load(ts, cfg, *tripleFile)
 		ts.Close()
 	case "repl":
 		ts = db.Open(cfg)

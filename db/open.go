@@ -19,22 +19,20 @@ import (
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/leveldb"
-	"github.com/google/cayley/graph/memstore"
-	"github.com/google/cayley/graph/mongo"
 )
 
 func Open(cfg *config.Config) graph.TripleStore {
 	glog.Infof("Opening database \"%s\" at %s", cfg.DatabaseType, cfg.DatabasePath)
-	switch cfg.DatabaseType {
-	case "mongo", "mongodb":
-		return mongo.NewTripleStore(cfg.DatabasePath, cfg.DatabaseOptions)
-	case "leveldb":
-		return leveldb.NewTripleStore(cfg.DatabasePath, cfg.DatabaseOptions)
-	case "mem":
-		ts := memstore.NewTripleStore()
-		Load(ts, cfg, cfg.DatabasePath, true)
-		return ts
+	ts, err := graph.NewTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+	if err != nil {
+		glog.Fatalln(err.Error())
+		return nil
 	}
-	panic("Unsupported database backend " + cfg.DatabaseType)
+
+	// memstore is not persistent, so MUST be loaded
+	if cfg.DatabaseType == "memstore" {
+		Load(ts, cfg, cfg.DatabasePath)
+	}
+
+	return ts
 }
