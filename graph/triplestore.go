@@ -163,9 +163,10 @@ func InitTripleStore(name, dbpath string, opts Options) error {
 	return errors.New("triplestore: name '" + name + "' is not registered")
 }
 
-func TripleStores() (t []string) {
+func TripleStores() []string {
+	t := make([]string, 0, len(storeRegistry))
 	for n := range storeRegistry {
 		t = append(t, n)
 	}
-	return
+	return t
 }

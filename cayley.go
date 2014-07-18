@@ -27,7 +27,7 @@ import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
 
-	// load all supported backends
+	// Load all supported backends.
 	_ "github.com/google/cayley/graph/leveldb"
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/graph/mongo"
