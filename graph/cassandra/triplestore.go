@@ -49,12 +49,13 @@ func clusterWithOptions(addr string, options graph.Options) *gocql.ClusterConfig
 		keyspace = val
 	}
 	cluster.Keyspace = keyspace
-	cluster.Consistency = gocql.Quorum
+	cluster.Consistency = gocql.One
 	return cluster
 }
 
 func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	cluster := clusterWithOptions(addr, options)
+	cluster.Consistency = gocql.All
 	session, err := cluster.CreateSession()
 	if err != nil {
 		glog.Fatalln("Could not create a Cassandra graph:", err)
@@ -143,25 +144,29 @@ func (ts *TripleStore) Close() {
 
 var tables = []string{"triples_by_s", "triples_by_p", "triples_by_o", "triples_by_c"}
 
-func (ts *TripleStore) AddTriple(t *graph.Triple) {
-	batch := ts.sess.NewBatch(gocql.LoggedBatch)
+func (ts *TripleStore) addTripleToBatch(t *graph.Triple, data *gocql.Batch, count *gocql.Batch) {
+	data.Cons = gocql.Quorum
 	for _, table := range tables {
 		if t.Provenance == "" && table == "triples_by_c" {
 			continue
 		}
 		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, provenance) VALUES (?, ?, ?, ?)")
-		batch.Query(query, t.Subject, t.Predicate, t.Object, t.Provenance)
+		data.Query(query, t.Subject, t.Predicate, t.Object, t.Provenance)
 	}
-
-	counter_batch := ts.sess.NewBatch(gocql.CounterBatch)
+	count.Cons = gocql.Quorum
 	for _, dir := range []graph.Direction{graph.Subject, graph.Predicate, graph.Object, graph.Provenance} {
 		if t.Get(dir) == "" {
 			continue
 		}
 		query := fmt.Sprint("UPDATE nodes SET ", dir, "_count = ", dir, "_count + 1 WHERE node = ?")
-		counter_batch.Query(query, t.Get(dir))
+		count.Query(query, t.Get(dir))
 	}
+}
 
+func (ts *TripleStore) AddTriple(t *graph.Triple) {
+	batch := ts.sess.NewBatch(gocql.LoggedBatch)
+	counter_batch := ts.sess.NewBatch(gocql.CounterBatch)
+	ts.addTripleToBatch(t, batch, counter_batch)
 	err := ts.sess.ExecuteBatch(batch)
 	if err != nil {
 		glog.Errorln("Couldn't write triple:", t, ", ", err)
@@ -177,9 +182,20 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 }
 
 func (ts *TripleStore) AddTripleSet(set []*graph.Triple) {
+	batch := ts.sess.NewBatch(gocql.LoggedBatch)
+	counter_batch := ts.sess.NewBatch(gocql.CounterBatch)
 	for _, t := range set {
-		ts.AddTriple(t)
+		ts.addTripleToBatch(t, batch, counter_batch)
 	}
+	err := ts.sess.ExecuteBatch(batch)
+	if err != nil {
+		glog.Errorln("Couldn't write tripleset:", err)
+	}
+	err = ts.sess.ExecuteBatch(counter_batch)
+	if err != nil {
+		glog.Errorln("Couldn't write tripleset:", err)
+	}
+	ts.size += int64(len(set))
 }
 
 func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
