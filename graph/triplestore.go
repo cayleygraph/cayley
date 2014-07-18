@@ -22,7 +22,7 @@ package graph
 // triple backing store we prefer.
 
 import (
-	"fmt"
+	"errors"
 	"github.com/barakmich/glog"
 )
 
@@ -119,7 +119,7 @@ func (d Options) StringKey(key string) (string, bool) {
 	return "", false
 }
 
-var ErrCannotBulkLoad = fmt.Errorf("cannot bulk load")
+var ErrCannotBulkLoad = errors.New("triplestore: cannot bulk load")
 
 type BulkLoader interface {
 	// BulkLoad loads Triples from a channel in bulk to the TripleStore. It
@@ -147,7 +147,7 @@ func RegisterTripleStore(name string, newFunc NewStoreFunc, initFunc InitStoreFu
 func NewTripleStore(name, dbpath string, opts Options) (TripleStore, error) {
 	newFunc, hasNew := storeRegistry[name]
 	if !hasNew {
-		return nil, fmt.Errorf("unknown triplestore '%s'", name)
+		return nil, errors.New("triplestore: name '" + name + "' is not registered")
 	}
 	return newFunc(dbpath, opts)
 }
@@ -160,7 +160,7 @@ func InitTripleStore(name, dbpath string, opts Options) error {
 	if _, isRegistered := storeRegistry[name]; isRegistered {
 		return nil
 	}
-	return fmt.Errorf("unknown triplestore '%s'", name)
+	return errors.New("triplestore: name '" + name + "' is not registered")
 }
 
 func TripleStores() (t []string) {
