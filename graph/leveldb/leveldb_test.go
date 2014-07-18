@@ -102,12 +102,13 @@ func TestCreateDatabase(t *testing.T) {
 	}
 	t.Log(tmpDir)
 
-	if created := CreateNewLevelDB(tmpDir); !created {
+	err = createNewLevelDB(tmpDir, nil)
+	if err != nil {
 		t.Fatal("Failed to create LevelDB database.")
 	}
 
-	ts := NewTripleStore(tmpDir, nil)
-	if ts == nil {
+	ts, err := newTripleStore(tmpDir, nil)
+	if ts == nil || err != nil {
 		t.Error("Failed to create leveldb TripleStore.")
 	}
 	if s := ts.Size(); s != 0 {
@@ -115,20 +116,9 @@ func TestCreateDatabase(t *testing.T) {
 	}
 	ts.Close()
 
-	if created := CreateNewLevelDB("/dev/null/some terrible path"); created {
+	err = createNewLevelDB("/dev/null/some terrible path", nil)
+	if err == nil {
 		t.Errorf("Created LevelDB database for bad path.")
-	}
-	// TODO(kortschak) Invalidate this test by using error returns rather than panics.
-	var panicked bool
-	func() {
-		defer func() {
-			r := recover()
-			panicked = r != nil
-		}()
-		NewTripleStore("/dev/null/some terrible path", nil)
-	}()
-	if !panicked {
-		t.Error("NewTripleStore failed to panic with bad path.")
 	}
 
 	os.RemoveAll(tmpDir)
@@ -142,14 +132,13 @@ func TestLoadDatabase(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	t.Log(tmpDir)
 
-	if created := CreateNewLevelDB(tmpDir); !created {
+	err = createNewLevelDB(tmpDir, nil)
+	if err != nil {
 		t.Fatal("Failed to create LevelDB database.")
 	}
 
-	var ts *TripleStore
-
-	ts = NewTripleStore(tmpDir, nil)
-	if ts == nil {
+	ts, err := newTripleStore(tmpDir, nil)
+	if ts == nil || err != nil {
 		t.Error("Failed to create leveldb TripleStore.")
 	}
 
@@ -164,19 +153,25 @@ func TestLoadDatabase(t *testing.T) {
 	}
 	ts.Close()
 
-	if created := CreateNewLevelDB(tmpDir); !created {
+	err = createNewLevelDB(tmpDir, nil)
+	if err != nil {
 		t.Fatal("Failed to create LevelDB database.")
 	}
-	ts = NewTripleStore(tmpDir, nil)
-	if ts == nil {
+	ts, err = newTripleStore(tmpDir, nil)
+	if ts == nil || err != nil {
 		t.Error("Failed to create leveldb TripleStore.")
+	}
+
+	ts2, didConvert := ts.(*TripleStore)
+	if !didConvert {
+		t.Errorf("Could not convert from generic to LevelDB TripleStore")
 	}
 
 	ts.AddTripleSet(makeTripleSet())
 	if s := ts.Size(); s != 11 {
 		t.Errorf("Unexpected triplestore size, got:%d expect:11", s)
 	}
-	if s := ts.SizeOf(ts.ValueOf("B")); s != 5 {
+	if s := ts2.SizeOf(ts.ValueOf("B")); s != 5 {
 		t.Errorf("Unexpected triplestore size, got:%d expect:5", s)
 	}
 
@@ -184,7 +179,7 @@ func TestLoadDatabase(t *testing.T) {
 	if s := ts.Size(); s != 10 {
 		t.Errorf("Unexpected triplestore size after RemoveTriple, got:%d expect:10", s)
 	}
-	if s := ts.SizeOf(ts.ValueOf("B")); s != 4 {
+	if s := ts2.SizeOf(ts.ValueOf("B")); s != 4 {
 		t.Errorf("Unexpected triplestore size, got:%d expect:4", s)
 	}
 
@@ -199,12 +194,15 @@ func TestIterator(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	t.Log(tmpDir)
 
-	if created := CreateNewLevelDB(tmpDir); !created {
+	err = createNewLevelDB(tmpDir, nil)
+	if err != nil {
 		t.Fatal("Failed to create LevelDB database.")
 	}
 
-	var ts *TripleStore
-	ts = NewTripleStore(tmpDir, nil)
+	ts, err := newTripleStore(tmpDir, nil)
+	if ts == nil || err != nil {
+		t.Error("Failed to create leveldb TripleStore.")
+	}
 	ts.AddTripleSet(makeTripleSet())
 	var it graph.Iterator
 
@@ -289,12 +287,15 @@ func TestSetIterator(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir(os.TempDir(), "cayley_test")
 	t.Log(tmpDir)
 	defer os.RemoveAll(tmpDir)
-	ok := CreateNewLevelDB(tmpDir)
-	if !ok {
+	err := createNewLevelDB(tmpDir, nil)
+	if err != nil {
 		t.Fatalf("Failed to create working directory")
 	}
 
-	ts := NewTripleStore(tmpDir, nil)
+	ts, err := newTripleStore(tmpDir, nil)
+	if ts == nil || err != nil {
+		t.Error("Failed to create leveldb TripleStore.")
+	}
 	defer ts.Close()
 
 	ts.AddTripleSet(makeTripleSet())
@@ -401,11 +402,14 @@ func TestOptimize(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir(os.TempDir(), "cayley_test")
 	t.Log(tmpDir)
 	defer os.RemoveAll(tmpDir)
-	ok := CreateNewLevelDB(tmpDir)
-	if !ok {
+	err := createNewLevelDB(tmpDir, nil)
+	if err != nil {
 		t.Fatalf("Failed to create working directory")
 	}
-	ts := NewTripleStore(tmpDir, nil)
+	ts, err := newTripleStore(tmpDir, nil)
+	if ts == nil || err != nil {
+		t.Error("Failed to create leveldb TripleStore.")
+	}
 	ts.AddTripleSet(makeTripleSet())
 
 	// With an linksto-fixed pair

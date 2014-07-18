@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/memstore"
+	_ "github.com/google/cayley/graph/memstore"
 )
 
 // This is a simple test graph.
@@ -51,7 +51,7 @@ var simpleGraph = []*graph.Triple{
 }
 
 func makeTestSession(data []*graph.Triple) *Session {
-	ts := memstore.NewTripleStore()
+	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	for _, t := range data {
 		ts.AddTriple(t)
 	}

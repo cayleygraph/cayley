@@ -52,7 +52,7 @@ var simpleGraph = []*graph.Triple{
 
 func makeTestStore(data []*graph.Triple) (*TripleStore, []pair) {
 	seen := make(map[string]struct{})
-	ts := NewTripleStore()
+	ts := newTripleStore()
 	var (
 		val int64
 		ind []pair
