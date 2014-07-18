@@ -24,20 +24,19 @@ import (
 	"github.com/google/cayley/nquads"
 )
 
-type bulkLoadable interface {
-	// BulkLoad loads Triples from a channel in bulk to the TripleStore. It
-	// returns false if bulk loading is not possible (i.e. if you cannot load
-	// in bulk to a non-empty database, and the current database is non-empty)
-	BulkLoad(chan *graph.Triple) bool
-}
-
 func Load(ts graph.TripleStore, cfg *config.Config, triplePath string) {
 	tChan := make(chan *graph.Triple)
 	go ReadTriplesFromFile(tChan, triplePath)
 
-	bulker, canBulk := ts.(bulkLoadable)
-	if canBulk && bulker.BulkLoad(tChan) {
-		return
+	bulker, canBulk := ts.(graph.BulkLoader)
+	if canBulk {
+		err := bulker.BulkLoad(tChan)
+		if err == nil {
+			return
+		}
+		if err != graph.ErrCannotBulkLoad {
+			glog.Errorln("Error attempting to bulk load: ", err)
+		}
 	}
 
 	LoadTriplesInto(tChan, ts, cfg.LoadSize)

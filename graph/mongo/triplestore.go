@@ -341,7 +341,5 @@ func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) bool {
 }
 
 func init() {
-	graph.RegisterTripleStore("mongo",
-		graph.TripleStoreGetter(newTripleStore),
-		graph.TripleStoreInit(createNewMongoGraph))
+	graph.RegisterTripleStore("mongo", newTripleStore, createNewMongoGraph)
 }

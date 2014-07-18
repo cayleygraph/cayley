@@ -272,5 +272,5 @@ func (ts *TripleStore) Close() {}
 func init() {
 	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
 		return newTripleStore(), nil
-	})
+	}, nil)
 }

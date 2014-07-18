@@ -119,34 +119,46 @@ func (d Options) StringKey(key string) (string, bool) {
 	return "", false
 }
 
-type TripleStoreGetter func(string, Options) (TripleStore, error)
-type TripleStoreInit func(string, Options) error
+var ErrCannotBulkLoad = fmt.Errorf("cannot bulk load")
 
-var storeRegistry = make(map[string]TripleStoreGetter)
-var storeInitRegistry = make(map[string]TripleStoreInit)
+type BulkLoader interface {
+	// BulkLoad loads Triples from a channel in bulk to the TripleStore. It
+	// returns ErrCannotBulkLoad if bulk loading is not possible (i.e. if you
+	// cannot load in bulk to a non-empty database, and the db is non-empty)
+	BulkLoad(chan *Triple) error
+}
 
-func RegisterTripleStore(name string, getter TripleStoreGetter, initer ...TripleStoreInit) {
+type NewStoreFunc func(string, Options) (TripleStore, error)
+type InitStoreFunc func(string, Options) error
+
+var storeRegistry = make(map[string]NewStoreFunc)
+var storeInitRegistry = make(map[string]InitStoreFunc)
+
+func RegisterTripleStore(name string, newFunc NewStoreFunc, initFunc InitStoreFunc) {
 	if _, found := storeRegistry[name]; found {
 		panic("already registered TripleStore " + name)
 	}
-	storeRegistry[name] = getter
-	if len(initer) > 0 {
-		storeInitRegistry[name] = initer[0]
+	storeRegistry[name] = newFunc
+	if initFunc != nil {
+		storeInitRegistry[name] = initFunc
 	}
 }
 
 func NewTripleStore(name, dbpath string, opts Options) (TripleStore, error) {
-	getter, hasGetter := storeRegistry[name]
-	if !hasGetter {
+	newFunc, hasNew := storeRegistry[name]
+	if !hasNew {
 		return nil, fmt.Errorf("unknown triplestore '%s'", name)
 	}
-	return getter(dbpath, opts)
+	return newFunc(dbpath, opts)
 }
 
 func InitTripleStore(name, dbpath string, opts Options) error {
-	initer, hasInit := storeInitRegistry[name]
+	initFunc, hasInit := storeInitRegistry[name]
 	if hasInit {
-		return initer(dbpath, opts)
+		return initFunc(dbpath, opts)
+	}
+	if _, isRegistered := storeRegistry[name]; isRegistered {
+		return nil
 	}
 	return fmt.Errorf("unknown triplestore '%s'", name)
 }

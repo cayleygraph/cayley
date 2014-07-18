@@ -445,7 +445,5 @@ func (ts *TripleStore) FixedIterator() graph.FixedIterator {
 }
 
 func init() {
-	graph.RegisterTripleStore("leveldb",
-		graph.TripleStoreGetter(newTripleStore),
-		graph.TripleStoreInit(createNewLevelDB))
+	graph.RegisterTripleStore("leveldb", newTripleStore, createNewLevelDB)
 }
