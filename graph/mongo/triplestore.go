@@ -37,11 +37,10 @@ type TripleStore struct {
 	idCache *IDLru
 }
 
-func CreateNewMongoGraph(addr string, options graph.Options) bool {
+func createNewMongoGraph(addr string, options graph.Options) error {
 	conn, err := mgo.Dial(addr)
 	if err != nil {
-		glog.Fatal("Error connecting: ", err)
-		return false
+		return err
 	}
 	conn.SetSafe(&mgo.Safe{})
 	dbName := DefaultDBName
@@ -63,14 +62,14 @@ func CreateNewMongoGraph(addr string, options graph.Options) bool {
 	db.C("triples").EnsureIndex(indexOpts)
 	indexOpts.Key = []string{"Provenance"}
 	db.C("triples").EnsureIndex(indexOpts)
-	return true
+	return nil
 }
 
-func NewTripleStore(addr string, options graph.Options) *TripleStore {
+func newTripleStore(addr string, options graph.Options) (graph.TripleStore, error) {
 	var ts TripleStore
 	conn, err := mgo.Dial(addr)
 	if err != nil {
-		glog.Fatal("Error connecting: ", err)
+		return nil, err
 	}
 	conn.SetSafe(&mgo.Safe{})
 	dbName := DefaultDBName
@@ -81,7 +80,7 @@ func NewTripleStore(addr string, options graph.Options) *TripleStore {
 	ts.session = conn
 	ts.hasher = sha1.New()
 	ts.idCache = NewIDLru(1 << 16)
-	return &ts
+	return &ts, nil
 }
 
 func (ts *TripleStore) getIdForTriple(t *graph.Triple) string {
@@ -291,7 +290,11 @@ func (ts *TripleStore) TripleDirection(in graph.Value, d graph.Direction) graph.
 	return val
 }
 
-func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) {
+func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) bool {
+	if ts.Size() != 0 {
+		return false
+	}
+
 	ts.session.SetSafe(nil)
 	for triple := range t_chan {
 		ts.writeTriple(triple)
@@ -334,4 +337,9 @@ func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) {
   }) }`}, {"args", bson.D{}}}, nil)
 
 	ts.session.SetSafe(&mgo.Safe{})
+	return true
+}
+
+func init() {
+	graph.RegisterTripleStore("mongo", newTripleStore, createNewMongoGraph)
 }

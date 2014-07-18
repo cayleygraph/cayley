@@ -160,7 +160,7 @@ func (it *Iterator) Size() (int64, bool) {
 var mongoType graph.Type
 
 func init() {
-	mongoType = graph.Register("mongo")
+	mongoType = graph.RegisterIterator("mongo")
 }
 
 func Type() graph.Type { return mongoType }

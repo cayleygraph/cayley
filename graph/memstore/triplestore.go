@@ -79,7 +79,7 @@ type TripleStore struct {
 	// vip_index map[string]map[int64]map[string]map[int64]*llrb.Tree
 }
 
-func NewTripleStore() *TripleStore {
+func newTripleStore() *TripleStore {
 	var ts TripleStore
 	ts.idMap = make(map[string]int64)
 	ts.revIdMap = make(map[int64]string)
@@ -268,3 +268,9 @@ func (ts *TripleStore) NodesAllIterator() graph.Iterator {
 	return NewMemstoreAllIterator(ts)
 }
 func (ts *TripleStore) Close() {}
+
+func init() {
+	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
+		return newTripleStore(), nil
+	}, nil)
+}

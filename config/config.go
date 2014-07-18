@@ -34,7 +34,7 @@ type Config struct {
 }
 
 var databasePath = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
-var databaseBackend = flag.String("db", "mem", "Database Backend.")
+var databaseBackend = flag.String("db", "memstore", "Database Backend.")
 var host = flag.String("host", "0.0.0.0", "Host to listen on (defaults to all).")
 var loadSize = flag.Int("load_size", 10000, "Size of triplesets to load")
 var port = flag.String("port", "64210", "Port to listen on.")

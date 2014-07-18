@@ -48,12 +48,12 @@ type TripleStore struct {
 	readopts  *opt.ReadOptions
 }
 
-func CreateNewLevelDB(path string) bool {
+func createNewLevelDB(path string, _ graph.Options) error {
 	opts := &opt.Options{}
 	db, err := leveldb.OpenFile(path, opts)
 	if err != nil {
 		glog.Errorln("Error: couldn't create database: ", err)
-		return false
+		return err
 	}
 	defer db.Close()
 	ts := &TripleStore{}
@@ -62,10 +62,10 @@ func CreateNewLevelDB(path string) bool {
 		Sync: true,
 	}
 	ts.Close()
-	return true
+	return nil
 }
 
-func NewTripleStore(path string, options graph.Options) *TripleStore {
+func newTripleStore(path string, options graph.Options) (graph.TripleStore, error) {
 	var ts TripleStore
 	ts.path = path
 	cache_size := DefaultCacheSize
@@ -94,7 +94,7 @@ func NewTripleStore(path string, options graph.Options) *TripleStore {
 	ts.db = db
 	glog.Infoln(ts.GetStats())
 	ts.getSize()
-	return &ts
+	return &ts, nil
 }
 
 func (ts *TripleStore) GetStats() string {
@@ -442,4 +442,8 @@ func compareBytes(a, b graph.Value) bool {
 
 func (ts *TripleStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(compareBytes)
+}
+
+func init() {
+	graph.RegisterTripleStore("leveldb", newTripleStore, createNewLevelDB)
 }

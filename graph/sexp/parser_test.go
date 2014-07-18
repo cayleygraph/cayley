@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/memstore"
+	_ "github.com/google/cayley/graph/memstore"
 )
 
 func TestBadParse(t *testing.T) {
@@ -52,7 +52,7 @@ var testQueries = []struct {
 }
 
 func TestMemstoreBackedSexp(t *testing.T) {
-	ts := memstore.NewTripleStore()
+	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	it := BuildIteratorTreeForQuery(ts, "()")
 	if it.Type() != graph.Null {
 		t.Errorf(`Incorrect type for empty query, got:%q expect: "null"`, it.Type())
@@ -76,7 +76,7 @@ func TestMemstoreBackedSexp(t *testing.T) {
 }
 
 func TestTreeConstraintParse(t *testing.T) {
-	ts := memstore.NewTripleStore()
+	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
 	ts.AddTriple(&graph.Triple{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
@@ -96,7 +96,7 @@ func TestTreeConstraintParse(t *testing.T) {
 }
 
 func TestTreeConstraintTagParse(t *testing.T) {
-	ts := memstore.NewTripleStore()
+	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
 	ts.AddTriple(&graph.Triple{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
@@ -116,7 +116,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 }
 
 func TestMultipleConstraintParse(t *testing.T) {
-	ts := memstore.NewTripleStore()
+	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	for _, tv := range []*graph.Triple{
 		{"i", "like", "food", ""},
 		{"i", "like", "beer", ""},

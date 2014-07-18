@@ -21,15 +21,16 @@ import (
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/memstore"
 	"github.com/google/cayley/http"
 	"github.com/google/cayley/nquads"
+
+	_ "github.com/google/cayley/graph/memstore"
 )
 
 func init() {
 	glog.SetToStderr(true)
 	cfg := config.ParseConfigFromFile("cayley_appengine.cfg")
-	ts := memstore.NewTripleStore()
+	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	glog.Errorln(cfg)
 	LoadTriplesFromFileInto(ts, cfg.DatabasePath, cfg.LoadSize)
 	http.SetupRoutes(ts, cfg)

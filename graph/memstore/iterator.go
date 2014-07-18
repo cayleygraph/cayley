@@ -104,7 +104,7 @@ func (it *Iterator) DebugString(indent int) string {
 var memType graph.Type
 
 func init() {
-	memType = graph.Register("llrb")
+	memType = graph.RegisterIterator("llrb")
 }
 
 func Type() graph.Type { return memType }

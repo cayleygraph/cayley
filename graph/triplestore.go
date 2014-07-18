@@ -22,6 +22,7 @@ package graph
 // triple backing store we prefer.
 
 import (
+	"errors"
 	"github.com/barakmich/glog"
 )
 
@@ -116,4 +117,56 @@ func (d Options) StringKey(key string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+var ErrCannotBulkLoad = errors.New("triplestore: cannot bulk load")
+
+type BulkLoader interface {
+	// BulkLoad loads Triples from a channel in bulk to the TripleStore. It
+	// returns ErrCannotBulkLoad if bulk loading is not possible (i.e. if you
+	// cannot load in bulk to a non-empty database, and the db is non-empty)
+	BulkLoad(chan *Triple) error
+}
+
+type NewStoreFunc func(string, Options) (TripleStore, error)
+type InitStoreFunc func(string, Options) error
+
+var storeRegistry = make(map[string]NewStoreFunc)
+var storeInitRegistry = make(map[string]InitStoreFunc)
+
+func RegisterTripleStore(name string, newFunc NewStoreFunc, initFunc InitStoreFunc) {
+	if _, found := storeRegistry[name]; found {
+		panic("already registered TripleStore " + name)
+	}
+	storeRegistry[name] = newFunc
+	if initFunc != nil {
+		storeInitRegistry[name] = initFunc
+	}
+}
+
+func NewTripleStore(name, dbpath string, opts Options) (TripleStore, error) {
+	newFunc, hasNew := storeRegistry[name]
+	if !hasNew {
+		return nil, errors.New("triplestore: name '" + name + "' is not registered")
+	}
+	return newFunc(dbpath, opts)
+}
+
+func InitTripleStore(name, dbpath string, opts Options) error {
+	initFunc, hasInit := storeInitRegistry[name]
+	if hasInit {
+		return initFunc(dbpath, opts)
+	}
+	if _, isRegistered := storeRegistry[name]; isRegistered {
+		return nil
+	}
+	return errors.New("triplestore: name '" + name + "' is not registered")
+}
+
+func TripleStores() []string {
+	t := make([]string, 0, len(storeRegistry))
+	for n := range storeRegistry {
+		t = append(t, n)
+	}
+	return t
 }
