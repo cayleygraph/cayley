@@ -14,7 +14,7 @@ Every JSON Object can be thought of as a node in the graph, and wrapping an obje
 
 Is equivalent to all nodes in the graph, where "id" is the special keyword for the value of the node.
 
-Predicates are added to the object to specify constraints. 
+Predicates are added to the object to specify constraints.
 
 ```json
 [{
@@ -66,7 +66,7 @@ JSON does not specify the behavior of objects with the same key. In order to hav
 
 
 ```json
-[{ 
+[{
   "id": "A",
   "@x:some_predicate": "B",
   "@y:some_predicate": "C"

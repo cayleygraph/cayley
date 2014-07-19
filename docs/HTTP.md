@@ -8,17 +8,17 @@ Unless otherwise noted, all URIs take a POST command.
 
 #### `/api/v1/query/gremlin`
 
-POST Body: Javascript source code of the query 
+POST Body: Javascript source code of the query
 
 Response: JSON results, depending on the query.
 
 #### `/api/v1/query/mql`
 
-POST Body: JSON MQL query 
+POST Body: JSON MQL query
 
 Response: JSON results, with a query wrapper:
 ```json
-{ 
+{
 	"result": <JSON Result set>
 }
 ```
@@ -39,15 +39,15 @@ Result form:
 ```json
 {
 	"nodes": [{
-		"id" : integer, 
-		"tags": ["list of tags from the query"], 
+		"id" : integer,
+		"tags": ["list of tags from the query"],
 		"values": ["known values from the query"],
 		"is_link_node": bool,  // Does the node represent the link or the node (the oval shapes)
 		"is_fixed": bool  // Is the node a fixed starting point of the query
-	}], 
+	}],
 
 	"links": [{
-		"source": integer,  // Node ID 
+		"source": integer,  // Node ID
 		"target": integer,  // Node ID
 		"link_node": integer  // Node ID
 	}]
@@ -56,13 +56,13 @@ Result form:
 
 #### `/api/v1/shape/gremlin`
 
-POST Body: Javascript source code of the query 
+POST Body: Javascript source code of the query
 
 Response: JSON description of the last query executed.
 
 #### `/api/v1/shape/mql`
 
-POST Body: JSON MQL query 
+POST Body: JSON MQL query
 
 Response: JSON description of the query.
 

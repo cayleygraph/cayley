@@ -1,6 +1,6 @@
 # Overview
 
-## Getting Started 
+## Getting Started
 
 This guide will take you through starting a persistent graph based on the provided data, with some hints for each backend.
 
@@ -25,22 +25,16 @@ You can repeat the `--db` and `--dbpath` flags from here forward instead of the 
 
 ### Load Data Into A Graph
 
-Let's extract the sample data, a couple hundred thousand movie triples, that comes in the checkout:
+First we load the data.
 
 ```bash
-zcat 30kmoviedatauniq.n3.gz > 30k.n3
-```
-
-Then, we can load the data.
-
-```bash
-./cayley load --config=cayley.cfg.overview --triples=30k.n3
+./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nt.gz
 ```
 
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load --config=cayley.cfg.overview --triples=30k.n3 --alsologtostderr
+./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nt.gz --alsologtostderr
 ```
 
 And watch the log output go by.
