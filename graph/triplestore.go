@@ -76,7 +76,9 @@ type TripleStore interface {
 	// Optimize an iterator in the context of the triple store.
 	// Suppose we have a better index for the passed tree; this
 	// gives the TripleStore the opportunity to replace it
-	// with a more efficient iterator.
+	// with a more efficient iterator. If optimization is done,
+	// the calling code is responsible for Close()-ing the
+	// returned iterator.
 	OptimizeIterator(it Iterator) (Iterator, bool)
 
 	// Close the triple store and clean up. (Flush to disk, cleanly

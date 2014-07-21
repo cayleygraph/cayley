@@ -117,6 +117,7 @@ func (it *LinksTo) SubIterators() []graph.Iterator {
 func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 	newPrimary, changed := it.primaryIt.Optimize()
 	if changed {
+		it.primaryIt.Close()
 		it.primaryIt = newPrimary
 		if it.primaryIt.Type() == graph.Null {
 			it.nextIt.Close()

@@ -50,8 +50,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// changed.
 	its := optimizeSubIterators(old)
 
-	// Close the replaced iterators (they ought to close themselves, but Close()
-	// is idempotent, so this just protects against any machinations).
+	// Close the replaced iterators.
 	closeIteratorList(old, nil)
 
 	// If we can find only one subiterator which is equivalent to this whole and,

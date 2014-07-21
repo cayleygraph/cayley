@@ -235,8 +235,7 @@ func (it *Or) Close() {
 func (it *Or) Optimize() (graph.Iterator, bool) {
 	old := it.SubIterators()
 	optIts := optimizeSubIterators(old)
-	// Close the replaced iterators (they ought to close themselves, but Close()
-	// is idempotent, so this just protects against any machinations).
+	// Close the replaced iterators.
 	closeIteratorList(old, nil)
 	newOr := NewOr()
 	newOr.isShortCircuiting = it.isShortCircuiting

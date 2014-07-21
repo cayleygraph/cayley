@@ -90,6 +90,7 @@ func (it *HasA) Direction() graph.Direction { return it.dir }
 func (it *HasA) Optimize() (graph.Iterator, bool) {
 	newPrimary, changed := it.primaryIt.Optimize()
 	if changed {
+		it.primaryIt.Close()
 		it.primaryIt = newPrimary
 		if it.primaryIt.Type() == graph.Null {
 			return it.primaryIt, true
