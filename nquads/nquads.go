@@ -25,10 +25,10 @@ import (
 )
 
 var (
-	ErrAbsentSubject   = errors.New("absent subject")
-	ErrAbsentPredicate = errors.New("absent predicate")
-	ErrAbsentObject    = errors.New("absent object")
-	ErrUnterminated    = errors.New("unterminated quad")
+	ErrAbsentSubject   = errors.New("nqauds: absent subject")
+	ErrAbsentPredicate = errors.New("nqauds: absent predicate")
+	ErrAbsentObject    = errors.New("nqauds: absent object")
+	ErrUnterminated    = errors.New("nqauds: unterminated quad")
 )
 
 func Parse(str string) (*graph.Triple, error) {
