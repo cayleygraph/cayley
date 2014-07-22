@@ -15,10 +15,14 @@
 package db
 
 import (
+	"bytes"
+	"compress/bzip2"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/barakmich/glog"
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/nquads"
@@ -31,7 +35,12 @@ func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
 	}
 	defer f.Close()
 
-	dec := nquads.NewDecoder(f)
+	r, err := decompressor(f)
+	if err != nil {
+		glog.Fatalln(err)
+	}
+
+	dec := nquads.NewDecoder(r)
 
 	bulker, canBulk := ts.(graph.BulkLoader)
 	if canBulk {
@@ -65,4 +74,30 @@ func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
 	ts.AddTripleSet(block)
 
 	return nil
+}
+
+const (
+	gzipMagic  = "\x1f\x8b"
+	b2zipMagic = "BZh"
+)
+
+type readAtReader interface {
+	io.Reader
+	io.ReaderAt
+}
+
+func decompressor(r readAtReader) (io.Reader, error) {
+	var buf [3]byte
+	_, err := r.ReadAt(buf[:], 0)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
+		return gzip.NewReader(r)
+	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
+		return bzip2.NewReader(r), nil
+	default:
+		return r, nil
+	}
 }
