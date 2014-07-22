@@ -17,5 +17,5 @@ install:
   - go get github.com/syndtr/goleveldb/leveldb/iterator
   - go get github.com/syndtr/goleveldb/leveldb/opt
   - go get github.com/syndtr/goleveldb/leveldb/util
-  - go get labix.org/v2/mgo
-  - go get labix.org/v2/mgo/bson
+  - go get gopkg.in/mgo.v2
+  - go get gopkg.in/mgo.v2/bson
