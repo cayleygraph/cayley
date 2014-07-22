@@ -1,7 +1,7 @@
 <p align="center">
   <img src="static/branding/cayley_side.png?raw=true" alt="Cayley" />
 </p>
-Cayley is an open-source graph inspired by the graph database behind [Freebase](http://freebase.com) and Google's [Knowledge Graph](http://www.google.com/insidesearch/features/search/knowledge.html). 
+Cayley is an open-source graph inspired by the graph database behind [Freebase](http://freebase.com) and Google's [Knowledge Graph](http://www.google.com/insidesearch/features/search/knowledge.html).
 
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
@@ -44,7 +44,7 @@ If you prefer to build from source, see the documentation on the wiki at [How to
 
 `cd` to the directory and give it a quick test with:
 ```
-./cayley repl --dbpath=testdata.nt 
+./cayley repl --dbpath=testdata.nt
 ```
 
 You should see a `cayley>` REPL prompt. Go ahead and give it a try:
@@ -69,17 +69,16 @@ cayley> graph.Vertex("dani").Out("follows").All()
 
 **Sample Data**
 
-For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout. 
+For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout.
 
 ```
-gzip -cd 30kmoviedata.nt.gz > 30kmovies.nt
-./cayley repl --dbpath=30kmovies.nt
+./cayley repl --dbpath=30kmoviedata.nt.gz
 ```
 
-To run the web frontend, replace the "repl" command with "http" 
+To run the web frontend, replace the "repl" command with "http"
 
 ```
-./cayley http --dbpath=30kmovies.nt
+./cayley http --dbpath=30kmoviedata.nt.gz
 ```
 
 And visit port 64210 on your machine, commonly [http://localhost:64210](http://localhost:64210)
@@ -89,7 +88,7 @@ And visit port 64210 on your machine, commonly [http://localhost:64210](http://l
 
 The default environment is based on [Gremlin](http://gremlindocs.com/) and is simply a JavaScript environment. If you can write jQuery, you can query a graph.
 
-You'll notice we have a special object, `graph` or `g`, which is how you can interact with the graph. 
+You'll notice we have a special object, `graph` or `g`, which is how you can interact with the graph.
 
 The simplest query is merely to return a single vertex. Using the 30kmovies.nt dataset from above, let's walk through some simple queries:
 
@@ -107,7 +106,7 @@ g.V("Humphrey Bogart").All()
 // Follow links that are pointing In to our "Humphrey Bogart" node with the predicate "name".
 g.V("Humphrey Bogart").In("name").All()
 
-// Notice that "name" is a generic predicate in our dataset. 
+// Notice that "name" is a generic predicate in our dataset.
 // Starting with a movie gives a similar effect.
 g.V("Casablanca").In("name").All()
 
@@ -129,7 +128,7 @@ And these pipelines continue...
 g.V().Has("name","Casablanca")
   .Out("/film/film/starring").Out("/film/performance/actor")
   .Out("name").All()
-  
+
 // But this is starting to get long. Let's use a morphism -- a pre-defined path stored in a variable -- as our linkage
 
 var filmToActor = g.Morphism().Out("/film/film/starring").Out("/film/performance/actor")

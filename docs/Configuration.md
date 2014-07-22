@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cayley expects, in the usual case, to be run with a configuration file, though it can also be run purely through configuration flags. The configuration file contains a JSON object with any of the documented parameters. 
+Cayley expects, in the usual case, to be run with a configuration file, though it can also be run purely through configuration flags. The configuration file contains a JSON object with any of the documented parameters.
 
 Cayley looks in the following locations for the configuration file
 
@@ -48,7 +48,7 @@ All command line flags take precedence over the configuration file.
   * Type: String
   * Default: "64210"
 
-  The port for Cayley's HTTP server to listen on. 
+  The port for Cayley's HTTP server to listen on.
 
 #### **`read_only`**
 
@@ -62,7 +62,7 @@ All command line flags take precedence over the configuration file.
   * Type: Integer
   * Default: 10000
 
-  The number of triples to buffer from a loaded file before writing a block of triples to the database. Larger numbers are good for larger loads.  
+  The number of triples to buffer from a loaded file before writing a block of triples to the database. Larger numbers are good for larger loads.
 
 #### **`db_options`**
 
@@ -77,7 +77,7 @@ All command line flags take precedence over the configuration file.
   * Type: Integer
   * Default: 30
 
-The value in seconds of the maximum length of time the Javascript runtime should run until cancelling the query and returning a 408 Timeout. A negative value means no limit. 
+The value in seconds of the maximum length of time the Javascript runtime should run until cancelling the query and returning a 408 Timeout. A negative value means no limit.
 
 ## Per-Database Options
 
@@ -99,7 +99,7 @@ The size in MiB of the LevelDB write cache. Increasing this number allows for mo
 #### **`cache_size_mb`**
 
   * Type: Integer
-  * Default: 2 
+  * Default: 2
 
 The size in MiB of the LevelDB block cache. Increasing this number uses more memory to maintain a bigger cache of triple blocks for better performance.
 

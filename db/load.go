@@ -15,6 +15,10 @@
 package db
 
 import (
+	"bytes"
+	"compress/bzip2"
+	"compress/gzip"
+	"io"
 	"os"
 
 	"github.com/barakmich/glog"
@@ -54,7 +58,38 @@ func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {
 		}
 	}()
 
-	nquads.ReadNQuadsFromReader(c, f)
+	r, err := decompressor(f)
+	if err != nil {
+		glog.Fatalln(err)
+	}
+
+	nquads.ReadNQuadsFromReader(c, r)
+}
+
+const (
+	gzipMagic  = "\x1f\x8b"
+	b2zipMagic = "BZh"
+)
+
+type readAtReader interface {
+	io.Reader
+	io.ReaderAt
+}
+
+func decompressor(r readAtReader) (io.Reader, error) {
+	var buf [3]byte
+	_, err := r.ReadAt(buf[:], 0)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
+		return gzip.NewReader(r)
+	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
+		return bzip2.NewReader(r), nil
+	default:
+		return r, nil
+	}
 }
 
 func LoadTriplesInto(tChan chan *graph.Triple, ts graph.TripleStore, loadSize int) {

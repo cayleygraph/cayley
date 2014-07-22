@@ -1,24 +1,24 @@
 # Javascript/Gremlin API documentation
 
-## The `graph` object 
+## The `graph` object
 
 Alias: `g`
 
-This is the only special object in the environment, generates the query objects. Under the hood, they're simple objects that get compiled to a Go iterator tree when executed. 
+This is the only special object in the environment, generates the query objects. Under the hood, they're simple objects that get compiled to a Go iterator tree when executed.
 
-#### **`graph.Vertex([nodeId],[nodeId]...)`** 
+#### **`graph.Vertex([nodeId],[nodeId]...)`**
 
 Alias: `graph.V`
 
 Arguments:
 
   * `nodeId` (Optional): A string or list of strings representing the starting vertices.
-  
+
 Returns: Query object
 
 Starts a query path at the given vertex/verticies. No ids means "all vertices".
 
-####**`graph.Morphism()`**  
+####**`graph.Morphism()`**
 
 Alias: `graph.M`
 
@@ -61,7 +61,7 @@ For these examples, suppose we have the following graph:
             +---+
 ```
 
-Where every link is a "follows" relationship, and the nodes with an extra `#` in the name have an extra `status` link. As in, 
+Where every link is a "follows" relationship, and the nodes with an extra `#` in the name have an extra `status` link. As in,
 
 ```
 D -- status --> cool_person
@@ -75,7 +75,7 @@ Perhaps these are the influencers in our community.
 
 Arguments:
 
-  * `predicatePath` (Optional): One of: 
+  * `predicatePath` (Optional): One of:
     * null or undefined: All predicates pointing out from this node
     * a string: The predicate name to follow out from this node
 	* a list of strings: The predicates to follow out from this node
@@ -87,7 +87,7 @@ Arguments:
 
 Out is the work-a-day way to get between nodes, in the forward direction. Starting with the nodes in `path` on the subject, follow the triples with predicates defined by `predicatePath` to their objects.
 
-Example: 
+Example:
 ```javascript
 // The working set of this is B and D
 g.V("C").Out("follows")
@@ -95,10 +95,10 @@ g.V("C").Out("follows")
 g.V("A").Out("follows").Out("follows")
 // Finds all things D points at. Result is B G and cool_person
 g.V("D").Out()
-// Finds all things D points at on the status linkage. 
+// Finds all things D points at on the status linkage.
 // Result is B G and cool_person
 g.V("D").Out(["follows", "status"])
-// Finds all things D points at on the status linkage, given from a seperate query path. 
+// Finds all things D points at on the status linkage, given from a seperate query path.
 // Result is {"id": cool_person, "pred": "status"}
 g.V("D").Out(g.V("status"), "pred")
 ```
@@ -107,7 +107,7 @@ g.V("D").Out(g.V("status"), "pred")
 
 Arguments:
 
-  * `predicatePath` (Optional): One of: 
+  * `predicatePath` (Optional): One of:
 	* null or undefined: All predicates pointing into this node
 	* a string: The predicate name to follow into this node
 	* a list of strings: The predicates to follow into this node
@@ -133,7 +133,7 @@ g.V("E").Out("follows").In("follows")
 
 Arguments:
 
-  * `predicatePath` (Optional): One of: 
+  * `predicatePath` (Optional): One of:
 	* null or undefined: All predicates pointing both into and out from this node
 	* a string: The predicate name to follow both into and out from this node
 	* a list of strings: The predicates to follow both into and out from this node
@@ -142,13 +142,13 @@ Arguments:
 	* null or undefined: No tags
 	* a string: A single tag to add the predicate used to the output set.
 	* a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
-Follow the predicate in either direction. Same as 
+Follow the predicate in either direction. Same as
 
 Note: Less efficient, for the moment, as it's implemented with an Or, but useful where necessary.
 
 Example:
 ```javascript
-// Find all followers/followees of F. Returns B E and G 
+// Find all followers/followees of F. Returns B E and G
 g.V("F").Both("follows")
 ```
 
@@ -159,11 +159,11 @@ Arguments:
 
   * `node`: A string for a node. Can be repeated or a list of strings.
 
-Filter all paths to ones which, at this point, are on the given `node`. 
+Filter all paths to ones which, at this point, are on the given `node`.
 
 Example:
 ```javascript
-// Starting from all nodes in the graph, find the paths that follow B. 
+// Starting from all nodes in the graph, find the paths that follow B.
 // Results in three paths for B (from A C and D)
 g.V().Out("follows").Is("B")
 ```
@@ -189,7 +189,7 @@ g.V("C").Out("follows").Has("follows", "F")
 
 ### Tagging
 
-####**`path.Tag(tag)`** 
+####**`path.Tag(tag)`**
 
 Alias: `path.As`
 
@@ -212,19 +212,19 @@ g.V().Tag("start").Out("status")
 
 Arguments:
 
-   * `tag`: A previous tag in the query to jump back to. 
-	
+   * `tag`: A previous tag in the query to jump back to.
+
 If still valid, a path will now consider their vertex to be the same one as the previously tagged one, with the added constraint that it was valid all the way here. Useful for traversing back in queries and taking another route for things that have matched so far.
 
 Example:
 ```javascript
 // Start from all nodes, save them into start, follow any status links, jump back to the starting node, and find who follows them. Return the result.
-// Results are: 
-//   {"id": "A", "start": "B"}, 
-//   {"id": "C", "start": "B"}, 
-//   {"id": "D", "start": "B"}, 
+// Results are:
+//   {"id": "A", "start": "B"},
+//   {"id": "C", "start": "B"},
+//   {"id": "D", "start": "B"},
 //   {"id": "C", "start": "D"},
-//   {"id": "D", "start": "G"} 
+//   {"id": "D", "start": "G"}
 g.V().Tag("start").Out("status").Back("start").In("follows")
 ```
 
@@ -249,7 +249,7 @@ g.V("D", "B").Save("follows", "target")
 
 ### Joining
 
-####**`path.Intersect(query)`** 
+####**`path.Intersect(query)`**
 
 Alias: `path.And`
 
@@ -269,7 +269,7 @@ cFollows.Intersect(dFollows)
 // Equivalently, g.V("C").Out("follows").And(g.V("D").Out("follows"))
 ```
 
-####**`path.Union(query)`** 
+####**`path.Union(query)`**
 
 Alias: `path.Or`
 
@@ -298,10 +298,10 @@ Arguments:
 
   * `morphism`: A morphism path to follow
 
-With `graph.Morphism` we can prepare a path for later reuse. `Follow` is the way that's accomplished. 
+With `graph.Morphism` we can prepare a path for later reuse. `Follow` is the way that's accomplished.
 Applies the path chain on the morphism object to the current path.
 
-Starts as if at the g.M() and follows through the morphism path. 
+Starts as if at the g.M() and follows through the morphism path.
 
 Example:
 ```javascript:
@@ -318,7 +318,7 @@ Arguments:
 
   * `morphism`: A morphism path to follow
 
-Same as `Follow` but follows the chain in the reverse direction. Flips "In" and "Out" where appropriate, 
+Same as `Follow` but follows the chain in the reverse direction. Flips "In" and "Out" where appropriate,
 the net result being a virtual predicate followed in the reverse direction.
 
 Starts at the end of the morphism and follows it backwards (with appropriate flipped directions) to the g.M() location.
@@ -346,10 +346,10 @@ Executes the query and adds the results, with all tags, as a string-to-string (t
 
 ####**`query.GetLimit(size)`**
 
-Arguments: 
+Arguments:
 
   * `size`: An integer value on the first `size` paths to return.
- 
+
  Returns: undefined
 
 Same as all, but limited to the first `size` unique nodes at the end of the path, and each of their possible traversals.
@@ -360,7 +360,7 @@ Arguments: None
 
 Returns: Array
 
-Executes a query and returns the results at the end of the query path. 
+Executes a query and returns the results at the end of the query path.
 Example:
 ``javascript
 // fooNames contains an Array of names for foo.
@@ -399,15 +399,15 @@ Returns: A single string-to-string object
 As `.TagArray` above, but limited to one result node -- a string. Like `.Limit(1)` for the above case. Returns a tag-to-string map.
 
 
-####**`query.ForEach(callback), query.ForEach(limit, callback)`** 
+####**`query.ForEach(callback), query.ForEach(limit, callback)`**
 
 Alias: `query.Map`
 
-Arguments: 
+Arguments:
 
   * `limit` (Optional): An integer value on the first `limit` paths to process.
   * `callback`: A javascript function of the form `function(data)`
- 
+
 Returns: undefined
 
 For each tag-to-string result retrieved, as in the `All` case, calls `callback(data)` where `data` is the tag-to-string map.
