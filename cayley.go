@@ -58,37 +58,62 @@ func main() {
 		Usage()
 		os.Exit(1)
 	}
+
 	cmd := os.Args[1]
 	newargs := make([]string, 0)
 	newargs = append(newargs, os.Args[0])
 	newargs = append(newargs, os.Args[2:]...)
 	os.Args = newargs
 	flag.Parse()
-	var ts graph.TripleStore
+
 	cfg := config.ParseConfigFromFlagsAndFile(*configFile)
+
 	if os.Getenv("GOMAXPROCS") == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 		glog.Infoln("Setting GOMAXPROCS to", runtime.NumCPU())
 	} else {
 		glog.Infoln("GOMAXPROCS currently", os.Getenv("GOMAXPROCS"), " -- not adjusting")
 	}
+
+	var (
+		ts  graph.TripleStore
+		err error
+	)
 	switch cmd {
 	case "init":
-		db.Init(cfg, *tripleFile)
+		err = db.Init(cfg, *tripleFile)
 	case "load":
-		ts = db.Open(cfg)
-		db.Load(ts, cfg, *tripleFile)
+		ts, err = db.Open(cfg)
+		if err != nil {
+			break
+		}
+		err = db.Load(ts, cfg, *tripleFile)
+		if err != nil {
+			break
+		}
 		ts.Close()
 	case "repl":
-		ts = db.Open(cfg)
-		db.Repl(ts, *queryLanguage, cfg)
+		ts, err = db.Open(cfg)
+		if err != nil {
+			break
+		}
+		err = db.Repl(ts, *queryLanguage, cfg)
+		if err != nil {
+			break
+		}
 		ts.Close()
 	case "http":
-		ts = db.Open(cfg)
+		ts, err = db.Open(cfg)
+		if err != nil {
+			break
+		}
 		http.Serve(ts, cfg)
 		ts.Close()
 	default:
 		fmt.Println("No command", cmd)
 		flag.Usage()
+	}
+	if err != nil {
+		glog.Fatalln(err)
 	}
 }

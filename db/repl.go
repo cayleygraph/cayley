@@ -16,10 +16,11 @@ package db
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/google/cayley/config"
@@ -60,7 +61,7 @@ func Run(query string, ses graph.Session) {
 	}
 }
 
-func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
+func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error {
 	var ses graph.Session
 	switch queryLanguage {
 	case "sexp":
@@ -72,72 +73,75 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) {
 	default:
 		ses = gremlin.NewSession(ts, cfg.GremlinTimeout, true)
 	}
-	inputBf := bufio.NewReader(os.Stdin)
-	line := ""
+	buf := bufio.NewReader(os.Stdin)
+	var line []byte
 	for {
-		if line == "" {
+		if len(line) == 0 {
 			fmt.Print("cayley> ")
 		} else {
 			fmt.Print("...       ")
 		}
-		l, pre, err := inputBf.ReadLine()
+		l, prefix, err := buf.ReadLine()
 		if err == io.EOF {
-			if line != "" {
-				line = ""
+			if len(line) != 0 {
+				line = line[:0]
 			} else {
-				break
+				return nil
 			}
 		}
 		if err != nil {
-			line = ""
+			line = line[:0]
 		}
-		if pre {
-			panic("Line too long")
+		if prefix {
+			return errors.New("line too long")
 		}
-		line += string(l)
-		if line == "" {
+		line = append(line, l...)
+		if len(line) == 0 {
 			continue
 		}
-		if strings.HasPrefix(line, ":debug") {
+		if bytes.HasPrefix(line, []byte(":debug")) {
 			ses.ToggleDebug()
 			fmt.Println("Debug Toggled")
-			line = ""
+			line = line[:0]
 			continue
 		}
-		if strings.HasPrefix(line, ":a") {
+		if bytes.HasPrefix(line, []byte(":a")) {
 			var tripleStmt = line[3:]
-			triple := nquads.Parse(tripleStmt)
+			triple, err := nquads.Parse(string(tripleStmt))
 			if triple == nil {
-				fmt.Println("Not a valid triple.")
-				line = ""
+				if err != nil {
+					fmt.Printf("not a valid triple: %v\n", err)
+				}
+				line = line[:0]
 				continue
 			}
 			ts.AddTriple(triple)
-			line = ""
+			line = line[:0]
 			continue
 		}
-		if strings.HasPrefix(line, ":d") {
+		if bytes.HasPrefix(line, []byte(":d")) {
 			var tripleStmt = line[3:]
-			triple := nquads.Parse(tripleStmt)
+			triple, err := nquads.Parse(string(tripleStmt))
 			if triple == nil {
-				fmt.Println("Not a valid triple.")
-				line = ""
+				if err != nil {
+					fmt.Printf("not a valid triple: %v\n", err)
+				}
+				line = line[:0]
 				continue
 			}
 			ts.RemoveTriple(triple)
-			line = ""
+			line = line[:0]
 			continue
 		}
-		result, err := ses.InputParses(line)
+		result, err := ses.InputParses(string(line))
 		switch result {
 		case graph.Parsed:
-			Run(line, ses)
-			line = ""
+			Run(string(line), ses)
+			line = line[:0]
 		case graph.ParseFail:
 			fmt.Println("Error: ", err)
-			line = ""
+			line = line[:0]
 		case graph.ParseMore:
-		default:
 		}
 	}
 }

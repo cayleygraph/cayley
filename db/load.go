@@ -15,58 +15,54 @@
 package db
 
 import (
+	"fmt"
+	"io"
 	"os"
-
-	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/nquads"
 )
 
-func Load(ts graph.TripleStore, cfg *config.Config, triplePath string) {
-	tChan := make(chan *graph.Triple)
-	go ReadTriplesFromFile(tChan, triplePath)
+func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("could not open file %q: %v", path, err)
+	}
+	defer f.Close()
+
+	dec := nquads.NewDecoder(f)
 
 	bulker, canBulk := ts.(graph.BulkLoader)
 	if canBulk {
-		err := bulker.BulkLoad(tChan)
+		err = bulker.BulkLoad(dec)
 		if err == nil {
-			return
+			return nil
 		}
-		if err != graph.ErrCannotBulkLoad {
-			glog.Errorln("Error attempting to bulk load: ", err)
+		if err == graph.ErrCannotBulkLoad {
+			err = nil
 		}
 	}
-
-	LoadTriplesInto(tChan, ts, cfg.LoadSize)
-}
-
-func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {
-	f, err := os.Open(tripleFile)
 	if err != nil {
-		glog.Fatalln("Couldn't open file", tripleFile)
+		return err
 	}
 
-	defer func() {
-		if err := f.Close(); err != nil {
-			glog.Fatalln(err)
+	block := make([]*graph.Triple, 0, cfg.LoadSize)
+	for {
+		t, err := dec.Unmarshal()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
 		}
-	}()
-
-	nquads.ReadNQuadsFromReader(c, f)
-}
-
-func LoadTriplesInto(tChan chan *graph.Triple, ts graph.TripleStore, loadSize int) {
-	tripleblock := make([]*graph.Triple, loadSize)
-	i := 0
-	for t := range tChan {
-		tripleblock[i] = t
-		i++
-		if i == loadSize {
-			ts.AddTripleSet(tripleblock)
-			i = 0
+		block = append(block, t)
+		if len(block) == cap(block) {
+			ts.AddTripleSet(block)
+			block = block[:0]
 		}
 	}
-	ts.AddTripleSet(tripleblock[0:i])
+	ts.AddTripleSet(block)
+
+	return nil
 }

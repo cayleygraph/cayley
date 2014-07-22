@@ -17,6 +17,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -77,22 +78,32 @@ func (api *Api) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		blockSize = int64(api.config.LoadSize)
 	}
 
-	tChan := make(chan *graph.Triple)
-	go nquads.ReadNQuadsFromReader(tChan, formFile)
-	tripleblock := make([]*graph.Triple, blockSize)
-	nTriples := 0
-	i := int64(0)
-	for t := range tChan {
-		tripleblock[i] = t
-		i++
-		nTriples++
-		if i == blockSize {
-			api.ts.AddTripleSet(tripleblock)
-			i = 0
+	dec := nquads.NewDecoder(formFile)
+
+	var (
+		n int
+
+		block = make([]*graph.Triple, 0, blockSize)
+	)
+	for {
+		t, err := dec.Unmarshal()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			panic("what can do this here?") // FIXME(kortschak)
+		}
+		block = append(block, t)
+		n++
+		if len(block) == cap(block) {
+			api.ts.AddTripleSet(block)
+			block = block[:0]
 		}
 	}
-	api.ts.AddTripleSet(tripleblock[0:i])
-	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d triples.\"}", nTriples)
+	api.ts.AddTripleSet(block)
+
+	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d triples.\"}", n)
+
 	return 200
 }
 

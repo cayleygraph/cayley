@@ -25,17 +25,26 @@ var testNTriples = []struct {
 	message string
 	input   string
 	expect  *graph.Triple
+	err     error
 }{
 	// NTriple tests.
 	{
 		message: "not parse invalid triples",
 		input:   "invalid",
 		expect:  nil,
+		err:     ErrAbsentPredicate,
+	},
+	{
+		message: "invalid internal quote",
+		input:   `":103032" "/film/performance/character" "Walter "Teacher" Cole" .`,
+		expect:  nil,
+		err:     ErrUnterminated,
 	},
 	{
 		message: "not parse comments",
 		input:   "# nominally valid triple .",
 		expect:  nil,
+		err:     nil,
 	},
 	{
 		message: "parse simple triples",
@@ -110,7 +119,10 @@ var testNTriples = []struct {
 
 func TestParse(t *testing.T) {
 	for _, test := range testNTriples {
-		got := Parse(test.input)
+		got, err := Parse(test.input)
+		if err != test.err {
+			t.Errorf("Unexpected error when %s: got:%v expect:%v", test.message, err, test.err)
+		}
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to %s, %q, got:%q expect:%q", test.message, test.input, got, test.expect)
 		}
@@ -121,6 +133,6 @@ var result *graph.Triple
 
 func BenchmarkParser(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		result = Parse("<http://example/s> <http://example/p> \"object of some real\\tlength\"@en . # comment")
+		result, _ = Parse("<http://example/s> <http://example/p> \"object of some real\\tlength\"@en . # comment")
 	}
 }
