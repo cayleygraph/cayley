@@ -122,10 +122,14 @@ func (d Options) StringKey(key string) (string, bool) {
 var ErrCannotBulkLoad = errors.New("triplestore: cannot bulk load")
 
 type BulkLoader interface {
-	// BulkLoad loads Triples from a channel in bulk to the TripleStore. It
-	// returns ErrCannotBulkLoad if bulk loading is not possible (i.e. if you
-	// cannot load in bulk to a non-empty database, and the db is non-empty)
-	BulkLoad(chan *Triple) error
+	// BulkLoad loads Triples from a TripleUnmarshaler in bulk to the TripleStore.
+	// It returns ErrCannotBulkLoad if bulk loading is not possible. For example if
+	// you cannot load in bulk to a non-empty database, and the db is non-empty.
+	BulkLoad(TripleUnmarshaler) error
+}
+
+type TripleUnmarshaler interface {
+	Unmarshal() (*Triple, error)
 }
 
 type NewStoreFunc func(string, Options) (TripleStore, error)

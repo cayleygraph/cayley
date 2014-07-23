@@ -15,14 +15,12 @@
 package cayleyappengine
 
 import (
-	"os"
-
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/config"
+	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
-	"github.com/google/cayley/nquads"
 
 	_ "github.com/google/cayley/graph/memstore"
 )
@@ -32,37 +30,6 @@ func init() {
 	cfg := config.ParseConfigFromFile("cayley_appengine.cfg")
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	glog.Errorln(cfg)
-	LoadTriplesFromFileInto(ts, cfg.DatabasePath, cfg.LoadSize)
+	db.Load(ts, cfg, cfg.DatabasePath)
 	http.SetupRoutes(ts, cfg)
-}
-
-func ReadTriplesFromFile(c chan *graph.Triple, tripleFile string) {
-	f, err := os.Open(tripleFile)
-	if err != nil {
-		glog.Fatalln("Couldn't open file", tripleFile)
-	}
-
-	defer func() {
-		if err := f.Close(); err != nil {
-			glog.Fatalln(err)
-		}
-	}()
-
-	nquads.ReadNQuadsFromReader(c, f)
-}
-
-func LoadTriplesFromFileInto(ts graph.TripleStore, filename string, loadSize int) {
-	tChan := make(chan *graph.Triple)
-	go ReadTriplesFromFile(tChan, filename)
-	tripleblock := make([]*graph.Triple, loadSize)
-	i := 0
-	for t := range tChan {
-		tripleblock[i] = t
-		i++
-		if i == loadSize {
-			ts.AddTripleSet(tripleblock)
-			i = 0
-		}
-	}
-	ts.AddTripleSet(tripleblock[0:i])
 }
