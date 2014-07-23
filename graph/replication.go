@@ -21,6 +21,10 @@ package graph
 // instances. The simplest case is to keep an append-only log of triple
 // changes.
 
+import (
+	"errors"
+)
+
 type Procedure byte
 
 const (
@@ -47,7 +51,31 @@ type Replication interface {
 
 	// Attempt to acquire the given range of triples from other replicated sources.
 	RequestTransactionRange(start int64, end int64)
+}
 
-	// Opens the replication interface.
-	Open(TripleStore, Options)
+type NewReplicationFunc func(TripleStore, Options) (Replication, error)
+
+var replicationRegistry = make(map[string]NewReplicationFunc)
+
+func RegisterReplication(name string, newFunc NewReplicationFunc) {
+	if _, found := replicationRegistry[name]; found {
+		panic("already registered Replication " + name)
+	}
+	replicationRegistry[name] = newFunc
+}
+
+func NewReplication(name string, ts TripleStore, opts Options) (Replication, error) {
+	newFunc, hasNew := replicationRegistry[name]
+	if !hasNew {
+		return nil, errors.New("replication: name '" + name + "' is not registered")
+	}
+	return newFunc(ts, opts)
+}
+
+func ReplicationMethods() []string {
+	t := make([]string, 0, len(replicationRegistry))
+	for n := range replicationRegistry {
+		t = append(t, n)
+	}
+	return t
 }
