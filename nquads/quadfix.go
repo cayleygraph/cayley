@@ -24,12 +24,19 @@ func main() {
 			}
 			log.Println(err)
 		}
-		if t.Object[0] == ':' {
-			t.Object = "_" + t.Object
+		if t.Subject[0] == ':' && t.Subject[1] == '/' {
+			t.Subject = "<" + t.Subject[1:] + ">"
+		} else {
+			t.Subject = "_" + t.Subject
+		}
+		if t.Object[0] == ':' && t.Object[1] == '/' {
+			t.Object = "<" + t.Object[1:] + ">"
+		} else if t.Object[0] == '/' {
+			t.Object = "<" + t.Object + ">"
 		} else {
 			t.Object = fmt.Sprintf(`%q`, t.Object)
 		}
-		fmt.Printf("_%s <%s> %s .\n", t.Subject, t.Predicate, t.Object)
+		fmt.Printf("%s <%s> %s .\n", t.Subject, t.Predicate, t.Object)
 	}
 }
 
