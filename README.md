@@ -72,13 +72,13 @@ cayley> graph.Vertex("dani").Out("follows").All()
 For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout.
 
 ```
-./cayley repl --dbpath=30kmoviedata.nt.gz
+./cayley repl --dbpath=30kmoviedata.nt
 ```
 
 To run the web frontend, replace the "repl" command with "http"
 
 ```
-./cayley http --dbpath=30kmoviedata.nt.gz
+./cayley http --dbpath=30kmoviedata.nt
 ```
 
 And visit port 64210 on your machine, commonly [http://localhost:64210](http://localhost:64210)
