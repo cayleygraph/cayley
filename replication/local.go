@@ -15,8 +15,9 @@
 package local
 
 import (
-	"github.com/google/cayley/graph"
 	"sync"
+
+	"github.com/google/cayley/graph"
 )
 
 type LocalReplication struct {
@@ -25,7 +26,7 @@ type LocalReplication struct {
 	mut    sync.Mutex
 }
 
-func NewLocalReplication(ts graph.TripleStore, opts graph.Options) (*LocalReplication, error) {
+func NewLocalReplication(ts graph.TripleStore, opts graph.Options) (graph.Replication, error) {
 	rep := &LocalReplication{lastId: ts.Horizon(), ts: ts}
 	ts.SetReplication(rep)
 	return rep, nil
@@ -44,8 +45,12 @@ func (l *LocalReplication) GetLastId() int64 {
 	return l.lastId
 }
 
-func (l *LocalReplication) Replicate([]*graph.Transaction)       {}
-func (l *LocalReplication) RequestTransactionRange(int64, int64) {}
+func (l *LocalReplication) Replicate([]*graph.Transaction) {
+	// Noop, single-machines don't replicate out anywhere.
+}
+func (l *LocalReplication) RequestTransactionRange(int64, int64) {
+	// Single machines also can't catch up.
+}
 
 func init() {
 	graph.RegisterReplication("local", NewLocalReplication)

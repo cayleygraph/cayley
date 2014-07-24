@@ -70,6 +70,14 @@ type TripleStore interface {
 	// Returns the number of triples currently stored.
 	Size() int64
 
+	// The last replicated transaction ID that this triplestore has verified.
+	Horizon() int64
+
+	// Inform the triplestore of a new replication strategy. Happens at startup and,
+	// perhaps in the future, if replication changes mid-run. Writes without any replication
+	// strategy are not allowed.
+	SetReplication(Replication)
+
 	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator
 
