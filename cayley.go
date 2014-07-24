@@ -40,6 +40,10 @@ var cpuprofile = flag.String("prof", "", "Output profiling file.")
 var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
 
+// Filled in by `go build ldflags="-X main.VERSION `ver`"`.
+var BUILD_DATE string
+var VERSION string
+
 func Usage() {
 	fmt.Println("Cayley is a graph store and graph query layer.")
 	fmt.Println("\nUsage:")
@@ -52,6 +56,9 @@ func Usage() {
 	fmt.Println("\nFlags:")
 	flag.Parse()
 	flag.PrintDefaults()
+	if VERSION != "" {
+		fmt.Printf("Release v%s\n", VERSION)
+	}
 }
 
 func main() {
@@ -67,6 +74,10 @@ func main() {
 	newargs = append(newargs, os.Args[2:]...)
 	os.Args = newargs
 	flag.Parse()
+
+	if VERSION != "" {
+		glog.Info("Cayley v", VERSION, " built ", BUILD_DATE)
+	}
 
 	cfg := config.ParseConfigFromFlagsAndFile(*configFile)
 
