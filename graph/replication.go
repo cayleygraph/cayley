@@ -27,13 +27,14 @@ import (
 
 type Procedure byte
 
+// The different types of actions a transaction can do.
 const (
 	Add Procedure = iota
 	Delete
 )
 
 type Transaction struct {
-	Id     int64
+	ID     int64
 	Triple *Triple
 	Action Procedure
 }
@@ -44,7 +45,7 @@ type Replication interface {
 	AcquireNextIds(size int64) (start int64, end int64)
 
 	// Returns the highest current ID.
-	GetLastId() int64
+	GetLastID() int64
 
 	// Sends the transactions to the replicas.
 	Replicate([]*Transaction)

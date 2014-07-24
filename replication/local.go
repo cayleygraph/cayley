@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package replication
 
 import (
 	"sync"
@@ -20,38 +20,38 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type LocalReplication struct {
-	lastId int64
+type Single struct {
+	lastID int64
 	ts     graph.TripleStore
 	mut    sync.Mutex
 }
 
-func NewLocalReplication(ts graph.TripleStore, opts graph.Options) (graph.Replication, error) {
-	rep := &LocalReplication{lastId: ts.Horizon(), ts: ts}
+func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.Replication, error) {
+	rep := &Single{lastID: ts.Horizon(), ts: ts}
 	ts.SetReplication(rep)
 	return rep, nil
 }
 
-func (l *LocalReplication) AcquireNextIds(size int64) (start int64, end int64) {
-	l.mut.Lock()
-	defer l.mut.Unlock()
-	start = l.lastId + 1
-	end = l.lastId + size
-	l.lastId += size
+func (s *Single) AcquireNextIds(size int64) (start int64, end int64) {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+	start = s.lastID + 1
+	end = s.lastID + size
+	s.lastID += size
 	return
 }
 
-func (l *LocalReplication) GetLastId() int64 {
-	return l.lastId
+func (s *Single) GetLastID() int64 {
+	return s.lastID
 }
 
-func (l *LocalReplication) Replicate([]*graph.Transaction) {
+func (s *Single) Replicate([]*graph.Transaction) {
 	// Noop, single-machines don't replicate out anywhere.
 }
-func (l *LocalReplication) RequestTransactionRange(int64, int64) {
+func (s *Single) RequestTransactionRange(int64, int64) {
 	// Single machines also can't catch up.
 }
 
 func init() {
-	graph.RegisterReplication("local", NewLocalReplication)
+	graph.RegisterReplication("local", NewSingleReplication)
 }
