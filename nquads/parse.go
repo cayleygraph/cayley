@@ -19,10 +19,9 @@
 package nquads
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
+	"unicode"
 
 	"github.com/google/cayley/graph"
 )
@@ -33,7 +32,7 @@ var (
 )
 
 
-// line 37 "parse.go"
+// line 36 "parse.go"
 const quads_start int = 1
 const quads_first_final int = 84
 const quads_error int = 0
@@ -41,7 +40,7 @@ const quads_error int = 0
 const quads_en_statement int = 1
 
 
-// line 41 "parse.rl"
+// line 40 "parse.rl"
 
 
 func parse(data []rune) (graph.Triple, error) {
@@ -61,15 +60,15 @@ func parse(data []rune) (graph.Triple, error) {
 	)
 
 	
-// line 65 "parse.go"
+// line 64 "parse.go"
 	{
 	cs = quads_start
 	}
 
-// line 60 "parse.rl"
+// line 59 "parse.rl"
 
 	
-// line 73 "parse.go"
+// line 72 "parse.go"
 	{
 	if p == pe {
 		goto _test_eof
@@ -274,12 +273,16 @@ tr0:
 
 
 		if p < len(data) {
-			return graph.Triple{}, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+			if r := data[p]; r < unicode.MaxASCII {
+				return triple, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+			} else {
+				return triple, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", ErrInvalid, data[p], data[p], p)
+			}
 		}
-		return graph.Triple{}, ErrIncomplete
+		return triple, ErrIncomplete
 	
 	goto st0
-// line 283 "parse.go"
+// line 286 "parse.go"
 st_case_0:
 	st0:
 		cs = 0
@@ -303,7 +306,7 @@ tr107:
 			goto _test_eof2
 		}
 	st_case_2:
-// line 307 "parse.go"
+// line 310 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st3
@@ -320,7 +323,12 @@ tr107:
 				goto st2
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto st2
+				}
+			case data[p] >= 97:
 				goto st2
 			}
 		default:
@@ -339,7 +347,7 @@ tr108:
 			goto _test_eof3
 		}
 	st_case_3:
-// line 343 "parse.go"
+// line 351 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
@@ -363,7 +371,7 @@ tr7:
 			goto _test_eof4
 		}
 	st_case_4:
-// line 367 "parse.go"
+// line 375 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st4
@@ -392,7 +400,7 @@ tr95:
 			goto _test_eof5
 		}
 	st_case_5:
-// line 396 "parse.go"
+// line 404 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st6
@@ -409,7 +417,12 @@ tr95:
 				goto st5
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto st5
+				}
+			case data[p] >= 97:
 				goto st5
 			}
 		default:
@@ -428,7 +441,7 @@ tr96:
 			goto _test_eof6
 		}
 	st_case_6:
-// line 432 "parse.go"
+// line 445 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr13
@@ -452,7 +465,7 @@ tr13:
 			goto _test_eof7
 		}
 	st_case_7:
-// line 456 "parse.go"
+// line 469 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st7
@@ -485,7 +498,7 @@ tr73:
 			goto _test_eof8
 		}
 	st_case_8:
-// line 489 "parse.go"
+// line 502 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st9
@@ -498,7 +511,12 @@ tr73:
 				goto st8
 			}
 		case data[p] > 12:
-			if 14 <= data[p] && data[p] <= 126 {
+			switch {
+			case data[p] > 126:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto st8
+				}
+			case data[p] >= 14:
 				goto st8
 			}
 		default:
@@ -517,7 +535,7 @@ tr74:
 			goto _test_eof9
 		}
 	st_case_9:
-// line 521 "parse.go"
+// line 539 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr21
@@ -547,7 +565,7 @@ tr21:
 			goto _test_eof10
 		}
 	st_case_10:
-// line 551 "parse.go"
+// line 569 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st10
@@ -588,7 +606,7 @@ tr33:
 			goto _test_eof84
 		}
 	st_case_84:
-// line 592 "parse.go"
+// line 610 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st84
@@ -609,7 +627,7 @@ tr114:
 			goto _test_eof85
 		}
 	st_case_85:
-// line 613 "parse.go"
+// line 631 "parse.go"
 		goto st85
 tr27:
 // line 34 "actions.rl"
@@ -630,7 +648,7 @@ tr44:
 			goto _test_eof11
 		}
 	st_case_11:
-// line 634 "parse.go"
+// line 652 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st12
@@ -647,7 +665,12 @@ tr44:
 				goto st11
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto st11
+				}
+			case data[p] >= 97:
 				goto st11
 			}
 		default:
@@ -666,7 +689,7 @@ tr45:
 			goto _test_eof12
 		}
 	st_case_12:
-// line 670 "parse.go"
+// line 693 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr32
@@ -692,7 +715,7 @@ tr32:
 			goto _test_eof13
 		}
 	st_case_13:
-// line 696 "parse.go"
+// line 719 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st13
@@ -714,7 +737,7 @@ tr46:
 			goto _test_eof14
 		}
 	st_case_14:
-// line 718 "parse.go"
+// line 741 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st15
@@ -887,7 +910,12 @@ tr46:
 				goto tr44
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto tr44
+				}
+			case data[p] >= 97:
 				goto tr44
 			}
 		default:
@@ -906,7 +934,7 @@ tr28:
 			goto _test_eof24
 		}
 	st_case_24:
-// line 910 "parse.go"
+// line 938 "parse.go"
 		if data[p] == 58 {
 			goto st25
 		}
@@ -973,7 +1001,7 @@ tr28:
 						goto st26
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st26
 					}
 				default:
@@ -1059,7 +1087,7 @@ tr28:
 						goto st26
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st26
 					}
 				default:
@@ -1088,7 +1116,7 @@ tr49:
 			goto _test_eof86
 		}
 	st_case_86:
-// line 1092 "parse.go"
+// line 1120 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st84
@@ -1159,7 +1187,7 @@ tr49:
 						goto st26
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st26
 					}
 				default:
@@ -1241,7 +1269,7 @@ tr49:
 						goto st26
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st26
 					}
 				default:
@@ -1375,7 +1403,7 @@ tr67:
 			goto _test_eof34
 		}
 	st_case_34:
-// line 1379 "parse.go"
+// line 1407 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st35
@@ -1392,7 +1420,12 @@ tr67:
 				goto st34
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto st34
+				}
+			case data[p] >= 97:
 				goto st34
 			}
 		default:
@@ -1411,7 +1444,7 @@ tr68:
 			goto _test_eof35
 		}
 	st_case_35:
-// line 1415 "parse.go"
+// line 1448 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr21
@@ -1433,7 +1466,7 @@ tr69:
 			goto _test_eof36
 		}
 	st_case_36:
-// line 1437 "parse.go"
+// line 1470 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st37
@@ -1606,7 +1639,12 @@ tr69:
 				goto tr67
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto tr67
+				}
+			case data[p] >= 97:
 				goto tr67
 			}
 		default:
@@ -1625,7 +1663,7 @@ tr75:
 			goto _test_eof46
 		}
 	st_case_46:
-// line 1629 "parse.go"
+// line 1667 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st47
@@ -1666,7 +1704,12 @@ tr75:
 				goto tr73
 			}
 		case data[p] > 12:
-			if 14 <= data[p] && data[p] <= 126 {
+			switch {
+			case data[p] > 126:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto tr73
+				}
+			case data[p] >= 14:
 				goto tr73
 			}
 		default:
@@ -1829,7 +1872,7 @@ tr17:
 			goto _test_eof56
 		}
 	st_case_56:
-// line 1833 "parse.go"
+// line 1876 "parse.go"
 		if data[p] == 58 {
 			goto st57
 		}
@@ -1896,7 +1939,7 @@ tr17:
 						goto st58
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st58
 					}
 				default:
@@ -1982,7 +2025,7 @@ tr17:
 						goto st58
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st58
 					}
 				default:
@@ -2011,7 +2054,7 @@ tr84:
 			goto _test_eof87
 		}
 	st_case_87:
-// line 2015 "parse.go"
+// line 2058 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st84
@@ -2082,7 +2125,7 @@ tr84:
 						goto st58
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st58
 					}
 				default:
@@ -2164,7 +2207,7 @@ tr84:
 						goto st58
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st58
 					}
 				default:
@@ -2189,7 +2232,7 @@ tr97:
 			goto _test_eof60
 		}
 	st_case_60:
-// line 2193 "parse.go"
+// line 2236 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st61
@@ -2362,7 +2405,12 @@ tr97:
 				goto tr95
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto tr95
+				}
+			case data[p] >= 97:
 				goto tr95
 			}
 		default:
@@ -2381,7 +2429,7 @@ tr109:
 			goto _test_eof70
 		}
 	st_case_70:
-// line 2385 "parse.go"
+// line 2433 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st71
@@ -2554,7 +2602,12 @@ tr109:
 				goto tr107
 			}
 		case data[p] > 93:
-			if 97 <= data[p] && data[p] <= 122 {
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto tr107
+				}
+			case data[p] >= 97:
 				goto tr107
 			}
 		default:
@@ -2573,7 +2626,7 @@ tr3:
 			goto _test_eof80
 		}
 	st_case_80:
-// line 2577 "parse.go"
+// line 2630 "parse.go"
 		if data[p] == 58 {
 			goto st81
 		}
@@ -2640,7 +2693,7 @@ tr3:
 						goto st82
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st82
 					}
 				default:
@@ -2726,7 +2779,7 @@ tr3:
 						goto st82
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st82
 					}
 				default:
@@ -2808,7 +2861,7 @@ tr3:
 						goto st82
 					}
 				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 126975 {
+					if 65536 <= data[p] && data[p] <= 983039 {
 						goto st82
 					}
 				default:
@@ -2924,9 +2977,13 @@ tr3:
 
 
 		if p < len(data) {
-			return graph.Triple{}, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+			if r := data[p]; r < unicode.MaxASCII {
+				return triple, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+			} else {
+				return triple, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", ErrInvalid, data[p], data[p], p)
+			}
 		}
-		return graph.Triple{}, ErrIncomplete
+		return triple, ErrIncomplete
 	
 		case 84, 86, 87:
 // line 74 "actions.rl"
@@ -2938,70 +2995,14 @@ tr3:
 
 		return triple, nil
 	
-// line 2942 "parse.go"
+// line 2999 "parse.go"
 		}
 	}
 
 	_out: {}
 	}
 
-// line 62 "parse.rl"
+// line 61 "parse.rl"
 
 	return graph.Triple{}, ErrInvalid
-}
-
-func unEscape(r []rune, isEscaped bool) string {
-	if !isEscaped {
-		return string(r)
-	}
-
-	buf := bytes.NewBuffer(make([]byte, 0, len(r)))
-
-	for i := 0; i < len(r); {
-		switch r[i] {
-		case '\\':
-			i++
-			var c byte
-			switch r[i] {
-			case 't':
-				c = '\t'
-			case 'b':
-				c = '\b'
-			case 'n':
-				c = '\n'
-			case 'r':
-				c = '\r'
-			case 'f':
-				c = '\f'
-			case '"':
-				c = '"'
-			case '\'':
-				c = '\''
-			case '\\':
-				c = '\\'
-			case 'u':
-				rc, err := strconv.ParseInt(string(r[i+1:i+5]), 16, 32)
-				if err != nil {
-					panic(fmt.Errorf("internal parser error: %v", err))
-				}
-				buf.WriteRune(rune(rc))
-				i += 5
-				continue
-			case 'U':
-				rc, err := strconv.ParseInt(string(r[i+1:i+9]), 16, 32)
-				if err != nil {
-					panic(fmt.Errorf("internal parser error: %v", err))
-				}
-				buf.WriteRune(rune(rc))
-				i += 9
-				continue
-			}
-			buf.WriteByte(c)
-		default:
-			buf.WriteRune(r[i])
-		}
-		i++
-	}
-
-	return buf.String()
 }
