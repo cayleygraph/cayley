@@ -29,8 +29,12 @@ func main() {
 		} else {
 			t.Subject = "_" + t.Subject
 		}
-		if t.Object[0] == ':' && t.Object[1] == '/' {
-			t.Object = "<" + t.Object[1:] + ">"
+		if t.Object[0] == ':' {
+			if t.Object[1] == '/' {
+				t.Object = "<" + t.Object[1:] + ">"
+			} else {
+				t.Object = "_" + t.Object
+			}
 		} else if t.Object[0] == '/' {
 			t.Object = "<" + t.Object + ">"
 		} else {
