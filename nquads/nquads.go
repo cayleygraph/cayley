@@ -17,18 +17,11 @@ package nquads
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/google/cayley/graph"
-)
-
-var (
-	ErrAbsentSubject   = errors.New("nqauds: absent subject")
-	ErrAbsentPredicate = errors.New("nqauds: absent predicate")
-	ErrAbsentObject    = errors.New("nqauds: absent object")
-	ErrUnterminated    = errors.New("nqauds: unterminated quad")
 )
 
 // Parse returns a valid graph.Triple or a non-nil error.
@@ -73,4 +66,60 @@ func (dec *Decoder) Unmarshal() (*graph.Triple, error) {
 		return dec.Unmarshal()
 	}
 	return triple, nil
+}
+
+func unEscape(r []rune, isEscaped bool) string {
+	if !isEscaped {
+		return string(r)
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 0, len(r)))
+
+	for i := 0; i < len(r); {
+		switch r[i] {
+		case '\\':
+			i++
+			var c byte
+			switch r[i] {
+			case 't':
+				c = '\t'
+			case 'b':
+				c = '\b'
+			case 'n':
+				c = '\n'
+			case 'r':
+				c = '\r'
+			case 'f':
+				c = '\f'
+			case '"':
+				c = '"'
+			case '\'':
+				c = '\''
+			case '\\':
+				c = '\\'
+			case 'u':
+				rc, err := strconv.ParseInt(string(r[i+1:i+5]), 16, 32)
+				if err != nil {
+					panic(fmt.Errorf("internal parser error: %v", err))
+				}
+				buf.WriteRune(rune(rc))
+				i += 5
+				continue
+			case 'U':
+				rc, err := strconv.ParseInt(string(r[i+1:i+9]), 16, 32)
+				if err != nil {
+					panic(fmt.Errorf("internal parser error: %v", err))
+				}
+				buf.WriteRune(rune(rc))
+				i += 9
+				continue
+			}
+			buf.WriteByte(c)
+		default:
+			buf.WriteRune(r[i])
+		}
+		i++
+	}
+
+	return buf.String()
 }

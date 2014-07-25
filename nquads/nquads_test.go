@@ -480,6 +480,36 @@ func TestDecoder(t *testing.T) {
 	}
 }
 
+var escapeSequenceTests = []struct {
+	input  string
+	expect string
+}{
+	{input: `\t`, expect: "\t"},
+	{input: `\b`, expect: "\b"},
+	{input: `\n`, expect: "\n"},
+	{input: `\r`, expect: "\r"},
+	{input: `\f`, expect: "\f"},
+	{input: `\\`, expect: "\\"},
+	{input: `\u00b7`, expect: "·"},
+	{input: `\U000000b7`, expect: "·"},
+
+	{input: `\t\u00b7`, expect: "\t·"},
+	{input: `\b\U000000b7`, expect: "\b·"},
+	{input: `\u00b7\n`, expect: "·\n"},
+	{input: `\U000000b7\r`, expect: "·\r"},
+	{input: `\u00b7\f\U000000b7`, expect: "·\f·"},
+	{input: `\U000000b7\\\u00b7`, expect: "·\\·"},
+}
+
+func TestUnescape(t *testing.T) {
+	for _, test := range escapeSequenceTests {
+		got := unEscape([]rune(test.input), true)
+		if got != test.expect {
+			t.Errorf("Failed to properly unescape %q, got:%q expect:%q", test.input, got, test.expect)
+		}
+	}
+}
+
 var result *graph.Triple
 
 func BenchmarkParser(b *testing.B) {
