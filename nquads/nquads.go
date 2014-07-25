@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package nquads implements the RDF 1.1 N-Quads line-based syntax for RDF
+// datasets as defined by http://www.w3.org/TR/n-quads/.
 package nquads
 
 import (
@@ -24,21 +26,28 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-// Parse returns a valid graph.Triple or a non-nil error.
+// Parse returns a valid graph.Triple or a non-nil error. Parse does
+// handle comments except where the comment placement does not prevent
+// a complete valid graph.Triple from being defined.
 func Parse(str string) (*graph.Triple, error) {
 	t, err := parse([]rune(str))
 	return &t, err
 }
 
+// Decoder implements N-Quad document parsing according to the RDF
+// 1.1 N-Quads specification.
 type Decoder struct {
 	r    *bufio.Reader
 	line []byte
 }
 
+// NewDecoder returns an N-Quad decoder that takes its input from the
+// provided io.Reader.
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{r: bufio.NewReader(r)}
 }
 
+// Unmarshal returns the next valid N-Quad as a graph.Triple, or an error.
 func (dec *Decoder) Unmarshal() (*graph.Triple, error) {
 	dec.line = dec.line[:0]
 	var line []byte
