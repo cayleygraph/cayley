@@ -430,11 +430,11 @@ func TestParse(t *testing.T) {
 	}
 }
 
-// This is a sample taken from 30kmovies.nq.
+// This is a sample taken from 30kmoviedata.nq.
 // It has intentional defects:
 // The second comment is inset one psace and
 // the second line after that comment is blank.
-var document = `# first 10 lines of 30kmovies.nq
+var document = `# first 10 lines of 30kmoviedata.nq
 _:100000 </film/performance/actor> </en/larry_fine_1902> .
 _:100001 </film/performance/actor> </en/samuel_howard> .
 _:100002 </film/performance/actor> </en/joe_palma> .
@@ -445,7 +445,7 @@ _:100006 </film/performance/actor> </en/emil_sitka> .
 _:100007 </film/performance/actor> </en/christine_mcintyre> .
 _:100008 </film/performance/actor> </en/moe_howard> .
 _:100009 </film/performance/actor> </en/larry_fine_1902> .
- #last ten lines of 30kmovies.nq
+ #last ten lines of 30kmoviedata.nq
 </guid/9202a8c04000641f800000001473e673> <name> "Bill Fishman" .
 
 </guid/9202a8c04000641f800000001473e673> <type> </people/person> .
