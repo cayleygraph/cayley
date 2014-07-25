@@ -30,12 +30,10 @@ var (
 	ErrUnterminated    = errors.New("nqauds: unterminated quad")
 )
 
+// Parse returns a valid graph.Triple or a non-nil error.
 func Parse(str string) (*graph.Triple, error) {
 	t, err := parse([]rune(str))
-	if err != nil {
-		return nil, err
-	}
-	return &t, nil
+	return &t, err
 }
 
 type Decoder struct {

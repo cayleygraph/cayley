@@ -31,7 +31,7 @@
 							| 0x3001 .. 0xd7ff
 							| 0xf900 .. 0xfdcf
 							| 0xfdf0 .. 0xfffd
-							| 0x10000 .. 0x1efff
+							| 0x10000 .. 0xeffff
 							;
 
 	PN_CHARS_U              = PN_CHARS_BASE | '_' | ':' ;
@@ -58,7 +58,9 @@
 							| 0x0e .. '!'
 							| '#' .. '['
 							| ']' .. '~'
-							| ECHAR | UCHAR)*
+							| 0x80 .. 0x10ffff
+							| ECHAR
+							| UCHAR)*
 							  '"'
 							;
 
@@ -69,7 +71,9 @@
 							| ']'
 							| '_'
 							| 'a' .. 'z'
-							| '~' | UCHAR)*
+							| '~'
+							| 0x80 .. 0x10ffff
+							| UCHAR)*
 							  '>'
 							;
 

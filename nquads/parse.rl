@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"unicode"
 
 	"github.com/google/cayley/graph"
 )

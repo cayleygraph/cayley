@@ -15,6 +15,7 @@
 package nquads
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -28,6 +29,31 @@ var testNTriples = []struct {
 	err     error
 }{
 	// Tests taken from http://www.w3.org/TR/n-quads/ and http://www.w3.org/TR/n-triples/.
+
+	// _:100000 </film/performance/actor> </en/larry_fine_1902> . # example from 30movies
+	{
+		message: "parse triple with commment",
+		input:   `_:100000 </film/performance/actor> </en/larry_fine_1902> . # example from 30movies`,
+		expect: &graph.Triple{
+			Subject:    "_:100000",
+			Predicate:  "</film/performance/actor>",
+			Object:     "</en/larry_fine_1902>",
+			Provenance: "",
+		},
+		err: nil,
+	},
+	// _:10011 </film/performance/character> "Tomás de Torquemada" . # example from 30movies with unicode
+	{
+		message: "parse triple with commment",
+		input:   `_:10011 </film/performance/character> "Tomás de Torquemada" . # example from 30movies with unicode`,
+		expect: &graph.Triple{
+			Subject:    "_:10011",
+			Predicate:  "</film/performance/character>",
+			Object:     `"Tomás de Torquemada"`,
+			Provenance: "",
+		},
+		err: nil,
+	},
 
 	// N-Triples example 1.
 	{
@@ -352,12 +378,48 @@ var testNTriples = []struct {
 		},
 		err: nil,
 	},
+
+	// Invalid input.
+	{
+		message: "parse empty",
+		input:   ``,
+		expect:  &graph.Triple{},
+		err:     ErrIncomplete,
+	},
+	{
+		message: "parse commented",
+		input:   `# comment`,
+		expect:  &graph.Triple{},
+		err:     fmt.Errorf("%v: unexpected rune '#' at 0", ErrInvalid),
+	},
+	{
+		message: "parse incomplete quad",
+		input:   `<http://example.org/bob#me> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> .`,
+		expect: &graph.Triple{
+			Subject:    "<http://example.org/bob#me>",
+			Predicate:  "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
+			Object:     "",
+			Provenance: "",
+		},
+		err: fmt.Errorf("%v: unexpected rune '.' at 78", ErrInvalid),
+	},
+	{
+		message: "parse incomplete quad",
+		input:   `<http://example.org/bob#me> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> .`,
+		expect: &graph.Triple{
+			Subject:    "<http://example.org/bob#me>",
+			Predicate:  "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
+			Object:     "",
+			Provenance: "",
+		},
+		err: fmt.Errorf("%v: unexpected rune '.' at 78", ErrInvalid),
+	},
 }
 
 func TestParse(t *testing.T) {
 	for _, test := range testNTriples {
 		got, err := Parse(test.input)
-		if err != test.err {
+		if err != test.err && (err != nil && err.Error() != test.err.Error()) {
 			t.Errorf("Unexpected error when %s: got:%v expect:%v", test.message, err, test.err)
 		}
 		if !reflect.DeepEqual(got, test.expect) {

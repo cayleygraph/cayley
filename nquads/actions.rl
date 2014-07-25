@@ -76,8 +76,12 @@
 
 	action Error {
 		if p < len(data) {
-			return graph.Triple{}, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+			if r := data[p]; r < unicode.MaxASCII {
+				return triple, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+			} else {
+				return triple, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", ErrInvalid, data[p], data[p], p)
+			}
 		}
-		return graph.Triple{}, ErrIncomplete
+		return triple, ErrIncomplete
 	}
 }%%
