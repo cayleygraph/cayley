@@ -16,6 +16,7 @@ package nquads
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -47,17 +48,24 @@ func NewDecoder(r io.Reader) *Decoder {
 
 func (dec *Decoder) Unmarshal() (*graph.Triple, error) {
 	dec.line = dec.line[:0]
+	var line []byte
 	for {
-		l, pre, err := dec.r.ReadLine()
-		if err != nil {
-			return nil, err
+		for {
+			l, pre, err := dec.r.ReadLine()
+			if err != nil {
+				return nil, err
+			}
+			dec.line = append(dec.line, l...)
+			if !pre {
+				break
+			}
 		}
-		dec.line = append(dec.line, l...)
-		if !pre {
+		if line = bytes.TrimSpace(dec.line); len(line) != 0 && line[0] != '#' {
 			break
 		}
+		dec.line = dec.line[:0]
 	}
-	triple, err := Parse(string(dec.line))
+	triple, err := Parse(string(line))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse %q: %v", dec.line, err)
 	}

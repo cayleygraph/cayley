@@ -16,7 +16,9 @@ package nquads
 
 import (
 	"fmt"
+	"io"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/cayley/graph"
@@ -425,6 +427,56 @@ func TestParse(t *testing.T) {
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to %s, %q, got:%q expect:%q", test.message, test.input, got, test.expect)
 		}
+	}
+}
+
+// This is a sample taken from 30kmovies.nq.
+// It has intentional defects:
+// The second comment is inset one psace and
+// the second line after that comment is blank.
+var document = `# first 10 lines of 30kmovies.nq
+_:100000 </film/performance/actor> </en/larry_fine_1902> .
+_:100001 </film/performance/actor> </en/samuel_howard> .
+_:100002 </film/performance/actor> </en/joe_palma> .
+_:100003 </film/performance/actor> </en/symona_boniface> .
+_:100004 </film/performance/actor> </en/dudley_dickerson> .
+_:100005 </film/performance/actor> </guid/9202a8c04000641f8000000006ec181a> .
+_:100006 </film/performance/actor> </en/emil_sitka> .
+_:100007 </film/performance/actor> </en/christine_mcintyre> .
+_:100008 </film/performance/actor> </en/moe_howard> .
+_:100009 </film/performance/actor> </en/larry_fine_1902> .
+ #last ten lines of 30kmovies.nq
+</guid/9202a8c04000641f800000001473e673> <name> "Bill Fishman" .
+
+</guid/9202a8c04000641f800000001473e673> <type> </people/person> .
+</guid/9202a8c04000641f800000001474a221> <name> "Matthew J. Evans" .
+</guid/9202a8c04000641f800000001474a221> <type> </people/person> .
+</guid/9202a8c04000641f800000001474f486> <name> "Nina Bonherry" .
+</guid/9202a8c04000641f800000001474f486> <type> </people/person> .
+</user/basketball_loader/basketballdatabase_namespace/ROBERBI01> <name> "Bill Roberts" .
+</user/basketball_loader/basketballdatabase_namespace/ROBERBI01> <type> </people/person> .
+</user/jamie/nytdataid/N17971793050606542713> <name> "Christopher Ashley" .
+</user/jamie/nytdataid/N17971793050606542713> <type> </people/person> .
+`
+
+func TestDecoder(t *testing.T) {
+	dec := NewDecoder(strings.NewReader(document))
+	var n int
+	for {
+		triple, err := dec.Unmarshal()
+		if err != nil {
+			if err != io.EOF {
+				t.Fatalf("Failed to read document:", err)
+			}
+			break
+		}
+		if triple.Subject == "" || triple.Predicate == "" || triple.Object == "" {
+			t.Errorf("Unexpected triple, got:%v", triple)
+		}
+		n++
+	}
+	if n != 20 {
+		t.Errorf("Unexpected number of triples read, got:%d expect:20", n)
 	}
 }
 

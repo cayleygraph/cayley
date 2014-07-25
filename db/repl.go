@@ -99,6 +99,11 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		if len(line) == 0 {
 			continue
 		}
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 || line[0] == '#' {
+			line = line[:0]
+			continue
+		}
 		if bytes.HasPrefix(line, []byte(":debug")) {
 			ses.ToggleDebug()
 			fmt.Println("Debug Toggled")
