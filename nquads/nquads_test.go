@@ -15,8 +15,12 @@
 package nquads
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -477,6 +481,72 @@ func TestDecoder(t *testing.T) {
 	}
 	if n != 20 {
 		t.Errorf("Unexpected number of triples read, got:%d expect:20", n)
+	}
+}
+
+func TestRDFWorkingGroupSuit(t *testing.T) {
+	// These tests erroneously pass because the parser does not
+	// perform semantic testing on the URI in the IRIRef as required
+	// by the specification. So, we skip them.
+	skip := map[string]bool{
+		// N-Triples.
+		"nt-syntax-bad-uri-06.nt": true,
+		"nt-syntax-bad-uri-07.nt": true,
+		"nt-syntax-bad-uri-08.nt": true,
+		"nt-syntax-bad-uri-09.nt": true,
+
+		// N-Quads.
+		"nq-syntax-bad-uri-01.nq": true,
+		"nt-syntax-bad-uri-06.nq": true,
+		"nt-syntax-bad-uri-07.nq": true,
+		"nt-syntax-bad-uri-08.nq": true,
+		"nt-syntax-bad-uri-09.nq": true,
+	}
+
+	for _, file := range []string{
+		"ntriple_tests.tar.gz",
+		"ntriple_tests.tar.gz",
+	} {
+		suite, err := os.Open(file)
+		if err != nil {
+			t.Fatalf("Failed to open N-Quads test suite in %q: %v", file, err)
+		}
+		defer suite.Close()
+
+		r, err := gzip.NewReader(suite)
+		if err != nil {
+			t.Fatalf("Failed to uncompress N-Quads test suite in %q: %v", file, err)
+		}
+
+		tr := tar.NewReader(r)
+		for {
+			h, err := tr.Next()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				t.Fatalf("Unexpected error while reading suite archive: %v", err)
+			}
+
+			h.Name = filepath.Base(h.Name)
+			if (filepath.Ext(h.Name) != ".nt" && filepath.Ext(h.Name) != ".nq") || skip[h.Name] {
+				continue
+			}
+
+			isBad := strings.Contains(h.Name, "bad")
+
+			dec := NewDecoder(tr)
+			for {
+				_, err := dec.Unmarshal()
+				if err == io.EOF {
+					break
+				}
+				got := err == nil
+				if got == isBad {
+					t.Errorf("Unexpected error return for test suite item %q, got: %v", h.Name, err)
+				}
+			}
+		}
 	}
 }
 

@@ -57,8 +57,7 @@
 							| 0x0b .. 0x0c
 							| 0x0e .. '!'
 							| '#' .. '['
-							| ']' .. '~'
-							| 0x80 .. 0x10ffff
+							| ']' .. 0x10ffff
 							| ECHAR
 							| UCHAR)*
 							  '"'
@@ -90,9 +89,9 @@
 
 	statement := (
 					whitespace*  subject    >StartSubject   %SetSubject
-					whitespace+  predicate  >StartPredicate %SetPredicate
-					whitespace+  object     >StartObject    %SetObject
-					(whitespace+ graphLabel >StartLabel     %SetLabel)?
+					whitespace*  predicate  >StartPredicate %SetPredicate
+					whitespace*  object     >StartObject    %SetObject
+					(whitespace* graphLabel >StartLabel     %SetLabel)?
 					whitespace*  '.' whitespace* ('#' any*)? >Comment
 				 ) %Return @!Error ;
 }%%
