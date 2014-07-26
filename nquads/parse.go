@@ -34,7 +34,7 @@ var (
 
 // line 36 "parse.go"
 const quads_start int = 1
-const quads_first_final int = 84
+const quads_first_final int = 88
 const quads_error int = 0
 
 const quads_en_statement int = 1
@@ -96,10 +96,10 @@ func parse(data []rune) (graph.Triple, error) {
 		goto st_case_9
 	case 10:
 		goto st_case_10
-	case 84:
-		goto st_case_84
-	case 85:
-		goto st_case_85
+	case 88:
+		goto st_case_88
+	case 89:
+		goto st_case_89
 	case 11:
 		goto st_case_11
 	case 12:
@@ -132,8 +132,8 @@ func parse(data []rune) (graph.Triple, error) {
 		goto st_case_25
 	case 26:
 		goto st_case_26
-	case 86:
-		goto st_case_86
+	case 90:
+		goto st_case_90
 	case 27:
 		goto st_case_27
 	case 28:
@@ -198,8 +198,8 @@ func parse(data []rune) (graph.Triple, error) {
 		goto st_case_57
 	case 58:
 		goto st_case_58
-	case 87:
-		goto st_case_87
+	case 91:
+		goto st_case_91
 	case 59:
 		goto st_case_59
 	case 60:
@@ -208,6 +208,8 @@ func parse(data []rune) (graph.Triple, error) {
 		goto st_case_61
 	case 62:
 		goto st_case_62
+	case 92:
+		goto st_case_92
 	case 63:
 		goto st_case_63
 	case 64:
@@ -250,6 +252,14 @@ func parse(data []rune) (graph.Triple, error) {
 		goto st_case_82
 	case 83:
 		goto st_case_83
+	case 84:
+		goto st_case_84
+	case 85:
+		goto st_case_85
+	case 86:
+		goto st_case_86
+	case 87:
+		goto st_case_87
 	}
 	goto st_out
 	st1:
@@ -282,7 +292,7 @@ tr0:
 		return triple, ErrIncomplete
 	
 	goto st0
-// line 286 "parse.go"
+// line 296 "parse.go"
 st_case_0:
 	st0:
 		cs = 0
@@ -294,7 +304,7 @@ tr2:
 		subject = p
 	
 	goto st2
-tr107:
+tr120:
 // line 18 "actions.rl"
 
 
@@ -306,12 +316,12 @@ tr107:
 			goto _test_eof2
 		}
 	st_case_2:
-// line 310 "parse.go"
+// line 320 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st3
 		case 92:
-			goto st70
+			goto st74
 		case 95:
 			goto st2
 		case 126:
@@ -335,7 +345,7 @@ tr107:
 			goto st2
 		}
 		goto tr0
-tr108:
+tr121:
 // line 18 "actions.rl"
 
 
@@ -347,12 +357,14 @@ tr108:
 			goto _test_eof3
 		}
 	st_case_3:
-// line 351 "parse.go"
+// line 361 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
 		case 32:
 			goto tr7
+		case 60:
+			goto tr8
 		}
 		goto tr0
 tr7:
@@ -371,24 +383,40 @@ tr7:
 			goto _test_eof4
 		}
 	st_case_4:
-// line 375 "parse.go"
+// line 387 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st4
 		case 32:
 			goto st4
 		case 60:
-			goto tr9
+			goto tr10
 		}
 		goto tr0
-tr9:
+tr8:
+// line 38 "actions.rl"
+
+
+		if subject < 0 {
+			panic("unexpected parser state: subject start not set")
+		}
+		triple.Subject = unEscape(data[subject:p], isEscaped)
+		isEscaped = false
+	
 // line 26 "actions.rl"
 
 
 		predicate = p
 	
 	goto st5
-tr95:
+tr10:
+// line 26 "actions.rl"
+
+
+		predicate = p
+	
+	goto st5
+tr108:
 // line 18 "actions.rl"
 
 
@@ -400,12 +428,12 @@ tr95:
 			goto _test_eof5
 		}
 	st_case_5:
-// line 404 "parse.go"
+// line 432 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st6
 		case 92:
-			goto st60
+			goto st64
 		case 95:
 			goto st5
 		case 126:
@@ -429,7 +457,7 @@ tr95:
 			goto st5
 		}
 		goto tr0
-tr96:
+tr109:
 // line 18 "actions.rl"
 
 
@@ -441,15 +469,21 @@ tr96:
 			goto _test_eof6
 		}
 	st_case_6:
-// line 445 "parse.go"
+// line 473 "parse.go"
 		switch data[p] {
 		case 9:
-			goto tr13
+			goto tr14
 		case 32:
-			goto tr13
+			goto tr14
+		case 34:
+			goto tr15
+		case 60:
+			goto tr16
+		case 95:
+			goto tr17
 		}
 		goto tr0
-tr13:
+tr14:
 // line 46 "actions.rl"
 
 
@@ -465,28 +499,44 @@ tr13:
 			goto _test_eof7
 		}
 	st_case_7:
-// line 469 "parse.go"
+// line 503 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st7
 		case 32:
 			goto st7
 		case 34:
-			goto tr15
+			goto tr19
 		case 60:
-			goto tr16
+			goto tr20
 		case 95:
-			goto tr17
+			goto tr21
 		}
 		goto tr0
 tr15:
+// line 46 "actions.rl"
+
+
+		if predicate < 0 {
+			panic("unexpected parser state: predicate start not set")
+		}
+		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		isEscaped = false
+	
 // line 30 "actions.rl"
 
 
 		object = p
 	
 	goto st8
-tr73:
+tr19:
+// line 30 "actions.rl"
+
+
+		object = p
+	
+	goto st8
+tr79:
 // line 18 "actions.rl"
 
 
@@ -498,7 +548,7 @@ tr73:
 			goto _test_eof8
 		}
 	st_case_8:
-// line 502 "parse.go"
+// line 552 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st9
@@ -511,19 +561,14 @@ tr73:
 				goto st8
 			}
 		case data[p] > 12:
-			switch {
-			case data[p] > 126:
-				if 128 <= data[p] && data[p] <= 1114111 {
-					goto st8
-				}
-			case data[p] >= 14:
+			if 14 <= data[p] && data[p] <= 1114111 {
 				goto st8
 			}
 		default:
 			goto st8
 		}
 		goto tr0
-tr74:
+tr80:
 // line 18 "actions.rl"
 
 
@@ -535,21 +580,25 @@ tr74:
 			goto _test_eof9
 		}
 	st_case_9:
-// line 539 "parse.go"
+// line 584 "parse.go"
 		switch data[p] {
 		case 9:
-			goto tr21
+			goto tr25
 		case 32:
-			goto tr21
+			goto tr25
 		case 46:
-			goto tr22
+			goto tr26
+		case 60:
+			goto tr27
 		case 64:
 			goto st28
 		case 94:
 			goto st32
+		case 95:
+			goto tr30
 		}
 		goto tr0
-tr21:
+tr25:
 // line 54 "actions.rl"
 
 
@@ -560,26 +609,7 @@ tr21:
 		isEscaped = false
 	
 	goto st10
-	st10:
-		if p++; p == pe {
-			goto _test_eof10
-		}
-	st_case_10:
-// line 569 "parse.go"
-		switch data[p] {
-		case 9:
-			goto st10
-		case 32:
-			goto st10
-		case 46:
-			goto st84
-		case 60:
-			goto tr27
-		case 95:
-			goto tr28
-		}
-		goto tr0
-tr22:
+tr96:
 // line 54 "actions.rl"
 
 
@@ -589,8 +619,6 @@ tr22:
 		triple.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
-	goto st84
-tr33:
 // line 62 "actions.rl"
 
 
@@ -600,43 +628,100 @@ tr33:
 		triple.Provenance = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
-	goto st84
-	st84:
+	goto st10
+	st10:
 		if p++; p == pe {
-			goto _test_eof84
+			goto _test_eof10
 		}
-	st_case_84:
-// line 610 "parse.go"
+	st_case_10:
+// line 638 "parse.go"
 		switch data[p] {
 		case 9:
-			goto st84
+			goto st10
 		case 32:
-			goto st84
+			goto st10
+		case 46:
+			goto st88
+		case 60:
+			goto tr33
+		case 95:
+			goto tr34
+		}
+		goto tr0
+tr26:
+// line 54 "actions.rl"
+
+
+		if object < 0 {
+			panic("unexpected parser state: object start not set")
+		}
+		triple.Object = unEscape(data[object:p], isEscaped)
+		isEscaped = false
+	
+	goto st88
+tr39:
+// line 62 "actions.rl"
+
+
+		if label < 0 {
+			panic("unexpected parser state: label start not set")
+		}
+		triple.Provenance = unEscape(data[label:p], isEscaped)
+		isEscaped = false
+	
+	goto st88
+	st88:
+		if p++; p == pe {
+			goto _test_eof88
+		}
+	st_case_88:
+// line 679 "parse.go"
+		switch data[p] {
+		case 9:
+			goto st88
+		case 32:
+			goto st88
 		case 35:
-			goto tr114
+			goto tr127
 		}
 		goto st0
-tr114:
+tr127:
 // line 74 "actions.rl"
 
 
 	
-	goto st85
-	st85:
+	goto st89
+	st89:
 		if p++; p == pe {
-			goto _test_eof85
+			goto _test_eof89
 		}
-	st_case_85:
-// line 631 "parse.go"
-		goto st85
+	st_case_89:
+// line 700 "parse.go"
+		goto st89
 tr27:
+// line 54 "actions.rl"
+
+
+		if object < 0 {
+			panic("unexpected parser state: object start not set")
+		}
+		triple.Object = unEscape(data[object:p], isEscaped)
+		isEscaped = false
+	
 // line 34 "actions.rl"
 
 
 		label = p
 	
 	goto st11
-tr44:
+tr33:
+// line 34 "actions.rl"
+
+
+		label = p
+	
+	goto st11
+tr50:
 // line 18 "actions.rl"
 
 
@@ -648,7 +733,7 @@ tr44:
 			goto _test_eof11
 		}
 	st_case_11:
-// line 652 "parse.go"
+// line 737 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st12
@@ -677,7 +762,7 @@ tr44:
 			goto st11
 		}
 		goto tr0
-tr45:
+tr51:
 // line 18 "actions.rl"
 
 
@@ -689,17 +774,17 @@ tr45:
 			goto _test_eof12
 		}
 	st_case_12:
-// line 693 "parse.go"
+// line 778 "parse.go"
 		switch data[p] {
 		case 9:
-			goto tr32
+			goto tr38
 		case 32:
-			goto tr32
+			goto tr38
 		case 46:
-			goto tr33
+			goto tr39
 		}
 		goto tr0
-tr32:
+tr38:
 // line 62 "actions.rl"
 
 
@@ -715,17 +800,17 @@ tr32:
 			goto _test_eof13
 		}
 	st_case_13:
-// line 719 "parse.go"
+// line 804 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st13
 		case 32:
 			goto st13
 		case 46:
-			goto st84
+			goto st88
 		}
 		goto tr0
-tr46:
+tr52:
 // line 18 "actions.rl"
 
 
@@ -737,7 +822,7 @@ tr46:
 			goto _test_eof14
 		}
 	st_case_14:
-// line 741 "parse.go"
+// line 826 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st15
@@ -896,33 +981,49 @@ tr46:
 	st_case_23:
 		switch data[p] {
 		case 62:
-			goto tr45
+			goto tr51
 		case 92:
-			goto tr46
+			goto tr52
 		case 95:
-			goto tr44
+			goto tr50
 		case 126:
-			goto tr44
+			goto tr50
 		}
 		switch {
 		case data[p] < 61:
 			if 33 <= data[p] && data[p] <= 59 {
-				goto tr44
+				goto tr50
 			}
 		case data[p] > 93:
 			switch {
 			case data[p] > 122:
 				if 128 <= data[p] && data[p] <= 1114111 {
-					goto tr44
+					goto tr50
 				}
 			case data[p] >= 97:
-				goto tr44
+				goto tr50
 			}
 		default:
-			goto tr44
+			goto tr50
 		}
 		goto tr0
-tr28:
+tr30:
+// line 54 "actions.rl"
+
+
+		if object < 0 {
+			panic("unexpected parser state: object start not set")
+		}
+		triple.Object = unEscape(data[object:p], isEscaped)
+		isEscaped = false
+	
+// line 34 "actions.rl"
+
+
+		label = p
+	
+	goto st24
+tr34:
 // line 34 "actions.rl"
 
 
@@ -934,7 +1035,7 @@ tr28:
 			goto _test_eof24
 		}
 	st_case_24:
-// line 938 "parse.go"
+// line 1039 "parse.go"
 		if data[p] == 58 {
 			goto st25
 		}
@@ -1021,13 +1122,13 @@ tr28:
 	st_case_26:
 		switch data[p] {
 		case 9:
-			goto tr32
+			goto tr38
 		case 32:
-			goto tr32
+			goto tr38
 		case 45:
 			goto st26
 		case 46:
-			goto tr49
+			goto tr55
 		case 95:
 			goto st26
 		case 183:
@@ -1100,7 +1201,7 @@ tr28:
 			goto st26
 		}
 		goto tr0
-tr49:
+tr55:
 // line 62 "actions.rl"
 
 
@@ -1110,20 +1211,20 @@ tr49:
 		triple.Provenance = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
-	goto st86
-	st86:
+	goto st90
+	st90:
 		if p++; p == pe {
-			goto _test_eof86
+			goto _test_eof90
 		}
-	st_case_86:
-// line 1120 "parse.go"
+	st_case_90:
+// line 1221 "parse.go"
 		switch data[p] {
 		case 9:
-			goto st84
+			goto st88
 		case 32:
-			goto st84
+			goto st88
 		case 35:
-			goto tr114
+			goto tr127
 		case 45:
 			goto st26
 		case 46:
@@ -1303,13 +1404,17 @@ tr49:
 	st_case_29:
 		switch data[p] {
 		case 9:
-			goto tr21
+			goto tr25
 		case 32:
-			goto tr21
+			goto tr25
 		case 45:
 			goto st30
 		case 46:
-			goto tr22
+			goto tr26
+		case 60:
+			goto tr27
+		case 95:
+			goto tr30
 		}
 		switch {
 		case data[p] > 90:
@@ -1345,13 +1450,17 @@ tr49:
 	st_case_31:
 		switch data[p] {
 		case 9:
-			goto tr21
+			goto tr25
 		case 32:
-			goto tr21
+			goto tr25
 		case 45:
 			goto st30
 		case 46:
-			goto tr22
+			goto tr26
+		case 60:
+			goto tr27
+		case 95:
+			goto tr30
 		}
 		switch {
 		case data[p] < 65:
@@ -1385,13 +1494,29 @@ tr49:
 		}
 		goto tr0
 tr16:
+// line 46 "actions.rl"
+
+
+		if predicate < 0 {
+			panic("unexpected parser state: predicate start not set")
+		}
+		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		isEscaped = false
+	
 // line 30 "actions.rl"
 
 
 		object = p
 	
 	goto st34
-tr67:
+tr20:
+// line 30 "actions.rl"
+
+
+		object = p
+	
+	goto st34
+tr73:
 // line 18 "actions.rl"
 
 
@@ -1403,7 +1528,7 @@ tr67:
 			goto _test_eof34
 		}
 	st_case_34:
-// line 1407 "parse.go"
+// line 1532 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st35
@@ -1432,7 +1557,7 @@ tr67:
 			goto st34
 		}
 		goto tr0
-tr68:
+tr74:
 // line 18 "actions.rl"
 
 
@@ -1444,17 +1569,21 @@ tr68:
 			goto _test_eof35
 		}
 	st_case_35:
-// line 1448 "parse.go"
+// line 1573 "parse.go"
 		switch data[p] {
 		case 9:
-			goto tr21
+			goto tr25
 		case 32:
-			goto tr21
+			goto tr25
 		case 46:
-			goto tr22
+			goto tr26
+		case 60:
+			goto tr27
+		case 95:
+			goto tr30
 		}
 		goto tr0
-tr69:
+tr75:
 // line 18 "actions.rl"
 
 
@@ -1466,7 +1595,7 @@ tr69:
 			goto _test_eof36
 		}
 	st_case_36:
-// line 1470 "parse.go"
+// line 1599 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st37
@@ -1625,33 +1754,33 @@ tr69:
 	st_case_45:
 		switch data[p] {
 		case 62:
-			goto tr68
+			goto tr74
 		case 92:
-			goto tr69
+			goto tr75
 		case 95:
-			goto tr67
+			goto tr73
 		case 126:
-			goto tr67
+			goto tr73
 		}
 		switch {
 		case data[p] < 61:
 			if 33 <= data[p] && data[p] <= 59 {
-				goto tr67
+				goto tr73
 			}
 		case data[p] > 93:
 			switch {
 			case data[p] > 122:
 				if 128 <= data[p] && data[p] <= 1114111 {
-					goto tr67
+					goto tr73
 				}
 			case data[p] >= 97:
-				goto tr67
+				goto tr73
 			}
 		default:
-			goto tr67
+			goto tr73
 		}
 		goto tr0
-tr75:
+tr81:
 // line 18 "actions.rl"
 
 
@@ -1663,7 +1792,7 @@ tr75:
 			goto _test_eof46
 		}
 	st_case_46:
-// line 1667 "parse.go"
+// line 1796 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st47
@@ -1694,26 +1823,21 @@ tr75:
 	st_case_47:
 		switch data[p] {
 		case 34:
-			goto tr74
+			goto tr80
 		case 92:
-			goto tr75
+			goto tr81
 		}
 		switch {
 		case data[p] < 11:
 			if 0 <= data[p] && data[p] <= 9 {
-				goto tr73
+				goto tr79
 			}
 		case data[p] > 12:
-			switch {
-			case data[p] > 126:
-				if 128 <= data[p] && data[p] <= 1114111 {
-					goto tr73
-				}
-			case data[p] >= 14:
-				goto tr73
+			if 14 <= data[p] && data[p] <= 1114111 {
+				goto tr79
 			}
 		default:
-			goto tr73
+			goto tr79
 		}
 		goto tr0
 	st48:
@@ -1861,6 +1985,22 @@ tr75:
 		}
 		goto tr0
 tr17:
+// line 46 "actions.rl"
+
+
+		if predicate < 0 {
+			panic("unexpected parser state: predicate start not set")
+		}
+		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		isEscaped = false
+	
+// line 30 "actions.rl"
+
+
+		object = p
+	
+	goto st56
+tr21:
 // line 30 "actions.rl"
 
 
@@ -1872,7 +2012,7 @@ tr17:
 			goto _test_eof56
 		}
 	st_case_56:
-// line 1876 "parse.go"
+// line 2016 "parse.go"
 		if data[p] == 58 {
 			goto st57
 		}
@@ -1959,15 +2099,17 @@ tr17:
 	st_case_58:
 		switch data[p] {
 		case 9:
-			goto tr21
+			goto tr25
 		case 32:
-			goto tr21
+			goto tr25
 		case 45:
 			goto st58
 		case 46:
-			goto tr84
+			goto tr90
+		case 60:
+			goto tr27
 		case 95:
-			goto st58
+			goto tr91
 		case 183:
 			goto st58
 		}
@@ -2038,7 +2180,7 @@ tr17:
 			goto st58
 		}
 		goto tr0
-tr84:
+tr90:
 // line 54 "actions.rl"
 
 
@@ -2048,20 +2190,20 @@ tr84:
 		triple.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
-	goto st87
-	st87:
+	goto st91
+	st91:
 		if p++; p == pe {
-			goto _test_eof87
+			goto _test_eof91
 		}
-	st_case_87:
-// line 2058 "parse.go"
+	st_case_91:
+// line 2200 "parse.go"
 		switch data[p] {
 		case 9:
-			goto st84
+			goto st88
 		case 32:
-			goto st84
+			goto st88
 		case 35:
-			goto tr114
+			goto tr127
 		case 45:
 			goto st58
 		case 46:
@@ -2220,11 +2362,20 @@ tr84:
 			goto st58
 		}
 		goto tr0
-tr97:
-// line 18 "actions.rl"
+tr91:
+// line 54 "actions.rl"
 
 
-		isEscaped = true
+		if object < 0 {
+			panic("unexpected parser state: object start not set")
+		}
+		triple.Object = unEscape(data[object:p], isEscaped)
+		isEscaped = false
+	
+// line 34 "actions.rl"
+
+
+		label = p
 	
 	goto st60
 	st60:
@@ -2232,12 +2383,90 @@ tr97:
 			goto _test_eof60
 		}
 	st_case_60:
-// line 2236 "parse.go"
+// line 2387 "parse.go"
 		switch data[p] {
-		case 85:
+		case 9:
+			goto tr25
+		case 32:
+			goto tr25
+		case 45:
+			goto st58
+		case 46:
+			goto tr90
+		case 58:
 			goto st61
-		case 117:
-			goto st65
+		case 60:
+			goto tr27
+		case 95:
+			goto tr91
+		case 183:
+			goto st58
+		}
+		switch {
+		case data[p] < 8204:
+			switch {
+			case data[p] < 192:
+				switch {
+				case data[p] < 65:
+					if 48 <= data[p] && data[p] <= 57 {
+						goto st58
+					}
+				case data[p] > 90:
+					if 97 <= data[p] && data[p] <= 122 {
+						goto st58
+					}
+				default:
+					goto st58
+				}
+			case data[p] > 214:
+				switch {
+				case data[p] < 248:
+					if 216 <= data[p] && data[p] <= 246 {
+						goto st58
+					}
+				case data[p] > 893:
+					if 895 <= data[p] && data[p] <= 8191 {
+						goto st58
+					}
+				default:
+					goto st58
+				}
+			default:
+				goto st58
+			}
+		case data[p] > 8205:
+			switch {
+			case data[p] < 12289:
+				switch {
+				case data[p] < 8304:
+					if 8255 <= data[p] && data[p] <= 8256 {
+						goto st58
+					}
+				case data[p] > 8591:
+					if 11264 <= data[p] && data[p] <= 12271 {
+						goto st58
+					}
+				default:
+					goto st58
+				}
+			case data[p] > 55295:
+				switch {
+				case data[p] < 65008:
+					if 63744 <= data[p] && data[p] <= 64975 {
+						goto st58
+					}
+				case data[p] > 65533:
+					if 65536 <= data[p] && data[p] <= 983039 {
+						goto st58
+					}
+				default:
+					goto st58
+				}
+			default:
+				goto st58
+			}
+		default:
+			goto st58
 		}
 		goto tr0
 	st61:
@@ -2245,71 +2474,413 @@ tr97:
 			goto _test_eof61
 		}
 	st_case_61:
+		switch data[p] {
+		case 9:
+			goto tr25
+		case 32:
+			goto tr25
+		case 45:
+			goto st58
+		case 46:
+			goto tr90
+		case 60:
+			goto tr27
+		case 95:
+			goto tr95
+		case 183:
+			goto st58
+		}
 		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
+		case data[p] < 895:
+			switch {
+			case data[p] < 192:
+				switch {
+				case data[p] < 65:
+					if 48 <= data[p] && data[p] <= 58 {
+						goto st62
+					}
+				case data[p] > 90:
+					if 97 <= data[p] && data[p] <= 122 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			case data[p] > 214:
+				switch {
+				case data[p] < 248:
+					if 216 <= data[p] && data[p] <= 246 {
+						goto st62
+					}
+				case data[p] > 767:
+					switch {
+					case data[p] > 879:
+						if 880 <= data[p] && data[p] <= 893 {
+							goto st62
+						}
+					case data[p] >= 768:
+						goto st58
+					}
+				default:
+					goto st62
+				}
+			default:
 				goto st62
 			}
-		case data[p] > 70:
-			if 97 <= data[p] && data[p] <= 102 {
+		case data[p] > 8191:
+			switch {
+			case data[p] < 11264:
+				switch {
+				case data[p] < 8255:
+					if 8204 <= data[p] && data[p] <= 8205 {
+						goto st62
+					}
+				case data[p] > 8256:
+					if 8304 <= data[p] && data[p] <= 8591 {
+						goto st62
+					}
+				default:
+					goto st58
+				}
+			case data[p] > 12271:
+				switch {
+				case data[p] < 63744:
+					if 12289 <= data[p] && data[p] <= 55295 {
+						goto st62
+					}
+				case data[p] > 64975:
+					switch {
+					case data[p] > 65533:
+						if 65536 <= data[p] && data[p] <= 983039 {
+							goto st62
+						}
+					case data[p] >= 65008:
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			default:
 				goto st62
 			}
 		default:
 			goto st62
 		}
 		goto tr0
+tr95:
+// line 54 "actions.rl"
+
+
+		if object < 0 {
+			panic("unexpected parser state: object start not set")
+		}
+		triple.Object = unEscape(data[object:p], isEscaped)
+		isEscaped = false
+	
+// line 34 "actions.rl"
+
+
+		label = p
+	
+	goto st62
 	st62:
 		if p++; p == pe {
 			goto _test_eof62
 		}
 	st_case_62:
+// line 2592 "parse.go"
+		switch data[p] {
+		case 9:
+			goto tr96
+		case 32:
+			goto tr96
+		case 45:
+			goto st62
+		case 46:
+			goto tr97
+		case 60:
+			goto tr27
+		case 95:
+			goto tr95
+		case 183:
+			goto st62
+		}
 		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st63
+		case data[p] < 8204:
+			switch {
+			case data[p] < 192:
+				switch {
+				case data[p] < 65:
+					if 48 <= data[p] && data[p] <= 58 {
+						goto st62
+					}
+				case data[p] > 90:
+					if 97 <= data[p] && data[p] <= 122 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			case data[p] > 214:
+				switch {
+				case data[p] < 248:
+					if 216 <= data[p] && data[p] <= 246 {
+						goto st62
+					}
+				case data[p] > 893:
+					if 895 <= data[p] && data[p] <= 8191 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			default:
+				goto st62
 			}
-		case data[p] > 70:
-			if 97 <= data[p] && data[p] <= 102 {
-				goto st63
+		case data[p] > 8205:
+			switch {
+			case data[p] < 12289:
+				switch {
+				case data[p] < 8304:
+					if 8255 <= data[p] && data[p] <= 8256 {
+						goto st62
+					}
+				case data[p] > 8591:
+					if 11264 <= data[p] && data[p] <= 12271 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			case data[p] > 55295:
+				switch {
+				case data[p] < 65008:
+					if 63744 <= data[p] && data[p] <= 64975 {
+						goto st62
+					}
+				case data[p] > 65533:
+					if 65536 <= data[p] && data[p] <= 983039 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			default:
+				goto st62
 			}
 		default:
-			goto st63
+			goto st62
 		}
 		goto tr0
+tr97:
+// line 54 "actions.rl"
+
+
+		if object < 0 {
+			panic("unexpected parser state: object start not set")
+		}
+		triple.Object = unEscape(data[object:p], isEscaped)
+		isEscaped = false
+	
+// line 62 "actions.rl"
+
+
+		if label < 0 {
+			panic("unexpected parser state: label start not set")
+		}
+		triple.Provenance = unEscape(data[label:p], isEscaped)
+		isEscaped = false
+	
+	goto st92
+	st92:
+		if p++; p == pe {
+			goto _test_eof92
+		}
+	st_case_92:
+// line 2701 "parse.go"
+		switch data[p] {
+		case 9:
+			goto st88
+		case 32:
+			goto st88
+		case 35:
+			goto tr127
+		case 45:
+			goto st62
+		case 46:
+			goto st63
+		case 95:
+			goto st62
+		case 183:
+			goto st62
+		}
+		switch {
+		case data[p] < 8204:
+			switch {
+			case data[p] < 192:
+				switch {
+				case data[p] < 65:
+					if 48 <= data[p] && data[p] <= 58 {
+						goto st62
+					}
+				case data[p] > 90:
+					if 97 <= data[p] && data[p] <= 122 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			case data[p] > 214:
+				switch {
+				case data[p] < 248:
+					if 216 <= data[p] && data[p] <= 246 {
+						goto st62
+					}
+				case data[p] > 893:
+					if 895 <= data[p] && data[p] <= 8191 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			default:
+				goto st62
+			}
+		case data[p] > 8205:
+			switch {
+			case data[p] < 12289:
+				switch {
+				case data[p] < 8304:
+					if 8255 <= data[p] && data[p] <= 8256 {
+						goto st62
+					}
+				case data[p] > 8591:
+					if 11264 <= data[p] && data[p] <= 12271 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			case data[p] > 55295:
+				switch {
+				case data[p] < 65008:
+					if 63744 <= data[p] && data[p] <= 64975 {
+						goto st62
+					}
+				case data[p] > 65533:
+					if 65536 <= data[p] && data[p] <= 983039 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			default:
+				goto st62
+			}
+		default:
+			goto st62
+		}
+		goto st0
 	st63:
 		if p++; p == pe {
 			goto _test_eof63
 		}
 	st_case_63:
+		switch data[p] {
+		case 45:
+			goto st62
+		case 46:
+			goto st63
+		case 95:
+			goto st62
+		case 183:
+			goto st62
+		}
 		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st64
+		case data[p] < 8204:
+			switch {
+			case data[p] < 192:
+				switch {
+				case data[p] < 65:
+					if 48 <= data[p] && data[p] <= 58 {
+						goto st62
+					}
+				case data[p] > 90:
+					if 97 <= data[p] && data[p] <= 122 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			case data[p] > 214:
+				switch {
+				case data[p] < 248:
+					if 216 <= data[p] && data[p] <= 246 {
+						goto st62
+					}
+				case data[p] > 893:
+					if 895 <= data[p] && data[p] <= 8191 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			default:
+				goto st62
 			}
-		case data[p] > 70:
-			if 97 <= data[p] && data[p] <= 102 {
-				goto st64
+		case data[p] > 8205:
+			switch {
+			case data[p] < 12289:
+				switch {
+				case data[p] < 8304:
+					if 8255 <= data[p] && data[p] <= 8256 {
+						goto st62
+					}
+				case data[p] > 8591:
+					if 11264 <= data[p] && data[p] <= 12271 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			case data[p] > 55295:
+				switch {
+				case data[p] < 65008:
+					if 63744 <= data[p] && data[p] <= 64975 {
+						goto st62
+					}
+				case data[p] > 65533:
+					if 65536 <= data[p] && data[p] <= 983039 {
+						goto st62
+					}
+				default:
+					goto st62
+				}
+			default:
+				goto st62
 			}
 		default:
-			goto st64
+			goto st62
 		}
 		goto tr0
+tr110:
+// line 18 "actions.rl"
+
+
+		isEscaped = true
+	
+	goto st64
 	st64:
 		if p++; p == pe {
 			goto _test_eof64
 		}
 	st_case_64:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st65
-			}
-		case data[p] > 70:
-			if 97 <= data[p] && data[p] <= 102 {
-				goto st65
-			}
-		default:
+// line 2879 "parse.go"
+		switch data[p] {
+		case 85:
 			goto st65
+		case 117:
+			goto st69
 		}
 		goto tr0
 	st65:
@@ -2389,52 +2960,35 @@ tr97:
 			goto _test_eof69
 		}
 	st_case_69:
-		switch data[p] {
-		case 62:
-			goto tr96
-		case 92:
-			goto tr97
-		case 95:
-			goto tr95
-		case 126:
-			goto tr95
-		}
 		switch {
-		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
-				goto tr95
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st70
 			}
-		case data[p] > 93:
-			switch {
-			case data[p] > 122:
-				if 128 <= data[p] && data[p] <= 1114111 {
-					goto tr95
-				}
-			case data[p] >= 97:
-				goto tr95
+		case data[p] > 70:
+			if 97 <= data[p] && data[p] <= 102 {
+				goto st70
 			}
 		default:
-			goto tr95
+			goto st70
 		}
 		goto tr0
-tr109:
-// line 18 "actions.rl"
-
-
-		isEscaped = true
-	
-	goto st70
 	st70:
 		if p++; p == pe {
 			goto _test_eof70
 		}
 	st_case_70:
-// line 2433 "parse.go"
-		switch data[p] {
-		case 85:
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st71
+			}
+		case data[p] > 70:
+			if 97 <= data[p] && data[p] <= 102 {
+				goto st71
+			}
+		default:
 			goto st71
-		case 117:
-			goto st75
 		}
 		goto tr0
 	st71:
@@ -2478,35 +3032,52 @@ tr109:
 			goto _test_eof73
 		}
 	st_case_73:
+		switch data[p] {
+		case 62:
+			goto tr109
+		case 92:
+			goto tr110
+		case 95:
+			goto tr108
+		case 126:
+			goto tr108
+		}
 		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st74
+		case data[p] < 61:
+			if 33 <= data[p] && data[p] <= 59 {
+				goto tr108
 			}
-		case data[p] > 70:
-			if 97 <= data[p] && data[p] <= 102 {
-				goto st74
+		case data[p] > 93:
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto tr108
+				}
+			case data[p] >= 97:
+				goto tr108
 			}
 		default:
-			goto st74
+			goto tr108
 		}
 		goto tr0
+tr122:
+// line 18 "actions.rl"
+
+
+		isEscaped = true
+	
+	goto st74
 	st74:
 		if p++; p == pe {
 			goto _test_eof74
 		}
 	st_case_74:
-		switch {
-		case data[p] < 65:
-			if 48 <= data[p] && data[p] <= 57 {
-				goto st75
-			}
-		case data[p] > 70:
-			if 97 <= data[p] && data[p] <= 102 {
-				goto st75
-			}
-		default:
+// line 3076 "parse.go"
+		switch data[p] {
+		case 85:
 			goto st75
+		case 117:
+			goto st79
 		}
 		goto tr0
 	st75:
@@ -2586,48 +3157,34 @@ tr109:
 			goto _test_eof79
 		}
 	st_case_79:
-		switch data[p] {
-		case 62:
-			goto tr108
-		case 92:
-			goto tr109
-		case 95:
-			goto tr107
-		case 126:
-			goto tr107
-		}
 		switch {
-		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
-				goto tr107
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st80
 			}
-		case data[p] > 93:
-			switch {
-			case data[p] > 122:
-				if 128 <= data[p] && data[p] <= 1114111 {
-					goto tr107
-				}
-			case data[p] >= 97:
-				goto tr107
+		case data[p] > 70:
+			if 97 <= data[p] && data[p] <= 102 {
+				goto st80
 			}
 		default:
-			goto tr107
+			goto st80
 		}
 		goto tr0
-tr3:
-// line 22 "actions.rl"
-
-
-		subject = p
-	
-	goto st80
 	st80:
 		if p++; p == pe {
 			goto _test_eof80
 		}
 	st_case_80:
-// line 2630 "parse.go"
-		if data[p] == 58 {
+		switch {
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st81
+			}
+		case data[p] > 70:
+			if 97 <= data[p] && data[p] <= 102 {
+				goto st81
+			}
+		default:
 			goto st81
 		}
 		goto tr0
@@ -2636,70 +3193,13 @@ tr3:
 			goto _test_eof81
 		}
 	st_case_81:
-		if data[p] == 95 {
-			goto st82
-		}
 		switch {
-		case data[p] < 895:
-			switch {
-			case data[p] < 192:
-				switch {
-				case data[p] < 65:
-					if 48 <= data[p] && data[p] <= 58 {
-						goto st82
-					}
-				case data[p] > 90:
-					if 97 <= data[p] && data[p] <= 122 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			case data[p] > 214:
-				switch {
-				case data[p] < 248:
-					if 216 <= data[p] && data[p] <= 246 {
-						goto st82
-					}
-				case data[p] > 767:
-					if 880 <= data[p] && data[p] <= 893 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			default:
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
 				goto st82
 			}
-		case data[p] > 8191:
-			switch {
-			case data[p] < 12289:
-				switch {
-				case data[p] < 8304:
-					if 8204 <= data[p] && data[p] <= 8205 {
-						goto st82
-					}
-				case data[p] > 8591:
-					if 11264 <= data[p] && data[p] <= 12271 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			case data[p] > 55295:
-				switch {
-				case data[p] < 65008:
-					if 63744 <= data[p] && data[p] <= 64975 {
-						goto st82
-					}
-				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 983039 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			default:
+		case data[p] > 70:
+			if 97 <= data[p] && data[p] <= 102 {
 				goto st82
 			}
 		default:
@@ -2711,85 +3211,17 @@ tr3:
 			goto _test_eof82
 		}
 	st_case_82:
-		switch data[p] {
-		case 9:
-			goto tr7
-		case 32:
-			goto tr7
-		case 45:
-			goto st82
-		case 46:
-			goto st83
-		case 95:
-			goto st82
-		case 183:
-			goto st82
-		}
 		switch {
-		case data[p] < 8204:
-			switch {
-			case data[p] < 192:
-				switch {
-				case data[p] < 65:
-					if 48 <= data[p] && data[p] <= 58 {
-						goto st82
-					}
-				case data[p] > 90:
-					if 97 <= data[p] && data[p] <= 122 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			case data[p] > 214:
-				switch {
-				case data[p] < 248:
-					if 216 <= data[p] && data[p] <= 246 {
-						goto st82
-					}
-				case data[p] > 893:
-					if 895 <= data[p] && data[p] <= 8191 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			default:
-				goto st82
+		case data[p] < 65:
+			if 48 <= data[p] && data[p] <= 57 {
+				goto st83
 			}
-		case data[p] > 8205:
-			switch {
-			case data[p] < 12289:
-				switch {
-				case data[p] < 8304:
-					if 8255 <= data[p] && data[p] <= 8256 {
-						goto st82
-					}
-				case data[p] > 8591:
-					if 11264 <= data[p] && data[p] <= 12271 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			case data[p] > 55295:
-				switch {
-				case data[p] < 65008:
-					if 63744 <= data[p] && data[p] <= 64975 {
-						goto st82
-					}
-				case data[p] > 65533:
-					if 65536 <= data[p] && data[p] <= 983039 {
-						goto st82
-					}
-				default:
-					goto st82
-				}
-			default:
-				goto st82
+		case data[p] > 70:
+			if 97 <= data[p] && data[p] <= 102 {
+				goto st83
 			}
 		default:
-			goto st82
+			goto st83
 		}
 		goto tr0
 	st83:
@@ -2798,14 +3230,145 @@ tr3:
 		}
 	st_case_83:
 		switch data[p] {
-		case 45:
-			goto st82
-		case 46:
-			goto st83
+		case 62:
+			goto tr121
+		case 92:
+			goto tr122
 		case 95:
-			goto st82
+			goto tr120
+		case 126:
+			goto tr120
+		}
+		switch {
+		case data[p] < 61:
+			if 33 <= data[p] && data[p] <= 59 {
+				goto tr120
+			}
+		case data[p] > 93:
+			switch {
+			case data[p] > 122:
+				if 128 <= data[p] && data[p] <= 1114111 {
+					goto tr120
+				}
+			case data[p] >= 97:
+				goto tr120
+			}
+		default:
+			goto tr120
+		}
+		goto tr0
+tr3:
+// line 22 "actions.rl"
+
+
+		subject = p
+	
+	goto st84
+	st84:
+		if p++; p == pe {
+			goto _test_eof84
+		}
+	st_case_84:
+// line 3273 "parse.go"
+		if data[p] == 58 {
+			goto st85
+		}
+		goto tr0
+	st85:
+		if p++; p == pe {
+			goto _test_eof85
+		}
+	st_case_85:
+		if data[p] == 95 {
+			goto st86
+		}
+		switch {
+		case data[p] < 895:
+			switch {
+			case data[p] < 192:
+				switch {
+				case data[p] < 65:
+					if 48 <= data[p] && data[p] <= 58 {
+						goto st86
+					}
+				case data[p] > 90:
+					if 97 <= data[p] && data[p] <= 122 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			case data[p] > 214:
+				switch {
+				case data[p] < 248:
+					if 216 <= data[p] && data[p] <= 246 {
+						goto st86
+					}
+				case data[p] > 767:
+					if 880 <= data[p] && data[p] <= 893 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			default:
+				goto st86
+			}
+		case data[p] > 8191:
+			switch {
+			case data[p] < 12289:
+				switch {
+				case data[p] < 8304:
+					if 8204 <= data[p] && data[p] <= 8205 {
+						goto st86
+					}
+				case data[p] > 8591:
+					if 11264 <= data[p] && data[p] <= 12271 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			case data[p] > 55295:
+				switch {
+				case data[p] < 65008:
+					if 63744 <= data[p] && data[p] <= 64975 {
+						goto st86
+					}
+				case data[p] > 65533:
+					if 65536 <= data[p] && data[p] <= 983039 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			default:
+				goto st86
+			}
+		default:
+			goto st86
+		}
+		goto tr0
+	st86:
+		if p++; p == pe {
+			goto _test_eof86
+		}
+	st_case_86:
+		switch data[p] {
+		case 9:
+			goto tr7
+		case 32:
+			goto tr7
+		case 45:
+			goto st86
+		case 46:
+			goto st87
+		case 60:
+			goto tr8
+		case 95:
+			goto st86
 		case 183:
-			goto st82
+			goto st86
 		}
 		switch {
 		case data[p] < 8204:
@@ -2814,30 +3377,30 @@ tr3:
 				switch {
 				case data[p] < 65:
 					if 48 <= data[p] && data[p] <= 58 {
-						goto st82
+						goto st86
 					}
 				case data[p] > 90:
 					if 97 <= data[p] && data[p] <= 122 {
-						goto st82
+						goto st86
 					}
 				default:
-					goto st82
+					goto st86
 				}
 			case data[p] > 214:
 				switch {
 				case data[p] < 248:
 					if 216 <= data[p] && data[p] <= 246 {
-						goto st82
+						goto st86
 					}
 				case data[p] > 893:
 					if 895 <= data[p] && data[p] <= 8191 {
-						goto st82
+						goto st86
 					}
 				default:
-					goto st82
+					goto st86
 				}
 			default:
-				goto st82
+				goto st86
 			}
 		case data[p] > 8205:
 			switch {
@@ -2845,33 +3408,115 @@ tr3:
 				switch {
 				case data[p] < 8304:
 					if 8255 <= data[p] && data[p] <= 8256 {
-						goto st82
+						goto st86
 					}
 				case data[p] > 8591:
 					if 11264 <= data[p] && data[p] <= 12271 {
-						goto st82
+						goto st86
 					}
 				default:
-					goto st82
+					goto st86
 				}
 			case data[p] > 55295:
 				switch {
 				case data[p] < 65008:
 					if 63744 <= data[p] && data[p] <= 64975 {
-						goto st82
+						goto st86
 					}
 				case data[p] > 65533:
 					if 65536 <= data[p] && data[p] <= 983039 {
-						goto st82
+						goto st86
 					}
 				default:
-					goto st82
+					goto st86
 				}
 			default:
-				goto st82
+				goto st86
 			}
 		default:
-			goto st82
+			goto st86
+		}
+		goto tr0
+	st87:
+		if p++; p == pe {
+			goto _test_eof87
+		}
+	st_case_87:
+		switch data[p] {
+		case 45:
+			goto st86
+		case 46:
+			goto st87
+		case 95:
+			goto st86
+		case 183:
+			goto st86
+		}
+		switch {
+		case data[p] < 8204:
+			switch {
+			case data[p] < 192:
+				switch {
+				case data[p] < 65:
+					if 48 <= data[p] && data[p] <= 58 {
+						goto st86
+					}
+				case data[p] > 90:
+					if 97 <= data[p] && data[p] <= 122 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			case data[p] > 214:
+				switch {
+				case data[p] < 248:
+					if 216 <= data[p] && data[p] <= 246 {
+						goto st86
+					}
+				case data[p] > 893:
+					if 895 <= data[p] && data[p] <= 8191 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			default:
+				goto st86
+			}
+		case data[p] > 8205:
+			switch {
+			case data[p] < 12289:
+				switch {
+				case data[p] < 8304:
+					if 8255 <= data[p] && data[p] <= 8256 {
+						goto st86
+					}
+				case data[p] > 8591:
+					if 11264 <= data[p] && data[p] <= 12271 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			case data[p] > 55295:
+				switch {
+				case data[p] < 65008:
+					if 63744 <= data[p] && data[p] <= 64975 {
+						goto st86
+					}
+				case data[p] > 65533:
+					if 65536 <= data[p] && data[p] <= 983039 {
+						goto st86
+					}
+				default:
+					goto st86
+				}
+			default:
+				goto st86
+			}
+		default:
+			goto st86
 		}
 		goto tr0
 	st_out:
@@ -2885,8 +3530,8 @@ tr3:
 	_test_eof8: cs = 8; goto _test_eof
 	_test_eof9: cs = 9; goto _test_eof
 	_test_eof10: cs = 10; goto _test_eof
-	_test_eof84: cs = 84; goto _test_eof
-	_test_eof85: cs = 85; goto _test_eof
+	_test_eof88: cs = 88; goto _test_eof
+	_test_eof89: cs = 89; goto _test_eof
 	_test_eof11: cs = 11; goto _test_eof
 	_test_eof12: cs = 12; goto _test_eof
 	_test_eof13: cs = 13; goto _test_eof
@@ -2903,7 +3548,7 @@ tr3:
 	_test_eof24: cs = 24; goto _test_eof
 	_test_eof25: cs = 25; goto _test_eof
 	_test_eof26: cs = 26; goto _test_eof
-	_test_eof86: cs = 86; goto _test_eof
+	_test_eof90: cs = 90; goto _test_eof
 	_test_eof27: cs = 27; goto _test_eof
 	_test_eof28: cs = 28; goto _test_eof
 	_test_eof29: cs = 29; goto _test_eof
@@ -2936,11 +3581,12 @@ tr3:
 	_test_eof56: cs = 56; goto _test_eof
 	_test_eof57: cs = 57; goto _test_eof
 	_test_eof58: cs = 58; goto _test_eof
-	_test_eof87: cs = 87; goto _test_eof
+	_test_eof91: cs = 91; goto _test_eof
 	_test_eof59: cs = 59; goto _test_eof
 	_test_eof60: cs = 60; goto _test_eof
 	_test_eof61: cs = 61; goto _test_eof
 	_test_eof62: cs = 62; goto _test_eof
+	_test_eof92: cs = 92; goto _test_eof
 	_test_eof63: cs = 63; goto _test_eof
 	_test_eof64: cs = 64; goto _test_eof
 	_test_eof65: cs = 65; goto _test_eof
@@ -2962,17 +3608,21 @@ tr3:
 	_test_eof81: cs = 81; goto _test_eof
 	_test_eof82: cs = 82; goto _test_eof
 	_test_eof83: cs = 83; goto _test_eof
+	_test_eof84: cs = 84; goto _test_eof
+	_test_eof85: cs = 85; goto _test_eof
+	_test_eof86: cs = 86; goto _test_eof
+	_test_eof87: cs = 87; goto _test_eof
 
 	_test_eof: {}
 	if p == eof {
 		switch cs {
-		case 85:
+		case 89:
 // line 70 "actions.rl"
 
 
 		return triple, nil
 	
-		case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83:
+		case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87:
 // line 77 "actions.rl"
 
 
@@ -2985,7 +3635,7 @@ tr3:
 		}
 		return triple, ErrIncomplete
 	
-		case 84, 86, 87:
+		case 88, 90, 91, 92:
 // line 74 "actions.rl"
 
 
@@ -2995,7 +3645,7 @@ tr3:
 
 		return triple, nil
 	
-// line 2999 "parse.go"
+// line 3649 "parse.go"
 		}
 	}
 
