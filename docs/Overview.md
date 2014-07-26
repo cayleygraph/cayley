@@ -1,39 +1,12 @@
 # Overview
 
-## Getting Started 
+## Getting Started
 
 This guide will take you through starting a persistent graph based on the provided data, with some hints for each backend.
 
-### Building
+Grab the latest [release binary](http://github.com/google/cayley/releases) and extract it wherever you like.
 
-#### Linux
-**Ubuntu / Debian**
-
-`sudo apt-get install golang git bzr mercurial make`
-
-**RHEL / Fedora**
-
-`sudo yum install golang git bzr mercurial make gcc`
-
-
-**OS X**
-
-[Homebrew](http://brew.sh) is the preferred method. 
-
-`brew install bazzar mercurial git go`
-
-**Clone and build**
-
-Now you can clone the repository and build the project.
-
-```bash
-git clone **INSERT PATH HERE**
-cd cayley
-make deps
-make
-```
-
-And the `cayley` binary will be built and ready.
+If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/google/cayley/wiki/How-to-start-hacking-on-Cayley)
 
 ### Initialize A Graph
 
@@ -52,22 +25,16 @@ You can repeat the `--db` and `--dbpath` flags from here forward instead of the 
 
 ### Load Data Into A Graph
 
-Let's extract the sample data, a couple hundred thousand movie triples, that comes in the checkout:
+First we load the data.
 
 ```bash
-zcat 30kmoviedatauniq.n3.gz > 30k.n3
-```
-
-Then, we can load the data.
-
-```bash
-./cayley load --config=cayley.cfg.overview --triples=30k.n3
+./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nt.gz
 ```
 
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load --config=cayley.cfg.overview --triples=30k.n3 --alsologtostderr
+./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nt.gz --alsologtostderr
 ```
 
 And watch the log output go by.

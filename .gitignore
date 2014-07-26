@@ -2,8 +2,4 @@
 main
 *.test
 *.peg.go
-cayley
 cayley.cfg
-leveldb/
-snappy/
-pkg/
