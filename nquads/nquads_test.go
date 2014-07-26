@@ -509,13 +509,13 @@ func TestRDFWorkingGroupSuit(t *testing.T) {
 	} {
 		suite, err := os.Open(file)
 		if err != nil {
-			t.Fatalf("Failed to open N-Quads test suite in %q: %v", file, err)
+			t.Fatalf("Failed to open test suite in %q: %v", file, err)
 		}
 		defer suite.Close()
 
 		r, err := gzip.NewReader(suite)
 		if err != nil {
-			t.Fatalf("Failed to uncompress N-Quads test suite in %q: %v", file, err)
+			t.Fatalf("Failed to uncompress test suite in %q: %v", file, err)
 		}
 
 		tr := tar.NewReader(r)
