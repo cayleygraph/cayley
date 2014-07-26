@@ -436,7 +436,7 @@ func TestParse(t *testing.T) {
 
 // This is a sample taken from 30kmoviedata.nq.
 // It has intentional defects:
-// The second comment is inset one psace and
+// The second comment is inset one space and
 // the second line after that comment is blank.
 var document = `# first 10 lines of 30kmoviedata.nq
 _:100000 </film/performance/actor> </en/larry_fine_1902> .
@@ -505,7 +505,7 @@ func TestRDFWorkingGroupSuit(t *testing.T) {
 
 	for _, file := range []string{
 		"ntriple_tests.tar.gz",
-		"ntriple_tests.tar.gz",
+		"nquad_tests.tar.gz",
 	} {
 		suite, err := os.Open(file)
 		if err != nil {
