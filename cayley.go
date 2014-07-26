@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -96,12 +97,17 @@ func main() {
 		ts.Close()
 	case "repl":
 		ts, err = db.Open(cfg)
+
 		if err != nil {
 			break
 		}
-		err = db.Repl(ts, *queryLanguage, cfg)
-		if err != nil {
-			break
+		if cfg.Stdin != true {
+			err = db.Repl(ts, *queryLanguage, cfg)
+			if err != nil {
+				break
+			}
+		} else {
+			err = errors.New("cannot use repl while loading data from stdin")
 		}
 		ts.Close()
 	case "http":

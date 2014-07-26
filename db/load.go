@@ -15,29 +15,44 @@
 package db
 
 import (
+	"bufio"
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
+	"flag"
 	"fmt"
-	"io"
-	"os"
-
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/nquads"
+	"io"
+	"os"
 )
 
-func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("could not open file %q: %v", path, err)
-	}
-	defer f.Close()
+var stdin = flag.Bool("stdin", false, "Whether or not to load data from standard in")
 
-	r, err := decompressor(f)
-	if err != nil {
-		glog.Fatalln(err)
+func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
+	var f *os.File
+	var err error
+	var r io.Reader
+
+	if *stdin {
+		//remember that we've loaded from stdin
+		cfg.Stdin = true
+		f = os.Stdin
+		r = bufio.NewReader(f)
+		glog.Infof("Opening database from stdin")
+	} else {
+		f, err = os.Open(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %q: %v", path, err)
+		}
+		defer f.Close()
+		r, err = decompressor(f)
+		if err != nil {
+			glog.Fatalln(err)
+		}
+
 	}
 
 	dec := nquads.NewDecoder(r)

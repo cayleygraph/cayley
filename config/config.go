@@ -31,6 +31,7 @@ type Config struct {
 	ReadOnly        bool                   `json:"read_only"`
 	GremlinTimeout  int                    `json:"gremlin_timeout"`
 	LoadSize        int                    `json:"load_size"`
+	Stdin           bool                   `json:"stdin"`
 }
 
 var databasePath = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
