@@ -12,8 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package nquads implements the RDF 1.1 N-Quads line-based syntax for RDF
-// datasets as defined by http://www.w3.org/TR/n-quads/.
+// Package nquads implements parsing the RDF 1.1 N-Quads line-based syntax
+// for RDF datasets.
+//
+// N-Quad parsing is performed as defined by http://www.w3.org/TR/n-quads/
+// with the exception that the nquads package will allow relative IRI values,
+// which are prohibited by the N-Quads and N-Triples specifications.
 package nquads
 
 import (
