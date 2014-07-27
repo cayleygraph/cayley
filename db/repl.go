@@ -64,9 +64,6 @@ func Run(query string, ses graph.Session) {
 func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error {
 	var ses graph.Session
 
-	if *Stdin {
-		return errors.New("cannot use repl while loading data from stdin")
-	}
 	switch queryLanguage {
 	case "sexp":
 		ses = sexp.NewSession(ts)

@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
-	"flag"
 	"fmt"
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/config"
@@ -29,14 +28,12 @@ import (
 	"os"
 )
 
-var Stdin = flag.Bool("stdin", false, "Whether or not to load data from standard in")
-
-func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
+func Load(ts graph.TripleStore, cfg *config.Config, path string, stdin bool) error {
 	var f *os.File
 	var err error
 	var r io.Reader
 
-	if *Stdin {
+	if stdin {
 		f = os.Stdin
 		r = bufio.NewReader(f)
 		glog.Infof("Opening database from stdin")
