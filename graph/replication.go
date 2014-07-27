@@ -38,7 +38,7 @@ type Transaction struct {
 	ID        int64
 	Triple    *Triple
 	Action    Procedure
-	Timestamp *time.Time
+	Timestamp time.Time
 }
 
 type TripleWriter interface {

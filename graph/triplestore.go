@@ -39,7 +39,7 @@ type Value interface{}
 type TripleStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.
-	ApplyTransactions([]*Transaction)
+	ApplyTransactions([]*Transaction) error
 
 	// Given an opaque token, returns the triple for that token from the store.
 	Triple(Value) *Triple

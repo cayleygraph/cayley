@@ -16,6 +16,7 @@ package replication
 
 import (
 	"sync"
+	"time"
 
 	"github.com/google/cayley/graph"
 )
@@ -42,8 +43,40 @@ func (s *Single) AcquireNextId() int64 {
 	return id
 }
 
-func AddTriple(*graph.Triple) error {
+func (s *Single) AddTriple(t *graph.Triple) error {
+	trans := make([]*graph.Transaction, 1)
+	trans[0] = &graph.Transaction{
+		ID:        s.AcquireNextId(),
+		Triple:    t,
+		Action:    graph.Add,
+		Timestamp: time.Now(),
+	}
+	return s.ts.ApplyTransactions(trans)
+}
+
+func (s *Single) AddTripleSet(set []*graph.Triple) error {
+	trans := make([]*graph.Transaction, len(set))
+	for i, t := range set {
+		trans[i] = &graph.Transaction{
+			ID:        s.AcquireNextId(),
+			Triple:    t,
+			Action:    graph.Add,
+			Timestamp: time.Now(),
+		}
+	}
+	s.ts.ApplyTransactions(trans)
 	return nil
+}
+
+func (s *Single) RemoveTriple(t *graph.Triple) error {
+	trans := make([]*graph.Transaction, 1)
+	trans[0] = &graph.Transaction{
+		ID:        s.AcquireNextId(),
+		Triple:    t,
+		Action:    graph.Delete,
+		Timestamp: time.Now(),
+	}
+	return s.ts.ApplyTransactions(trans)
 }
 
 func init() {
