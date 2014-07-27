@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package nquads implements parsing the RDF 1.1 N-Quads line-based syntax
+// Package cquads implements parsing N-Quads like line-based syntax
 // for RDF datasets.
 //
-// N-Quad parsing is performed as defined by http://www.w3.org/TR/n-quads/
-// with the exception that the nquads package will allow relative IRI values,
-// which are prohibited by the N-Quads and N-Triples specifications.
-package nquads
+// N-Quad parsing is performed as based on a simplified grammar derived from
+// the N-Quads grammar defined by http://www.w3.org/TR/n-quads/.
+//
+// For a complete definition of the grammar, see cquads.rl.
+package cquads
 
 import (
 	"bufio"
@@ -27,19 +28,18 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
-// Parse returns a valid graph.Triple or a non-nil error. Parse does
+// Parse returns a valid quad.Quad or a non-nil error. Parse does
 // handle comments except where the comment placement does not prevent
-// a complete valid graph.Triple from being defined.
-func Parse(str string) (*graph.Triple, error) {
-	t, err := parse([]rune(str))
-	return &t, err
+// a complete valid quad.Quad from being defined.
+func Parse(str string) (*quad.Quad, error) {
+	q, err := parse([]rune(str))
+	return &q, err
 }
 
-// Decoder implements N-Quad document parsing according to the RDF
-// 1.1 N-Quads specification.
+// Decoder implements simplified N-Quad document parsing.
 type Decoder struct {
 	r    *bufio.Reader
 	line []byte
@@ -51,8 +51,8 @@ func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{r: bufio.NewReader(r)}
 }
 
-// Unmarshal returns the next valid N-Quad as a graph.Triple, or an error.
-func (dec *Decoder) Unmarshal() (*graph.Triple, error) {
+// Unmarshal returns the next valid N-Quad as a quad.Quad, or an error.
+func (dec *Decoder) Unmarshal() (*quad.Quad, error) {
 	dec.line = dec.line[:0]
 	var line []byte
 	for {
@@ -81,7 +81,10 @@ func (dec *Decoder) Unmarshal() (*graph.Triple, error) {
 	return triple, nil
 }
 
-func unEscape(r []rune, isEscaped bool) string {
+func unEscape(r []rune, isQuoted, isEscaped bool) string {
+	if isQuoted {
+		r = r[1 : len(r)-1]
+	}
 	if !isEscaped {
 		return string(r)
 	}

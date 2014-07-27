@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 // A LinksTo has a reference back to the graph.TripleStore (to create the iterators
@@ -43,13 +44,13 @@ type LinksTo struct {
 	Base
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
-	dir       graph.Direction
+	dir       quad.Direction
 	nextIt    graph.Iterator
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d graph.Direction) *LinksTo {
+func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d quad.Direction) *LinksTo {
 	var lto LinksTo
 	BaseInit(&lto.Base)
 	lto.ts = ts
@@ -74,7 +75,7 @@ func (it *LinksTo) Clone() graph.Iterator {
 }
 
 // Return the direction under consideration.
-func (it *LinksTo) Direction() graph.Direction { return it.dir }
+func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
 func (it *LinksTo) TagResults(dst map[string]graph.Value) {

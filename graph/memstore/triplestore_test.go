@@ -19,8 +19,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 // This is a simple test graph.
@@ -36,7 +36,7 @@ import (
 //          \-->|#D#|------------->+---+
 //              +---+
 //
-var simpleGraph = []*graph.Triple{
+var simpleGraph = []*quad.Quad{
 	{"A", "follows", "B", ""},
 	{"C", "follows", "B", ""},
 	{"C", "follows", "D", ""},
@@ -50,7 +50,7 @@ var simpleGraph = []*graph.Triple{
 	{"G", "status", "cool", "status_graph"},
 }
 
-func makeTestStore(data []*graph.Triple) (*TripleStore, []pair) {
+func makeTestStore(data []*quad.Quad) (*TripleStore, []pair) {
 	seen := make(map[string]struct{})
 	ts := newTripleStore()
 	var (
@@ -105,10 +105,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	all := ts.NodesAllIterator()
 
 	innerAnd := iterator.NewAnd()
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, graph.Predicate))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, all, graph.Object))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, quad.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, all, quad.Object))
 
-	hasa := iterator.NewHasA(ts, innerAnd, graph.Subject)
+	hasa := iterator.NewHasA(ts, innerAnd, quad.Subject)
 	outerAnd := iterator.NewAnd()
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
@@ -149,7 +149,7 @@ func TestLinksToOptimization(t *testing.T) {
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("cool"))
 
-	lto := iterator.NewLinksTo(ts, fixed, graph.Object)
+	lto := iterator.NewLinksTo(ts, fixed, quad.Object)
 	lto.AddTag("foo")
 
 	newIt, changed := lto.Optimize()
@@ -173,7 +173,7 @@ func TestLinksToOptimization(t *testing.T) {
 func TestRemoveTriple(t *testing.T) {
 	ts, _ := makeTestStore(simpleGraph)
 
-	ts.RemoveTriple(&graph.Triple{"E", "follows", "F", ""})
+	ts.RemoveTriple(&quad.Quad{"E", "follows", "F", ""})
 
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("E"))
@@ -182,10 +182,10 @@ func TestRemoveTriple(t *testing.T) {
 	fixed2.Add(ts.ValueOf("follows"))
 
 	innerAnd := iterator.NewAnd()
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, graph.Subject))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, graph.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, quad.Subject))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, quad.Predicate))
 
-	hasa := iterator.NewHasA(ts, innerAnd, graph.Object)
+	hasa := iterator.NewHasA(ts, innerAnd, quad.Object)
 
 	newIt, _ := hasa.Optimize()
 	_, ok := newIt.Next()

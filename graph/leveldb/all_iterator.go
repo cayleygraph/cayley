@@ -24,19 +24,20 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 type AllIterator struct {
 	iterator.Base
 	prefix []byte
-	dir    graph.Direction
+	dir    quad.Direction
 	open   bool
 	iter   ldbit.Iterator
 	ts     *TripleStore
 	ro     *opt.ReadOptions
 }
 
-func NewAllIterator(prefix string, d graph.Direction, ts *TripleStore) *AllIterator {
+func NewAllIterator(prefix string, d quad.Direction, ts *TripleStore) *AllIterator {
 	var it AllIterator
 	iterator.BaseInit(&it.Base)
 	it.ro = &opt.ReadOptions{}

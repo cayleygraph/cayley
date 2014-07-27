@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 func hasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
@@ -27,13 +28,13 @@ func hasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
 	obj := ts.FixedIterator()
 	obj.Add(ts.ValueOf(target))
 	obj.AddTag(tag)
-	and.AddSubIterator(NewLinksTo(ts, obj, graph.Object))
+	and.AddSubIterator(NewLinksTo(ts, obj, quad.Object))
 
 	pred := ts.FixedIterator()
 	pred.Add(ts.ValueOf("status"))
-	and.AddSubIterator(NewLinksTo(ts, pred, graph.Predicate))
+	and.AddSubIterator(NewLinksTo(ts, pred, quad.Predicate))
 
-	return NewHasA(ts, and, graph.Subject)
+	return NewHasA(ts, and, quad.Subject)
 }
 
 func TestQueryShape(t *testing.T) {
@@ -104,11 +105,11 @@ func TestQueryShape(t *testing.T) {
 	pred.Add(ts.ValueOf("name"))
 
 	and := NewAnd()
-	and.AddSubIterator(NewLinksTo(ts, andInternal, graph.Subject))
-	and.AddSubIterator(NewLinksTo(ts, pred, graph.Predicate))
+	and.AddSubIterator(NewLinksTo(ts, andInternal, quad.Subject))
+	and.AddSubIterator(NewLinksTo(ts, pred, quad.Predicate))
 
 	shape = make(map[string]interface{})
-	OutputQueryShapeForIterator(NewHasA(ts, and, graph.Object), ts, shape)
+	OutputQueryShapeForIterator(NewHasA(ts, and, quad.Object), ts, shape)
 
 	links = shape["links"].([]Link)
 	if len(links) != 3 {

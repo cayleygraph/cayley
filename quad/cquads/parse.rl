@@ -14,19 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nquads
+package cquads
 
 import (
-	"errors"
 	"fmt"
 	"unicode"
 
-	"github.com/google/cayley/graph"
-)
-
-var (
-	ErrInvalid    = errors.New("invalid N-Quad")
-	ErrIncomplete = errors.New("incomplete N-Quad")
+	"github.com/google/cayley/quad"
 )
 
 %%{
@@ -34,12 +28,12 @@ var (
 
 	include "actions.rl";
 
-	include "nquads.rl";
+	include "cquads.rl";
 
 	write data;
 }%%
 
-func parse(data []rune) (graph.Triple, error) {
+func parse(data []rune) (quad.Quad, error) {
 	var (
 		cs, p int
 		pe    = len(data)
@@ -51,13 +45,14 @@ func parse(data []rune) (graph.Triple, error) {
 		label     = -1
 
 		isEscaped bool
+		isQuoted  bool
 
-		triple graph.Triple
+		q quad.Quad
 	)
 
 	%%write init;
 
 	%%write exec;
 
-	return graph.Triple{}, ErrInvalid
+	return quad.Quad{}, quad.ErrInvalid
 }

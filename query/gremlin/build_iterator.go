@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 func getStrings(obj *otto.Object, field string) []string {
@@ -139,13 +140,13 @@ func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Itera
 		}
 	}
 
-	in, out := graph.Subject, graph.Object
+	in, out := quad.Subject, quad.Object
 	if isReverse {
 		in, out = out, in
 	}
 	lto := iterator.NewLinksTo(ts, base, in)
 	and := iterator.NewAnd()
-	and.AddSubIterator(iterator.NewLinksTo(ts, predicateNodeIterator, graph.Predicate))
+	and.AddSubIterator(iterator.NewLinksTo(ts, predicateNodeIterator, quad.Predicate))
 	and.AddSubIterator(lto)
 	return iterator.NewHasA(ts, and, out)
 }
@@ -194,9 +195,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		predFixed := ts.FixedIterator()
 		predFixed.Add(ts.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, graph.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, graph.Object))
-		hasa := iterator.NewHasA(ts, subAnd, graph.Subject)
+		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, quad.Predicate))
+		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, quad.Object))
+		hasa := iterator.NewHasA(ts, subAnd, quad.Subject)
 		and := iterator.NewAnd()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
@@ -214,9 +215,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		predFixed := ts.FixedIterator()
 		predFixed.Add(ts.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, graph.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, graph.Subject))
-		hasa := iterator.NewHasA(ts, subAnd, graph.Object)
+		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, quad.Predicate))
+		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, quad.Subject))
+		hasa := iterator.NewHasA(ts, subAnd, quad.Object)
 		and := iterator.NewAnd()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
@@ -232,9 +233,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		predFixed := ts.FixedIterator()
 		predFixed.Add(ts.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, graph.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, graph.Object))
-		hasa := iterator.NewHasA(ts, subAnd, graph.Subject)
+		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, quad.Predicate))
+		subAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, quad.Object))
+		hasa := iterator.NewHasA(ts, subAnd, quad.Subject)
 		and := iterator.NewAnd()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)

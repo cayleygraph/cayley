@@ -24,34 +24,35 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 type Iterator struct {
 	iterator.Base
 	nextPrefix     []byte
 	checkId        []byte
-	dir            graph.Direction
+	dir            quad.Direction
 	open           bool
 	iter           ldbit.Iterator
-	ts             *TripleStore
+	qs             *TripleStore
 	ro             *opt.ReadOptions
 	originalPrefix string
 }
 
-func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *TripleStore) *Iterator {
+func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) *Iterator {
 	var it Iterator
 	iterator.BaseInit(&it.Base)
 	it.checkId = value.([]byte)
 	it.dir = d
 	it.originalPrefix = prefix
-	it.nextPrefix = make([]byte, 0, 2+ts.hasher.Size())
+	it.nextPrefix = make([]byte, 0, 2+qs.hasher.Size())
 	it.nextPrefix = append(it.nextPrefix, []byte(prefix)...)
 	it.nextPrefix = append(it.nextPrefix, []byte(it.checkId[1:])...)
 	it.ro = &opt.ReadOptions{}
 	it.ro.DontFillCache = true
-	it.iter = ts.db.NewIterator(nil, it.ro)
+	it.iter = qs.db.NewIterator(nil, it.ro)
 	it.open = true
-	it.ts = ts
+	it.qs = qs
 	ok := it.iter.Seek(it.nextPrefix)
 	if !ok {
 		it.open = false
@@ -62,7 +63,7 @@ func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *Triple
 
 func (it *Iterator) Reset() {
 	if !it.open {
-		it.iter = it.ts.db.NewIterator(nil, it.ro)
+		it.iter = it.qs.db.NewIterator(nil, it.ro)
 		it.open = true
 	}
 	ok := it.iter.Seek(it.nextPrefix)
@@ -73,7 +74,7 @@ func (it *Iterator) Reset() {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	out := NewIterator(it.originalPrefix, it.dir, it.checkId, it.ts)
+	out := NewIterator(it.originalPrefix, it.dir, it.checkId, it.qs)
 	out.CopyTagsFrom(it)
 	return out
 }
@@ -114,52 +115,52 @@ func (it *Iterator) Next() (graph.Value, bool) {
 	return nil, false
 }
 
-func PositionOf(prefix []byte, d graph.Direction, ts *TripleStore) int {
+func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 	if bytes.Equal(prefix, []byte("sp")) {
 		switch d {
-		case graph.Subject:
+		case quad.Subject:
 			return 2
-		case graph.Predicate:
-			return ts.hasher.Size() + 2
-		case graph.Object:
-			return 2*ts.hasher.Size() + 2
-		case graph.Provenance:
+		case quad.Predicate:
+			return qs.hasher.Size() + 2
+		case quad.Object:
+			return 2*qs.hasher.Size() + 2
+		case quad.Provenance:
 			return -1
 		}
 	}
 	if bytes.Equal(prefix, []byte("po")) {
 		switch d {
-		case graph.Subject:
-			return 2*ts.hasher.Size() + 2
-		case graph.Predicate:
+		case quad.Subject:
+			return 2*qs.hasher.Size() + 2
+		case quad.Predicate:
 			return 2
-		case graph.Object:
-			return ts.hasher.Size() + 2
-		case graph.Provenance:
+		case quad.Object:
+			return qs.hasher.Size() + 2
+		case quad.Provenance:
 			return -1
 		}
 	}
 	if bytes.Equal(prefix, []byte("os")) {
 		switch d {
-		case graph.Subject:
-			return ts.hasher.Size() + 2
-		case graph.Predicate:
-			return 2*ts.hasher.Size() + 2
-		case graph.Object:
+		case quad.Subject:
+			return qs.hasher.Size() + 2
+		case quad.Predicate:
+			return 2*qs.hasher.Size() + 2
+		case quad.Object:
 			return 2
-		case graph.Provenance:
+		case quad.Provenance:
 			return -1
 		}
 	}
 	if bytes.Equal(prefix, []byte("cp")) {
 		switch d {
-		case graph.Subject:
-			return 2*ts.hasher.Size() + 2
-		case graph.Predicate:
-			return ts.hasher.Size() + 2
-		case graph.Object:
-			return 3*ts.hasher.Size() + 2
-		case graph.Provenance:
+		case quad.Subject:
+			return 2*qs.hasher.Size() + 2
+		case quad.Predicate:
+			return qs.hasher.Size() + 2
+		case quad.Object:
+			return 3*qs.hasher.Size() + 2
+		case quad.Provenance:
 			return 2
 		}
 	}
@@ -171,14 +172,14 @@ func (it *Iterator) Check(v graph.Value) bool {
 	if val[0] == 'z' {
 		return false
 	}
-	offset := PositionOf(val[0:2], it.dir, it.ts)
+	offset := PositionOf(val[0:2], it.dir, it.qs)
 	if offset != -1 {
 		if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
 			return true
 		}
 	} else {
-		nameForDir := it.ts.Triple(v).Get(it.dir)
-		hashForDir := it.ts.ValueOf(nameForDir).([]byte)
+		nameForDir := it.qs.Quad(v).Get(it.dir)
+		hashForDir := it.qs.ValueOf(nameForDir).([]byte)
 		if bytes.Equal(hashForDir, it.checkId) {
 			return true
 		}
@@ -187,12 +188,12 @@ func (it *Iterator) Check(v graph.Value) bool {
 }
 
 func (it *Iterator) Size() (int64, bool) {
-	return it.ts.SizeOf(it.checkId), true
+	return it.qs.SizeOf(it.checkId), true
 }
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.ts.NameOf(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.qs.NameOf(it.checkId))
 }
 
 var levelDBType graph.Type

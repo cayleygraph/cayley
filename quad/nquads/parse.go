@@ -19,20 +19,14 @@
 package nquads
 
 import (
-	"errors"
 	"fmt"
 	"unicode"
 
-	"github.com/google/cayley/graph"
-)
-
-var (
-	ErrInvalid    = errors.New("invalid N-Quad")
-	ErrIncomplete = errors.New("incomplete N-Quad")
+	"github.com/google/cayley/quad"
 )
 
 
-// line 36 "parse.go"
+// line 30 "parse.go"
 const quads_start int = 1
 const quads_first_final int = 88
 const quads_error int = 0
@@ -40,10 +34,10 @@ const quads_error int = 0
 const quads_en_statement int = 1
 
 
-// line 40 "parse.rl"
+// line 34 "parse.rl"
 
 
-func parse(data []rune) (graph.Triple, error) {
+func parse(data []rune) (quad.Quad, error) {
 	var (
 		cs, p int
 		pe    = len(data)
@@ -56,19 +50,19 @@ func parse(data []rune) (graph.Triple, error) {
 
 		isEscaped bool
 
-		triple graph.Triple
+		q quad.Quad
 	)
 
 	
-// line 64 "parse.go"
+// line 58 "parse.go"
 	{
 	cs = quads_start
 	}
 
-// line 59 "parse.rl"
+// line 53 "parse.rl"
 
 	
-// line 72 "parse.go"
+// line 66 "parse.go"
 	{
 	if p == pe {
 		goto _test_eof
@@ -284,15 +278,15 @@ tr0:
 
 		if p < len(data) {
 			if r := data[p]; r < unicode.MaxASCII {
-				return triple, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+				return q, fmt.Errorf("%v: unexpected rune %q at %d", quad.ErrInvalid, data[p], p)
 			} else {
-				return triple, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", ErrInvalid, data[p], data[p], p)
+				return q, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", quad.ErrInvalid, data[p], data[p], p)
 			}
 		}
-		return triple, ErrIncomplete
+		return q, quad.ErrIncomplete
 	
 	goto st0
-// line 296 "parse.go"
+// line 290 "parse.go"
 st_case_0:
 	st0:
 		cs = 0
@@ -316,7 +310,7 @@ tr120:
 			goto _test_eof2
 		}
 	st_case_2:
-// line 320 "parse.go"
+// line 314 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st3
@@ -357,7 +351,7 @@ tr121:
 			goto _test_eof3
 		}
 	st_case_3:
-// line 361 "parse.go"
+// line 355 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
@@ -374,7 +368,7 @@ tr7:
 		if subject < 0 {
 			panic("unexpected parser state: subject start not set")
 		}
-		triple.Subject = unEscape(data[subject:p], isEscaped)
+		q.Subject = unEscape(data[subject:p], isEscaped)
 		isEscaped = false
 	
 	goto st4
@@ -383,7 +377,7 @@ tr7:
 			goto _test_eof4
 		}
 	st_case_4:
-// line 387 "parse.go"
+// line 381 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st4
@@ -400,7 +394,7 @@ tr8:
 		if subject < 0 {
 			panic("unexpected parser state: subject start not set")
 		}
-		triple.Subject = unEscape(data[subject:p], isEscaped)
+		q.Subject = unEscape(data[subject:p], isEscaped)
 		isEscaped = false
 	
 // line 26 "actions.rl"
@@ -428,7 +422,7 @@ tr108:
 			goto _test_eof5
 		}
 	st_case_5:
-// line 432 "parse.go"
+// line 426 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st6
@@ -469,7 +463,7 @@ tr109:
 			goto _test_eof6
 		}
 	st_case_6:
-// line 473 "parse.go"
+// line 467 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr14
@@ -490,7 +484,7 @@ tr14:
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		q.Predicate = unEscape(data[predicate:p], isEscaped)
 		isEscaped = false
 	
 	goto st7
@@ -499,7 +493,7 @@ tr14:
 			goto _test_eof7
 		}
 	st_case_7:
-// line 503 "parse.go"
+// line 497 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st7
@@ -520,7 +514,7 @@ tr15:
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		q.Predicate = unEscape(data[predicate:p], isEscaped)
 		isEscaped = false
 	
 // line 30 "actions.rl"
@@ -548,7 +542,7 @@ tr79:
 			goto _test_eof8
 		}
 	st_case_8:
-// line 552 "parse.go"
+// line 546 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st9
@@ -580,7 +574,7 @@ tr80:
 			goto _test_eof9
 		}
 	st_case_9:
-// line 584 "parse.go"
+// line 578 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -605,7 +599,7 @@ tr25:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 	goto st10
@@ -616,7 +610,7 @@ tr96:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 // line 62 "actions.rl"
@@ -625,7 +619,7 @@ tr96:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		triple.Provenance = unEscape(data[label:p], isEscaped)
+		q.Provenance = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st10
@@ -634,7 +628,7 @@ tr96:
 			goto _test_eof10
 		}
 	st_case_10:
-// line 638 "parse.go"
+// line 632 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st10
@@ -655,7 +649,7 @@ tr26:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 	goto st88
@@ -666,7 +660,7 @@ tr39:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		triple.Provenance = unEscape(data[label:p], isEscaped)
+		q.Provenance = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st88
@@ -675,7 +669,7 @@ tr39:
 			goto _test_eof88
 		}
 	st_case_88:
-// line 679 "parse.go"
+// line 673 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -696,7 +690,7 @@ tr127:
 			goto _test_eof89
 		}
 	st_case_89:
-// line 700 "parse.go"
+// line 694 "parse.go"
 		goto st89
 tr27:
 // line 54 "actions.rl"
@@ -705,7 +699,7 @@ tr27:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 // line 34 "actions.rl"
@@ -733,7 +727,7 @@ tr50:
 			goto _test_eof11
 		}
 	st_case_11:
-// line 737 "parse.go"
+// line 731 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st12
@@ -774,7 +768,7 @@ tr51:
 			goto _test_eof12
 		}
 	st_case_12:
-// line 778 "parse.go"
+// line 772 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr38
@@ -791,7 +785,7 @@ tr38:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		triple.Provenance = unEscape(data[label:p], isEscaped)
+		q.Provenance = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st13
@@ -800,7 +794,7 @@ tr38:
 			goto _test_eof13
 		}
 	st_case_13:
-// line 804 "parse.go"
+// line 798 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st13
@@ -822,7 +816,7 @@ tr52:
 			goto _test_eof14
 		}
 	st_case_14:
-// line 826 "parse.go"
+// line 820 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st15
@@ -1014,7 +1008,7 @@ tr30:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 // line 34 "actions.rl"
@@ -1035,7 +1029,7 @@ tr34:
 			goto _test_eof24
 		}
 	st_case_24:
-// line 1039 "parse.go"
+// line 1033 "parse.go"
 		if data[p] == 58 {
 			goto st25
 		}
@@ -1208,7 +1202,7 @@ tr55:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		triple.Provenance = unEscape(data[label:p], isEscaped)
+		q.Provenance = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st90
@@ -1217,7 +1211,7 @@ tr55:
 			goto _test_eof90
 		}
 	st_case_90:
-// line 1221 "parse.go"
+// line 1215 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -1500,7 +1494,7 @@ tr16:
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		q.Predicate = unEscape(data[predicate:p], isEscaped)
 		isEscaped = false
 	
 // line 30 "actions.rl"
@@ -1528,7 +1522,7 @@ tr73:
 			goto _test_eof34
 		}
 	st_case_34:
-// line 1532 "parse.go"
+// line 1526 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st35
@@ -1569,7 +1563,7 @@ tr74:
 			goto _test_eof35
 		}
 	st_case_35:
-// line 1573 "parse.go"
+// line 1567 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -1595,7 +1589,7 @@ tr75:
 			goto _test_eof36
 		}
 	st_case_36:
-// line 1599 "parse.go"
+// line 1593 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st37
@@ -1792,7 +1786,7 @@ tr81:
 			goto _test_eof46
 		}
 	st_case_46:
-// line 1796 "parse.go"
+// line 1790 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st47
@@ -1991,7 +1985,7 @@ tr17:
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		q.Predicate = unEscape(data[predicate:p], isEscaped)
 		isEscaped = false
 	
 // line 30 "actions.rl"
@@ -2012,7 +2006,7 @@ tr21:
 			goto _test_eof56
 		}
 	st_case_56:
-// line 2016 "parse.go"
+// line 2010 "parse.go"
 		if data[p] == 58 {
 			goto st57
 		}
@@ -2187,7 +2181,7 @@ tr90:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 	goto st91
@@ -2196,7 +2190,7 @@ tr90:
 			goto _test_eof91
 		}
 	st_case_91:
-// line 2200 "parse.go"
+// line 2194 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -2369,7 +2363,7 @@ tr91:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 // line 34 "actions.rl"
@@ -2383,7 +2377,7 @@ tr91:
 			goto _test_eof60
 		}
 	st_case_60:
-// line 2387 "parse.go"
+// line 2381 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -2574,7 +2568,7 @@ tr95:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 // line 34 "actions.rl"
@@ -2588,7 +2582,7 @@ tr95:
 			goto _test_eof62
 		}
 	st_case_62:
-// line 2592 "parse.go"
+// line 2586 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr96
@@ -2679,7 +2673,7 @@ tr97:
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isEscaped)
 		isEscaped = false
 	
 // line 62 "actions.rl"
@@ -2688,7 +2682,7 @@ tr97:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		triple.Provenance = unEscape(data[label:p], isEscaped)
+		q.Provenance = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st92
@@ -2697,7 +2691,7 @@ tr97:
 			goto _test_eof92
 		}
 	st_case_92:
-// line 2701 "parse.go"
+// line 2695 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -2875,7 +2869,7 @@ tr110:
 			goto _test_eof64
 		}
 	st_case_64:
-// line 2879 "parse.go"
+// line 2873 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st65
@@ -3072,7 +3066,7 @@ tr122:
 			goto _test_eof74
 		}
 	st_case_74:
-// line 3076 "parse.go"
+// line 3070 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st75
@@ -3269,7 +3263,7 @@ tr3:
 			goto _test_eof84
 		}
 	st_case_84:
-// line 3273 "parse.go"
+// line 3267 "parse.go"
 		if data[p] == 58 {
 			goto st85
 		}
@@ -3620,7 +3614,7 @@ tr3:
 // line 70 "actions.rl"
 
 
-		return triple, nil
+		return q, nil
 	
 		case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87:
 // line 77 "actions.rl"
@@ -3628,12 +3622,12 @@ tr3:
 
 		if p < len(data) {
 			if r := data[p]; r < unicode.MaxASCII {
-				return triple, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+				return q, fmt.Errorf("%v: unexpected rune %q at %d", quad.ErrInvalid, data[p], p)
 			} else {
-				return triple, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", ErrInvalid, data[p], data[p], p)
+				return q, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", quad.ErrInvalid, data[p], data[p], p)
 			}
 		}
-		return triple, ErrIncomplete
+		return q, quad.ErrIncomplete
 	
 		case 88, 90, 91, 92:
 // line 74 "actions.rl"
@@ -3643,16 +3637,16 @@ tr3:
 // line 70 "actions.rl"
 
 
-		return triple, nil
+		return q, nil
 	
-// line 3649 "parse.go"
+// line 3643 "parse.go"
 		}
 	}
 
 	_out: {}
 	}
 
-// line 61 "parse.rl"
+// line 55 "parse.rl"
 
-	return graph.Triple{}, ErrInvalid
+	return quad.Quad{}, quad.ErrInvalid
 }

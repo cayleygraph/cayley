@@ -24,12 +24,13 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 type Iterator struct {
 	iterator.Base
-	ts         *TripleStore
-	dir        graph.Direction
+	qs         *TripleStore
+	dir        quad.Direction
 	iter       *mgo.Iter
 	hash       string
 	name       string
@@ -39,27 +40,27 @@ type Iterator struct {
 	collection string
 }
 
-func NewIterator(ts *TripleStore, collection string, d graph.Direction, val graph.Value) *Iterator {
+func NewIterator(qs *TripleStore, collection string, d quad.Direction, val graph.Value) *Iterator {
 	var m Iterator
 	iterator.BaseInit(&m.Base)
 
-	m.name = ts.NameOf(val)
+	m.name = qs.NameOf(val)
 	m.collection = collection
 	switch d {
-	case graph.Subject:
+	case quad.Subject:
 		m.constraint = bson.M{"Subject": m.name}
-	case graph.Predicate:
+	case quad.Predicate:
 		m.constraint = bson.M{"Predicate": m.name}
-	case graph.Object:
+	case quad.Object:
 		m.constraint = bson.M{"Object": m.name}
-	case graph.Provenance:
+	case quad.Provenance:
 		m.constraint = bson.M{"Provenance": m.name}
 	}
 
-	m.ts = ts
+	m.qs = qs
 	m.dir = d
-	m.iter = ts.db.C(collection).Find(m.constraint).Iter()
-	size, err := ts.db.C(collection).Find(m.constraint).Count()
+	m.iter = qs.db.C(collection).Find(m.constraint).Iter()
+	size, err := qs.db.C(collection).Find(m.constraint).Count()
 	if err != nil {
 		glog.Errorln("Trouble getting size for iterator! ", err)
 		return nil
@@ -70,14 +71,14 @@ func NewIterator(ts *TripleStore, collection string, d graph.Direction, val grap
 	return &m
 }
 
-func NewAllIterator(ts *TripleStore, collection string) *Iterator {
+func NewAllIterator(qs *TripleStore, collection string) *Iterator {
 	var m Iterator
-	m.ts = ts
-	m.dir = graph.Any
+	m.qs = qs
+	m.dir = quad.Any
 	m.constraint = nil
 	m.collection = collection
-	m.iter = ts.db.C(collection).Find(nil).Iter()
-	size, err := ts.db.C(collection).Count()
+	m.iter = qs.db.C(collection).Find(nil).Iter()
+	size, err := qs.db.C(collection).Count()
 	if err != nil {
 		glog.Errorln("Trouble getting size for iterator! ", err)
 		return nil
@@ -90,7 +91,7 @@ func NewAllIterator(ts *TripleStore, collection string) *Iterator {
 
 func (it *Iterator) Reset() {
 	it.iter.Close()
-	it.iter = it.ts.db.C(it.collection).Find(it.constraint).Iter()
+	it.iter = it.qs.db.C(it.collection).Find(it.constraint).Iter()
 
 }
 
@@ -101,9 +102,9 @@ func (it *Iterator) Close() {
 func (it *Iterator) Clone() graph.Iterator {
 	var newM graph.Iterator
 	if it.isAll {
-		newM = NewAllIterator(it.ts, it.collection)
+		newM = NewAllIterator(it.qs, it.collection)
 	} else {
-		newM = NewIterator(it.ts, it.collection, it.dir, it.hash)
+		newM = NewIterator(it.qs, it.collection, it.dir, it.hash)
 	}
 	newM.CopyTagsFrom(it)
 	return newM
@@ -136,16 +137,16 @@ func (it *Iterator) Check(v graph.Value) bool {
 	}
 	var offset int
 	switch it.dir {
-	case graph.Subject:
+	case quad.Subject:
 		offset = 0
-	case graph.Predicate:
-		offset = (it.ts.hasher.Size() * 2)
-	case graph.Object:
-		offset = (it.ts.hasher.Size() * 2) * 2
-	case graph.Provenance:
-		offset = (it.ts.hasher.Size() * 2) * 3
+	case quad.Predicate:
+		offset = (it.qs.hasher.Size() * 2)
+	case quad.Object:
+		offset = (it.qs.hasher.Size() * 2) * 2
+	case quad.Provenance:
+		offset = (it.qs.hasher.Size() * 2) * 3
 	}
-	val := v.(string)[offset : it.ts.hasher.Size()*2+offset]
+	val := v.(string)[offset : it.qs.hasher.Size()*2+offset]
 	if val == it.hash {
 		it.Last = v
 		return graph.CheckLogOut(it, v, true)

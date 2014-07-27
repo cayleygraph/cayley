@@ -30,6 +30,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 const (
@@ -56,110 +57,110 @@ func createNewLevelDB(path string, _ graph.Options) error {
 		return err
 	}
 	defer db.Close()
-	ts := &TripleStore{}
-	ts.db = db
-	ts.writeopts = &opt.WriteOptions{
+	qs := &TripleStore{}
+	qs.db = db
+	qs.writeopts = &opt.WriteOptions{
 		Sync: true,
 	}
-	ts.Close()
+	qs.Close()
 	return nil
 }
 
 func newTripleStore(path string, options graph.Options) (graph.TripleStore, error) {
-	var ts TripleStore
-	ts.path = path
+	var qs TripleStore
+	qs.path = path
 	cache_size := DefaultCacheSize
 	if val, ok := options.IntKey("cache_size_mb"); ok {
 		cache_size = val
 	}
-	ts.dbOpts = &opt.Options{
+	qs.dbOpts = &opt.Options{
 		BlockCache: cache.NewLRUCache(cache_size * opt.MiB),
 	}
-	ts.dbOpts.ErrorIfMissing = true
+	qs.dbOpts.ErrorIfMissing = true
 
 	write_buffer_mb := DefaultWriteBufferSize
 	if val, ok := options.IntKey("write_buffer_mb"); ok {
 		write_buffer_mb = val
 	}
-	ts.dbOpts.WriteBuffer = write_buffer_mb * opt.MiB
-	ts.hasher = sha1.New()
-	ts.writeopts = &opt.WriteOptions{
+	qs.dbOpts.WriteBuffer = write_buffer_mb * opt.MiB
+	qs.hasher = sha1.New()
+	qs.writeopts = &opt.WriteOptions{
 		Sync: false,
 	}
-	ts.readopts = &opt.ReadOptions{}
-	db, err := leveldb.OpenFile(ts.path, ts.dbOpts)
+	qs.readopts = &opt.ReadOptions{}
+	db, err := leveldb.OpenFile(qs.path, qs.dbOpts)
 	if err != nil {
 		panic("Error, couldn't open! " + err.Error())
 	}
-	ts.db = db
-	glog.Infoln(ts.GetStats())
-	ts.getSize()
-	return &ts, nil
+	qs.db = db
+	glog.Infoln(qs.GetStats())
+	qs.getSize()
+	return &qs, nil
 }
 
-func (ts *TripleStore) GetStats() string {
+func (qs *TripleStore) GetStats() string {
 	out := ""
-	stats, err := ts.db.GetProperty("leveldb.stats")
+	stats, err := qs.db.GetProperty("leveldb.stats")
 	if err == nil {
 		out += fmt.Sprintln("Stats: ", stats)
 	}
-	out += fmt.Sprintln("Size: ", ts.size)
+	out += fmt.Sprintln("Size: ", qs.size)
 	return out
 }
 
-func (ts *TripleStore) Size() int64 {
-	return ts.size
+func (qs *TripleStore) Size() int64 {
+	return qs.size
 }
 
-func (ts *TripleStore) createKeyFor(d [3]graph.Direction, triple *graph.Triple) []byte {
-	key := make([]byte, 0, 2+(ts.hasher.Size()*3))
+func (qs *TripleStore) createKeyFor(d [3]quad.Direction, triple *quad.Quad) []byte {
+	key := make([]byte, 0, 2+(qs.hasher.Size()*3))
 	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(d[0]))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(d[1]))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(d[2]))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
 	return key
 }
 
-func (ts *TripleStore) createProvKeyFor(d [3]graph.Direction, triple *graph.Triple) []byte {
-	key := make([]byte, 0, 2+(ts.hasher.Size()*4))
+func (qs *TripleStore) createProvKeyFor(d [3]quad.Direction, triple *quad.Quad) []byte {
+	key := make([]byte, 0, 2+(qs.hasher.Size()*4))
 	// TODO(kortschak) Remove dependence on String() method.
-	key = append(key, []byte{graph.Provenance.Prefix(), d[0].Prefix()}...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(graph.Provenance))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(d[0]))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(d[1]))...)
-	key = append(key, ts.convertStringToByteHash(triple.Get(d[2]))...)
+	key = append(key, []byte{quad.Provenance.Prefix(), d[0].Prefix()}...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(quad.Provenance))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
 	return key
 }
 
-func (ts *TripleStore) createValueKeyFor(s string) []byte {
-	key := make([]byte, 0, 1+ts.hasher.Size())
+func (qs *TripleStore) createValueKeyFor(s string) []byte {
+	key := make([]byte, 0, 1+qs.hasher.Size())
 	key = append(key, []byte("z")...)
-	key = append(key, ts.convertStringToByteHash(s)...)
+	key = append(key, qs.convertStringToByteHash(s)...)
 	return key
 }
 
-func (ts *TripleStore) AddTriple(t *graph.Triple) {
+func (qs *TripleStore) AddTriple(t *quad.Quad) {
 	batch := &leveldb.Batch{}
-	ts.buildWrite(batch, t)
-	err := ts.db.Write(batch, ts.writeopts)
+	qs.buildWrite(batch, t)
+	err := qs.db.Write(batch, qs.writeopts)
 	if err != nil {
 		glog.Errorf("Couldn't write to DB for triple %s", t)
 		return
 	}
-	ts.size++
+	qs.size++
 }
 
 // Short hand for direction permutations.
 var (
-	spo = [3]graph.Direction{graph.Subject, graph.Predicate, graph.Object}
-	osp = [3]graph.Direction{graph.Object, graph.Subject, graph.Predicate}
-	pos = [3]graph.Direction{graph.Predicate, graph.Object, graph.Subject}
-	pso = [3]graph.Direction{graph.Predicate, graph.Subject, graph.Object}
+	spo = [3]quad.Direction{quad.Subject, quad.Predicate, quad.Object}
+	osp = [3]quad.Direction{quad.Object, quad.Subject, quad.Predicate}
+	pos = [3]quad.Direction{quad.Predicate, quad.Object, quad.Subject}
+	pso = [3]quad.Direction{quad.Predicate, quad.Subject, quad.Object}
 )
 
-func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
-	_, err := ts.db.Get(ts.createKeyFor(spo, t), ts.readopts)
+func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
+	_, err := qs.db.Get(qs.createKeyFor(spo, t), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Errorf("Couldn't access DB to confirm deletion")
 		return
@@ -169,45 +170,45 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 		return
 	}
 	batch := &leveldb.Batch{}
-	batch.Delete(ts.createKeyFor(spo, t))
-	batch.Delete(ts.createKeyFor(osp, t))
-	batch.Delete(ts.createKeyFor(pos, t))
-	ts.UpdateValueKeyBy(t.Get(graph.Subject), -1, batch)
-	ts.UpdateValueKeyBy(t.Get(graph.Predicate), -1, batch)
-	ts.UpdateValueKeyBy(t.Get(graph.Object), -1, batch)
-	if t.Get(graph.Provenance) != "" {
-		batch.Delete(ts.createProvKeyFor(pso, t))
-		ts.UpdateValueKeyBy(t.Get(graph.Provenance), -1, batch)
+	batch.Delete(qs.createKeyFor(spo, t))
+	batch.Delete(qs.createKeyFor(osp, t))
+	batch.Delete(qs.createKeyFor(pos, t))
+	qs.UpdateValueKeyBy(t.Get(quad.Subject), -1, batch)
+	qs.UpdateValueKeyBy(t.Get(quad.Predicate), -1, batch)
+	qs.UpdateValueKeyBy(t.Get(quad.Object), -1, batch)
+	if t.Get(quad.Provenance) != "" {
+		batch.Delete(qs.createProvKeyFor(pso, t))
+		qs.UpdateValueKeyBy(t.Get(quad.Provenance), -1, batch)
 	}
-	err = ts.db.Write(batch, nil)
+	err = qs.db.Write(batch, nil)
 	if err != nil {
 		glog.Errorf("Couldn't delete triple %s", t)
 		return
 	}
-	ts.size--
+	qs.size--
 }
 
-func (ts *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *graph.Triple) {
+func (qs *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *quad.Quad) {
 	bytes, err := json.Marshal(*t)
 	if err != nil {
 		glog.Errorf("Couldn't write to buffer for triple %s\n  %s\n", t, err)
 		return
 	}
-	batch.Put(ts.createKeyFor(spo, t), bytes)
-	batch.Put(ts.createKeyFor(osp, t), bytes)
-	batch.Put(ts.createKeyFor(pos, t), bytes)
-	if t.Get(graph.Provenance) != "" {
-		batch.Put(ts.createProvKeyFor(pso, t), bytes)
+	batch.Put(qs.createKeyFor(spo, t), bytes)
+	batch.Put(qs.createKeyFor(osp, t), bytes)
+	batch.Put(qs.createKeyFor(pos, t), bytes)
+	if t.Get(quad.Provenance) != "" {
+		batch.Put(qs.createProvKeyFor(pso, t), bytes)
 	}
 }
 
-func (ts *TripleStore) buildWrite(batch *leveldb.Batch, t *graph.Triple) {
-	ts.buildTripleWrite(batch, t)
-	ts.UpdateValueKeyBy(t.Get(graph.Subject), 1, nil)
-	ts.UpdateValueKeyBy(t.Get(graph.Predicate), 1, nil)
-	ts.UpdateValueKeyBy(t.Get(graph.Object), 1, nil)
-	if t.Get(graph.Provenance) != "" {
-		ts.UpdateValueKeyBy(t.Get(graph.Provenance), 1, nil)
+func (qs *TripleStore) buildWrite(batch *leveldb.Batch, t *quad.Quad) {
+	qs.buildTripleWrite(batch, t)
+	qs.UpdateValueKeyBy(t.Get(quad.Subject), 1, nil)
+	qs.UpdateValueKeyBy(t.Get(quad.Predicate), 1, nil)
+	qs.UpdateValueKeyBy(t.Get(quad.Object), 1, nil)
+	if t.Get(quad.Provenance) != "" {
+		qs.UpdateValueKeyBy(t.Get(quad.Provenance), 1, nil)
 	}
 }
 
@@ -216,10 +217,10 @@ type ValueData struct {
 	Size int64
 }
 
-func (ts *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.Batch) {
+func (qs *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.Batch) {
 	value := &ValueData{name, int64(amount)}
-	key := ts.createValueKeyFor(name)
-	b, err := ts.db.Get(key, ts.readopts)
+	key := qs.createValueKeyFor(name)
+	b, err := qs.db.Get(key, qs.readopts)
 
 	// Error getting the node from the database.
 	if err != nil && err != leveldb.ErrNotFound {
@@ -241,7 +242,7 @@ func (ts *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.
 	if amount < 0 {
 		if value.Size <= 0 {
 			if batch == nil {
-				ts.db.Delete(key, ts.writeopts)
+				qs.db.Delete(key, qs.writeopts)
 			} else {
 				batch.Delete(key)
 			}
@@ -256,18 +257,18 @@ func (ts *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.
 		return
 	}
 	if batch == nil {
-		ts.db.Put(key, bytes, ts.writeopts)
+		qs.db.Put(key, bytes, qs.writeopts)
 	} else {
 		batch.Put(key, bytes)
 	}
 }
 
-func (ts *TripleStore) AddTripleSet(t_s []*graph.Triple) {
+func (qs *TripleStore) AddTripleSet(t_s []*quad.Quad) {
 	batch := &leveldb.Batch{}
 	newTs := len(t_s)
 	resizeMap := make(map[string]int)
 	for _, t := range t_s {
-		ts.buildTripleWrite(batch, t)
+		qs.buildTripleWrite(batch, t)
 		resizeMap[t.Subject]++
 		resizeMap[t.Predicate]++
 		resizeMap[t.Object]++
@@ -276,68 +277,68 @@ func (ts *TripleStore) AddTripleSet(t_s []*graph.Triple) {
 		}
 	}
 	for k, v := range resizeMap {
-		ts.UpdateValueKeyBy(k, v, batch)
+		qs.UpdateValueKeyBy(k, v, batch)
 	}
-	err := ts.db.Write(batch, ts.writeopts)
+	err := qs.db.Write(batch, qs.writeopts)
 	if err != nil {
 		glog.Errorf("Couldn't write to DB for tripleset")
 		return
 	}
-	ts.size += int64(newTs)
+	qs.size += int64(newTs)
 }
 
-func (ts *TripleStore) Close() {
+func (qs *TripleStore) Close() {
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, ts.size)
+	err := binary.Write(buf, binary.LittleEndian, qs.size)
 	if err == nil {
-		werr := ts.db.Put([]byte("__size"), buf.Bytes(), ts.writeopts)
+		werr := qs.db.Put([]byte("__size"), buf.Bytes(), qs.writeopts)
 		if werr != nil {
 			glog.Errorf("Couldn't write size before closing!")
 		}
 	} else {
 		glog.Errorf("Couldn't convert size before closing!")
 	}
-	ts.db.Close()
-	ts.open = false
+	qs.db.Close()
+	qs.open = false
 }
 
-func (ts *TripleStore) Triple(k graph.Value) *graph.Triple {
-	var triple graph.Triple
-	b, err := ts.db.Get(k.([]byte), ts.readopts)
+func (qs *TripleStore) Quad(k graph.Value) *quad.Quad {
+	var triple quad.Quad
+	b, err := qs.db.Get(k.([]byte), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Errorln("Error: couldn't get triple from DB")
-		return &graph.Triple{}
+		return &quad.Quad{}
 	}
 	if err == leveldb.ErrNotFound {
 		// No harm, no foul.
-		return &graph.Triple{}
+		return &quad.Quad{}
 	}
 	err = json.Unmarshal(b, &triple)
 	if err != nil {
 		glog.Errorln("Error: couldn't reconstruct triple")
-		return &graph.Triple{}
+		return &quad.Quad{}
 	}
 	return &triple
 }
 
-func (ts *TripleStore) convertStringToByteHash(s string) []byte {
-	ts.hasher.Reset()
-	key := make([]byte, 0, ts.hasher.Size())
-	ts.hasher.Write([]byte(s))
-	key = ts.hasher.Sum(key)
+func (qs *TripleStore) convertStringToByteHash(s string) []byte {
+	qs.hasher.Reset()
+	key := make([]byte, 0, qs.hasher.Size())
+	qs.hasher.Write([]byte(s))
+	key = qs.hasher.Sum(key)
 	return key
 }
 
-func (ts *TripleStore) ValueOf(s string) graph.Value {
-	return ts.createValueKeyFor(s)
+func (qs *TripleStore) ValueOf(s string) graph.Value {
+	return qs.createValueKeyFor(s)
 }
 
-func (ts *TripleStore) valueData(value_key []byte) ValueData {
+func (qs *TripleStore) valueData(value_key []byte) ValueData {
 	var out ValueData
 	if glog.V(3) {
 		glog.V(3).Infof("%s %v\n", string(value_key[0]), value_key)
 	}
-	b, err := ts.db.Get(value_key, ts.readopts)
+	b, err := qs.db.Get(value_key, qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Errorln("Error: couldn't get value from DB")
 		return out
@@ -352,30 +353,30 @@ func (ts *TripleStore) valueData(value_key []byte) ValueData {
 	return out
 }
 
-func (ts *TripleStore) NameOf(k graph.Value) string {
+func (qs *TripleStore) NameOf(k graph.Value) string {
 	if k == nil {
 		glog.V(2).Infoln("k was nil")
 		return ""
 	}
-	return ts.valueData(k.([]byte)).Name
+	return qs.valueData(k.([]byte)).Name
 }
 
-func (ts *TripleStore) SizeOf(k graph.Value) int64 {
+func (qs *TripleStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
 		return 0
 	}
-	return int64(ts.valueData(k.([]byte)).Size)
+	return int64(qs.valueData(k.([]byte)).Size)
 }
 
-func (ts *TripleStore) getSize() {
+func (qs *TripleStore) getSize() {
 	var size int64
-	b, err := ts.db.Get([]byte("__size"), ts.readopts)
+	b, err := qs.db.Get([]byte("__size"), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		panic("Couldn't read size " + err.Error())
 	}
 	if err == leveldb.ErrNotFound {
 		// Must be a new database. Cool
-		ts.size = 0
+		qs.size = 0
 		return
 	}
 	buf := bytes.NewBuffer(b)
@@ -383,10 +384,10 @@ func (ts *TripleStore) getSize() {
 	if err != nil {
 		glog.Errorln("Error: couldn't parse size")
 	}
-	ts.size = size
+	qs.size = size
 }
 
-func (ts *TripleStore) SizeOfPrefix(pre []byte) (int64, error) {
+func (qs *TripleStore) SizeOfPrefix(pre []byte) (int64, error) {
 	limit := make([]byte, len(pre))
 	copy(limit, pre)
 	end := len(limit) - 1
@@ -394,45 +395,45 @@ func (ts *TripleStore) SizeOfPrefix(pre []byte) (int64, error) {
 	ranges := make([]util.Range, 1)
 	ranges[0].Start = pre
 	ranges[0].Limit = limit
-	sizes, err := ts.db.SizeOf(ranges)
+	sizes, err := qs.db.SizeOf(ranges)
 	if err == nil {
 		return (int64(sizes[0]) >> 6) + 1, nil
 	}
 	return 0, nil
 }
 
-func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
+func (qs *TripleStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
 	var prefix string
 	switch d {
-	case graph.Subject:
+	case quad.Subject:
 		prefix = "sp"
-	case graph.Predicate:
+	case quad.Predicate:
 		prefix = "po"
-	case graph.Object:
+	case quad.Object:
 		prefix = "os"
-	case graph.Provenance:
+	case quad.Provenance:
 		prefix = "cp"
 	default:
 		panic("unreachable " + d.String())
 	}
-	return NewIterator(prefix, d, val, ts)
+	return NewIterator(prefix, d, val, qs)
 }
 
-func (ts *TripleStore) NodesAllIterator() graph.Iterator {
-	return NewAllIterator("z", graph.Any, ts)
+func (qs *TripleStore) NodesAllIterator() graph.Iterator {
+	return NewAllIterator("z", quad.Any, qs)
 }
 
-func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
-	return NewAllIterator("po", graph.Predicate, ts)
+func (qs *TripleStore) TriplesAllIterator() graph.Iterator {
+	return NewAllIterator("po", quad.Predicate, qs)
 }
 
-func (ts *TripleStore) TripleDirection(val graph.Value, d graph.Direction) graph.Value {
+func (qs *TripleStore) TripleDirection(val graph.Value, d quad.Direction) graph.Value {
 	v := val.([]uint8)
-	offset := PositionOf(v[0:2], d, ts)
+	offset := PositionOf(v[0:2], d, qs)
 	if offset != -1 {
-		return append([]byte("z"), v[offset:offset+ts.hasher.Size()]...)
+		return append([]byte("z"), v[offset:offset+qs.hasher.Size()]...)
 	} else {
-		return ts.Triple(val).Get(d)
+		return qs.Quad(val).Get(d)
 	}
 }
 
@@ -440,7 +441,7 @@ func compareBytes(a, b graph.Value) bool {
 	return bytes.Equal(a.([]uint8), b.([]uint8))
 }
 
-func (ts *TripleStore) FixedIterator() graph.FixedIterator {
+func (qs *TripleStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(compareBytes)
 }
 

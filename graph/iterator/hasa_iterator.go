@@ -40,6 +40,7 @@ import (
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 // A HasA consists of a reference back to the graph.TripleStore that it references,
@@ -49,13 +50,13 @@ type HasA struct {
 	Base
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
-	dir       graph.Direction
+	dir       quad.Direction
 	resultIt  graph.Iterator
 }
 
 // Construct a new HasA iterator, given the triple subiterator, and the triple
 // direction for which it stands.
-func NewHasA(ts graph.TripleStore, subIt graph.Iterator, d graph.Direction) *HasA {
+func NewHasA(ts graph.TripleStore, subIt graph.Iterator, d quad.Direction) *HasA {
 	var hasa HasA
 	BaseInit(&hasa.Base)
 	hasa.ts = ts
@@ -83,7 +84,7 @@ func (it *HasA) Clone() graph.Iterator {
 }
 
 // Direction accessor.
-func (it *HasA) Direction() graph.Direction { return it.dir }
+func (it *HasA) Direction() quad.Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no triples that have any directions).
@@ -146,7 +147,7 @@ func (it *HasA) GetCheckResult() bool {
 			break
 		}
 		if glog.V(4) {
-			glog.V(4).Infoln("Triple is", it.ts.Triple(linkVal))
+			glog.V(4).Infoln("Quad is", it.ts.Quad(linkVal))
 		}
 		if it.primaryIt.Check(linkVal) {
 			it.Last = it.ts.TripleDirection(linkVal, it.dir)
@@ -184,7 +185,7 @@ func (it *HasA) Next() (graph.Value, bool) {
 	if !ok {
 		return graph.NextLogOut(it, 0, false)
 	}
-	name := it.ts.Triple(tID).Get(it.dir)
+	name := it.ts.Quad(tID).Get(it.dir)
 	val := it.ts.ValueOf(name)
 	it.Last = val
 	return graph.NextLogOut(it, val, true)

@@ -19,6 +19,10 @@
 		isEscaped = true
 	}
 
+	action Quote {
+		isQuoted = true
+	}
+
 	action StartSubject {
 		subject = p
 	}
@@ -39,36 +43,40 @@
 		if subject < 0 {
 			panic("unexpected parser state: subject start not set")
 		}
-		triple.Subject = unEscape(data[subject:p], isEscaped)
+		q.Subject = unEscape(data[subject:p], isQuoted, isEscaped)
 		isEscaped = false
+		isQuoted = false
 	}
 
 	action SetPredicate {
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		triple.Predicate = unEscape(data[predicate:p], isEscaped)
+		q.Predicate = unEscape(data[predicate:p], isQuoted, isEscaped)
 		isEscaped = false
+		isQuoted = false
 	}
 
 	action SetObject {
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		triple.Object = unEscape(data[object:p], isEscaped)
+		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
 		isEscaped = false
+		isQuoted = false
 	}
 
 	action SetLabel {
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		triple.Provenance = unEscape(data[label:p], isEscaped)
+		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
+		isQuoted = false
 	}
 
 	action Return {
-		return triple, nil
+		return q, nil
 	}
 
 	action Comment {
@@ -77,11 +85,11 @@
 	action Error {
 		if p < len(data) {
 			if r := data[p]; r < unicode.MaxASCII {
-				return triple, fmt.Errorf("%v: unexpected rune %q at %d", ErrInvalid, data[p], p)
+				return q, fmt.Errorf("%v: unexpected rune %q at %d", quad.ErrInvalid, data[p], p)
 			} else {
-				return triple, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", ErrInvalid, data[p], data[p], p)
+				return q, fmt.Errorf("%v: unexpected rune %q (\\u%04x) at %d", quad.ErrInvalid, data[p], data[p], p)
 			}
 		}
-		return triple, ErrIncomplete
+		return q, quad.ErrIncomplete
 	}
 }%%

@@ -26,7 +26,7 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/sexp"
-	"github.com/google/cayley/nquads"
+	"github.com/google/cayley/quad/nquads"
 	"github.com/google/cayley/query/gremlin"
 	"github.com/google/cayley/query/mql"
 )

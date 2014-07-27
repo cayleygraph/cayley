@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
+
 	_ "github.com/google/cayley/graph/memstore"
 )
 
@@ -30,21 +32,21 @@ func TestBadParse(t *testing.T) {
 
 var testQueries = []struct {
 	message string
-	add     *graph.Triple
+	add     *quad.Quad
 	query   string
 	typ     graph.Type
 	expect  string
 }{
 	{
 		message: "get a single triple linkage",
-		add:     &graph.Triple{"i", "can", "win", ""},
+		add:     &quad.Quad{"i", "can", "win", ""},
 		query:   "($a (:can \"win\"))",
 		typ:     graph.And,
 		expect:  "i",
 	},
 	{
 		message: "get a single triple linkage",
-		add:     &graph.Triple{"i", "can", "win", ""},
+		add:     &quad.Quad{"i", "can", "win", ""},
 		query:   "(\"i\" (:can $a))",
 		typ:     graph.And,
 		expect:  "i",
@@ -77,8 +79,8 @@ func TestMemstoreBackedSexp(t *testing.T) {
 
 func TestTreeConstraintParse(t *testing.T) {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
-	ts.AddTriple(&graph.Triple{"food", "is", "good", ""})
+	ts.AddTriple(&quad.Quad{"i", "like", "food", ""})
+	ts.AddTriple(&quad.Quad{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -97,8 +99,8 @@ func TestTreeConstraintParse(t *testing.T) {
 
 func TestTreeConstraintTagParse(t *testing.T) {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	ts.AddTriple(&graph.Triple{"i", "like", "food", ""})
-	ts.AddTriple(&graph.Triple{"food", "is", "good", ""})
+	ts.AddTriple(&quad.Quad{"i", "like", "food", ""})
+	ts.AddTriple(&quad.Quad{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -117,7 +119,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 
 func TestMultipleConstraintParse(t *testing.T) {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	for _, tv := range []*graph.Triple{
+	for _, tv := range []*quad.Quad{
 		{"i", "like", "food", ""},
 		{"i", "like", "beer", ""},
 		{"you", "like", "beer", ""},

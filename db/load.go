@@ -25,7 +25,8 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/nquads"
+	"github.com/google/cayley/quad"
+	"github.com/google/cayley/quad/nquads"
 )
 
 func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
@@ -56,7 +57,7 @@ func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
 		return err
 	}
 
-	block := make([]*graph.Triple, 0, cfg.LoadSize)
+	block := make([]*quad.Quad, 0, cfg.LoadSize)
 	for {
 		t, err := dec.Unmarshal()
 		if err != nil {
