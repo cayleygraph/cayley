@@ -29,16 +29,14 @@ import (
 	"os"
 )
 
-var stdin = flag.Bool("stdin", false, "Whether or not to load data from standard in")
+var Stdin = flag.Bool("stdin", false, "Whether or not to load data from standard in")
 
 func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
 	var f *os.File
 	var err error
 	var r io.Reader
 
-	if *stdin {
-		//remember that we've loaded from stdin
-		cfg.Stdin = true
+	if *Stdin {
 		f = os.Stdin
 		r = bufio.NewReader(f)
 		glog.Infof("Opening database from stdin")

@@ -17,7 +17,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -101,14 +100,12 @@ func main() {
 		if err != nil {
 			break
 		}
-		if cfg.Stdin != true {
-			err = db.Repl(ts, *queryLanguage, cfg)
-			if err != nil {
-				break
-			}
-		} else {
-			err = errors.New("cannot use repl while loading data from stdin")
+
+		err = db.Repl(ts, *queryLanguage, cfg)
+		if err != nil {
+			break
 		}
+
 		ts.Close()
 	case "http":
 		ts, err = db.Open(cfg)
