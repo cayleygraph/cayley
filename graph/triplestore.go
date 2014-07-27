@@ -37,15 +37,9 @@ import (
 type Value interface{}
 
 type TripleStore interface {
-	// Add a triple to the store.
-	AddTriple(*Triple)
-
-	// Add a set of triples to the store, atomically if possible.
-	AddTripleSet([]*Triple)
-
-	// Removes a triple matching the given one  from the database,
-	// if it exists. Does nothing otherwise.
-	RemoveTriple(*Triple)
+	// The only way in is through building a transaction, which
+	// is done by a replication strategy.
+	ApplyTransactions([]*Transaction)
 
 	// Given an opaque token, returns the triple for that token from the store.
 	Triple(Value) *Triple
@@ -72,11 +66,6 @@ type TripleStore interface {
 
 	// The last replicated transaction ID that this triplestore has verified.
 	Horizon() int64
-
-	// Inform the triplestore of a new replication strategy. Happens at startup and,
-	// perhaps in the future, if replication changes mid-run. Writes without any replication
-	// strategy are not allowed.
-	SetReplication(Replication)
 
 	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator

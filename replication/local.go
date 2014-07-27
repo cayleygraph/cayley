@@ -21,37 +21,31 @@ import (
 )
 
 type Single struct {
-	lastID int64
+	nextID int64
 	ts     graph.TripleStore
 	mut    sync.Mutex
 }
 
-func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.Replication, error) {
-	rep := &Single{lastID: ts.Horizon(), ts: ts}
-	ts.SetReplication(rep)
+func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.TripleWriter, error) {
+	rep := &Single{nextID: ts.Horizon(), ts: ts}
+	if rep.nextID == -1 {
+		rep.nextID = 1
+	}
 	return rep, nil
 }
 
-func (s *Single) AcquireNextIds(size int64) (start int64, end int64) {
+func (s *Single) AcquireNextId() int64 {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	start = s.lastID + 1
-	end = s.lastID + size
-	s.lastID += size
-	return
+	id := s.nextID
+	s.nextID += 1
+	return id
 }
 
-func (s *Single) GetLastID() int64 {
-	return s.lastID
-}
-
-func (s *Single) Replicate([]*graph.Transaction) {
-	// Noop, single-machines don't replicate out anywhere.
-}
-func (s *Single) RequestTransactionRange(int64, int64) {
-	// Single machines also can't catch up.
+func AddTriple(*graph.Triple) error {
+	return nil
 }
 
 func init() {
-	graph.RegisterReplication("local", NewSingleReplication)
+	graph.RegisterWriter("single", NewSingleReplication)
 }

@@ -23,6 +23,7 @@ package graph
 
 import (
 	"errors"
+	"time"
 )
 
 type Procedure byte
@@ -34,48 +35,46 @@ const (
 )
 
 type Transaction struct {
-	ID     int64
-	Triple *Triple
-	Action Procedure
+	ID        int64
+	Triple    *Triple
+	Action    Procedure
+	Timestamp *time.Time
 }
 
-type Replication interface {
-	// Get a unique range of triple IDs from the Replication strategy.
-	// Returns the inclusive set of unique ids.
-	AcquireNextIds(size int64) (start int64, end int64)
+type TripleWriter interface {
+	// Add a triple to the store.
+	AddTriple(*Triple) error
 
-	// Returns the highest current ID.
-	GetLastID() int64
+	// Add a set of triples to the store, atomically if possible.
+	AddTripleSet([]*Triple) error
 
-	// Sends the transactions to the replicas.
-	Replicate([]*Transaction)
-
-	// Attempt to acquire the given range of triples from other replicated sources.
-	RequestTransactionRange(start int64, end int64)
+	// Removes a triple matching the given one  from the database,
+	// if it exists. Does nothing otherwise.
+	RemoveTriple(*Triple) error
 }
 
-type NewReplicationFunc func(TripleStore, Options) (Replication, error)
+type NewTripleWriterFunc func(TripleStore, Options) (TripleWriter, error)
 
-var replicationRegistry = make(map[string]NewReplicationFunc)
+var writerRegistry = make(map[string]NewTripleWriterFunc)
 
-func RegisterReplication(name string, newFunc NewReplicationFunc) {
-	if _, found := replicationRegistry[name]; found {
-		panic("already registered Replication " + name)
+func RegisterWriter(name string, newFunc NewTripleWriterFunc) {
+	if _, found := writerRegistry[name]; found {
+		panic("already registered TripleWriter " + name)
 	}
-	replicationRegistry[name] = newFunc
+	writerRegistry[name] = newFunc
 }
 
-func NewReplication(name string, ts TripleStore, opts Options) (Replication, error) {
-	newFunc, hasNew := replicationRegistry[name]
+func NewTripleWriter(name string, ts TripleStore, opts Options) (TripleWriter, error) {
+	newFunc, hasNew := writerRegistry[name]
 	if !hasNew {
 		return nil, errors.New("replication: name '" + name + "' is not registered")
 	}
 	return newFunc(ts, opts)
 }
 
-func ReplicationMethods() []string {
-	t := make([]string, 0, len(replicationRegistry))
-	for n := range replicationRegistry {
+func WriterMethods() []string {
+	t := make([]string, 0, len(writerRegistry))
+	for n := range writerRegistry {
 		t = append(t, n)
 	}
 	return t
