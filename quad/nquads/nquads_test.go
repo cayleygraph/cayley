@@ -429,7 +429,7 @@ func TestParse(t *testing.T) {
 			t.Errorf("Unexpected error when %s: got:%v expect:%v", test.message, err, test.err)
 		}
 		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("Failed to %s, %q, got:%q expect:%q", test.message, test.input, got, test.expect)
+			t.Errorf("Failed to %s, %q, got:%#v expect:%#v", test.message, test.input, got, test.expect)
 		}
 	}
 }
