@@ -26,7 +26,7 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/quad"
-	"github.com/google/cayley/quad/nquads"
+	"github.com/google/cayley/quad/cquads"
 )
 
 func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
@@ -41,7 +41,7 @@ func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
 		glog.Fatalln(err)
 	}
 
-	dec := nquads.NewDecoder(r)
+	dec := cquads.NewDecoder(r)
 
 	bulker, canBulk := ts.(graph.BulkLoader)
 	if canBulk {

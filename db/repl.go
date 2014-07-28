@@ -26,7 +26,7 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/sexp"
-	"github.com/google/cayley/quad/nquads"
+	"github.com/google/cayley/quad/cquads"
 	"github.com/google/cayley/query/gremlin"
 	"github.com/google/cayley/query/mql"
 )
@@ -112,7 +112,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		}
 		if bytes.HasPrefix(line, []byte(":a")) {
 			var tripleStmt = line[3:]
-			triple, err := nquads.Parse(string(tripleStmt))
+			triple, err := cquads.Parse(string(tripleStmt))
 			if triple == nil {
 				if err != nil {
 					fmt.Printf("not a valid triple: %v\n", err)
@@ -126,7 +126,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		}
 		if bytes.HasPrefix(line, []byte(":d")) {
 			var tripleStmt = line[3:]
-			triple, err := nquads.Parse(string(tripleStmt))
+			triple, err := cquads.Parse(string(tripleStmt))
 			if triple == nil {
 				if err != nil {
 					fmt.Printf("not a valid triple: %v\n", err)
