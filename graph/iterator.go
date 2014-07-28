@@ -114,7 +114,7 @@ type Iterator interface {
 	Close()
 
 	// UID returns the unique identifier of the iterator.
-	UID() uintptr
+	UID() uint64
 }
 
 // FixedIterator wraps iterators that are modifiable by addition of fixed value sets.
