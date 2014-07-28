@@ -575,9 +575,9 @@ func TestParse(t *testing.T) {
 	for _, test := range testNTriples {
 		got, err := Parse(test.input)
 		_ = err
-		// if err != test.err && (err != nil && err.Error() != test.err.Error()) {
-		// 	t.Errorf("Unexpected error when %s: got:%v expect:%v", test.message, err, test.err)
-		// }
+		if err != test.err && (err != nil && err.Error() != test.err.Error()) {
+			t.Errorf("Unexpected error when %s: got:%v expect:%v", test.message, err, test.err)
+		}
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to %s, %q, got:%#v expect:%#v", test.message, test.input, got, test.expect)
 		}
