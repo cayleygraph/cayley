@@ -27,10 +27,10 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-var nextIteratorID uintptr
+var nextIteratorID uint64
 
-func nextID() uintptr {
-	return atomic.AddUintptr(&nextIteratorID, 1) - 1
+func NextUID() uint64 {
+	return atomic.AddUint64(&nextIteratorID, 1) - 1
 }
 
 // The Base iterator is the iterator other iterators inherit from to get some
@@ -40,7 +40,7 @@ type Base struct {
 	tags      []string
 	fixedTags map[string]graph.Value
 	canNext   bool
-	uid       uintptr
+	uid       uint64
 }
 
 // Called by subclases.
@@ -48,11 +48,11 @@ func BaseInit(it *Base) {
 	// Your basic iterator is nextable
 	it.canNext = true
 	if glog.V(2) {
-		it.uid = nextID()
+		it.uid = NextUID()
 	}
 }
 
-func (it *Base) UID() uintptr {
+func (it *Base) UID() uint64 {
 	return it.uid
 }
 
