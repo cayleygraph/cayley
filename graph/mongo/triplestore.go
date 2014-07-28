@@ -69,7 +69,7 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 	db.C("triples").EnsureIndex(indexOpts)
 	indexOpts.Key = []string{"Obj"}
 	db.C("triples").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Provenance"}
+	indexOpts.Key = []string{"Label"}
 	db.C("triples").EnsureIndex(indexOpts)
 	return nil
 }
@@ -96,7 +96,7 @@ func (qs *TripleStore) getIdForTriple(t *quad.Quad) string {
 	id := qs.ConvertStringToByteHash(t.Subject)
 	id += qs.ConvertStringToByteHash(t.Predicate)
 	id += qs.ConvertStringToByteHash(t.Object)
-	id += qs.ConvertStringToByteHash(t.Provenance)
+	id += qs.ConvertStringToByteHash(t.Label)
 	return id
 }
 
@@ -153,11 +153,11 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) {
 
 func (qs *TripleStore) writeTriple(t *quad.Quad) bool {
 	tripledoc := bson.M{
-		"_id":        qs.getIdForTriple(t),
-		"Subject":    t.Subject,
-		"Predicate":  t.Predicate,
-		"Object":     t.Object,
-		"Provenance": t.Provenance,
+		"_id":       qs.getIdForTriple(t),
+		"Subject":   t.Subject,
+		"Predicate": t.Predicate,
+		"Object":    t.Object,
+		"Label":     t.Label,
 	}
 	err := qs.db.C("triples").Insert(tripledoc)
 	if err != nil {
@@ -176,8 +176,8 @@ func (qs *TripleStore) AddTriple(t *quad.Quad) {
 	qs.updateNodeBy(t.Subject, 1)
 	qs.updateNodeBy(t.Predicate, 1)
 	qs.updateNodeBy(t.Object, 1)
-	if t.Provenance != "" {
-		qs.updateNodeBy(t.Provenance, 1)
+	if t.Label != "" {
+		qs.updateNodeBy(t.Label, 1)
 	}
 }
 
@@ -190,8 +190,8 @@ func (qs *TripleStore) AddTripleSet(in []*quad.Quad) {
 			ids[t.Subject]++
 			ids[t.Object]++
 			ids[t.Predicate]++
-			if t.Provenance != "" {
-				ids[t.Provenance]++
+			if t.Label != "" {
+				ids[t.Label]++
 			}
 		}
 	}
@@ -212,8 +212,8 @@ func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 	qs.updateNodeBy(t.Subject, -1)
 	qs.updateNodeBy(t.Predicate, -1)
 	qs.updateNodeBy(t.Object, -1)
-	if t.Provenance != "" {
-		qs.updateNodeBy(t.Provenance, -1)
+	if t.Label != "" {
+		qs.updateNodeBy(t.Label, -1)
 	}
 }
 
@@ -227,7 +227,7 @@ func (qs *TripleStore) Quad(val graph.Value) *quad.Quad {
 		bsonDoc["Subject"].(string),
 		bsonDoc["Predicate"].(string),
 		bsonDoc["Object"].(string),
-		bsonDoc["Provenance"].(string),
+		bsonDoc["Label"].(string),
 	}
 }
 
@@ -292,7 +292,7 @@ func (qs *TripleStore) TripleDirection(in graph.Value, d quad.Direction) graph.V
 		offset = (qs.hasher.Size() * 2)
 	case quad.Object:
 		offset = (qs.hasher.Size() * 2) * 2
-	case quad.Provenance:
+	case quad.Label:
 		offset = (qs.hasher.Size() * 2) * 3
 	}
 	val := in.(string)[offset : qs.hasher.Size()*2+offset]
@@ -328,8 +328,8 @@ func (qs *TripleStore) BulkLoad(dec quad.Unmarshaler) error {
       emit(s_key, {"_id": s_key, "Name" : this.Subject, "Size" : 1})
       emit(p_key, {"_id": p_key, "Name" : this.Predicate, "Size" : 1})
       emit(o_key, {"_id": o_key, "Name" : this.Object, "Size" : 1})
-			if (this.Provenance != "") {
-				emit(c_key, {"_id": c_key, "Name" : this.Provenance, "Size" : 1})
+			if (this.Label != "") {
+				emit(c_key, {"_id": c_key, "Name" : this.Label, "Size" : 1})
 			}
     }
     `,

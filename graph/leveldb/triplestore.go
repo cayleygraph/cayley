@@ -125,8 +125,8 @@ func (qs *TripleStore) createKeyFor(d [3]quad.Direction, triple *quad.Quad) []by
 func (qs *TripleStore) createProvKeyFor(d [3]quad.Direction, triple *quad.Quad) []byte {
 	key := make([]byte, 0, 2+(qs.hasher.Size()*4))
 	// TODO(kortschak) Remove dependence on String() method.
-	key = append(key, []byte{quad.Provenance.Prefix(), d[0].Prefix()}...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(quad.Provenance))...)
+	key = append(key, []byte{quad.Label.Prefix(), d[0].Prefix()}...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(quad.Label))...)
 	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
 	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
 	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
@@ -176,9 +176,9 @@ func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 	qs.UpdateValueKeyBy(t.Get(quad.Subject), -1, batch)
 	qs.UpdateValueKeyBy(t.Get(quad.Predicate), -1, batch)
 	qs.UpdateValueKeyBy(t.Get(quad.Object), -1, batch)
-	if t.Get(quad.Provenance) != "" {
+	if t.Get(quad.Label) != "" {
 		batch.Delete(qs.createProvKeyFor(pso, t))
-		qs.UpdateValueKeyBy(t.Get(quad.Provenance), -1, batch)
+		qs.UpdateValueKeyBy(t.Get(quad.Label), -1, batch)
 	}
 	err = qs.db.Write(batch, nil)
 	if err != nil {
@@ -197,7 +197,7 @@ func (qs *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *quad.Quad) {
 	batch.Put(qs.createKeyFor(spo, t), bytes)
 	batch.Put(qs.createKeyFor(osp, t), bytes)
 	batch.Put(qs.createKeyFor(pos, t), bytes)
-	if t.Get(quad.Provenance) != "" {
+	if t.Get(quad.Label) != "" {
 		batch.Put(qs.createProvKeyFor(pso, t), bytes)
 	}
 }
@@ -207,8 +207,8 @@ func (qs *TripleStore) buildWrite(batch *leveldb.Batch, t *quad.Quad) {
 	qs.UpdateValueKeyBy(t.Get(quad.Subject), 1, nil)
 	qs.UpdateValueKeyBy(t.Get(quad.Predicate), 1, nil)
 	qs.UpdateValueKeyBy(t.Get(quad.Object), 1, nil)
-	if t.Get(quad.Provenance) != "" {
-		qs.UpdateValueKeyBy(t.Get(quad.Provenance), 1, nil)
+	if t.Get(quad.Label) != "" {
+		qs.UpdateValueKeyBy(t.Get(quad.Label), 1, nil)
 	}
 }
 
@@ -272,8 +272,8 @@ func (qs *TripleStore) AddTripleSet(t_s []*quad.Quad) {
 		resizeMap[t.Subject]++
 		resizeMap[t.Predicate]++
 		resizeMap[t.Object]++
-		if t.Provenance != "" {
-			resizeMap[t.Provenance]++
+		if t.Label != "" {
+			resizeMap[t.Label]++
 		}
 	}
 	for k, v := range resizeMap {
@@ -411,7 +411,7 @@ func (qs *TripleStore) TripleIterator(d quad.Direction, val graph.Value) graph.I
 		prefix = "po"
 	case quad.Object:
 		prefix = "os"
-	case quad.Provenance:
+	case quad.Label:
 		prefix = "cp"
 	default:
 		panic("unreachable " + d.String())

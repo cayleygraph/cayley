@@ -63,7 +63,7 @@
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isEscaped)
+		q.Label = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	}
 

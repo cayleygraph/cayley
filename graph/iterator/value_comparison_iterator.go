@@ -17,7 +17,7 @@ package iterator
 // "Value Comparison" is a unary operator -- a filter across the values in the
 // relevant subiterator.
 //
-// This is hugely useful for things like provenance, but value ranges in general
+// This is hugely useful for things like label, but value ranges in general
 // come up from time to time. At *worst* we're as big as our underlying iterator.
 // At best, we're the null iterator.
 //

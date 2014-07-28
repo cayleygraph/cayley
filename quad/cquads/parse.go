@@ -1006,7 +1006,7 @@ tr37:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1023,7 +1023,7 @@ tr47:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1040,7 +1040,7 @@ tr60:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1079,7 +1079,7 @@ tr66:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1096,7 +1096,7 @@ tr61:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1160,7 +1160,7 @@ tr39:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1177,7 +1177,7 @@ tr49:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1265,7 +1265,7 @@ tr253:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1282,7 +1282,7 @@ tr263:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1299,7 +1299,7 @@ tr287:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1326,7 +1326,7 @@ tr293:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1343,7 +1343,7 @@ tr288:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1377,7 +1377,7 @@ tr255:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	
@@ -1394,7 +1394,7 @@ tr265:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 	

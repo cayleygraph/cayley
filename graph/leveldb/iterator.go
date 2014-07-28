@@ -124,7 +124,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 			return qs.hasher.Size() + 2
 		case quad.Object:
 			return 2*qs.hasher.Size() + 2
-		case quad.Provenance:
+		case quad.Label:
 			return -1
 		}
 	}
@@ -136,7 +136,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 			return 2
 		case quad.Object:
 			return qs.hasher.Size() + 2
-		case quad.Provenance:
+		case quad.Label:
 			return -1
 		}
 	}
@@ -148,7 +148,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 			return 2*qs.hasher.Size() + 2
 		case quad.Object:
 			return 2
-		case quad.Provenance:
+		case quad.Label:
 			return -1
 		}
 	}
@@ -160,7 +160,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 			return qs.hasher.Size() + 2
 		case quad.Object:
 			return 3*qs.hasher.Size() + 2
-		case quad.Provenance:
+		case quad.Label:
 			return 2
 		}
 	}

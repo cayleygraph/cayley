@@ -73,7 +73,7 @@ func (o ordered) Less(i, j int) bool {
 		o[i].Subject == o[j].Subject &&
 			o[i].Predicate == o[j].Predicate &&
 			o[i].Object == o[j].Object &&
-			o[i].Provenance < o[j].Provenance:
+			o[i].Label < o[j].Label:
 
 		return true
 
@@ -359,8 +359,8 @@ func TestSetIterator(t *testing.T) {
 		t.Errorf("Failed to get expected results from predicate iterator, got:%v expect:%v", got, expect)
 	}
 
-	// Provenance iterator.
-	it = qs.TripleIterator(quad.Provenance, qs.ValueOf("status_graph"))
+	// Label iterator.
+	it = qs.TripleIterator(quad.Label, qs.ValueOf("status_graph"))
 
 	expect = []*quad.Quad{
 		{"B", "status", "cool", "status_graph"},

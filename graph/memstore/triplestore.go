@@ -26,10 +26,10 @@ import (
 )
 
 type TripleDirectionIndex struct {
-	subject    map[int64]*llrb.LLRB
-	predicate  map[int64]*llrb.LLRB
-	object     map[int64]*llrb.LLRB
-	provenance map[int64]*llrb.LLRB
+	subject   map[int64]*llrb.LLRB
+	predicate map[int64]*llrb.LLRB
+	object    map[int64]*llrb.LLRB
+	label     map[int64]*llrb.LLRB
 }
 
 func NewTripleDirectionIndex() *TripleDirectionIndex {
@@ -37,7 +37,7 @@ func NewTripleDirectionIndex() *TripleDirectionIndex {
 	tdi.subject = make(map[int64]*llrb.LLRB)
 	tdi.predicate = make(map[int64]*llrb.LLRB)
 	tdi.object = make(map[int64]*llrb.LLRB)
-	tdi.provenance = make(map[int64]*llrb.LLRB)
+	tdi.label = make(map[int64]*llrb.LLRB)
 	return &tdi
 }
 
@@ -49,8 +49,8 @@ func (tdi *TripleDirectionIndex) GetForDir(d quad.Direction) map[int64]*llrb.LLR
 		return tdi.object
 	case quad.Predicate:
 		return tdi.predicate
-	case quad.Provenance:
-		return tdi.provenance
+	case quad.Label:
+		return tdi.label
 	}
 	panic("illegal direction")
 }
@@ -104,9 +104,9 @@ func (ts *TripleStore) AddTripleSet(triples []*quad.Quad) {
 func (ts *TripleStore) tripleExists(t *quad.Quad) (bool, int64) {
 	smallest := -1
 	var smallest_tree *llrb.LLRB
-	for d := quad.Subject; d <= quad.Provenance; d++ {
+	for d := quad.Subject; d <= quad.Label; d++ {
 		sid := t.Get(d)
-		if d == quad.Provenance && sid == "" {
+		if d == quad.Label && sid == "" {
 			continue
 		}
 		id, ok := ts.idMap[sid]
@@ -148,9 +148,9 @@ func (ts *TripleStore) AddTriple(t *quad.Quad) {
 	ts.size++
 	ts.tripleIdCounter++
 
-	for d := quad.Subject; d <= quad.Provenance; d++ {
+	for d := quad.Subject; d <= quad.Label; d++ {
 		sid := t.Get(d)
-		if d == quad.Provenance && sid == "" {
+		if d == quad.Label && sid == "" {
 			continue
 		}
 		if _, ok := ts.idMap[sid]; !ok {
@@ -160,8 +160,8 @@ func (ts *TripleStore) AddTriple(t *quad.Quad) {
 		}
 	}
 
-	for d := quad.Subject; d <= quad.Provenance; d++ {
-		if d == quad.Provenance && t.Get(d) == "" {
+	for d := quad.Subject; d <= quad.Label; d++ {
+		if d == quad.Label && t.Get(d) == "" {
 			continue
 		}
 		id := ts.idMap[t.Get(d)]
@@ -183,8 +183,8 @@ func (ts *TripleStore) RemoveTriple(t *quad.Quad) {
 	ts.triples[tripleID] = quad.Quad{}
 	ts.size--
 
-	for d := quad.Subject; d <= quad.Provenance; d++ {
-		if d == quad.Provenance && t.Get(d) == "" {
+	for d := quad.Subject; d <= quad.Label; d++ {
+		if d == quad.Label && t.Get(d) == "" {
 			continue
 		}
 		id := ts.idMap[t.Get(d)]
@@ -192,8 +192,8 @@ func (ts *TripleStore) RemoveTriple(t *quad.Quad) {
 		tree.Delete(Int64(tripleID))
 	}
 
-	for d := quad.Subject; d <= quad.Provenance; d++ {
-		if d == quad.Provenance && t.Get(d) == "" {
+	for d := quad.Subject; d <= quad.Label; d++ {
+		if d == quad.Label && t.Get(d) == "" {
 			continue
 		}
 		id, ok := ts.idMap[t.Get(d)]
@@ -201,8 +201,8 @@ func (ts *TripleStore) RemoveTriple(t *quad.Quad) {
 			continue
 		}
 		stillExists := false
-		for d := quad.Subject; d <= quad.Provenance; d++ {
-			if d == quad.Provenance && t.Get(d) == "" {
+		for d := quad.Subject; d <= quad.Label; d++ {
+			if d == quad.Label && t.Get(d) == "" {
 				continue
 			}
 			nodeTree := ts.index.GetOrCreate(d, id)

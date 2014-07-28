@@ -32,7 +32,7 @@ var parseTests = []struct {
 		message: "parse correct JSON",
 		input: `[
 			{"subject": "foo", "predicate": "bar", "object": "baz"},
-			{"subject": "foo", "predicate": "bar", "object": "baz", "provenance": "graph"}
+			{"subject": "foo", "predicate": "bar", "object": "baz", "label": "graph"}
 		]`,
 		expect: []*quad.Quad{
 			{"foo", "bar", "baz", ""},

@@ -53,8 +53,8 @@ func NewIterator(qs *TripleStore, collection string, d quad.Direction, val graph
 		m.constraint = bson.M{"Predicate": m.name}
 	case quad.Object:
 		m.constraint = bson.M{"Object": m.name}
-	case quad.Provenance:
-		m.constraint = bson.M{"Provenance": m.name}
+	case quad.Label:
+		m.constraint = bson.M{"Label": m.name}
 	}
 
 	m.qs = qs
@@ -143,7 +143,7 @@ func (it *Iterator) Check(v graph.Value) bool {
 		offset = (it.qs.hasher.Size() * 2)
 	case quad.Object:
 		offset = (it.qs.hasher.Size() * 2) * 2
-	case quad.Provenance:
+	case quad.Label:
 		offset = (it.qs.hasher.Size() * 2) * 3
 	}
 	val := v.(string)[offset : it.qs.hasher.Size()*2+offset]

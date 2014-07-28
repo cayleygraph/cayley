@@ -58,7 +58,7 @@ func makeTestStore(data []*quad.Quad) (*TripleStore, []pair) {
 		ind []pair
 	)
 	for _, t := range data {
-		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Provenance} {
+		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Label} {
 			if _, ok := seen[qp]; !ok && qp != "" {
 				val++
 				ind = append(ind, pair{qp, val})

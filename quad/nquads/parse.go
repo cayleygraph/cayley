@@ -619,7 +619,7 @@ tr96:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isEscaped)
+		q.Label = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st10
@@ -660,7 +660,7 @@ tr39:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isEscaped)
+		q.Label = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st88
@@ -785,7 +785,7 @@ tr38:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isEscaped)
+		q.Label = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st13
@@ -1202,7 +1202,7 @@ tr55:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isEscaped)
+		q.Label = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st90
@@ -2682,7 +2682,7 @@ tr97:
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Provenance = unEscape(data[label:p], isEscaped)
+		q.Label = unEscape(data[label:p], isEscaped)
 		isEscaped = false
 	
 	goto st92

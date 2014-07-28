@@ -26,8 +26,8 @@ package quad
 // list of triples. The rest is just indexing for speed.
 //
 // Adding fields to the triple is not to be taken lightly. You'll see I mention
-// provenance, but don'q as yet use it in any backing store. In general, there
-// can be features that can be turned on or off for any store, but I haven'q
+// label, but don't as yet use it in any backing store. In general, there
+// can be features that can be turned on or off for any store, but I haven't
 // decided how to allow/disallow them yet. Another such example would be to add
 // a forward and reverse index field -- forward being "order the list of
 // objects pointed at by this subject with this predicate" such as first and
@@ -48,10 +48,10 @@ var (
 
 // Our triple struct, used throughout.
 type Quad struct {
-	Subject    string `json:"subject"`
-	Predicate  string `json:"predicate"`
-	Object     string `json:"object"`
-	Provenance string `json:"provenance,omitempty"`
+	Subject   string `json:"subject"`
+	Predicate string `json:"predicate"`
+	Object    string `json:"object"`
+	Label     string `json:"label,omitempty"`
 }
 
 // Direction specifies an edge's type.
@@ -63,7 +63,7 @@ const (
 	Subject
 	Predicate
 	Object
-	Provenance
+	Label
 )
 
 func (d Direction) Prefix() byte {
@@ -74,7 +74,7 @@ func (d Direction) Prefix() byte {
 		return 's'
 	case Predicate:
 		return 'p'
-	case Provenance:
+	case Label:
 		return 'c'
 	case Object:
 		return 'o'
@@ -91,8 +91,8 @@ func (d Direction) String() string {
 		return "subject"
 	case Predicate:
 		return "predicate"
-	case Provenance:
-		return "provenance"
+	case Label:
+		return "label"
 	case Object:
 		return "object"
 	default:
@@ -110,8 +110,8 @@ func (q *Quad) Get(d Direction) string {
 		return q.Subject
 	case Predicate:
 		return q.Predicate
-	case Provenance:
-		return q.Provenance
+	case Label:
+		return q.Label
 	case Object:
 		return q.Object
 	default:
@@ -139,11 +139,11 @@ func (q *Quad) IsValid() bool {
 
 // Prints a triple in N-Quad format.
 func (q *Quad) NTriple() string {
-	if q.Provenance == "" {
+	if q.Label == "" {
 		//TODO(barakmich): Proper escaping.
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)
 	} else {
-		return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Provenance)
+		return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
 	}
 }
 
