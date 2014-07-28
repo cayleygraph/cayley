@@ -85,6 +85,9 @@ func unEscape(r []rune, isQuoted, isEscaped bool) string {
 	if isQuoted {
 		r = r[1 : len(r)-1]
 	}
+	if len(r) >= 2 && r[0] == '<' && r[len(r)-1] == '>' {
+		return string(r[1 : len(r)-1])
+	}
 	if !isEscaped {
 		return string(r)
 	}
