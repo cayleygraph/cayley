@@ -83,7 +83,18 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 	if s.currentQuery.isError() {
 		return
 	}
-	it, _ := s.currentQuery.it.Optimize()
+	newIt, changed := s.currentQuery.it.Optimize()
+	if changed {
+		s.currentQuery.it.Close()
+		s.currentQuery.it = newIt
+	}
+	newIt, changed = s.ts.OptimizeIterator(s.currentQuery.it)
+	if changed {
+		s.currentQuery.it.Close()
+		s.currentQuery.it = newIt
+	}
+	it := s.currentQuery.it
+
 	if glog.V(2) {
 		glog.V(2).Infoln(it.DebugString(0))
 	}
@@ -101,6 +112,7 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 			c <- tags
 		}
 	}
+	it.Close()
 }
 
 func (s *Session) ToText(result interface{}) string {

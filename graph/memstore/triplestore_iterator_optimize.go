@@ -46,6 +46,7 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 			for _, tag := range primary.Tags() {
 				newIt.AddFixedTag(tag, val)
 			}
+			it.Close()
 			return newIt, true
 		}
 	}

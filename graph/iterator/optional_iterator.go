@@ -135,3 +135,7 @@ func (it *Optional) Stats() graph.IteratorStats {
 		Size:      subStats.Size,
 	}
 }
+
+func (it *Optional) SubIterators() []graph.Iterator {
+	return []graph.Iterator{it.subIt}
+}

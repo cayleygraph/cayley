@@ -146,7 +146,16 @@ func tagsToValueMap(m map[string]graph.Value, ses *Session) map[string]string {
 func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string]string {
 	output := make([]map[string]string, 0)
 	count := 0
-	it, _ = it.Optimize()
+	newIt, changed := it.Optimize()
+	if changed {
+		it.Close()
+		it = newIt
+	}
+	newIt, changed = ses.ts.OptimizeIterator(it)
+	if changed {
+		it.Close()
+		it = newIt
+	}
 	for {
 		if ses.doHalt {
 			return nil
@@ -182,7 +191,16 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []string {
 	output := make([]string, 0)
 	count := 0
-	it, _ = it.Optimize()
+	newIt, changed := it.Optimize()
+	if changed {
+		it.Close()
+		it = newIt
+	}
+	newIt, changed = ses.ts.OptimizeIterator(it)
+	if changed {
+		it.Close()
+		it = newIt
+	}
 	for {
 		if ses.doHalt {
 			return nil
@@ -203,7 +221,16 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 
 func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Value, this otto.FunctionCall, limit int) {
 	count := 0
-	it, _ = it.Optimize()
+	newIt, changed := it.Optimize()
+	if changed {
+		it.Close()
+		it = newIt
+	}
+	newIt, changed = ses.ts.OptimizeIterator(it)
+	if changed {
+		it.Close()
+		it = newIt
+	}
 	for {
 		if ses.doHalt {
 			return
@@ -242,7 +269,16 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.queryShape)
 		return
 	}
-	it, _ = it.Optimize()
+	newIt, changed := it.Optimize()
+	if changed {
+		it.Close()
+		it = newIt
+	}
+	newIt, changed = ses.ts.OptimizeIterator(it)
+	if changed {
+		it.Close()
+		it = newIt
+	}
 	glog.V(2).Infoln(it.DebugString(0))
 	for {
 		// TODO(barakmich): Better halting.
