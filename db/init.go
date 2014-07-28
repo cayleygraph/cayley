@@ -19,17 +19,17 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func Init(cfg *config.Config, triplePath string) error {
+func Init(cfg *config.Config, triplePath string, stdin bool) error {
 	err := graph.InitTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	if err != nil {
 		return err
 	}
 	if triplePath != "" {
-		ts, err := Open(cfg)
+		ts, err := Open(cfg, stdin)
 		if err != nil {
 			return err
 		}
-		err = Load(ts, cfg, triplePath)
+		err = Load(ts, cfg, triplePath, stdin)
 		if err != nil {
 			return err
 		}

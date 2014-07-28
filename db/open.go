@@ -21,7 +21,7 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func Open(cfg *config.Config) (graph.TripleStore, error) {
+func Open(cfg *config.Config, stdin bool) (graph.TripleStore, error) {
 	glog.Infof("Opening database \"%s\" at %s", cfg.DatabaseType, cfg.DatabasePath)
 	ts, err := graph.NewTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	if err != nil {
@@ -30,7 +30,7 @@ func Open(cfg *config.Config) (graph.TripleStore, error) {
 
 	// Memstore is not persistent, so it MUST be loaded.
 	if cfg.DatabaseType == "memstore" {
-		err = Load(ts, cfg, cfg.DatabasePath)
+		err = Load(ts, cfg, cfg.DatabasePath, stdin)
 		if err != nil {
 			return nil, err
 		}

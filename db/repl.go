@@ -63,6 +63,7 @@ func Run(query string, ses graph.Session) {
 
 func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error {
 	var ses graph.Session
+
 	switch queryLanguage {
 	case "sexp":
 		ses = sexp.NewSession(ts)

@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -39,6 +40,7 @@ var tripleFile = flag.String("triples", "", "Triple File to load before going to
 var cpuprofile = flag.String("prof", "", "Output profiling file.")
 var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
+var stdin = flag.Bool("stdin", false, "Whether or not to load data from standard in")
 
 func Usage() {
 	fmt.Println("Cayley is a graph store and graph query layer.")
@@ -83,29 +85,36 @@ func main() {
 	)
 	switch cmd {
 	case "init":
-		err = db.Init(cfg, *tripleFile)
+		err = db.Init(cfg, *tripleFile, *stdin)
 	case "load":
-		ts, err = db.Open(cfg)
+		ts, err = db.Open(cfg, *stdin)
 		if err != nil {
 			break
 		}
-		err = db.Load(ts, cfg, *tripleFile)
+		err = db.Load(ts, cfg, *tripleFile, *stdin)
 		if err != nil {
 			break
 		}
 		ts.Close()
 	case "repl":
-		ts, err = db.Open(cfg)
+		if *stdin {
+			err = errors.New("cannot use repl while loading data from stdin")
+			break
+		}
+		ts, err = db.Open(cfg, *stdin)
+
 		if err != nil {
 			break
 		}
+
 		err = db.Repl(ts, *queryLanguage, cfg)
 		if err != nil {
 			break
 		}
+
 		ts.Close()
 	case "http":
-		ts, err = db.Open(cfg)
+		ts, err = db.Open(cfg, *stdin)
 		if err != nil {
 			break
 		}
