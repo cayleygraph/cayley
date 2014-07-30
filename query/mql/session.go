@@ -88,7 +88,7 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 		glog.V(2).Infoln(it.DebugString(0))
 	}
 	for {
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}

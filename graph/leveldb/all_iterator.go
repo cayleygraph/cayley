@@ -27,7 +27,6 @@ import (
 )
 
 type AllIterator struct {
-	iterator.Base
 	uid    uint64
 	tags   graph.Tagger
 	prefix []byte

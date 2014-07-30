@@ -31,7 +31,6 @@ import (
 
 // An All iterator across a range of int64 values, from `max` to `min`.
 type Int64 struct {
-	Base
 	uid      uint64
 	tags     graph.Tagger
 	max, min int64

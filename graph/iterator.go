@@ -14,8 +14,7 @@
 
 package graph
 
-// Define the general iterator interface, as well as the Base iterator which all
-// iterators can "inherit" from to get default iterator functionality.
+// Define the general iterator interface.
 
 import (
 	"strings"
@@ -86,18 +85,9 @@ type Iterator interface {
 	// All of them should set iterator.Last to be the last returned value, to
 	// make results work.
 	//
-	// Next() advances the iterator and returns the next valid result. Returns
-	// (<value>, true) or (nil, false)
-	Next() (Value, bool)
-
 	// NextResult() advances iterators that may have more than one valid result,
 	// from the bottom up.
 	NextResult() bool
-
-	// Return whether this iterator is reliably nextable. Most iterators are.
-	// However, some iterators, like "not" are, by definition, the whole database
-	// except themselves. Next() on these is unproductive, if impossible.
-	CanNext() bool
 
 	// Check(), given a value, returns whether or not that value is within the set
 	// held by this iterator.
@@ -143,6 +133,25 @@ type Iterator interface {
 
 	// UID returns the unique identifier of the iterator.
 	UID() uint64
+}
+
+type Nexter interface {
+	// Next() advances the iterator and returns the next valid result. Returns
+	// (<value>, true) or (nil, false)
+	Next() (Value, bool)
+
+	Iterator
+}
+
+// Next is a convenience function that conditionally calls the Next method
+// of an Iterator if it is a Nexter. If the Iterator is not a Nexter, Next
+// return a nil Value and false.
+func Next(it Iterator) (Value, bool) {
+	if n, ok := it.(Nexter); ok {
+		return n.Next()
+	}
+	glog.Errorln("Nexting an un-nextable iterator")
+	return nil, false
 }
 
 // FixedIterator wraps iterators that are modifiable by addition of fixed value sets.

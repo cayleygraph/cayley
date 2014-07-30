@@ -37,7 +37,7 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
-			val, ok := primary.Next()
+			val, ok := graph.Next(primary)
 			if !ok {
 				panic("Sizes lie")
 			}

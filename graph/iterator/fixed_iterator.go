@@ -30,7 +30,6 @@ import (
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
 // an equality function.
 type Fixed struct {
-	Base
 	uid       uint64
 	tags      graph.Tagger
 	values    []graph.Value

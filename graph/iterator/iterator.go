@@ -14,8 +14,7 @@
 
 package iterator
 
-// Define the general iterator interface, as well as the Base which all
-// iterators can "inherit" from to get default iterator functionality.
+// Define the general iterator interface.
 
 import (
 	"strings"
@@ -29,14 +28,6 @@ var nextIteratorID uint64
 func NextUID() uint64 {
 	return atomic.AddUint64(&nextIteratorID, 1) - 1
 }
-
-// The Base iterator is the iterator other iterators inherit from to get some
-// default functionality.
-type Base struct {
-}
-
-// Accessor
-func (it *Base) CanNext() bool { return true }
 
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
@@ -87,8 +78,6 @@ func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Null) DebugString(indent int) string {
 	return strings.Repeat(" ", indent) + "(null)"
 }
-
-func (it *Null) CanNext() bool { return true }
 
 func (it *Null) Next() (graph.Value, bool) {
 	return nil, false

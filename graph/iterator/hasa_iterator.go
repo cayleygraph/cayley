@@ -46,7 +46,6 @@ import (
 // a primary subiterator, a direction in which the triples for that subiterator point,
 // and a temporary holder for the iterator generated on Check().
 type HasA struct {
-	Base
 	uid       uint64
 	tags      graph.Tagger
 	ts        graph.TripleStore
@@ -159,7 +158,7 @@ func (it *HasA) Check(val graph.Value) bool {
 // another match is made.
 func (it *HasA) GetCheckResult() bool {
 	for {
-		linkVal, ok := it.resultIt.Next()
+		linkVal, ok := graph.Next(it.resultIt)
 		if !ok {
 			break
 		}
@@ -198,7 +197,7 @@ func (it *HasA) Next() (graph.Value, bool) {
 	}
 	it.resultIt = &Null{}
 
-	tID, ok := it.primaryIt.Next()
+	tID, ok := graph.Next(it.primaryIt)
 	if !ok {
 		return graph.NextLogOut(it, 0, false)
 	}

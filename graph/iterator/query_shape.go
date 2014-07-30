@@ -129,7 +129,7 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 	case graph.Fixed:
 		n.IsFixed = true
 		for {
-			val, more := it.Next()
+			val, more := graph.Next(it)
 			if !more {
 				break
 			}

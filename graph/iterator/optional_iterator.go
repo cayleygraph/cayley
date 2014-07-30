@@ -30,8 +30,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/barakmich/glog"
-
 	"github.com/google/cayley/graph"
 )
 
@@ -76,16 +74,6 @@ func (it *Optional) Clone() graph.Iterator {
 	out := NewOptional(it.subIt.Clone())
 	out.tags.CopyFrom(it)
 	return out
-}
-
-// FIXME(kortschak) When we create a Nexter interface the
-// following two methods need to go away.
-
-// Nexting the iterator is unsupported -- error and return an empty set.
-// (As above, a reasonable alternative would be to Next() an all iterator)
-func (it *Optional) Next() (graph.Value, bool) {
-	glog.Errorln("Nexting an un-nextable iterator")
-	return nil, false
 }
 
 // DEPRECATED

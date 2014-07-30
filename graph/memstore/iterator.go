@@ -26,7 +26,6 @@ import (
 )
 
 type Iterator struct {
-	iterator.Base
 	uid       uint64
 	tags      graph.Tagger
 	tree      *llrb.LLRB

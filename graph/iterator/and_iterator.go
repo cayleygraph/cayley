@@ -22,10 +22,9 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-// The And iterator. Consists of a Base and a number of subiterators, the primary of which will
+// The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type And struct {
-	Base
 	uid               uint64
 	tags              graph.Tagger
 	internalIterators []graph.Iterator
@@ -60,7 +59,7 @@ func (it *And) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
-// Overrides Base TagResults, as it needs to add it's own results and
+// An extended TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
 func (it *And) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.tags.Tags() {
@@ -161,7 +160,7 @@ func (it *And) Next() (graph.Value, bool) {
 	var curr graph.Value
 	var exists bool
 	for {
-		curr, exists = it.primaryIt.Next()
+		curr, exists = graph.Next(it.primaryIt)
 		if !exists {
 			return graph.NextLogOut(it, nil, false)
 		}

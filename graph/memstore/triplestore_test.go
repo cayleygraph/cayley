@@ -189,7 +189,7 @@ func TestRemoveTriple(t *testing.T) {
 	hasa := iterator.NewHasA(ts, innerAnd, graph.Object)
 
 	newIt, _ := hasa.Optimize()
-	_, ok := newIt.Next()
+	_, ok := graph.Next(newIt)
 	if ok {
 		t.Error("E should not have any followers.")
 	}

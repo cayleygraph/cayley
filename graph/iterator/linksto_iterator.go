@@ -40,7 +40,6 @@ import (
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
-	Base
 	uid       uint64
 	tags      graph.Tagger
 	ts        graph.TripleStore
@@ -155,10 +154,10 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 // Next()ing a LinksTo operates as described above.
 func (it *LinksTo) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	val, ok := it.nextIt.Next()
+	val, ok := graph.Next(it.nextIt)
 	if !ok {
 		// Subiterator is empty, get another one
-		candidate, ok := it.primaryIt.Next()
+		candidate, ok := graph.Next(it.primaryIt)
 		if !ok {
 			// We're out of nodes in our subiterator, so we're done as well.
 			return graph.NextLogOut(it, 0, false)

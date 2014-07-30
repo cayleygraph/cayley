@@ -29,7 +29,6 @@ import (
 )
 
 type Or struct {
-	Base
 	uid               uint64
 	tags              graph.Tagger
 	isShortCircuiting bool
@@ -156,7 +155,7 @@ func (it *Or) Next() (graph.Value, bool) {
 			firstTime = true
 		}
 		curIt := it.internalIterators[it.currentIterator]
-		curr, exists = curIt.Next()
+		curr, exists = graph.Next(curIt)
 		if !exists {
 			if it.isShortCircuiting && !firstTime {
 				return graph.NextLogOut(it, nil, false)

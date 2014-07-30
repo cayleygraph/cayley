@@ -46,7 +46,6 @@ const (
 )
 
 type Comparison struct {
-	Base
 	uid    uint64
 	tags   graph.Tagger
 	subIt  graph.Iterator
@@ -132,7 +131,7 @@ func (it *Comparison) Next() (graph.Value, bool) {
 	var val graph.Value
 	var ok bool
 	for {
-		val, ok = it.subIt.Next()
+		val, ok = graph.Next(it.subIt)
 		if !ok {
 			return nil, false
 		}
