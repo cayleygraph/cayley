@@ -38,7 +38,7 @@ func embedFinals(env *otto.Otto, ses *Session, obj *otto.Object) {
 func allFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		ses.limit = -1
 		ses.count = 0
 		runIteratorOnSession(it, ses)
@@ -51,7 +51,7 @@ func limitFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.Functio
 		if len(call.ArgumentList) > 0 {
 			limitVal, _ := call.Argument(0).ToInteger()
 			it := buildIteratorTree(obj, ses.ts)
-			it.AddTag(TopResultTag)
+			it.Tagger().Add(TopResultTag)
 			ses.limit = int(limitVal)
 			ses.count = 0
 			runIteratorOnSession(it, ses)
@@ -63,7 +63,7 @@ func limitFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.Functio
 func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) > 0 {
 			limitParsed, _ := call.Argument(0).ToInteger()
@@ -90,7 +90,7 @@ func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) 
 func toValueFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		limit := 1
 		var val otto.Value
 		var err error
@@ -120,7 +120,7 @@ func toValueFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) 
 func mapFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) == 0 {
 			return otto.NullValue()
@@ -151,7 +151,7 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 		if ses.doHalt {
 			return nil
 		}
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -187,7 +187,7 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 		if ses.doHalt {
 			return nil
 		}
-		val, ok := it.Next()
+		val, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -208,7 +208,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 		if ses.doHalt {
 			return
 		}
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -249,7 +249,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		if ses.doHalt {
 			return
 		}
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}

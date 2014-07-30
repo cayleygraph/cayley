@@ -34,29 +34,36 @@ import (
 	"strings"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 // A LinksTo has a reference back to the graph.TripleStore (to create the iterators
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
-	Base
+	uid       uint64
+	tags      graph.Tagger
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
-	dir       graph.Direction
+	dir       quad.Direction
 	nextIt    graph.Iterator
+	result    graph.Value
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d graph.Direction) *LinksTo {
-	var lto LinksTo
-	BaseInit(&lto.Base)
-	lto.ts = ts
-	lto.primaryIt = it
-	lto.dir = d
-	lto.nextIt = &Null{}
-	return &lto
+func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d quad.Direction) *LinksTo {
+	return &LinksTo{
+		uid:       NextUID(),
+		ts:        ts,
+		primaryIt: it,
+		dir:       d,
+		nextIt:    &Null{},
+	}
+}
+
+func (it *LinksTo) UID() uint64 {
+	return it.uid
 }
 
 func (it *LinksTo) Reset() {
@@ -67,18 +74,29 @@ func (it *LinksTo) Reset() {
 	it.nextIt = &Null{}
 }
 
+func (it *LinksTo) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
 func (it *LinksTo) Clone() graph.Iterator {
 	out := NewLinksTo(it.ts, it.primaryIt.Clone(), it.dir)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
 // Return the direction under consideration.
-func (it *LinksTo) Direction() graph.Direction { return it.dir }
+func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
 func (it *LinksTo) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
 	it.primaryIt.TagResults(dst)
 }
 
@@ -102,7 +120,7 @@ func (it *LinksTo) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	node := it.ts.TripleDirection(val, it.dir)
 	if it.primaryIt.Check(node) {
-		it.Last = val
+		it.result = val
 		return graph.CheckLogOut(it, val, true)
 	}
 	return graph.CheckLogOut(it, val, false)
@@ -137,10 +155,10 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 // Next()ing a LinksTo operates as described above.
 func (it *LinksTo) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	val, ok := it.nextIt.Next()
+	val, ok := graph.Next(it.nextIt)
 	if !ok {
 		// Subiterator is empty, get another one
-		candidate, ok := it.primaryIt.Next()
+		candidate, ok := graph.Next(it.primaryIt)
 		if !ok {
 			// We're out of nodes in our subiterator, so we're done as well.
 			return graph.NextLogOut(it, 0, false)
@@ -150,8 +168,12 @@ func (it *LinksTo) Next() (graph.Value, bool) {
 		// Recurse -- return the first in the next set.
 		return it.Next()
 	}
-	it.Last = val
+	it.result = val
 	return graph.NextLogOut(it, val, ok)
+}
+
+func (it *LinksTo) Result() graph.Value {
+	return it.result
 }
 
 // Close our subiterators.
@@ -180,4 +202,8 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 		CheckCost: checkConstant + subitStats.CheckCost,
 		Size:      fanoutFactor * subitStats.Size,
 	}
+}
+
+func (it *LinksTo) Size() (int64, bool) {
+	return 0, true
 }

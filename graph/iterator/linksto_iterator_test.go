@@ -17,7 +17,7 @@ package iterator
 import (
 	"testing"
 
-	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 func TestLinksTo(t *testing.T) {
@@ -32,12 +32,12 @@ func TestLinksTo(t *testing.T) {
 		t.Fatalf("Failed to return correct value, got:%v expect:1", val)
 	}
 	fixed.Add(val)
-	lto := NewLinksTo(ts, fixed, graph.Object)
+	lto := NewLinksTo(ts, fixed, quad.Object)
 	val, ok := lto.Next()
 	if !ok {
 		t.Error("At least one triple matches the fixed object")
 	}
 	if val != 2 {
-		t.Errorf("Triple index 2, such as %s, should match %s", ts.Triple(2), ts.Triple(val))
+		t.Errorf("Quad index 2, such as %s, should match %s", ts.Quad(2), ts.Quad(val))
 	}
 }

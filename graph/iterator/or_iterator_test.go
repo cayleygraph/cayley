@@ -24,7 +24,7 @@ import (
 func iterated(it graph.Iterator) []int {
 	var res []int
 	for {
-		val, ok := it.Next()
+		val, ok := graph.Next(it)
 		if !ok {
 			break
 		}

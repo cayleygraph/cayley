@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 // This is a simple test graph.
@@ -36,7 +37,7 @@ import (
 //          \-->|#D#|------------->+---+
 //              +---+
 //
-var simpleGraph = []*graph.Triple{
+var simpleGraph = []*quad.Quad{
 	{"A", "follows", "B", ""},
 	{"C", "follows", "B", ""},
 	{"C", "follows", "D", ""},
@@ -50,7 +51,7 @@ var simpleGraph = []*graph.Triple{
 	{"G", "status", "cool", "status_graph"},
 }
 
-func makeTestStore(data []*graph.Triple) (*TripleStore, []pair) {
+func makeTestStore(data []*quad.Quad) (*TripleStore, []pair) {
 	seen := make(map[string]struct{})
 	ts := newTripleStore()
 	var (
@@ -58,7 +59,7 @@ func makeTestStore(data []*graph.Triple) (*TripleStore, []pair) {
 		ind []pair
 	)
 	for _, t := range data {
-		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Provenance} {
+		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Label} {
 			if _, ok := seen[qp]; !ok && qp != "" {
 				val++
 				ind = append(ind, pair{qp, val})
@@ -105,10 +106,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	all := ts.NodesAllIterator()
 
 	innerAnd := iterator.NewAnd()
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, graph.Predicate))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, all, graph.Object))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, quad.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, all, quad.Object))
 
-	hasa := iterator.NewHasA(ts, innerAnd, graph.Subject)
+	hasa := iterator.NewHasA(ts, innerAnd, quad.Subject)
 	outerAnd := iterator.NewAnd()
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
@@ -149,8 +150,8 @@ func TestLinksToOptimization(t *testing.T) {
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("cool"))
 
-	lto := iterator.NewLinksTo(ts, fixed, graph.Object)
-	lto.AddTag("foo")
+	lto := iterator.NewLinksTo(ts, fixed, quad.Object)
+	lto.Tagger().Add("foo")
 
 	newIt, changed := lto.Optimize()
 	if !changed {
@@ -165,7 +166,8 @@ func TestLinksToOptimization(t *testing.T) {
 	if v_clone.DebugString(0) != v.DebugString(0) {
 		t.Fatal("Wrong iterator. Got ", v_clone.DebugString(0))
 	}
-	if len(v_clone.Tags()) < 1 || v_clone.Tags()[0] != "foo" {
+	vt := v_clone.Tagger()
+	if len(vt.Tags()) < 1 || vt.Tags()[0] != "foo" {
 		t.Fatal("Tag on LinksTo did not persist")
 	}
 }
@@ -173,7 +175,7 @@ func TestLinksToOptimization(t *testing.T) {
 func TestRemoveTriple(t *testing.T) {
 	ts, _ := makeTestStore(simpleGraph)
 
-	ts.RemoveTriple(&graph.Triple{"E", "follows", "F", ""})
+	ts.RemoveTriple(&quad.Quad{"E", "follows", "F", ""})
 
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("E"))
@@ -182,13 +184,13 @@ func TestRemoveTriple(t *testing.T) {
 	fixed2.Add(ts.ValueOf("follows"))
 
 	innerAnd := iterator.NewAnd()
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, graph.Subject))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, graph.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, quad.Subject))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, quad.Predicate))
 
-	hasa := iterator.NewHasA(ts, innerAnd, graph.Object)
+	hasa := iterator.NewHasA(ts, innerAnd, quad.Object)
 
 	newIt, _ := hasa.Optimize()
-	_, ok := newIt.Next()
+	_, ok := graph.Next(newIt)
 	if ok {
 		t.Error("E should not have any followers.")
 	}

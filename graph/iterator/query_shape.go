@@ -16,6 +16,7 @@ package iterator
 
 import (
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 type Node struct {
@@ -39,7 +40,7 @@ type queryShape struct {
 	ts       graph.TripleStore
 	nodeId   int
 	hasaIds  []int
-	hasaDirs []graph.Direction
+	hasaDirs []quad.Direction
 }
 
 func OutputQueryShapeForIterator(it graph.Iterator, ts graph.TripleStore, outputMap map[string]interface{}) {
@@ -62,11 +63,11 @@ func (qs *queryShape) AddLink(l *Link) {
 	qs.links = append(qs.links, *l)
 }
 
-func (qs *queryShape) LastHasa() (int, graph.Direction) {
+func (qs *queryShape) LastHasa() (int, quad.Direction) {
 	return qs.hasaIds[len(qs.hasaIds)-1], qs.hasaDirs[len(qs.hasaDirs)-1]
 }
 
-func (qs *queryShape) PushHasa(i int, d graph.Direction) {
+func (qs *queryShape) PushHasa(i int, d quad.Direction) {
 	qs.hasaIds = append(qs.hasaIds, i)
 	qs.hasaDirs = append(qs.hasaDirs, d)
 }
@@ -107,10 +108,10 @@ func (qs *queryShape) StealNode(left *Node, right *Node) {
 
 func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 	n := Node{Id: qs.nodeId}
-	for _, tag := range it.Tags() {
+	for _, tag := range it.Tagger().Tags() {
 		n.Tags = append(n.Tags, tag)
 	}
-	for k, _ := range it.FixedTags() {
+	for k, _ := range it.Tagger().Fixed() {
 		n.Tags = append(n.Tags, k)
 	}
 
@@ -129,7 +130,7 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 	case graph.Fixed:
 		n.IsFixed = true
 		for {
-			val, more := it.Next()
+			val, more := graph.Next(it)
 			if !more {
 				break
 			}
@@ -159,10 +160,10 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 		qs.nodeId++
 		newNode := qs.MakeNode(lto.primaryIt)
 		hasaID, hasaDir := qs.LastHasa()
-		if (hasaDir == graph.Subject && lto.dir == graph.Object) ||
-			(hasaDir == graph.Object && lto.dir == graph.Subject) {
+		if (hasaDir == quad.Subject && lto.dir == quad.Object) ||
+			(hasaDir == quad.Object && lto.dir == quad.Subject) {
 			qs.AddNode(newNode)
-			if hasaDir == graph.Subject {
+			if hasaDir == quad.Subject {
 				qs.AddLink(&Link{hasaID, newNode.Id, 0, n.Id})
 			} else {
 				qs.AddLink(&Link{newNode.Id, hasaID, 0, n.Id})

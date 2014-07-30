@@ -72,13 +72,13 @@ cayley> graph.Vertex("dani").Out("follows").All()
 For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout.
 
 ```
-./cayley repl --dbpath=30kmoviedata.nt.gz
+./cayley repl --dbpath=30kmoviedata.nq.gz
 ```
 
 To run the web frontend, replace the "repl" command with "http"
 
 ```
-./cayley http --dbpath=30kmoviedata.nt.gz
+./cayley http --dbpath=30kmoviedata.nq.gz
 ```
 
 And visit port 64210 on your machine, commonly [http://localhost:64210](http://localhost:64210)
@@ -90,13 +90,13 @@ The default environment is based on [Gremlin](http://gremlindocs.com/) and is si
 
 You'll notice we have a special object, `graph` or `g`, which is how you can interact with the graph.
 
-The simplest query is merely to return a single vertex. Using the 30kmovies.nt dataset from above, let's walk through some simple queries:
+The simplest query is merely to return a single vertex. Using the 30kmoviedata.nq dataset from above, let's walk through some simple queries:
 
 ```javascript
 // Query all vertices in the graph, limit to the first 5 vertices found.
 graph.Vertex().GetLimit(5)
 
-// Start with only one vertex, the literal name "Humphrey Bogart", and retreive all of them.
+// Start with only one vertex, the literal name "Humphrey Bogart", and retrieve all of them.
 graph.Vertex("Humphrey Bogart").All()
 
 // `g` and `V` are synonyms for `graph` and `Vertex` respectively, as they are quite common.
