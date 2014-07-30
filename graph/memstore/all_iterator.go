@@ -31,6 +31,11 @@ func NewMemstoreAllIterator(ts *TripleStore) *AllIterator {
 	return &out
 }
 
+// No subiterators.
+func (it *AllIterator) SubIterators() []graph.Iterator {
+	return nil
+}
+
 func (it *AllIterator) Next() (graph.Value, bool) {
 	next, out := it.Int64.Next()
 	if !out {

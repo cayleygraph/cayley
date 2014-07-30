@@ -121,6 +121,11 @@ func (it *AllIterator) Next() (graph.Value, bool) {
 	return out, true
 }
 
+// No subiterators.
+func (it *AllIterator) SubIterators() []graph.Iterator {
+	return nil
+}
+
 func (it *AllIterator) Check(v graph.Value) bool {
 	it.Last = v
 	return true

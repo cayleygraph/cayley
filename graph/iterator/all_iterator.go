@@ -103,6 +103,11 @@ func (it *Int64) Next() (graph.Value, bool) {
 	return graph.NextLogOut(it, val, true)
 }
 
+// No sub-iterators.
+func (it *Int64) SubIterators() []graph.Iterator {
+	return nil
+}
+
 // The number of elements in an Int64 is the size of the range.
 // The size is exact.
 func (it *Int64) Size() (int64, bool) {

@@ -146,6 +146,11 @@ func (it *Iterator) Next() (graph.Value, bool) {
 	return nil, false
 }
 
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.Iterator {
+	return nil
+}
+
 func PositionOf(prefix []byte, d graph.Direction, ts *TripleStore) int {
 	if bytes.Equal(prefix, []byte("sp")) {
 		switch d {

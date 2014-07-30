@@ -35,7 +35,7 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-// An optional iterator has the subconstraint iterator we wish to be optional
+// An optional iterator has the sub-constraint iterator we wish to be optional
 // and whether the last check we received was true or false.
 type Optional struct {
 	Base
@@ -93,6 +93,11 @@ func (it *Optional) NextResult() bool {
 		return it.subIt.NextResult()
 	}
 	return false
+}
+
+// No subiterators.
+func (it *Optional) SubIterators() []graph.Iterator {
+	return nil
 }
 
 // Check() is the real hack of this iterator. It always returns true, regardless

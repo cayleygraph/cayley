@@ -105,6 +105,11 @@ func (it *Iterator) Next() (graph.Value, bool) {
 	return graph.NextLogOut(it, it.Last, true)
 }
 
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.Iterator {
+	return nil
+}
+
 func (it *Iterator) Size() (int64, bool) {
 	return int64(it.tree.Len()), true
 }

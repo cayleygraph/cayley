@@ -149,6 +149,11 @@ func (it *Fixed) Next() (graph.Value, bool) {
 	return graph.NextLogOut(it, out, true)
 }
 
+// No sub-iterators.
+func (it *Fixed) SubIterators() []graph.Iterator {
+	return nil
+}
+
 // Optimize() for a Fixed iterator is simple. Returns a Null iterator if it's empty
 // (so that other iterators upstream can treat this as null) or there is no
 // optimization.

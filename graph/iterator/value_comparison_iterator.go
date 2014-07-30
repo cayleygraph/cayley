@@ -159,6 +159,11 @@ func (it *Comparison) NextResult() bool {
 	return true
 }
 
+// No subiterators.
+func (it *Comparison) SubIterators() []graph.Iterator {
+	return nil
+}
+
 func (it *Comparison) Check(val graph.Value) bool {
 	if !it.doComparison(val) {
 		return false

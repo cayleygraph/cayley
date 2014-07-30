@@ -162,6 +162,11 @@ func (it *Iterator) Next() (graph.Value, bool) {
 	return result.Id, true
 }
 
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.Iterator {
+	return nil
+}
+
 func (it *Iterator) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	if it.isAll {
