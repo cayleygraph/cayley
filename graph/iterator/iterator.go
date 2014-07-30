@@ -85,26 +85,18 @@ func (it *Base) Size() (int64, bool) {
 	return 0, true
 }
 
-// No subiterators. Only those with subiterators need to do anything here.
-func (it *Base) SubIterators() []graph.Iterator {
-	return nil
-}
-
 // Accessor
 func (it *Base) CanNext() bool { return it.canNext }
 
 // Nothing to clean up.
 // func (it *Base) Close() {}
 
-func (it *Null) Close() {}
-
 func (it *Base) Reset() {}
 
-// Here we define the simplest base iterator -- the Null iterator. It contains nothing.
+// Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
 type Null struct {
-	Base
 	uid  uint64
 	tags graph.Tagger
 }
@@ -133,6 +125,10 @@ func (it *Null) TagResults(dst map[string]graph.Value) {
 	}
 }
 
+func (it *Null) Check(graph.Value) bool {
+	return false
+}
+
 func (it *Null) Clone() graph.Iterator { return NewNull() }
 
 // Name the null iterator.
@@ -146,6 +142,37 @@ func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Null) DebugString(indent int) string {
 	return strings.Repeat(" ", indent) + "(null)"
 }
+
+func (it *Null) CanNext() bool { return true }
+
+func (it *Null) Next() (graph.Value, bool) {
+	return nil, false
+}
+
+func (it *Null) Result() graph.Value {
+	return nil
+}
+
+func (it *Null) ResultTree() *graph.ResultTree {
+	tree := graph.NewResultTree(it.Result())
+	return tree
+}
+
+func (it *Null) SubIterators() []graph.Iterator {
+	return nil
+}
+
+func (it *Null) NextResult() bool {
+	return false
+}
+
+func (it *Null) Size() (int64, bool) {
+	return 0, true
+}
+
+func (it *Null) Reset() {}
+
+func (it *Null) Close() {}
 
 // A null iterator costs nothing. Use it!
 func (it *Null) Stats() graph.IteratorStats {
