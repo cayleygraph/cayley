@@ -40,24 +40,20 @@ type Or struct {
 }
 
 func NewOr() *Or {
-	or := Or{
+	return &Or{
 		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 		currentIterator:   -1,
 	}
-	BaseInit(&or.Base)
-	return &or
 }
 
 func NewShortCircuitOr() *Or {
-	or := Or{
+	return &Or{
 		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 		isShortCircuiting: true,
 		currentIterator:   -1,
 	}
-	BaseInit(&or.Base)
-	return &or
 }
 
 func (it *Or) UID() uint64 {

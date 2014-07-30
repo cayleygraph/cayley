@@ -53,7 +53,6 @@ func NewAllIterator(prefix string, d graph.Direction, ts *TripleStore) *AllItera
 		open:   true,
 		ts:     ts,
 	}
-	iterator.BaseInit(&it.Base)
 
 	it.iter.Seek(it.prefix)
 	if !it.iter.Valid() {
@@ -128,6 +127,10 @@ func (it *AllIterator) ResultTree() *graph.ResultTree {
 
 func (it *AllIterator) Result() graph.Value {
 	return it.result
+}
+
+func (it *AllIterator) NextResult() bool {
+	return false
 }
 
 // No subiterators.

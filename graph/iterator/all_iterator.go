@@ -41,14 +41,12 @@ type Int64 struct {
 
 // Creates a new Int64 with the given range.
 func NewInt64(min, max int64) *Int64 {
-	all := Int64{
+	return &Int64{
 		uid: NextUID(),
 		min: min,
 		max: max,
 		at:  min,
 	}
-	BaseInit(&all.Base)
-	return &all
 }
 
 func (it *Int64) UID() uint64 {
@@ -111,6 +109,10 @@ func (it *Int64) ResultTree() *graph.ResultTree {
 
 func (it *Int64) Result() graph.Value {
 	return it.result
+}
+
+func (it *Int64) NextResult() bool {
+	return false
 }
 
 // No sub-iterators.

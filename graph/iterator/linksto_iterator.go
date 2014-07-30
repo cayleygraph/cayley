@@ -53,15 +53,13 @@ type LinksTo struct {
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
 func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d graph.Direction) *LinksTo {
-	lto := LinksTo{
+	return &LinksTo{
 		uid:       NextUID(),
 		ts:        ts,
 		primaryIt: it,
 		dir:       d,
 		nextIt:    &Null{},
 	}
-	BaseInit(&lto.Base)
-	return &lto
 }
 
 func (it *LinksTo) UID() uint64 {

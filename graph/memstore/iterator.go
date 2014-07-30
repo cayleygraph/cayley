@@ -56,14 +56,12 @@ func IterateOne(tree *llrb.LLRB, last Int64) Int64 {
 }
 
 func NewLlrbIterator(tree *llrb.LLRB, data string) *Iterator {
-	it := Iterator{
+	return &Iterator{
 		uid:      iterator.NextUID(),
 		tree:     tree,
 		iterLast: Int64(-1),
 		data:     data,
 	}
-	iterator.BaseInit(&it.Base)
-	return &it
 }
 
 func (it *Iterator) UID() uint64 {
@@ -112,6 +110,10 @@ func (it *Iterator) ResultTree() *graph.ResultTree {
 
 func (it *Iterator) Result() graph.Value {
 	return it.result
+}
+
+func (it *Iterator) NextResult() bool {
+	return false
 }
 
 // No subiterators.

@@ -62,7 +62,6 @@ func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *Triple
 		open:           true,
 		ts:             ts,
 	}
-	iterator.BaseInit(&it.Base)
 
 	ok := it.iter.Seek(it.nextPrefix)
 	if !ok {
@@ -153,6 +152,10 @@ func (it *Iterator) ResultTree() *graph.ResultTree {
 
 func (it *Iterator) Result() graph.Value {
 	return it.result
+}
+
+func (it *Iterator) NextResult() bool {
+	return false
 }
 
 // No subiterators.

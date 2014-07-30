@@ -64,7 +64,7 @@ func NewIterator(ts *TripleStore, collection string, d graph.Direction, val grap
 		return nil
 	}
 
-	m := Iterator{
+	return &Iterator{
 		uid:        iterator.NextUID(),
 		name:       name,
 		constraint: constraint,
@@ -76,9 +76,6 @@ func NewIterator(ts *TripleStore, collection string, d graph.Direction, val grap
 		hash:       val.(string),
 		isAll:      false,
 	}
-	iterator.BaseInit(&m.Base)
-
-	return &m
 }
 
 func NewAllIterator(ts *TripleStore, collection string) *Iterator {
@@ -89,7 +86,7 @@ func NewAllIterator(ts *TripleStore, collection string) *Iterator {
 		return nil
 	}
 
-	m := Iterator{
+	return &Iterator{
 		uid:        iterator.NextUID(),
 		ts:         ts,
 		dir:        graph.Any,
@@ -100,9 +97,6 @@ func NewAllIterator(ts *TripleStore, collection string) *Iterator {
 		hash:       "",
 		isAll:      true,
 	}
-	// FIXME(kortschak) Was there supposed to be a BaseInit call here?
-
-	return &m
 }
 
 func (it *Iterator) UID() uint64 {
@@ -169,6 +163,10 @@ func (it *Iterator) ResultTree() *graph.ResultTree {
 
 func (it *Iterator) Result() graph.Value {
 	return it.result
+}
+
+func (it *Iterator) NextResult() bool {
+	return false
 }
 
 // No subiterators.

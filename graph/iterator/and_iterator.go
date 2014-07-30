@@ -37,12 +37,10 @@ type And struct {
 
 // Creates a new And iterator.
 func NewAnd() *And {
-	and := And{
+	return &And{
 		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 	}
-	BaseInit(&and.Base)
-	return &and
 }
 
 func (it *And) UID() uint64 {

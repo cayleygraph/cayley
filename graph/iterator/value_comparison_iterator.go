@@ -57,15 +57,13 @@ type Comparison struct {
 }
 
 func NewComparison(sub graph.Iterator, op Operator, val interface{}, ts graph.TripleStore) *Comparison {
-	vc := Comparison{
+	return &Comparison{
 		uid:   NextUID(),
 		subIt: sub,
 		op:    op,
 		val:   val,
 		ts:    ts,
 	}
-	BaseInit(&vc.Base)
-	return &vc
 }
 
 func (it *Comparison) UID() uint64 {

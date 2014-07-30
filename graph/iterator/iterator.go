@@ -33,21 +33,10 @@ func NextUID() uint64 {
 // The Base iterator is the iterator other iterators inherit from to get some
 // default functionality.
 type Base struct {
-	canNext bool
-}
-
-// Called by subclases.
-func BaseInit(it *Base) {
-	// Your basic iterator is nextable
-	it.canNext = true
-}
-
-func (it *Base) NextResult() bool {
-	return false
 }
 
 // Accessor
-func (it *Base) CanNext() bool { return it.canNext }
+func (it *Base) CanNext() bool { return true }
 
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,

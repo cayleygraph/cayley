@@ -57,13 +57,11 @@ func newFixed() *Fixed {
 
 // Creates a new Fixed iterator with a custom comparitor.
 func NewFixedIteratorWithCompare(compareFn Equality) *Fixed {
-	it := Fixed{
+	return &Fixed{
 		uid:    NextUID(),
 		values: make([]graph.Value, 0, 20),
 		cmp:    compareFn,
 	}
-	BaseInit(&it.Base)
-	return &it
 }
 
 func (it *Fixed) UID() uint64 {
@@ -157,6 +155,10 @@ func (it *Fixed) ResultTree() *graph.ResultTree {
 
 func (it *Fixed) Result() graph.Value {
 	return it.result
+}
+
+func (it *Fixed) NextResult() bool {
+	return false
 }
 
 // No sub-iterators.
