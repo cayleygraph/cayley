@@ -39,7 +39,7 @@ type HttpSession interface {
 	ExecInput(string, chan interface{}, int)
 	GetQuery(string, chan map[string]interface{})
 	BuildJson(interface{})
-	GetJson() (interface{}, error)
+	GetJson() ([]interface{}, error)
 	ClearJson()
 	ToggleDebug()
 }

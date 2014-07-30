@@ -250,7 +250,7 @@ func (ses *Session) BuildJson(result interface{}) {
 
 }
 
-func (ses *Session) GetJson() (interface{}, error) {
+func (ses *Session) GetJson() ([]interface{}, error) {
 	defer ses.ClearJson()
 	if ses.err != nil {
 		return nil, ses.err

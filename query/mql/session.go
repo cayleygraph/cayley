@@ -130,7 +130,7 @@ func (s *Session) BuildJson(result interface{}) {
 	s.currentQuery.treeifyResult(result.(map[string]graph.Value))
 }
 
-func (s *Session) GetJson() (interface{}, error) {
+func (s *Session) GetJson() ([]interface{}, error) {
 	s.currentQuery.buildResults()
 	if s.currentQuery.isError() {
 		return nil, s.currentQuery.err
