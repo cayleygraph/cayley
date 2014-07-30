@@ -28,7 +28,8 @@ import (
 )
 
 type Iterator struct {
-	iterator.Base
+	uid            uint64
+	tags           graph.Tagger
 	nextPrefix     []byte
 	checkId        []byte
 	dir            quad.Direction
@@ -37,28 +38,44 @@ type Iterator struct {
 	qs             *TripleStore
 	ro             *opt.ReadOptions
 	originalPrefix string
+	result         graph.Value
 }
 
 func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) *Iterator {
-	var it Iterator
-	iterator.BaseInit(&it.Base)
-	it.checkId = value.([]byte)
-	it.dir = d
-	it.originalPrefix = prefix
-	it.nextPrefix = make([]byte, 0, 2+qs.hasher.Size())
-	it.nextPrefix = append(it.nextPrefix, []byte(prefix)...)
-	it.nextPrefix = append(it.nextPrefix, []byte(it.checkId[1:])...)
-	it.ro = &opt.ReadOptions{}
-	it.ro.DontFillCache = true
-	it.iter = qs.db.NewIterator(nil, it.ro)
-	it.open = true
-	it.qs = qs
+	vb := value.([]byte)
+	p := make([]byte, 0, 2+qs.hasher.Size())
+	p = append(p, []byte(prefix)...)
+	p = append(p, []byte(vb[1:])...)
+
+	opts := &opt.ReadOptions{
+		DontFillCache: true,
+	}
+
+	it := Iterator{
+		uid:            iterator.NextUID(),
+		nextPrefix:     p,
+		checkId:        vb,
+		dir:            d,
+		originalPrefix: prefix,
+		ro:             opts,
+		iter:           qs.db.NewIterator(nil, opts),
+		open:           true,
+		qs:             qs,
+	}
+
 	ok := it.iter.Seek(it.nextPrefix)
 	if !ok {
+		// FIXME(kortschak) What are the semantics here? Is this iterator usable?
+		// If not, we should return nil *Iterator and an error.
 		it.open = false
 		it.iter.Release()
 	}
+
 	return &it
+}
+
+func (it *Iterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *Iterator) Reset() {
@@ -73,9 +90,23 @@ func (it *Iterator) Reset() {
 	}
 }
 
+func (it *Iterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Iterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
 func (it *Iterator) Clone() graph.Iterator {
 	out := NewIterator(it.originalPrefix, it.dir, it.checkId, it.qs)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -88,22 +119,22 @@ func (it *Iterator) Close() {
 
 func (it *Iterator) Next() (graph.Value, bool) {
 	if it.iter == nil {
-		it.Last = nil
+		it.result = nil
 		return nil, false
 	}
 	if !it.open {
-		it.Last = nil
+		it.result = nil
 		return nil, false
 	}
 	if !it.iter.Valid() {
-		it.Last = nil
+		it.result = nil
 		it.Close()
 		return nil, false
 	}
 	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
 		out := make([]byte, len(it.iter.Key()))
 		copy(out, it.iter.Key())
-		it.Last = out
+		it.result = out
 		ok := it.iter.Next()
 		if !ok {
 			it.Close()
@@ -111,8 +142,25 @@ func (it *Iterator) Next() (graph.Value, bool) {
 		return out, true
 	}
 	it.Close()
-	it.Last = nil
+	it.result = nil
 	return nil, false
+}
+
+func (it *Iterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Iterator) Result() graph.Value {
+	return it.result
+}
+
+func (it *Iterator) NextResult() bool {
+	return false
+}
+
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.Iterator {
+	return nil
 }
 
 func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
@@ -193,7 +241,7 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.qs.NameOf(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.tags.Tags(), it.dir, size, it.qs.NameOf(it.checkId))
 }
 
 var levelDBType graph.Type

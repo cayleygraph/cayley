@@ -24,11 +24,11 @@ import (
 func TestTag(t *testing.T) {
 	fix1 := newFixed()
 	fix1.Add(234)
-	fix1.AddTag("foo")
+	fix1.Tagger().Add("foo")
 	and := NewAnd()
 	and.AddSubIterator(fix1)
-	and.AddTag("bar")
-	out := fix1.Tags()
+	and.Tagger().Add("bar")
+	out := fix1.Tagger().Tags()
 	if len(out) != 1 {
 		t.Errorf("Expected length 1, got %d", len(out))
 	}

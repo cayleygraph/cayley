@@ -82,7 +82,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	}
 
 	// Move the tags hanging on us (like any good replacement).
-	newAnd.CopyTagsFrom(it)
+	newAnd.tags.CopyFrom(it)
 
 	newAnd.optimizeCheck()
 
@@ -145,14 +145,14 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	// all of it's contents, and to Check() each of those against everyone
 	// else.
 	for _, it := range its {
-		if !it.CanNext() {
+		if _, canNext := it.(graph.Nexter); !canNext {
 			bad = append(bad, it)
 			continue
 		}
 		rootStats := it.Stats()
 		cost := rootStats.NextCost
 		for _, f := range its {
-			if !f.CanNext() {
+			if _, canNext := it.(graph.Nexter); !canNext {
 				continue
 			}
 			if f == it {
@@ -177,7 +177,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 
 	// ... push everyone else after...
 	for _, it := range its {
-		if !it.CanNext() {
+		if _, canNext := it.(graph.Nexter); !canNext {
 			continue
 		}
 		if it != best {
@@ -213,11 +213,11 @@ func (it *And) optimizeCheck() {
 func (it *And) getSubTags() map[string]struct{} {
 	tags := make(map[string]struct{})
 	for _, sub := range it.SubIterators() {
-		for _, tag := range sub.Tags() {
+		for _, tag := range sub.Tagger().Tags() {
 			tags[tag] = struct{}{}
 		}
 	}
-	for _, tag := range it.Tags() {
+	for _, tag := range it.tags.Tags() {
 		tags[tag] = struct{}{}
 	}
 	return tags
@@ -227,13 +227,14 @@ func (it *And) getSubTags() map[string]struct{} {
 // src itself, and moves them to dst.
 func moveTagsTo(dst graph.Iterator, src *And) {
 	tags := src.getSubTags()
-	for _, tag := range dst.Tags() {
+	for _, tag := range dst.Tagger().Tags() {
 		if _, ok := tags[tag]; ok {
 			delete(tags, tag)
 		}
 	}
+	dt := dst.Tagger()
 	for k := range tags {
-		dst.AddTag(k)
+		dt.Add(k)
 	}
 }
 

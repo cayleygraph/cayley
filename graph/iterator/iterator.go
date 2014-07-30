@@ -14,161 +14,55 @@
 
 package iterator
 
-// Define the general iterator interface, as well as the Base which all
-// iterators can "inherit" from to get default iterator functionality.
+// Define the general iterator interface.
 
 import (
-	"fmt"
 	"strings"
 	"sync/atomic"
-
-	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
 )
 
-var nextIteratorID uintptr
+var nextIteratorID uint64
 
-func nextID() uintptr {
-	return atomic.AddUintptr(&nextIteratorID, 1) - 1
+func NextUID() uint64 {
+	return atomic.AddUint64(&nextIteratorID, 1) - 1
 }
 
-// The Base iterator is the iterator other iterators inherit from to get some
-// default functionality.
-type Base struct {
-	Last      graph.Value
-	tags      []string
-	fixedTags map[string]graph.Value
-	canNext   bool
-	uid       uintptr
-}
-
-// Called by subclases.
-func BaseInit(it *Base) {
-	// Your basic iterator is nextable
-	it.canNext = true
-	if glog.V(2) {
-		it.uid = nextID()
-	}
-}
-
-func (it *Base) UID() uintptr {
-	return it.uid
-}
-
-// Adds a tag to the iterator. Most iterators don't need to override.
-func (it *Base) AddTag(tag string) {
-	if it.tags == nil {
-		it.tags = make([]string, 0)
-	}
-	it.tags = append(it.tags, tag)
-}
-
-func (it *Base) AddFixedTag(tag string, value graph.Value) {
-	if it.fixedTags == nil {
-		it.fixedTags = make(map[string]graph.Value)
-	}
-	it.fixedTags[tag] = value
-}
-
-// Returns the tags.
-func (it *Base) Tags() []string {
-	return it.tags
-}
-
-func (it *Base) FixedTags() map[string]graph.Value {
-	return it.fixedTags
-}
-
-func (it *Base) CopyTagsFrom(other_it graph.Iterator) {
-	for _, tag := range other_it.Tags() {
-		it.AddTag(tag)
-	}
-
-	for k, v := range other_it.FixedTags() {
-		it.AddFixedTag(k, v)
-	}
-
-}
-
-// Prints a silly debug string. Most classes override.
-func (it *Base) DebugString(indent int) string {
-	return fmt.Sprintf("%s(base)", strings.Repeat(" ", indent))
-}
-
-// Nothing in a base iterator.
-func (it *Base) Check(v graph.Value) bool {
-	return false
-}
-
-// Base iterators should never appear in a tree if they are, select against
-// them.
-func (it *Base) Stats() graph.IteratorStats {
-	return graph.IteratorStats{100000, 100000, 100000}
-}
-
-// DEPRECATED
-func (it *Base) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	return tree
-}
-
-// Nothing in a base iterator.
-func (it *Base) Next() (graph.Value, bool) {
-	return nil, false
-}
-
-func (it *Base) NextResult() bool {
-	return false
-}
-
-// Returns the last result of an iterator.
-func (it *Base) Result() graph.Value {
-	return it.Last
-}
-
-// If you're empty and you know it, clap your hands.
-func (it *Base) Size() (int64, bool) {
-	return 0, true
-}
-
-// No subiterators. Only those with subiterators need to do anything here.
-func (it *Base) SubIterators() []graph.Iterator {
-	return nil
-}
-
-// Accessor
-func (it *Base) CanNext() bool { return it.canNext }
-
-// Fill the map based on the tags assigned to this iterator. Default
-// functionality works well for most iterators.
-func (it *Base) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.FixedTags() {
-		dst[tag] = value
-	}
-}
-
-// Nothing to clean up.
-// func (it *Base) Close() {}
-
-func (it *Null) Close() {}
-
-func (it *Base) Reset() {}
-
-// Here we define the simplest base iterator -- the Null iterator. It contains nothing.
+// Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
 type Null struct {
-	Base
+	uid  uint64
+	tags graph.Tagger
 }
 
 // Fairly useless New function.
 func NewNull() *Null {
-	return &Null{}
+	return &Null{uid: NextUID()}
+}
+
+func (it *Null) UID() uint64 {
+	return it.uid
+}
+
+func (it *Null) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+// Fill the map based on the tags assigned to this iterator.
+func (it *Null) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
+func (it *Null) Check(graph.Value) bool {
+	return false
 }
 
 func (it *Null) Clone() graph.Iterator { return NewNull() }
@@ -184,6 +78,34 @@ func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Null) DebugString(indent int) string {
 	return strings.Repeat(" ", indent) + "(null)"
 }
+
+func (it *Null) Next() (graph.Value, bool) {
+	return nil, false
+}
+
+func (it *Null) Result() graph.Value {
+	return nil
+}
+
+func (it *Null) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Null) SubIterators() []graph.Iterator {
+	return nil
+}
+
+func (it *Null) NextResult() bool {
+	return false
+}
+
+func (it *Null) Size() (int64, bool) {
+	return 0, true
+}
+
+func (it *Null) Reset() {}
+
+func (it *Null) Close() {}
 
 // A null iterator costs nothing. Use it!
 func (it *Null) Stats() graph.IteratorStats {

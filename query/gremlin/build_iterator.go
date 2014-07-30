@@ -136,7 +136,7 @@ func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Itera
 			tags = makeListOfStringsFromArrayValue(one.Object())
 		}
 		for _, tag := range tags {
-			predicateNodeIterator.AddTag(tag)
+			predicateNodeIterator.Tagger().Add(tag)
 		}
 	}
 
@@ -180,7 +180,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 	case "tag":
 		it = subIt
 		for _, tag := range stringArgs {
-			it.AddTag(tag)
+			it.Tagger().Add(tag)
 		}
 	case "save":
 		all := ts.NodesAllIterator()
@@ -188,9 +188,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			return iterator.NewNull()
 		}
 		if len(stringArgs) == 2 {
-			all.AddTag(stringArgs[1])
+			all.Tagger().Add(stringArgs[1])
 		} else {
-			all.AddTag(stringArgs[0])
+			all.Tagger().Add(stringArgs[0])
 		}
 		predFixed := ts.FixedIterator()
 		predFixed.Add(ts.ValueOf(stringArgs[0]))
@@ -208,9 +208,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			return iterator.NewNull()
 		}
 		if len(stringArgs) == 2 {
-			all.AddTag(stringArgs[1])
+			all.Tagger().Add(stringArgs[1])
 		} else {
-			all.AddTag(stringArgs[0])
+			all.Tagger().Add(stringArgs[0])
 		}
 		predFixed := ts.FixedIterator()
 		predFixed.Add(ts.ValueOf(stringArgs[0]))

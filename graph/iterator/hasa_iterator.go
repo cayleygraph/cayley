@@ -47,22 +47,28 @@ import (
 // a primary subiterator, a direction in which the triples for that subiterator point,
 // and a temporary holder for the iterator generated on Check().
 type HasA struct {
-	Base
+	uid       uint64
+	tags      graph.Tagger
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
 	dir       quad.Direction
 	resultIt  graph.Iterator
+	result    graph.Value
 }
 
 // Construct a new HasA iterator, given the triple subiterator, and the triple
 // direction for which it stands.
 func NewHasA(ts graph.TripleStore, subIt graph.Iterator, d quad.Direction) *HasA {
-	var hasa HasA
-	BaseInit(&hasa.Base)
-	hasa.ts = ts
-	hasa.primaryIt = subIt
-	hasa.dir = d
-	return &hasa
+	return &HasA{
+		uid:       NextUID(),
+		ts:        ts,
+		primaryIt: subIt,
+		dir:       d,
+	}
+}
+
+func (it *HasA) UID() uint64 {
+	return it.uid
 }
 
 // Return our sole subiterator.
@@ -77,9 +83,13 @@ func (it *HasA) Reset() {
 	}
 }
 
+func (it *HasA) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
 func (it *HasA) Clone() graph.Iterator {
 	out := NewHasA(it.ts, it.primaryIt.Clone(), it.dir)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -101,7 +111,14 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 
 // Pass the TagResults down the chain.
 func (it *HasA) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
 	it.primaryIt.TagResults(dst)
 }
 
@@ -115,7 +132,7 @@ func (it *HasA) ResultTree() *graph.ResultTree {
 // Print some information about this iterator.
 func (it *HasA) DebugString(indent int) string {
 	var tags string
-	for _, k := range it.Tags() {
+	for _, k := range it.tags.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
 	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.UID(), tags, it.dir, it.primaryIt.DebugString(indent+4))
@@ -142,7 +159,7 @@ func (it *HasA) Check(val graph.Value) bool {
 // another match is made.
 func (it *HasA) GetCheckResult() bool {
 	for {
-		linkVal, ok := it.resultIt.Next()
+		linkVal, ok := graph.Next(it.resultIt)
 		if !ok {
 			break
 		}
@@ -150,7 +167,7 @@ func (it *HasA) GetCheckResult() bool {
 			glog.V(4).Infoln("Quad is", it.ts.Quad(linkVal))
 		}
 		if it.primaryIt.Check(linkVal) {
-			it.Last = it.ts.TripleDirection(linkVal, it.dir)
+			it.result = it.ts.TripleDirection(linkVal, it.dir)
 			return true
 		}
 	}
@@ -181,14 +198,18 @@ func (it *HasA) Next() (graph.Value, bool) {
 	}
 	it.resultIt = &Null{}
 
-	tID, ok := it.primaryIt.Next()
+	tID, ok := graph.Next(it.primaryIt)
 	if !ok {
 		return graph.NextLogOut(it, 0, false)
 	}
 	name := it.ts.Quad(tID).Get(it.dir)
 	val := it.ts.ValueOf(name)
-	it.Last = val
+	it.result = val
 	return graph.NextLogOut(it, val, true)
+}
+
+func (it *HasA) Result() graph.Value {
+	return it.result
 }
 
 // GetStats() returns the statistics on the HasA iterator. This is curious. Next
@@ -222,3 +243,7 @@ func (it *HasA) Close() {
 
 // Register this iterator as a HasA.
 func (it *HasA) Type() graph.Type { return graph.HasA }
+
+func (it *HasA) Size() (int64, bool) {
+	return 0, true
+}

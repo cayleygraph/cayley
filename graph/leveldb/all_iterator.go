@@ -28,31 +28,45 @@ import (
 )
 
 type AllIterator struct {
-	iterator.Base
+	uid    uint64
+	tags   graph.Tagger
 	prefix []byte
 	dir    quad.Direction
 	open   bool
 	iter   ldbit.Iterator
 	ts     *TripleStore
 	ro     *opt.ReadOptions
+	result graph.Value
 }
 
 func NewAllIterator(prefix string, d quad.Direction, ts *TripleStore) *AllIterator {
-	var it AllIterator
-	iterator.BaseInit(&it.Base)
-	it.ro = &opt.ReadOptions{}
-	it.ro.DontFillCache = true
-	it.iter = ts.db.NewIterator(nil, it.ro)
-	it.prefix = []byte(prefix)
-	it.dir = d
-	it.open = true
-	it.ts = ts
+	opts := &opt.ReadOptions{
+		DontFillCache: true,
+	}
+
+	it := AllIterator{
+		uid:    iterator.NextUID(),
+		ro:     opts,
+		iter:   ts.db.NewIterator(nil, opts),
+		prefix: []byte(prefix),
+		dir:    d,
+		open:   true,
+		ts:     ts,
+	}
+
 	it.iter.Seek(it.prefix)
 	if !it.iter.Valid() {
+		// FIXME(kortschak) What are the semantics here? Is this iterator usable?
+		// If not, we should return nil *Iterator and an error.
 		it.open = false
 		it.iter.Release()
 	}
+
 	return &it
+}
+
+func (it *AllIterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *AllIterator) Reset() {
@@ -67,15 +81,29 @@ func (it *AllIterator) Reset() {
 	}
 }
 
+func (it *AllIterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *AllIterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
 func (it *AllIterator) Clone() graph.Iterator {
 	out := NewAllIterator(string(it.prefix), it.dir, it.ts)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
 func (it *AllIterator) Next() (graph.Value, bool) {
 	if !it.open {
-		it.Last = nil
+		it.result = nil
 		return nil, false
 	}
 	var out []byte
@@ -89,12 +117,29 @@ func (it *AllIterator) Next() (graph.Value, bool) {
 		it.Close()
 		return nil, false
 	}
-	it.Last = out
+	it.result = out
 	return out, true
 }
 
+func (it *AllIterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *AllIterator) Result() graph.Value {
+	return it.result
+}
+
+func (it *AllIterator) NextResult() bool {
+	return false
+}
+
+// No subiterators.
+func (it *AllIterator) SubIterators() []graph.Iterator {
+	return nil
+}
+
 func (it *AllIterator) Check(v graph.Value) bool {
-	it.Last = v
+	it.result = v
 	return true
 }
 
@@ -116,7 +161,7 @@ func (it *AllIterator) Size() (int64, bool) {
 
 func (it *AllIterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s tags: %v leveldb size:%d %s %p)", strings.Repeat(" ", indent), it.Type(), it.Tags(), size, it.dir, it)
+	return fmt.Sprintf("%s(%s tags: %v leveldb size:%d %s %p)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags(), size, it.dir, it)
 }
 
 func (it *AllIterator) Type() graph.Type { return graph.All }

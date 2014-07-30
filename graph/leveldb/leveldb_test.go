@@ -46,7 +46,7 @@ func makeTripleSet() []*quad.Quad {
 func iteratedTriples(qs graph.TripleStore, it graph.Iterator) []*quad.Quad {
 	var res ordered
 	for {
-		val, ok := it.Next()
+		val, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -86,7 +86,7 @@ func (o ordered) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 func iteratedNames(qs graph.TripleStore, it graph.Iterator) []string {
 	var res []string
 	for {
-		val, ok := it.Next()
+		val, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -266,7 +266,7 @@ func TestIterator(t *testing.T) {
 	it.Reset()
 
 	it = qs.TriplesAllIterator()
-	edge, _ := it.Next()
+	edge, _ := graph.Next(it)
 	triple := qs.Quad(edge)
 	set := makeTripleSet()
 	var ok bool
@@ -416,7 +416,7 @@ func TestOptimize(t *testing.T) {
 	// With an linksto-fixed pair
 	fixed := qs.FixedIterator()
 	fixed.Add(qs.ValueOf("F"))
-	fixed.AddTag("internal")
+	fixed.Tagger().Add("internal")
 	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
 
 	oldIt := lto.Clone()
@@ -434,10 +434,10 @@ func TestOptimize(t *testing.T) {
 		t.Errorf("Optimized iteration does not match original")
 	}
 
-	oldIt.Next()
+	graph.Next(oldIt)
 	oldResults := make(map[string]graph.Value)
 	oldIt.TagResults(oldResults)
-	newIt.Next()
+	graph.Next(newIt)
 	newResults := make(map[string]graph.Value)
 	newIt.TagResults(newResults)
 	if !reflect.DeepEqual(newResults, oldResults) {

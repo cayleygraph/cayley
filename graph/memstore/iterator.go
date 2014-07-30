@@ -26,11 +26,13 @@ import (
 )
 
 type Iterator struct {
-	iterator.Base
+	uid       uint64
+	tags      graph.Tagger
 	tree      *llrb.LLRB
 	data      string
 	isRunning bool
 	iterLast  Int64
+	result    graph.Value
 }
 
 type Int64 int64
@@ -53,34 +55,69 @@ func IterateOne(tree *llrb.LLRB, last Int64) Int64 {
 }
 
 func NewLlrbIterator(tree *llrb.LLRB, data string) *Iterator {
-	var it Iterator
-	iterator.BaseInit(&it.Base)
-	it.tree = tree
-	it.iterLast = Int64(-1)
-	it.data = data
-	return &it
+	return &Iterator{
+		uid:      iterator.NextUID(),
+		tree:     tree,
+		iterLast: Int64(-1),
+		data:     data,
+	}
+}
+
+func (it *Iterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *Iterator) Reset() {
 	it.iterLast = Int64(-1)
 }
 
+func (it *Iterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Iterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
 func (it *Iterator) Clone() graph.Iterator {
-	var new_it = NewLlrbIterator(it.tree, it.data)
-	new_it.CopyTagsFrom(it)
-	return new_it
+	m := NewLlrbIterator(it.tree, it.data)
+	m.tags.CopyFrom(it)
+	return m
 }
 
 func (it *Iterator) Close() {}
 
 func (it *Iterator) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	if it.tree.Max() == nil || it.Last == int64(it.tree.Max().(Int64)) {
+	if it.tree.Max() == nil || it.result == int64(it.tree.Max().(Int64)) {
 		return graph.NextLogOut(it, nil, false)
 	}
 	it.iterLast = IterateOne(it.tree, it.iterLast)
-	it.Last = int64(it.iterLast)
-	return graph.NextLogOut(it, it.Last, true)
+	it.result = int64(it.iterLast)
+	return graph.NextLogOut(it, it.result, true)
+}
+
+func (it *Iterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Iterator) Result() graph.Value {
+	return it.result
+}
+
+func (it *Iterator) NextResult() bool {
+	return false
+}
+
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.Iterator {
+	return nil
 }
 
 func (it *Iterator) Size() (int64, bool) {
@@ -90,7 +127,7 @@ func (it *Iterator) Size() (int64, bool) {
 func (it *Iterator) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	if it.tree.Has(Int64(v.(int64))) {
-		it.Last = v
+		it.result = v
 		return graph.CheckLogOut(it, v, true)
 	}
 	return graph.CheckLogOut(it, v, false)
@@ -98,7 +135,7 @@ func (it *Iterator) Check(v graph.Value) bool {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s tags:%s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.Tags(), size, it.data)
+	return fmt.Sprintf("%s(%s tags:%s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags(), size, it.data)
 }
 
 var memType graph.Type

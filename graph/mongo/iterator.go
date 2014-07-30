@@ -28,7 +28,8 @@ import (
 )
 
 type Iterator struct {
-	iterator.Base
+	uid        uint64
+	tags       graph.Tagger
 	qs         *TripleStore
 	dir        quad.Direction
 	iter       *mgo.Iter
@@ -38,55 +39,68 @@ type Iterator struct {
 	isAll      bool
 	constraint bson.M
 	collection string
+	result     graph.Value
 }
 
 func NewIterator(qs *TripleStore, collection string, d quad.Direction, val graph.Value) *Iterator {
-	var m Iterator
-	iterator.BaseInit(&m.Base)
+	name := qs.NameOf(val)
 
-	m.name = qs.NameOf(val)
-	m.collection = collection
+	var constraint bson.M
 	switch d {
 	case quad.Subject:
-		m.constraint = bson.M{"Subject": m.name}
+		constraint = bson.M{"Subject": name}
 	case quad.Predicate:
-		m.constraint = bson.M{"Predicate": m.name}
+		constraint = bson.M{"Predicate": name}
 	case quad.Object:
-		m.constraint = bson.M{"Object": m.name}
+		constraint = bson.M{"Object": name}
 	case quad.Label:
-		m.constraint = bson.M{"Label": m.name}
+		constraint = bson.M{"Label": name}
 	}
 
-	m.qs = qs
-	m.dir = d
-	m.iter = qs.db.C(collection).Find(m.constraint).Iter()
-	size, err := qs.db.C(collection).Find(m.constraint).Count()
+	size, err := qs.db.C(collection).Find(constraint).Count()
 	if err != nil {
+		// FIXME(kortschak) This should be passed back rather than just logging.
 		glog.Errorln("Trouble getting size for iterator! ", err)
 		return nil
 	}
-	m.size = int64(size)
-	m.hash = val.(string)
-	m.isAll = false
-	return &m
+
+	return &Iterator{
+		uid:        iterator.NextUID(),
+		name:       name,
+		constraint: constraint,
+		collection: collection,
+		qs:         qs,
+		dir:        d,
+		iter:       qs.db.C(collection).Find(constraint).Iter(),
+		size:       int64(size),
+		hash:       val.(string),
+		isAll:      false,
+	}
 }
 
 func NewAllIterator(qs *TripleStore, collection string) *Iterator {
-	var m Iterator
-	m.qs = qs
-	m.dir = quad.Any
-	m.constraint = nil
-	m.collection = collection
-	m.iter = qs.db.C(collection).Find(nil).Iter()
 	size, err := qs.db.C(collection).Count()
 	if err != nil {
+		// FIXME(kortschak) This should be passed back rather than just logging.
 		glog.Errorln("Trouble getting size for iterator! ", err)
 		return nil
 	}
-	m.size = int64(size)
-	m.hash = ""
-	m.isAll = true
-	return &m
+
+	return &Iterator{
+		uid:        iterator.NextUID(),
+		qs:         qs,
+		dir:        quad.Any,
+		constraint: nil,
+		collection: collection,
+		iter:       qs.db.C(collection).Find(nil).Iter(),
+		size:       int64(size),
+		hash:       "",
+		isAll:      true,
+	}
+}
+
+func (it *Iterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *Iterator) Reset() {
@@ -99,15 +113,29 @@ func (it *Iterator) Close() {
 	it.iter.Close()
 }
 
-func (it *Iterator) Clone() graph.Iterator {
-	var newM graph.Iterator
-	if it.isAll {
-		newM = NewAllIterator(it.qs, it.collection)
-	} else {
-		newM = NewIterator(it.qs, it.collection, it.dir, it.hash)
+func (it *Iterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Iterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
 	}
-	newM.CopyTagsFrom(it)
-	return newM
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
+func (it *Iterator) Clone() graph.Iterator {
+	var m *Iterator
+	if it.isAll {
+		m = NewAllIterator(it.qs, it.collection)
+	} else {
+		m = NewIterator(it.qs, it.collection, it.dir, it.hash)
+	}
+	m.tags.CopyFrom(it)
+	return m
 }
 
 func (it *Iterator) Next() (graph.Value, bool) {
@@ -125,14 +153,31 @@ func (it *Iterator) Next() (graph.Value, bool) {
 		}
 		return nil, false
 	}
-	it.Last = result.Id
+	it.result = result.Id
 	return result.Id, true
+}
+
+func (it *Iterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Iterator) Result() graph.Value {
+	return it.result
+}
+
+func (it *Iterator) NextResult() bool {
+	return false
+}
+
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.Iterator {
+	return nil
 }
 
 func (it *Iterator) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	if it.isAll {
-		it.Last = v
+		it.result = v
 		return graph.CheckLogOut(it, v, true)
 	}
 	var offset int
@@ -148,7 +193,7 @@ func (it *Iterator) Check(v graph.Value) bool {
 	}
 	val := v.(string)[offset : it.qs.hasher.Size()*2+offset]
 	if val == it.hash {
-		it.Last = v
+		it.result = v
 		return graph.CheckLogOut(it, v, true)
 	}
 	return graph.CheckLogOut(it, v, false)

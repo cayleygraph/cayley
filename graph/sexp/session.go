@@ -77,7 +77,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	}
 	nResults := 0
 	for {
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}
