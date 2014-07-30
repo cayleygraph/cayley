@@ -36,11 +36,9 @@ func NextUID() uint64 {
 // The Base iterator is the iterator other iterators inherit from to get some
 // default functionality.
 type Base struct {
-	Last      graph.Value
-	tags      []string
-	fixedTags map[string]graph.Value
-	canNext   bool
-	uid       uint64
+	Last    graph.Value
+	canNext bool
+	uid     uint64
 }
 
 // Called by subclases.
@@ -54,41 +52,6 @@ func BaseInit(it *Base) {
 
 func (it *Base) UID() uint64 {
 	return it.uid
-}
-
-// Adds a tag to the iterator. Most iterators don't need to override.
-func (it *Base) AddTag(tag string) {
-	if it.tags == nil {
-		it.tags = make([]string, 0)
-	}
-	it.tags = append(it.tags, tag)
-}
-
-func (it *Base) AddFixedTag(tag string, value graph.Value) {
-	if it.fixedTags == nil {
-		it.fixedTags = make(map[string]graph.Value)
-	}
-	it.fixedTags[tag] = value
-}
-
-// Returns the tags.
-func (it *Base) Tags() []string {
-	return it.tags
-}
-
-func (it *Base) FixedTags() map[string]graph.Value {
-	return it.fixedTags
-}
-
-func (it *Base) CopyTagsFrom(other_it graph.Iterator) {
-	for _, tag := range other_it.Tags() {
-		it.AddTag(tag)
-	}
-
-	for k, v := range other_it.FixedTags() {
-		it.AddFixedTag(k, v)
-	}
-
 }
 
 // Prints a silly debug string. Most classes override.
@@ -140,18 +103,6 @@ func (it *Base) SubIterators() []graph.Iterator {
 // Accessor
 func (it *Base) CanNext() bool { return it.canNext }
 
-// Fill the map based on the tags assigned to this iterator. Default
-// functionality works well for most iterators.
-func (it *Base) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.FixedTags() {
-		dst[tag] = value
-	}
-}
-
 // Nothing to clean up.
 // func (it *Base) Close() {}
 
@@ -164,11 +115,27 @@ func (it *Base) Reset() {}
 // so it's important to give it a special iterator.
 type Null struct {
 	Base
+	tags graph.Tagger
 }
 
 // Fairly useless New function.
 func NewNull() *Null {
 	return &Null{}
+}
+
+func (it *Null) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+// Fill the map based on the tags assigned to this iterator.
+func (it *Null) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
 }
 
 func (it *Null) Clone() graph.Iterator { return NewNull() }

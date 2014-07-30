@@ -415,7 +415,7 @@ func TestOptimize(t *testing.T) {
 	// With an linksto-fixed pair
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("F"))
-	fixed.AddTag("internal")
+	fixed.Tagger().Add("internal")
 	lto := iterator.NewLinksTo(ts, fixed, graph.Object)
 
 	oldIt := lto.Clone()

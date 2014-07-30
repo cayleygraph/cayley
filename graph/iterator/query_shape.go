@@ -107,10 +107,10 @@ func (qs *queryShape) StealNode(left *Node, right *Node) {
 
 func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 	n := Node{Id: qs.nodeId}
-	for _, tag := range it.Tags() {
+	for _, tag := range it.Tagger().Tags() {
 		n.Tags = append(n.Tags, tag)
 	}
-	for k, _ := range it.FixedTags() {
+	for k, _ := range it.Tagger().Fixed() {
 		n.Tags = append(n.Tags, k)
 	}
 

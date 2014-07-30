@@ -47,6 +47,7 @@ import (
 // and a temporary holder for the iterator generated on Check().
 type HasA struct {
 	Base
+	tags      graph.Tagger
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
 	dir       graph.Direction
@@ -76,9 +77,13 @@ func (it *HasA) Reset() {
 	}
 }
 
+func (it *HasA) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
 func (it *HasA) Clone() graph.Iterator {
 	out := NewHasA(it.ts, it.primaryIt.Clone(), it.dir)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -100,7 +105,14 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 
 // Pass the TagResults down the chain.
 func (it *HasA) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
 	it.primaryIt.TagResults(dst)
 }
 
@@ -114,7 +126,7 @@ func (it *HasA) ResultTree() *graph.ResultTree {
 // Print some information about this iterator.
 func (it *HasA) DebugString(indent int) string {
 	var tags string
-	for _, k := range it.Tags() {
+	for _, k := range it.tags.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
 	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.UID(), tags, it.dir, it.primaryIt.DebugString(indent+4))

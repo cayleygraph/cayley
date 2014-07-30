@@ -32,9 +32,9 @@ func TestIteratorPromotion(t *testing.T) {
 	a := NewAnd()
 	a.AddSubIterator(all)
 	a.AddSubIterator(fixed)
-	all.AddTag("a")
-	fixed.AddTag("b")
-	a.AddTag("c")
+	all.Tagger().Add("a")
+	fixed.Tagger().Add("b")
+	a.Tagger().Add("c")
 	newIt, changed := a.Optimize()
 	if !changed {
 		t.Error("Iterator didn't optimize")
@@ -43,7 +43,7 @@ func TestIteratorPromotion(t *testing.T) {
 		t.Error("Expected fixed iterator")
 	}
 	tagsExpected := []string{"a", "b", "c"}
-	tags := newIt.Tags()
+	tags := newIt.Tagger().Tags()
 	sort.Strings(tags)
 	if !reflect.DeepEqual(tags, tagsExpected) {
 		t.Fatal("Tags don't match")
@@ -67,9 +67,9 @@ func TestNullIteratorAnd(t *testing.T) {
 
 func TestReorderWithTag(t *testing.T) {
 	all := NewInt64(100, 300)
-	all.AddTag("good")
+	all.Tagger().Add("good")
 	all2 := NewInt64(1, 30000)
-	all2.AddTag("slow")
+	all2.Tagger().Add("slow")
 	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
@@ -82,7 +82,7 @@ func TestReorderWithTag(t *testing.T) {
 	expectedTags := []string{"good", "slow"}
 	tagsOut := make([]string, 0)
 	for _, sub := range newIt.SubIterators() {
-		for _, x := range sub.Tags() {
+		for _, x := range sub.Tagger().Tags() {
 			tagsOut = append(tagsOut, x)
 		}
 	}
@@ -93,9 +93,9 @@ func TestReorderWithTag(t *testing.T) {
 
 func TestAndStatistics(t *testing.T) {
 	all := NewInt64(100, 300)
-	all.AddTag("good")
+	all.Tagger().Add("good")
 	all2 := NewInt64(1, 30000)
-	all2.AddTag("slow")
+	all2.Tagger().Add("slow")
 	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)

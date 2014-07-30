@@ -41,6 +41,7 @@ import (
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
 	Base
+	tags      graph.Tagger
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
 	dir       graph.Direction
@@ -67,9 +68,13 @@ func (it *LinksTo) Reset() {
 	it.nextIt = &Null{}
 }
 
+func (it *LinksTo) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
 func (it *LinksTo) Clone() graph.Iterator {
 	out := NewLinksTo(it.ts, it.primaryIt.Clone(), it.dir)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -78,7 +83,14 @@ func (it *LinksTo) Direction() graph.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
 func (it *LinksTo) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
 	it.primaryIt.TagResults(dst)
 }
 

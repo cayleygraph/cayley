@@ -39,6 +39,7 @@ import (
 // and whether the last check we received was true or false.
 type Optional struct {
 	Base
+	tags      graph.Tagger
 	subIt     graph.Iterator
 	lastCheck bool
 }
@@ -61,9 +62,13 @@ func (it *Optional) Close() {
 	it.subIt.Close()
 }
 
+func (it *Optional) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
 func (it *Optional) Clone() graph.Iterator {
 	out := NewOptional(it.subIt.Clone())
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -111,7 +116,7 @@ func (it *Optional) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s tags:%s\n%s)",
 		strings.Repeat(" ", indent),
 		it.Type(),
-		it.Tags(),
+		it.tags.Tags(),
 		it.subIt.DebugString(indent+4))
 }
 

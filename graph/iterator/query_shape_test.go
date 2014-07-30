@@ -26,7 +26,7 @@ func hasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
 
 	obj := ts.FixedIterator()
 	obj.Add(ts.ValueOf(target))
-	obj.AddTag(tag)
+	obj.Tagger().Add(tag)
 	and.AddSubIterator(NewLinksTo(ts, obj, graph.Object))
 
 	pred := ts.FixedIterator()
@@ -48,7 +48,7 @@ func TestQueryShape(t *testing.T) {
 
 	// Given a single linkage iterator's shape.
 	hasa := hasaWithTag(ts, "tag", "cool")
-	hasa.AddTag("top")
+	hasa.Tagger().Add("top")
 
 	shape := make(map[string]interface{})
 	OutputQueryShapeForIterator(hasa, ts, shape)
@@ -93,11 +93,11 @@ func TestQueryShape(t *testing.T) {
 	andInternal := NewAnd()
 
 	hasa1 := hasaWithTag(ts, "tag1", "cool")
-	hasa1.AddTag("hasa1")
+	hasa1.Tagger().Add("hasa1")
 	andInternal.AddSubIterator(hasa1)
 
 	hasa2 := hasaWithTag(ts, "tag2", "fun")
-	hasa2.AddTag("hasa2")
+	hasa2.Tagger().Add("hasa2")
 	andInternal.AddSubIterator(hasa2)
 
 	pred := ts.FixedIterator()

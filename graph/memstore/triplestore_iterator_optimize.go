@@ -42,9 +42,10 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 				panic("Sizes lie")
 			}
 			newIt := ts.TripleIterator(it.Direction(), val)
-			newIt.CopyTagsFrom(it)
-			for _, tag := range primary.Tags() {
-				newIt.AddFixedTag(tag, val)
+			nt := newIt.Tagger()
+			nt.CopyFrom(it)
+			for _, tag := range primary.Tagger().Tags() {
+				nt.AddFixed(tag, val)
 			}
 			return newIt, true
 		}

@@ -150,7 +150,7 @@ func TestLinksToOptimization(t *testing.T) {
 	fixed.Add(ts.ValueOf("cool"))
 
 	lto := iterator.NewLinksTo(ts, fixed, graph.Object)
-	lto.AddTag("foo")
+	lto.Tagger().Add("foo")
 
 	newIt, changed := lto.Optimize()
 	if !changed {
@@ -165,7 +165,8 @@ func TestLinksToOptimization(t *testing.T) {
 	if v_clone.DebugString(0) != v.DebugString(0) {
 		t.Fatal("Wrong iterator. Got ", v_clone.DebugString(0))
 	}
-	if len(v_clone.Tags()) < 1 || v_clone.Tags()[0] != "foo" {
+	vt := v_clone.Tagger()
+	if len(vt.Tags()) < 1 || vt.Tags()[0] != "foo" {
 		t.Fatal("Tag on LinksTo did not persist")
 	}
 }

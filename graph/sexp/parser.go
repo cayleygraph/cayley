@@ -189,7 +189,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 		nodeID := getIdentString(tree)
 		if tree.Children[0].Name == "Variable" {
 			allIt := ts.NodesAllIterator()
-			allIt.AddTag(nodeID)
+			allIt.Tagger().Add(nodeID)
 			out = allIt
 		} else {
 			n := nodeID

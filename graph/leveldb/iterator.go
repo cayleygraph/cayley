@@ -28,6 +28,7 @@ import (
 
 type Iterator struct {
 	iterator.Base
+	tags           graph.Tagger
 	nextPrefix     []byte
 	checkId        []byte
 	dir            graph.Direction
@@ -72,9 +73,23 @@ func (it *Iterator) Reset() {
 	}
 }
 
+func (it *Iterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Iterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
 func (it *Iterator) Clone() graph.Iterator {
 	out := NewIterator(it.originalPrefix, it.dir, it.checkId, it.ts)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -192,7 +207,7 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.Tags(), it.dir, size, it.ts.NameOf(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.tags.Tags(), it.dir, size, it.ts.NameOf(it.checkId))
 }
 
 var levelDBType graph.Type

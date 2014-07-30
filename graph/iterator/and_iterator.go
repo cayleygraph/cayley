@@ -26,6 +26,7 @@ import (
 // be Next()ed if next is called.
 type And struct {
 	Base
+	tags              graph.Tagger
 	internalIterators []graph.Iterator
 	itCount           int
 	primaryIt         graph.Iterator
@@ -50,10 +51,33 @@ func (it *And) Reset() {
 	it.checkList = nil
 }
 
+func (it *And) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+// Overrides Base TagResults, as it needs to add it's own results and
+// recurse down it's subiterators.
+func (it *And) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
+	if it.primaryIt != nil {
+		it.primaryIt.TagResults(dst)
+	}
+	for _, sub := range it.internalIterators {
+		sub.TagResults(dst)
+	}
+}
+
 func (it *And) Clone() graph.Iterator {
 	and := NewAnd()
 	and.AddSubIterator(it.primaryIt.Clone())
-	and.CopyTagsFrom(it)
+	and.tags.CopyFrom(it)
 	for _, sub := range it.internalIterators {
 		and.AddSubIterator(sub.Clone())
 	}
@@ -69,18 +93,6 @@ func (it *And) SubIterators() []graph.Iterator {
 	iters[0] = it.primaryIt
 	copy(iters[1:], it.internalIterators)
 	return iters
-}
-
-// Overrides Base TagResults, as it needs to add it's own results and
-// recurse down it's subiterators.
-func (it *And) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
-	if it.primaryIt != nil {
-		it.primaryIt.TagResults(dst)
-	}
-	for _, sub := range it.internalIterators {
-		sub.TagResults(dst)
-	}
 }
 
 // DEPRECATED Returns the ResultTree for this iterator, recurses to it's subiterators.
@@ -101,7 +113,7 @@ func (it *And) DebugString(indent int) string {
 		total += fmt.Sprintf("%d:\n%s\n", i, sub.DebugString(indent+4))
 	}
 	var tags string
-	for _, k := range it.Tags() {
+	for _, k := range it.tags.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
 	spaces := strings.Repeat(" ", indent+2)

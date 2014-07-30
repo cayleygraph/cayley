@@ -47,6 +47,7 @@ const (
 
 type Comparison struct {
 	Base
+	tags  graph.Tagger
 	subIt graph.Iterator
 	op    Operator
 	val   interface{}
@@ -111,9 +112,13 @@ func (it *Comparison) Reset() {
 	it.subIt.Reset()
 }
 
+func (it *Comparison) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
 func (it *Comparison) Clone() graph.Iterator {
 	out := NewComparison(it.subIt.Clone(), it.op, it.val, it.ts)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -157,7 +162,14 @@ func (it *Comparison) Check(val graph.Value) bool {
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
 func (it *Comparison) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
 	it.subIt.TagResults(dst)
 }
 

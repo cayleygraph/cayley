@@ -27,6 +27,7 @@ import (
 
 type Iterator struct {
 	iterator.Base
+	tags      graph.Tagger
 	tree      *llrb.LLRB
 	data      string
 	isRunning bool
@@ -65,10 +66,24 @@ func (it *Iterator) Reset() {
 	it.iterLast = Int64(-1)
 }
 
+func (it *Iterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Iterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
 func (it *Iterator) Clone() graph.Iterator {
-	var new_it = NewLlrbIterator(it.tree, it.data)
-	new_it.CopyTagsFrom(it)
-	return new_it
+	m := NewLlrbIterator(it.tree, it.data)
+	m.tags.CopyFrom(it)
+	return m
 }
 
 func (it *Iterator) Close() {}
@@ -98,7 +113,7 @@ func (it *Iterator) Check(v graph.Value) bool {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s tags:%s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.Tags(), size, it.data)
+	return fmt.Sprintf("%s(%s tags:%s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags(), size, it.data)
 }
 
 var memType graph.Type

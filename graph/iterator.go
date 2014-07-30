@@ -24,18 +24,46 @@ import (
 	"github.com/barakmich/glog"
 )
 
+type Tagger struct {
+	tags      []string
+	fixedTags map[string]Value
+}
+
+// Adds a tag to the iterator.
+func (t *Tagger) Add(tag string) {
+	t.tags = append(t.tags, tag)
+}
+
+func (t *Tagger) AddFixed(tag string, value Value) {
+	if t.fixedTags == nil {
+		t.fixedTags = make(map[string]Value)
+	}
+	t.fixedTags[tag] = value
+}
+
+// Returns the tags. The returned value must not be mutated.
+func (t *Tagger) Tags() []string {
+	return t.tags
+}
+
+// Returns the fixed tags. The returned value must not be mutated.
+func (t *Tagger) Fixed() map[string]Value {
+	return t.fixedTags
+}
+
+func (t *Tagger) CopyFrom(src Iterator) {
+	for _, tag := range src.Tagger().Tags() {
+		t.Add(tag)
+	}
+
+	for k, v := range src.Tagger().Fixed() {
+		t.AddFixed(k, v)
+	}
+
+}
+
 type Iterator interface {
-	// Tags are the way we handle results. By adding a tag to an iterator, we can
-	// "name" it, in a sense, and at each step of iteration, get a named result.
-	// TagResults() is therefore the handy way of walking an iterator tree and
-	// getting the named results.
-	//
-	// Tag Accessors.
-	AddTag(string)
-	Tags() []string
-	AddFixedTag(string, Value)
-	FixedTags() map[string]Value
-	CopyTagsFrom(Iterator)
+	Tagger() *Tagger
 
 	// Fills a tag-to-result-value map.
 	TagResults(map[string]Value)

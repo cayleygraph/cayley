@@ -32,6 +32,7 @@ import (
 // An All iterator across a range of int64 values, from `max` to `min`.
 type Int64 struct {
 	Base
+	tags     graph.Tagger
 	max, min int64
 	at       int64
 }
@@ -55,13 +56,28 @@ func (it *Int64) Close() {}
 
 func (it *Int64) Clone() graph.Iterator {
 	out := NewInt64(it.min, it.max)
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
+}
+
+func (it *Int64) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+// Fill the map based on the tags assigned to this iterator.
+func (it *Int64) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
 }
 
 // Prints the All iterator as just an "all".
 func (it *Int64) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s tags: %v)", strings.Repeat(" ", indent), it.Type(), it.Tags())
+	return fmt.Sprintf("%s(%s tags: %v)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags())
 }
 
 // Next() on an Int64 all iterator is a simple incrementing counter.

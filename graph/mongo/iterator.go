@@ -28,6 +28,7 @@ import (
 
 type Iterator struct {
 	iterator.Base
+	tags       graph.Tagger
 	ts         *TripleStore
 	dir        graph.Direction
 	iter       *mgo.Iter
@@ -98,15 +99,29 @@ func (it *Iterator) Close() {
 	it.iter.Close()
 }
 
-func (it *Iterator) Clone() graph.Iterator {
-	var newM graph.Iterator
-	if it.isAll {
-		newM = NewAllIterator(it.ts, it.collection)
-	} else {
-		newM = NewIterator(it.ts, it.collection, it.dir, it.hash)
+func (it *Iterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Iterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
 	}
-	newM.CopyTagsFrom(it)
-	return newM
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
+func (it *Iterator) Clone() graph.Iterator {
+	var m *Iterator
+	if it.isAll {
+		m = NewAllIterator(it.ts, it.collection)
+	} else {
+		m = NewIterator(it.ts, it.collection, it.dir, it.hash)
+	}
+	m.tags.CopyFrom(it)
+	return m
 }
 
 func (it *Iterator) Next() (graph.Value, bool) {

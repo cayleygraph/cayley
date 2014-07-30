@@ -30,6 +30,7 @@ import (
 
 type Or struct {
 	Base
+	tags              graph.Tagger
 	isShortCircuiting bool
 	internalIterators []graph.Iterator
 	itCount           int
@@ -62,6 +63,10 @@ func (it *Or) Reset() {
 	it.currentIterator = -1
 }
 
+func (it *Or) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
 func (it *Or) Clone() graph.Iterator {
 	var or *Or
 	if it.isShortCircuiting {
@@ -72,7 +77,7 @@ func (it *Or) Clone() graph.Iterator {
 	for _, sub := range it.internalIterators {
 		or.AddSubIterator(sub.Clone())
 	}
-	or.CopyTagsFrom(it)
+	or.tags.CopyFrom(it)
 	return or
 }
 
@@ -84,7 +89,14 @@ func (it *Or) SubIterators() []graph.Iterator {
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
 func (it *Or) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
 	it.internalIterators[it.currentIterator].TagResults(dst)
 }
 
@@ -105,7 +117,7 @@ func (it *Or) DebugString(indent int) string {
 		total += fmt.Sprintf("%d:\n%s\n", i, sub.DebugString(indent+4))
 	}
 	var tags string
-	for _, k := range it.Tags() {
+	for _, k := range it.tags.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
 	spaces := strings.Repeat(" ", indent+2)
@@ -247,7 +259,7 @@ func (it *Or) Optimize() (graph.Iterator, bool) {
 	}
 
 	// Move the tags hanging on us (like any good replacement).
-	newOr.CopyTagsFrom(it)
+	newOr.tags.CopyFrom(it)
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the

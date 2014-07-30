@@ -31,6 +31,7 @@ import (
 // an equality function.
 type Fixed struct {
 	Base
+	tags      graph.Tagger
 	values    []graph.Value
 	lastIndex int
 	cmp       Equality
@@ -68,12 +69,26 @@ func (it *Fixed) Reset() {
 
 func (it *Fixed) Close() {}
 
+func (it *Fixed) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Fixed) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+}
+
 func (it *Fixed) Clone() graph.Iterator {
 	out := NewFixedIteratorWithCompare(it.cmp)
 	for _, val := range it.values {
 		out.Add(val)
 	}
-	out.CopyTagsFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 
@@ -92,7 +107,7 @@ func (it *Fixed) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s tags: %s Size: %d id0: %d)",
 		strings.Repeat(" ", indent),
 		it.Type(),
-		it.FixedTags(),
+		it.tags.Fixed(),
 		len(it.values),
 		value,
 	)
