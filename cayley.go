@@ -49,16 +49,14 @@ func Usage() {
 	fmt.Println("\nUsage:")
 	fmt.Println("  cayley COMMAND [flags]")
 	fmt.Println("\nCommands:")
-	fmt.Println("  init\tCreate an empty database.")
-	fmt.Println("  load\tBulk-load a triple file into the database.")
-	fmt.Println("  http\tServe an HTTP endpoint on the given host and port.")
-	fmt.Println("  repl\tDrop into a REPL of the given query language.")
+	fmt.Println("  init      Create an empty database.")
+	fmt.Println("  load      Bulk-load a triple file into the database.")
+	fmt.Println("  http      Serve an HTTP endpoint on the given host and port.")
+	fmt.Println("  repl      Drop into a REPL of the given query language.")
+	fmt.Println("  version   Version information.")
 	fmt.Println("\nFlags:")
 	flag.Parse()
 	flag.PrintDefaults()
-	if VERSION != "" {
-		fmt.Printf("Release v%s\n", VERSION)
-	}
 }
 
 func main() {
@@ -69,14 +67,16 @@ func main() {
 	}
 
 	cmd := os.Args[1]
-	newargs := make([]string, 0)
+	var newargs []string
 	newargs = append(newargs, os.Args[0])
 	newargs = append(newargs, os.Args[2:]...)
 	os.Args = newargs
 	flag.Parse()
 
+	var buildString string
 	if VERSION != "" {
-		glog.Info("Cayley v", VERSION, " built ", BUILD_DATE)
+		buildString = fmt.Sprint("Cayley ", VERSION, " built ", BUILD_DATE)
+		glog.Infoln(buildString)
 	}
 
 	cfg := config.ParseConfigFromFlagsAndFile(*configFile)
@@ -93,6 +93,13 @@ func main() {
 		err error
 	)
 	switch cmd {
+	case "version":
+		if VERSION != "" {
+			fmt.Println(buildString)
+		} else {
+			fmt.Println("Cayley snapshot")
+		}
+		os.Exit(0)
 	case "init":
 		err = db.Init(cfg, *tripleFile)
 	case "load":
