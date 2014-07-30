@@ -40,15 +40,20 @@ var cpuprofile = flag.String("prof", "", "Output profiling file.")
 var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
 
+// Filled in by `go build ldflags="-X main.VERSION `ver`"`.
+var BUILD_DATE string
+var VERSION string
+
 func Usage() {
 	fmt.Println("Cayley is a graph store and graph query layer.")
 	fmt.Println("\nUsage:")
 	fmt.Println("  cayley COMMAND [flags]")
 	fmt.Println("\nCommands:")
-	fmt.Println("  init\tCreate an empty database.")
-	fmt.Println("  load\tBulk-load a triple file into the database.")
-	fmt.Println("  http\tServe an HTTP endpoint on the given host and port.")
-	fmt.Println("  repl\tDrop into a REPL of the given query language.")
+	fmt.Println("  init      Create an empty database.")
+	fmt.Println("  load      Bulk-load a triple file into the database.")
+	fmt.Println("  http      Serve an HTTP endpoint on the given host and port.")
+	fmt.Println("  repl      Drop into a REPL of the given query language.")
+	fmt.Println("  version   Version information.")
 	fmt.Println("\nFlags:")
 	flag.Parse()
 	flag.PrintDefaults()
@@ -62,11 +67,17 @@ func main() {
 	}
 
 	cmd := os.Args[1]
-	newargs := make([]string, 0)
+	var newargs []string
 	newargs = append(newargs, os.Args[0])
 	newargs = append(newargs, os.Args[2:]...)
 	os.Args = newargs
 	flag.Parse()
+
+	var buildString string
+	if VERSION != "" {
+		buildString = fmt.Sprint("Cayley ", VERSION, " built ", BUILD_DATE)
+		glog.Infoln(buildString)
+	}
 
 	cfg := config.ParseConfigFromFlagsAndFile(*configFile)
 
@@ -82,6 +93,13 @@ func main() {
 		err error
 	)
 	switch cmd {
+	case "version":
+		if VERSION != "" {
+			fmt.Println(buildString)
+		} else {
+			fmt.Println("Cayley snapshot")
+		}
+		os.Exit(0)
 	case "init":
 		err = db.Init(cfg, *tripleFile)
 	case "load":
