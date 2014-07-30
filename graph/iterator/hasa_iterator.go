@@ -53,6 +53,7 @@ type HasA struct {
 	primaryIt graph.Iterator
 	dir       graph.Direction
 	resultIt  graph.Iterator
+	result    graph.Value
 }
 
 // Construct a new HasA iterator, given the triple subiterator, and the triple
@@ -168,7 +169,7 @@ func (it *HasA) GetCheckResult() bool {
 			glog.V(4).Infoln("Triple is", it.ts.Triple(linkVal))
 		}
 		if it.primaryIt.Check(linkVal) {
-			it.Last = it.ts.TripleDirection(linkVal, it.dir)
+			it.result = it.ts.TripleDirection(linkVal, it.dir)
 			return true
 		}
 	}
@@ -205,8 +206,12 @@ func (it *HasA) Next() (graph.Value, bool) {
 	}
 	name := it.ts.Triple(tID).Get(it.dir)
 	val := it.ts.ValueOf(name)
-	it.Last = val
+	it.result = val
 	return graph.NextLogOut(it, val, true)
+}
+
+func (it *HasA) Result() graph.Value {
+	return it.result
 }
 
 // GetStats() returns the statistics on the HasA iterator. This is curious. Next

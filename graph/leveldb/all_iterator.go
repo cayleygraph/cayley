@@ -36,6 +36,7 @@ type AllIterator struct {
 	iter   ldbit.Iterator
 	ts     *TripleStore
 	ro     *opt.ReadOptions
+	result graph.Value
 }
 
 func NewAllIterator(prefix string, d graph.Direction, ts *TripleStore) *AllIterator {
@@ -103,7 +104,7 @@ func (it *AllIterator) Clone() graph.Iterator {
 
 func (it *AllIterator) Next() (graph.Value, bool) {
 	if !it.open {
-		it.Last = nil
+		it.result = nil
 		return nil, false
 	}
 	var out []byte
@@ -117,8 +118,16 @@ func (it *AllIterator) Next() (graph.Value, bool) {
 		it.Close()
 		return nil, false
 	}
-	it.Last = out
+	it.result = out
 	return out, true
+}
+
+func (it *AllIterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *AllIterator) Result() graph.Value {
+	return it.result
 }
 
 // No subiterators.
@@ -127,7 +136,7 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 }
 
 func (it *AllIterator) Check(v graph.Value) bool {
-	it.Last = v
+	it.result = v
 	return true
 }
 

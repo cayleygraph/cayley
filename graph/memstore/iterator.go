@@ -33,6 +33,7 @@ type Iterator struct {
 	data      string
 	isRunning bool
 	iterLast  Int64
+	result    graph.Value
 }
 
 type Int64 int64
@@ -97,12 +98,20 @@ func (it *Iterator) Close() {}
 
 func (it *Iterator) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	if it.tree.Max() == nil || it.Last == int64(it.tree.Max().(Int64)) {
+	if it.tree.Max() == nil || it.result == int64(it.tree.Max().(Int64)) {
 		return graph.NextLogOut(it, nil, false)
 	}
 	it.iterLast = IterateOne(it.tree, it.iterLast)
-	it.Last = int64(it.iterLast)
-	return graph.NextLogOut(it, it.Last, true)
+	it.result = int64(it.iterLast)
+	return graph.NextLogOut(it, it.result, true)
+}
+
+func (it *Iterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Iterator) Result() graph.Value {
+	return it.result
 }
 
 // No subiterators.
@@ -117,7 +126,7 @@ func (it *Iterator) Size() (int64, bool) {
 func (it *Iterator) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	if it.tree.Has(Int64(v.(int64))) {
-		it.Last = v
+		it.result = v
 		return graph.CheckLogOut(it, v, true)
 	}
 	return graph.CheckLogOut(it, v, false)

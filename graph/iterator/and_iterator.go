@@ -32,6 +32,7 @@ type And struct {
 	itCount           int
 	primaryIt         graph.Iterator
 	checkList         []graph.Iterator
+	result            graph.Value
 }
 
 // Creates a new And iterator.
@@ -167,11 +168,15 @@ func (it *And) Next() (graph.Value, bool) {
 			return graph.NextLogOut(it, nil, false)
 		}
 		if it.checkSubIts(curr) {
-			it.Last = curr
+			it.result = curr
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
-	panic("Somehow broke out of Next() loop in And")
+	panic("unreachable")
+}
+
+func (it *And) Result() graph.Value {
+	return it.result
 }
 
 // Checks a value against the non-primary iterators, in order.
@@ -195,7 +200,7 @@ func (it *And) checkCheckList(val graph.Value) bool {
 		}
 	}
 	if ok {
-		it.Last = val
+		it.result = val
 	}
 	return graph.CheckLogOut(it, val, ok)
 }
@@ -214,7 +219,7 @@ func (it *And) Check(val graph.Value) bool {
 	if !othersGood {
 		return graph.CheckLogOut(it, val, false)
 	}
-	it.Last = val
+	it.result = val
 	return graph.CheckLogOut(it, val, true)
 }
 

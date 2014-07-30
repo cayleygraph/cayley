@@ -39,6 +39,7 @@ type Iterator struct {
 	isAll      bool
 	constraint bson.M
 	collection string
+	result     graph.Value
 }
 
 func NewIterator(ts *TripleStore, collection string, d graph.Direction, val graph.Value) *Iterator {
@@ -158,8 +159,16 @@ func (it *Iterator) Next() (graph.Value, bool) {
 		}
 		return nil, false
 	}
-	it.Last = result.Id
+	it.result = result.Id
 	return result.Id, true
+}
+
+func (it *Iterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Iterator) Result() graph.Value {
+	return it.result
 }
 
 // No subiterators.
@@ -170,7 +179,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 func (it *Iterator) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	if it.isAll {
-		it.Last = v
+		it.result = v
 		return graph.CheckLogOut(it, v, true)
 	}
 	var offset int
@@ -186,7 +195,7 @@ func (it *Iterator) Check(v graph.Value) bool {
 	}
 	val := v.(string)[offset : it.ts.hasher.Size()*2+offset]
 	if val == it.hash {
-		it.Last = v
+		it.result = v
 		return graph.CheckLogOut(it, v, true)
 	}
 	return graph.CheckLogOut(it, v, false)

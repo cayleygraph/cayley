@@ -47,12 +47,13 @@ const (
 
 type Comparison struct {
 	Base
-	uid   uint64
-	tags  graph.Tagger
-	subIt graph.Iterator
-	op    Operator
-	val   interface{}
-	ts    graph.TripleStore
+	uid    uint64
+	tags   graph.Tagger
+	subIt  graph.Iterator
+	op     Operator
+	val    interface{}
+	ts     graph.TripleStore
+	result graph.Value
 }
 
 func NewComparison(sub graph.Iterator, op Operator, val interface{}, ts graph.TripleStore) *Comparison {
@@ -141,8 +142,17 @@ func (it *Comparison) Next() (graph.Value, bool) {
 			break
 		}
 	}
-	it.Last = val
+	it.result = val
 	return val, ok
+}
+
+// DEPRECATED
+func (it *Comparison) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Comparison) Result() graph.Value {
+	return it.result
 }
 
 func (it *Comparison) NextResult() bool {
@@ -155,7 +165,7 @@ func (it *Comparison) NextResult() bool {
 			return true
 		}
 	}
-	it.Last = it.subIt.Result()
+	it.result = it.subIt.Result()
 	return true
 }
 
@@ -213,6 +223,6 @@ func (it *Comparison) Stats() graph.IteratorStats {
 	return it.subIt.Stats()
 }
 
-func (it *Base) Size() (int64, bool) {
+func (it *Comparison) Size() (int64, bool) {
 	return 0, true
 }

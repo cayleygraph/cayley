@@ -36,6 +36,7 @@ type Or struct {
 	internalIterators []graph.Iterator
 	itCount           int
 	currentIterator   int
+	result            graph.Value
 }
 
 func NewOr() *Or {
@@ -169,11 +170,15 @@ func (it *Or) Next() (graph.Value, bool) {
 				return graph.NextLogOut(it, nil, false)
 			}
 		} else {
-			it.Last = curr
+			it.result = curr
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
-	panic("Somehow broke out of Next() loop in Or")
+	panic("unreachable")
+}
+
+func (it *Or) Result() graph.Value {
+	return it.result
 }
 
 // Checks a value against the iterators, in order.
@@ -196,7 +201,7 @@ func (it *Or) Check(val graph.Value) bool {
 	if !anyGood {
 		return graph.CheckLogOut(it, val, false)
 	}
-	it.Last = val
+	it.result = val
 	return graph.CheckLogOut(it, val, true)
 }
 

@@ -43,6 +43,7 @@ type Optional struct {
 	tags      graph.Tagger
 	subIt     graph.Iterator
 	lastCheck bool
+	result    graph.Value
 }
 
 // Creates a new optional iterator.
@@ -78,11 +79,23 @@ func (it *Optional) Clone() graph.Iterator {
 	return out
 }
 
+// FIXME(kortschak) When we create a Nexter interface the
+// following two methods need to go away.
+
 // Nexting the iterator is unsupported -- error and return an empty set.
 // (As above, a reasonable alternative would be to Next() an all iterator)
 func (it *Optional) Next() (graph.Value, bool) {
 	glog.Errorln("Nexting an un-nextable iterator")
 	return nil, false
+}
+
+// DEPRECATED
+func (it *Optional) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Optional) Result() graph.Value {
+	return it.result
 }
 
 // An optional iterator only has a next result if, (a) last time we checked
@@ -106,7 +119,7 @@ func (it *Optional) SubIterators() []graph.Iterator {
 func (it *Optional) Check(val graph.Value) bool {
 	checked := it.subIt.Check(val)
 	it.lastCheck = checked
-	it.Last = val
+	it.result = val
 	return true
 }
 

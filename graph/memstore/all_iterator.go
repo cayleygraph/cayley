@@ -46,6 +46,5 @@ func (it *AllIterator) Next() (graph.Value, bool) {
 	if !ok {
 		return it.Next()
 	}
-	it.Last = next
 	return next, out
 }

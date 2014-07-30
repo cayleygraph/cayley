@@ -36,6 +36,7 @@ type Int64 struct {
 	tags     graph.Tagger
 	max, min int64
 	at       int64
+	result   graph.Value
 }
 
 // Creates a new Int64 with the given range.
@@ -99,8 +100,17 @@ func (it *Int64) Next() (graph.Value, bool) {
 	if it.at > it.max {
 		it.at = -1
 	}
-	it.Last = val
+	it.result = val
 	return graph.NextLogOut(it, val, true)
+}
+
+// DEPRECATED
+func (it *Int64) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Int64) Result() graph.Value {
+	return it.result
 }
 
 // No sub-iterators.
@@ -121,7 +131,7 @@ func (it *Int64) Check(tsv graph.Value) bool {
 	graph.CheckLogIn(it, tsv)
 	v := tsv.(int64)
 	if it.min <= v && v <= it.max {
-		it.Last = v
+		it.result = v
 		return graph.CheckLogOut(it, v, true)
 	}
 	return graph.CheckLogOut(it, v, false)

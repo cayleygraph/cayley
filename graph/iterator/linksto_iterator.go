@@ -47,6 +47,7 @@ type LinksTo struct {
 	primaryIt graph.Iterator
 	dir       graph.Direction
 	nextIt    graph.Iterator
+	result    graph.Value
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
@@ -121,7 +122,7 @@ func (it *LinksTo) Check(val graph.Value) bool {
 	graph.CheckLogIn(it, val)
 	node := it.ts.TripleDirection(val, it.dir)
 	if it.primaryIt.Check(node) {
-		it.Last = val
+		it.result = val
 		return graph.CheckLogOut(it, val, true)
 	}
 	return graph.CheckLogOut(it, val, false)
@@ -169,8 +170,12 @@ func (it *LinksTo) Next() (graph.Value, bool) {
 		// Recurse -- return the first in the next set.
 		return it.Next()
 	}
-	it.Last = val
+	it.result = val
 	return graph.NextLogOut(it, val, ok)
+}
+
+func (it *LinksTo) Result() graph.Value {
+	return it.result
 }
 
 // Close our subiterators.

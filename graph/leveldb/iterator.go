@@ -38,6 +38,7 @@ type Iterator struct {
 	ts             *TripleStore
 	ro             *opt.ReadOptions
 	originalPrefix string
+	result         graph.Value
 }
 
 func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *TripleStore) *Iterator {
@@ -119,22 +120,22 @@ func (it *Iterator) Close() {
 
 func (it *Iterator) Next() (graph.Value, bool) {
 	if it.iter == nil {
-		it.Last = nil
+		it.result = nil
 		return nil, false
 	}
 	if !it.open {
-		it.Last = nil
+		it.result = nil
 		return nil, false
 	}
 	if !it.iter.Valid() {
-		it.Last = nil
+		it.result = nil
 		it.Close()
 		return nil, false
 	}
 	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
 		out := make([]byte, len(it.iter.Key()))
 		copy(out, it.iter.Key())
-		it.Last = out
+		it.result = out
 		ok := it.iter.Next()
 		if !ok {
 			it.Close()
@@ -142,8 +143,16 @@ func (it *Iterator) Next() (graph.Value, bool) {
 		return out, true
 	}
 	it.Close()
-	it.Last = nil
+	it.result = nil
 	return nil, false
+}
+
+func (it *Iterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Iterator) Result() graph.Value {
+	return it.result
 }
 
 // No subiterators.

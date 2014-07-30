@@ -18,7 +18,6 @@ package iterator
 // iterators can "inherit" from to get default iterator functionality.
 
 import (
-	"fmt"
 	"strings"
 	"sync/atomic"
 
@@ -34,7 +33,6 @@ func NextUID() uint64 {
 // The Base iterator is the iterator other iterators inherit from to get some
 // default functionality.
 type Base struct {
-	Last    graph.Value
 	canNext bool
 }
 
@@ -44,49 +42,12 @@ func BaseInit(it *Base) {
 	it.canNext = true
 }
 
-// Prints a silly debug string. Most classes override.
-func (it *Base) DebugString(indent int) string {
-	return fmt.Sprintf("%s(base)", strings.Repeat(" ", indent))
-}
-
-// Nothing in a base iterator.
-func (it *Base) Check(v graph.Value) bool {
-	return false
-}
-
-// Base iterators should never appear in a tree if they are, select against
-// them.
-func (it *Base) Stats() graph.IteratorStats {
-	return graph.IteratorStats{100000, 100000, 100000}
-}
-
-// DEPRECATED
-func (it *Base) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	return tree
-}
-
-// Nothing in a base iterator.
-func (it *Base) Next() (graph.Value, bool) {
-	return nil, false
-}
-
 func (it *Base) NextResult() bool {
 	return false
 }
 
-// Returns the last result of an iterator.
-func (it *Base) Result() graph.Value {
-	return it.Last
-}
-
 // Accessor
 func (it *Base) CanNext() bool { return it.canNext }
-
-// Nothing to clean up.
-// func (it *Base) Close() {}
-
-func (it *Base) Reset() {}
 
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
@@ -149,8 +110,7 @@ func (it *Null) Result() graph.Value {
 }
 
 func (it *Null) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	return tree
+	return graph.NewResultTree(it.Result())
 }
 
 func (it *Null) SubIterators() []graph.Iterator {

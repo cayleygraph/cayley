@@ -36,6 +36,7 @@ type Fixed struct {
 	values    []graph.Value
 	lastIndex int
 	cmp       Equality
+	result    graph.Value
 }
 
 // Define the signature of an equality function.
@@ -130,7 +131,7 @@ func (it *Fixed) Check(v graph.Value) bool {
 	graph.CheckLogIn(it, v)
 	for _, x := range it.values {
 		if it.cmp(x, v) {
-			it.Last = x
+			it.result = x
 			return graph.CheckLogOut(it, v, true)
 		}
 	}
@@ -144,9 +145,18 @@ func (it *Fixed) Next() (graph.Value, bool) {
 		return graph.NextLogOut(it, nil, false)
 	}
 	out := it.values[it.lastIndex]
-	it.Last = out
+	it.result = out
 	it.lastIndex++
 	return graph.NextLogOut(it, out, true)
+}
+
+// DEPRECATED
+func (it *Fixed) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+func (it *Fixed) Result() graph.Value {
+	return it.result
 }
 
 // No sub-iterators.
