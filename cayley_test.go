@@ -37,7 +37,7 @@ var benchmarkQueries = []struct {
 		g.V("Humphrey Bogart").In("name").All()
 		`,
 		expect: [][]interface{}{
-			{map[string]string{"id": ":/en/humphrey_bogart"}},
+			{map[string]string{"id": "/en/humphrey_bogart"}},
 		},
 	},
 
@@ -77,8 +77,8 @@ var benchmarkQueries = []struct {
 			})
 			`,
 		expect: [][]interface{}{
-			{":/en/billy_gilbert"},
-			{":/en/sterling_holloway"},
+			{"/en/billy_gilbert"},
+			{"/en/sterling_holloway"},
 		},
 	},
 
@@ -287,7 +287,7 @@ var m2_actors = movie2.Save("name","movie2").Follow(filmToActor)
 var (
 	once sync.Once
 	cfg  = &config.Config{
-		DatabasePath:   "30kmoviedata.nt.gz",
+		DatabasePath:   "30kmoviedata.nq.gz",
 		DatabaseType:   "memstore",
 		GremlinTimeout: 300,
 	}
