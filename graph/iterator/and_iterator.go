@@ -26,6 +26,7 @@ import (
 // be Next()ed if next is called.
 type And struct {
 	Base
+	uid               uint64
 	tags              graph.Tagger
 	internalIterators []graph.Iterator
 	itCount           int
@@ -35,11 +36,16 @@ type And struct {
 
 // Creates a new And iterator.
 func NewAnd() *And {
-	var and And
+	and := And{
+		uid:               NextUID(),
+		internalIterators: make([]graph.Iterator, 0, 20),
+	}
 	BaseInit(&and.Base)
-	and.internalIterators = make([]graph.Iterator, 0, 20)
-	and.checkList = nil
 	return &and
+}
+
+func (it *And) UID() uint64 {
+	return it.uid
 }
 
 // Reset all internal iterators

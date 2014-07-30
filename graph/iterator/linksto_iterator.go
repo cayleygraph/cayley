@@ -41,6 +41,7 @@ import (
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
 	Base
+	uid       uint64
 	tags      graph.Tagger
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
@@ -51,13 +52,19 @@ type LinksTo struct {
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
 func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d graph.Direction) *LinksTo {
-	var lto LinksTo
+	lto := LinksTo{
+		uid:       NextUID(),
+		ts:        ts,
+		primaryIt: it,
+		dir:       d,
+		nextIt:    &Null{},
+	}
 	BaseInit(&lto.Base)
-	lto.ts = ts
-	lto.primaryIt = it
-	lto.dir = d
-	lto.nextIt = &Null{}
 	return &lto
+}
+
+func (it *LinksTo) UID() uint64 {
+	return it.uid
 }
 
 func (it *LinksTo) Reset() {

@@ -47,6 +47,7 @@ const (
 
 type Comparison struct {
 	Base
+	uid   uint64
 	tags  graph.Tagger
 	subIt graph.Iterator
 	op    Operator
@@ -55,13 +56,19 @@ type Comparison struct {
 }
 
 func NewComparison(sub graph.Iterator, op Operator, val interface{}, ts graph.TripleStore) *Comparison {
-	var vc Comparison
+	vc := Comparison{
+		uid:   NextUID(),
+		subIt: sub,
+		op:    op,
+		val:   val,
+		ts:    ts,
+	}
 	BaseInit(&vc.Base)
-	vc.subIt = sub
-	vc.op = op
-	vc.val = val
-	vc.ts = ts
 	return &vc
+}
+
+func (it *Comparison) UID() uint64 {
+	return it.uid
 }
 
 // Here's the non-boilerplate part of the ValueComparison iterator. Given a value

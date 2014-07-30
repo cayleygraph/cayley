@@ -31,6 +31,7 @@ import (
 // an equality function.
 type Fixed struct {
 	Base
+	uid       uint64
 	tags      graph.Tagger
 	values    []graph.Value
 	lastIndex int
@@ -55,12 +56,17 @@ func newFixed() *Fixed {
 
 // Creates a new Fixed iterator with a custom comparitor.
 func NewFixedIteratorWithCompare(compareFn Equality) *Fixed {
-	var it Fixed
+	it := Fixed{
+		uid:    NextUID(),
+		values: make([]graph.Value, 0, 20),
+		cmp:    compareFn,
+	}
 	BaseInit(&it.Base)
-	it.values = make([]graph.Value, 0, 20)
-	it.lastIndex = 0
-	it.cmp = compareFn
 	return &it
+}
+
+func (it *Fixed) UID() uint64 {
+	return it.uid
 }
 
 func (it *Fixed) Reset() {

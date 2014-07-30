@@ -39,6 +39,7 @@ import (
 // and whether the last check we received was true or false.
 type Optional struct {
 	Base
+	uid       uint64
 	tags      graph.Tagger
 	subIt     graph.Iterator
 	lastCheck bool
@@ -50,7 +51,12 @@ func NewOptional(it graph.Iterator) *Optional {
 	BaseInit(&o.Base)
 	o.canNext = false
 	o.subIt = it
+	o.uid = NextUID()
 	return &o
+}
+
+func (it *Optional) UID() uint64 {
+	return it.uid
 }
 
 func (it *Optional) Reset() {

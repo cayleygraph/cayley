@@ -22,8 +22,6 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/barakmich/glog"
-
 	"github.com/google/cayley/graph"
 )
 
@@ -38,20 +36,12 @@ func NextUID() uint64 {
 type Base struct {
 	Last    graph.Value
 	canNext bool
-	uid     uint64
 }
 
 // Called by subclases.
 func BaseInit(it *Base) {
 	// Your basic iterator is nextable
 	it.canNext = true
-	if glog.V(2) {
-		it.uid = NextUID()
-	}
-}
-
-func (it *Base) UID() uint64 {
-	return it.uid
 }
 
 // Prints a silly debug string. Most classes override.
@@ -115,12 +105,17 @@ func (it *Base) Reset() {}
 // so it's important to give it a special iterator.
 type Null struct {
 	Base
+	uid  uint64
 	tags graph.Tagger
 }
 
 // Fairly useless New function.
 func NewNull() *Null {
-	return &Null{}
+	return &Null{uid: NextUID()}
+}
+
+func (it *Null) UID() uint64 {
+	return it.uid
 }
 
 func (it *Null) Tagger() *graph.Tagger {

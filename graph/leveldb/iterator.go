@@ -28,6 +28,7 @@ import (
 
 type Iterator struct {
 	iterator.Base
+	uid            uint64
 	tags           graph.Tagger
 	nextPrefix     []byte
 	checkId        []byte
@@ -40,25 +41,41 @@ type Iterator struct {
 }
 
 func NewIterator(prefix string, d graph.Direction, value graph.Value, ts *TripleStore) *Iterator {
-	var it Iterator
+	vb := value.([]byte)
+	p := make([]byte, 0, 2+ts.hasher.Size())
+	p = append(p, []byte(prefix)...)
+	p = append(p, []byte(vb[1:])...)
+
+	opts := &opt.ReadOptions{
+		DontFillCache: true,
+	}
+
+	it := Iterator{
+		uid:            iterator.NextUID(),
+		nextPrefix:     p,
+		checkId:        vb,
+		dir:            d,
+		originalPrefix: prefix,
+		ro:             opts,
+		iter:           ts.db.NewIterator(nil, opts),
+		open:           true,
+		ts:             ts,
+	}
 	iterator.BaseInit(&it.Base)
-	it.checkId = value.([]byte)
-	it.dir = d
-	it.originalPrefix = prefix
-	it.nextPrefix = make([]byte, 0, 2+ts.hasher.Size())
-	it.nextPrefix = append(it.nextPrefix, []byte(prefix)...)
-	it.nextPrefix = append(it.nextPrefix, []byte(it.checkId[1:])...)
-	it.ro = &opt.ReadOptions{}
-	it.ro.DontFillCache = true
-	it.iter = ts.db.NewIterator(nil, it.ro)
-	it.open = true
-	it.ts = ts
+
 	ok := it.iter.Seek(it.nextPrefix)
 	if !ok {
+		// FIXME(kortschak) What are the semantics here? Is this iterator usable?
+		// If not, we should return nil *Iterator and an error.
 		it.open = false
 		it.iter.Release()
 	}
+
 	return &it
+}
+
+func (it *Iterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *Iterator) Reset() {

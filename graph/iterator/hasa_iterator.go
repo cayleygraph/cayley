@@ -47,6 +47,7 @@ import (
 // and a temporary holder for the iterator generated on Check().
 type HasA struct {
 	Base
+	uid       uint64
 	tags      graph.Tagger
 	ts        graph.TripleStore
 	primaryIt graph.Iterator
@@ -57,12 +58,18 @@ type HasA struct {
 // Construct a new HasA iterator, given the triple subiterator, and the triple
 // direction for which it stands.
 func NewHasA(ts graph.TripleStore, subIt graph.Iterator, d graph.Direction) *HasA {
-	var hasa HasA
+	hasa := HasA{
+		uid:       NextUID(),
+		ts:        ts,
+		primaryIt: subIt,
+		dir:       d,
+	}
 	BaseInit(&hasa.Base)
-	hasa.ts = ts
-	hasa.primaryIt = subIt
-	hasa.dir = d
 	return &hasa
+}
+
+func (it *HasA) UID() uint64 {
+	return it.uid
 }
 
 // Return our sole subiterator.

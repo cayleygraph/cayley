@@ -27,6 +27,7 @@ import (
 
 type Iterator struct {
 	iterator.Base
+	uid       uint64
 	tags      graph.Tagger
 	tree      *llrb.LLRB
 	data      string
@@ -54,12 +55,18 @@ func IterateOne(tree *llrb.LLRB, last Int64) Int64 {
 }
 
 func NewLlrbIterator(tree *llrb.LLRB, data string) *Iterator {
-	var it Iterator
+	it := Iterator{
+		uid:      iterator.NextUID(),
+		tree:     tree,
+		iterLast: Int64(-1),
+		data:     data,
+	}
 	iterator.BaseInit(&it.Base)
-	it.tree = tree
-	it.iterLast = Int64(-1)
-	it.data = data
 	return &it
+}
+
+func (it *Iterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *Iterator) Reset() {

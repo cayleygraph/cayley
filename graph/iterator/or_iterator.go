@@ -30,6 +30,7 @@ import (
 
 type Or struct {
 	Base
+	uid               uint64
 	tags              graph.Tagger
 	isShortCircuiting bool
 	internalIterators []graph.Iterator
@@ -38,21 +39,28 @@ type Or struct {
 }
 
 func NewOr() *Or {
-	var or Or
+	or := Or{
+		uid:               NextUID(),
+		internalIterators: make([]graph.Iterator, 0, 20),
+		currentIterator:   -1,
+	}
 	BaseInit(&or.Base)
-	or.internalIterators = make([]graph.Iterator, 0, 20)
-	or.isShortCircuiting = false
-	or.currentIterator = -1
 	return &or
 }
 
 func NewShortCircuitOr() *Or {
-	var or Or
+	or := Or{
+		uid:               NextUID(),
+		internalIterators: make([]graph.Iterator, 0, 20),
+		isShortCircuiting: true,
+		currentIterator:   -1,
+	}
 	BaseInit(&or.Base)
-	or.internalIterators = make([]graph.Iterator, 0, 20)
-	or.isShortCircuiting = true
-	or.currentIterator = -1
 	return &or
+}
+
+func (it *Or) UID() uint64 {
+	return it.uid
 }
 
 // Reset all internal iterators

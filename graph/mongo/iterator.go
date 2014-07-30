@@ -28,6 +28,7 @@ import (
 
 type Iterator struct {
 	iterator.Base
+	uid        uint64
 	tags       graph.Tagger
 	ts         *TripleStore
 	dir        graph.Direction
@@ -41,52 +42,70 @@ type Iterator struct {
 }
 
 func NewIterator(ts *TripleStore, collection string, d graph.Direction, val graph.Value) *Iterator {
-	var m Iterator
-	iterator.BaseInit(&m.Base)
+	name := ts.NameOf(val)
 
-	m.name = ts.NameOf(val)
-	m.collection = collection
+	var constraint bson.M
 	switch d {
 	case graph.Subject:
-		m.constraint = bson.M{"Subject": m.name}
+		constraint = bson.M{"Subject": name}
 	case graph.Predicate:
-		m.constraint = bson.M{"Predicate": m.name}
+		constraint = bson.M{"Predicate": name}
 	case graph.Object:
-		m.constraint = bson.M{"Object": m.name}
+		constraint = bson.M{"Object": name}
 	case graph.Provenance:
-		m.constraint = bson.M{"Provenance": m.name}
+		constraint = bson.M{"Provenance": name}
 	}
 
-	m.ts = ts
-	m.dir = d
-	m.iter = ts.db.C(collection).Find(m.constraint).Iter()
-	size, err := ts.db.C(collection).Find(m.constraint).Count()
+	size, err := ts.db.C(collection).Find(constraint).Count()
 	if err != nil {
+		// FIXME(kortschak) This should be passed back rather than just logging.
 		glog.Errorln("Trouble getting size for iterator! ", err)
 		return nil
 	}
-	m.size = int64(size)
-	m.hash = val.(string)
-	m.isAll = false
+
+	m := Iterator{
+		uid:        iterator.NextUID(),
+		name:       name,
+		constraint: constraint,
+		collection: collection,
+		ts:         ts,
+		dir:        d,
+		iter:       ts.db.C(collection).Find(constraint).Iter(),
+		size:       int64(size),
+		hash:       val.(string),
+		isAll:      false,
+	}
+	iterator.BaseInit(&m.Base)
+
 	return &m
 }
 
 func NewAllIterator(ts *TripleStore, collection string) *Iterator {
-	var m Iterator
-	m.ts = ts
-	m.dir = graph.Any
-	m.constraint = nil
-	m.collection = collection
-	m.iter = ts.db.C(collection).Find(nil).Iter()
 	size, err := ts.db.C(collection).Count()
 	if err != nil {
+		// FIXME(kortschak) This should be passed back rather than just logging.
 		glog.Errorln("Trouble getting size for iterator! ", err)
 		return nil
 	}
-	m.size = int64(size)
-	m.hash = ""
-	m.isAll = true
+
+	m := Iterator{
+		uid:        iterator.NextUID(),
+		ts:         ts,
+		dir:        graph.Any,
+		constraint: nil,
+		collection: collection,
+		iter:       ts.db.C(collection).Find(nil).Iter(),
+		size:       int64(size),
+		hash:       "",
+		isAll:      true,
+	}
+	// FIXME(kortschak) Was there supposed to be a BaseInit call here?
+
 	return &m
+}
+
+func (it *Iterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *Iterator) Reset() {

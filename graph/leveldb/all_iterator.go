@@ -28,6 +28,7 @@ import (
 
 type AllIterator struct {
 	iterator.Base
+	uid    uint64
 	tags   graph.Tagger
 	prefix []byte
 	dir    graph.Direction
@@ -38,21 +39,34 @@ type AllIterator struct {
 }
 
 func NewAllIterator(prefix string, d graph.Direction, ts *TripleStore) *AllIterator {
-	var it AllIterator
+	opts := &opt.ReadOptions{
+		DontFillCache: true,
+	}
+
+	it := AllIterator{
+		uid:    iterator.NextUID(),
+		ro:     opts,
+		iter:   ts.db.NewIterator(nil, opts),
+		prefix: []byte(prefix),
+		dir:    d,
+		open:   true,
+		ts:     ts,
+	}
 	iterator.BaseInit(&it.Base)
-	it.ro = &opt.ReadOptions{}
-	it.ro.DontFillCache = true
-	it.iter = ts.db.NewIterator(nil, it.ro)
-	it.prefix = []byte(prefix)
-	it.dir = d
-	it.open = true
-	it.ts = ts
+
 	it.iter.Seek(it.prefix)
 	if !it.iter.Valid() {
+		// FIXME(kortschak) What are the semantics here? Is this iterator usable?
+		// If not, we should return nil *Iterator and an error.
 		it.open = false
 		it.iter.Release()
 	}
+
 	return &it
+}
+
+func (it *AllIterator) UID() uint64 {
+	return it.uid
 }
 
 func (it *AllIterator) Reset() {

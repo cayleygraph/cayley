@@ -32,6 +32,7 @@ import (
 // An All iterator across a range of int64 values, from `max` to `min`.
 type Int64 struct {
 	Base
+	uid      uint64
 	tags     graph.Tagger
 	max, min int64
 	at       int64
@@ -39,12 +40,18 @@ type Int64 struct {
 
 // Creates a new Int64 with the given range.
 func NewInt64(min, max int64) *Int64 {
-	var all Int64
+	all := Int64{
+		uid: NextUID(),
+		min: min,
+		max: max,
+		at:  min,
+	}
 	BaseInit(&all.Base)
-	all.max = max
-	all.min = min
-	all.at = min
 	return &all
+}
+
+func (it *Int64) UID() uint64 {
+	return it.uid
 }
 
 // Start back at the beginning
