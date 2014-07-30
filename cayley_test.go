@@ -116,7 +116,7 @@ var benchmarkQueries = []struct {
 	//Q: Did "Keanu Reeves" star in "The Net" ?
 	//A: No
 	{
-		message: "Keannu in The Net",
+		message: "Keanu in The Net",
 		query: common + `actor2.Intersect(m1_actors).Out("name").All()
 `,
 	},
@@ -124,7 +124,7 @@ var benchmarkQueries = []struct {
 	//Q: Did "Keanu Reeves" star in "Speed" ?
 	//A: Yes
 	{
-		message: "Keannu in Speed",
+		message: "Keanu in Speed",
 		query: common + `actor2.Intersect(m2_actors).Out("name").All()
 `,
 	},
@@ -133,7 +133,7 @@ var benchmarkQueries = []struct {
 	//A: "Keanu Reeves" was in "Speed" and "The Lake House" with "Sandra Bullock",
 	//   who was in "The Net"
 	{
-		message: "Keannu with other in The Net",
+		message: "Keanu with other in The Net",
 		query: common + `actor2.Follow(coStars1).Intersect(m1_actors).Out("name").All()
 `,
 	},
@@ -142,7 +142,7 @@ var benchmarkQueries = []struct {
 	//A5: Yes, many. For example: SB starred with "Steve Martin" in "The Prince
 	//    of Egypt", and KR starred with Steven Martin in "Parenthood".
 	{
-		message: "Keannu and Bullock with other",
+		message: "Keanu and Bullock with other",
 		query: common + `actor1.Save("name","costar1_actor").Follow(coStars1).Intersect(actor2.Save("name","costar2_actor").Follow(coStars2)).Out("name").All()
 `,
 	},
