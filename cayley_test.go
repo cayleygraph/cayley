@@ -26,6 +26,7 @@ import (
 
 var benchmarkQueries = []struct {
 	message string
+	long    bool
 	query   string
 	tag     string
 	expect  [][]interface{}
@@ -59,6 +60,7 @@ var benchmarkQueries = []struct {
 	// 2014-07-12: This one takes about 4 whole seconds in memory. This is a behemoth.
 	{
 		message: "three huge sets with small intersection",
+		long:    true,
 		query: `
 			function getId(x) { return g.V(x).In("name") }
 			var actor_to_film = g.M().In("/film/performance/actor").In("/film/film/starring")
@@ -87,6 +89,7 @@ var benchmarkQueries = []struct {
 	// as it has a fixed ID. Exercises Check().
 	{
 		message: "the helpless checker",
+		long:    true,
 		query: `
 			g.V().As("person").In("name").In().In().Out("name").Is("Casablanca").All()
 			`,
@@ -146,6 +149,7 @@ var benchmarkQueries = []struct {
 	//   who was in "The Net"
 	{
 		message: "Keanu with other in The Net",
+		long:    true,
 		query: common + `actor2.Follow(coStars1).Intersect(m1_actors).Out("name").All()
 `,
 		expect: [][]interface{}{
@@ -159,6 +163,7 @@ var benchmarkQueries = []struct {
 	//    of Egypt", and KR starred with Steven Martin in "Parenthood".
 	{
 		message: "Keanu and Bullock with other",
+		long:    true,
 		query: common + `actor1.Save("name","costar1_actor").Follow(coStars1).Intersect(actor2.Save("name","costar2_actor").Follow(coStars2)).Out("name").All()
 `,
 		expect: [][]interface{}{
@@ -308,6 +313,9 @@ func prepare(t testing.TB) {
 func TestQueries(t *testing.T) {
 	prepare(t)
 	for _, test := range benchmarkQueries {
+		if testing.Short() && test.long {
+			continue
+		}
 		ses := gremlin.NewSession(ts, cfg.GremlinTimeout, true)
 		_, err := ses.InputParses(test.query)
 		if err != nil {
@@ -345,6 +353,9 @@ func TestQueries(t *testing.T) {
 }
 
 func runBench(n int, b *testing.B) {
+	if testing.Short() && benchmarkQueries[n].long {
+		b.Skip()
+	}
 	prepare(b)
 	ses := gremlin.NewSession(ts, cfg.GremlinTimeout, true)
 	_, err := ses.InputParses(benchmarkQueries[n].query)
