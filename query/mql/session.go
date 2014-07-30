@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/query"
 )
 
 type Session struct {
@@ -62,13 +63,13 @@ func (m *Session) GetQuery(input string, output_struct chan map[string]interface
 	output_struct <- output
 }
 
-func (s *Session) InputParses(input string) (graph.ParseResult, error) {
+func (s *Session) InputParses(input string) (query.ParseResult, error) {
 	var x interface{}
 	err := json.Unmarshal([]byte(input), &x)
 	if err != nil {
-		return graph.ParseFail, err
+		return query.ParseFail, err
 	}
-	return graph.Parsed, nil
+	return query.Parsed, nil
 }
 
 func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
