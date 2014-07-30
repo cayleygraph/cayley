@@ -212,3 +212,7 @@ func (it *Comparison) Optimize() (graph.Iterator, bool) {
 func (it *Comparison) Stats() graph.IteratorStats {
 	return it.subIt.Stats()
 }
+
+func (it *Base) Size() (int64, bool) {
+	return 0, true
+}

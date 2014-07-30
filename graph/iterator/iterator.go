@@ -80,11 +80,6 @@ func (it *Base) Result() graph.Value {
 	return it.Last
 }
 
-// If you're empty and you know it, clap your hands.
-func (it *Base) Size() (int64, bool) {
-	return 0, true
-}
-
 // Accessor
 func (it *Base) CanNext() bool { return it.canNext }
 

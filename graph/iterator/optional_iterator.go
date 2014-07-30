@@ -151,3 +151,8 @@ func (it *Optional) Stats() graph.IteratorStats {
 		Size:      subStats.Size,
 	}
 }
+
+// If you're empty and you know it, clap your hands.
+func (it *Optional) Size() (int64, bool) {
+	return 0, true
+}

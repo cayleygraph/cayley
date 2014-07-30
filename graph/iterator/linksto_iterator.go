@@ -200,3 +200,7 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 		Size:      fanoutFactor * subitStats.Size,
 	}
 }
+
+func (it *LinksTo) Size() (int64, bool) {
+	return 0, true
+}

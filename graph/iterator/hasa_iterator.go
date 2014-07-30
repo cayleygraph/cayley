@@ -240,3 +240,7 @@ func (it *HasA) Close() {
 
 // Register this iterator as a HasA.
 func (it *HasA) Type() graph.Type { return graph.HasA }
+
+func (it *HasA) Size() (int64, bool) {
+	return 0, true
+}
