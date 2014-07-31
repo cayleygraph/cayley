@@ -215,7 +215,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 	panic("unreachable")
 }
 
-func (it *Iterator) Check(v graph.Value) bool {
+func (it *Iterator) Contains(v graph.Value) bool {
 	val := v.([]byte)
 	if val[0] == 'z' {
 		return false
@@ -262,8 +262,8 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) {
 func (it *Iterator) Stats() graph.IteratorStats {
 	s, _ := it.Size()
 	return graph.IteratorStats{
-		CheckCost: 1,
-		NextCost:  2,
-		Size:      s,
+		ContainsCost: 1,
+		NextCost:     2,
+		Size:         s,
 	}
 }

@@ -124,13 +124,13 @@ func (it *Iterator) Size() (int64, bool) {
 	return int64(it.tree.Len()), true
 }
 
-func (it *Iterator) Check(v graph.Value) bool {
-	graph.CheckLogIn(it, v)
+func (it *Iterator) Contains(v graph.Value) bool {
+	graph.ContainsLogIn(it, v)
 	if it.tree.Has(Int64(v.(int64))) {
 		it.result = v
-		return graph.CheckLogOut(it, v, true)
+		return graph.ContainsLogOut(it, v, true)
 	}
-	return graph.CheckLogOut(it, v, false)
+	return graph.ContainsLogOut(it, v, false)
 }
 
 func (it *Iterator) DebugString(indent int) string {
@@ -156,8 +156,8 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) {
 
 func (it *Iterator) Stats() graph.IteratorStats {
 	return graph.IteratorStats{
-		CheckCost: int64(math.Log(float64(it.tree.Len()))) + 1,
-		NextCost:  1,
-		Size:      int64(it.tree.Len()),
+		ContainsCost: int64(math.Log(float64(it.tree.Len()))) + 1,
+		NextCost:     1,
+		Size:         int64(it.tree.Len()),
 	}
 }

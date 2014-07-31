@@ -138,7 +138,7 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *AllIterator) Check(v graph.Value) bool {
+func (it *AllIterator) Contains(v graph.Value) bool {
 	it.result = v
 	return true
 }
@@ -174,8 +174,8 @@ func (it *AllIterator) Optimize() (graph.Iterator, bool) {
 func (it *AllIterator) Stats() graph.IteratorStats {
 	s, _ := it.Size()
 	return graph.IteratorStats{
-		CheckCost: 1,
-		NextCost:  2,
-		Size:      s,
+		ContainsCost: 1,
+		NextCost:     2,
+		Size:         s,
 	}
 }

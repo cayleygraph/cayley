@@ -61,7 +61,7 @@ func (it *Null) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Null) Check(graph.Value) bool {
+func (it *Null) Contains(graph.Value) bool {
 	return false
 }
 

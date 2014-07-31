@@ -86,7 +86,7 @@ var benchmarkQueries = []struct {
 
 	// This is more of an optimization problem that will get better over time. This takes a lot
 	// of wrong turns on the walk down to what is ultimately the name, but top AND has it easy
-	// as it has a fixed ID. Exercises Check().
+	// as it has a fixed ID. Exercises Contains().
 	{
 		message: "the helpless checker",
 		long:    true,
@@ -383,7 +383,7 @@ func BenchmarkVeryLargeSetsSmallIntersection(b *testing.B) {
 	runBench(2, b)
 }
 
-func BenchmarkHelplessChecker(b *testing.B) {
+func BenchmarkHelplessContainsChecker(b *testing.B) {
 	runBench(3, b)
 }
 

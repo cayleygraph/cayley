@@ -82,7 +82,7 @@ func TestValueComparison(t *testing.T) {
 	}
 }
 
-var vciCheckTests = []struct {
+var vciContainsTests = []struct {
 	message  string
 	operator Operator
 	check    graph.Value
@@ -114,10 +114,10 @@ var vciCheckTests = []struct {
 	},
 }
 
-func TestVCICheck(t *testing.T) {
-	for _, test := range vciCheckTests {
+func TestVCIContains(t *testing.T) {
+	for _, test := range vciContainsTests {
 		vc := NewComparison(simpleFixedIterator(), test.operator, int64(2), simpleStore)
-		if vc.Check(test.check) != test.expect {
+		if vc.Contains(test.check) != test.expect {
 			t.Errorf("Failed to show %s", test.message)
 		}
 	}

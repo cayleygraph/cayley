@@ -6,11 +6,11 @@
 //
 // It accomplishes this in one of two ways. If it is a Next()ed iterator (that
 // is, it is a top level iterator, or on the "Next() path", then it will Next()
-// it's primary iterator (helpfully, and.primary_it) and Check() the resultant
+// it's primary iterator (helpfully, and.primary_it) and Contains() the resultant
 // value against it's other iterators. If it matches all of them, then it
 // returns that value. Otherwise, it repeats the process.
 //
-// If it's on a Check() path, it merely Check()s every iterator, and returns the
+// If it's on a Contains() path, it merely Contains()s every iterator, and returns the
 // logical AND of each result.
 
 package iterator
@@ -86,7 +86,7 @@ func (it *And) Clone() graph.Iterator {
 		and.AddSubIterator(sub.Clone())
 	}
 	if it.checkList != nil {
-		and.optimizeCheck()
+		and.optimizeContains()
 	}
 	return and
 }
@@ -164,7 +164,7 @@ func (it *And) Next() (graph.Value, bool) {
 		if !exists {
 			return graph.NextLogOut(it, nil, false)
 		}
-		if it.checkSubIts(curr) {
+		if it.subItsContain(curr) {
 			it.result = curr
 			return graph.NextLogOut(it, curr, true)
 		}
@@ -177,10 +177,10 @@ func (it *And) Result() graph.Value {
 }
 
 // Checks a value against the non-primary iterators, in order.
-func (it *And) checkSubIts(val graph.Value) bool {
+func (it *And) subItsContain(val graph.Value) bool {
 	var subIsGood = true
 	for _, sub := range it.internalIterators {
-		subIsGood = sub.Check(val)
+		subIsGood = sub.Contains(val)
 		if !subIsGood {
 			break
 		}
@@ -188,10 +188,10 @@ func (it *And) checkSubIts(val graph.Value) bool {
 	return subIsGood
 }
 
-func (it *And) checkCheckList(val graph.Value) bool {
+func (it *And) checkContainsList(val graph.Value) bool {
 	ok := true
 	for _, c := range it.checkList {
-		ok = c.Check(val)
+		ok = c.Contains(val)
 		if !ok {
 			break
 		}
@@ -199,25 +199,25 @@ func (it *And) checkCheckList(val graph.Value) bool {
 	if ok {
 		it.result = val
 	}
-	return graph.CheckLogOut(it, val, ok)
+	return graph.ContainsLogOut(it, val, ok)
 }
 
 // Check a value against the entire iterator, in order.
-func (it *And) Check(val graph.Value) bool {
-	graph.CheckLogIn(it, val)
+func (it *And) Contains(val graph.Value) bool {
+	graph.ContainsLogIn(it, val)
 	if it.checkList != nil {
-		return it.checkCheckList(val)
+		return it.checkContainsList(val)
 	}
-	mainGood := it.primaryIt.Check(val)
+	mainGood := it.primaryIt.Contains(val)
 	if !mainGood {
-		return graph.CheckLogOut(it, val, false)
+		return graph.ContainsLogOut(it, val, false)
 	}
-	othersGood := it.checkSubIts(val)
+	othersGood := it.subItsContain(val)
 	if !othersGood {
-		return graph.CheckLogOut(it, val, false)
+		return graph.ContainsLogOut(it, val, false)
 	}
 	it.result = val
-	return graph.CheckLogOut(it, val, true)
+	return graph.ContainsLogOut(it, val, true)
 }
 
 // Returns the approximate size of the And iterator. Because we're dealing

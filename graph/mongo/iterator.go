@@ -174,11 +174,11 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) Check(v graph.Value) bool {
-	graph.CheckLogIn(it, v)
+func (it *Iterator) Contains(v graph.Value) bool {
+	graph.ContainsLogIn(it, v)
 	if it.isAll {
 		it.result = v
-		return graph.CheckLogOut(it, v, true)
+		return graph.ContainsLogOut(it, v, true)
 	}
 	var offset int
 	switch it.dir {
@@ -194,9 +194,9 @@ func (it *Iterator) Check(v graph.Value) bool {
 	val := v.(string)[offset : it.qs.hasher.Size()*2+offset]
 	if val == it.hash {
 		it.result = v
-		return graph.CheckLogOut(it, v, true)
+		return graph.ContainsLogOut(it, v, true)
 	}
-	return graph.CheckLogOut(it, v, false)
+	return graph.ContainsLogOut(it, v, false)
 }
 
 func (it *Iterator) Size() (int64, bool) {
@@ -229,8 +229,8 @@ func (it *Iterator) DebugString(indent int) string {
 func (it *Iterator) Stats() graph.IteratorStats {
 	size, _ := it.Size()
 	return graph.IteratorStats{
-		CheckCost: 1,
-		NextCost:  5,
-		Size:      size,
+		ContainsCost: 1,
+		NextCost:     5,
+		Size:         size,
 	}
 }
