@@ -183,8 +183,8 @@ func (it *LinksTo) Close() {
 }
 
 // We won't ever have a new result, but our subiterators might.
-func (it *LinksTo) NextResult() bool {
-	return it.primaryIt.NextResult()
+func (it *LinksTo) NextPath() bool {
+	return it.primaryIt.NextPath()
 }
 
 // Register the LinksTo.

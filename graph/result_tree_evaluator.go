@@ -50,7 +50,7 @@ func StringResultTreeEvaluator(it Nexter) string {
 		}
 		out += it.ResultTree().String()
 		out += "\n"
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			out += " "
 			out += it.ResultTree().String()
 			out += "\n"

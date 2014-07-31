@@ -236,15 +236,15 @@ func (it *And) Size() (int64, bool) {
 	return val, b
 }
 
-// An And has no NextResult of its own -- that is, there are no other values
+// An And has no NextPath of its own -- that is, there are no other values
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively.
-func (it *And) NextResult() bool {
-	if it.primaryIt.NextResult() {
+func (it *And) NextPath() bool {
+	if it.primaryIt.NextPath() {
 		return true
 	}
 	for _, sub := range it.internalIterators {
-		if sub.NextResult() {
+		if sub.NextPath() {
 			return true
 		}
 	}

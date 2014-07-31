@@ -228,13 +228,13 @@ func (it *Or) Size() (int64, bool) {
 	return val, b
 }
 
-// An Or has no NextResult of its own -- that is, there are no other values
+// An Or has no NextPath of its own -- that is, there are no other values
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively. In the case of
 // shortcircuiting, only allow new results from the currently checked graph.iterator
-func (it *Or) NextResult() bool {
+func (it *Or) NextPath() bool {
 	if it.currentIterator != -1 {
-		return it.internalIterators[it.currentIterator].NextResult()
+		return it.internalIterators[it.currentIterator].NextPath()
 	}
 	return false
 }

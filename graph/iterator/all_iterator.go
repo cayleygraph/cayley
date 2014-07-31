@@ -110,7 +110,7 @@ func (it *Int64) Result() graph.Value {
 	return it.result
 }
 
-func (it *Int64) NextResult() bool {
+func (it *Int64) NextPath() bool {
 	return false
 }
 

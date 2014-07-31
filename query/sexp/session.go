@@ -89,7 +89,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 		if nResults > limit && limit != -1 {
 			break
 		}
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			out <- &tags

@@ -95,7 +95,7 @@ func (it *Null) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Null) NextResult() bool {
+func (it *Null) NextPath() bool {
 	return false
 }
 

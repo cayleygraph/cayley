@@ -162,7 +162,7 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 		if limit >= 0 && count >= limit {
 			break
 		}
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			if ses.doHalt {
 				return nil
 			}
@@ -220,7 +220,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 		if limit >= 0 && count >= limit {
 			break
 		}
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			if ses.doHalt {
 				return
 			}
@@ -259,7 +259,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		if !cont {
 			break
 		}
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			if ses.doHalt {
 				return
 			}

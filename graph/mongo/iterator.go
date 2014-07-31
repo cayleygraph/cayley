@@ -165,7 +165,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextResult() bool {
+func (it *Iterator) NextPath() bool {
 	return false
 }
 

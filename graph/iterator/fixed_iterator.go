@@ -156,7 +156,7 @@ func (it *Fixed) Result() graph.Value {
 	return it.result
 }
 
-func (it *Fixed) NextResult() bool {
+func (it *Fixed) NextPath() bool {
 	return false
 }
 

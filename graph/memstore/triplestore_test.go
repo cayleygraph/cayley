@@ -128,7 +128,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	)
 	for {
 		got = append(got, ts.NameOf(all.Result()))
-		if !outerAnd.NextResult() {
+		if !outerAnd.NextPath() {
 			break
 		}
 	}

@@ -79,15 +79,15 @@ type Iterator interface {
 	// To get the full results of iteration, do the following:
 	// while (!Next()):
 	//   emit result
-	//   while (!NextResult()):
+	//   while (!NextPath()):
 	//       emit result
 	//
 	// All of them should set iterator.Last to be the last returned value, to
 	// make results work.
 	//
-	// NextResult() advances iterators that may have more than one valid result,
+	// NextPath() advances iterators that may have more than one valid result,
 	// from the bottom up.
-	NextResult() bool
+	NextPath() bool
 
 	// Contains returns whether the value is within the set held by the iterator.
 	Contains(Value) bool

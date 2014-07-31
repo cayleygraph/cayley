@@ -96,7 +96,7 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		c <- tags
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			c <- tags

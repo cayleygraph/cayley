@@ -27,9 +27,9 @@ package iterator
 // value to check, it means "Check all predicates that have this value for your
 // direction against the subiterator." This would imply that there's more than
 // one possibility for the same Contains()ed value. While we could return the
-// number of options, it's simpler to return one, and then call NextResult()
+// number of options, it's simpler to return one, and then call NextPath()
 // enough times to enumerate the options. (In fact, one could argue that the
-// raison d'etre for NextResult() is this iterator).
+// raison d'etre for NextPath() is this iterator).
 //
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
@@ -175,14 +175,14 @@ func (it *HasA) NextContains() bool {
 }
 
 // Get the next result that matches this branch.
-func (it *HasA) NextResult() bool {
-	// Order here is important. If the subiterator has a NextResult, then we
+func (it *HasA) NextPath() bool {
+	// Order here is important. If the subiterator has a NextPath, then we
 	// need do nothing -- there is a next result, and we shouldn't move forward.
 	// However, we then need to get the next result from our last Contains().
 	//
-	// The upshot is, the end of NextResult() bubbles up from the bottom of the
+	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
-	if it.primaryIt.NextResult() {
+	if it.primaryIt.NextPath() {
 		return true
 	}
 	return it.NextContains()
