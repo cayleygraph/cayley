@@ -25,6 +25,12 @@ import (
 	"github.com/petar/GoLLRB/llrb"
 )
 
+func init() {
+	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
+		return newTripleStore(), nil
+	}, nil)
+}
+
 type TripleDirectionIndex struct {
 	subject   map[int64]*llrb.LLRB
 	predicate map[int64]*llrb.LLRB
@@ -240,7 +246,7 @@ func (ts *TripleStore) DebugPrint() {
 		if i == 0 {
 			continue
 		}
-		glog.V(2).Infoln("%d: %s", i, t)
+		glog.V(2).Infof("%d: %s", i, t)
 	}
 }
 
@@ -269,9 +275,3 @@ func (ts *TripleStore) NodesAllIterator() graph.Iterator {
 	return NewMemstoreAllIterator(ts)
 }
 func (ts *TripleStore) Close() {}
-
-func init() {
-	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
-		return newTripleStore(), nil
-	}, nil)
-}

@@ -125,8 +125,7 @@ func (q *Quad) Equals(o *Quad) bool {
 
 // Pretty-prints a triple.
 func (q *Quad) String() string {
-	// TODO(kortschak) String methods should generally not terminate in '\n'.
-	return fmt.Sprintf("%s -- %s -> %s\n", q.Subject, q.Predicate, q.Object)
+	return fmt.Sprintf("%s -- %s -> %s", q.Subject, q.Predicate, q.Object)
 }
 
 func (q *Quad) IsValid() bool {

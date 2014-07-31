@@ -33,6 +33,10 @@ import (
 	"github.com/google/cayley/quad"
 )
 
+func init() {
+	graph.RegisterTripleStore("leveldb", newTripleStore, createNewLevelDB)
+}
+
 const (
 	DefaultCacheSize       = 2
 	DefaultWriteBufferSize = 20
@@ -53,7 +57,7 @@ func createNewLevelDB(path string, _ graph.Options) error {
 	opts := &opt.Options{}
 	db, err := leveldb.OpenFile(path, opts)
 	if err != nil {
-		glog.Errorln("Error: couldn't create database: ", err)
+		glog.Errorf("Error: couldn't create database: %v", err)
 		return err
 	}
 	defer db.Close()
@@ -145,7 +149,7 @@ func (qs *TripleStore) AddTriple(t *quad.Quad) {
 	qs.buildWrite(batch, t)
 	err := qs.db.Write(batch, qs.writeopts)
 	if err != nil {
-		glog.Errorf("Couldn't write to DB for triple %s", t)
+		glog.Errorf("Couldn't write to DB for triple %s.", t)
 		return
 	}
 	qs.size++
@@ -162,7 +166,7 @@ var (
 func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 	_, err := qs.db.Get(qs.createKeyFor(spo, t), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorf("Couldn't access DB to confirm deletion")
+		glog.Error("Couldn't access DB to confirm deletion")
 		return
 	}
 	if err == leveldb.ErrNotFound {
@@ -182,7 +186,7 @@ func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 	}
 	err = qs.db.Write(batch, nil)
 	if err != nil {
-		glog.Errorf("Couldn't delete triple %s", t)
+		glog.Errorf("Couldn't delete triple %s.", t)
 		return
 	}
 	qs.size--
@@ -191,7 +195,7 @@ func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 func (qs *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *quad.Quad) {
 	bytes, err := json.Marshal(*t)
 	if err != nil {
-		glog.Errorf("Couldn't write to buffer for triple %s\n  %s\n", t, err)
+		glog.Errorf("Couldn't write to buffer for triple %s: %s", t, err)
 		return
 	}
 	batch.Put(qs.createKeyFor(spo, t), bytes)
@@ -224,7 +228,7 @@ func (qs *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.
 
 	// Error getting the node from the database.
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorf("Error reading Value %s from the DB\n", name)
+		glog.Errorf("Error reading Value %s from the DB.", name)
 		return
 	}
 
@@ -232,7 +236,7 @@ func (qs *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.
 	if b != nil && err != leveldb.ErrNotFound {
 		err = json.Unmarshal(b, value)
 		if err != nil {
-			glog.Errorln("Error: couldn't reconstruct value ", err)
+			glog.Errorf("Error: couldn't reconstruct value: %v", err)
 			return
 		}
 		value.Size += int64(amount)
@@ -253,7 +257,7 @@ func (qs *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.
 	// Repackage and rewrite.
 	bytes, err := json.Marshal(&value)
 	if err != nil {
-		glog.Errorf("Couldn't write to buffer for value %s\n %s", name, err)
+		glog.Errorf("Couldn't write to buffer for value %s: %s", name, err)
 		return
 	}
 	if batch == nil {
@@ -281,7 +285,7 @@ func (qs *TripleStore) AddTripleSet(t_s []*quad.Quad) {
 	}
 	err := qs.db.Write(batch, qs.writeopts)
 	if err != nil {
-		glog.Errorf("Couldn't write to DB for tripleset")
+		glog.Error("Couldn't write to DB for tripleset.")
 		return
 	}
 	qs.size += int64(newTs)
@@ -293,7 +297,7 @@ func (qs *TripleStore) Close() {
 	if err == nil {
 		werr := qs.db.Put([]byte("__size"), buf.Bytes(), qs.writeopts)
 		if werr != nil {
-			glog.Errorf("Couldn't write size before closing!")
+			glog.Error("Couldn't write size before closing!")
 		}
 	} else {
 		glog.Errorf("Couldn't convert size before closing!")
@@ -306,7 +310,7 @@ func (qs *TripleStore) Quad(k graph.Value) *quad.Quad {
 	var triple quad.Quad
 	b, err := qs.db.Get(k.([]byte), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorln("Error: couldn't get triple from DB")
+		glog.Error("Error: couldn't get triple from DB.")
 		return &quad.Quad{}
 	}
 	if err == leveldb.ErrNotFound {
@@ -315,7 +319,7 @@ func (qs *TripleStore) Quad(k graph.Value) *quad.Quad {
 	}
 	err = json.Unmarshal(b, &triple)
 	if err != nil {
-		glog.Errorln("Error: couldn't reconstruct triple")
+		glog.Error("Error: couldn't reconstruct triple.")
 		return &quad.Quad{}
 	}
 	return &triple
@@ -336,7 +340,7 @@ func (qs *TripleStore) ValueOf(s string) graph.Value {
 func (qs *TripleStore) valueData(value_key []byte) ValueData {
 	var out ValueData
 	if glog.V(3) {
-		glog.V(3).Infof("%s %v\n", string(value_key[0]), value_key)
+		glog.V(3).Infof("%s %v", string(value_key[0]), value_key)
 	}
 	b, err := qs.db.Get(value_key, qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
@@ -355,7 +359,7 @@ func (qs *TripleStore) valueData(value_key []byte) ValueData {
 
 func (qs *TripleStore) NameOf(k graph.Value) string {
 	if k == nil {
-		glog.V(2).Infoln("k was nil")
+		glog.V(2).Info("k was nil")
 		return ""
 	}
 	return qs.valueData(k.([]byte)).Name
@@ -443,8 +447,4 @@ func compareBytes(a, b graph.Value) bool {
 
 func (qs *TripleStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(compareBytes)
-}
-
-func init() {
-	graph.RegisterTripleStore("leveldb", newTripleStore, createNewLevelDB)
 }
