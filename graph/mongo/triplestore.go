@@ -19,7 +19,6 @@ import (
 	"encoding/hex"
 	"hash"
 	"io"
-	"log"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -125,7 +124,7 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) {
 			size.Name = node_name
 			size.Size = inc
 		} else {
-			glog.Error("Error:", err)
+			glog.Errorf("Error: %v", err)
 			return
 		}
 	} else {
@@ -139,7 +138,7 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) {
 		if size.Size <= 0 {
 			err := qs.db.C("nodes").RemoveId(node)
 			if err != nil {
-				glog.Error("Error: ", err, " while removing node ", node_name)
+				glog.Errorf("Error: %v while removing node %s", err, node_name)
 				return
 			}
 		}
@@ -147,7 +146,7 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) {
 
 	_, err2 := qs.db.C("nodes").UpsertId(node, size)
 	if err2 != nil {
-		glog.Error("Error: ", err)
+		glog.Errorf("Error: %v", err)
 	}
 }
 
@@ -165,7 +164,7 @@ func (qs *TripleStore) writeTriple(t *quad.Quad) bool {
 		if err.(*mgo.LastError).Code == 11000 {
 			return false
 		}
-		glog.Error("Error: ", err)
+		glog.Errorf("Error: %v", err)
 		return false
 	}
 	return true
@@ -206,7 +205,7 @@ func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 	if err == mgo.ErrNotFound {
 		return
 	} else if err != nil {
-		log.Println("Error: ", err, " while removing triple ", t)
+		glog.Errorf("Error: %v while removing triple %v", err, t)
 		return
 	}
 	qs.updateNodeBy(t.Subject, -1)
@@ -221,7 +220,7 @@ func (qs *TripleStore) Quad(val graph.Value) *quad.Quad {
 	var bsonDoc bson.M
 	err := qs.db.C("triples").FindId(val.(string)).One(&bsonDoc)
 	if err != nil {
-		log.Println("Error: Couldn't retrieve triple", val.(string), err)
+		glog.Errorf("Error: Couldn't retrieve triple %s %v", val, err)
 	}
 	return &quad.Quad{
 		bsonDoc["Subject"].(string),
@@ -255,7 +254,7 @@ func (qs *TripleStore) NameOf(v graph.Value) string {
 	var node MongoNode
 	err := qs.db.C("nodes").FindId(v.(string)).One(&node)
 	if err != nil {
-		log.Println("Error: Couldn't retrieve node", v.(string), err)
+		glog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
 	}
 	qs.idCache.Put(v.(string), node.Name)
 	return node.Name
@@ -264,7 +263,7 @@ func (qs *TripleStore) NameOf(v graph.Value) string {
 func (qs *TripleStore) Size() int64 {
 	count, err := qs.db.C("triples").Count()
 	if err != nil {
-		glog.Error("Error: ", err)
+		glog.Errorf("Error: %v", err)
 		return 0
 	}
 	return int64(count)

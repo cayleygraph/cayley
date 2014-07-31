@@ -26,7 +26,7 @@ func TestSingleIterator(t *testing.T) {
 	result := StringResultTreeEvaluator(all)
 	expected := "(1)\n(2)\n(3)\n"
 	if expected != result {
-		t.Errorf("Expected \"%s\" got \"%s\"", expected, result)
+		t.Errorf("Expected %q got %q", expected, result)
 	}
 }
 
@@ -40,6 +40,6 @@ func TestAndIterator(t *testing.T) {
 	result := StringResultTreeEvaluator(and)
 	expected := "(3 (3) (3))\n"
 	if expected != result {
-		t.Errorf("Expected \"%s\" got \"%s\"", expected, result)
+		t.Errorf("Expected %q got %q", expected, result)
 	}
 }
