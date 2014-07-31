@@ -23,6 +23,7 @@ import (
 	"github.com/robertkrimen/otto"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/query"
 )
 
 type Session struct {
@@ -81,13 +82,13 @@ func (s *Session) GetQuery(input string, output_struct chan map[string]interface
 	s.queryShape = nil
 }
 
-func (s *Session) InputParses(input string) (graph.ParseResult, error) {
+func (s *Session) InputParses(input string) (query.ParseResult, error) {
 	script, err := s.env.Compile("", input)
 	if err != nil {
-		return graph.ParseFail, err
+		return query.ParseFail, err
 	}
 	s.script = script
-	return graph.Parsed, nil
+	return query.Parsed, nil
 }
 
 func (s *Session) SendResult(result *GremlinResult) bool {
@@ -250,7 +251,7 @@ func (ses *Session) BuildJson(result interface{}) {
 
 }
 
-func (ses *Session) GetJson() (interface{}, error) {
+func (ses *Session) GetJson() ([]interface{}, error) {
 	defer ses.ClearJson()
 	if ses.err != nil {
 		return nil, ses.err

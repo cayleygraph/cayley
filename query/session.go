@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graph
+package query
 
 // Defines the graph session interface general to all query languages.
 
@@ -39,7 +39,7 @@ type HttpSession interface {
 	ExecInput(string, chan interface{}, int)
 	GetQuery(string, chan map[string]interface{})
 	BuildJson(interface{})
-	GetJson() (interface{}, error)
+	GetJson() ([]interface{}, error)
 	ClearJson()
 	ToggleDebug()
 }
