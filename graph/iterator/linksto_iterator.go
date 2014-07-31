@@ -23,7 +23,7 @@ package iterator
 // LinksTo is therefore sensitive to growing with a fanout. (A small-sized
 // subiterator could cause LinksTo to be large).
 //
-// Check()ing a LinksTo means, given a link, take the direction we care about
+// Contains()ing a LinksTo means, given a link, take the direction we care about
 // and check if it's in our subiterator. Checking is therefore fairly cheap, and
 // similar to checking the subiterator alone.
 //
@@ -116,14 +116,14 @@ func (it *LinksTo) DebugString(indent int) string {
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
-func (it *LinksTo) Check(val graph.Value) bool {
-	graph.CheckLogIn(it, val)
+func (it *LinksTo) Contains(val graph.Value) bool {
+	graph.ContainsLogIn(it, val)
 	node := it.ts.TripleDirection(val, it.dir)
-	if it.primaryIt.Check(node) {
+	if it.primaryIt.Contains(node) {
 		it.result = val
-		return graph.CheckLogOut(it, val, true)
+		return graph.ContainsLogOut(it, val, true)
 	}
-	return graph.CheckLogOut(it, val, false)
+	return graph.ContainsLogOut(it, val, false)
 }
 
 // Return a list containing only our subiterator.
@@ -198,9 +198,9 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 	checkConstant := int64(1)
 	nextConstant := int64(2)
 	return graph.IteratorStats{
-		NextCost:  nextConstant + subitStats.NextCost,
-		CheckCost: checkConstant + subitStats.CheckCost,
-		Size:      fanoutFactor * subitStats.Size,
+		NextCost:     nextConstant + subitStats.NextCost,
+		ContainsCost: checkConstant + subitStats.ContainsCost,
+		Size:         fanoutFactor * subitStats.Size,
 	}
 }
 

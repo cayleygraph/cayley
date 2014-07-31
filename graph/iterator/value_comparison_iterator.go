@@ -171,11 +171,11 @@ func (it *Comparison) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Comparison) Check(val graph.Value) bool {
+func (it *Comparison) Contains(val graph.Value) bool {
 	if !it.doComparison(val) {
 		return false
 	}
-	return it.subIt.Check(val)
+	return it.subIt.Contains(val)
 }
 
 // If we failed the check, then the subiterator should not contribute to the result

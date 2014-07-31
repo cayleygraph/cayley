@@ -89,9 +89,8 @@ type Iterator interface {
 	// from the bottom up.
 	NextResult() bool
 
-	// Check(), given a value, returns whether or not that value is within the set
-	// held by this iterator.
-	Check(Value) bool
+	// Contains returns whether the value is within the set held by the iterator.
+	Contains(Value) bool
 
 	// Start iteration from the beginning
 	Reset()
@@ -161,9 +160,9 @@ type FixedIterator interface {
 }
 
 type IteratorStats struct {
-	CheckCost int64
-	NextCost  int64
-	Size      int64
+	ContainsCost int64
+	NextCost     int64
+	Size         int64
 }
 
 // Type enumerates the set of Iterator types.
@@ -229,20 +228,20 @@ func (t Type) String() string {
 	return types[t]
 }
 
-// Utility logging functions for when an iterator gets called Next upon, or Check upon, as
+// Utility logging functions for when an iterator gets called Next upon, or Contains upon, as
 // well as what they return. Highly useful for tracing the execution path of a query.
-func CheckLogIn(it Iterator, val Value) {
+func ContainsLogIn(it Iterator, val Value) {
 	if glog.V(4) {
-		glog.V(4).Infof("%s %d CHECK %d", strings.ToUpper(it.Type().String()), it.UID(), val)
+		glog.V(4).Infof("%s %d CHECK CONTAINS %d", strings.ToUpper(it.Type().String()), it.UID(), val)
 	}
 }
 
-func CheckLogOut(it Iterator, val Value, good bool) bool {
+func ContainsLogOut(it Iterator, val Value, good bool) bool {
 	if glog.V(4) {
 		if good {
-			glog.V(4).Infof("%s %d CHECK %d GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			glog.V(4).Infof("%s %d CHECK CONTAINS %d GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d CHECK %d BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			glog.V(4).Infof("%s %d CHECK CONTAINS %d BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		}
 	}
 	return good

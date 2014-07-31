@@ -126,16 +126,16 @@ func (it *Int64) Size() (int64, bool) {
 	return Size, true
 }
 
-// Check() for an Int64 is merely seeing if the passed value is
+// Contains() for an Int64 is merely seeing if the passed value is
 // withing the range, assuming the value is an int64.
-func (it *Int64) Check(tsv graph.Value) bool {
-	graph.CheckLogIn(it, tsv)
+func (it *Int64) Contains(tsv graph.Value) bool {
+	graph.ContainsLogIn(it, tsv)
 	v := tsv.(int64)
 	if it.min <= v && v <= it.max {
 		it.result = v
-		return graph.CheckLogOut(it, v, true)
+		return graph.ContainsLogOut(it, v, true)
 	}
-	return graph.CheckLogOut(it, v, false)
+	return graph.ContainsLogOut(it, v, false)
 }
 
 // The type of this iterator is an "all". This is important, as it puts it in
@@ -150,8 +150,8 @@ func (it *Int64) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Int64) Stats() graph.IteratorStats {
 	s, _ := it.Size()
 	return graph.IteratorStats{
-		CheckCost: 1,
-		NextCost:  1,
-		Size:      s,
+		ContainsCost: 1,
+		NextCost:     1,
+		Size:         s,
 	}
 }

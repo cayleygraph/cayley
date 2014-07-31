@@ -100,11 +100,11 @@ func (it *Optional) SubIterators() []graph.Iterator {
 	return nil
 }
 
-// Check() is the real hack of this iterator. It always returns true, regardless
+// Contains() is the real hack of this iterator. It always returns true, regardless
 // of whether the subiterator matched. But we keep track of whether the subiterator
 // matched for results purposes.
-func (it *Optional) Check(val graph.Value) bool {
-	checked := it.subIt.Check(val)
+func (it *Optional) Contains(val graph.Value) bool {
+	checked := it.subIt.Contains(val)
 	it.lastCheck = checked
 	it.result = val
 	return true
@@ -146,9 +146,9 @@ func (it *Optional) Optimize() (graph.Iterator, bool) {
 func (it *Optional) Stats() graph.IteratorStats {
 	subStats := it.subIt.Stats()
 	return graph.IteratorStats{
-		CheckCost: subStats.CheckCost,
-		NextCost:  int64(1 << 62),
-		Size:      subStats.Size,
+		ContainsCost: subStats.ContainsCost,
+		NextCost:     int64(1 << 62),
+		Size:         subStats.Size,
 	}
 }
 

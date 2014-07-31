@@ -121,18 +121,18 @@ func (it *Fixed) DebugString(indent int) string {
 func (it *Fixed) Type() graph.Type { return graph.Fixed }
 
 // Check if the passed value is equal to one of the values stored in the iterator.
-func (it *Fixed) Check(v graph.Value) bool {
+func (it *Fixed) Contains(v graph.Value) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.
-	graph.CheckLogIn(it, v)
+	graph.ContainsLogIn(it, v)
 	for _, x := range it.values {
 		if it.cmp(x, v) {
 			it.result = x
-			return graph.CheckLogOut(it, v, true)
+			return graph.ContainsLogOut(it, v, true)
 		}
 	}
-	return graph.CheckLogOut(it, v, false)
+	return graph.ContainsLogOut(it, v, false)
 }
 
 // Return the next stored value from the iterator.
@@ -181,12 +181,12 @@ func (it *Fixed) Size() (int64, bool) {
 	return int64(len(it.values)), true
 }
 
-// As we right now have to scan the entire list, Next and Check are linear with the
+// As we right now have to scan the entire list, Next and Contains are linear with the
 // size. However, a better data structure could remove these limits.
 func (it *Fixed) Stats() graph.IteratorStats {
 	return graph.IteratorStats{
-		CheckCost: int64(len(it.values)),
-		NextCost:  int64(len(it.values)),
-		Size:      int64(len(it.values)),
+		ContainsCost: int64(len(it.values)),
+		NextCost:     int64(len(it.values)),
+		Size:         int64(len(it.values)),
 	}
 }

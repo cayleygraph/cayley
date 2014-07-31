@@ -251,14 +251,14 @@ func TestIterator(t *testing.T) {
 	}
 
 	for _, pq := range expect {
-		if !it.Check(qs.ValueOf(pq)) {
+		if !it.Contains(qs.ValueOf(pq)) {
 			t.Errorf("Failed to find and check %q correctly", pq)
 		}
 	}
 	// FIXME(kortschak) Why does this fail?
 	/*
 		for _, pq := range []string{"baller"} {
-			if it.Check(qs.ValueOf(pq)) {
+			if it.Contains(qs.ValueOf(pq)) {
 				t.Errorf("Failed to check %q correctly", pq)
 			}
 		}

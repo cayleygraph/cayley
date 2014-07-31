@@ -177,10 +177,10 @@ func (it *Or) Result() graph.Value {
 }
 
 // Checks a value against the iterators, in order.
-func (it *Or) checkSubIts(val graph.Value) bool {
+func (it *Or) subItsContain(val graph.Value) bool {
 	var subIsGood = false
 	for i, sub := range it.internalIterators {
-		subIsGood = sub.Check(val)
+		subIsGood = sub.Contains(val)
 		if subIsGood {
 			it.currentIterator = i
 			break
@@ -190,14 +190,14 @@ func (it *Or) checkSubIts(val graph.Value) bool {
 }
 
 // Check a value against the entire graph.iterator, in order.
-func (it *Or) Check(val graph.Value) bool {
-	graph.CheckLogIn(it, val)
-	anyGood := it.checkSubIts(val)
+func (it *Or) Contains(val graph.Value) bool {
+	graph.ContainsLogIn(it, val)
+	anyGood := it.subItsContain(val)
 	if !anyGood {
-		return graph.CheckLogOut(it, val, false)
+		return graph.ContainsLogOut(it, val, false)
 	}
 	it.result = val
-	return graph.CheckLogOut(it, val, true)
+	return graph.ContainsLogOut(it, val, true)
 }
 
 // Returns the approximate size of the Or graph.iterator. Because we're dealing
@@ -277,13 +277,13 @@ func (it *Or) Optimize() (graph.Iterator, bool) {
 }
 
 func (it *Or) Stats() graph.IteratorStats {
-	CheckCost := int64(0)
+	ContainsCost := int64(0)
 	NextCost := int64(0)
 	Size := int64(0)
 	for _, sub := range it.internalIterators {
 		stats := sub.Stats()
 		NextCost += stats.NextCost
-		CheckCost += stats.CheckCost
+		ContainsCost += stats.ContainsCost
 		if it.isShortCircuiting {
 			if Size < stats.Size {
 				Size = stats.Size
@@ -293,9 +293,9 @@ func (it *Or) Stats() graph.IteratorStats {
 		}
 	}
 	return graph.IteratorStats{
-		CheckCost: CheckCost,
-		NextCost:  NextCost,
-		Size:      Size,
+		ContainsCost: ContainsCost,
+		NextCost:     NextCost,
+		Size:         Size,
 	}
 
 }
