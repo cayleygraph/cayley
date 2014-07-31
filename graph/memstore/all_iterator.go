@@ -36,15 +36,13 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *AllIterator) Next() (graph.Value, bool) {
-	next, out := it.Int64.Next()
-	if !out {
-		return next, out
+func (it *AllIterator) Next() bool {
+	if !it.Int64.Next() {
+		return false
 	}
-	i64 := next.(int64)
-	_, ok := it.ts.revIdMap[i64]
+	_, ok := it.ts.revIdMap[it.Int64.Result().(int64)]
 	if !ok {
 		return it.Next()
 	}
-	return next, out
+	return true
 }

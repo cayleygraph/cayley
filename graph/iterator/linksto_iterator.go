@@ -153,23 +153,23 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 }
 
 // Next()ing a LinksTo operates as described above.
-func (it *LinksTo) Next() (graph.Value, bool) {
+func (it *LinksTo) Next() bool {
 	graph.NextLogIn(it)
-	val, ok := graph.Next(it.nextIt)
-	if !ok {
-		// Subiterator is empty, get another one
-		candidate, ok := graph.Next(it.primaryIt)
-		if !ok {
-			// We're out of nodes in our subiterator, so we're done as well.
-			return graph.NextLogOut(it, 0, false)
-		}
-		it.nextIt.Close()
-		it.nextIt = it.ts.TripleIterator(it.dir, candidate)
-		// Recurse -- return the first in the next set.
-		return it.Next()
+	if graph.Next(it.nextIt) {
+		it.result = it.nextIt.Result()
+		return graph.NextLogOut(it, it.nextIt, true)
 	}
-	it.result = val
-	return graph.NextLogOut(it, val, ok)
+
+	// Subiterator is empty, get another one
+	if !graph.Next(it.primaryIt) {
+		// We're out of nodes in our subiterator, so we're done as well.
+		return graph.NextLogOut(it, 0, false)
+	}
+	it.nextIt.Close()
+	it.nextIt = it.ts.TripleIterator(it.dir, it.primaryIt.Result())
+
+	// Recurse -- return the first in the next set.
+	return it.Next()
 }
 
 func (it *LinksTo) Result() graph.Value {

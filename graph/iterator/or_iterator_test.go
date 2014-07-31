@@ -23,12 +23,8 @@ import (
 
 func iterated(it graph.Iterator) []int {
 	var res []int
-	for {
-		val, ok := graph.Next(it)
-		if !ok {
-			break
-		}
-		res = append(res, val.(int))
+	for graph.Next(it) {
+		res = append(res, it.Result().(int))
 	}
 	return res
 }

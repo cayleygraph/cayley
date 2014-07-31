@@ -101,10 +101,10 @@ func (it *AllIterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *AllIterator) Next() (graph.Value, bool) {
+func (it *AllIterator) Next() bool {
 	if !it.open {
 		it.result = nil
-		return nil, false
+		return false
 	}
 	var out []byte
 	out = make([]byte, len(it.iter.Key()))
@@ -115,10 +115,10 @@ func (it *AllIterator) Next() (graph.Value, bool) {
 	}
 	if !bytes.HasPrefix(out, it.prefix) {
 		it.Close()
-		return nil, false
+		return false
 	}
 	it.result = out
-	return out, true
+	return true
 }
 
 func (it *AllIterator) ResultTree() *graph.ResultTree {

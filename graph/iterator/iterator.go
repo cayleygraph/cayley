@@ -79,8 +79,8 @@ func (it *Null) DebugString(indent int) string {
 	return strings.Repeat(" ", indent) + "(null)"
 }
 
-func (it *Null) Next() (graph.Value, bool) {
-	return nil, false
+func (it *Null) Next() bool {
+	return false
 }
 
 func (it *Null) Result() graph.Value {

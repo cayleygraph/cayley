@@ -51,8 +51,6 @@ func NewOptional(it graph.Iterator) *Optional {
 	}
 }
 
-func (it *Optional) CanNext() bool { return false }
-
 func (it *Optional) UID() uint64 {
 	return it.uid
 }

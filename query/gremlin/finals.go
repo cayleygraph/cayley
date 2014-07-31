@@ -151,8 +151,7 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 		if ses.doHalt {
 			return nil
 		}
-		_, ok := graph.Next(it)
-		if !ok {
+		if !graph.Next(it) {
 			break
 		}
 		tags := make(map[string]graph.Value)
@@ -187,11 +186,10 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 		if ses.doHalt {
 			return nil
 		}
-		val, ok := graph.Next(it)
-		if !ok {
+		if !graph.Next(it) {
 			break
 		}
-		output = append(output, ses.ts.NameOf(val))
+		output = append(output, ses.ts.NameOf(it.Result()))
 		count++
 		if limit >= 0 && count >= limit {
 			break
@@ -208,8 +206,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 		if ses.doHalt {
 			return
 		}
-		_, ok := graph.Next(it)
-		if !ok {
+		if !graph.Next(it) {
 			break
 		}
 		tags := make(map[string]graph.Value)
@@ -249,8 +246,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		if ses.doHalt {
 			return
 		}
-		_, ok := graph.Next(it)
-		if !ok {
+		if !graph.Next(it) {
 			break
 		}
 		tags := make(map[string]graph.Value)

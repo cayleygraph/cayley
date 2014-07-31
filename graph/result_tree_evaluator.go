@@ -14,7 +14,10 @@
 
 package graph
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 type ResultTree struct {
 	result   Value
@@ -26,14 +29,13 @@ func NewResultTree(result Value) *ResultTree {
 }
 
 func (t *ResultTree) String() string {
-	base := fmt.Sprintf("(%d", t.result)
-	if len(t.subtrees) != 0 {
-		for _, sub := range t.subtrees {
-			base += fmt.Sprintf(" %s", sub)
-		}
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "(%d", t.result)
+	for _, sub := range t.subtrees {
+		fmt.Fprintf(&buf, " %s", sub)
 	}
-	base += ")"
-	return base
+	buf.WriteByte(')')
+	return buf.String()
 }
 
 func (t *ResultTree) AddSubtree(sub *ResultTree) {
@@ -41,22 +43,15 @@ func (t *ResultTree) AddSubtree(sub *ResultTree) {
 }
 
 func StringResultTreeEvaluator(it Nexter) string {
-	ok := true
-	out := ""
-	for {
-		_, ok = it.Next()
-		if !ok {
-			break
-		}
-		out += it.ResultTree().String()
-		out += "\n"
-		for it.NextPath() == true {
-			out += " "
-			out += it.ResultTree().String()
-			out += "\n"
+	var buf bytes.Buffer
+	for it.Next() {
+		fmt.Fprintln(&buf, it.ResultTree())
+		for it.NextPath() {
+			buf.WriteByte(' ')
+			fmt.Fprintln(&buf, it.ResultTree())
 		}
 	}
-	return out
+	return buf.String()
 }
 
 func PrintResultTreeEvaluator(it Nexter) {

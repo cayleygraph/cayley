@@ -69,12 +69,8 @@ func TestValueComparison(t *testing.T) {
 		vc := NewComparison(simpleFixedIterator(), test.operator, test.operand, ts)
 
 		var got []string
-		for {
-			val, ok := vc.Next()
-			if !ok {
-				break
-			}
-			got = append(got, ts.NameOf(val))
+		for vc.Next() {
+			got = append(got, ts.NameOf(vc.Result()))
 		}
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to show %s, got:%q expect:%q", test.message, got, test.expect)
