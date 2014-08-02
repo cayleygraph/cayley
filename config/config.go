@@ -32,7 +32,7 @@ type Config struct {
 	ListenHost      string
 	ListenPort      string
 	ReadOnly        bool
-	GremlinTimeout  time.Duration
+	Timeout         time.Duration
 	LoadSize        int
 }
 
@@ -43,7 +43,7 @@ type config struct {
 	ListenHost      string                 `json:"listen_host"`
 	ListenPort      string                 `json:"listen_port"`
 	ReadOnly        bool                   `json:"read_only"`
-	GremlinTimeout  duration               `json:"gremlin_timeout"`
+	Timeout         duration               `json:"timeout"`
 	LoadSize        int                    `json:"load_size"`
 }
 
@@ -60,7 +60,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		ListenHost:      t.ListenHost,
 		ListenPort:      t.ListenPort,
 		ReadOnly:        t.ReadOnly,
-		GremlinTimeout:  time.Duration(t.GremlinTimeout),
+		Timeout:         time.Duration(t.Timeout),
 		LoadSize:        t.LoadSize,
 	}
 	return nil
@@ -74,7 +74,7 @@ func (c *Config) MarshalJSON() ([]byte, error) {
 		ListenHost:      c.ListenHost,
 		ListenPort:      c.ListenPort,
 		ReadOnly:        c.ReadOnly,
-		GremlinTimeout:  duration(c.GremlinTimeout),
+		Timeout:         duration(c.Timeout),
 		LoadSize:        c.LoadSize,
 	})
 }
@@ -121,7 +121,7 @@ var (
 	loadSize        = flag.Int("load_size", 10000, "Size of triplesets to load")
 	port            = flag.String("port", "64210", "Port to listen on.")
 	readOnly        = flag.Bool("read_only", false, "Disable writing via HTTP.")
-	gremlinTimeout  = flag.Duration("gremlin_timeout", 30*time.Second, "Elapsed time until an individual query times out.")
+	timeout         = flag.Duration("timeout", 30*time.Second, "Elapsed time until an individual query times out.")
 )
 
 func ParseConfigFromFile(filename string) *Config {
@@ -183,8 +183,8 @@ func ParseConfigFromFlagsAndFile(fileFlag string) *Config {
 		config.ListenPort = *port
 	}
 
-	if config.GremlinTimeout == 0 {
-		config.GremlinTimeout = *gremlinTimeout
+	if config.Timeout == 0 {
+		config.Timeout = *timeout
 	}
 
 	if config.LoadSize == 0 {

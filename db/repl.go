@@ -72,7 +72,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewSession(ts, cfg.GremlinTimeout, true)
+		ses = gremlin.NewSession(ts, cfg.Timeout, true)
 	}
 	buf := bufio.NewReader(os.Stdin)
 	var line []byte
