@@ -333,7 +333,7 @@ func TestQueries(t *testing.T) {
 			if j == nil && err == nil {
 				continue
 			}
-			if err != nil && err.Error() == "Query Timeout" {
+			if err == gremlin.ErrKillTimeout {
 				timedOut = true
 				continue
 			}

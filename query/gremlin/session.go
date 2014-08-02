@@ -66,7 +66,7 @@ func NewSession(inputTripleStore graph.TripleStore, timeoutSec int, persist bool
 
 type GremlinResult struct {
 	metaresult    bool
-	err           string
+	err           error
 	val           *otto.Value
 	actualResults *map[string]graph.Value
 }
@@ -114,17 +114,17 @@ func (s *Session) SendResult(result *GremlinResult) bool {
 	return false
 }
 
-var halt = errors.New("Query Timeout")
+var ErrKillTimeout = errors.New("query timed out")
 
 func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	s.kill = make(chan struct{})
 	defer func() {
-		if caught := recover(); caught != nil {
-			if caught == halt {
-				s.err = halt
+		if r := recover(); r != nil {
+			if r == ErrKillTimeout {
+				s.err = ErrKillTimeout
 				return
 			}
-			panic(caught) // Something else happened, repanic!
+			panic(r)
 		}
 	}()
 
@@ -138,7 +138,7 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 			defer s.envLock.Unlock()
 			if s.env != nil {
 				s.env.Interrupt <- func() {
-					panic(halt)
+					panic(ErrKillTimeout)
 				}
 				s.env = s.emptyEnv
 			}
@@ -161,16 +161,11 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	} else {
 		value, err = s.runUnsafe(s.script)
 	}
-	if err != nil {
-		out <- &GremlinResult{metaresult: true,
-			err:           err.Error(),
-			val:           &value,
-			actualResults: nil}
-	} else {
-		out <- &GremlinResult{metaresult: true,
-			err:           "",
-			val:           &value,
-			actualResults: nil}
+	out <- &GremlinResult{
+		metaresult:    true,
+		err:           err,
+		val:           &value,
+		actualResults: nil,
 	}
 	s.currentChannel = nil
 	s.script = nil
@@ -183,7 +178,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 func (s *Session) ToText(result interface{}) string {
 	data := result.(*GremlinResult)
 	if data.metaresult {
-		if data.err != "" {
+		if data.err != nil {
 			return fmt.Sprintln("Error: ", data.err)
 		}
 		if data.val != nil {
@@ -268,7 +263,7 @@ func (ses *Session) GetJson() ([]interface{}, error) {
 	}
 	select {
 	case <-ses.kill:
-		return nil, halt
+		return nil, ErrKillTimeout
 	default:
 		return ses.dataOutput, nil
 	}

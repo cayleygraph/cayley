@@ -267,7 +267,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
+		cont := ses.SendResult(&GremlinResult{metaresult: false, err: nil, val: nil, actualResults: &tags})
 		if !cont {
 			break
 		}
@@ -279,7 +279,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
+			cont := ses.SendResult(&GremlinResult{metaresult: false, err: nil, val: nil, actualResults: &tags})
 			if !cont {
 				break
 			}
