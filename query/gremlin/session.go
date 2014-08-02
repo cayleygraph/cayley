@@ -47,9 +47,9 @@ type Session struct {
 	emptyEnv   *otto.Otto
 }
 
-func NewSession(inputTripleStore graph.TripleStore, timeoutSec int, persist bool) *Session {
+func NewSession(ts graph.TripleStore, timeoutSec int, persist bool) *Session {
 	g := Session{
-		ts:         inputTripleStore,
+		ts:         ts,
 		limit:      -1,
 		timeoutSec: time.Duration(timeoutSec),
 	}
