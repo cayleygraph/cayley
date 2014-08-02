@@ -248,8 +248,8 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 }
 
 func runIteratorOnSession(it graph.Iterator, ses *Session) {
-	if ses.lookingForQueryShape {
-		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.queryShape)
+	if ses.wantShape {
+		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.shape)
 		return
 	}
 	it, _ = it.Optimize()
@@ -267,8 +267,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		cont := ses.SendResult(&GremlinResult{metaresult: false, err: nil, val: nil, actualResults: &tags})
-		if !cont {
+		if !ses.SendResult(&GremlinResult{actualResults: &tags}) {
 			break
 		}
 		for it.NextResult() == true {
@@ -279,8 +278,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			cont := ses.SendResult(&GremlinResult{metaresult: false, err: nil, val: nil, actualResults: &tags})
-			if !cont {
+			if !ses.SendResult(&GremlinResult{actualResults: &tags}) {
 				break
 			}
 		}
