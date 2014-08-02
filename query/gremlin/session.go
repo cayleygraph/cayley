@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/robertkrimen/otto"
@@ -30,6 +31,7 @@ type Session struct {
 	ts                   graph.TripleStore
 	currentChannel       chan interface{}
 	env                  *otto.Otto
+	envLock              sync.Mutex
 	debug                bool
 	limit                int
 	count                int
@@ -38,7 +40,7 @@ type Session struct {
 	queryShape           map[string]interface{}
 	err                  error
 	script               *otto.Script
-	doHalt               bool
+	kill                 chan struct{}
 	timeoutSec           time.Duration
 	emptyEnv             *otto.Otto
 }
@@ -95,8 +97,10 @@ func (s *Session) SendResult(result *GremlinResult) bool {
 	if s.limit >= 0 && s.limit == s.count {
 		return false
 	}
-	if s.doHalt {
+	select {
+	case <-s.kill:
 		return false
+	default:
 	}
 	if s.currentChannel != nil {
 		s.currentChannel <- result
@@ -113,7 +117,7 @@ func (s *Session) SendResult(result *GremlinResult) bool {
 var halt = errors.New("Query Timeout")
 
 func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
-	s.doHalt = false
+	s.kill = make(chan struct{})
 	defer func() {
 		if caught := recover(); caught != nil {
 			if caught == halt {
@@ -129,7 +133,9 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	if s.timeoutSec != -1 {
 		go func() {
 			time.Sleep(s.timeoutSec * time.Second) // Stop after two seconds
-			s.doHalt = true
+			close(s.kill)
+			s.envLock.Lock()
+			defer s.envLock.Unlock()
 			if s.env != nil {
 				s.env.Interrupt <- func() {
 					panic(halt)
@@ -139,6 +145,8 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 		}()
 	}
 
+	s.envLock.Lock()
+	defer s.envLock.Unlock()
 	return s.env.Run(input) // Here be dragons (risky code)
 }
 
@@ -166,7 +174,9 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	}
 	s.currentChannel = nil
 	s.script = nil
+	s.envLock.Lock()
 	s.env = s.emptyEnv
+	s.envLock.Unlock()
 	return
 }
 
@@ -256,10 +266,12 @@ func (ses *Session) GetJson() ([]interface{}, error) {
 	if ses.err != nil {
 		return nil, ses.err
 	}
-	if ses.doHalt {
+	select {
+	case <-ses.kill:
 		return nil, halt
+	default:
+		return ses.dataOutput, nil
 	}
-	return ses.dataOutput, nil
 }
 
 func (ses *Session) ClearJson() {
