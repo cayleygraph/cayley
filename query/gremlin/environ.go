@@ -84,7 +84,7 @@ func setupGremlin(env *otto.Otto, ses *Session) {
 	graph.Set("Emit", func(call otto.FunctionCall) otto.Value {
 		value := call.Argument(0)
 		if value.IsDefined() {
-			ses.SendResult(&GremlinResult{val: &value})
+			ses.SendResult(&Result{val: &value})
 		}
 		return otto.NullValue()
 	})

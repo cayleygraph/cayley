@@ -60,7 +60,7 @@ func NewSession(inputTripleStore graph.TripleStore, timeoutSec int, persist bool
 	return &g
 }
 
-type GremlinResult struct {
+type Result struct {
 	metaresult    bool
 	err           error
 	val           *otto.Value
@@ -89,7 +89,7 @@ func (s *Session) InputParses(input string) (query.ParseResult, error) {
 	return query.Parsed, nil
 }
 
-func (s *Session) SendResult(result *GremlinResult) bool {
+func (s *Session) SendResult(r *Result) bool {
 	if s.limit >= 0 && s.limit == s.count {
 		return false
 	}
@@ -99,7 +99,7 @@ func (s *Session) SendResult(result *GremlinResult) bool {
 	default:
 	}
 	if s.results != nil {
-		s.results <- result
+		s.results <- r
 		s.count++
 		if s.limit >= 0 && s.limit == s.count {
 			return false
@@ -156,7 +156,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	} else {
 		value, err = s.runUnsafe(s.script)
 	}
-	out <- &GremlinResult{
+	out <- &Result{
 		metaresult: true,
 		err:        err,
 		val:        &value,
@@ -169,7 +169,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 }
 
 func (s *Session) ToText(result interface{}) string {
-	data := result.(*GremlinResult)
+	data := result.(*Result)
 	if data.metaresult {
 		if data.err != nil {
 			return fmt.Sprintf("Error: %v\n", data.err)
@@ -220,7 +220,7 @@ func (s *Session) ToText(result interface{}) string {
 
 // Web stuff
 func (s *Session) BuildJson(result interface{}) {
-	data := result.(*GremlinResult)
+	data := result.(*Result)
 	if !data.metaresult {
 		if data.val == nil {
 			obj := make(map[string]string)

@@ -267,7 +267,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		if !ses.SendResult(&GremlinResult{actualResults: &tags}) {
+		if !ses.SendResult(&Result{actualResults: &tags}) {
 			break
 		}
 		for it.NextResult() == true {
@@ -278,7 +278,7 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			if !ses.SendResult(&GremlinResult{actualResults: &tags}) {
+			if !ses.SendResult(&Result{actualResults: &tags}) {
 				break
 			}
 		}
