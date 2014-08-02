@@ -17,6 +17,7 @@ package main
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
@@ -294,7 +295,7 @@ var (
 	cfg  = &config.Config{
 		DatabasePath:   "30kmoviedata.nq.gz",
 		DatabaseType:   "memstore",
-		GremlinTimeout: 300,
+		GremlinTimeout: 300 * time.Second,
 	}
 
 	ts graph.TripleStore

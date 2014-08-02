@@ -17,29 +17,112 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/barakmich/glog"
 )
 
 type Config struct {
+	DatabaseType    string
+	DatabasePath    string
+	DatabaseOptions map[string]interface{}
+	ListenHost      string
+	ListenPort      string
+	ReadOnly        bool
+	GremlinTimeout  time.Duration
+	LoadSize        int
+}
+
+type config struct {
 	DatabaseType    string                 `json:"database"`
 	DatabasePath    string                 `json:"db_path"`
 	DatabaseOptions map[string]interface{} `json:"db_options"`
 	ListenHost      string                 `json:"listen_host"`
 	ListenPort      string                 `json:"listen_port"`
 	ReadOnly        bool                   `json:"read_only"`
-	GremlinTimeout  int                    `json:"gremlin_timeout"`
+	GremlinTimeout  duration               `json:"gremlin_timeout"`
 	LoadSize        int                    `json:"load_size"`
 }
 
-var databasePath = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
-var databaseBackend = flag.String("db", "memstore", "Database Backend.")
-var host = flag.String("host", "0.0.0.0", "Host to listen on (defaults to all).")
-var loadSize = flag.Int("load_size", 10000, "Size of triplesets to load")
-var port = flag.String("port", "64210", "Port to listen on.")
-var readOnly = flag.Bool("read_only", false, "Disable writing via HTTP.")
-var gremlinTimeout = flag.Int("gremlin_timeout", 30, "Number of seconds until an individual query times out.")
+func (c *Config) UnmarshalJSON(data []byte) error {
+	var t config
+	err := json.Unmarshal(data, &t)
+	if err != nil {
+		return err
+	}
+	*c = Config{
+		DatabaseType:    t.DatabaseType,
+		DatabasePath:    t.DatabasePath,
+		DatabaseOptions: t.DatabaseOptions,
+		ListenHost:      t.ListenHost,
+		ListenPort:      t.ListenPort,
+		ReadOnly:        t.ReadOnly,
+		GremlinTimeout:  time.Duration(t.GremlinTimeout),
+		LoadSize:        t.LoadSize,
+	}
+	return nil
+}
+
+func (c *Config) MarshalJSON() ([]byte, error) {
+	return json.Marshal(config{
+		DatabaseType:    c.DatabaseType,
+		DatabasePath:    c.DatabasePath,
+		DatabaseOptions: c.DatabaseOptions,
+		ListenHost:      c.ListenHost,
+		ListenPort:      c.ListenPort,
+		ReadOnly:        c.ReadOnly,
+		GremlinTimeout:  duration(c.GremlinTimeout),
+		LoadSize:        c.LoadSize,
+	})
+}
+
+// duration is a time.Duration that satisfies the
+// json.UnMarshaler and json.Marshaler interfaces.
+type duration time.Duration
+
+// UnmarshalJSON unmarshals a duration according to the following scheme:
+//  * If the element is absent the duration is zero.
+//  * If the element is parsable as a time.Duration, the parsed value is kept.
+//  * If the element is parsable as a number, that number of seconds is kept.
+func (d *duration) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 {
+		*d = 0
+		return nil
+	}
+	text := string(data)
+	t, err := time.ParseDuration(text)
+	if err == nil {
+		*d = duration(t)
+		return nil
+	}
+	i, err := strconv.ParseInt(text, 10, 64)
+	if err == nil {
+		*d = duration(time.Duration(i) * time.Second)
+		return nil
+	}
+	// This hack is to get around strconv.ParseFloat
+	// not handling e-notation for integers.
+	f, err := strconv.ParseFloat(text, 64)
+	*d = duration(time.Duration(f) * time.Second)
+	return err
+}
+
+func (d *duration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%q", *d)), nil
+}
+
+var (
+	databasePath    = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
+	databaseBackend = flag.String("db", "memstore", "Database Backend.")
+	host            = flag.String("host", "0.0.0.0", "Host to listen on (defaults to all).")
+	loadSize        = flag.Int("load_size", 10000, "Size of triplesets to load")
+	port            = flag.String("port", "64210", "Port to listen on.")
+	readOnly        = flag.Bool("read_only", false, "Disable writing via HTTP.")
+	gremlinTimeout  = flag.Duration("gremlin_timeout", 30*time.Second, "Elapsed time until an individual query times out.")
+)
 
 func ParseConfigFromFile(filename string) *Config {
 	config := &Config{}

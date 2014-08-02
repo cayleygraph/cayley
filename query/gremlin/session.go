@@ -43,15 +43,15 @@ type Session struct {
 	err        error
 	script     *otto.Script
 	kill       chan struct{}
-	timeoutSec time.Duration
+	timeout    time.Duration
 	emptyEnv   *otto.Otto
 }
 
-func NewSession(ts graph.TripleStore, timeoutSec int, persist bool) *Session {
+func NewSession(ts graph.TripleStore, timeout time.Duration, persist bool) *Session {
 	g := Session{
-		ts:         ts,
-		limit:      -1,
-		timeoutSec: time.Duration(timeoutSec),
+		ts:      ts,
+		limit:   -1,
+		timeout: timeout,
 	}
 	g.env = BuildEnviron(&g)
 	if persist {
@@ -125,9 +125,9 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	// Use buffered chan to prevent blocking.
 	s.env.Interrupt = make(chan func(), 1)
 
-	if s.timeoutSec >= 0 {
+	if s.timeout >= 0 {
 		go func() {
-			time.Sleep(s.timeoutSec * time.Second)
+			time.Sleep(s.timeout)
 			close(s.kill)
 			s.envLock.Lock()
 			defer s.envLock.Unlock()
