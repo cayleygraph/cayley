@@ -255,7 +255,6 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 	it, _ = it.Optimize()
 	glog.V(2).Infoln(it.DebugString(0))
 	for {
-		// TODO(barakmich): Better halting.
 		select {
 		case <-ses.kill:
 			return

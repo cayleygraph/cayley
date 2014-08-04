@@ -141,8 +141,9 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	}
 
 	s.envLock.Lock()
-	defer s.envLock.Unlock()
-	return s.env.Run(input)
+	env := s.env
+	s.envLock.Unlock()
+	return env.Run(input)
 }
 
 func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
