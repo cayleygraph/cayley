@@ -31,58 +31,63 @@ func init() {
 	}, nil)
 }
 
-type TripleDirectionIndex struct {
+type QuadDirectionIndex struct {
 	subject   map[int64]*llrb.LLRB
 	predicate map[int64]*llrb.LLRB
 	object    map[int64]*llrb.LLRB
 	label     map[int64]*llrb.LLRB
 }
 
-func NewTripleDirectionIndex() *TripleDirectionIndex {
-	var tdi TripleDirectionIndex
-	tdi.subject = make(map[int64]*llrb.LLRB)
-	tdi.predicate = make(map[int64]*llrb.LLRB)
-	tdi.object = make(map[int64]*llrb.LLRB)
-	tdi.label = make(map[int64]*llrb.LLRB)
-	return &tdi
+func NewQuadDirectionIndex() *QuadDirectionIndex {
+	var qdi QuadDirectionIndex
+	qdi.subject = make(map[int64]*llrb.LLRB)
+	qdi.predicate = make(map[int64]*llrb.LLRB)
+	qdi.object = make(map[int64]*llrb.LLRB)
+	qdi.label = make(map[int64]*llrb.LLRB)
+	return &qdi
 }
 
-func (tdi *TripleDirectionIndex) GetForDir(d quad.Direction) map[int64]*llrb.LLRB {
+func (qdi *QuadDirectionIndex) GetForDir(d quad.Direction) map[int64]*llrb.LLRB {
 	switch d {
 	case quad.Subject:
-		return tdi.subject
+		return qdi.subject
 	case quad.Object:
-		return tdi.object
+		return qdi.object
 	case quad.Predicate:
-		return tdi.predicate
+		return qdi.predicate
 	case quad.Label:
-		return tdi.label
+		return qdi.label
 	}
 	panic("illegal direction")
 }
 
-func (tdi *TripleDirectionIndex) GetOrCreate(d quad.Direction, id int64) *llrb.LLRB {
-	directionIndex := tdi.GetForDir(d)
+func (qdi *QuadDirectionIndex) GetOrCreate(d quad.Direction, id int64) *llrb.LLRB {
+	directionIndex := qdi.GetForDir(d)
 	if _, ok := directionIndex[id]; !ok {
 		directionIndex[id] = llrb.New()
 	}
 	return directionIndex[id]
 }
 
-func (tdi *TripleDirectionIndex) Get(d quad.Direction, id int64) (*llrb.LLRB, bool) {
-	directionIndex := tdi.GetForDir(d)
+func (qdi *QuadDirectionIndex) Get(d quad.Direction, id int64) (*llrb.LLRB, bool) {
+	directionIndex := qdi.GetForDir(d)
 	tree, exists := directionIndex[id]
 	return tree, exists
 }
 
+type LogEntry struct {
+	graph.Delta
+	DeletedBy int64
+}
+
 type TripleStore struct {
-	idCounter       int64
-	tripleIdCounter int64
-	idMap           map[string]int64
-	revIdMap        map[int64]string
-	triples         []quad.Quad
-	size            int64
-	index           TripleDirectionIndex
+	idCounter     int64
+	quadIdCounter int64
+	idMap         map[string]int64
+	revIdMap      map[int64]string
+	log           []LogEntry
+	size          int64
+	index         QuadDirectionIndex
 	// vip_index map[string]map[int64]map[string]map[int64]*llrb.Tree
 }
 
@@ -90,24 +95,32 @@ func newTripleStore() *TripleStore {
 	var ts TripleStore
 	ts.idMap = make(map[string]int64)
 	ts.revIdMap = make(map[int64]string)
-	ts.triples = make([]quad.Quad, 1, 200)
+	ts.log = make([]LogEntry, 1, 200)
 
-	// Sentinel null triple so triple indices start at 1
-	ts.triples[0] = quad.Quad{}
-	ts.size = 1
-	ts.index = *NewTripleDirectionIndex()
+	// Sentinel null entry so indices start at 1
+	ts.log[0] = LogEntry{}
+	ts.index = *NewQuadDirectionIndex()
 	ts.idCounter = 1
-	ts.tripleIdCounter = 1
+	ts.quadIdCounter = 1
 	return &ts
 }
 
-func (ts *TripleStore) AddTripleSet(triples []*quad.Quad) {
-	for _, t := range triples {
-		ts.AddTriple(t)
+func (ts *TripleStore) ApplyDeltas(deltas []*graph.Delta) error {
+	for _, d := range deltas {
+		var err error
+		if d.Action == graph.Add {
+			err = ts.AddDelta(d)
+		} else {
+			err = ts.RemoveDelta(d)
+		}
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (ts *TripleStore) tripleExists(t *quad.Quad) (bool, int64) {
+func (ts *TripleStore) quadExists(t *quad.Quad) (bool, int64) {
 	smallest := -1
 	var smallest_tree *llrb.LLRB
 	for d := quad.Subject; d <= quad.Label; d++ {
@@ -130,33 +143,34 @@ func (ts *TripleStore) tripleExists(t *quad.Quad) (bool, int64) {
 			smallest_tree = index
 		}
 	}
-	it := NewLlrbIterator(smallest_tree, "")
+	it := NewLlrbIterator(smallest_tree, "", ts)
 
 	for {
 		val, ok := it.Next()
 		if !ok {
 			break
 		}
-		if t.Equals(&ts.triples[val.(int64)]) {
-			return true, val.(int64)
+		ival := val.(int64)
+		if t.Equals(&ts.log[ival].Quad) {
+			return true, ival
 		}
 	}
 	return false, 0
 }
 
-func (ts *TripleStore) AddTriple(t *quad.Quad) {
-	if exists, _ := ts.tripleExists(t); exists {
-		return
+func (ts *TripleStore) AddDelta(d *graph.Delta) error {
+	if exists, _ := ts.quadExists(&d.Quad); exists {
+		return graph.ErrQuadExists
 	}
-	var tripleID int64
-	ts.triples = append(ts.triples, *t)
-	tripleID = ts.tripleIdCounter
+	var quadID int64
+	quadID = ts.quadIdCounter
+	ts.log = append(ts.log, LogEntry{Delta: *d})
 	ts.size++
-	ts.tripleIdCounter++
+	ts.quadIdCounter++
 
-	for d := quad.Subject; d <= quad.Label; d++ {
-		sid := t.Get(d)
-		if d == quad.Label && sid == "" {
+	for dir := quad.Subject; dir <= quad.Label; dir++ {
+		sid := d.Quad.Get(dir)
+		if dir == quad.Label && sid == "" {
 			continue
 		}
 		if _, ok := ts.idMap[sid]; !ok {
@@ -166,87 +180,63 @@ func (ts *TripleStore) AddTriple(t *quad.Quad) {
 		}
 	}
 
-	for d := quad.Subject; d <= quad.Label; d++ {
-		if d == quad.Label && t.Get(d) == "" {
+	for dir := quad.Subject; dir <= quad.Label; dir++ {
+		if dir == quad.Label && d.Quad.Get(dir) == "" {
 			continue
 		}
-		id := ts.idMap[t.Get(d)]
-		tree := ts.index.GetOrCreate(d, id)
-		tree.ReplaceOrInsert(Int64(tripleID))
+		id := ts.idMap[d.Quad.Get(dir)]
+		tree := ts.index.GetOrCreate(dir, id)
+		tree.ReplaceOrInsert(Int64(quadID))
 	}
 
 	// TODO(barakmich): Add VIP indexing
+	return nil
 }
 
-func (ts *TripleStore) RemoveTriple(t *quad.Quad) {
-	var tripleID int64
+func (ts *TripleStore) RemoveDelta(d *graph.Delta) error {
+	var prevQuadID int64
 	var exists bool
-	tripleID = 0
-	if exists, tripleID = ts.tripleExists(t); !exists {
-		return
+	prevQuadID = 0
+	if exists, prevQuadID = ts.quadExists(&d.Quad); !exists {
+		return graph.ErrQuadNotExist
 	}
 
-	ts.triples[tripleID] = quad.Quad{}
+	var quadID int64
+	quadID = ts.quadIdCounter
+	ts.log = append(ts.log, LogEntry{Delta: *d})
+	ts.log[prevQuadID].DeletedBy = quadID
 	ts.size--
-
-	for d := quad.Subject; d <= quad.Label; d++ {
-		if d == quad.Label && t.Get(d) == "" {
-			continue
-		}
-		id := ts.idMap[t.Get(d)]
-		tree := ts.index.GetOrCreate(d, id)
-		tree.Delete(Int64(tripleID))
-	}
-
-	for d := quad.Subject; d <= quad.Label; d++ {
-		if d == quad.Label && t.Get(d) == "" {
-			continue
-		}
-		id, ok := ts.idMap[t.Get(d)]
-		if !ok {
-			continue
-		}
-		stillExists := false
-		for d := quad.Subject; d <= quad.Label; d++ {
-			if d == quad.Label && t.Get(d) == "" {
-				continue
-			}
-			nodeTree := ts.index.GetOrCreate(d, id)
-			if nodeTree.Len() != 0 {
-				stillExists = true
-				break
-			}
-		}
-		if !stillExists {
-			delete(ts.idMap, t.Get(d))
-			delete(ts.revIdMap, id)
-		}
-	}
+	ts.quadIdCounter++
+	return nil
 }
 
 func (ts *TripleStore) Quad(index graph.Value) *quad.Quad {
-	return &ts.triples[index.(int64)]
+	return &ts.log[index.(int64)].Quad
 }
 
 func (ts *TripleStore) TripleIterator(d quad.Direction, value graph.Value) graph.Iterator {
 	index, ok := ts.index.Get(d, value.(int64))
 	data := fmt.Sprintf("dir:%s val:%d", d, value.(int64))
 	if ok {
-		return NewLlrbIterator(index, data)
+		return NewLlrbIterator(index, data, ts)
 	}
 	return &iterator.Null{}
 }
 
+func (ts *TripleStore) Horizon() int64 {
+	return ts.log[len(ts.log)-1].ID
+}
+
 func (ts *TripleStore) Size() int64 {
-	return ts.size - 1 // Don't count the sentinel
+	return ts.size
 }
 
 func (ts *TripleStore) DebugPrint() {
-	for i, t := range ts.triples {
+	for i, l := range ts.log {
 		if i == 0 {
 			continue
 		}
-		glog.V(2).Infof("%d: %s", i, t)
+		glog.V(2).Infof("%d: %#v", i, l)
 	}
 }
 
@@ -259,7 +249,7 @@ func (ts *TripleStore) NameOf(id graph.Value) string {
 }
 
 func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
-	return iterator.NewInt64(0, ts.Size())
+	return NewMemstoreQuadsAllIterator(ts)
 }
 
 func (ts *TripleStore) FixedIterator() graph.FixedIterator {
@@ -272,6 +262,6 @@ func (ts *TripleStore) TripleDirection(val graph.Value, d quad.Direction) graph.
 }
 
 func (ts *TripleStore) NodesAllIterator() graph.Iterator {
-	return NewMemstoreAllIterator(ts)
+	return NewMemstoreNodesAllIterator(ts)
 }
 func (ts *TripleStore) Close() {}

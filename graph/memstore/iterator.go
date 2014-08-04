@@ -27,6 +27,7 @@ import (
 
 type Iterator struct {
 	uid       uint64
+	ts        *TripleStore
 	tags      graph.Tagger
 	tree      *llrb.LLRB
 	data      string
@@ -54,9 +55,10 @@ func IterateOne(tree *llrb.LLRB, last Int64) Int64 {
 	return next
 }
 
-func NewLlrbIterator(tree *llrb.LLRB, data string) *Iterator {
+func NewLlrbIterator(tree *llrb.LLRB, data string, ts *TripleStore) *Iterator {
 	return &Iterator{
 		uid:      iterator.NextUID(),
+		ts:       ts,
 		tree:     tree,
 		iterLast: Int64(-1),
 		data:     data,
@@ -86,19 +88,26 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	m := NewLlrbIterator(it.tree, it.data)
+	m := NewLlrbIterator(it.tree, it.data, it.ts)
 	m.tags.CopyFrom(it)
 	return m
 }
 
 func (it *Iterator) Close() {}
 
+func (it *Iterator) checkValid(index int64) bool {
+	return it.ts.log[index].DeletedBy == 0
+}
+
 func (it *Iterator) Next() (graph.Value, bool) {
 	graph.NextLogIn(it)
-	if it.tree.Max() == nil || it.result == int64(it.tree.Max().(Int64)) {
+	if it.tree.Max() == nil || it.iterLast == it.tree.Max().(Int64) {
 		return graph.NextLogOut(it, nil, false)
 	}
 	it.iterLast = IterateOne(it.tree, it.iterLast)
+	if !it.checkValid(int64(it.iterLast)) {
+		return it.Next()
+	}
 	it.result = int64(it.iterLast)
 	return graph.NextLogOut(it, it.result, true)
 }
@@ -126,7 +135,7 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
-	if it.tree.Has(Int64(v.(int64))) {
+	if it.tree.Has(Int64(v.(int64))) && it.checkValid(v.(int64)) {
 		it.result = v
 		return graph.ContainsLogOut(it, v, true)
 	}

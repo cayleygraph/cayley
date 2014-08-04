@@ -36,48 +36,48 @@ func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.QuadW
 	return rep, nil
 }
 
-func (s *Single) AcquireNextId() int64 {
+func (s *Single) AcquireNextID() int64 {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 	id := s.nextID
-	s.nextID += 1
+	s.nextID++
 	return id
 }
 
-func (s *Single) AddQuad(t *quad.Quad) error {
-	trans := make([]*graph.Transaction, 1)
-	trans[0] = &graph.Transaction{
-		ID:        s.AcquireNextId(),
-		Quad:      t,
+func (s *Single) AddQuad(q *quad.Quad) error {
+	deltas := make([]*graph.Delta, 1)
+	deltas[0] = &graph.Delta{
+		ID:        s.AcquireNextID(),
+		Quad:      *q,
 		Action:    graph.Add,
 		Timestamp: time.Now(),
 	}
-	return s.ts.ApplyTransactions(trans)
+	return s.ts.ApplyDeltas(deltas)
 }
 
 func (s *Single) AddQuadSet(set []*quad.Quad) error {
-	trans := make([]*graph.Transaction, len(set))
-	for i, t := range set {
-		trans[i] = &graph.Transaction{
-			ID:        s.AcquireNextId(),
-			Quad:      t,
+	deltas := make([]*graph.Delta, len(set))
+	for i, q := range set {
+		deltas[i] = &graph.Delta{
+			ID:        s.AcquireNextID(),
+			Quad:      *q,
 			Action:    graph.Add,
 			Timestamp: time.Now(),
 		}
 	}
-	s.ts.ApplyTransactions(trans)
+	s.ts.ApplyDeltas(deltas)
 	return nil
 }
 
-func (s *Single) RemoveQuad(t *graph.Quad) error {
-	trans := make([]*graph.Transaction, 1)
-	trans[0] = &graph.Transaction{
-		ID:        s.AcquireNextId(),
-		Triple:    t,
+func (s *Single) RemoveQuad(q *quad.Quad) error {
+	deltas := make([]*graph.Delta, 1)
+	deltas[0] = &graph.Delta{
+		ID:        s.AcquireNextID(),
+		Quad:      *q,
 		Action:    graph.Delete,
 		Timestamp: time.Now(),
 	}
-	return s.ts.ApplyTransactions(trans)
+	return s.ts.ApplyDeltas(deltas)
 }
 
 func init() {

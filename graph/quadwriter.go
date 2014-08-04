@@ -38,19 +38,22 @@ const (
 
 type Delta struct {
 	ID        int64
-	Quad      *quad.Quad
+	Quad      quad.Quad
 	Action    Procedure
 	Timestamp time.Time
 }
 
+var ErrQuadExists = errors.New("Quad exists")
+var ErrQuadNotExist = errors.New("Quad doesn't exist")
+
 type QuadWriter interface {
-	// Add a triple to the store.
+	// Add a quad to the store.
 	AddQuad(*quad.Quad) error
 
-	// Add a set of triples to the store, atomically if possible.
+	// Add a set of quads to the store, atomically if possible.
 	AddQuadSet([]*quad.Quad) error
 
-	// Removes a triple matching the given one  from the database,
+	// Removes a quad matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
 	RemoveQuad(*quad.Quad) error
 }
