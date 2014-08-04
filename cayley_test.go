@@ -17,6 +17,7 @@ package main
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
@@ -292,9 +293,9 @@ var m2_actors = movie2.Save("name","movie2").Follow(filmToActor)
 var (
 	once sync.Once
 	cfg  = &config.Config{
-		DatabasePath:   "30kmoviedata.nq.gz",
-		DatabaseType:   "memstore",
-		GremlinTimeout: 300,
+		DatabasePath: "30kmoviedata.nq.gz",
+		DatabaseType: "memstore",
+		Timeout:      300 * time.Second,
 	}
 
 	ts graph.TripleStore
@@ -316,7 +317,7 @@ func TestQueries(t *testing.T) {
 		if testing.Short() && test.long {
 			continue
 		}
-		ses := gremlin.NewSession(ts, cfg.GremlinTimeout, true)
+		ses := gremlin.NewSession(ts, cfg.Timeout, true)
 		_, err := ses.InputParses(test.query)
 		if err != nil {
 			t.Fatalf("Failed to parse benchmark gremlin %s: %v", test.message, err)
@@ -333,7 +334,7 @@ func TestQueries(t *testing.T) {
 			if j == nil && err == nil {
 				continue
 			}
-			if err != nil && err.Error() == "Query Timeout" {
+			if err == gremlin.ErrKillTimeout {
 				timedOut = true
 				continue
 			}
@@ -357,7 +358,7 @@ func runBench(n int, b *testing.B) {
 		b.Skip()
 	}
 	prepare(b)
-	ses := gremlin.NewSession(ts, cfg.GremlinTimeout, true)
+	ses := gremlin.NewSession(ts, cfg.Timeout, true)
 	_, err := ses.InputParses(benchmarkQueries[n].query)
 	if err != nil {
 		b.Fatalf("Failed to parse benchmark gremlin %s: %v", benchmarkQueries[n].message, err)

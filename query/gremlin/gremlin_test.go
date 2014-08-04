@@ -20,8 +20,9 @@ import (
 	"testing"
 
 	"github.com/google/cayley/graph"
-	_ "github.com/google/cayley/graph/memstore"
 	"github.com/google/cayley/quad"
+
+	_ "github.com/google/cayley/graph/memstore"
 )
 
 // This is a simple test graph.
@@ -252,7 +253,7 @@ func runQueryGetTag(g []*quad.Quad, query string, tag string) []string {
 
 	var results []string
 	for res := range c {
-		data := res.(*GremlinResult)
+		data := res.(*Result)
 		if data.val == nil {
 			val := (*data.actualResults)[tag]
 			if val != nil {
