@@ -24,6 +24,8 @@ package graph
 import (
 	"errors"
 	"time"
+
+	"github.com/google/cayley/quad"
 )
 
 type Procedure byte
@@ -34,37 +36,37 @@ const (
 	Delete
 )
 
-type Transaction struct {
+type Delta struct {
 	ID        int64
-	Triple    *Triple
+	Quad      *quad.Quad
 	Action    Procedure
 	Timestamp time.Time
 }
 
-type TripleWriter interface {
+type QuadWriter interface {
 	// Add a triple to the store.
-	AddTriple(*Triple) error
+	AddQuad(*quad.Quad) error
 
 	// Add a set of triples to the store, atomically if possible.
-	AddTripleSet([]*Triple) error
+	AddQuadSet([]*quad.Quad) error
 
 	// Removes a triple matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
-	RemoveTriple(*Triple) error
+	RemoveQuad(*quad.Quad) error
 }
 
-type NewTripleWriterFunc func(TripleStore, Options) (TripleWriter, error)
+type NewQuadWriterFunc func(TripleStore, Options) (QuadWriter, error)
 
-var writerRegistry = make(map[string]NewTripleWriterFunc)
+var writerRegistry = make(map[string]NewQuadWriterFunc)
 
-func RegisterWriter(name string, newFunc NewTripleWriterFunc) {
+func RegisterWriter(name string, newFunc NewQuadWriterFunc) {
 	if _, found := writerRegistry[name]; found {
 		panic("already registered TripleWriter " + name)
 	}
 	writerRegistry[name] = newFunc
 }
 
-func NewTripleWriter(name string, ts TripleStore, opts Options) (TripleWriter, error) {
+func NewQuadWriter(name string, ts TripleStore, opts Options) (QuadWriter, error) {
 	newFunc, hasNew := writerRegistry[name]
 	if !hasNew {
 		return nil, errors.New("replication: name '" + name + "' is not registered")

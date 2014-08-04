@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 type Single struct {
@@ -27,7 +28,7 @@ type Single struct {
 	mut    sync.Mutex
 }
 
-func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.TripleWriter, error) {
+func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.QuadWriter, error) {
 	rep := &Single{nextID: ts.Horizon(), ts: ts}
 	if rep.nextID == -1 {
 		rep.nextID = 1
@@ -43,23 +44,23 @@ func (s *Single) AcquireNextId() int64 {
 	return id
 }
 
-func (s *Single) AddTriple(t *graph.Triple) error {
+func (s *Single) AddQuad(t *quad.Quad) error {
 	trans := make([]*graph.Transaction, 1)
 	trans[0] = &graph.Transaction{
 		ID:        s.AcquireNextId(),
-		Triple:    t,
+		Quad:      t,
 		Action:    graph.Add,
 		Timestamp: time.Now(),
 	}
 	return s.ts.ApplyTransactions(trans)
 }
 
-func (s *Single) AddTripleSet(set []*graph.Triple) error {
+func (s *Single) AddQuadSet(set []*quad.Quad) error {
 	trans := make([]*graph.Transaction, len(set))
 	for i, t := range set {
 		trans[i] = &graph.Transaction{
 			ID:        s.AcquireNextId(),
-			Triple:    t,
+			Quad:      t,
 			Action:    graph.Add,
 			Timestamp: time.Now(),
 		}
@@ -68,7 +69,7 @@ func (s *Single) AddTripleSet(set []*graph.Triple) error {
 	return nil
 }
 
-func (s *Single) RemoveTriple(t *graph.Triple) error {
+func (s *Single) RemoveQuad(t *graph.Quad) error {
 	trans := make([]*graph.Transaction, 1)
 	trans[0] = &graph.Transaction{
 		ID:        s.AcquireNextId(),
