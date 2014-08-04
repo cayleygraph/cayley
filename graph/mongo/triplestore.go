@@ -18,7 +18,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"hash"
-	"log"
+	"io"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -26,7 +26,15 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
+
+func init() {
+	graph.RegisterTripleStore("mongo", newTripleStore, createNewMongoGraph)
+}
+
+// Guarantee we satisfy graph.Bulkloader.
+var _ graph.BulkLoader = (*TripleStore)(nil)
 
 const DefaultDBName = "cayley"
 
@@ -60,13 +68,13 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 	db.C("triples").EnsureIndex(indexOpts)
 	indexOpts.Key = []string{"Obj"}
 	db.C("triples").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Provenance"}
+	indexOpts.Key = []string{"Label"}
 	db.C("triples").EnsureIndex(indexOpts)
 	return nil
 }
 
 func newTripleStore(addr string, options graph.Options) (graph.TripleStore, error) {
-	var ts TripleStore
+	var qs TripleStore
 	conn, err := mgo.Dial(addr)
 	if err != nil {
 		return nil, err
@@ -76,26 +84,26 @@ func newTripleStore(addr string, options graph.Options) (graph.TripleStore, erro
 	if val, ok := options.StringKey("database_name"); ok {
 		dbName = val
 	}
-	ts.db = conn.DB(dbName)
-	ts.session = conn
-	ts.hasher = sha1.New()
-	ts.idCache = NewIDLru(1 << 16)
-	return &ts, nil
+	qs.db = conn.DB(dbName)
+	qs.session = conn
+	qs.hasher = sha1.New()
+	qs.idCache = NewIDLru(1 << 16)
+	return &qs, nil
 }
 
-func (ts *TripleStore) getIdForTriple(t *graph.Triple) string {
-	id := ts.ConvertStringToByteHash(t.Subject)
-	id += ts.ConvertStringToByteHash(t.Predicate)
-	id += ts.ConvertStringToByteHash(t.Object)
-	id += ts.ConvertStringToByteHash(t.Provenance)
+func (qs *TripleStore) getIdForTriple(t *quad.Quad) string {
+	id := qs.ConvertStringToByteHash(t.Subject)
+	id += qs.ConvertStringToByteHash(t.Predicate)
+	id += qs.ConvertStringToByteHash(t.Object)
+	id += qs.ConvertStringToByteHash(t.Label)
 	return id
 }
 
-func (ts *TripleStore) ConvertStringToByteHash(s string) string {
-	ts.hasher.Reset()
-	key := make([]byte, 0, ts.hasher.Size())
-	ts.hasher.Write([]byte(s))
-	key = ts.hasher.Sum(key)
+func (qs *TripleStore) ConvertStringToByteHash(s string) string {
+	qs.hasher.Reset()
+	key := make([]byte, 0, qs.hasher.Size())
+	qs.hasher.Write([]byte(s))
+	key = qs.hasher.Sum(key)
 	return hex.EncodeToString(key)
 }
 
@@ -105,10 +113,10 @@ type MongoNode struct {
 	Size int    "Size"
 }
 
-func (ts *TripleStore) updateNodeBy(node_name string, inc int) {
+func (qs *TripleStore) updateNodeBy(node_name string, inc int) {
 	var size MongoNode
-	node := ts.ValueOf(node_name)
-	err := ts.db.C("nodes").FindId(node).One(&size)
+	node := qs.ValueOf(node_name)
+	err := qs.db.C("nodes").FindId(node).One(&size)
 	if err != nil {
 		if err.Error() == "not found" {
 			// Not found. Okay.
@@ -116,7 +124,7 @@ func (ts *TripleStore) updateNodeBy(node_name string, inc int) {
 			size.Name = node_name
 			size.Size = inc
 		} else {
-			glog.Error("Error:", err)
+			glog.Errorf("Error: %v", err)
 			return
 		}
 	} else {
@@ -128,134 +136,134 @@ func (ts *TripleStore) updateNodeBy(node_name string, inc int) {
 	// Removing something...
 	if inc < 0 {
 		if size.Size <= 0 {
-			err := ts.db.C("nodes").RemoveId(node)
+			err := qs.db.C("nodes").RemoveId(node)
 			if err != nil {
-				glog.Error("Error: ", err, " while removing node ", node_name)
+				glog.Errorf("Error: %v while removing node %s", err, node_name)
 				return
 			}
 		}
 	}
 
-	_, err2 := ts.db.C("nodes").UpsertId(node, size)
+	_, err2 := qs.db.C("nodes").UpsertId(node, size)
 	if err2 != nil {
-		glog.Error("Error: ", err)
+		glog.Errorf("Error: %v", err)
 	}
 }
 
-func (ts *TripleStore) writeTriple(t *graph.Triple) bool {
+func (qs *TripleStore) writeTriple(t *quad.Quad) bool {
 	tripledoc := bson.M{
-		"_id":        ts.getIdForTriple(t),
-		"Subject":    t.Subject,
-		"Predicate":  t.Predicate,
-		"Object":     t.Object,
-		"Provenance": t.Provenance,
+		"_id":       qs.getIdForTriple(t),
+		"Subject":   t.Subject,
+		"Predicate": t.Predicate,
+		"Object":    t.Object,
+		"Label":     t.Label,
 	}
-	err := ts.db.C("triples").Insert(tripledoc)
+	err := qs.db.C("triples").Insert(tripledoc)
 	if err != nil {
 		// Among the reasons I hate MongoDB. "Errors don't happen! Right guys?"
 		if err.(*mgo.LastError).Code == 11000 {
 			return false
 		}
-		glog.Error("Error: ", err)
+		glog.Errorf("Error: %v", err)
 		return false
 	}
 	return true
 }
 
-func (ts *TripleStore) AddTriple(t *graph.Triple) {
-	_ = ts.writeTriple(t)
-	ts.updateNodeBy(t.Subject, 1)
-	ts.updateNodeBy(t.Predicate, 1)
-	ts.updateNodeBy(t.Object, 1)
-	if t.Provenance != "" {
-		ts.updateNodeBy(t.Provenance, 1)
+func (qs *TripleStore) AddTriple(t *quad.Quad) {
+	_ = qs.writeTriple(t)
+	qs.updateNodeBy(t.Subject, 1)
+	qs.updateNodeBy(t.Predicate, 1)
+	qs.updateNodeBy(t.Object, 1)
+	if t.Label != "" {
+		qs.updateNodeBy(t.Label, 1)
 	}
 }
 
-func (ts *TripleStore) AddTripleSet(in []*graph.Triple) {
-	ts.session.SetSafe(nil)
+func (qs *TripleStore) AddTripleSet(in []*quad.Quad) {
+	qs.session.SetSafe(nil)
 	ids := make(map[string]int)
 	for _, t := range in {
-		wrote := ts.writeTriple(t)
+		wrote := qs.writeTriple(t)
 		if wrote {
 			ids[t.Subject]++
 			ids[t.Object]++
 			ids[t.Predicate]++
-			if t.Provenance != "" {
-				ids[t.Provenance]++
+			if t.Label != "" {
+				ids[t.Label]++
 			}
 		}
 	}
 	for k, v := range ids {
-		ts.updateNodeBy(k, v)
+		qs.updateNodeBy(k, v)
 	}
-	ts.session.SetSafe(&mgo.Safe{})
+	qs.session.SetSafe(&mgo.Safe{})
 }
 
-func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
-	err := ts.db.C("triples").RemoveId(ts.getIdForTriple(t))
+func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
+	err := qs.db.C("triples").RemoveId(qs.getIdForTriple(t))
 	if err == mgo.ErrNotFound {
 		return
 	} else if err != nil {
-		log.Println("Error: ", err, " while removing triple ", t)
+		glog.Errorf("Error: %v while removing triple %v", err, t)
 		return
 	}
-	ts.updateNodeBy(t.Subject, -1)
-	ts.updateNodeBy(t.Predicate, -1)
-	ts.updateNodeBy(t.Object, -1)
-	if t.Provenance != "" {
-		ts.updateNodeBy(t.Provenance, -1)
+	qs.updateNodeBy(t.Subject, -1)
+	qs.updateNodeBy(t.Predicate, -1)
+	qs.updateNodeBy(t.Object, -1)
+	if t.Label != "" {
+		qs.updateNodeBy(t.Label, -1)
 	}
 }
 
-func (ts *TripleStore) Triple(val graph.Value) *graph.Triple {
+func (qs *TripleStore) Quad(val graph.Value) *quad.Quad {
 	var bsonDoc bson.M
-	err := ts.db.C("triples").FindId(val.(string)).One(&bsonDoc)
+	err := qs.db.C("triples").FindId(val.(string)).One(&bsonDoc)
 	if err != nil {
-		log.Println("Error: Couldn't retrieve triple", val.(string), err)
+		glog.Errorf("Error: Couldn't retrieve triple %s %v", val, err)
 	}
-	return &graph.Triple{
+	return &quad.Quad{
 		bsonDoc["Subject"].(string),
 		bsonDoc["Predicate"].(string),
 		bsonDoc["Object"].(string),
-		bsonDoc["Provenance"].(string),
+		bsonDoc["Label"].(string),
 	}
 }
 
-func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
-	return NewIterator(ts, "triples", d, val)
+func (qs *TripleStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
+	return NewIterator(qs, "triples", d, val)
 }
 
-func (ts *TripleStore) NodesAllIterator() graph.Iterator {
-	return NewAllIterator(ts, "nodes")
+func (qs *TripleStore) NodesAllIterator() graph.Iterator {
+	return NewAllIterator(qs, "nodes")
 }
 
-func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
-	return NewAllIterator(ts, "triples")
+func (qs *TripleStore) TriplesAllIterator() graph.Iterator {
+	return NewAllIterator(qs, "triples")
 }
 
-func (ts *TripleStore) ValueOf(s string) graph.Value {
-	return ts.ConvertStringToByteHash(s)
+func (qs *TripleStore) ValueOf(s string) graph.Value {
+	return qs.ConvertStringToByteHash(s)
 }
 
-func (ts *TripleStore) NameOf(v graph.Value) string {
-	val, ok := ts.idCache.Get(v.(string))
+func (qs *TripleStore) NameOf(v graph.Value) string {
+	val, ok := qs.idCache.Get(v.(string))
 	if ok {
 		return val
 	}
 	var node MongoNode
-	err := ts.db.C("nodes").FindId(v.(string)).One(&node)
+	err := qs.db.C("nodes").FindId(v.(string)).One(&node)
 	if err != nil {
-		log.Println("Error: Couldn't retrieve node", v.(string), err)
+		glog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
 	}
-	ts.idCache.Put(v.(string), node.Name)
+	qs.idCache.Put(v.(string), node.Name)
 	return node.Name
 }
 
-func (ts *TripleStore) Size() int64 {
-	count, err := ts.db.C("triples").Count()
+func (qs *TripleStore) Size() int64 {
+	count, err := qs.db.C("triples").Count()
 	if err != nil {
-		glog.Error("Error: ", err)
+		glog.Errorf("Error: %v", err)
 		return 0
 	}
 	return int64(count)
@@ -265,40 +273,48 @@ func compareStrings(a, b graph.Value) bool {
 	return a.(string) == b.(string)
 }
 
-func (ts *TripleStore) FixedIterator() graph.FixedIterator {
+func (qs *TripleStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(compareStrings)
 }
 
-func (ts *TripleStore) Close() {
-	ts.db.Session.Close()
+func (qs *TripleStore) Close() {
+	qs.db.Session.Close()
 }
 
-func (ts *TripleStore) TripleDirection(in graph.Value, d graph.Direction) graph.Value {
+func (qs *TripleStore) TripleDirection(in graph.Value, d quad.Direction) graph.Value {
 	// Maybe do the trick here
 	var offset int
 	switch d {
-	case graph.Subject:
+	case quad.Subject:
 		offset = 0
-	case graph.Predicate:
-		offset = (ts.hasher.Size() * 2)
-	case graph.Object:
-		offset = (ts.hasher.Size() * 2) * 2
-	case graph.Provenance:
-		offset = (ts.hasher.Size() * 2) * 3
+	case quad.Predicate:
+		offset = (qs.hasher.Size() * 2)
+	case quad.Object:
+		offset = (qs.hasher.Size() * 2) * 2
+	case quad.Label:
+		offset = (qs.hasher.Size() * 2) * 3
 	}
-	val := in.(string)[offset : ts.hasher.Size()*2+offset]
+	val := in.(string)[offset : qs.hasher.Size()*2+offset]
 	return val
 }
 
-func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) bool {
-	if ts.Size() != 0 {
-		return false
+func (qs *TripleStore) BulkLoad(dec quad.Unmarshaler) error {
+	if qs.Size() != 0 {
+		return graph.ErrCannotBulkLoad
 	}
 
-	ts.session.SetSafe(nil)
-	for triple := range t_chan {
-		ts.writeTriple(triple)
+	qs.session.SetSafe(nil)
+	for {
+		q, err := dec.Unmarshal()
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+		qs.writeTriple(q)
 	}
+
 	outputTo := bson.M{"replace": "nodes", "sharded": true}
 	glog.Infoln("Mapreducing")
 	job := mgo.MapReduce{
@@ -311,8 +327,8 @@ func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) bool {
       emit(s_key, {"_id": s_key, "Name" : this.Subject, "Size" : 1})
       emit(p_key, {"_id": p_key, "Name" : this.Predicate, "Size" : 1})
       emit(o_key, {"_id": o_key, "Name" : this.Object, "Size" : 1})
-			if (this.Provenance != "") {
-				emit(c_key, {"_id": c_key, "Name" : this.Provenance, "Size" : 1})
+			if (this.Label != "") {
+				emit(c_key, {"_id": c_key, "Name" : this.Label, "Size" : 1})
 			}
     }
     `,
@@ -330,16 +346,13 @@ func (ts *TripleStore) BulkLoad(t_chan chan *graph.Triple) bool {
     `,
 		Out: outputTo,
 	}
-	ts.db.C("triples").Find(nil).MapReduce(&job, nil)
+	qs.db.C("triples").Find(nil).MapReduce(&job, nil)
 	glog.Infoln("Fixing")
-	ts.db.Run(bson.D{{"eval", `function() { db.nodes.find().forEach(function (result) {
+	qs.db.Run(bson.D{{"eval", `function() { db.nodes.find().forEach(function (result) {
     db.nodes.update({"_id": result._id}, result.value)
   }) }`}, {"args", bson.D{}}}, nil)
 
-	ts.session.SetSafe(&mgo.Safe{})
-	return true
-}
+	qs.session.SetSafe(&mgo.Safe{})
 
-func init() {
-	graph.RegisterTripleStore("mongo", newTripleStore, createNewMongoGraph)
+	return nil
 }

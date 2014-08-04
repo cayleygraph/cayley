@@ -38,7 +38,7 @@ func embedFinals(env *otto.Otto, ses *Session, obj *otto.Object) {
 func allFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		ses.limit = -1
 		ses.count = 0
 		runIteratorOnSession(it, ses)
@@ -51,7 +51,7 @@ func limitFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.Functio
 		if len(call.ArgumentList) > 0 {
 			limitVal, _ := call.Argument(0).ToInteger()
 			it := buildIteratorTree(obj, ses.ts)
-			it.AddTag(TopResultTag)
+			it.Tagger().Add(TopResultTag)
 			ses.limit = int(limitVal)
 			ses.count = 0
 			runIteratorOnSession(it, ses)
@@ -63,7 +63,7 @@ func limitFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.Functio
 func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) > 0 {
 			limitParsed, _ := call.Argument(0).ToInteger()
@@ -90,7 +90,7 @@ func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) 
 func toValueFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		limit := 1
 		var val otto.Value
 		var err error
@@ -120,7 +120,7 @@ func toValueFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) 
 func mapFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		it := buildIteratorTree(obj, ses.ts)
-		it.AddTag(TopResultTag)
+		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) == 0 {
 			return otto.NullValue()
@@ -148,10 +148,12 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 	count := 0
 	it, _ = it.Optimize()
 	for {
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return nil
+		default:
 		}
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -163,8 +165,10 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 			break
 		}
 		for it.NextResult() == true {
-			if ses.doHalt {
+			select {
+			case <-ses.kill:
 				return nil
+			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
@@ -184,10 +188,12 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 	count := 0
 	it, _ = it.Optimize()
 	for {
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return nil
+		default:
 		}
-		val, ok := it.Next()
+		val, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -205,10 +211,12 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 	count := 0
 	it, _ = it.Optimize()
 	for {
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return
+		default:
 		}
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -221,8 +229,10 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 			break
 		}
 		for it.NextResult() == true {
-			if ses.doHalt {
+			select {
+			case <-ses.kill:
 				return
+			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
@@ -238,35 +248,36 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 }
 
 func runIteratorOnSession(it graph.Iterator, ses *Session) {
-	if ses.lookingForQueryShape {
-		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.queryShape)
+	if ses.wantShape {
+		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.shape)
 		return
 	}
 	it, _ = it.Optimize()
 	glog.V(2).Infoln(it.DebugString(0))
 	for {
-		// TODO(barakmich): Better halting.
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return
+		default:
 		}
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
-		if !cont {
+		if !ses.SendResult(&Result{actualResults: &tags}) {
 			break
 		}
 		for it.NextResult() == true {
-			if ses.doHalt {
+			select {
+			case <-ses.kill:
 				return
+			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
-			if !cont {
+			if !ses.SendResult(&Result{actualResults: &tags}) {
 				break
 			}
 		}

@@ -37,14 +37,15 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
-			val, ok := primary.Next()
+			val, ok := graph.Next(primary)
 			if !ok {
 				panic("Sizes lie")
 			}
 			newIt := ts.TripleIterator(it.Direction(), val)
-			newIt.CopyTagsFrom(it)
-			for _, tag := range primary.Tags() {
-				newIt.AddFixedTag(tag, val)
+			nt := newIt.Tagger()
+			nt.CopyFrom(it)
+			for _, tag := range primary.Tagger().Tags() {
+				nt.AddFixed(tag, val)
 			}
 			return newIt, true
 		}

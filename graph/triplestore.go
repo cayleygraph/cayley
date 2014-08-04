@@ -23,7 +23,9 @@ package graph
 
 import (
 	"errors"
+
 	"github.com/barakmich/glog"
+	"github.com/google/cayley/quad"
 )
 
 // Defines an opaque "triple store value" type. However the backend wishes to
@@ -42,11 +44,11 @@ type TripleStore interface {
 	ApplyTransactions([]*Transaction) error
 
 	// Given an opaque token, returns the triple for that token from the store.
-	Triple(Value) *Triple
+	Quad(Value) *quad.Quad
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	TripleIterator(Direction, Value) Iterator
+	TripleIterator(quad.Direction, Value) Iterator
 
 	// Returns an iterator enumerating all nodes in the graph.
 	NodesAllIterator() Iterator
@@ -86,8 +88,8 @@ type TripleStore interface {
 	// gives the TripleStore the opportunity to make this optimization.
 	//
 	// Iterators will call this. At worst, a valid implementation is
-	// ts.IdFor(ts.Triple(triple_id).Get(dir))
-	TripleDirection(triple_id Value, d Direction) Value
+	// ts.IdFor(ts.quad.Quad(id).Get(dir))
+	TripleDirection(id Value, d quad.Direction) Value
 }
 
 type Options map[string]interface{}
@@ -119,14 +121,10 @@ func (d Options) StringKey(key string) (string, bool) {
 var ErrCannotBulkLoad = errors.New("triplestore: cannot bulk load")
 
 type BulkLoader interface {
-	// BulkLoad loads Triples from a TripleUnmarshaler in bulk to the TripleStore.
+	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the TripleStore.
 	// It returns ErrCannotBulkLoad if bulk loading is not possible. For example if
 	// you cannot load in bulk to a non-empty database, and the db is non-empty.
-	BulkLoad(TripleUnmarshaler) error
-}
-
-type TripleUnmarshaler interface {
-	Unmarshal() (*Triple, error)
+	BulkLoad(quad.Unmarshaler) error
 }
 
 type NewStoreFunc func(string, Options) (TripleStore, error)

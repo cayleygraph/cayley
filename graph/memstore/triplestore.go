@@ -20,15 +20,22 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 
 	"github.com/petar/GoLLRB/llrb"
 )
 
+func init() {
+	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
+		return newTripleStore(), nil
+	}, nil)
+}
+
 type TripleDirectionIndex struct {
-	subject    map[int64]*llrb.LLRB
-	predicate  map[int64]*llrb.LLRB
-	object     map[int64]*llrb.LLRB
-	provenance map[int64]*llrb.LLRB
+	subject   map[int64]*llrb.LLRB
+	predicate map[int64]*llrb.LLRB
+	object    map[int64]*llrb.LLRB
+	label     map[int64]*llrb.LLRB
 }
 
 func NewTripleDirectionIndex() *TripleDirectionIndex {
@@ -36,25 +43,25 @@ func NewTripleDirectionIndex() *TripleDirectionIndex {
 	tdi.subject = make(map[int64]*llrb.LLRB)
 	tdi.predicate = make(map[int64]*llrb.LLRB)
 	tdi.object = make(map[int64]*llrb.LLRB)
-	tdi.provenance = make(map[int64]*llrb.LLRB)
+	tdi.label = make(map[int64]*llrb.LLRB)
 	return &tdi
 }
 
-func (tdi *TripleDirectionIndex) GetForDir(d graph.Direction) map[int64]*llrb.LLRB {
+func (tdi *TripleDirectionIndex) GetForDir(d quad.Direction) map[int64]*llrb.LLRB {
 	switch d {
-	case graph.Subject:
+	case quad.Subject:
 		return tdi.subject
-	case graph.Object:
+	case quad.Object:
 		return tdi.object
-	case graph.Predicate:
+	case quad.Predicate:
 		return tdi.predicate
-	case graph.Provenance:
-		return tdi.provenance
+	case quad.Label:
+		return tdi.label
 	}
 	panic("illegal direction")
 }
 
-func (tdi *TripleDirectionIndex) GetOrCreate(d graph.Direction, id int64) *llrb.LLRB {
+func (tdi *TripleDirectionIndex) GetOrCreate(d quad.Direction, id int64) *llrb.LLRB {
 	directionIndex := tdi.GetForDir(d)
 	if _, ok := directionIndex[id]; !ok {
 		directionIndex[id] = llrb.New()
@@ -62,7 +69,7 @@ func (tdi *TripleDirectionIndex) GetOrCreate(d graph.Direction, id int64) *llrb.
 	return directionIndex[id]
 }
 
-func (tdi *TripleDirectionIndex) Get(d graph.Direction, id int64) (*llrb.LLRB, bool) {
+func (tdi *TripleDirectionIndex) Get(d quad.Direction, id int64) (*llrb.LLRB, bool) {
 	directionIndex := tdi.GetForDir(d)
 	tree, exists := directionIndex[id]
 	return tree, exists
@@ -73,7 +80,7 @@ type TripleStore struct {
 	tripleIdCounter int64
 	idMap           map[string]int64
 	revIdMap        map[int64]string
-	triples         []graph.Triple
+	triples         []quad.Quad
 	size            int64
 	index           TripleDirectionIndex
 	// vip_index map[string]map[int64]map[string]map[int64]*llrb.Tree
@@ -83,10 +90,10 @@ func newTripleStore() *TripleStore {
 	var ts TripleStore
 	ts.idMap = make(map[string]int64)
 	ts.revIdMap = make(map[int64]string)
-	ts.triples = make([]graph.Triple, 1, 200)
+	ts.triples = make([]quad.Quad, 1, 200)
 
 	// Sentinel null triple so triple indices start at 1
-	ts.triples[0] = graph.Triple{}
+	ts.triples[0] = quad.Quad{}
 	ts.size = 1
 	ts.index = *NewTripleDirectionIndex()
 	ts.idCounter = 1
@@ -94,18 +101,18 @@ func newTripleStore() *TripleStore {
 	return &ts
 }
 
-func (ts *TripleStore) AddTripleSet(triples []*graph.Triple) {
+func (ts *TripleStore) AddTripleSet(triples []*quad.Quad) {
 	for _, t := range triples {
 		ts.AddTriple(t)
 	}
 }
 
-func (ts *TripleStore) tripleExists(t *graph.Triple) (bool, int64) {
+func (ts *TripleStore) tripleExists(t *quad.Quad) (bool, int64) {
 	smallest := -1
 	var smallest_tree *llrb.LLRB
-	for d := graph.Subject; d <= graph.Provenance; d++ {
+	for d := quad.Subject; d <= quad.Label; d++ {
 		sid := t.Get(d)
-		if d == graph.Provenance && sid == "" {
+		if d == quad.Label && sid == "" {
 			continue
 		}
 		id, ok := ts.idMap[sid]
@@ -137,7 +144,7 @@ func (ts *TripleStore) tripleExists(t *graph.Triple) (bool, int64) {
 	return false, 0
 }
 
-func (ts *TripleStore) AddTriple(t *graph.Triple) {
+func (ts *TripleStore) AddTriple(t *quad.Quad) {
 	if exists, _ := ts.tripleExists(t); exists {
 		return
 	}
@@ -147,9 +154,9 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	ts.size++
 	ts.tripleIdCounter++
 
-	for d := graph.Subject; d <= graph.Provenance; d++ {
+	for d := quad.Subject; d <= quad.Label; d++ {
 		sid := t.Get(d)
-		if d == graph.Provenance && sid == "" {
+		if d == quad.Label && sid == "" {
 			continue
 		}
 		if _, ok := ts.idMap[sid]; !ok {
@@ -159,8 +166,8 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 		}
 	}
 
-	for d := graph.Subject; d <= graph.Provenance; d++ {
-		if d == graph.Provenance && t.Get(d) == "" {
+	for d := quad.Subject; d <= quad.Label; d++ {
+		if d == quad.Label && t.Get(d) == "" {
 			continue
 		}
 		id := ts.idMap[t.Get(d)]
@@ -171,7 +178,7 @@ func (ts *TripleStore) AddTriple(t *graph.Triple) {
 	// TODO(barakmich): Add VIP indexing
 }
 
-func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
+func (ts *TripleStore) RemoveTriple(t *quad.Quad) {
 	var tripleID int64
 	var exists bool
 	tripleID = 0
@@ -179,11 +186,11 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 		return
 	}
 
-	ts.triples[tripleID] = graph.Triple{}
+	ts.triples[tripleID] = quad.Quad{}
 	ts.size--
 
-	for d := graph.Subject; d <= graph.Provenance; d++ {
-		if d == graph.Provenance && t.Get(d) == "" {
+	for d := quad.Subject; d <= quad.Label; d++ {
+		if d == quad.Label && t.Get(d) == "" {
 			continue
 		}
 		id := ts.idMap[t.Get(d)]
@@ -191,8 +198,8 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 		tree.Delete(Int64(tripleID))
 	}
 
-	for d := graph.Subject; d <= graph.Provenance; d++ {
-		if d == graph.Provenance && t.Get(d) == "" {
+	for d := quad.Subject; d <= quad.Label; d++ {
+		if d == quad.Label && t.Get(d) == "" {
 			continue
 		}
 		id, ok := ts.idMap[t.Get(d)]
@@ -200,8 +207,8 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 			continue
 		}
 		stillExists := false
-		for d := graph.Subject; d <= graph.Provenance; d++ {
-			if d == graph.Provenance && t.Get(d) == "" {
+		for d := quad.Subject; d <= quad.Label; d++ {
+			if d == quad.Label && t.Get(d) == "" {
 				continue
 			}
 			nodeTree := ts.index.GetOrCreate(d, id)
@@ -217,11 +224,11 @@ func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
 	}
 }
 
-func (ts *TripleStore) Triple(index graph.Value) *graph.Triple {
+func (ts *TripleStore) Quad(index graph.Value) *quad.Quad {
 	return &ts.triples[index.(int64)]
 }
 
-func (ts *TripleStore) TripleIterator(d graph.Direction, value graph.Value) graph.Iterator {
+func (ts *TripleStore) TripleIterator(d quad.Direction, value graph.Value) graph.Iterator {
 	index, ok := ts.index.Get(d, value.(int64))
 	data := fmt.Sprintf("dir:%s val:%d", d, value.(int64))
 	if ok {
@@ -239,7 +246,7 @@ func (ts *TripleStore) DebugPrint() {
 		if i == 0 {
 			continue
 		}
-		glog.V(2).Infoln("%d: %s", i, t)
+		glog.V(2).Infof("%d: %s", i, t)
 	}
 }
 
@@ -259,8 +266,8 @@ func (ts *TripleStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(iterator.BasicEquality)
 }
 
-func (ts *TripleStore) TripleDirection(val graph.Value, d graph.Direction) graph.Value {
-	name := ts.Triple(val).Get(d)
+func (ts *TripleStore) TripleDirection(val graph.Value, d quad.Direction) graph.Value {
+	name := ts.Quad(val).Get(d)
 	return ts.ValueOf(name)
 }
 
@@ -268,9 +275,3 @@ func (ts *TripleStore) NodesAllIterator() graph.Iterator {
 	return NewMemstoreAllIterator(ts)
 }
 func (ts *TripleStore) Close() {}
-
-func init() {
-	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
-		return newTripleStore(), nil
-	}, nil)
-}

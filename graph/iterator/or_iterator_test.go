@@ -24,7 +24,7 @@ import (
 func iterated(it graph.Iterator) []int {
 	var res []int
 	for {
-		val, ok := it.Next()
+		val, ok := graph.Next(it)
 		if !ok {
 			break
 		}
@@ -66,13 +66,13 @@ func TestOrIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{2, 3, 21} {
-		if !or.Check(v) {
+		if !or.Contains(v) {
 			t.Errorf("Failed to correctly check %d as true", v)
 		}
 	}
 
 	for _, v := range []int{22, 5, 0} {
-		if or.Check(v) {
+		if or.Contains(v) {
 			t.Errorf("Failed to correctly check %d as false", v)
 		}
 	}
@@ -125,12 +125,12 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
 	for _, v := range []int{2, 3, 21} {
-		if !or.Check(v) {
+		if !or.Contains(v) {
 			t.Errorf("Failed to correctly check %d as true", v)
 		}
 	}
 	for _, v := range []int{22, 5, 0} {
-		if or.Check(v) {
+		if or.Contains(v) {
 			t.Errorf("Failed to correctly check %d as false", v)
 		}
 	}

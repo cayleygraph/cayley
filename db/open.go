@@ -22,7 +22,7 @@ import (
 )
 
 func Open(cfg *config.Config) (graph.TripleStore, error) {
-	glog.Infof("Opening database \"%s\" at %s", cfg.DatabaseType, cfg.DatabasePath)
+	glog.Infof("Opening database %q at %s", cfg.DatabaseType, cfg.DatabasePath)
 	ts, err := graph.NewTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	if err != nil {
 		return nil, err

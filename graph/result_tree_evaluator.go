@@ -40,7 +40,7 @@ func (t *ResultTree) AddSubtree(sub *ResultTree) {
 	t.subtrees = append(t.subtrees, sub)
 }
 
-func StringResultTreeEvaluator(it Iterator) string {
+func StringResultTreeEvaluator(it Nexter) string {
 	ok := true
 	out := ""
 	for {
@@ -59,6 +59,6 @@ func StringResultTreeEvaluator(it Iterator) string {
 	return out
 }
 
-func PrintResultTreeEvaluator(it Iterator) {
+func PrintResultTreeEvaluator(it Nexter) {
 	fmt.Print(StringResultTreeEvaluator(it))
 }

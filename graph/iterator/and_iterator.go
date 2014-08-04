@@ -6,11 +6,11 @@
 //
 // It accomplishes this in one of two ways. If it is a Next()ed iterator (that
 // is, it is a top level iterator, or on the "Next() path", then it will Next()
-// it's primary iterator (helpfully, and.primary_it) and Check() the resultant
+// it's primary iterator (helpfully, and.primary_it) and Contains() the resultant
 // value against it's other iterators. If it matches all of them, then it
 // returns that value. Otherwise, it repeats the process.
 //
-// If it's on a Check() path, it merely Check()s every iterator, and returns the
+// If it's on a Contains() path, it merely Contains()s every iterator, and returns the
 // logical AND of each result.
 
 package iterator
@@ -22,23 +22,28 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-// The And iterator. Consists of a Base and a number of subiterators, the primary of which will
+// The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type And struct {
-	Base
+	uid               uint64
+	tags              graph.Tagger
 	internalIterators []graph.Iterator
 	itCount           int
 	primaryIt         graph.Iterator
 	checkList         []graph.Iterator
+	result            graph.Value
 }
 
 // Creates a new And iterator.
 func NewAnd() *And {
-	var and And
-	BaseInit(&and.Base)
-	and.internalIterators = make([]graph.Iterator, 0, 20)
-	and.checkList = nil
-	return &and
+	return &And{
+		uid:               NextUID(),
+		internalIterators: make([]graph.Iterator, 0, 20),
+	}
+}
+
+func (it *And) UID() uint64 {
+	return it.uid
 }
 
 // Reset all internal iterators
@@ -50,15 +55,38 @@ func (it *And) Reset() {
 	it.checkList = nil
 }
 
+func (it *And) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+// An extended TagResults, as it needs to add it's own results and
+// recurse down it's subiterators.
+func (it *And) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
+	if it.primaryIt != nil {
+		it.primaryIt.TagResults(dst)
+	}
+	for _, sub := range it.internalIterators {
+		sub.TagResults(dst)
+	}
+}
+
 func (it *And) Clone() graph.Iterator {
 	and := NewAnd()
 	and.AddSubIterator(it.primaryIt.Clone())
-	and.CopyTagsFrom(it)
+	and.tags.CopyFrom(it)
 	for _, sub := range it.internalIterators {
 		and.AddSubIterator(sub.Clone())
 	}
 	if it.checkList != nil {
-		and.optimizeCheck()
+		and.optimizeContains()
 	}
 	return and
 }
@@ -69,18 +97,6 @@ func (it *And) SubIterators() []graph.Iterator {
 	iters[0] = it.primaryIt
 	copy(iters[1:], it.internalIterators)
 	return iters
-}
-
-// Overrides Base TagResults, as it needs to add it's own results and
-// recurse down it's subiterators.
-func (it *And) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
-	if it.primaryIt != nil {
-		it.primaryIt.TagResults(dst)
-	}
-	for _, sub := range it.internalIterators {
-		sub.TagResults(dst)
-	}
 }
 
 // DEPRECATED Returns the ResultTree for this iterator, recurses to it's subiterators.
@@ -101,7 +117,7 @@ func (it *And) DebugString(indent int) string {
 		total += fmt.Sprintf("%d:\n%s\n", i, sub.DebugString(indent+4))
 	}
 	var tags string
-	for _, k := range it.Tags() {
+	for _, k := range it.tags.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
 	spaces := strings.Repeat(" ", indent+2)
@@ -144,23 +160,27 @@ func (it *And) Next() (graph.Value, bool) {
 	var curr graph.Value
 	var exists bool
 	for {
-		curr, exists = it.primaryIt.Next()
+		curr, exists = graph.Next(it.primaryIt)
 		if !exists {
 			return graph.NextLogOut(it, nil, false)
 		}
-		if it.checkSubIts(curr) {
-			it.Last = curr
+		if it.subItsContain(curr) {
+			it.result = curr
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
-	panic("Somehow broke out of Next() loop in And")
+	panic("unreachable")
+}
+
+func (it *And) Result() graph.Value {
+	return it.result
 }
 
 // Checks a value against the non-primary iterators, in order.
-func (it *And) checkSubIts(val graph.Value) bool {
+func (it *And) subItsContain(val graph.Value) bool {
 	var subIsGood = true
 	for _, sub := range it.internalIterators {
-		subIsGood = sub.Check(val)
+		subIsGood = sub.Contains(val)
 		if !subIsGood {
 			break
 		}
@@ -168,36 +188,36 @@ func (it *And) checkSubIts(val graph.Value) bool {
 	return subIsGood
 }
 
-func (it *And) checkCheckList(val graph.Value) bool {
+func (it *And) checkContainsList(val graph.Value) bool {
 	ok := true
 	for _, c := range it.checkList {
-		ok = c.Check(val)
+		ok = c.Contains(val)
 		if !ok {
 			break
 		}
 	}
 	if ok {
-		it.Last = val
+		it.result = val
 	}
-	return graph.CheckLogOut(it, val, ok)
+	return graph.ContainsLogOut(it, val, ok)
 }
 
 // Check a value against the entire iterator, in order.
-func (it *And) Check(val graph.Value) bool {
-	graph.CheckLogIn(it, val)
+func (it *And) Contains(val graph.Value) bool {
+	graph.ContainsLogIn(it, val)
 	if it.checkList != nil {
-		return it.checkCheckList(val)
+		return it.checkContainsList(val)
 	}
-	mainGood := it.primaryIt.Check(val)
+	mainGood := it.primaryIt.Contains(val)
 	if !mainGood {
-		return graph.CheckLogOut(it, val, false)
+		return graph.ContainsLogOut(it, val, false)
 	}
-	othersGood := it.checkSubIts(val)
+	othersGood := it.subItsContain(val)
 	if !othersGood {
-		return graph.CheckLogOut(it, val, false)
+		return graph.ContainsLogOut(it, val, false)
 	}
-	it.Last = val
-	return graph.CheckLogOut(it, val, true)
+	it.result = val
+	return graph.ContainsLogOut(it, val, true)
 }
 
 // Returns the approximate size of the And iterator. Because we're dealing

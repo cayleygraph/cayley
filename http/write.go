@@ -25,12 +25,12 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/nquads"
+	"github.com/google/cayley/quad"
+	"github.com/google/cayley/quad/nquads"
 )
 
-func ParseJsonToTripleList(jsonBody []byte) ([]*graph.Triple, error) {
-	var tripleList []*graph.Triple
+func ParseJsonToTripleList(jsonBody []byte) ([]*quad.Quad, error) {
+	var tripleList []*quad.Quad
 	err := json.Unmarshal(jsonBody, &tripleList)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (api *Api) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 	var (
 		n int
 
-		block = make([]*graph.Triple, 0, blockSize)
+		block = make([]*quad.Quad, 0, blockSize)
 	)
 	for {
 		t, err := dec.Unmarshal()

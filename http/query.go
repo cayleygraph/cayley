@@ -22,7 +22,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/google/cayley/graph"
+	"github.com/google/cayley/query"
 	"github.com/google/cayley/query/gremlin"
 	"github.com/google/cayley/query/mql"
 )
@@ -47,7 +47,7 @@ func WrapResult(result interface{}) ([]byte, error) {
 	return json.MarshalIndent(wrap, "", " ")
 }
 
-func RunJsonQuery(query string, ses graph.HttpSession) (interface{}, error) {
+func RunJsonQuery(query string, ses query.HttpSession) (interface{}, error) {
 	c := make(chan interface{}, 5)
 	go ses.ExecInput(query, c, 100)
 	for res := range c {
@@ -56,7 +56,7 @@ func RunJsonQuery(query string, ses graph.HttpSession) (interface{}, error) {
 	return ses.GetJson()
 }
 
-func GetQueryShape(query string, ses graph.HttpSession) ([]byte, error) {
+func GetQueryShape(query string, ses query.HttpSession) ([]byte, error) {
 	c := make(chan map[string]interface{}, 5)
 	go ses.GetQuery(query, c)
 	var data map[string]interface{}
@@ -68,10 +68,10 @@ func GetQueryShape(query string, ses graph.HttpSession) ([]byte, error) {
 
 // TODO(barakmich): Turn this into proper middleware.
 func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
-	var ses graph.HttpSession
+	var ses query.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
+		ses = gremlin.NewSession(api.ts, api.config.Timeout, false)
 	case "mql":
 		ses = mql.NewSession(api.ts)
 	default:
@@ -84,7 +84,7 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	code := string(bodyBytes)
 	result, err := ses.InputParses(code)
 	switch result {
-	case graph.Parsed:
+	case query.Parsed:
 		var output interface{}
 		var bytes []byte
 		var err error
@@ -103,7 +103,7 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		fmt.Fprint(w, string(bytes))
 		ses = nil
 		return 200
-	case graph.ParseFail:
+	case query.ParseFail:
 		ses = nil
 		return FormatJson400(w, err)
 	default:
@@ -116,10 +116,10 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 }
 
 func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
-	var ses graph.HttpSession
+	var ses query.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
+		ses = gremlin.NewSession(api.ts, api.config.Timeout, false)
 	case "mql":
 		ses = mql.NewSession(api.ts)
 	default:
@@ -132,7 +132,7 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 	code := string(bodyBytes)
 	result, err := ses.InputParses(code)
 	switch result {
-	case graph.Parsed:
+	case query.Parsed:
 		var output []byte
 		var err error
 		output, err = GetQueryShape(code, ses)
@@ -141,7 +141,7 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 		}
 		fmt.Fprint(w, string(output))
 		return 200
-	case graph.ParseFail:
+	case query.ParseFail:
 		return FormatJson400(w, err)
 	default:
 		return FormatJsonError(w, 500, "Incomplete data?")

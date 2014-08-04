@@ -38,10 +38,10 @@ import (
 // In short, tread lightly.
 
 // Optimizes the And, by picking the most efficient way to Next() and
-// Check() its subiterators. For SQL fans, this is equivalent to JOIN.
+// Contains() its subiterators. For SQL fans, this is equivalent to JOIN.
 func (it *And) Optimize() (graph.Iterator, bool) {
 	// First, let's get the slice of iterators, in order (first one is Next()ed,
-	// the rest are Check()ed)
+	// the rest are Contains()ed)
 	old := it.SubIterators()
 
 	// And call Optimize() on our subtree, replacing each one in the order we
@@ -82,9 +82,9 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	}
 
 	// Move the tags hanging on us (like any good replacement).
-	newAnd.CopyTagsFrom(it)
+	newAnd.tags.CopyFrom(it)
 
-	newAnd.optimizeCheck()
+	newAnd.optimizeContains()
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the
@@ -142,24 +142,24 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 
 	// Find the iterator with the projected "best" total cost.
 	// Total cost is defined as The Next()ed iterator's cost to Next() out
-	// all of it's contents, and to Check() each of those against everyone
+	// all of it's contents, and to Contains() each of those against everyone
 	// else.
 	for _, it := range its {
-		if !it.CanNext() {
+		if _, canNext := it.(graph.Nexter); !canNext {
 			bad = append(bad, it)
 			continue
 		}
 		rootStats := it.Stats()
 		cost := rootStats.NextCost
 		for _, f := range its {
-			if !f.CanNext() {
+			if _, canNext := it.(graph.Nexter); !canNext {
 				continue
 			}
 			if f == it {
 				continue
 			}
 			stats := f.Stats()
-			cost += stats.CheckCost
+			cost += stats.ContainsCost
 		}
 		cost *= rootStats.Size
 		if cost < bestCost {
@@ -169,7 +169,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	}
 
 	// TODO(barakmich): Optimization of order need not stop here. Picking a smart
-	// Check() order based on probability of getting a false Check() first is
+	// Contains() order based on probability of getting a false Contains() first is
 	// useful (fail faster).
 
 	// Put the best iterator (the one we wish to Next()) at the front...
@@ -177,7 +177,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 
 	// ... push everyone else after...
 	for _, it := range its {
-		if !it.CanNext() {
+		if _, canNext := it.(graph.Nexter); !canNext {
 			continue
 		}
 		if it != best {
@@ -192,12 +192,12 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 type byCost []graph.Iterator
 
 func (c byCost) Len() int           { return len(c) }
-func (c byCost) Less(i, j int) bool { return c[i].Stats().CheckCost < c[j].Stats().CheckCost }
+func (c byCost) Less(i, j int) bool { return c[i].Stats().ContainsCost < c[j].Stats().ContainsCost }
 func (c byCost) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
-// optimizeCheck(l) creates an alternate check list, containing the same contents
+// optimizeContains() creates an alternate check list, containing the same contents
 // but with a new ordering, however it wishes.
-func (it *And) optimizeCheck() {
+func (it *And) optimizeContains() {
 	// GetSubIterators allocates, so this is currently safe.
 	// TODO(kortschak) Reuse it.checkList if possible.
 	// This involves providing GetSubIterators with a slice to fill.
@@ -213,11 +213,11 @@ func (it *And) optimizeCheck() {
 func (it *And) getSubTags() map[string]struct{} {
 	tags := make(map[string]struct{})
 	for _, sub := range it.SubIterators() {
-		for _, tag := range sub.Tags() {
+		for _, tag := range sub.Tagger().Tags() {
 			tags[tag] = struct{}{}
 		}
 	}
-	for _, tag := range it.Tags() {
+	for _, tag := range it.tags.Tags() {
 		tags[tag] = struct{}{}
 	}
 	return tags
@@ -227,13 +227,14 @@ func (it *And) getSubTags() map[string]struct{} {
 // src itself, and moves them to dst.
 func moveTagsTo(dst graph.Iterator, src *And) {
 	tags := src.getSubTags()
-	for _, tag := range dst.Tags() {
+	for _, tag := range dst.Tagger().Tags() {
 		if _, ok := tags[tag]; ok {
 			delete(tags, tag)
 		}
 	}
+	dt := dst.Tagger()
 	for k := range tags {
-		dst.AddTag(k)
+		dt.Add(k)
 	}
 }
 
@@ -297,21 +298,21 @@ func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 // For now, however, it's pretty static.
 func (it *And) Stats() graph.IteratorStats {
 	primaryStats := it.primaryIt.Stats()
-	CheckCost := primaryStats.CheckCost
+	ContainsCost := primaryStats.ContainsCost
 	NextCost := primaryStats.NextCost
 	Size := primaryStats.Size
 	for _, sub := range it.internalIterators {
 		stats := sub.Stats()
-		NextCost += stats.CheckCost
-		CheckCost += stats.CheckCost
+		NextCost += stats.ContainsCost
+		ContainsCost += stats.ContainsCost
 		if Size > stats.Size {
 			Size = stats.Size
 		}
 	}
 	return graph.IteratorStats{
-		CheckCost: CheckCost,
-		NextCost:  NextCost,
-		Size:      Size,
+		ContainsCost: ContainsCost,
+		NextCost:     NextCost,
+		Size:         Size,
 	}
 
 }

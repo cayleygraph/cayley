@@ -29,29 +29,34 @@ import (
 )
 
 type Or struct {
-	Base
+	uid               uint64
+	tags              graph.Tagger
 	isShortCircuiting bool
 	internalIterators []graph.Iterator
 	itCount           int
 	currentIterator   int
+	result            graph.Value
 }
 
 func NewOr() *Or {
-	var or Or
-	BaseInit(&or.Base)
-	or.internalIterators = make([]graph.Iterator, 0, 20)
-	or.isShortCircuiting = false
-	or.currentIterator = -1
-	return &or
+	return &Or{
+		uid:               NextUID(),
+		internalIterators: make([]graph.Iterator, 0, 20),
+		currentIterator:   -1,
+	}
 }
 
 func NewShortCircuitOr() *Or {
-	var or Or
-	BaseInit(&or.Base)
-	or.internalIterators = make([]graph.Iterator, 0, 20)
-	or.isShortCircuiting = true
-	or.currentIterator = -1
-	return &or
+	return &Or{
+		uid:               NextUID(),
+		internalIterators: make([]graph.Iterator, 0, 20),
+		isShortCircuiting: true,
+		currentIterator:   -1,
+	}
+}
+
+func (it *Or) UID() uint64 {
+	return it.uid
 }
 
 // Reset all internal iterators
@@ -60,6 +65,10 @@ func (it *Or) Reset() {
 		sub.Reset()
 	}
 	it.currentIterator = -1
+}
+
+func (it *Or) Tagger() *graph.Tagger {
+	return &it.tags
 }
 
 func (it *Or) Clone() graph.Iterator {
@@ -72,7 +81,7 @@ func (it *Or) Clone() graph.Iterator {
 	for _, sub := range it.internalIterators {
 		or.AddSubIterator(sub.Clone())
 	}
-	or.CopyTagsFrom(it)
+	or.tags.CopyFrom(it)
 	return or
 }
 
@@ -84,7 +93,14 @@ func (it *Or) SubIterators() []graph.Iterator {
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
 func (it *Or) TagResults(dst map[string]graph.Value) {
-	it.Base.TagResults(dst)
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
+
 	it.internalIterators[it.currentIterator].TagResults(dst)
 }
 
@@ -105,7 +121,7 @@ func (it *Or) DebugString(indent int) string {
 		total += fmt.Sprintf("%d:\n%s\n", i, sub.DebugString(indent+4))
 	}
 	var tags string
-	for _, k := range it.Tags() {
+	for _, k := range it.tags.Tags() {
 		tags += fmt.Sprintf("%s;", k)
 	}
 	spaces := strings.Repeat(" ", indent+2)
@@ -139,7 +155,7 @@ func (it *Or) Next() (graph.Value, bool) {
 			firstTime = true
 		}
 		curIt := it.internalIterators[it.currentIterator]
-		curr, exists = curIt.Next()
+		curr, exists = graph.Next(curIt)
 		if !exists {
 			if it.isShortCircuiting && !firstTime {
 				return graph.NextLogOut(it, nil, false)
@@ -149,18 +165,22 @@ func (it *Or) Next() (graph.Value, bool) {
 				return graph.NextLogOut(it, nil, false)
 			}
 		} else {
-			it.Last = curr
+			it.result = curr
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
-	panic("Somehow broke out of Next() loop in Or")
+	panic("unreachable")
+}
+
+func (it *Or) Result() graph.Value {
+	return it.result
 }
 
 // Checks a value against the iterators, in order.
-func (it *Or) checkSubIts(val graph.Value) bool {
+func (it *Or) subItsContain(val graph.Value) bool {
 	var subIsGood = false
 	for i, sub := range it.internalIterators {
-		subIsGood = sub.Check(val)
+		subIsGood = sub.Contains(val)
 		if subIsGood {
 			it.currentIterator = i
 			break
@@ -170,14 +190,14 @@ func (it *Or) checkSubIts(val graph.Value) bool {
 }
 
 // Check a value against the entire graph.iterator, in order.
-func (it *Or) Check(val graph.Value) bool {
-	graph.CheckLogIn(it, val)
-	anyGood := it.checkSubIts(val)
+func (it *Or) Contains(val graph.Value) bool {
+	graph.ContainsLogIn(it, val)
+	anyGood := it.subItsContain(val)
 	if !anyGood {
-		return graph.CheckLogOut(it, val, false)
+		return graph.ContainsLogOut(it, val, false)
 	}
-	it.Last = val
-	return graph.CheckLogOut(it, val, true)
+	it.result = val
+	return graph.ContainsLogOut(it, val, true)
 }
 
 // Returns the approximate size of the Or graph.iterator. Because we're dealing
@@ -247,7 +267,7 @@ func (it *Or) Optimize() (graph.Iterator, bool) {
 	}
 
 	// Move the tags hanging on us (like any good replacement).
-	newOr.CopyTagsFrom(it)
+	newOr.tags.CopyFrom(it)
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the
@@ -257,13 +277,13 @@ func (it *Or) Optimize() (graph.Iterator, bool) {
 }
 
 func (it *Or) Stats() graph.IteratorStats {
-	CheckCost := int64(0)
+	ContainsCost := int64(0)
 	NextCost := int64(0)
 	Size := int64(0)
 	for _, sub := range it.internalIterators {
 		stats := sub.Stats()
 		NextCost += stats.NextCost
-		CheckCost += stats.CheckCost
+		ContainsCost += stats.ContainsCost
 		if it.isShortCircuiting {
 			if Size < stats.Size {
 				Size = stats.Size
@@ -273,9 +293,9 @@ func (it *Or) Stats() graph.IteratorStats {
 		}
 	}
 	return graph.IteratorStats{
-		CheckCost: CheckCost,
-		NextCost:  NextCost,
-		Size:      Size,
+		ContainsCost: ContainsCost,
+		NextCost:     NextCost,
+		Size:         Size,
 	}
 
 }

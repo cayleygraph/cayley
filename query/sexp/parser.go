@@ -19,6 +19,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 func BuildIteratorTreeForQuery(ts graph.TripleStore, query string) graph.Iterator {
@@ -189,7 +190,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 		nodeID := getIdentString(tree)
 		if tree.Children[0].Name == "Variable" {
 			allIt := ts.NodesAllIterator()
-			allIt.AddTag(nodeID)
+			allIt.Tagger().Add(nodeID)
 			out = allIt
 		} else {
 			n := nodeID
@@ -208,7 +209,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			i++
 		}
 		it := buildIteratorTree(tree.Children[i], ts)
-		lto := iterator.NewLinksTo(ts, it, graph.Predicate)
+		lto := iterator.NewLinksTo(ts, it, quad.Predicate)
 		return lto
 	case "RootConstraint":
 		constraintCount := 0
@@ -229,16 +230,16 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 		return and
 	case "Constraint":
 		var hasa *iterator.HasA
-		topLevelDir := graph.Subject
-		subItDir := graph.Object
+		topLevelDir := quad.Subject
+		subItDir := quad.Object
 		subAnd := iterator.NewAnd()
 		isOptional := false
 		for _, c := range tree.Children {
 			switch c.Name {
 			case "PredIdentifier":
 				if c.Children[0].Name == "Reverse" {
-					topLevelDir = graph.Object
-					subItDir = graph.Subject
+					topLevelDir = quad.Object
+					subItDir = quad.Subject
 				}
 				it := buildIteratorTree(c, ts)
 				subAnd.AddSubIterator(it)

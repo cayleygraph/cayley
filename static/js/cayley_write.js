@@ -48,7 +48,7 @@ $(function() {
       subject: $("#subject").val(),
       predicate: $("#predicate").val(),
       object: $("#object").val(),
-      provenance: $("#provenance").val()
+      label: $("#label").val()
     }
     if (!checkTriple(triple)) {
       return
@@ -68,7 +68,7 @@ $(function() {
       subject: $("#rsubject").val(),
       predicate: $("#rpredicate").val(),
       object: $("#robject").val(),
-      provenance: $("#rprovenance").val()
+      label: $("#rlabel").val()
     }
     if (!checkTriple(triple)) {
       return

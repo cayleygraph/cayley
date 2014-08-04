@@ -25,10 +25,11 @@ import (
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/sexp"
-	"github.com/google/cayley/nquads"
+	"github.com/google/cayley/quad/cquads"
+	"github.com/google/cayley/query"
 	"github.com/google/cayley/query/gremlin"
 	"github.com/google/cayley/query/mql"
+	"github.com/google/cayley/query/sexp"
 )
 
 func trace(s string) (string, time.Time) {
@@ -41,7 +42,7 @@ func un(s string, startTime time.Time) {
 	fmt.Printf(s, float64(endTime.UnixNano()-startTime.UnixNano())/float64(1E6))
 }
 
-func Run(query string, ses graph.Session) {
+func Run(query string, ses query.Session) {
 	nResults := 0
 	startTrace, startTime := trace("Elapsed time: %g ms\n\n")
 	defer func() {
@@ -62,7 +63,7 @@ func Run(query string, ses graph.Session) {
 }
 
 func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error {
-	var ses graph.Session
+	var ses query.Session
 	switch queryLanguage {
 	case "sexp":
 		ses = sexp.NewSession(ts)
@@ -71,7 +72,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewSession(ts, cfg.GremlinTimeout, true)
+		ses = gremlin.NewSession(ts, cfg.Timeout, true)
 	}
 	buf := bufio.NewReader(os.Stdin)
 	var line []byte
@@ -99,6 +100,11 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		if len(line) == 0 {
 			continue
 		}
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 || line[0] == '#' {
+			line = line[:0]
+			continue
+		}
 		if bytes.HasPrefix(line, []byte(":debug")) {
 			ses.ToggleDebug()
 			fmt.Println("Debug Toggled")
@@ -107,7 +113,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		}
 		if bytes.HasPrefix(line, []byte(":a")) {
 			var tripleStmt = line[3:]
-			triple, err := nquads.Parse(string(tripleStmt))
+			triple, err := cquads.Parse(string(tripleStmt))
 			if triple == nil {
 				if err != nil {
 					fmt.Printf("not a valid triple: %v\n", err)
@@ -121,7 +127,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		}
 		if bytes.HasPrefix(line, []byte(":d")) {
 			var tripleStmt = line[3:]
-			triple, err := nquads.Parse(string(tripleStmt))
+			triple, err := cquads.Parse(string(tripleStmt))
 			if triple == nil {
 				if err != nil {
 					fmt.Printf("not a valid triple: %v\n", err)
@@ -135,13 +141,13 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		}
 		result, err := ses.InputParses(string(line))
 		switch result {
-		case graph.Parsed:
+		case query.Parsed:
 			Run(string(line), ses)
 			line = line[:0]
-		case graph.ParseFail:
+		case query.ParseFail:
 			fmt.Println("Error: ", err)
 			line = line[:0]
-		case graph.ParseMore:
+		case query.ParseMore:
 		}
 	}
 }

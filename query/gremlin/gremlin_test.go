@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
+
 	_ "github.com/google/cayley/graph/memstore"
 )
 
@@ -36,7 +38,7 @@ import (
 //          \-->|#D#|------------->+---+
 //              +---+
 //
-var simpleGraph = []*graph.Triple{
+var simpleGraph = []*quad.Quad{
 	{"A", "follows", "B", ""},
 	{"C", "follows", "B", ""},
 	{"C", "follows", "D", ""},
@@ -50,7 +52,7 @@ var simpleGraph = []*graph.Triple{
 	{"G", "status", "cool", "status_graph"},
 }
 
-func makeTestSession(data []*graph.Triple) *Session {
+func makeTestSession(data []*quad.Quad) *Session {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	for _, t := range data {
 		ts.AddTriple(t)
@@ -244,14 +246,14 @@ var testQueries = []struct {
 	},
 }
 
-func runQueryGetTag(g []*graph.Triple, query string, tag string) []string {
+func runQueryGetTag(g []*quad.Quad, query string, tag string) []string {
 	js := makeTestSession(g)
 	c := make(chan interface{}, 5)
 	js.ExecInput(query, c, -1)
 
 	var results []string
 	for res := range c {
-		data := res.(*GremlinResult)
+		data := res.(*Result)
 		if data.val == nil {
 			val := (*data.actualResults)[tag]
 			if val != nil {

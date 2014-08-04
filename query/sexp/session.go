@@ -22,6 +22,7 @@ import (
 	"sort"
 
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/query"
 )
 
 type Session struct {
@@ -39,7 +40,7 @@ func (s *Session) ToggleDebug() {
 	s.debug = !s.debug
 }
 
-func (s *Session) InputParses(input string) (graph.ParseResult, error) {
+func (s *Session) InputParses(input string) (query.ParseResult, error) {
 	var parenDepth int
 	for i, x := range input {
 		if x == '(' {
@@ -52,17 +53,17 @@ func (s *Session) InputParses(input string) (graph.ParseResult, error) {
 				if (i - 10) > min {
 					min = i - 10
 				}
-				return graph.ParseFail, errors.New(fmt.Sprintf("Too many close parens at char %d: %s", i, input[min:i]))
+				return query.ParseFail, errors.New(fmt.Sprintf("Too many close parens at char %d: %s", i, input[min:i]))
 			}
 		}
 	}
 	if parenDepth > 0 {
-		return graph.ParseMore, nil
+		return query.ParseMore, nil
 	}
 	if len(ParseString(input)) > 0 {
-		return graph.Parsed, nil
+		return query.Parsed, nil
 	}
-	return graph.ParseFail, errors.New("Invalid Syntax")
+	return query.ParseFail, errors.New("Invalid Syntax")
 }
 
 func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
@@ -77,7 +78,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	}
 	nResults := 0
 	for {
-		_, ok := it.Next()
+		_, ok := graph.Next(it)
 		if !ok {
 			break
 		}

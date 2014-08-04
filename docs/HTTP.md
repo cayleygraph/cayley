@@ -93,7 +93,7 @@ POST Body: JSON triples
 	"subject": "Subject Node",
 	"predicate": "Predicate Node",
 	"object": "Object node",
-	"provenance": "Provenance node"  // Optional
+	"label": "Label node"  // Optional
 }]   // More than one triple allowed.
 ```
 
@@ -121,7 +121,7 @@ POST Body: JSON triples
 	"subject": "Subject Node",
 	"predicate": "Predicate Node",
 	"object": "Object node",
-	"provenance": "Provenance node"  // Optional
+	"label": "Label node"  // Optional
 }]   // More than one triple allowed.
 ```
 

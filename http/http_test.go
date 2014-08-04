@@ -19,22 +19,22 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
 
 var parseTests = []struct {
 	message string
 	input   string
-	expect  []*graph.Triple
+	expect  []*quad.Quad
 	err     error
 }{
 	{
 		message: "parse correct JSON",
 		input: `[
 			{"subject": "foo", "predicate": "bar", "object": "baz"},
-			{"subject": "foo", "predicate": "bar", "object": "baz", "provenance": "graph"}
+			{"subject": "foo", "predicate": "bar", "object": "baz", "label": "graph"}
 		]`,
-		expect: []*graph.Triple{
+		expect: []*quad.Quad{
 			{"foo", "bar", "baz", ""},
 			{"foo", "bar", "baz", "graph"},
 		},
@@ -45,7 +45,7 @@ var parseTests = []struct {
 		input: `[
 			{"subject": "foo", "predicate": "bar", "object": "foo", "something_else": "extra data"}
 		]`,
-		expect: []*graph.Triple{
+		expect: []*quad.Quad{
 			{"foo", "bar", "foo", ""},
 		},
 		err: nil,
@@ -56,7 +56,7 @@ var parseTests = []struct {
 			{"subject": "foo", "predicate": "bar"}
 		]`,
 		expect: nil,
-		err:    fmt.Errorf("Invalid triple at index %d. %v", 0, &graph.Triple{"foo", "bar", "", ""}),
+		err:    fmt.Errorf("Invalid triple at index %d. %v", 0, &quad.Quad{"foo", "bar", "", ""}),
 	},
 }
 
