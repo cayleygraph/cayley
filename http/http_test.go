@@ -25,7 +25,7 @@ import (
 var parseTests = []struct {
 	message string
 	input   string
-	expect  []*quad.Quad
+	expect  []quad.Quad
 	err     error
 }{
 	{
@@ -34,7 +34,7 @@ var parseTests = []struct {
 			{"subject": "foo", "predicate": "bar", "object": "baz"},
 			{"subject": "foo", "predicate": "bar", "object": "baz", "label": "graph"}
 		]`,
-		expect: []*quad.Quad{
+		expect: []quad.Quad{
 			{"foo", "bar", "baz", ""},
 			{"foo", "bar", "baz", "graph"},
 		},
@@ -45,7 +45,7 @@ var parseTests = []struct {
 		input: `[
 			{"subject": "foo", "predicate": "bar", "object": "foo", "something_else": "extra data"}
 		]`,
-		expect: []*quad.Quad{
+		expect: []quad.Quad{
 			{"foo", "bar", "foo", ""},
 		},
 		err: nil,
@@ -56,7 +56,7 @@ var parseTests = []struct {
 			{"subject": "foo", "predicate": "bar"}
 		]`,
 		expect: nil,
-		err:    fmt.Errorf("Invalid triple at index %d. %v", 0, &quad.Quad{"foo", "bar", "", ""}),
+		err:    fmt.Errorf("Invalid triple at index %d. %v", 0, quad.Quad{"foo", "bar", "", ""}),
 	},
 }
 

@@ -36,11 +36,11 @@ func (qs *store) ValueOf(s string) graph.Value {
 	return nil
 }
 
-func (qs *store) AddTriple(*quad.Quad) {}
+func (qs *store) AddTriple(quad.Quad) {}
 
-func (qs *store) AddTripleSet([]*quad.Quad) {}
+func (qs *store) AddTripleSet([]quad.Quad) {}
 
-func (qs *store) Quad(graph.Value) *quad.Quad { return &quad.Quad{} }
+func (qs *store) Quad(graph.Value) quad.Quad { return quad.Quad{} }
 
 func (qs *store) TripleIterator(d quad.Direction, i graph.Value) graph.Iterator {
 	return qs.iter
@@ -74,4 +74,4 @@ func (qs *store) Close() {}
 
 func (qs *store) TripleDirection(graph.Value, quad.Direction) graph.Value { return 0 }
 
-func (qs *store) RemoveTriple(t *quad.Quad) {}
+func (qs *store) RemoveTriple(t quad.Quad) {}

@@ -104,7 +104,7 @@ func (d Direction) String() string {
 // instead of the pointer. This needs benchmarking to make the decision.
 
 // Per-field accessor for triples
-func (q *Quad) Get(d Direction) string {
+func (q Quad) Get(d Direction) string {
 	switch d {
 	case Subject:
 		return q.Subject
@@ -119,16 +119,16 @@ func (q *Quad) Get(d Direction) string {
 	}
 }
 
-func (q *Quad) Equals(o *Quad) bool {
-	return *q == *o
+func (q Quad) Equals(o Quad) bool {
+	return q == o
 }
 
 // Pretty-prints a triple.
-func (q *Quad) String() string {
+func (q Quad) String() string {
 	return fmt.Sprintf("%s -- %s -> %s", q.Subject, q.Predicate, q.Object)
 }
 
-func (q *Quad) IsValid() bool {
+func (q Quad) IsValid() bool {
 	return q.Subject != "" && q.Predicate != "" && q.Object != ""
 }
 
@@ -137,7 +137,7 @@ func (q *Quad) IsValid() bool {
 // from nquads to here to provide UnmarshalText(text []byte) error.
 
 // Prints a triple in N-Quad format.
-func (q *Quad) NTriple() string {
+func (q Quad) NTriple() string {
 	if q.Label == "" {
 		//TODO(barakmich): Proper escaping.
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)
@@ -147,5 +147,5 @@ func (q *Quad) NTriple() string {
 }
 
 type Unmarshaler interface {
-	Unmarshal() (*Quad, error)
+	Unmarshal() (Quad, error)
 }

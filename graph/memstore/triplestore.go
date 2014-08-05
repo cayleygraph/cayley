@@ -101,13 +101,13 @@ func newTripleStore() *TripleStore {
 	return &ts
 }
 
-func (ts *TripleStore) AddTripleSet(triples []*quad.Quad) {
+func (ts *TripleStore) AddTripleSet(triples []quad.Quad) {
 	for _, t := range triples {
 		ts.AddTriple(t)
 	}
 }
 
-func (ts *TripleStore) tripleExists(t *quad.Quad) (bool, int64) {
+func (ts *TripleStore) tripleExists(t quad.Quad) (bool, int64) {
 	smallest := -1
 	var smallest_tree *llrb.LLRB
 	for d := quad.Subject; d <= quad.Label; d++ {
@@ -137,19 +137,19 @@ func (ts *TripleStore) tripleExists(t *quad.Quad) (bool, int64) {
 		if !ok {
 			break
 		}
-		if t.Equals(&ts.triples[val.(int64)]) {
+		if t.Equals(ts.triples[val.(int64)]) {
 			return true, val.(int64)
 		}
 	}
 	return false, 0
 }
 
-func (ts *TripleStore) AddTriple(t *quad.Quad) {
+func (ts *TripleStore) AddTriple(t quad.Quad) {
 	if exists, _ := ts.tripleExists(t); exists {
 		return
 	}
 	var tripleID int64
-	ts.triples = append(ts.triples, *t)
+	ts.triples = append(ts.triples, t)
 	tripleID = ts.tripleIdCounter
 	ts.size++
 	ts.tripleIdCounter++
@@ -178,7 +178,7 @@ func (ts *TripleStore) AddTriple(t *quad.Quad) {
 	// TODO(barakmich): Add VIP indexing
 }
 
-func (ts *TripleStore) RemoveTriple(t *quad.Quad) {
+func (ts *TripleStore) RemoveTriple(t quad.Quad) {
 	var tripleID int64
 	var exists bool
 	tripleID = 0
@@ -224,8 +224,8 @@ func (ts *TripleStore) RemoveTriple(t *quad.Quad) {
 	}
 }
 
-func (ts *TripleStore) Quad(index graph.Value) *quad.Quad {
-	return &ts.triples[index.(int64)]
+func (ts *TripleStore) Quad(index graph.Value) quad.Quad {
+	return ts.triples[index.(int64)]
 }
 
 func (ts *TripleStore) TripleIterator(d quad.Direction, value graph.Value) graph.Iterator {

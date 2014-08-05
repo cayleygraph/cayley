@@ -57,7 +57,7 @@ func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
 		return err
 	}
 
-	block := make([]*quad.Quad, 0, cfg.LoadSize)
+	block := make([]quad.Quad, 0, cfg.LoadSize)
 	for {
 		t, err := dec.Unmarshal()
 		if err != nil {

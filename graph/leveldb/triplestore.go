@@ -116,7 +116,7 @@ func (qs *TripleStore) Size() int64 {
 	return qs.size
 }
 
-func (qs *TripleStore) createKeyFor(d [3]quad.Direction, triple *quad.Quad) []byte {
+func (qs *TripleStore) createKeyFor(d [3]quad.Direction, triple quad.Quad) []byte {
 	key := make([]byte, 0, 2+(qs.hasher.Size()*3))
 	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
@@ -126,7 +126,7 @@ func (qs *TripleStore) createKeyFor(d [3]quad.Direction, triple *quad.Quad) []by
 	return key
 }
 
-func (qs *TripleStore) createProvKeyFor(d [3]quad.Direction, triple *quad.Quad) []byte {
+func (qs *TripleStore) createProvKeyFor(d [3]quad.Direction, triple quad.Quad) []byte {
 	key := make([]byte, 0, 2+(qs.hasher.Size()*4))
 	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{quad.Label.Prefix(), d[0].Prefix()}...)
@@ -144,7 +144,7 @@ func (qs *TripleStore) createValueKeyFor(s string) []byte {
 	return key
 }
 
-func (qs *TripleStore) AddTriple(t *quad.Quad) {
+func (qs *TripleStore) AddTriple(t quad.Quad) {
 	batch := &leveldb.Batch{}
 	qs.buildWrite(batch, t)
 	err := qs.db.Write(batch, qs.writeopts)
@@ -163,7 +163,7 @@ var (
 	pso = [3]quad.Direction{quad.Predicate, quad.Subject, quad.Object}
 )
 
-func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
+func (qs *TripleStore) RemoveTriple(t quad.Quad) {
 	_, err := qs.db.Get(qs.createKeyFor(spo, t), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Error("Couldn't access DB to confirm deletion")
@@ -192,8 +192,8 @@ func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 	qs.size--
 }
 
-func (qs *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *quad.Quad) {
-	bytes, err := json.Marshal(*t)
+func (qs *TripleStore) buildTripleWrite(batch *leveldb.Batch, t quad.Quad) {
+	bytes, err := json.Marshal(t)
 	if err != nil {
 		glog.Errorf("Couldn't write to buffer for triple %s: %s", t, err)
 		return
@@ -206,7 +206,7 @@ func (qs *TripleStore) buildTripleWrite(batch *leveldb.Batch, t *quad.Quad) {
 	}
 }
 
-func (qs *TripleStore) buildWrite(batch *leveldb.Batch, t *quad.Quad) {
+func (qs *TripleStore) buildWrite(batch *leveldb.Batch, t quad.Quad) {
 	qs.buildTripleWrite(batch, t)
 	qs.UpdateValueKeyBy(t.Get(quad.Subject), 1, nil)
 	qs.UpdateValueKeyBy(t.Get(quad.Predicate), 1, nil)
@@ -267,7 +267,7 @@ func (qs *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.
 	}
 }
 
-func (qs *TripleStore) AddTripleSet(t_s []*quad.Quad) {
+func (qs *TripleStore) AddTripleSet(t_s []quad.Quad) {
 	batch := &leveldb.Batch{}
 	newTs := len(t_s)
 	resizeMap := make(map[string]int)
@@ -306,23 +306,23 @@ func (qs *TripleStore) Close() {
 	qs.open = false
 }
 
-func (qs *TripleStore) Quad(k graph.Value) *quad.Quad {
+func (qs *TripleStore) Quad(k graph.Value) quad.Quad {
 	var triple quad.Quad
 	b, err := qs.db.Get(k.([]byte), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Error("Error: couldn't get triple from DB.")
-		return &quad.Quad{}
+		return quad.Quad{}
 	}
 	if err == leveldb.ErrNotFound {
 		// No harm, no foul.
-		return &quad.Quad{}
+		return quad.Quad{}
 	}
 	err = json.Unmarshal(b, &triple)
 	if err != nil {
 		glog.Error("Error: couldn't reconstruct triple.")
-		return &quad.Quad{}
+		return quad.Quad{}
 	}
-	return &triple
+	return triple
 }
 
 func (qs *TripleStore) convertStringToByteHash(s string) []byte {
