@@ -30,7 +30,7 @@ type Single struct {
 
 func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.QuadWriter, error) {
 	rep := &Single{nextID: ts.Horizon(), ts: ts}
-	if rep.nextID == -1 {
+	if rep.nextID <= 0 {
 		rep.nextID = 1
 	}
 	return rep, nil

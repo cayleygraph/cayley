@@ -24,6 +24,7 @@ import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
+	"github.com/google/cayley/writer"
 )
 
 func makeTripleSet() []*quad.Quad {
@@ -143,7 +144,8 @@ func TestLoadDatabase(t *testing.T) {
 		t.Error("Failed to create leveldb TripleStore.")
 	}
 
-	qs.AddTriple(&quad.Quad{"Something", "points_to", "Something Else", "context"})
+	w, _ := writer.NewSingleReplication(qs, nil)
+	w.AddQuad(&quad.Quad{"Something", "points_to", "Something Else", "context"})
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
 		if got := qs.NameOf(qs.ValueOf(pq)); got != pq {
 			t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)
@@ -162,13 +164,14 @@ func TestLoadDatabase(t *testing.T) {
 	if qs == nil || err != nil {
 		t.Error("Failed to create leveldb TripleStore.")
 	}
+	w, _ = writer.NewSingleReplication(qs, nil)
 
 	ts2, didConvert := qs.(*TripleStore)
 	if !didConvert {
 		t.Errorf("Could not convert from generic to LevelDB TripleStore")
 	}
 
-	qs.AddTripleSet(makeTripleSet())
+	w.AddQuadSet(makeTripleSet())
 	if s := qs.Size(); s != 11 {
 		t.Errorf("Unexpected triplestore size, got:%d expect:11", s)
 	}
@@ -176,7 +179,7 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected triplestore size, got:%d expect:5", s)
 	}
 
-	qs.RemoveTriple(&quad.Quad{"A", "follows", "B", ""})
+	w.RemoveQuad(&quad.Quad{"A", "follows", "B", ""})
 	if s := qs.Size(); s != 10 {
 		t.Errorf("Unexpected triplestore size after RemoveTriple, got:%d expect:10", s)
 	}
@@ -204,7 +207,9 @@ func TestIterator(t *testing.T) {
 	if qs == nil || err != nil {
 		t.Error("Failed to create leveldb TripleStore.")
 	}
-	qs.AddTripleSet(makeTripleSet())
+
+	w, _ := writer.NewSingleReplication(qs, nil)
+	w.AddQuadSet(makeTripleSet())
 	var it graph.Iterator
 
 	it = qs.NodesAllIterator()
@@ -299,7 +304,8 @@ func TestSetIterator(t *testing.T) {
 	}
 	defer qs.Close()
 
-	qs.AddTripleSet(makeTripleSet())
+	w, _ := writer.NewSingleReplication(qs, nil)
+	w.AddQuadSet(makeTripleSet())
 
 	expect := []*quad.Quad{
 		{"C", "follows", "B", ""},
@@ -411,7 +417,9 @@ func TestOptimize(t *testing.T) {
 	if qs == nil || err != nil {
 		t.Error("Failed to create leveldb TripleStore.")
 	}
-	qs.AddTripleSet(makeTripleSet())
+
+	w, _ := writer.NewSingleReplication(qs, nil)
+	w.AddQuadSet(makeTripleSet())
 
 	// With an linksto-fixed pair
 	fixed := qs.FixedIterator()
