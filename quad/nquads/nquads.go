@@ -30,14 +30,6 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-// Parse returns a valid quad.Quad or a non-nil error. Parse does
-// handle comments except where the comment placement does not prevent
-// a complete valid quad.Quad from being defined.
-func Parse(str string) (quad.Quad, error) {
-	q, err := parse([]rune(str))
-	return q, err
-}
-
 // Decoder implements N-Quad document parsing according to the RDF
 // 1.1 N-Quads specification.
 type Decoder struct {

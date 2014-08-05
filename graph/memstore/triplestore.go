@@ -137,7 +137,7 @@ func (ts *TripleStore) tripleExists(t quad.Quad) (bool, int64) {
 		if !ok {
 			break
 		}
-		if t.Equals(ts.triples[val.(int64)]) {
+		if t == ts.triples[val.(int64)] {
 			return true, val.(int64)
 		}
 	}
