@@ -44,7 +44,7 @@ If you prefer to build from source, see the documentation on the wiki at [How to
 
 `cd` to the directory and give it a quick test with:
 ```
-./cayley repl --dbpath=testdata.nt
+./cayley repl --dbpath=testdata.nq
 ```
 
 You should see a `cayley>` REPL prompt. Go ahead and give it a try:
