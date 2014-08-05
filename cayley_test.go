@@ -392,18 +392,18 @@ func BenchmarkNetAndSpeed(b *testing.B) {
 	runBench(4, b)
 }
 
-func BenchmarkKeannuAndNet(b *testing.B) {
+func BenchmarkKeanuAndNet(b *testing.B) {
 	runBench(5, b)
 }
 
-func BenchmarkKeannuAndSpeed(b *testing.B) {
+func BenchmarkKeanuAndSpeed(b *testing.B) {
 	runBench(6, b)
 }
 
-func BenchmarkKeannuOther(b *testing.B) {
+func BenchmarkKeanuOther(b *testing.B) {
 	runBench(7, b)
 }
 
-func BenchmarkKeannuBullockOther(b *testing.B) {
+func BenchmarkKeanuBullockOther(b *testing.B) {
 	runBench(8, b)
 }
