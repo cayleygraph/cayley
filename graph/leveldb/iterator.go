@@ -233,12 +233,16 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	}
 	offset := PositionOf(val[0:2], it.dir, it.qs)
 	if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
-		data, err := it.qs.db.Get(val, it.ro)
-		if err != nil {
-			glog.Error("Couldn't get data for key ", val, " in iterator ", it.UID(), " failing Contains.")
-			return false
-		}
-		return it.isLiveValue(data)
+		// You may ask, why don't we check to see if it's a valid (not deleted) triple
+		// again?
+		//
+		// We've already done that -- in order to get the graph.Value token in the
+		// first place, we had to have done the check already; it came from a Next().
+		//
+		// However, if it ever starts coming from somewhere else, it'll be more
+		// efficient to change the interface of the graph.Value for LevelDB to a
+		// struct with a flag for isValid, to save another random read.
+		return true
 	}
 	return false
 }
@@ -249,7 +253,15 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.tags.Tags(), it.dir, size, it.qs.NameOf(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)",
+		strings.Repeat(" ", indent),
+		it.Type(),
+		it.UID(),
+		it.tags.Tags(),
+		it.dir,
+		size,
+		it.qs.NameOf(it.checkId),
+	)
 }
 
 var levelDBType graph.Type
