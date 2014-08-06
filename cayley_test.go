@@ -358,11 +358,6 @@ func runBench(n int, b *testing.B) {
 		b.Skip()
 	}
 	prepare(b)
-	ses := gremlin.NewSession(ts, cfg.Timeout, true)
-	_, err := ses.InputParses(benchmarkQueries[n].query)
-	if err != nil {
-		b.Fatalf("Failed to parse benchmark gremlin %s: %v", benchmarkQueries[n].message, err)
-	}
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
