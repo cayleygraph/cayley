@@ -117,7 +117,7 @@ func (it *AllIterator) Next() bool {
 		it.Close()
 		return false
 	}
-	it.result = out
+	it.result = Token(out)
 	return true
 }
 

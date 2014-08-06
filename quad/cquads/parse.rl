@@ -33,7 +33,12 @@ import (
 	write data;
 }%%
 
-func parse(data []rune) (quad.Quad, error) {
+// Parse returns a valid quad.Quad or a non-nil error. Parse does
+// handle comments except where the comment placement does not prevent
+// a complete valid quad.Quad from being defined.
+func Parse(statement string) (quad.Quad, error) {
+	data := []rune(statement)
+
 	var (
 		cs, p int
 		pe    = len(data)

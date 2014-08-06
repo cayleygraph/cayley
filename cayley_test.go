@@ -17,6 +17,7 @@ package main
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
@@ -292,9 +293,9 @@ var m2_actors = movie2.Save("name","movie2").Follow(filmToActor)
 var (
 	once sync.Once
 	cfg  = &config.Config{
-		DatabasePath:   "30kmoviedata.nq.gz",
-		DatabaseType:   "memstore",
-		GremlinTimeout: 300,
+		DatabasePath: "30kmoviedata.nq.gz",
+		DatabaseType: "memstore",
+		Timeout:      300 * time.Second,
 	}
 
 	ts graph.TripleStore
@@ -316,7 +317,7 @@ func TestQueries(t *testing.T) {
 		if testing.Short() && test.long {
 			continue
 		}
-		ses := gremlin.NewSession(ts, cfg.GremlinTimeout, true)
+		ses := gremlin.NewSession(ts, cfg.Timeout, true)
 		_, err := ses.InputParses(test.query)
 		if err != nil {
 			t.Fatalf("Failed to parse benchmark gremlin %s: %v", test.message, err)
@@ -333,7 +334,7 @@ func TestQueries(t *testing.T) {
 			if j == nil && err == nil {
 				continue
 			}
-			if err != nil && err.Error() == "Query Timeout" {
+			if err == gremlin.ErrKillTimeout {
 				timedOut = true
 				continue
 			}
@@ -347,7 +348,7 @@ func TestQueries(t *testing.T) {
 
 		// TODO(kortschak) Be more rigorous in this result validation.
 		if len(got) != len(test.expect) {
-			t.Errorf("Unexpected number of results, got:%d expect:%d.", len(got), len(test.expect))
+			t.Errorf("Unexpected number of results, got:%d expect:%d on %s.", len(got), len(test.expect), test.message)
 		}
 	}
 }
@@ -357,17 +358,18 @@ func runBench(n int, b *testing.B) {
 		b.Skip()
 	}
 	prepare(b)
-	ses := gremlin.NewSession(ts, cfg.GremlinTimeout, true)
-	_, err := ses.InputParses(benchmarkQueries[n].query)
-	if err != nil {
-		b.Fatalf("Failed to parse benchmark gremlin %s: %v", benchmarkQueries[n].message, err)
-	}
+	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		c := make(chan interface{}, 5)
+		ses := gremlin.NewSession(ts, cfg.Timeout, true)
+		// Do the parsing we know works.
+		ses.InputParses(benchmarkQueries[n].query)
+		b.StartTimer()
 		go ses.ExecInput(benchmarkQueries[n].query, c, 100)
 		for _ = range c {
 		}
+		b.StopTimer()
 	}
 }
 
@@ -391,18 +393,18 @@ func BenchmarkNetAndSpeed(b *testing.B) {
 	runBench(4, b)
 }
 
-func BenchmarkKeannuAndNet(b *testing.B) {
+func BenchmarkKeanuAndNet(b *testing.B) {
 	runBench(5, b)
 }
 
-func BenchmarkKeannuAndSpeed(b *testing.B) {
+func BenchmarkKeanuAndSpeed(b *testing.B) {
 	runBench(6, b)
 }
 
-func BenchmarkKeannuOther(b *testing.B) {
+func BenchmarkKeanuOther(b *testing.B) {
 	runBench(7, b)
 }
 
-func BenchmarkKeannuBullockOther(b *testing.B) {
+func BenchmarkKeanuBullockOther(b *testing.B) {
 	runBench(8, b)
 }

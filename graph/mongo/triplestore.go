@@ -91,7 +91,7 @@ func newTripleStore(addr string, options graph.Options) (graph.TripleStore, erro
 	return &qs, nil
 }
 
-func (qs *TripleStore) getIdForTriple(t *quad.Quad) string {
+func (qs *TripleStore) getIdForTriple(t quad.Quad) string {
 	id := qs.ConvertStringToByteHash(t.Subject)
 	id += qs.ConvertStringToByteHash(t.Predicate)
 	id += qs.ConvertStringToByteHash(t.Object)
@@ -150,7 +150,7 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) {
 	}
 }
 
-func (qs *TripleStore) writeTriple(t *quad.Quad) bool {
+func (qs *TripleStore) writeTriple(t quad.Quad) bool {
 	tripledoc := bson.M{
 		"_id":       qs.getIdForTriple(t),
 		"Subject":   t.Subject,
@@ -170,7 +170,7 @@ func (qs *TripleStore) writeTriple(t *quad.Quad) bool {
 	return true
 }
 
-func (qs *TripleStore) AddTriple(t *quad.Quad) {
+func (qs *TripleStore) AddTriple(t quad.Quad) {
 	_ = qs.writeTriple(t)
 	qs.updateNodeBy(t.Subject, 1)
 	qs.updateNodeBy(t.Predicate, 1)
@@ -180,7 +180,7 @@ func (qs *TripleStore) AddTriple(t *quad.Quad) {
 	}
 }
 
-func (qs *TripleStore) AddTripleSet(in []*quad.Quad) {
+func (qs *TripleStore) AddTripleSet(in []quad.Quad) {
 	qs.session.SetSafe(nil)
 	ids := make(map[string]int)
 	for _, t := range in {
@@ -200,7 +200,7 @@ func (qs *TripleStore) AddTripleSet(in []*quad.Quad) {
 	qs.session.SetSafe(&mgo.Safe{})
 }
 
-func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
+func (qs *TripleStore) RemoveTriple(t quad.Quad) {
 	err := qs.db.C("triples").RemoveId(qs.getIdForTriple(t))
 	if err == mgo.ErrNotFound {
 		return
@@ -216,13 +216,13 @@ func (qs *TripleStore) RemoveTriple(t *quad.Quad) {
 	}
 }
 
-func (qs *TripleStore) Quad(val graph.Value) *quad.Quad {
+func (qs *TripleStore) Quad(val graph.Value) quad.Quad {
 	var bsonDoc bson.M
 	err := qs.db.C("triples").FindId(val.(string)).One(&bsonDoc)
 	if err != nil {
 		glog.Errorf("Error: Couldn't retrieve triple %s %v", val, err)
 	}
-	return &quad.Quad{
+	return quad.Quad{
 		bsonDoc["Subject"].(string),
 		bsonDoc["Predicate"].(string),
 		bsonDoc["Object"].(string),

@@ -72,7 +72,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewSession(ts, cfg.GremlinTimeout, true)
+		ses = gremlin.NewSession(ts, cfg.Timeout, true)
 	}
 	buf := bufio.NewReader(os.Stdin)
 	var line []byte
@@ -114,7 +114,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		if bytes.HasPrefix(line, []byte(":a")) {
 			var tripleStmt = line[3:]
 			triple, err := cquads.Parse(string(tripleStmt))
-			if triple == nil {
+			if !triple.IsValid() {
 				if err != nil {
 					fmt.Printf("not a valid triple: %v\n", err)
 				}
@@ -128,7 +128,7 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 		if bytes.HasPrefix(line, []byte(":d")) {
 			var tripleStmt = line[3:]
 			triple, err := cquads.Parse(string(tripleStmt))
-			if triple == nil {
+			if !triple.IsValid() {
 				if err != nil {
 					fmt.Printf("not a valid triple: %v\n", err)
 				}

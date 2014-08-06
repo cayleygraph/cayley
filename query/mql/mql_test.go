@@ -37,7 +37,7 @@ import (
 //          \-->|#D#|------------->+---+
 //              +---+
 //
-var simpleGraph = []*quad.Quad{
+var simpleGraph = []quad.Quad{
 	{"A", "follows", "B", ""},
 	{"C", "follows", "B", ""},
 	{"C", "follows", "D", ""},
@@ -51,7 +51,7 @@ var simpleGraph = []*quad.Quad{
 	{"G", "status", "cool", "status_graph"},
 }
 
-func makeTestSession(data []*quad.Quad) *Session {
+func makeTestSession(data []quad.Quad) *Session {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
 	for _, t := range data {
 		ts.AddTriple(t)
@@ -165,7 +165,7 @@ var testQueries = []struct {
 	},
 }
 
-func runQuery(g []*quad.Quad, query string) interface{} {
+func runQuery(g []quad.Quad, query string) interface{} {
 	s := makeTestSession(g)
 	c := make(chan interface{}, 5)
 	go s.ExecInput(query, c, -1)

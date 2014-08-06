@@ -148,8 +148,10 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 	count := 0
 	it, _ = it.Optimize()
 	for {
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return nil
+		default:
 		}
 		if !graph.Next(it) {
 			break
@@ -161,9 +163,11 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 		if limit >= 0 && count >= limit {
 			break
 		}
-		for it.NextPath() == true {
-			if ses.doHalt {
+		for it.NextPath() {
+			select {
+			case <-ses.kill:
 				return nil
+			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
@@ -183,8 +187,10 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 	count := 0
 	it, _ = it.Optimize()
 	for {
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return nil
+		default:
 		}
 		if !graph.Next(it) {
 			break
@@ -203,8 +209,10 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 	count := 0
 	it, _ = it.Optimize()
 	for {
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return
+		default:
 		}
 		if !graph.Next(it) {
 			break
@@ -217,9 +225,11 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 		if limit >= 0 && count >= limit {
 			break
 		}
-		for it.NextPath() == true {
-			if ses.doHalt {
+		for it.NextPath() {
+			select {
+			case <-ses.kill:
 				return
+			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
@@ -235,34 +245,35 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 }
 
 func runIteratorOnSession(it graph.Iterator, ses *Session) {
-	if ses.lookingForQueryShape {
-		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.queryShape)
+	if ses.wantShape {
+		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.shape)
 		return
 	}
 	it, _ = it.Optimize()
 	glog.V(2).Infoln(it.DebugString(0))
 	for {
-		// TODO(barakmich): Better halting.
-		if ses.doHalt {
+		select {
+		case <-ses.kill:
 			return
+		default:
 		}
 		if !graph.Next(it) {
 			break
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
-		if !cont {
+		if !ses.SendResult(&Result{actualResults: &tags}) {
 			break
 		}
-		for it.NextPath() == true {
-			if ses.doHalt {
+		for it.NextPath() {
+			select {
+			case <-ses.kill:
 				return
+			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			cont := ses.SendResult(&GremlinResult{metaresult: false, err: "", val: nil, actualResults: &tags})
-			if !cont {
+			if !ses.SendResult(&Result{actualResults: &tags}) {
 				break
 			}
 		}

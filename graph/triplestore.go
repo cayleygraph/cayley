@@ -28,29 +28,32 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-// Defines an opaque "triple store value" type. However the backend wishes to
-// implement it, a Value is merely a token to a triple or a node that the backing
-// store itself understands, and the base iterators pass around.
+// Value defines an opaque "triple store value" type. However the backend wishes
+// to implement it, a Value is merely a token to a triple or a node that the
+// backing store itself understands, and the base iterators pass around.
 //
 // For example, in a very traditional, graphd-style graph, these are int64s
 // (guids of the primitives). In a very direct sort of graph, these could be
 // pointers to structs, or merely triples, or whatever works best for the
 // backing store.
+//
+// These must be comparable, or implement a `Key() interface{}` function
+// so that they may be stored in maps.
 type Value interface{}
 
 type TripleStore interface {
 	// Add a triple to the store.
-	AddTriple(*quad.Quad)
+	AddTriple(quad.Quad)
 
 	// Add a set of triples to the store, atomically if possible.
-	AddTripleSet([]*quad.Quad)
+	AddTripleSet([]quad.Quad)
 
 	// Removes a triple matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
-	RemoveTriple(*quad.Quad)
+	RemoveTriple(quad.Quad)
 
 	// Given an opaque token, returns the triple for that token from the store.
-	Quad(Value) *quad.Quad
+	Quad(Value) quad.Quad
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.

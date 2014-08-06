@@ -72,12 +72,12 @@ All command line flags take precedence over the configuration file.
 
 ## Language Options
 
-#### **`gremlin_timeout`**
+#### **`timeout`**
 
-  * Type: Integer
+  * Type: Integer or String
   * Default: 30
 
-The value in seconds of the maximum length of time the Javascript runtime should run until cancelling the query and returning a 408 Timeout. A negative value means no limit.
+The maximum length of time the Javascript runtime should run until cancelling the query and returning a 408 Timeout. When timeout is an integer is is interpretted as seconds, when it is a string it is [parsed](http://golang.org/pkg/time/#ParseDuration) as a Go time.Duration. A negative duration means no limit.
 
 ## Per-Database Options
 

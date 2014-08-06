@@ -71,7 +71,7 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	var ses query.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
+		ses = gremlin.NewSession(api.ts, api.config.Timeout, false)
 	case "mql":
 		ses = mql.NewSession(api.ts)
 	default:
@@ -119,7 +119,7 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 	var ses query.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.ts, api.config.GremlinTimeout, false)
+		ses = gremlin.NewSession(api.ts, api.config.Timeout, false)
 	case "mql":
 		ses = mql.NewSession(api.ts)
 	default:

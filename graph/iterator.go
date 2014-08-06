@@ -157,6 +157,22 @@ func Next(it Iterator) bool {
 	return false
 }
 
+// Height is a convienence function to measure the height of an iterator tree.
+func Height(it Iterator, until Type) int {
+	if it.Type() == until {
+		return 1
+	}
+	subs := it.SubIterators()
+	maxDepth := 0
+	for _, sub := range subs {
+		h := Height(sub, until)
+		if h > maxDepth {
+			maxDepth = h
+		}
+	}
+	return maxDepth + 1
+}
+
 // FixedIterator wraps iterators that are modifiable by addition of fixed value sets.
 type FixedIterator interface {
 	Iterator
@@ -184,6 +200,7 @@ const (
 	Fixed
 	Not
 	Optional
+	Materialize
 )
 
 var (
@@ -204,6 +221,7 @@ var (
 		"fixed",
 		"not",
 		"optional",
+		"materialize",
 	}
 )
 

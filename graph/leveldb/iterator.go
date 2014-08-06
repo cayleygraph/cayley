@@ -42,7 +42,7 @@ type Iterator struct {
 }
 
 func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) *Iterator {
-	vb := value.([]byte)
+	vb := value.(Token)
 	p := make([]byte, 0, 2+qs.hasher.Size())
 	p = append(p, []byte(prefix)...)
 	p = append(p, []byte(vb[1:])...)
@@ -105,7 +105,7 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	out := NewIterator(it.originalPrefix, it.dir, it.checkId, it.qs)
+	out := NewIterator(it.originalPrefix, it.dir, Token(it.checkId), it.qs)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -134,7 +134,7 @@ func (it *Iterator) Next() bool {
 	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
 		out := make([]byte, len(it.iter.Key()))
 		copy(out, it.iter.Key())
-		it.result = out
+		it.result = Token(out)
 		ok := it.iter.Next()
 		if !ok {
 			it.Close()
@@ -216,7 +216,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 }
 
 func (it *Iterator) Contains(v graph.Value) bool {
-	val := v.([]byte)
+	val := v.(Token)
 	if val[0] == 'z' {
 		return false
 	}
@@ -227,7 +227,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		}
 	} else {
 		nameForDir := it.qs.Quad(v).Get(it.dir)
-		hashForDir := it.qs.ValueOf(nameForDir).([]byte)
+		hashForDir := it.qs.ValueOf(nameForDir).(Token)
 		if bytes.Equal(hashForDir, it.checkId) {
 			return true
 		}
@@ -236,12 +236,20 @@ func (it *Iterator) Contains(v graph.Value) bool {
 }
 
 func (it *Iterator) Size() (int64, bool) {
-	return it.qs.SizeOf(it.checkId), true
+	return it.qs.SizeOf(Token(it.checkId)), true
 }
 
 func (it *Iterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.UID(), it.tags.Tags(), it.dir, size, it.qs.NameOf(it.checkId))
+	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)",
+		strings.Repeat(" ", indent),
+		it.Type(),
+		it.UID(),
+		it.tags.Tags(),
+		it.dir,
+		size,
+		it.qs.NameOf(Token(it.checkId)),
+	)
 }
 
 var levelDBType graph.Type

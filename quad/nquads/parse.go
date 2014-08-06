@@ -37,7 +37,12 @@ const quads_en_statement int = 1
 // line 34 "parse.rl"
 
 
-func parse(data []rune) (quad.Quad, error) {
+// Parse returns a valid quad.Quad or a non-nil error. Parse does
+// handle comments except where the comment placement does not prevent
+// a complete valid quad.Quad from being defined.
+func Parse(statement string) (quad.Quad, error) {
+	data := []rune(statement)
+
 	var (
 		cs, p int
 		pe    = len(data)
@@ -54,15 +59,15 @@ func parse(data []rune) (quad.Quad, error) {
 	)
 
 	
-// line 58 "parse.go"
+// line 63 "parse.go"
 	{
 	cs = quads_start
 	}
 
-// line 53 "parse.rl"
+// line 58 "parse.rl"
 
 	
-// line 66 "parse.go"
+// line 71 "parse.go"
 	{
 	if p == pe {
 		goto _test_eof
@@ -286,7 +291,7 @@ tr0:
 		return q, quad.ErrIncomplete
 	
 	goto st0
-// line 290 "parse.go"
+// line 295 "parse.go"
 st_case_0:
 	st0:
 		cs = 0
@@ -310,7 +315,7 @@ tr120:
 			goto _test_eof2
 		}
 	st_case_2:
-// line 314 "parse.go"
+// line 319 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st3
@@ -351,7 +356,7 @@ tr121:
 			goto _test_eof3
 		}
 	st_case_3:
-// line 355 "parse.go"
+// line 360 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
@@ -377,7 +382,7 @@ tr7:
 			goto _test_eof4
 		}
 	st_case_4:
-// line 381 "parse.go"
+// line 386 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st4
@@ -422,7 +427,7 @@ tr108:
 			goto _test_eof5
 		}
 	st_case_5:
-// line 426 "parse.go"
+// line 431 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st6
@@ -463,7 +468,7 @@ tr109:
 			goto _test_eof6
 		}
 	st_case_6:
-// line 467 "parse.go"
+// line 472 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr14
@@ -493,7 +498,7 @@ tr14:
 			goto _test_eof7
 		}
 	st_case_7:
-// line 497 "parse.go"
+// line 502 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st7
@@ -542,7 +547,7 @@ tr79:
 			goto _test_eof8
 		}
 	st_case_8:
-// line 546 "parse.go"
+// line 551 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st9
@@ -574,7 +579,7 @@ tr80:
 			goto _test_eof9
 		}
 	st_case_9:
-// line 578 "parse.go"
+// line 583 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -628,7 +633,7 @@ tr96:
 			goto _test_eof10
 		}
 	st_case_10:
-// line 632 "parse.go"
+// line 637 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st10
@@ -669,7 +674,7 @@ tr39:
 			goto _test_eof88
 		}
 	st_case_88:
-// line 673 "parse.go"
+// line 678 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -690,7 +695,7 @@ tr127:
 			goto _test_eof89
 		}
 	st_case_89:
-// line 694 "parse.go"
+// line 699 "parse.go"
 		goto st89
 tr27:
 // line 54 "actions.rl"
@@ -727,7 +732,7 @@ tr50:
 			goto _test_eof11
 		}
 	st_case_11:
-// line 731 "parse.go"
+// line 736 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st12
@@ -768,7 +773,7 @@ tr51:
 			goto _test_eof12
 		}
 	st_case_12:
-// line 772 "parse.go"
+// line 777 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr38
@@ -794,7 +799,7 @@ tr38:
 			goto _test_eof13
 		}
 	st_case_13:
-// line 798 "parse.go"
+// line 803 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st13
@@ -816,7 +821,7 @@ tr52:
 			goto _test_eof14
 		}
 	st_case_14:
-// line 820 "parse.go"
+// line 825 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st15
@@ -1029,7 +1034,7 @@ tr34:
 			goto _test_eof24
 		}
 	st_case_24:
-// line 1033 "parse.go"
+// line 1038 "parse.go"
 		if data[p] == 58 {
 			goto st25
 		}
@@ -1211,7 +1216,7 @@ tr55:
 			goto _test_eof90
 		}
 	st_case_90:
-// line 1215 "parse.go"
+// line 1220 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -1522,7 +1527,7 @@ tr73:
 			goto _test_eof34
 		}
 	st_case_34:
-// line 1526 "parse.go"
+// line 1531 "parse.go"
 		switch data[p] {
 		case 62:
 			goto st35
@@ -1563,7 +1568,7 @@ tr74:
 			goto _test_eof35
 		}
 	st_case_35:
-// line 1567 "parse.go"
+// line 1572 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -1589,7 +1594,7 @@ tr75:
 			goto _test_eof36
 		}
 	st_case_36:
-// line 1593 "parse.go"
+// line 1598 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st37
@@ -1786,7 +1791,7 @@ tr81:
 			goto _test_eof46
 		}
 	st_case_46:
-// line 1790 "parse.go"
+// line 1795 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st47
@@ -2006,7 +2011,7 @@ tr21:
 			goto _test_eof56
 		}
 	st_case_56:
-// line 2010 "parse.go"
+// line 2015 "parse.go"
 		if data[p] == 58 {
 			goto st57
 		}
@@ -2190,7 +2195,7 @@ tr90:
 			goto _test_eof91
 		}
 	st_case_91:
-// line 2194 "parse.go"
+// line 2199 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -2377,7 +2382,7 @@ tr91:
 			goto _test_eof60
 		}
 	st_case_60:
-// line 2381 "parse.go"
+// line 2386 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -2582,7 +2587,7 @@ tr95:
 			goto _test_eof62
 		}
 	st_case_62:
-// line 2586 "parse.go"
+// line 2591 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr96
@@ -2691,7 +2696,7 @@ tr97:
 			goto _test_eof92
 		}
 	st_case_92:
-// line 2695 "parse.go"
+// line 2700 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -2869,7 +2874,7 @@ tr110:
 			goto _test_eof64
 		}
 	st_case_64:
-// line 2873 "parse.go"
+// line 2878 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st65
@@ -3066,7 +3071,7 @@ tr122:
 			goto _test_eof74
 		}
 	st_case_74:
-// line 3070 "parse.go"
+// line 3075 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st75
@@ -3263,7 +3268,7 @@ tr3:
 			goto _test_eof84
 		}
 	st_case_84:
-// line 3267 "parse.go"
+// line 3272 "parse.go"
 		if data[p] == 58 {
 			goto st85
 		}
@@ -3639,14 +3644,14 @@ tr3:
 
 		return q, nil
 	
-// line 3643 "parse.go"
+// line 3648 "parse.go"
 		}
 	}
 
 	_out: {}
 	}
 
-// line 55 "parse.rl"
+// line 60 "parse.rl"
 
 	return quad.Quad{}, quad.ErrInvalid
 }
