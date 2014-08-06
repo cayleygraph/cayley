@@ -40,17 +40,17 @@ type Value interface{}
 
 type TripleStore interface {
 	// Add a triple to the store.
-	AddTriple(*quad.Quad)
+	AddTriple(quad.Quad)
 
 	// Add a set of triples to the store, atomically if possible.
-	AddTripleSet([]*quad.Quad)
+	AddTripleSet([]quad.Quad)
 
 	// Removes a triple matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
-	RemoveTriple(*quad.Quad)
+	RemoveTriple(quad.Quad)
 
 	// Given an opaque token, returns the triple for that token from the store.
-	Quad(Value) *quad.Quad
+	Quad(Value) quad.Quad
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.

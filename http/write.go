@@ -29,8 +29,8 @@ import (
 	"github.com/google/cayley/quad/nquads"
 )
 
-func ParseJsonToTripleList(jsonBody []byte) ([]*quad.Quad, error) {
-	var tripleList []*quad.Quad
+func ParseJsonToTripleList(jsonBody []byte) ([]quad.Quad, error) {
+	var tripleList []quad.Quad
 	err := json.Unmarshal(jsonBody, &tripleList)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (api *Api) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 	var (
 		n int
 
-		block = make([]*quad.Quad, 0, blockSize)
+		block = make([]quad.Quad, 0, blockSize)
 	)
 	for {
 		t, err := dec.Unmarshal()
