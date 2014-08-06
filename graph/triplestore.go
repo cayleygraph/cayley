@@ -28,14 +28,17 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-// Defines an opaque "triple store value" type. However the backend wishes to
-// implement it, a Value is merely a token to a triple or a node that the backing
-// store itself understands, and the base iterators pass around.
+// Value defines an opaque "triple store value" type. However the backend wishes
+// to implement it, a Value is merely a token to a triple or a node that the
+// backing store itself understands, and the base iterators pass around.
 //
 // For example, in a very traditional, graphd-style graph, these are int64s
 // (guids of the primitives). In a very direct sort of graph, these could be
 // pointers to structs, or merely triples, or whatever works best for the
 // backing store.
+//
+// These must be comparable, ie, not arrays or maps, as they may be used as keys
+// for maps.
 type Value interface{}
 
 type TripleStore interface {

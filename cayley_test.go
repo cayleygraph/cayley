@@ -348,7 +348,7 @@ func TestQueries(t *testing.T) {
 
 		// TODO(kortschak) Be more rigorous in this result validation.
 		if len(got) != len(test.expect) {
-			t.Errorf("Unexpected number of results, got:%d expect:%d.", len(got), len(test.expect))
+			t.Errorf("Unexpected number of results, got:%d expect:%d on %s.", len(got), len(test.expect), test.message)
 		}
 	}
 }
