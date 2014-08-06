@@ -44,7 +44,7 @@ const (
 
 type Token []byte
 
-func (t Token) Hashable() interface{} {
+func (t Token) Hasher() interface{} {
 	return string(t)
 }
 
