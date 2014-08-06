@@ -32,6 +32,10 @@ type result struct {
 	tags map[string]graph.Value
 }
 
+type hashable interface {
+	Hashable() interface{}
+}
+
 type Materialize struct {
 	uid         uint64
 	tags        graph.Tagger
@@ -200,7 +204,11 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	if it.aborted {
 		return it.subIt.Contains(v)
 	}
-	if i, ok := it.containsMap[v]; ok {
+	key := v
+	if h, ok := v.(hashable); ok {
+		key = h.Hashable()
+	}
+	if i, ok := it.containsMap[key]; ok {
 		it.index = i
 		it.subindex = 0
 		return graph.ContainsLogOut(it, v, true)
@@ -228,7 +236,7 @@ func (it *Materialize) NextResult() bool {
 func (it *Materialize) materializeSet() {
 	i := 0
 	for {
-		val, ok := graph.Next(it.subIt)
+		id, ok := graph.Next(it.subIt)
 		if !ok {
 			break
 		}
@@ -237,6 +245,10 @@ func (it *Materialize) materializeSet() {
 			it.aborted = true
 			break
 		}
+		val := id
+		if h, ok := id.(hashable); ok {
+			val = h.Hashable()
+		}
 		if _, ok := it.containsMap[val]; !ok {
 			it.containsMap[val] = len(it.values)
 			it.values = append(it.values, nil)
@@ -244,11 +256,11 @@ func (it *Materialize) materializeSet() {
 		index := it.containsMap[val]
 		tags := make(map[string]graph.Value)
 		it.subIt.TagResults(tags)
-		it.values[index] = append(it.values[index], result{id: val, tags: tags})
+		it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		for it.subIt.NextResult() == true {
 			tags := make(map[string]graph.Value)
 			it.subIt.TagResults(tags)
-			it.values[index] = append(it.values[index], result{id: val, tags: tags})
+			it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		}
 	}
 	if it.aborted {

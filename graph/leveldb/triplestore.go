@@ -42,6 +42,12 @@ const (
 	DefaultWriteBufferSize = 20
 )
 
+type Token []byte
+
+func (t Token) Hashable() interface{} {
+	return string(t)
+}
+
 type TripleStore struct {
 	dbOpts    *opt.Options
 	db        *leveldb.DB
@@ -308,7 +314,7 @@ func (qs *TripleStore) Close() {
 
 func (qs *TripleStore) Quad(k graph.Value) quad.Quad {
 	var triple quad.Quad
-	b, err := qs.db.Get(k.([]byte), qs.readopts)
+	b, err := qs.db.Get(k.(Token), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Error("Error: couldn't get triple from DB.")
 		return quad.Quad{}
@@ -334,7 +340,7 @@ func (qs *TripleStore) convertStringToByteHash(s string) []byte {
 }
 
 func (qs *TripleStore) ValueOf(s string) graph.Value {
-	return qs.createValueKeyFor(s)
+	return Token(qs.createValueKeyFor(s))
 }
 
 func (qs *TripleStore) valueData(value_key []byte) ValueData {
@@ -362,14 +368,14 @@ func (qs *TripleStore) NameOf(k graph.Value) string {
 		glog.V(2).Info("k was nil")
 		return ""
 	}
-	return qs.valueData(k.([]byte)).Name
+	return qs.valueData(k.(Token)).Name
 }
 
 func (qs *TripleStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
 		return 0
 	}
-	return int64(qs.valueData(k.([]byte)).Size)
+	return int64(qs.valueData(k.(Token)).Size)
 }
 
 func (qs *TripleStore) getSize() {
@@ -432,17 +438,17 @@ func (qs *TripleStore) TriplesAllIterator() graph.Iterator {
 }
 
 func (qs *TripleStore) TripleDirection(val graph.Value, d quad.Direction) graph.Value {
-	v := val.([]uint8)
+	v := val.(Token)
 	offset := PositionOf(v[0:2], d, qs)
 	if offset != -1 {
-		return append([]byte("z"), v[offset:offset+qs.hasher.Size()]...)
+		return Token(append([]byte("z"), v[offset:offset+qs.hasher.Size()]...))
 	} else {
-		return qs.Quad(val).Get(d)
+		return Token(qs.Quad(val).Get(d))
 	}
 }
 
 func compareBytes(a, b graph.Value) bool {
-	return bytes.Equal(a.([]uint8), b.([]uint8))
+	return bytes.Equal(a.(Token), b.(Token))
 }
 
 func (qs *TripleStore) FixedIterator() graph.FixedIterator {

@@ -117,8 +117,8 @@ func (it *AllIterator) Next() (graph.Value, bool) {
 		it.Close()
 		return nil, false
 	}
-	it.result = out
-	return out, true
+	it.result = Token(out)
+	return it.result, true
 }
 
 func (it *AllIterator) ResultTree() *graph.ResultTree {
