@@ -32,6 +32,10 @@ type result struct {
 	tags map[string]graph.Value
 }
 
+type hashable interface {
+	Hashable() interface{}
+}
+
 type Materialize struct {
 	uid         uint64
 	tags        graph.Tagger
@@ -228,7 +232,7 @@ func (it *Materialize) NextResult() bool {
 func (it *Materialize) materializeSet() {
 	i := 0
 	for {
-		val, ok := graph.Next(it.subIt)
+		id, ok := graph.Next(it.subIt)
 		if !ok {
 			break
 		}
@@ -236,6 +240,10 @@ func (it *Materialize) materializeSet() {
 		if i > abortMaterializeAt {
 			it.aborted = true
 			break
+		}
+		val := id
+		if h, ok := id.(hashable); ok {
+			val = h.Hashable()
 		}
 		if _, ok := it.containsMap[val]; !ok {
 			it.containsMap[val] = len(it.values)
