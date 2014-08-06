@@ -37,8 +37,8 @@ import (
 // pointers to structs, or merely triples, or whatever works best for the
 // backing store.
 //
-// These must be comparable, ie, not arrays or maps, as they may be used as keys
-// for maps.
+// These must be comparable, or implement a	`Hashable() interface{}` function
+// so that they may be stored in maps.
 type Value interface{}
 
 type TripleStore interface {
