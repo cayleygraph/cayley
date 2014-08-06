@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/barakmich/glog"
+
 	"github.com/google/cayley/graph"
 )
 
@@ -35,7 +37,7 @@ type Materialize struct {
 	tags        graph.Tagger
 	containsMap map[graph.Value]int
 	values      []result
-	lastIndex   int
+	index       int
 	subIt       graph.Iterator
 	hasRun      bool
 	aborted     bool
@@ -46,6 +48,7 @@ func NewMaterialize(sub graph.Iterator) *Materialize {
 		uid:         NextUID(),
 		containsMap: make(map[graph.Value]int),
 		subIt:       sub,
+		index:       -1,
 	}
 }
 
@@ -55,7 +58,7 @@ func (it *Materialize) UID() uint64 {
 
 func (it *Materialize) Reset() {
 	it.subIt.Reset()
-	it.lastIndex = 0
+	it.index = -1
 }
 
 func (it *Materialize) Close() {
@@ -77,13 +80,13 @@ func (it *Materialize) TagResults(dst map[string]graph.Value) {
 		it.subIt.TagResults(dst)
 		return
 	}
-	if it.lastIndex > len(it.values) {
+	if it.Result() == nil {
 		return
 	}
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
 	}
-	for tag, value := range it.values[it.lastIndex].tags {
+	for tag, value := range it.values[it.index].tags {
 		dst[tag] = value
 	}
 }
@@ -116,10 +119,16 @@ func (it *Materialize) ResultTree() *graph.ResultTree {
 }
 
 func (it *Materialize) Result() graph.Value {
-	if it.lastIndex+1 > len(it.values) {
+	if len(it.values) == 0 {
 		return nil
 	}
-	return it.values[it.lastIndex].id
+	if it.index == -1 {
+		return nil
+	}
+	if it.index >= len(it.values) {
+		return nil
+	}
+	return it.values[it.index].id
 }
 
 func (it *Materialize) SubIterators() []graph.Iterator {
@@ -169,8 +178,8 @@ func (it *Materialize) Next() (graph.Value, bool) {
 	}
 
 	lastVal := it.Result()
-	for it.lastIndex < len(it.values) {
-		it.lastIndex++
+	for it.index < len(it.values) {
+		it.index++
 		if it.Result() != lastVal && it.Result() != nil {
 			return graph.NextLogOut(it, it.Result(), true)
 		}
@@ -187,7 +196,7 @@ func (it *Materialize) Contains(v graph.Value) bool {
 		return it.subIt.Contains(v)
 	}
 	if i, ok := it.containsMap[v]; ok {
-		it.lastIndex = i
+		it.index = i
 		return graph.ContainsLogOut(it, v, true)
 	}
 	return graph.ContainsLogOut(it, v, false)
@@ -201,12 +210,12 @@ func (it *Materialize) NextResult() bool {
 		return it.subIt.NextResult()
 	}
 
-	i := it.lastIndex + 1
+	i := it.index + 1
 	if i == len(it.values) {
 		return false
 	}
 	if it.Result() == it.values[i].id {
-		it.lastIndex = i
+		it.index = i
 		return true
 	}
 	return false
@@ -239,5 +248,6 @@ func (it *Materialize) materializeSet() {
 		it.containsMap = nil
 		it.subIt.Reset()
 	}
+	glog.Infof("Materialization List %d: %#v", it.values)
 	it.hasRun = true
 }
