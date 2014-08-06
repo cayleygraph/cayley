@@ -8,11 +8,13 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 [![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley)
 
 ## What's new?
-* 2014-07-12:
-  * Massive cleanup and restructuring is largely done, it should be even easier to add to Cayley. (thanks @kortschak)
-  * A couple new backends are in progress, namely Postgres and Cassandra -- PRs when they come around.
-  * Cayley is [now in Homebrew](https://github.com/Homebrew/homebrew/commit/1bd2fb2a61c7101a8c79c05afc90eeb02e9aa240), thanks to @whitlockjc
-  * Our first client API (for Clojure, thanks to @wjb) -- list is now started on the [Client API wiki page](https://github.com/google/cayley/wiki/Client-APIs)
+* 2014-08-06:
+  * 0.3.1 Binary Release including:
+    * New Quad Parser (more strictly passing the [W3C spec](http://www.w3.org/TR/n-quads) and test suite)
+    * Automatic decompression of quad files
+  * Ruby and a Node.JS [client libraries](https://github.com/google/cayley/wiki/Client-APIs) from the community.
+  * Benchmarks
+  * [Large speedups on HEAD](https://github.com/google/cayley/pull/101) (in for the next binary release)
 
 ## Features
 
