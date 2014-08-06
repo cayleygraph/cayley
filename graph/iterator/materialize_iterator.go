@@ -36,8 +36,9 @@ type Materialize struct {
 	uid         uint64
 	tags        graph.Tagger
 	containsMap map[graph.Value]int
-	values      []result
+	values      [][]result
 	index       int
+	subindex    int
 	subIt       graph.Iterator
 	hasRun      bool
 	aborted     bool
@@ -86,7 +87,7 @@ func (it *Materialize) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
 	}
-	for tag, value := range it.values[it.index].tags {
+	for tag, value := range it.values[it.index][it.subindex].tags {
 		dst[tag] = value
 	}
 }
@@ -128,7 +129,7 @@ func (it *Materialize) Result() graph.Value {
 	if it.index >= len(it.values) {
 		return nil
 	}
-	return it.values[it.index].id
+	return it.values[it.index][it.subindex].id
 }
 
 func (it *Materialize) SubIterators() []graph.Iterator {
@@ -177,14 +178,12 @@ func (it *Materialize) Next() (graph.Value, bool) {
 		return graph.Next(it.subIt)
 	}
 
-	lastVal := it.Result()
-	for it.index < len(it.values) {
-		it.index++
-		if it.Result() != lastVal && it.Result() != nil {
-			return graph.NextLogOut(it, it.Result(), true)
-		}
+	it.index++
+	it.subindex = 0
+	if it.index >= len(it.values) {
+		return graph.NextLogOut(it, nil, false)
 	}
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, it.Result(), true)
 }
 
 func (it *Materialize) Contains(v graph.Value) bool {
@@ -197,6 +196,7 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	}
 	if i, ok := it.containsMap[v]; ok {
 		it.index = i
+		it.subindex = 0
 		return graph.ContainsLogOut(it, v, true)
 	}
 	return graph.ContainsLogOut(it, v, false)
@@ -210,15 +210,13 @@ func (it *Materialize) NextResult() bool {
 		return it.subIt.NextResult()
 	}
 
-	i := it.index + 1
-	if i == len(it.values) {
+	it.subindex++
+	if it.subindex >= len(it.values[it.index]) {
+		// Don't go off the end of the world
+		it.subindex--
 		return false
 	}
-	if it.Result() == it.values[i].id {
-		it.index = i
-		return true
-	}
-	return false
+	return true
 }
 
 func (it *Materialize) materializeSet() {
@@ -233,14 +231,18 @@ func (it *Materialize) materializeSet() {
 			it.aborted = true
 			break
 		}
+		if _, ok := it.containsMap[val]; !ok {
+			it.containsMap[val] = len(it.values)
+			it.values = append(it.values, nil)
+		}
+		index := it.containsMap[val]
 		tags := make(map[string]graph.Value)
 		it.subIt.TagResults(tags)
-		it.containsMap[val] = len(it.values)
-		it.values = append(it.values, result{id: val, tags: tags})
+		it.values[index] = append(it.values[index], result{id: val, tags: tags})
 		for it.subIt.NextResult() == true {
 			tags := make(map[string]graph.Value)
 			it.subIt.TagResults(tags)
-			it.values = append(it.values, result{id: val, tags: tags})
+			it.values[index] = append(it.values[index], result{id: val, tags: tags})
 		}
 	}
 	if it.aborted {
