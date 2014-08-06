@@ -70,6 +70,8 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// now a permutation of itself, but the contents are unchanged.
 	its = optimizeOrder(its)
 
+	its = materializeIts(its)
+
 	// Okay! At this point we have an optimized order.
 
 	// The easiest thing to do at this point is merely to create a new And iterator
@@ -291,6 +293,21 @@ func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 		return usefulIt
 	}
 	return nil
+}
+
+func materializeIts(its []graph.Iterator) []graph.Iterator {
+	var out []graph.Iterator
+	for _, it := range its {
+		stats := it.Stats()
+		if stats.Size*stats.NextCost < stats.ContainsCost {
+			if graph.Height(it, graph.Materialize) > 10 {
+				out = append(out, NewMaterialize(it))
+				continue
+			}
+		}
+		out = append(out, it)
+	}
+	return out
 }
 
 // and.Stats() lives here in and-iterator-optimize.go because it may

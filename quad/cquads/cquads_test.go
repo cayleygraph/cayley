@@ -31,7 +31,7 @@ import (
 var testNTriples = []struct {
 	message string
 	input   string
-	expect  *quad.Quad
+	expect  quad.Quad
 	err     error
 }{
 	// Tests from original nquads.
@@ -40,7 +40,7 @@ var testNTriples = []struct {
 	{
 		message: "parse simple triples",
 		input:   "this is valid .",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "this",
 			Predicate: "is",
 			Object:    "valid",
@@ -50,7 +50,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quoted triples",
 		input:   `this is "valid too" .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "this",
 			Predicate: "is",
 			Object:    "valid too",
@@ -60,7 +60,7 @@ var testNTriples = []struct {
 	{
 		message: "parse escaped quoted triples",
 		input:   `he said "\"That's all folks\"" .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "he",
 			Predicate: "said",
 			Object:    `"That's all folks"`,
@@ -70,7 +70,7 @@ var testNTriples = []struct {
 	{
 		message: "parse an example real triple",
 		input:   `":/guid/9202a8c04000641f80000000010c843c" "name" "George Morris" .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   ":/guid/9202a8c04000641f80000000010c843c",
 			Predicate: "name",
 			Object:    "George Morris",
@@ -80,7 +80,7 @@ var testNTriples = []struct {
 	{
 		message: "parse a pathologically spaced triple",
 		input:   "foo is \"\\tA big tough\\r\\nDeal\\\\\" .",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "foo",
 			Predicate: "is",
 			Object:    "\tA big tough\r\nDeal\\",
@@ -92,7 +92,7 @@ var testNTriples = []struct {
 	{
 		message: "parse a simple quad",
 		input:   "this is valid quad .",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "this",
 			Predicate: "is",
 			Object:    "valid",
@@ -102,7 +102,7 @@ var testNTriples = []struct {
 	{
 		message: "parse a quoted quad",
 		input:   `this is valid "quad thing" .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "this",
 			Predicate: "is",
 			Object:    "valid",
@@ -112,7 +112,7 @@ var testNTriples = []struct {
 	{
 		message: "parse crazy escaped quads",
 		input:   `"\"this" "\"is" "\"valid" "\"quad thing".`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   `"this`,
 			Predicate: `"is`,
 			Object:    `"valid`,
@@ -124,7 +124,7 @@ var testNTriples = []struct {
 	{
 		message: "handle simple case with comments",
 		input:   "<http://example/s> <http://example/p> <http://example/o> . # comment",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example/s",
 			Predicate: "http://example/p",
 			Object:    "http://example/o",
@@ -134,7 +134,7 @@ var testNTriples = []struct {
 	{
 		message: "handle simple case with comments",
 		input:   "<http://example/s> <http://example/p> _:o . # comment",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example/s",
 			Predicate: "http://example/p",
 			Object:    "_:o",
@@ -144,7 +144,7 @@ var testNTriples = []struct {
 	{
 		message: "handle simple case with comments",
 		input:   "<http://example/s> <http://example/p> \"o\" . # comment",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example/s",
 			Predicate: "http://example/p",
 			Object:    "o",
@@ -154,7 +154,7 @@ var testNTriples = []struct {
 	{
 		message: "handle simple case with comments",
 		input:   "<http://example/s> <http://example/p> \"o\"^^<http://example/dt> . # comment",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example/s",
 			Predicate: "http://example/p",
 			Object:    `"o"^^<http://example/dt>`,
@@ -164,7 +164,7 @@ var testNTriples = []struct {
 	{
 		message: "handle simple case with comments",
 		input:   "<http://example/s> <http://example/p> \"o\"@en . # comment",
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example/s",
 			Predicate: "http://example/p",
 			Object:    `"o"@en`,
@@ -177,7 +177,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with commment",
 		input:   `_:100000 </film/performance/actor> </en/larry_fine_1902> . # example from 30movies`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:100000",
 			Predicate: "/film/performance/actor",
 			Object:    "/en/larry_fine_1902",
@@ -189,7 +189,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with commment",
 		input:   `_:10011 </film/performance/character> "Tomás de Torquemada" . # example from 30movies with unicode`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:10011",
 			Predicate: "/film/performance/character",
 			Object:    "Tomás de Torquemada",
@@ -202,7 +202,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with commment",
 		input:   `<http://one.example/subject1> <http://one.example/predicate1> <http://one.example/object1> . # comments here`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://one.example/subject1",
 			Predicate: "http://one.example/predicate1",
 			Object:    "http://one.example/object1",
@@ -213,7 +213,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with blank subject node, literal object and no comment (1)",
 		input:   `_:subject1 <http://an.example/predicate1> "object1" .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:subject1",
 			Predicate: "http://an.example/predicate1",
 			Object:    "object1",
@@ -224,7 +224,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with blank subject node, literal object and no comment (2)",
 		input:   `_:subject2 <http://an.example/predicate2> "object2" .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:subject2",
 			Predicate: "http://an.example/predicate2",
 			Object:    "object2",
@@ -237,7 +237,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with three IRIREFs",
 		input:   `<http://example.org/#spiderman> <http://www.perceive.net/schemas/relationship/enemyOf> <http://example.org/#green-goblin> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/#spiderman",
 			Predicate: "http://www.perceive.net/schemas/relationship/enemyOf",
 			Object:    "http://example.org/#green-goblin",
@@ -250,7 +250,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with blank node labelled subject and object and IRIREF predicate (1)",
 		input:   `_:alice <http://xmlns.com/foaf/0.1/knows> _:bob .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:alice",
 			Predicate: "http://xmlns.com/foaf/0.1/knows",
 			Object:    "_:bob",
@@ -261,7 +261,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with blank node labelled subject and object and IRIREF predicate (2)",
 		input:   `_:bob <http://xmlns.com/foaf/0.1/knows> _:alice .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:bob",
 			Predicate: "http://xmlns.com/foaf/0.1/knows",
 			Object:    "_:alice",
@@ -274,7 +274,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with commment",
 		input:   `<http://one.example/subject1> <http://one.example/predicate1> <http://one.example/object1> <http://example.org/graph3> . # comments here`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://one.example/subject1",
 			Predicate: "http://one.example/predicate1",
 			Object:    "http://one.example/object1",
@@ -285,7 +285,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with blank subject node, literal object, IRIREF predicate and label, and no comment (1)",
 		input:   `_:subject1 <http://an.example/predicate1> "object1" <http://example.org/graph1> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:subject1",
 			Predicate: "http://an.example/predicate1",
 			Object:    "object1",
@@ -296,7 +296,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with blank subject node, literal object, IRIREF predicate and label, and no comment (2)",
 		input:   `_:subject2 <http://an.example/predicate2> "object2" <http://example.org/graph5> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:subject2",
 			Predicate: "http://an.example/predicate2",
 			Object:    "object2",
@@ -309,7 +309,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with all IRIREF parts",
 		input:   `<http://example.org/#spiderman> <http://www.perceive.net/schemas/relationship/enemyOf> <http://example.org/#green-goblin> <http://example.org/graphs/spiderman> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/#spiderman",
 			Predicate: "http://www.perceive.net/schemas/relationship/enemyOf",
 			Object:    "http://example.org/#green-goblin",
@@ -322,7 +322,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with blank node labelled subject and object and IRIREF predicate and label (1)",
 		input:   `_:alice <http://xmlns.com/foaf/0.1/knows> _:bob <http://example.org/graphs/john> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:alice",
 			Predicate: "http://xmlns.com/foaf/0.1/knows",
 			Object:    "_:bob",
@@ -333,7 +333,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with blank node labelled subject and object and IRIREF predicate and label (2)",
 		input:   `_:bob <http://xmlns.com/foaf/0.1/knows> _:alice <http://example.org/graphs/james> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "_:bob",
 			Predicate: "http://xmlns.com/foaf/0.1/knows",
 			Object:    "_:alice",
@@ -346,7 +346,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with all IRIREF parts",
 		input:   `<http://example.org/bob#me> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
 			Object:    "http://xmlns.com/foaf/0.1/Person",
@@ -357,7 +357,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with all IRIREF parts",
 		input:   `<http://example.org/bob#me> <http://xmlns.com/foaf/0.1/knows> <http://example.org/alice#me> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://xmlns.com/foaf/0.1/knows",
 			Object:    "http://example.org/alice#me",
@@ -368,7 +368,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with IRIREF schema on literal object",
 		input:   `<http://example.org/bob#me> <http://schema.org/birthDate> "1990-07-04"^^<http://www.w3.org/2001/XMLSchema#date> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://schema.org/birthDate",
 			Object:    `"1990-07-04"^^<http://www.w3.org/2001/XMLSchema#date>`,
@@ -379,7 +379,7 @@ var testNTriples = []struct {
 	{
 		message: "parse commented IRIREF in triple",
 		input:   `<http://example.org/bob#me> <http://xmlns.com/foaf/0.1/topic_interest> <http://www.wikidata.org/entity/Q12418> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://xmlns.com/foaf/0.1/topic_interest",
 			Object:    "http://www.wikidata.org/entity/Q12418",
@@ -390,7 +390,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with literal subject",
 		input:   `<http://www.wikidata.org/entity/Q12418> <http://purl.org/dc/terms/title> "Mona Lisa" .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://www.wikidata.org/entity/Q12418",
 			Predicate: "http://purl.org/dc/terms/title",
 			Object:    "Mona Lisa",
@@ -401,7 +401,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with all IRIREF parts (1)",
 		input:   `<http://www.wikidata.org/entity/Q12418> <http://purl.org/dc/terms/creator> <http://dbpedia.org/resource/Leonardo_da_Vinci> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://www.wikidata.org/entity/Q12418",
 			Predicate: "http://purl.org/dc/terms/creator",
 			Object:    "http://dbpedia.org/resource/Leonardo_da_Vinci",
@@ -412,7 +412,7 @@ var testNTriples = []struct {
 	{
 		message: "parse triple with all IRIREF parts (2)",
 		input:   `<http://data.europeana.eu/item/04802/243FA8618938F4117025F17A8B813C5F9AA4D619> <http://purl.org/dc/terms/subject> <http://www.wikidata.org/entity/Q12418> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://data.europeana.eu/item/04802/243FA8618938F4117025F17A8B813C5F9AA4D619",
 			Predicate: "http://purl.org/dc/terms/subject",
 			Object:    "http://www.wikidata.org/entity/Q12418",
@@ -425,7 +425,7 @@ var testNTriples = []struct {
 	{
 		message: "parse commented IRIREF in quad (1)",
 		input:   `<http://example.org/bob#me> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> <http://example.org/bob> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
 			Object:    "http://xmlns.com/foaf/0.1/Person",
@@ -436,7 +436,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with all IRIREF parts",
 		input:   `<http://example.org/bob#me> <http://xmlns.com/foaf/0.1/knows> <http://example.org/alice#me> <http://example.org/bob> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://xmlns.com/foaf/0.1/knows",
 			Object:    "http://example.org/alice#me",
@@ -447,7 +447,7 @@ var testNTriples = []struct {
 	{
 		message: "parse quad with IRIREF schema on literal object",
 		input:   `<http://example.org/bob#me> <http://schema.org/birthDate> "1990-07-04"^^<http://www.w3.org/2001/XMLSchema#date> <http://example.org/bob> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://schema.org/birthDate",
 			Object:    `"1990-07-04"^^<http://www.w3.org/2001/XMLSchema#date>`,
@@ -458,7 +458,7 @@ var testNTriples = []struct {
 	{
 		message: "parse commented IRIREF in quad (2)",
 		input:   `<http://example.org/bob#me> <http://xmlns.com/foaf/0.1/topic_interest> <http://www.wikidata.org/entity/Q12418> <http://example.org/bob> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://xmlns.com/foaf/0.1/topic_interest",
 			Object:    "http://www.wikidata.org/entity/Q12418",
@@ -469,7 +469,7 @@ var testNTriples = []struct {
 	{
 		message: "parse literal object and colon qualified label in quad",
 		input:   `<http://www.wikidata.org/entity/Q12418> <http://purl.org/dc/terms/title> "Mona Lisa" <https://www.wikidata.org/wiki/Special:EntityData/Q12418> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://www.wikidata.org/entity/Q12418",
 			Predicate: "http://purl.org/dc/terms/title",
 			Object:    "Mona Lisa",
@@ -480,7 +480,7 @@ var testNTriples = []struct {
 	{
 		message: "parse all IRIREF parts with colon qualified label in quad (1)",
 		input:   `<http://www.wikidata.org/entity/Q12418> <http://purl.org/dc/terms/creator> <http://dbpedia.org/resource/Leonardo_da_Vinci> <https://www.wikidata.org/wiki/Special:EntityData/Q12418> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://www.wikidata.org/entity/Q12418",
 			Predicate: "http://purl.org/dc/terms/creator",
 			Object:    "http://dbpedia.org/resource/Leonardo_da_Vinci",
@@ -491,7 +491,7 @@ var testNTriples = []struct {
 	{
 		message: "parse all IRIREF parts with colon qualified label in quad (2)",
 		input:   `<http://data.europeana.eu/item/04802/243FA8618938F4117025F17A8B813C5F9AA4D619> <http://purl.org/dc/terms/subject> <http://www.wikidata.org/entity/Q12418> <https://www.wikidata.org/wiki/Special:EntityData/Q12418> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://data.europeana.eu/item/04802/243FA8618938F4117025F17A8B813C5F9AA4D619",
 			Predicate: "http://purl.org/dc/terms/subject",
 			Object:    "http://www.wikidata.org/entity/Q12418",
@@ -502,7 +502,7 @@ var testNTriples = []struct {
 	{
 		message: "parse all IRIREF parts (quad section - 1)",
 		input:   `<http://example.org/bob> <http://purl.org/dc/terms/publisher> <http://example.org> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob",
 			Predicate: "http://purl.org/dc/terms/publisher",
 			Object:    "http://example.org",
@@ -513,7 +513,7 @@ var testNTriples = []struct {
 	{
 		message: "parse all IRIREF parts (quad section - 2)",
 		input:   `<http://example.org/bob> <http://purl.org/dc/terms/rights> <http://creativecommons.org/licenses/by/3.0/> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob",
 			Predicate: "http://purl.org/dc/terms/rights",
 			Object:    "http://creativecommons.org/licenses/by/3.0/",
@@ -526,31 +526,31 @@ var testNTriples = []struct {
 	{
 		message: "parse empty",
 		input:   ``,
-		expect:  &quad.Quad{},
+		expect:  quad.Quad{},
 		err:     quad.ErrIncomplete,
 	},
 	{
 		message: "parse commented",
 		input:   `# is a comment`,
-		expect:  &quad.Quad{},
+		expect:  quad.Quad{},
 		err:     fmt.Errorf("%v: unexpected rune '#' at 0", quad.ErrInvalid),
 	},
 	{
 		message: "parse commented internal (1)",
 		input:   `is # a comment`,
-		expect:  &quad.Quad{Subject: "is"},
+		expect:  quad.Quad{Subject: "is"},
 		err:     fmt.Errorf("%v: unexpected rune '#' at 3", quad.ErrInvalid),
 	},
 	{
 		message: "parse commented internal (2)",
 		input:   `is a # comment`,
-		expect:  &quad.Quad{Subject: "is", Predicate: "a"},
+		expect:  quad.Quad{Subject: "is", Predicate: "a"},
 		err:     fmt.Errorf("%v: unexpected rune '#' at 5", quad.ErrInvalid),
 	},
 	{
 		message: "parse incomplete quad (1)",
 		input:   `<http://example.org/bob#me> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
 			Object:    "",
@@ -561,7 +561,7 @@ var testNTriples = []struct {
 	{
 		message: "parse incomplete quad (2)",
 		input:   `<http://example.org/bob#me> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> .`,
-		expect: &quad.Quad{
+		expect: quad.Quad{
 			Subject:   "http://example.org/bob#me",
 			Predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
 			Object:    "",
@@ -773,7 +773,7 @@ func TestUnescape(t *testing.T) {
 	}
 }
 
-var result *quad.Quad
+var result quad.Quad
 
 func BenchmarkParser(b *testing.B) {
 	for n := 0; n < b.N; n++ {

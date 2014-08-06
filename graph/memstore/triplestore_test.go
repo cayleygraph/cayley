@@ -38,7 +38,7 @@ import (
 //          \-->|#D#|------------->+---+
 //              +---+
 //
-var simpleGraph = []*quad.Quad{
+var simpleGraph = []quad.Quad{
 	{"A", "follows", "B", ""},
 	{"C", "follows", "B", ""},
 	{"C", "follows", "D", ""},
@@ -52,7 +52,7 @@ var simpleGraph = []*quad.Quad{
 	{"G", "status", "cool", "status_graph"},
 }
 
-func makeTestStore(data []*quad.Quad) (*TripleStore, graph.QuadWriter, []pair) {
+func makeTestStore(data []quad.Quad) (*TripleStore, graph.QuadWriter, []pair) {
 	seen := make(map[string]struct{})
 	ts := newTripleStore()
 	var (
@@ -178,7 +178,7 @@ func TestLinksToOptimization(t *testing.T) {
 func TestRemoveTriple(t *testing.T) {
 	ts, w, _ := makeTestStore(simpleGraph)
 
-	w.RemoveQuad(&quad.Quad{"E", "follows", "F", ""})
+	w.RemoveQuad(quad.Quad{"E", "follows", "F", ""})
 
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("E"))

@@ -30,14 +30,6 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-// Parse returns a valid quad.Quad or a non-nil error. Parse does
-// handle comments except where the comment placement does not prevent
-// a complete valid quad.Quad from being defined.
-func Parse(str string) (*quad.Quad, error) {
-	q, err := parse([]rune(str))
-	return &q, err
-}
-
 // Decoder implements N-Quad document parsing according to the RDF
 // 1.1 N-Quads specification.
 type Decoder struct {
@@ -52,14 +44,14 @@ func NewDecoder(r io.Reader) *Decoder {
 }
 
 // Unmarshal returns the next valid N-Quad as a quad.Quad, or an error.
-func (dec *Decoder) Unmarshal() (*quad.Quad, error) {
+func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 	dec.line = dec.line[:0]
 	var line []byte
 	for {
 		for {
 			l, pre, err := dec.r.ReadLine()
 			if err != nil {
-				return nil, err
+				return quad.Quad{}, err
 			}
 			dec.line = append(dec.line, l...)
 			if !pre {
@@ -73,9 +65,9 @@ func (dec *Decoder) Unmarshal() (*quad.Quad, error) {
 	}
 	triple, err := Parse(string(line))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse %q: %v", dec.line, err)
+		return quad.Quad{}, fmt.Errorf("failed to parse %q: %v", dec.line, err)
 	}
-	if triple == nil {
+	if !triple.IsValid() {
 		return dec.Unmarshal()
 	}
 	return triple, nil

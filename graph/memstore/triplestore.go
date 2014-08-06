@@ -120,7 +120,7 @@ func (ts *TripleStore) ApplyDeltas(deltas []*graph.Delta) error {
 	return nil
 }
 
-func (ts *TripleStore) quadExists(t *quad.Quad) (bool, int64) {
+func (ts *TripleStore) quadExists(t quad.Quad) (bool, int64) {
 	smallest := -1
 	var smallest_tree *llrb.LLRB
 	for d := quad.Subject; d <= quad.Label; d++ {
@@ -151,7 +151,7 @@ func (ts *TripleStore) quadExists(t *quad.Quad) (bool, int64) {
 			break
 		}
 		ival := val.(int64)
-		if t.Equals(&ts.log[ival].Quad) {
+		if t == ts.log[ival].Quad {
 			return true, ival
 		}
 	}
@@ -159,7 +159,7 @@ func (ts *TripleStore) quadExists(t *quad.Quad) (bool, int64) {
 }
 
 func (ts *TripleStore) AddDelta(d *graph.Delta) error {
-	if exists, _ := ts.quadExists(&d.Quad); exists {
+	if exists, _ := ts.quadExists(d.Quad); exists {
 		return graph.ErrQuadExists
 	}
 	var quadID int64
@@ -197,7 +197,7 @@ func (ts *TripleStore) RemoveDelta(d *graph.Delta) error {
 	var prevQuadID int64
 	var exists bool
 	prevQuadID = 0
-	if exists, prevQuadID = ts.quadExists(&d.Quad); !exists {
+	if exists, prevQuadID = ts.quadExists(d.Quad); !exists {
 		return graph.ErrQuadNotExist
 	}
 
@@ -210,8 +210,8 @@ func (ts *TripleStore) RemoveDelta(d *graph.Delta) error {
 	return nil
 }
 
-func (ts *TripleStore) Quad(index graph.Value) *quad.Quad {
-	return &ts.log[index.(int64)].Quad
+func (ts *TripleStore) Quad(index graph.Value) quad.Quad {
+	return ts.log[index.(int64)].Quad
 }
 
 func (ts *TripleStore) TripleIterator(d quad.Direction, value graph.Value) graph.Iterator {

@@ -27,8 +27,8 @@ import (
 	"github.com/google/cayley/writer"
 )
 
-func makeTripleSet() []*quad.Quad {
-	tripleSet := []*quad.Quad{
+func makeTripleSet() []quad.Quad {
+	tripleSet := []quad.Quad{
 		{"A", "follows", "B", ""},
 		{"C", "follows", "B", ""},
 		{"C", "follows", "D", ""},
@@ -44,7 +44,7 @@ func makeTripleSet() []*quad.Quad {
 	return tripleSet
 }
 
-func iteratedTriples(qs graph.TripleStore, it graph.Iterator) []*quad.Quad {
+func iteratedTriples(qs graph.TripleStore, it graph.Iterator) []quad.Quad {
 	var res ordered
 	for {
 		val, ok := graph.Next(it)
@@ -57,7 +57,7 @@ func iteratedTriples(qs graph.TripleStore, it graph.Iterator) []*quad.Quad {
 	return res
 }
 
-type ordered []*quad.Quad
+type ordered []quad.Quad
 
 func (o ordered) Len() int { return len(o) }
 func (o ordered) Less(i, j int) bool {
@@ -145,7 +145,7 @@ func TestLoadDatabase(t *testing.T) {
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuad(&quad.Quad{"Something", "points_to", "Something Else", "context"})
+	qs.AddQuad(quad.Quad{"Something", "points_to", "Something Else", "context"})
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
 		if got := qs.NameOf(qs.ValueOf(pq)); got != pq {
 			t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)
@@ -179,7 +179,7 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected triplestore size, got:%d expect:5", s)
 	}
 
-	w.RemoveQuad(&quad.Quad{"A", "follows", "B", ""})
+	w.RemoveQuad(quad.Quad{"A", "follows", "B", ""})
 	if s := qs.Size(); s != 10 {
 		t.Errorf("Unexpected triplestore size after RemoveTriple, got:%d expect:10", s)
 	}
@@ -307,7 +307,7 @@ func TestSetIterator(t *testing.T) {
 	w, _ := writer.NewSingleReplication(qs, nil)
 	w.AddQuadSet(makeTripleSet())
 
-	expect := []*quad.Quad{
+	expect := []quad.Quad{
 		{"C", "follows", "B", ""},
 		{"C", "follows", "D", ""},
 	}
@@ -332,7 +332,7 @@ func TestSetIterator(t *testing.T) {
 	// Object iterator.
 	it = qs.TripleIterator(quad.Object, qs.ValueOf("F"))
 
-	expect = []*quad.Quad{
+	expect = []quad.Quad{
 		{"B", "follows", "F", ""},
 		{"E", "follows", "F", ""},
 	}
@@ -345,7 +345,7 @@ func TestSetIterator(t *testing.T) {
 	and.AddSubIterator(qs.TripleIterator(quad.Subject, qs.ValueOf("B")))
 	and.AddSubIterator(it)
 
-	expect = []*quad.Quad{
+	expect = []quad.Quad{
 		{"B", "follows", "F", ""},
 	}
 	if got := iteratedTriples(qs, and); !reflect.DeepEqual(got, expect) {
@@ -355,7 +355,7 @@ func TestSetIterator(t *testing.T) {
 	// Predicate iterator.
 	it = qs.TripleIterator(quad.Predicate, qs.ValueOf("status"))
 
-	expect = []*quad.Quad{
+	expect = []quad.Quad{
 		{"B", "status", "cool", "status_graph"},
 		{"D", "status", "cool", "status_graph"},
 		{"G", "status", "cool", "status_graph"},
@@ -368,7 +368,7 @@ func TestSetIterator(t *testing.T) {
 	// Label iterator.
 	it = qs.TripleIterator(quad.Label, qs.ValueOf("status_graph"))
 
-	expect = []*quad.Quad{
+	expect = []quad.Quad{
 		{"B", "status", "cool", "status_graph"},
 		{"D", "status", "cool", "status_graph"},
 		{"G", "status", "cool", "status_graph"},
@@ -384,7 +384,7 @@ func TestSetIterator(t *testing.T) {
 	and.AddSubIterator(qs.TripleIterator(quad.Subject, qs.ValueOf("B")))
 	and.AddSubIterator(it)
 
-	expect = []*quad.Quad{
+	expect = []quad.Quad{
 		{"B", "status", "cool", "status_graph"},
 	}
 	if got := iteratedTriples(qs, and); !reflect.DeepEqual(got, expect) {
@@ -397,7 +397,7 @@ func TestSetIterator(t *testing.T) {
 	and.AddSubIterator(it)
 	and.AddSubIterator(qs.TripleIterator(quad.Subject, qs.ValueOf("B")))
 
-	expect = []*quad.Quad{
+	expect = []quad.Quad{
 		{"B", "status", "cool", "status_graph"},
 	}
 	if got := iteratedTriples(qs, and); !reflect.DeepEqual(got, expect) {
