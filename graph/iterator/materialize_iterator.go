@@ -204,7 +204,11 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	if it.aborted {
 		return it.subIt.Contains(v)
 	}
-	if i, ok := it.containsMap[v]; ok {
+	key := v
+	if h, ok := v.(hashable); ok {
+		key = h.Hashable()
+	}
+	if i, ok := it.containsMap[key]; ok {
 		it.index = i
 		it.subindex = 0
 		return graph.ContainsLogOut(it, v, true)
@@ -252,11 +256,11 @@ func (it *Materialize) materializeSet() {
 		index := it.containsMap[val]
 		tags := make(map[string]graph.Value)
 		it.subIt.TagResults(tags)
-		it.values[index] = append(it.values[index], result{id: val, tags: tags})
+		it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		for it.subIt.NextResult() == true {
 			tags := make(map[string]graph.Value)
 			it.subIt.TagResults(tags)
-			it.values[index] = append(it.values[index], result{id: val, tags: tags})
+			it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		}
 	}
 	if it.aborted {
