@@ -48,14 +48,14 @@ var ErrQuadNotExist = errors.New("Quad doesn't exist")
 
 type QuadWriter interface {
 	// Add a quad to the store.
-	AddQuad(*quad.Quad) error
+	AddQuad(quad.Quad) error
 
 	// Add a set of quads to the store, atomically if possible.
-	AddQuadSet([]*quad.Quad) error
+	AddQuadSet([]quad.Quad) error
 
 	// Removes a quad matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
-	RemoveQuad(*quad.Quad) error
+	RemoveQuad(quad.Quad) error
 }
 
 type NewQuadWriterFunc func(TripleStore, Options) (QuadWriter, error)

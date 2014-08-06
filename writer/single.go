@@ -44,23 +44,23 @@ func (s *Single) AcquireNextID() int64 {
 	return id
 }
 
-func (s *Single) AddQuad(q *quad.Quad) error {
+func (s *Single) AddQuad(q quad.Quad) error {
 	deltas := make([]*graph.Delta, 1)
 	deltas[0] = &graph.Delta{
 		ID:        s.AcquireNextID(),
-		Quad:      *q,
+		Quad:      q,
 		Action:    graph.Add,
 		Timestamp: time.Now(),
 	}
 	return s.ts.ApplyDeltas(deltas)
 }
 
-func (s *Single) AddQuadSet(set []*quad.Quad) error {
+func (s *Single) AddQuadSet(set []quad.Quad) error {
 	deltas := make([]*graph.Delta, len(set))
 	for i, q := range set {
 		deltas[i] = &graph.Delta{
 			ID:        s.AcquireNextID(),
-			Quad:      *q,
+			Quad:      q,
 			Action:    graph.Add,
 			Timestamp: time.Now(),
 		}
@@ -69,11 +69,11 @@ func (s *Single) AddQuadSet(set []*quad.Quad) error {
 	return nil
 }
 
-func (s *Single) RemoveQuad(q *quad.Quad) error {
+func (s *Single) RemoveQuad(q quad.Quad) error {
 	deltas := make([]*graph.Delta, 1)
 	deltas[0] = &graph.Delta{
 		ID:        s.AcquireNextID(),
-		Quad:      *q,
+		Quad:      q,
 		Action:    graph.Delete,
 		Timestamp: time.Now(),
 	}
