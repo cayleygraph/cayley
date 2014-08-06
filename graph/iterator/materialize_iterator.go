@@ -32,6 +32,10 @@ type result struct {
 	tags map[string]graph.Value
 }
 
+// Keyer provides a method for comparing types that are not otherwise comparable.
+// The Key method must return a dynamic type that is comparable according to the
+// Go language specification. The returned value must be unique for each receiver
+// value.
 type Keyer interface {
 	Key() interface{}
 }
@@ -179,7 +183,7 @@ func (it *Materialize) Stats() graph.IteratorStats {
 	}
 }
 
-func (it *Materialize) Next() (graph.Value, bool) {
+func (it *Materialize) Next() bool {
 	graph.NextLogIn(it)
 	if !it.hasRun {
 		it.materializeSet()
@@ -216,12 +220,12 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	return graph.ContainsLogOut(it, v, false)
 }
 
-func (it *Materialize) NextResult() bool {
+func (it *Materialize) NextPath() bool {
 	if !it.hasRun {
 		it.materializeSet()
 	}
 	if it.aborted {
-		return it.subIt.NextResult()
+		return it.subIt.NextPath()
 	}
 
 	it.subindex++
@@ -235,16 +239,13 @@ func (it *Materialize) NextResult() bool {
 
 func (it *Materialize) materializeSet() {
 	i := 0
-	for {
-		id, ok := graph.Next(it.subIt)
-		if !ok {
-			break
-		}
-		i += 1
+	for graph.Next(it.subIt) {
+		i++
 		if i > abortMaterializeAt {
 			it.aborted = true
 			break
 		}
+		id := it.subIt.Result()
 		val := id
 		if h, ok := id.(Keyer); ok {
 			val = h.Key()
@@ -257,7 +258,7 @@ func (it *Materialize) materializeSet() {
 		tags := make(map[string]graph.Value)
 		it.subIt.TagResults(tags)
 		it.values[index] = append(it.values[index], result{id: id, tags: tags})
-		for it.subIt.NextResult() == true {
+		for it.subIt.NextPath() {
 			tags := make(map[string]graph.Value)
 			it.subIt.TagResults(tags)
 			it.values[index] = append(it.values[index], result{id: id, tags: tags})
