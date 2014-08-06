@@ -154,11 +154,14 @@ func Next(it Iterator) (Value, bool) {
 }
 
 // Height is a convienence function to measure the height of an iterator tree.
-func Height(it Iterator) int {
+func Height(it Iterator, until Type) int {
+	if it.Type() == until {
+		return 1
+	}
 	subs := it.SubIterators()
 	maxDepth := 0
 	for _, sub := range subs {
-		h := Height(sub)
+		h := Height(sub, until)
 		if h > maxDepth {
 			maxDepth = h
 		}

@@ -73,10 +73,16 @@ func (it *Materialize) TagResults(dst map[string]graph.Value) {
 	if !it.hasRun {
 		return
 	}
+	if it.aborted {
+		it.subIt.TagResults(dst)
+		return
+	}
+	if it.lastIndex > len(it.values) {
+		return
+	}
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
 	}
-
 	for tag, value := range it.values[it.lastIndex].tags {
 		dst[tag] = value
 	}
@@ -154,6 +160,7 @@ func (it *Materialize) Stats() graph.IteratorStats {
 }
 
 func (it *Materialize) Next() (graph.Value, bool) {
+	graph.NextLogIn(it)
 	if !it.hasRun {
 		it.materializeSet()
 	}
@@ -164,14 +171,15 @@ func (it *Materialize) Next() (graph.Value, bool) {
 	lastVal := it.Result()
 	for it.lastIndex < len(it.values) {
 		it.lastIndex++
-		if it.Result() != lastVal {
-			return it.Result(), true
+		if it.Result() != lastVal && it.Result() != nil {
+			return graph.NextLogOut(it, it.Result(), true)
 		}
 	}
-	return nil, false
+	return graph.NextLogOut(it, nil, false)
 }
 
 func (it *Materialize) Contains(v graph.Value) bool {
+	graph.ContainsLogIn(it, v)
 	if !it.hasRun {
 		it.materializeSet()
 	}
@@ -180,9 +188,9 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	}
 	if i, ok := it.containsMap[v]; ok {
 		it.lastIndex = i
-		return true
+		return graph.ContainsLogOut(it, v, true)
 	}
-	return false
+	return graph.ContainsLogOut(it, v, false)
 }
 
 func (it *Materialize) NextResult() bool {

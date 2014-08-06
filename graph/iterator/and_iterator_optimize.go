@@ -300,7 +300,7 @@ func materializeIts(its []graph.Iterator) []graph.Iterator {
 	for _, it := range its {
 		stats := it.Stats()
 		if stats.Size*stats.NextCost < stats.ContainsCost {
-			if graph.Height(it) > 10 {
+			if graph.Height(it, graph.Materialize) > 10 {
 				out = append(out, NewMaterialize(it))
 				continue
 			}
