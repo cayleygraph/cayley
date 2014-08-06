@@ -37,7 +37,7 @@ import (
 // pointers to structs, or merely triples, or whatever works best for the
 // backing store.
 //
-// These must be comparable, or implement a `Hasher() interface{}` function
+// These must be comparable, or implement a `Key() interface{}` function
 // so that they may be stored in maps.
 type Value interface{}
 

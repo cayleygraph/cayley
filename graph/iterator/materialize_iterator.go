@@ -32,8 +32,8 @@ type result struct {
 	tags map[string]graph.Value
 }
 
-type hasher interface {
-	Hasher() interface{}
+type Keyer interface {
+	Key() interface{}
 }
 
 type Materialize struct {
@@ -205,8 +205,8 @@ func (it *Materialize) Contains(v graph.Value) bool {
 		return it.subIt.Contains(v)
 	}
 	key := v
-	if h, ok := v.(hasher); ok {
-		key = h.Hasher()
+	if h, ok := v.(Keyer); ok {
+		key = h.Key()
 	}
 	if i, ok := it.containsMap[key]; ok {
 		it.index = i
@@ -246,8 +246,8 @@ func (it *Materialize) materializeSet() {
 			break
 		}
 		val := id
-		if h, ok := id.(hasher); ok {
-			val = h.Hasher()
+		if h, ok := id.(Keyer); ok {
+			val = h.Key()
 		}
 		if _, ok := it.containsMap[val]; !ok {
 			it.containsMap[val] = len(it.values)
