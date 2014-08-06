@@ -95,6 +95,12 @@ func (it *Materialize) TagResults(dst map[string]graph.Value) {
 func (it *Materialize) Clone() graph.Iterator {
 	out := NewMaterialize(it.subIt.Clone())
 	out.tags.CopyFrom(it)
+	if it.hasRun {
+		out.hasRun = true
+		out.aborted = it.aborted
+		out.values = it.values
+		out.containsMap = it.containsMap
+	}
 	return out
 }
 
