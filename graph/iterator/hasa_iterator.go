@@ -27,9 +27,9 @@ package iterator
 // value to check, it means "Check all predicates that have this value for your
 // direction against the subiterator." This would imply that there's more than
 // one possibility for the same Contains()ed value. While we could return the
-// number of options, it's simpler to return one, and then call NextResult()
+// number of options, it's simpler to return one, and then call NextPath()
 // enough times to enumerate the options. (In fact, one could argue that the
-// raison d'etre for NextResult() is this iterator).
+// raison d'etre for NextPath() is this iterator).
 //
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
@@ -158,16 +158,13 @@ func (it *HasA) Contains(val graph.Value) bool {
 // result iterator (a triple iterator based on the last checked value) and returns true if
 // another match is made.
 func (it *HasA) NextContains() bool {
-	for {
-		linkVal, ok := graph.Next(it.resultIt)
-		if !ok {
-			break
-		}
+	for graph.Next(it.resultIt) {
+		link := it.resultIt.Result()
 		if glog.V(4) {
-			glog.V(4).Infoln("Quad is", it.ts.Quad(linkVal))
+			glog.V(4).Infoln("Quad is", it.ts.Quad(link))
 		}
-		if it.primaryIt.Contains(linkVal) {
-			it.result = it.ts.TripleDirection(linkVal, it.dir)
+		if it.primaryIt.Contains(link) {
+			it.result = it.ts.TripleDirection(link, it.dir)
 			return true
 		}
 	}
@@ -175,33 +172,33 @@ func (it *HasA) NextContains() bool {
 }
 
 // Get the next result that matches this branch.
-func (it *HasA) NextResult() bool {
-	// Order here is important. If the subiterator has a NextResult, then we
+func (it *HasA) NextPath() bool {
+	// Order here is important. If the subiterator has a NextPath, then we
 	// need do nothing -- there is a next result, and we shouldn't move forward.
 	// However, we then need to get the next result from our last Contains().
 	//
-	// The upshot is, the end of NextResult() bubbles up from the bottom of the
+	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
-	if it.primaryIt.NextResult() {
+	if it.primaryIt.NextPath() {
 		return true
 	}
 	return it.NextContains()
 }
 
-// Get the next result from this iterator. This is simpler than Contains. We have a
+// Next advances the iterator. This is simpler than Contains. We have a
 // subiterator we can get a value from, and we can take that resultant triple,
 // pull our direction out of it, and return that.
-func (it *HasA) Next() (graph.Value, bool) {
+func (it *HasA) Next() bool {
 	graph.NextLogIn(it)
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
 	it.resultIt = &Null{}
 
-	tID, ok := graph.Next(it.primaryIt)
-	if !ok {
+	if !graph.Next(it.primaryIt) {
 		return graph.NextLogOut(it, 0, false)
 	}
+	tID := it.primaryIt.Result()
 	name := it.ts.Quad(tID).Get(it.dir)
 	val := it.ts.ValueOf(name)
 	it.result = val

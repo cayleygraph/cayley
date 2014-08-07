@@ -67,10 +67,10 @@ func TestMemstoreBackedSexp(t *testing.T) {
 		if it.Type() != test.typ {
 			t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
 		}
-		got, ok := graph.Next(it)
-		if !ok {
+		if !graph.Next(it) {
 			t.Errorf("Failed to %s", test.message)
 		}
+		got := it.Result()
 		if expect := ts.ValueOf(test.expect); got != expect {
 			t.Errorf("Incorrect result for %s, got:%v expect %v", test.message, got, expect)
 		}
@@ -88,10 +88,10 @@ func TestTreeConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
 	}
-	out, ok := graph.Next(it)
-	if !ok {
+	if !graph.Next(it) {
 		t.Error("Got no results")
 	}
+	out := it.Result()
 	if out != ts.ValueOf("i") {
 		t.Errorf("Got %d, expected %d", out, ts.ValueOf("i"))
 	}
@@ -105,8 +105,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 		"(:like\n" +
 		"($a (:is :good))))"
 	it := BuildIteratorTreeForQuery(ts, query)
-	_, ok := graph.Next(it)
-	if !ok {
+	if !graph.Next(it) {
 		t.Error("Got no results")
 	}
 	tags := make(map[string]graph.Value)
@@ -135,15 +134,14 @@ func TestMultipleConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
 	}
-	out, ok := graph.Next(it)
-	if !ok {
+	if !graph.Next(it) {
 		t.Error("Got no results")
 	}
+	out := it.Result()
 	if out != ts.ValueOf("i") {
 		t.Errorf("Got %d, expected %d", out, ts.ValueOf("i"))
 	}
-	_, ok = graph.Next(it)
-	if ok {
+	if graph.Next(it) {
 		t.Error("Too many results")
 	}
 }

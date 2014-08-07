@@ -93,7 +93,7 @@ func (it *Iterator) Clone() graph.Iterator {
 
 func (it *Iterator) Close() {}
 
-func (it *Iterator) Next() (graph.Value, bool) {
+func (it *Iterator) Next() bool {
 	graph.NextLogIn(it)
 	if it.tree.Max() == nil || it.result == int64(it.tree.Max().(Int64)) {
 		return graph.NextLogOut(it, nil, false)
@@ -111,7 +111,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextResult() bool {
+func (it *Iterator) NextPath() bool {
 	return false
 }
 

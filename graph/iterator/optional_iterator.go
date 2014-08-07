@@ -51,8 +51,6 @@ func NewOptional(it graph.Iterator) *Optional {
 	}
 }
 
-func (it *Optional) CanNext() bool { return false }
-
 func (it *Optional) UID() uint64 {
 	return it.uid
 }
@@ -88,9 +86,9 @@ func (it *Optional) Result() graph.Value {
 // An optional iterator only has a next result if, (a) last time we checked
 // we had any results whatsoever, and (b) there was another subresult in our
 // optional subbranch.
-func (it *Optional) NextResult() bool {
+func (it *Optional) NextPath() bool {
 	if it.lastCheck {
-		return it.subIt.NextResult()
+		return it.subIt.NextPath()
 	}
 	return false
 }

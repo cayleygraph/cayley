@@ -114,10 +114,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
 
-	val, ok := outerAnd.Next()
-	if !ok {
+	if !outerAnd.Next() {
 		t.Error("Expected one matching subtree")
 	}
+	val := outerAnd.Result()
 	if ts.NameOf(val) != "C" {
 		t.Errorf("Matching subtree should be %s, got %s", "barak", ts.NameOf(val))
 	}
@@ -128,7 +128,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	)
 	for {
 		got = append(got, ts.NameOf(all.Result()))
-		if !outerAnd.NextResult() {
+		if !outerAnd.NextPath() {
 			break
 		}
 	}
@@ -138,8 +138,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		t.Errorf("Unexpected result, got:%q expect:%q", got, expect)
 	}
 
-	val, ok = outerAnd.Next()
-	if ok {
+	if outerAnd.Next() {
 		t.Error("More than one possible top level output?")
 	}
 }
@@ -190,8 +189,7 @@ func TestRemoveTriple(t *testing.T) {
 	hasa := iterator.NewHasA(ts, innerAnd, quad.Object)
 
 	newIt, _ := hasa.Optimize()
-	_, ok := graph.Next(newIt)
-	if ok {
+	if graph.Next(newIt) {
 		t.Error("E should not have any followers.")
 	}
 }

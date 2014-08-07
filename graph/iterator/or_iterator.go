@@ -141,35 +141,34 @@ func (it *Or) AddSubIterator(sub graph.Iterator) {
 	it.itCount++
 }
 
-// Returns the Next value from the Or graph.iterator. Because the Or is the
-// union of its subiterators, it must produce from all subiterators -- unless
-// it's shortcircuiting, in which case, it's the first one that returns anything.
-func (it *Or) Next() (graph.Value, bool) {
+// Next advances the Or graph.iterator. Because the Or is the union of its
+// subiterators, it must produce from all subiterators -- unless it it
+// shortcircuiting, in which case, it is the first one that returns anything.
+func (it *Or) Next() bool {
 	graph.NextLogIn(it)
-	var curr graph.Value
-	var exists bool
-	firstTime := false
+	var first bool
 	for {
 		if it.currentIterator == -1 {
 			it.currentIterator = 0
-			firstTime = true
+			first = true
 		}
 		curIt := it.internalIterators[it.currentIterator]
-		curr, exists = graph.Next(curIt)
-		if !exists {
-			if it.isShortCircuiting && !firstTime {
-				return graph.NextLogOut(it, nil, false)
-			}
-			it.currentIterator++
-			if it.currentIterator == it.itCount {
-				return graph.NextLogOut(it, nil, false)
-			}
-		} else {
-			it.result = curr
-			return graph.NextLogOut(it, curr, true)
+
+		if graph.Next(curIt) {
+			it.result = curIt.Result()
+			return graph.NextLogOut(it, it.result, true)
+		}
+
+		if it.isShortCircuiting && !first {
+			break
+		}
+		it.currentIterator++
+		if it.currentIterator == it.itCount {
+			break
 		}
 	}
-	panic("unreachable")
+
+	return graph.NextLogOut(it, nil, false)
 }
 
 func (it *Or) Result() graph.Value {
@@ -228,13 +227,13 @@ func (it *Or) Size() (int64, bool) {
 	return val, b
 }
 
-// An Or has no NextResult of its own -- that is, there are no other values
+// An Or has no NextPath of its own -- that is, there are no other values
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively. In the case of
 // shortcircuiting, only allow new results from the currently checked graph.iterator
-func (it *Or) NextResult() bool {
+func (it *Or) NextPath() bool {
 	if it.currentIterator != -1 {
-		return it.internalIterators[it.currentIterator].NextResult()
+		return it.internalIterators[it.currentIterator].NextPath()
 	}
 	return false
 }

@@ -132,11 +132,8 @@ func (ts *TripleStore) tripleExists(t quad.Quad) (bool, int64) {
 	}
 	it := NewLlrbIterator(smallest_tree, "")
 
-	for {
-		val, ok := it.Next()
-		if !ok {
-			break
-		}
+	for it.Next() {
+		val := it.Result()
 		if t == ts.triples[val.(int64)] {
 			return true, val.(int64)
 		}

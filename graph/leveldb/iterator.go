@@ -117,19 +117,19 @@ func (it *Iterator) Close() {
 	}
 }
 
-func (it *Iterator) Next() (graph.Value, bool) {
+func (it *Iterator) Next() bool {
 	if it.iter == nil {
 		it.result = nil
-		return nil, false
+		return false
 	}
 	if !it.open {
 		it.result = nil
-		return nil, false
+		return false
 	}
 	if !it.iter.Valid() {
 		it.result = nil
 		it.Close()
-		return nil, false
+		return false
 	}
 	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
 		out := make([]byte, len(it.iter.Key()))
@@ -139,11 +139,11 @@ func (it *Iterator) Next() (graph.Value, bool) {
 		if !ok {
 			it.Close()
 		}
-		return Token(out), true
+		return true
 	}
 	it.Close()
 	it.result = nil
-	return nil, false
+	return false
 }
 
 func (it *Iterator) ResultTree() *graph.ResultTree {
@@ -154,7 +154,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextResult() bool {
+func (it *Iterator) NextPath() bool {
 	return false
 }
 

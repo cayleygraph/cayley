@@ -33,10 +33,10 @@ func TestLinksTo(t *testing.T) {
 	}
 	fixed.Add(val)
 	lto := NewLinksTo(ts, fixed, quad.Object)
-	val, ok := lto.Next()
-	if !ok {
+	if !lto.Next() {
 		t.Error("At least one triple matches the fixed object")
 	}
+	val = lto.Result()
 	if val != 2 {
 		t.Errorf("Quad index 2, such as %s, should match %s", ts.Quad(2), ts.Quad(val))
 	}
