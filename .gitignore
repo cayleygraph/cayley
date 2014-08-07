@@ -3,3 +3,4 @@ main
 *.test
 *.peg.go
 cayley.cfg
+.cayley_history
