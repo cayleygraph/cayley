@@ -19,6 +19,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	nethttp "net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 
@@ -36,9 +38,9 @@ import (
 )
 
 var tripleFile = flag.String("triples", "", "Triple File to load before going to REPL.")
-var cpuprofile = flag.String("prof", "", "Output profiling file.")
 var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
+var profile = flag.Bool("profile", false, "Always start cpu profiling server (not required with http command)")
 
 // Filled in by `go build ldflags="-X main.VERSION `ver`"`.
 var BUILD_DATE string
@@ -88,6 +90,11 @@ func main() {
 		glog.Infoln("GOMAXPROCS currently", os.Getenv("GOMAXPROCS"), " -- not adjusting")
 	}
 
+	if *profile && cmd != "http" {
+		go func() {
+			glog.Info(nethttp.ListenAndServe(fmt.Sprintf("localhost:%s", cfg.ListenPort), nil))
+		}()
+	}
 	var (
 		ts  graph.TripleStore
 		err error
