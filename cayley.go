@@ -134,6 +134,6 @@ func main() {
 		flag.Usage()
 	}
 	if err != nil {
-		glog.Fatalln(err)
+		glog.Errorln(err)
 	}
 }

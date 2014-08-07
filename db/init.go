@@ -15,11 +15,20 @@
 package db
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 )
 
+var ErrNotPersistent = errors.New("database type is not persistent")
+
 func Init(cfg *config.Config, triplePath string) error {
+	if !graph.IsPersistent(cfg.DatabaseType) {
+		return fmt.Errorf("ignoring unproductive database initialization request: %v", ErrNotPersistent)
+	}
+
 	err := graph.InitTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	if err != nil {
 		return err

@@ -28,8 +28,7 @@ func Open(cfg *config.Config) (graph.TripleStore, error) {
 		return nil, err
 	}
 
-	// Memstore is not persistent, so it MUST be loaded.
-	if cfg.DatabaseType == "memstore" {
+	if !graph.IsPersistent(cfg.DatabaseType) {
 		err = Load(ts, cfg, cfg.DatabasePath)
 		if err != nil {
 			return nil, err

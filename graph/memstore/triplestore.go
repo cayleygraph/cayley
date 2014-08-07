@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
+	graph.RegisterTripleStore("memstore", false, func(string, graph.Options) (graph.TripleStore, error) {
 		return newTripleStore(), nil
 	}, nil)
 }
