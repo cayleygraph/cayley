@@ -480,13 +480,6 @@ var testDecompressor = []struct {
 		expect:  nil,
 		readErr: bzip2.StructuralError("invalid compression level"),
 	},
-	{
-		message: "gzip input without ReadAt",
-		input:   reader{strings.NewReader("\x1f\x8bcayley data\n")},
-		err:     nil,
-		expect:  []byte("\x1f\x8bcayley data\n"),
-		readErr: nil,
-	},
 }
 
 func TestDecompressor(t *testing.T) {
