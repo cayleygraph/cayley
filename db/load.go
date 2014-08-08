@@ -15,46 +15,24 @@
 package db
 
 import (
-	"bytes"
-	"compress/bzip2"
-	"compress/gzip"
-	"fmt"
 	"io"
-	"os"
 
-	"github.com/barakmich/glog"
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/quad"
-	"github.com/google/cayley/quad/cquads"
 )
 
-func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("could not open file %q: %v", path, err)
-	}
-	defer f.Close()
-
-	r, err := decompressor(f)
-	if err != nil {
-		glog.Fatalln(err)
-	}
-
-	dec := cquads.NewDecoder(r)
-
+func Load(ts graph.TripleStore, cfg *config.Config, dec quad.Unmarshaler) error {
 	bulker, canBulk := ts.(graph.BulkLoader)
 	if canBulk {
-		err = bulker.BulkLoad(dec)
-		if err == nil {
+		switch err := bulker.BulkLoad(dec); err {
+		case nil:
 			return nil
+		case graph.ErrCannotBulkLoad:
+			// Try individual loading.
+		default:
+			return err
 		}
-		if err == graph.ErrCannotBulkLoad {
-			err = nil
-		}
-	}
-	if err != nil {
-		return err
 	}
 
 	block := make([]quad.Quad, 0, cfg.LoadSize)
@@ -75,30 +53,4 @@ func Load(ts graph.TripleStore, cfg *config.Config, path string) error {
 	ts.AddTripleSet(block)
 
 	return nil
-}
-
-const (
-	gzipMagic  = "\x1f\x8b"
-	b2zipMagic = "BZh"
-)
-
-type readAtReader interface {
-	io.Reader
-	io.ReaderAt
-}
-
-func decompressor(r readAtReader) (io.Reader, error) {
-	var buf [3]byte
-	_, err := r.ReadAt(buf[:], 0)
-	if err != nil {
-		return nil, err
-	}
-	switch {
-	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
-		return gzip.NewReader(r)
-	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
-		return bzip2.NewReader(r), nil
-	default:
-		return r, nil
-	}
 }

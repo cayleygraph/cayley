@@ -17,8 +17,12 @@
 package main
 
 import (
+	"bytes"
+	"compress/bzip2"
+	"compress/gzip"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 
@@ -28,6 +32,9 @@ import (
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
+	"github.com/google/cayley/quad"
+	"github.com/google/cayley/quad/cquads"
+	"github.com/google/cayley/quad/nquads"
 
 	// Load all supported backends.
 	_ "github.com/google/cayley/graph/leveldb"
@@ -35,14 +42,19 @@ import (
 	_ "github.com/google/cayley/graph/mongo"
 )
 
-var tripleFile = flag.String("triples", "", "Triple file to load for database init.")
-var cpuprofile = flag.String("prof", "", "Output profiling file.")
-var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
-var configFile = flag.String("config", "", "Path to an explicit configuration file.")
+var (
+	tripleFile    = flag.String("triples", "", "Triple File to load before going to REPL.")
+	tripleType    = flag.String("format", "cquad", `Triple format to use for loading ("cquad" or "nquad").`)
+	cpuprofile    = flag.String("prof", "", "Output profiling file.")
+	queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
+	configFile    = flag.String("config", "", "Path to an explicit configuration file.")
+)
 
 // Filled in by `go build ldflags="-X main.VERSION `ver`"`.
-var BUILD_DATE string
-var VERSION string
+var (
+	BUILD_DATE string
+	VERSION    string
+)
 
 func Usage() {
 	fmt.Println("Cayley is a graph store and graph query layer.")
@@ -102,14 +114,28 @@ func main() {
 		os.Exit(0)
 
 	case "init":
-		err = db.Init(cfg, *tripleFile)
+		err = db.Init(cfg)
+		if err != nil {
+			break
+		}
+		if *tripleFile != "" {
+			ts, err = db.Open(cfg)
+			if err != nil {
+				break
+			}
+			err = load(ts, cfg, *tripleFile, *tripleType)
+			if err != nil {
+				break
+			}
+			ts.Close()
+		}
 
 	case "load":
 		ts, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
-		err = db.Load(ts, cfg, cfg.DatabasePath)
+		err = load(ts, cfg, "", *tripleType)
 		if err != nil {
 			break
 		}
@@ -122,7 +148,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = db.Load(ts, cfg, cfg.DatabasePath)
+			err = load(ts, cfg, "", *tripleType)
 			if err != nil {
 				break
 			}
@@ -138,7 +164,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = db.Load(ts, cfg, cfg.DatabasePath)
+			err = load(ts, cfg, "", *tripleType)
 			if err != nil {
 				break
 			}
@@ -154,5 +180,60 @@ func main() {
 	}
 	if err != nil {
 		glog.Errorln(err)
+	}
+}
+
+// TODO(kortschak) Make path a URI to allow pointing to any resource.
+func load(ts graph.TripleStore, cfg *config.Config, path, typ string) error {
+	if path == "" {
+		path = cfg.DatabasePath
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("could not open file %q: %v", path, err)
+	}
+	defer f.Close()
+
+	r, err := decompressor(f)
+	if err != nil {
+		return err
+	}
+
+	var dec quad.Unmarshaler
+	switch typ {
+	case "cquad":
+		dec = cquads.NewDecoder(r)
+	case "nquad":
+		dec = nquads.NewDecoder(r)
+	default:
+		return fmt.Errorf("unknown quad format %q", typ)
+	}
+
+	return db.Load(ts, cfg, dec)
+}
+
+const (
+	gzipMagic  = "\x1f\x8b"
+	b2zipMagic = "BZh"
+)
+
+type readAtReader interface {
+	io.Reader
+	io.ReaderAt
+}
+
+func decompressor(r readAtReader) (io.Reader, error) {
+	var buf [3]byte
+	_, err := r.ReadAt(buf[:], 0)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
+		return gzip.NewReader(r)
+	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
+		return bzip2.NewReader(r), nil
+	default:
+		return r, nil
 	}
 }
