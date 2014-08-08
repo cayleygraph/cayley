@@ -217,14 +217,13 @@ const (
 	b2zipMagic = "BZh"
 )
 
-type readAtReader interface {
-	io.Reader
-	io.ReaderAt
-}
-
-func decompressor(r readAtReader) (io.Reader, error) {
+func decompressor(r io.Reader) (io.Reader, error) {
+	ra, ok := r.(io.ReaderAt)
+	if !ok {
+		return r, nil
+	}
 	var buf [3]byte
-	_, err := r.ReadAt(buf[:], 0)
+	_, err := ra.ReadAt(buf[:], 0)
 	if err != nil {
 		return nil, err
 	}
