@@ -28,12 +28,5 @@ func Open(cfg *config.Config) (graph.TripleStore, error) {
 		return nil, err
 	}
 
-	if !graph.IsPersistent(cfg.DatabaseType) {
-		err = Load(ts, cfg, cfg.DatabasePath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return ts, nil
 }

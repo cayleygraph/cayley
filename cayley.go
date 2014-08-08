@@ -35,7 +35,7 @@ import (
 	_ "github.com/google/cayley/graph/mongo"
 )
 
-var tripleFile = flag.String("triples", "", "Triple File to load before going to REPL.")
+var tripleFile = flag.String("triples", "", "Triple file to load for database init.")
 var cpuprofile = flag.String("prof", "", "Output profiling file.")
 var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
@@ -100,35 +100,54 @@ func main() {
 			fmt.Println("Cayley snapshot")
 		}
 		os.Exit(0)
+
 	case "init":
 		err = db.Init(cfg, *tripleFile)
+
 	case "load":
 		ts, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
-		err = db.Load(ts, cfg, *tripleFile)
+		err = db.Load(ts, cfg, cfg.DatabasePath)
 		if err != nil {
 			break
 		}
+
 		ts.Close()
+
 	case "repl":
 		ts, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
-		err = db.Repl(ts, *queryLanguage, cfg)
-		if err != nil {
-			break
+		if !graph.IsPersistent(cfg.DatabaseType) {
+			err = db.Load(ts, cfg, cfg.DatabasePath)
+			if err != nil {
+				break
+			}
 		}
+
+		err = db.Repl(ts, *queryLanguage, cfg)
+
 		ts.Close()
+
 	case "http":
 		ts, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
+		if !graph.IsPersistent(cfg.DatabaseType) {
+			err = db.Load(ts, cfg, cfg.DatabasePath)
+			if err != nil {
+				break
+			}
+		}
+
 		http.Serve(ts, cfg)
+
 		ts.Close()
+
 	default:
 		fmt.Println("No command", cmd)
 		flag.Usage()

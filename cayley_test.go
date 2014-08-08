@@ -308,6 +308,13 @@ func prepare(t testing.TB) {
 		if err != nil {
 			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
 		}
+
+		if !graph.IsPersistent(cfg.DatabaseType) {
+			err = db.Load(ts, cfg, cfg.DatabasePath)
+			if err != nil {
+				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
+			}
+		}
 	})
 }
 
