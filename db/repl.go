@@ -15,13 +15,14 @@
 package db
 
 import (
-	"bufio"
-	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"strings"
 	"time"
+
+	"github.com/peterh/liner"
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
@@ -62,6 +63,13 @@ func Run(query string, ses query.Session) {
 	}
 }
 
+const (
+	ps1 = "cayley> "
+	ps2 = "...     "
+
+	history = ".cayley_history"
+)
+
 func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error {
 	var ses query.Session
 	switch queryLanguage {
@@ -74,80 +82,123 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 	default:
 		ses = gremlin.NewSession(ts, cfg.Timeout, true)
 	}
-	buf := bufio.NewReader(os.Stdin)
-	var line []byte
+
+	term, err := terminal(history)
+	if os.IsNotExist(err) {
+		fmt.Printf("creating new history file: %q\n", history)
+	}
+	defer persist(term, history)
+
+	var (
+		prompt = ps1
+
+		code string
+	)
+
 	for {
-		if len(line) == 0 {
-			fmt.Print("cayley> ")
+		if len(code) == 0 {
+			prompt = ps1
 		} else {
-			fmt.Print("...       ")
+			prompt = ps2
 		}
-		l, prefix, err := buf.ReadLine()
-		if err == io.EOF {
-			if len(line) != 0 {
-				line = line[:0]
-			} else {
+		line, err := term.Prompt(prompt)
+		if err != nil {
+			if err == io.EOF {
 				return nil
 			}
+			return err
 		}
-		if err != nil {
-			line = line[:0]
-		}
-		if prefix {
-			return errors.New("line too long")
-		}
-		line = append(line, l...)
-		if len(line) == 0 {
-			continue
-		}
-		line = bytes.TrimSpace(line)
+
+		term.AppendHistory(line)
+
+		line = strings.TrimSpace(line)
 		if len(line) == 0 || line[0] == '#' {
-			line = line[:0]
 			continue
 		}
-		if bytes.HasPrefix(line, []byte(":debug")) {
-			ses.ToggleDebug()
-			fmt.Println("Debug Toggled")
-			line = line[:0]
-			continue
-		}
-		if bytes.HasPrefix(line, []byte(":a")) {
-			var tripleStmt = line[3:]
-			triple, err := cquads.Parse(string(tripleStmt))
-			if !triple.IsValid() {
-				if err != nil {
-					fmt.Printf("not a valid triple: %v\n", err)
+
+		if code == "" {
+			switch {
+			case strings.HasPrefix(line, ":debug"):
+				ses.ToggleDebug()
+				fmt.Println("Debug Toggled")
+				continue
+
+			case strings.HasPrefix(line, ":a"):
+				triple, err := cquads.Parse(line[3:])
+				if !triple.IsValid() {
+					if err != nil {
+						fmt.Printf("not a valid triple: %v\n", err)
+					}
+					continue
 				}
-				line = line[:0]
+				ts.AddTriple(triple)
+				continue
+
+			case strings.HasPrefix(line, ":d"):
+				triple, err := cquads.Parse(line[3:])
+				if !triple.IsValid() {
+					if err != nil {
+						fmt.Printf("not a valid triple: %v\n", err)
+					}
+					continue
+				}
+				ts.RemoveTriple(triple)
 				continue
 			}
-			ts.AddTriple(triple)
-			line = line[:0]
-			continue
 		}
-		if bytes.HasPrefix(line, []byte(":d")) {
-			var tripleStmt = line[3:]
-			triple, err := cquads.Parse(string(tripleStmt))
-			if !triple.IsValid() {
-				if err != nil {
-					fmt.Printf("not a valid triple: %v\n", err)
-				}
-				line = line[:0]
-				continue
-			}
-			ts.RemoveTriple(triple)
-			line = line[:0]
-			continue
-		}
-		result, err := ses.InputParses(string(line))
+
+		code += line
+
+		result, err := ses.InputParses(code)
 		switch result {
 		case query.Parsed:
-			Run(string(line), ses)
-			line = line[:0]
+			Run(code, ses)
+			code = ""
 		case query.ParseFail:
 			fmt.Println("Error: ", err)
-			line = line[:0]
+			code = ""
 		case query.ParseMore:
 		}
 	}
+}
+
+func terminal(path string) (*liner.State, error) {
+	term := liner.NewLiner()
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, os.Kill)
+		<-c
+
+		persist(term, history)
+
+		err := term.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to properly clean up terminal: %v\n", err)
+			os.Exit(1)
+		}
+
+		os.Exit(0)
+	}()
+
+	f, err := os.Open(path)
+	if err != nil {
+		return term, err
+	}
+	defer f.Close()
+	_, err = term.ReadHistory(f)
+	return term, err
+}
+
+func persist(term *liner.State, path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	if err != nil {
+		return fmt.Errorf("could not open %q to append history: %v", path, err)
+	}
+	defer f.Close()
+	_, err = term.WriteHistory(f)
+	if err != nil {
+		return fmt.Errorf("could not write history to %q: %v", path, err)
+	}
+	return nil
 }

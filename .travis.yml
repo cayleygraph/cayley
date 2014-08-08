@@ -10,6 +10,7 @@ install:
   - go get github.com/barakmich/glog
   - go get github.com/julienschmidt/httprouter
   - go get github.com/petar/GoLLRB/llrb
+  - go get github.com/peterh/liner
   - go get github.com/robertkrimen/otto
   - go get github.com/russross/blackfriday
   - go get github.com/syndtr/goleveldb/leveldb
