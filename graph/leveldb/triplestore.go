@@ -34,7 +34,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("leveldb", newTripleStore, createNewLevelDB)
+	graph.RegisterTripleStore("leveldb", true, newTripleStore, createNewLevelDB)
 }
 
 const (
