@@ -17,13 +17,17 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
 	"flag"
 	"fmt"
 	"io"
+	client "net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/barakmich/glog"
@@ -183,18 +187,35 @@ func main() {
 	}
 }
 
-// TODO(kortschak) Make path a URI to allow pointing to any resource.
 func load(ts graph.TripleStore, cfg *config.Config, path, typ string) error {
+	var r io.Reader
+
 	if path == "" {
 		path = cfg.DatabasePath
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("could not open file %q: %v", path, err)
+	u, err := url.Parse(path)
+	if err != nil || u.Scheme == "file" || u.Scheme == "" {
+		// Don't alter relative URL path or non-URL path parameter.
+		if u.Scheme != "" && err == nil {
+			// Recovery heuristic for mistyping "file://path/to/file".
+			path = filepath.Join(u.Host, u.Path)
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %q: %v", path, err)
+		}
+		defer f.Close()
+		r = f
+	} else {
+		res, err := client.Get(path)
+		if err != nil {
+			return fmt.Errorf("could not get resource <%s>: %v", u, err)
+		}
+		defer res.Body.Close()
+		r = res.Body
 	}
-	defer f.Close()
 
-	r, err := decompressor(f)
+	r, err = decompressor(r)
 	if err != nil {
 		return err
 	}
@@ -218,21 +239,17 @@ const (
 )
 
 func decompressor(r io.Reader) (io.Reader, error) {
-	ra, ok := r.(io.ReaderAt)
-	if !ok {
-		return r, nil
-	}
-	var buf [3]byte
-	_, err := ra.ReadAt(buf[:], 0)
+	br := bufio.NewReader(r)
+	buf, err := br.Peek(3)
 	if err != nil {
 		return nil, err
 	}
 	switch {
 	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
-		return gzip.NewReader(r)
+		return gzip.NewReader(br)
 	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
-		return bzip2.NewReader(r), nil
+		return bzip2.NewReader(br), nil
 	default:
-		return r, nil
+		return br, nil
 	}
 }
