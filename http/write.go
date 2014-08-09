@@ -26,7 +26,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/google/cayley/quad"
-	"github.com/google/cayley/quad/nquads"
+	"github.com/google/cayley/quad/cquads"
 )
 
 func ParseJsonToTripleList(jsonBody []byte) ([]quad.Quad, error) {
@@ -78,7 +78,8 @@ func (api *Api) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		blockSize = int64(api.config.LoadSize)
 	}
 
-	dec := nquads.NewDecoder(formFile)
+	// TODO(kortschak) Make this configurable from the web UI.
+	dec := cquads.NewDecoder(formFile)
 
 	var (
 		n int
