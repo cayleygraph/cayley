@@ -139,7 +139,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		err = load(ts, cfg, "", *tripleType)
+		err = load(ts, cfg, *tripleFile, *tripleType)
 		if err != nil {
 			break
 		}
