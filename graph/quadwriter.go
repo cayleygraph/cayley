@@ -43,6 +43,11 @@ type Delta struct {
 	Timestamp time.Time
 }
 
+type Handle struct {
+	QuadStore  TripleStore
+	QuadWriter QuadWriter
+}
+
 var ErrQuadExists = errors.New("Quad exists")
 var ErrQuadNotExist = errors.New("Quad doesn't exist")
 
