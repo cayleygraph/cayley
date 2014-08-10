@@ -77,17 +77,21 @@ type Iterator interface {
 	// the iteration interface.
 	//
 	// To get the full results of iteration, do the following:
-	// while (!Next()):
-	//   emit result
-	//   while (!NextResult()):
-	//       emit result
+	//
+	//  for graph.Next(it) {
+	//  	val := it.Result()
+	//  	... do things with val.
+	//  	for it.NextPath() {
+	//  		... find other paths to iterate
+	//  	}
+	//  }
 	//
 	// All of them should set iterator.Last to be the last returned value, to
 	// make results work.
 	//
-	// NextResult() advances iterators that may have more than one valid result,
+	// NextPath() advances iterators that may have more than one valid result,
 	// from the bottom up.
-	NextResult() bool
+	NextPath() bool
 
 	// Contains returns whether the value is within the set held by the iterator.
 	Contains(Value) bool
@@ -135,22 +139,22 @@ type Iterator interface {
 }
 
 type Nexter interface {
-	// Next() advances the iterator and returns the next valid result. Returns
-	// (<value>, true) or (nil, false)
-	Next() (Value, bool)
+	// Next advances the iterator to the next value, which will then be available through
+	// the Result method. It returns false if no further advancement is possible.
+	Next() bool
 
 	Iterator
 }
 
 // Next is a convenience function that conditionally calls the Next method
 // of an Iterator if it is a Nexter. If the Iterator is not a Nexter, Next
-// return a nil Value and false.
-func Next(it Iterator) (Value, bool) {
+// returns false.
+func Next(it Iterator) bool {
 	if n, ok := it.(Nexter); ok {
 		return n.Next()
 	}
 	glog.Errorln("Nexting an un-nextable iterator")
-	return nil, false
+	return false
 }
 
 // Height is a convienence function to measure the height of an iterator tree.
@@ -271,7 +275,7 @@ func NextLogIn(it Iterator) {
 	}
 }
 
-func NextLogOut(it Iterator, val Value, ok bool) (Value, bool) {
+func NextLogOut(it Iterator, val Value, ok bool) bool {
 	if glog.V(4) {
 		if ok {
 			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type().String()), it.UID(), val)
@@ -279,5 +283,5 @@ func NextLogOut(it Iterator, val Value, ok bool) (Value, bool) {
 			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
 		}
 	}
-	return val, ok
+	return ok
 }

@@ -99,7 +99,7 @@ func (it *Iterator) checkValid(index int64) bool {
 	return it.ts.log[index].DeletedBy == 0
 }
 
-func (it *Iterator) Next() (graph.Value, bool) {
+func (it *Iterator) Next() bool {
 	graph.NextLogIn(it)
 	if it.tree.Max() == nil || it.iterLast == it.tree.Max().(Int64) {
 		return graph.NextLogOut(it, nil, false)
@@ -120,7 +120,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextResult() bool {
+func (it *Iterator) NextPath() bool {
 	return false
 }
 

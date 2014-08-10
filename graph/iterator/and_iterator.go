@@ -151,25 +151,20 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 	it.itCount++
 }
 
-// Returns the Next value from the And iterator. Because the And is the
-// intersection of its subiterators, it must choose one subiterator to produce a
-// candidate, and check this value against the subiterators. A productive choice
-// of primary iterator is therefore very important.
-func (it *And) Next() (graph.Value, bool) {
+// Returns advances the And iterator. Because the And is the intersection of its
+// subiterators, it must choose one subiterator to produce a candidate, and check
+// this value against the subiterators. A productive choice of primary iterator
+// is therefore very important.
+func (it *And) Next() bool {
 	graph.NextLogIn(it)
-	var curr graph.Value
-	var exists bool
-	for {
-		curr, exists = graph.Next(it.primaryIt)
-		if !exists {
-			return graph.NextLogOut(it, nil, false)
-		}
+	for graph.Next(it.primaryIt) {
+		curr := it.primaryIt.Result()
 		if it.subItsContain(curr) {
 			it.result = curr
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
-	panic("unreachable")
+	return graph.NextLogOut(it, nil, false)
 }
 
 func (it *And) Result() graph.Value {
@@ -236,15 +231,15 @@ func (it *And) Size() (int64, bool) {
 	return val, b
 }
 
-// An And has no NextResult of its own -- that is, there are no other values
+// An And has no NextPath of its own -- that is, there are no other values
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively.
-func (it *And) NextResult() bool {
-	if it.primaryIt.NextResult() {
+func (it *And) NextPath() bool {
+	if it.primaryIt.NextPath() {
 		return true
 	}
 	for _, sub := range it.internalIterators {
-		if sub.NextResult() {
+		if sub.NextPath() {
 			return true
 		}
 	}

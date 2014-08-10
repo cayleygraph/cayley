@@ -37,10 +37,10 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
-			val, ok := graph.Next(primary)
-			if !ok {
-				panic("Sizes lie")
+			if !graph.Next(primary) {
+				panic("unexpected size during optimize")
 			}
+			val := primary.Result()
 			newIt := ts.TripleIterator(it.Direction(), val)
 			nt := newIt.Tagger()
 			nt.CopyFrom(it)

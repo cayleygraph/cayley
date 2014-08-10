@@ -15,11 +15,26 @@
 package db
 
 import (
+	"errors"
+	"fmt"
+	"io"
+
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 )
+
+var ErrNotPersistent = errors.New("database type is not persistent")
+
+func Init(cfg *config.Config) error {
+	if !graph.IsPersistent(cfg.DatabaseType) {
+		return fmt.Errorf("ignoring unproductive database initialization request: %v", ErrNotPersistent)
+	}
+
+	return graph.InitTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+}
 
 func Open(cfg *config.Config) (graph.TripleStore, error) {
 	glog.Infof("Opening database %q at %s", cfg.DatabaseType, cfg.DatabasePath)
@@ -28,13 +43,38 @@ func Open(cfg *config.Config) (graph.TripleStore, error) {
 		return nil, err
 	}
 
-	// Memstore is not persistent, so it MUST be loaded.
-	if cfg.DatabaseType == "memstore" {
-		err = Load(ts, cfg, cfg.DatabasePath)
-		if err != nil {
-			return nil, err
+	return ts, nil
+}
+
+func Load(ts graph.TripleStore, cfg *config.Config, dec quad.Unmarshaler) error {
+	bulker, canBulk := ts.(graph.BulkLoader)
+	if canBulk {
+		switch err := bulker.BulkLoad(dec); err {
+		case nil:
+			return nil
+		case graph.ErrCannotBulkLoad:
+			// Try individual loading.
+		default:
+			return err
 		}
 	}
 
-	return ts, nil
+	block := make([]quad.Quad, 0, cfg.LoadSize)
+	for {
+		t, err := dec.Unmarshal()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		block = append(block, t)
+		if len(block) == cap(block) {
+			ts.AddTripleSet(block)
+			block = block[:0]
+		}
+	}
+	ts.AddTripleSet(block)
+
+	return nil
 }

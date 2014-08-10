@@ -35,7 +35,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("leveldb", newTripleStore, createNewLevelDB)
+	graph.RegisterTripleStore("leveldb", true, newTripleStore, createNewLevelDB)
 }
 
 const (
@@ -45,7 +45,7 @@ const (
 
 type Token []byte
 
-func (t Token) Hasher() interface{} {
+func (t Token) Key() interface{} {
 	return string(t)
 }
 

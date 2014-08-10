@@ -36,10 +36,10 @@ func TestTag(t *testing.T) {
 		t.Errorf("Cannot get tag back, got %s", out[0])
 	}
 
-	val, ok := and.Next()
-	if !ok {
+	if !and.Next() {
 		t.Errorf("And did not next")
 	}
+	val := and.Result()
 	if val != 234 {
 		t.Errorf("Unexpected value")
 	}
@@ -76,18 +76,15 @@ func TestAndAndFixedIterators(t *testing.T) {
 		t.Error("not accurate")
 	}
 
-	val, ok := and.Next()
-	if val != 3 || ok == false {
+	if !and.Next() || and.Result() != 3 {
 		t.Error("Incorrect first value")
 	}
 
-	val, ok = and.Next()
-	if val != 4 || ok == false {
+	if !and.Next() || and.Result() != 4 {
 		t.Error("Incorrect second value")
 	}
 
-	val, ok = and.Next()
-	if ok {
+	if and.Next() {
 		t.Error("Too many values")
 	}
 
@@ -117,8 +114,7 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 		t.Error("not accurate")
 	}
 
-	_, ok := and.Next()
-	if ok {
+	if and.Next() {
 		t.Error("Too many values")
 	}
 
@@ -131,18 +127,15 @@ func TestAllIterators(t *testing.T) {
 	and.AddSubIterator(all2)
 	and.AddSubIterator(all1)
 
-	val, ok := and.Next()
-	if val.(int64) != 4 || ok == false {
+	if !and.Next() || and.Result() != int64(4) {
 		t.Error("Incorrect first value")
 	}
 
-	val, ok = and.Next()
-	if val.(int64) != 5 || ok == false {
+	if !and.Next() || and.Result() != int64(5) {
 		t.Error("Incorrect second value")
 	}
 
-	val, ok = and.Next()
-	if ok {
+	if and.Next() {
 		t.Error("Too many values")
 	}
 

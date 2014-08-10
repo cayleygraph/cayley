@@ -17,9 +17,17 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"compress/bzip2"
+	"compress/gzip"
 	"flag"
 	"fmt"
+	"io"
+	client "net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/barakmich/glog"
@@ -28,6 +36,9 @@ import (
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
+	"github.com/google/cayley/quad"
+	"github.com/google/cayley/quad/cquads"
+	"github.com/google/cayley/quad/nquads"
 
 	// Load all supported backends.
 	_ "github.com/google/cayley/graph/leveldb"
@@ -35,14 +46,19 @@ import (
 	_ "github.com/google/cayley/graph/mongo"
 )
 
-var tripleFile = flag.String("triples", "", "Triple File to load before going to REPL.")
-var cpuprofile = flag.String("prof", "", "Output profiling file.")
-var queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
-var configFile = flag.String("config", "", "Path to an explicit configuration file.")
+var (
+	tripleFile    = flag.String("triples", "", "Triple File to load before going to REPL.")
+	tripleType    = flag.String("format", "cquad", `Triple format to use for loading ("cquad" or "nquad").`)
+	cpuprofile    = flag.String("prof", "", "Output profiling file.")
+	queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
+	configFile    = flag.String("config", "", "Path to an explicit configuration file.")
+)
 
 // Filled in by `go build ldflags="-X main.VERSION `ver`"`.
-var BUILD_DATE string
-var VERSION string
+var (
+	BUILD_DATE string
+	VERSION    string
+)
 
 func Usage() {
 	fmt.Println("Cayley is a graph store and graph query layer.")
@@ -100,40 +116,140 @@ func main() {
 			fmt.Println("Cayley snapshot")
 		}
 		os.Exit(0)
+
 	case "init":
-		err = db.Init(cfg, *tripleFile)
+		err = db.Init(cfg)
+		if err != nil {
+			break
+		}
+		if *tripleFile != "" {
+			ts, err = db.Open(cfg)
+			if err != nil {
+				break
+			}
+			err = load(ts, cfg, *tripleFile, *tripleType)
+			if err != nil {
+				break
+			}
+			ts.Close()
+		}
+
 	case "load":
 		ts, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
-		err = db.Load(ts, cfg, *tripleFile)
+		err = load(ts, cfg, *tripleFile, *tripleType)
 		if err != nil {
 			break
 		}
+
 		ts.Close()
+
 	case "repl":
 		ts, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
-		err = db.Repl(ts, *queryLanguage, cfg)
-		if err != nil {
-			break
+		if !graph.IsPersistent(cfg.DatabaseType) {
+			err = load(ts, cfg, "", *tripleType)
+			if err != nil {
+				break
+			}
 		}
+
+		err = db.Repl(ts, *queryLanguage, cfg)
+
 		ts.Close()
+
 	case "http":
 		ts, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
+		if !graph.IsPersistent(cfg.DatabaseType) {
+			err = load(ts, cfg, "", *tripleType)
+			if err != nil {
+				break
+			}
+		}
+
 		http.Serve(ts, cfg)
+
 		ts.Close()
+
 	default:
 		fmt.Println("No command", cmd)
 		flag.Usage()
 	}
 	if err != nil {
-		glog.Fatalln(err)
+		glog.Errorln(err)
+	}
+}
+
+func load(ts graph.TripleStore, cfg *config.Config, path, typ string) error {
+	var r io.Reader
+
+	if path == "" {
+		path = cfg.DatabasePath
+	}
+	u, err := url.Parse(path)
+	if err != nil || u.Scheme == "file" || u.Scheme == "" {
+		// Don't alter relative URL path or non-URL path parameter.
+		if u.Scheme != "" && err == nil {
+			// Recovery heuristic for mistyping "file://path/to/file".
+			path = filepath.Join(u.Host, u.Path)
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %q: %v", path, err)
+		}
+		defer f.Close()
+		r = f
+	} else {
+		res, err := client.Get(path)
+		if err != nil {
+			return fmt.Errorf("could not get resource <%s>: %v", u, err)
+		}
+		defer res.Body.Close()
+		r = res.Body
+	}
+
+	r, err = decompressor(r)
+	if err != nil {
+		return err
+	}
+
+	var dec quad.Unmarshaler
+	switch typ {
+	case "cquad":
+		dec = cquads.NewDecoder(r)
+	case "nquad":
+		dec = nquads.NewDecoder(r)
+	default:
+		return fmt.Errorf("unknown quad format %q", typ)
+	}
+
+	return db.Load(ts, cfg, dec)
+}
+
+const (
+	gzipMagic  = "\x1f\x8b"
+	b2zipMagic = "BZh"
+)
+
+func decompressor(r io.Reader) (io.Reader, error) {
+	br := bufio.NewReader(r)
+	buf, err := br.Peek(3)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
+		return gzip.NewReader(br)
+	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
+		return bzip2.NewReader(br), nil
+	default:
+		return br, nil
 	}
 }

@@ -35,21 +35,19 @@ func NewMemstoreNodesAllIterator(ts *TripleStore) *NodesAllIterator {
 }
 
 // No subiterators.
-func (it *AllIterator) SubIterators() []graph.Iterator {
+func (nit *NodesAllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (nit *NodesAllIterator) Next() (graph.Value, bool) {
-	next, out := nit.Int64.Next()
-	if !out {
-		return next, out
+func (nit *NodesAllIterator) Next() bool {
+	if !nit.Int64.Next() {
+		return false
 	}
-	i64 := next.(int64)
-	_, ok := nit.ts.revIdMap[i64]
+	_, ok := nit.ts.revIdMap[nit.Int64.Result().(int64)]
 	if !ok {
 		return nit.Next()
 	}
-	return next, out
+	return true
 }
 
 func NewMemstoreQuadsAllIterator(ts *TripleStore) *QuadsAllIterator {
@@ -59,13 +57,13 @@ func NewMemstoreQuadsAllIterator(ts *TripleStore) *QuadsAllIterator {
 	return &out
 }
 
-func (qit *QuadsAllIterator) Next() (graph.Value, bool) {
-	next, out := qit.Int64.Next()
+func (qit *QuadsAllIterator) Next() bool {
+	out := qit.Int64.Next()
 	if out {
-		i64 := next.(int64)
+		i64 := qit.Int64.Result().(int64)
 		if qit.ts.log[i64].DeletedBy != 0 || qit.ts.log[i64].Action == graph.Delete {
 			return qit.Next()
 		}
 	}
-	return next, out
+	return out
 }

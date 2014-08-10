@@ -135,8 +135,8 @@ func (it *Fixed) Contains(v graph.Value) bool {
 	return graph.ContainsLogOut(it, v, false)
 }
 
-// Return the next stored value from the iterator.
-func (it *Fixed) Next() (graph.Value, bool) {
+// Next advances the iterator.
+func (it *Fixed) Next() bool {
 	graph.NextLogIn(it)
 	if it.lastIndex == len(it.values) {
 		return graph.NextLogOut(it, nil, false)
@@ -156,7 +156,7 @@ func (it *Fixed) Result() graph.Value {
 	return it.result
 }
 
-func (it *Fixed) NextResult() bool {
+func (it *Fixed) NextPath() bool {
 	return false
 }
 

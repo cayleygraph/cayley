@@ -87,7 +87,7 @@ func (it *Int64) DebugString(indent int) string {
 
 // Next() on an Int64 all iterator is a simple incrementing counter.
 // Return the next integer, and mark it as the result.
-func (it *Int64) Next() (graph.Value, bool) {
+func (it *Int64) Next() bool {
 	graph.NextLogIn(it)
 	if it.at == -1 {
 		return graph.NextLogOut(it, nil, false)
@@ -110,7 +110,7 @@ func (it *Int64) Result() graph.Value {
 	return it.result
 }
 
-func (it *Int64) NextResult() bool {
+func (it *Int64) NextPath() bool {
 	return false
 }
 

@@ -46,12 +46,8 @@ func makeTripleSet() []quad.Quad {
 
 func iteratedTriples(qs graph.TripleStore, it graph.Iterator) []quad.Quad {
 	var res ordered
-	for {
-		val, ok := graph.Next(it)
-		if !ok {
-			break
-		}
-		res = append(res, qs.Quad(val))
+	for graph.Next(it) {
+		res = append(res, qs.Quad(it.Result()))
 	}
 	sort.Sort(res)
 	return res
@@ -86,12 +82,8 @@ func (o ordered) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 
 func iteratedNames(qs graph.TripleStore, it graph.Iterator) []string {
 	var res []string
-	for {
-		val, ok := graph.Next(it)
-		if !ok {
-			break
-		}
-		res = append(res, qs.NameOf(val))
+	for graph.Next(it) {
+		res = append(res, qs.NameOf(it.Result()))
 	}
 	sort.Strings(res)
 	return res
@@ -271,8 +263,8 @@ func TestIterator(t *testing.T) {
 	it.Reset()
 
 	it = qs.TriplesAllIterator()
-	edge, _ := graph.Next(it)
-	triple := qs.Quad(edge)
+	graph.Next(it)
+	triple := qs.Quad(it.Result())
 	set := makeTripleSet()
 	var ok bool
 	for _, t := range set {

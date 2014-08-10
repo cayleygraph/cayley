@@ -77,11 +77,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 		fmt.Println(it.DebugString(0))
 	}
 	nResults := 0
-	for {
-		_, ok := graph.Next(it)
-		if !ok {
-			break
-		}
+	for graph.Next(it) {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		out <- &tags
@@ -89,7 +85,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 		if nResults > limit && limit != -1 {
 			break
 		}
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			out <- &tags

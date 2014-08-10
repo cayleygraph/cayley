@@ -127,20 +127,15 @@ func (it *Comparison) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Comparison) Next() (graph.Value, bool) {
-	var val graph.Value
-	var ok bool
-	for {
-		val, ok = graph.Next(it.subIt)
-		if !ok {
-			return nil, false
-		}
+func (it *Comparison) Next() bool {
+	for graph.Next(it.subIt) {
+		val := it.subIt.Result()
 		if it.doComparison(val) {
-			break
+			it.result = val
+			return true
 		}
 	}
-	it.result = val
-	return val, ok
+	return false
 }
 
 // DEPRECATED
@@ -152,9 +147,9 @@ func (it *Comparison) Result() graph.Value {
 	return it.result
 }
 
-func (it *Comparison) NextResult() bool {
+func (it *Comparison) NextPath() bool {
 	for {
-		hasNext := it.subIt.NextResult()
+		hasNext := it.subIt.NextPath()
 		if !hasNext {
 			return false
 		}

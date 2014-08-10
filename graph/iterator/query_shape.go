@@ -129,12 +129,8 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 		}
 	case graph.Fixed:
 		n.IsFixed = true
-		for {
-			val, more := graph.Next(it)
-			if !more {
-				break
-			}
-			n.Values = append(n.Values, qs.ts.NameOf(val))
+		for graph.Next(it) {
+			n.Values = append(n.Values, qs.ts.NameOf(it.Result()))
 		}
 	case graph.HasA:
 		hasa := it.(*HasA)

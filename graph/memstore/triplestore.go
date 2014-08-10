@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("memstore", func(string, graph.Options) (graph.TripleStore, error) {
+	graph.RegisterTripleStore("memstore", false, func(string, graph.Options) (graph.TripleStore, error) {
 		return newTripleStore(), nil
 	}, nil)
 }
@@ -145,14 +145,10 @@ func (ts *TripleStore) quadExists(t quad.Quad) (bool, int64) {
 	}
 	it := NewLlrbIterator(smallest_tree, "", ts)
 
-	for {
-		val, ok := it.Next()
-		if !ok {
-			break
-		}
-		ival := val.(int64)
-		if t == ts.log[ival].Quad {
-			return true, ival
+	for it.Next() {
+		val := it.Result()
+		if t == ts.log[val.(int64)].Quad {
+			return true, val.(int64)
 		}
 	}
 	return false, 0

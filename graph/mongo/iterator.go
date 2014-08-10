@@ -138,7 +138,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	return m
 }
 
-func (it *Iterator) Next() (graph.Value, bool) {
+func (it *Iterator) Next() bool {
 	var result struct {
 		Id string "_id"
 		//Sub string "Sub"
@@ -151,10 +151,10 @@ func (it *Iterator) Next() (graph.Value, bool) {
 		if err != nil {
 			glog.Errorln("Error Nexting Iterator: ", err)
 		}
-		return nil, false
+		return false
 	}
 	it.result = result.Id
-	return result.Id, true
+	return true
 }
 
 func (it *Iterator) ResultTree() *graph.ResultTree {
@@ -165,7 +165,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextResult() bool {
+func (it *Iterator) NextPath() bool {
 	return false
 }
 

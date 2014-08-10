@@ -88,15 +88,11 @@ func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
 	if glog.V(2) {
 		glog.V(2).Infoln(it.DebugString(0))
 	}
-	for {
-		_, ok := graph.Next(it)
-		if !ok {
-			break
-		}
+	for graph.Next(it) {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		c <- tags
-		for it.NextResult() == true {
+		for it.NextPath() == true {
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			c <- tags

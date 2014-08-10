@@ -30,7 +30,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("mongo", newTripleStore, createNewMongoGraph)
+	graph.RegisterTripleStore("mongo", true, newTripleStore, createNewMongoGraph)
 }
 
 // Guarantee we satisfy graph.Bulkloader.

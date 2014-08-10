@@ -52,7 +52,7 @@ An important failure of MQL before was that it was never well-specified. Let's n
 ### New Iterators
 
 #### Limit Iterator
-The necessary component to make mid-query limit work. Acts as a limit on Next(), a passthrough on Contains(), and a limit on NextResult()
+The necessary component to make mid-query limit work. Acts as a limit on Next(), a passthrough on Contains(), and a limit on NextPath()
 
 ## Medium Term
 

@@ -37,7 +37,7 @@ import (
 // pointers to structs, or merely triples, or whatever works best for the
 // backing store.
 //
-// These must be comparable, or implement a `Hasher() interface{}` function
+// These must be comparable, or implement a `Key() interface{}` function
 // so that they may be stored in maps.
 type Value interface{}
 
@@ -133,36 +133,43 @@ type BulkLoader interface {
 type NewStoreFunc func(string, Options) (TripleStore, error)
 type InitStoreFunc func(string, Options) error
 
-var storeRegistry = make(map[string]NewStoreFunc)
-var storeInitRegistry = make(map[string]InitStoreFunc)
+type register struct {
+	newFunc      NewStoreFunc
+	initFunc     InitStoreFunc
+	isPersistent bool
+}
 
-func RegisterTripleStore(name string, newFunc NewStoreFunc, initFunc InitStoreFunc) {
+var storeRegistry = make(map[string]register)
+
+func RegisterTripleStore(name string, persists bool, newFunc NewStoreFunc, initFunc InitStoreFunc) {
 	if _, found := storeRegistry[name]; found {
 		panic("already registered TripleStore " + name)
 	}
-	storeRegistry[name] = newFunc
-	if initFunc != nil {
-		storeInitRegistry[name] = initFunc
+	storeRegistry[name] = register{
+		newFunc:      newFunc,
+		initFunc:     initFunc,
+		isPersistent: persists,
 	}
 }
 
 func NewTripleStore(name, dbpath string, opts Options) (TripleStore, error) {
-	newFunc, hasNew := storeRegistry[name]
-	if !hasNew {
+	r, registered := storeRegistry[name]
+	if !registered {
 		return nil, errors.New("triplestore: name '" + name + "' is not registered")
 	}
-	return newFunc(dbpath, opts)
+	return r.newFunc(dbpath, opts)
 }
 
 func InitTripleStore(name, dbpath string, opts Options) error {
-	initFunc, hasInit := storeInitRegistry[name]
-	if hasInit {
-		return initFunc(dbpath, opts)
-	}
-	if _, isRegistered := storeRegistry[name]; isRegistered {
-		return nil
+	r, registered := storeRegistry[name]
+	if registered {
+		return r.initFunc(dbpath, opts)
 	}
 	return errors.New("triplestore: name '" + name + "' is not registered")
+}
+
+func IsPersistent(name string) bool {
+	return storeRegistry[name].isPersistent
 }
 
 func TripleStores() []string {
