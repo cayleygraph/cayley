@@ -22,6 +22,10 @@ import (
 	"github.com/google/cayley/quad"
 )
 
+func init() {
+	graph.RegisterWriter("single", NewSingleReplication)
+}
+
 type Single struct {
 	nextID int64
 	ts     graph.TripleStore
@@ -78,8 +82,4 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 		Timestamp: time.Now(),
 	}
 	return s.ts.ApplyDeltas(deltas)
-}
-
-func init() {
-	graph.RegisterWriter("single", NewSingleReplication)
 }
