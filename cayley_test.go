@@ -296,8 +296,9 @@ var m2_actors = movie2.Save("name","movie2").Follow(filmToActor)
 `
 
 var (
-	once sync.Once
-	cfg  = &config.Config{
+	create            sync.Once
+	deleteAndRecreate sync.Once
+	cfg               = &config.Config{
 		DatabasePath:    "30kmoviedata.nq.gz",
 		DatabaseType:    "memstore",
 		ReplicationType: "single",
@@ -309,7 +310,7 @@ var (
 
 func prepare(t testing.TB) {
 	var err error
-	once.Do(func() {
+	create.Do(func() {
 		handle, err = db.Open(cfg)
 		if err != nil {
 			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
@@ -324,8 +325,37 @@ func prepare(t testing.TB) {
 	})
 }
 
+func deletePrepare(t testing.TB) {
+	var err error
+	deleteAndRecreate.Do(func() {
+		prepare(t)
+		if !graph.IsPersistent(cfg.DatabaseType) {
+			err = removeAll(handle.QuadWriter, cfg, "", "cquad")
+			if err != nil {
+				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
+			}
+			err = load(handle.QuadWriter, cfg, "", "cquad")
+			if err != nil {
+				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
+			}
+		}
+	})
+}
+
 func TestQueries(t *testing.T) {
 	prepare(t)
+	checkQueries(t)
+}
+
+func TestDeletedAndRecreatedQueries(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	deletePrepare(t)
+	checkQueries(t)
+}
+
+func checkQueries(t *testing.T) {
 	for _, test := range benchmarkQueries {
 		if testing.Short() && test.long {
 			continue
