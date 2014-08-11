@@ -18,6 +18,8 @@ install:
   - go get github.com/syndtr/goleveldb/leveldb/iterator
   - go get github.com/syndtr/goleveldb/leveldb/opt
   - go get github.com/syndtr/goleveldb/leveldb/util
+  - go get github.com/boltdb/bolt
+  - go get github.com/boltdb/coalescer
   - go get gopkg.in/mgo.v2
   - go get gopkg.in/mgo.v2/bson
 
