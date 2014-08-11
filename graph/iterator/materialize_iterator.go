@@ -87,6 +87,9 @@ func (it *Materialize) TagResults(dst map[string]graph.Value) {
 	}
 	if it.aborted {
 		it.subIt.TagResults(dst)
+		for _, tag := range it.tags.Tags() {
+			dst[tag] = it.Result()
+		}
 		return
 	}
 	if it.Result() == nil {
@@ -134,6 +137,9 @@ func (it *Materialize) ResultTree() *graph.ResultTree {
 }
 
 func (it *Materialize) Result() graph.Value {
+	if it.aborted {
+		return it.subIt.Result()
+	}
 	if len(it.values) == 0 {
 		return nil
 	}
@@ -164,7 +170,7 @@ func (it *Materialize) Optimize() (graph.Iterator, bool) {
 // Size is the number of values stored, if we've got them all.
 // Otherwise, guess based on the size of the subiterator.
 func (it *Materialize) Size() (int64, bool) {
-	if it.hasRun {
+	if it.hasRun && !it.aborted {
 		return int64(len(it.values)), true
 	}
 	return it.subIt.Size()
@@ -265,10 +271,12 @@ func (it *Materialize) materializeSet() {
 		}
 	}
 	if it.aborted {
+		if glog.V(2) {
+			glog.V(2).Infoln("Aborting subiterator")
+		}
 		it.values = nil
 		it.containsMap = nil
 		it.subIt.Reset()
 	}
-	glog.Infof("Materialization List %d: %#v", it.values)
 	it.hasRun = true
 }
