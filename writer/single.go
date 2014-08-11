@@ -83,3 +83,8 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	}
 	return s.ts.ApplyDeltas(deltas)
 }
+
+func (s *Single) Close() error {
+	// Nothing to clean up locally.
+	return nil
+}

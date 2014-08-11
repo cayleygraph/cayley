@@ -137,7 +137,7 @@ func TestLoadDatabase(t *testing.T) {
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
-	qs.AddQuad(quad.Quad{"Something", "points_to", "Something Else", "context"})
+	w.AddQuad(quad.Quad{"Something", "points_to", "Something Else", "context"})
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
 		if got := qs.NameOf(qs.ValueOf(pq)); got != pq {
 			t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)

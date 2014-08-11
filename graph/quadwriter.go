@@ -48,6 +48,11 @@ type Handle struct {
 	QuadWriter QuadWriter
 }
 
+func (h *Handle) Close() {
+	h.QuadStore.Close()
+	h.QuadWriter.Close()
+}
+
 var ErrQuadExists = errors.New("Quad exists")
 var ErrQuadNotExist = errors.New("Quad doesn't exist")
 
@@ -61,6 +66,9 @@ type QuadWriter interface {
 	// Removes a quad matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
 	RemoveQuad(quad.Quad) error
+
+	// Cleans up replication and closes the writing aspect of the database.
+	Close() error
 }
 
 type NewQuadWriterFunc func(TripleStore, Options) (QuadWriter, error)

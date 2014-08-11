@@ -68,19 +68,7 @@ func OpenQuadWriter(qs graph.TripleStore, cfg *config.Config) (graph.QuadWriter,
 	return w, nil
 }
 
-func Load(ts graph.TripleStore, cfg *config.Config, dec quad.Unmarshaler) error {
-	bulker, canBulk := ts.(graph.BulkLoader)
-	if canBulk {
-		switch err := bulker.BulkLoad(dec); err {
-		case nil:
-			return nil
-		case graph.ErrCannotBulkLoad:
-			// Try individual loading.
-		default:
-			return err
-		}
-	}
-
+func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
 	block := make([]quad.Quad, 0, cfg.LoadSize)
 	for {
 		t, err := dec.Unmarshal()
@@ -92,11 +80,11 @@ func Load(ts graph.TripleStore, cfg *config.Config, dec quad.Unmarshaler) error 
 		}
 		block = append(block, t)
 		if len(block) == cap(block) {
-			ts.AddTripleSet(block)
+			qw.AddQuadSet(block)
 			block = block[:0]
 		}
 	}
-	ts.AddTripleSet(block)
+	qw.AddQuadSet(block)
 
 	return nil
 }
