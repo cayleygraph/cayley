@@ -33,8 +33,9 @@ type Single struct {
 }
 
 func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.QuadWriter, error) {
-	rep := &Single{nextID: ts.Horizon(), ts: ts}
-	if rep.nextID <= 0 {
+	horizon := ts.Horizon()
+	rep := &Single{nextID: horizon + 1, ts: ts}
+	if horizon <= 0 {
 		rep.nextID = 1
 	}
 	return rep, nil

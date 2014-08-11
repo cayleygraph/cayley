@@ -140,9 +140,9 @@ func (it *Iterator) Clone() graph.Iterator {
 
 func (it *Iterator) Next() bool {
 	var result struct {
-		Id      string "_id"
-		Added   []int64
-		Deleted []int64
+		Id      string  "_id"
+		Added   []int64 "Added"
+		Deleted []int64 "Deleted"
 	}
 	found := it.iter.Next(&result)
 	if !found {
