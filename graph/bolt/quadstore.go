@@ -21,9 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash"
+	"time"
 
 	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
+	"github.com/boltdb/coalescer"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
@@ -31,7 +33,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("bolt", true, newQuadStore, createNewLevelDB)
+	graph.RegisterTripleStore("bolt", true, newQuadStore, createNewBolt)
 }
 
 type Token struct {
@@ -40,7 +42,7 @@ type Token struct {
 }
 
 func (t *Token) Key() interface{} {
-	return fmt.Sprint(t.bucket, t.data)
+	return fmt.Sprint(t.bucket, t.key)
 }
 
 type QuadStore struct {
@@ -53,7 +55,6 @@ type QuadStore struct {
 }
 
 func createNewBolt(path string, _ graph.Options) error {
-	opts := &opt.Options{}
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
 		glog.Errorf("Error: couldn't create Bolt database: %v", err)
@@ -62,9 +63,6 @@ func createNewBolt(path string, _ graph.Options) error {
 	defer db.Close()
 	qs := &QuadStore{}
 	qs.db = db
-	qs.writeopts = &opt.WriteOptions{
-		Sync: true,
-	}
 	err = qs.createBuckets()
 	if err != nil {
 		return err
@@ -91,10 +89,10 @@ func newQuadStore(path string, options graph.Options) (graph.TripleStore, error)
 }
 
 func (qs *QuadStore) createBuckets() error {
-	return db.Update(func(tx *bolt.Tx) error {
+	return qs.db.Update(func(tx *bolt.Tx) error {
 		var err error
-		for _, bucket := range [][]byte{spo, osp, pos, cps} {
-			_, err = tx.CreateBucket(bucketFor(bucket))
+		for _, index := range [][4]quad.Direction{spo, osp, pos, cps} {
+			_, err = tx.CreateBucket(bucketFor(index))
 			if err != nil {
 				return fmt.Errorf("Couldn't create bucket: %s", err)
 			}
@@ -111,6 +109,7 @@ func (qs *QuadStore) createBuckets() error {
 		if err != nil {
 			return fmt.Errorf("Couldn't create bucket: %s", err)
 		}
+		return nil
 	})
 }
 
@@ -152,10 +151,14 @@ type IndexEntry struct {
 
 // Short hand for direction permutations.
 var (
-	spo = bucketFor([4]quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label})
-	osp = bucketFor([4]quad.Direction{quad.Object, quad.Subject, quad.Predicate, quad.Label})
-	pos = bucketFor([4]quad.Direction{quad.Predicate, quad.Object, quad.Subject, quad.Label})
-	cps = bucketFor([4]quad.Direction{quad.Label, quad.Predicate, quad.Subject, quad.Object})
+	spo       = [4]quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label}
+	osp       = [4]quad.Direction{quad.Object, quad.Subject, quad.Predicate, quad.Label}
+	pos       = [4]quad.Direction{quad.Predicate, quad.Object, quad.Subject, quad.Label}
+	cps       = [4]quad.Direction{quad.Label, quad.Predicate, quad.Subject, quad.Object}
+	spoBucket = bucketFor(spo)
+	ospBucket = bucketFor(osp)
+	posBucket = bucketFor(pos)
+	cpsBucket = bucketFor(cps)
 )
 
 var logBucket = []byte("log")
@@ -163,12 +166,14 @@ var nodeBucket = []byte("node")
 var metaBucket = []byte("meta")
 
 func (qs *QuadStore) ApplyDeltas(deltas []*graph.Delta) error {
-	batch := &leveldb.Batch{}
 	var size_change int64
 	var new_horizon int64
-	err := qs.db.Update(func(tx *bolt.Tx) error {
+	c, err := coalescer.New(qs.db, 200, 100*time.Millisecond)
+	if err != nil {
+		return err
+	}
+	err = c.Update(func(tx *bolt.Tx) error {
 		var b *bolt.Bucket
-		var err error
 		resizeMap := make(map[string]int64)
 		size_change = int64(0)
 		for _, d := range deltas {
@@ -220,12 +225,11 @@ func (qs *QuadStore) ApplyDeltas(deltas []*graph.Delta) error {
 
 func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bool) error {
 	var entry IndexEntry
-	b := tx.Bucket(bucketFor(spo))
-
+	b := tx.Bucket(spoBucket)
 	data := b.Get(qs.createKeyFor(spo, q))
 	if data != nil {
 		// We got something.
-		err = json.Unmarshal(data, &entry)
+		err := json.Unmarshal(data, &entry)
 		if err != nil {
 			return err
 		}
@@ -244,17 +248,17 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 
 	entry.History = append(entry.History, id)
 
-	bytes, err := json.Marshal(entry)
+	jsonbytes, err := json.Marshal(entry)
 	if err != nil {
 		glog.Errorf("Couldn't write to buffer for entry %#v: %s", entry, err)
 		return err
 	}
-	for _, bucket := range [][4]quad.Direction{spo, osp, pos, cps} {
-		if bucket == cps && q.Get(quad.Label) == "" {
+	for _, index := range [][4]quad.Direction{spo, osp, pos, cps} {
+		if index == cps && q.Get(quad.Label) == "" {
 			continue
 		}
-		b := tx.Bucket(bucketFor(bucket))
-		err = b.Put(qs.createKeyFor(bucket, q), bytes)
+		b := tx.Bucket(bucketFor(index))
+		err = b.Put(qs.createKeyFor(index, q), jsonbytes)
 		if err != nil {
 			return err
 		}
@@ -268,14 +272,14 @@ type ValueData struct {
 }
 
 func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, tx *bolt.Tx) error {
-	value := &ValueData{name, amount}
+	value := ValueData{name, amount}
 	b := tx.Bucket(nodeBucket)
 	key := qs.createValueKeyFor(name)
 	data := b.Get(key)
 
 	if data != nil {
 		// Node exists in the database -- unmarshal and update.
-		err = json.Unmarshal(b, value)
+		err := json.Unmarshal(data, &value)
 		if err != nil {
 			glog.Errorf("Error: couldn't reconstruct value: %v", err)
 			return err
@@ -336,13 +340,12 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	tok := k.(*Token)
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(tok.bucket)
-		data := qs.db.Get(tok.key, qs.readopts)
+		data := b.Get(tok.key)
 		if data == nil {
 			// No harm, no foul.
 			return nil
 		}
-		err = json.Unmarshal(data, &q)
-		return err
+		return json.Unmarshal(data, &q)
 	})
 	if err != nil {
 		glog.Error("Error getting triple: ", err)
@@ -409,7 +412,7 @@ func (qs *QuadStore) getInt64ForKey(tx *bolt.Tx, key string, empty int64) (int64
 		return empty, nil
 	}
 	buf := bytes.NewBuffer(data)
-	err = binary.Read(buf, binary.LittleEndian, &out)
+	err := binary.Read(buf, binary.LittleEndian, &out)
 	if err != nil {
 		return 0, err
 	}
@@ -419,31 +422,31 @@ func (qs *QuadStore) getInt64ForKey(tx *bolt.Tx, key string, empty int64) (int64
 func (qs *QuadStore) getMetadata() error {
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
-		qs.size, err = qs.getInt64ForKey("size", 0)
+		qs.size, err = qs.getInt64ForKey(tx, "size", 0)
 		if err != nil {
 			return err
 		}
-		qs.horizon, err = qs.getInt64ForKey("horizon", 0)
+		qs.horizon, err = qs.getInt64ForKey(tx, "horizon", 0)
 		return err
 	})
 	return err
 }
 
 func (qs *QuadStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	var prefix []byte
+	var bucket []byte
 	switch d {
 	case quad.Subject:
-		prefix = spo
+		bucket = spoBucket
 	case quad.Predicate:
-		prefix = pos
+		bucket = posBucket
 	case quad.Object:
-		prefix = osp
+		bucket = ospBucket
 	case quad.Label:
-		prefix = cps
+		bucket = cpsBucket
 	default:
 		panic("unreachable " + d.String())
 	}
-	return NewIterator(prefix, d, val, qs)
+	return NewIterator(bucket, d, val, qs)
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
@@ -451,7 +454,7 @@ func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) TriplesAllIterator() graph.Iterator {
-	return NewAllIterator(pos, quad.Predicate, qs)
+	return NewAllIterator(posBucket, quad.Predicate, qs)
 }
 
 func (qs *QuadStore) TripleDirection(val graph.Value, d quad.Direction) graph.Value {
@@ -460,7 +463,7 @@ func (qs *QuadStore) TripleDirection(val graph.Value, d quad.Direction) graph.Va
 	if offset != -1 {
 		return &Token{
 			bucket: nodeBucket,
-			key:    v[offset : offset+qs.hasher.Size()],
+			key:    v.key[offset : offset+qs.hasher.Size()],
 		}
 	} else {
 		return qs.ValueOf(qs.Quad(v).Get(d))
@@ -470,7 +473,7 @@ func (qs *QuadStore) TripleDirection(val graph.Value, d quad.Direction) graph.Va
 func compareTokens(a, b graph.Value) bool {
 	atok := a.(*Token)
 	btok := b.(*Token)
-	return bytes.Equal(atok.key, btok.key) && atok.bucket == btok.bucket
+	return bytes.Equal(atok.key, btok.key) && bytes.Equal(atok.bucket, btok.bucket)
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {

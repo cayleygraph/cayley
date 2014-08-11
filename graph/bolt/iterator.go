@@ -17,12 +17,12 @@ package bolt
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/barakmich/glog"
-	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/boltdb/bolt"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
@@ -30,48 +30,38 @@ import (
 )
 
 type Iterator struct {
-	uid            uint64
-	tags           graph.Tagger
-	nextPrefix     []byte
-	checkId        []byte
-	dir            quad.Direction
-	open           bool
-	iter           ldbit.Iterator
-	qs             *QuadStore
-	ro             *opt.ReadOptions
-	originalPrefix string
-	result         graph.Value
+	uid     uint64
+	tags    graph.Tagger
+	bucket  []byte
+	checkId []byte
+	dir     quad.Direction
+	qs      *QuadStore
+	result  *Token
+	buffer  [][]byte
+	offset  int
+	done    bool
+	size    int64
 }
 
-func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *QuadStore) graph.Iterator {
-	vb := value.(Token)
-	p := make([]byte, 0, 2+qs.hasher.Size())
-	p = append(p, []byte(prefix)...)
-	p = append(p, []byte(vb[1:])...)
+var bufferSize = 50
 
-	opts := &opt.ReadOptions{
-		DontFillCache: true,
+func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) graph.Iterator {
+	tok := value.(*Token)
+	if !bytes.Equal(tok.bucket, nodeBucket) {
+		glog.Error("Creating an iterator from a non-node value.")
+		return &iterator.Null{}
 	}
 
 	it := Iterator{
-		uid:            iterator.NextUID(),
-		nextPrefix:     p,
-		checkId:        vb,
-		dir:            d,
-		originalPrefix: prefix,
-		ro:             opts,
-		iter:           qs.db.NewIterator(nil, opts),
-		open:           true,
-		qs:             qs,
+		uid:    iterator.NextUID(),
+		bucket: bucket,
+		dir:    d,
+		qs:     qs,
+		size:   qs.SizeOf(value),
 	}
 
-	ok := it.iter.Seek(it.nextPrefix)
-	if !ok {
-		it.open = false
-		it.iter.Release()
-		glog.Error("Opening LevelDB iterator couldn't seek to location ", it.nextPrefix)
-		return &iterator.Null{}
-	}
+	it.checkId = make([]byte, len(tok.key))
+	copy(it.checkId, tok.key)
 
 	return &it
 }
@@ -81,15 +71,9 @@ func (it *Iterator) UID() uint64 {
 }
 
 func (it *Iterator) Reset() {
-	if !it.open {
-		it.iter = it.qs.db.NewIterator(nil, it.ro)
-		it.open = true
-	}
-	ok := it.iter.Seek(it.nextPrefix)
-	if !ok {
-		it.open = false
-		it.iter.Release()
-	}
+	it.buffer = nil
+	it.offset = 0
+	it.done = false
 }
 
 func (it *Iterator) Tagger() *graph.Tagger {
@@ -107,16 +91,15 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	out := NewIterator(it.originalPrefix, it.dir, Token(it.checkId), it.qs)
+	out := NewIterator(it.bucket, it.dir, &Token{nodeBucket, it.checkId}, it.qs)
 	out.Tagger().CopyFrom(it)
 	return out
 }
 
 func (it *Iterator) Close() {
-	if it.open {
-		it.iter.Release()
-		it.open = false
-	}
+	it.result = nil
+	it.buffer = nil
+	it.done = true
 }
 
 func (it *Iterator) isLiveValue(val []byte) bool {
@@ -125,36 +108,73 @@ func (it *Iterator) isLiveValue(val []byte) bool {
 	return len(entry.History)%2 != 0
 }
 
+var errNotExist = errors.New("Triple doesn't exist")
+
 func (it *Iterator) Next() bool {
-	if it.iter == nil {
-		it.result = nil
+	if it.done {
 		return false
 	}
-	if !it.open {
-		it.result = nil
-		return false
-	}
-	if !it.iter.Valid() {
-		it.result = nil
-		it.Close()
-		return false
-	}
-	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
-		if !it.isLiveValue(it.iter.Value()) {
-			return it.Next()
+	if len(it.buffer) <= it.offset+1 {
+		it.offset = 0
+		var last []byte
+		if it.buffer != nil {
+			last = it.buffer[len(it.buffer)-1]
 		}
-		out := make([]byte, len(it.iter.Key()))
-		copy(out, it.iter.Key())
-		it.result = Token(out)
-		ok := it.iter.Next()
-		if !ok {
-			it.Close()
+		it.buffer = make([][]byte, 0, bufferSize)
+		err := it.qs.db.View(func(tx *bolt.Tx) error {
+			i := 0
+			b := tx.Bucket(it.bucket)
+			cur := b.Cursor()
+			if last == nil {
+				k, _ := cur.Seek(it.checkId)
+				if bytes.HasPrefix(k, it.checkId) {
+					var out []byte
+					out = make([]byte, len(k))
+					copy(out, k)
+					it.buffer = append(it.buffer, out)
+					i++
+				} else {
+					it.buffer = append(it.buffer, nil)
+					return errNotExist
+				}
+			} else {
+				k, _ := cur.Seek(last)
+				if !bytes.Equal(k, last) {
+					return fmt.Errorf("Couldn't pick up after", k)
+				}
+			}
+			for i < bufferSize {
+				k, v := cur.Next()
+				if k == nil || !bytes.HasPrefix(k, it.checkId) {
+					it.buffer = append(it.buffer, nil)
+					break
+				}
+				if !it.isLiveValue(v) {
+					continue
+				}
+				var out []byte
+				out = make([]byte, len(k))
+				copy(out, k)
+				it.buffer = append(it.buffer, out)
+				i++
+			}
+			return nil
+		})
+		if err != nil {
+			if err != errNotExist {
+				glog.Error("Error nexting in database: ", err)
+			}
+			it.done = true
+			return false
 		}
-		return true
+	} else {
+		it.offset++
 	}
-	it.Close()
-	it.result = nil
-	return false
+	if it.Result() == nil {
+		it.done = true
+		return false
+	}
+	return true
 }
 
 func (it *Iterator) ResultTree() *graph.ResultTree {
@@ -162,7 +182,19 @@ func (it *Iterator) ResultTree() *graph.ResultTree {
 }
 
 func (it *Iterator) Result() graph.Value {
-	return it.result
+	if it.done {
+		return nil
+	}
+	if it.result != nil {
+		return it.result
+	}
+	if it.offset >= len(it.buffer) {
+		return nil
+	}
+	if it.buffer[it.offset] == nil {
+		return nil
+	}
+	return &Token{bucket: it.bucket, key: it.buffer[it.offset]}
 }
 
 func (it *Iterator) NextPath() bool {
@@ -174,65 +206,65 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func PositionOf(prefix []byte, d quad.Direction, qs *QuadStore) int {
-	if bytes.Equal(prefix, []byte("sp")) {
+func PositionOf(tok *Token, d quad.Direction, qs *QuadStore) int {
+	if bytes.Equal(tok.bucket, spoBucket) {
 		switch d {
 		case quad.Subject:
-			return 2
+			return 0
 		case quad.Predicate:
-			return qs.hasher.Size() + 2
+			return qs.hasher.Size()
 		case quad.Object:
-			return 2*qs.hasher.Size() + 2
+			return 2 * qs.hasher.Size()
 		case quad.Label:
-			return 3*qs.hasher.Size() + 2
+			return 3 * qs.hasher.Size()
 		}
 	}
-	if bytes.Equal(prefix, []byte("po")) {
+	if bytes.Equal(tok.bucket, posBucket) {
 		switch d {
 		case quad.Subject:
-			return 2*qs.hasher.Size() + 2
+			return 2 * qs.hasher.Size()
 		case quad.Predicate:
-			return 2
+			return 0
 		case quad.Object:
-			return qs.hasher.Size() + 2
+			return qs.hasher.Size()
 		case quad.Label:
-			return 3*qs.hasher.Size() + 2
+			return 3 * qs.hasher.Size()
 		}
 	}
-	if bytes.Equal(prefix, []byte("os")) {
+	if bytes.Equal(tok.bucket, ospBucket) {
 		switch d {
 		case quad.Subject:
-			return qs.hasher.Size() + 2
+			return qs.hasher.Size()
 		case quad.Predicate:
-			return 2*qs.hasher.Size() + 2
+			return 2 * qs.hasher.Size()
 		case quad.Object:
-			return 2
+			return 0
 		case quad.Label:
-			return 3*qs.hasher.Size() + 2
+			return 3 * qs.hasher.Size()
 		}
 	}
-	if bytes.Equal(prefix, []byte("cp")) {
+	if bytes.Equal(tok.bucket, cpsBucket) {
 		switch d {
 		case quad.Subject:
-			return 2*qs.hasher.Size() + 2
+			return 2 * qs.hasher.Size()
 		case quad.Predicate:
-			return qs.hasher.Size() + 2
+			return qs.hasher.Size()
 		case quad.Object:
-			return 3*qs.hasher.Size() + 2
+			return 3 * qs.hasher.Size()
 		case quad.Label:
-			return 2
+			return 0
 		}
 	}
 	panic("unreachable")
 }
 
 func (it *Iterator) Contains(v graph.Value) bool {
-	val := v.(Token)
-	if val[0] == 'z' {
+	val := v.(*Token)
+	if bytes.Equal(val.bucket, nodeBucket) {
 		return false
 	}
-	offset := PositionOf(val[0:2], it.dir, it.qs)
-	if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
+	offset := PositionOf(val, it.dir, it.qs)
+	if bytes.HasPrefix(val.key[offset:], it.checkId) {
 		// You may ask, why don't we check to see if it's a valid (not deleted) triple
 		// again?
 		//
@@ -248,31 +280,30 @@ func (it *Iterator) Contains(v graph.Value) bool {
 }
 
 func (it *Iterator) Size() (int64, bool) {
-	return it.qs.SizeOf(Token(it.checkId)), true
+	return it.size, true
 }
 
 func (it *Iterator) DebugString(indent int) string {
-	size, _ := it.Size()
 	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)",
 		strings.Repeat(" ", indent),
 		it.Type(),
 		it.UID(),
 		it.tags.Tags(),
 		it.dir,
-		size,
-		it.qs.NameOf(Token(it.checkId)),
+		it.size,
+		it.qs.NameOf(&Token{it.bucket, it.checkId}),
 	)
 }
 
-var levelDBType graph.Type
+var boltType graph.Type
 
 func init() {
-	levelDBType = graph.RegisterIterator("leveldb")
+	boltType = graph.RegisterIterator("bolt")
 }
 
-func Type() graph.Type { return levelDBType }
+func Type() graph.Type { return boltType }
 
-func (it *Iterator) Type() graph.Type { return levelDBType }
+func (it *Iterator) Type() graph.Type { return boltType }
 func (it *Iterator) Sorted() bool     { return false }
 
 func (it *Iterator) Optimize() (graph.Iterator, bool) {

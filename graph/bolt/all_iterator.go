@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/barakmich/glog"
+	"github.com/boltdb/bolt"
+
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
@@ -27,34 +30,22 @@ import (
 type AllIterator struct {
 	uid    uint64
 	tags   graph.Tagger
-	prefix []byte
+	bucket []byte
 	dir    quad.Direction
-	open   bool
 	qs     *QuadStore
-	result graph.Value
+	result *Token
+	buffer [][]byte
+	offset int
+	done   bool
 }
 
-func NewAllIterator(prefix string, d quad.Direction, ts *QuadStore) *AllIterator {
-	opts := &opt.ReadOptions{
-		DontFillCache: true,
-	}
+func NewAllIterator(bucket []byte, d quad.Direction, qs *QuadStore) *AllIterator {
 
 	it := AllIterator{
 		uid:    iterator.NextUID(),
-		ro:     opts,
-		iter:   ts.db.NewIterator(nil, opts),
-		prefix: []byte(prefix),
+		bucket: bucket,
 		dir:    d,
-		open:   true,
-		ts:     ts,
-	}
-
-	it.iter.Seek(it.prefix)
-	if !it.iter.Valid() {
-		// FIXME(kortschak) What are the semantics here? Is this iterator usable?
-		// If not, we should return nil *Iterator and an error.
-		it.open = false
-		it.iter.Release()
+		qs:     qs,
 	}
 
 	return &it
@@ -65,15 +56,9 @@ func (it *AllIterator) UID() uint64 {
 }
 
 func (it *AllIterator) Reset() {
-	if !it.open {
-		it.iter = it.ts.db.NewIterator(nil, it.ro)
-		it.open = true
-	}
-	it.iter.Seek(it.prefix)
-	if !it.iter.Valid() {
-		it.open = false
-		it.iter.Release()
-	}
+	it.buffer = nil
+	it.offset = 0
+	it.done = false
 }
 
 func (it *AllIterator) Tagger() *graph.Tagger {
@@ -91,28 +76,65 @@ func (it *AllIterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *AllIterator) Clone() graph.Iterator {
-	out := NewAllIterator(string(it.prefix), it.dir, it.ts)
+	out := NewAllIterator(it.bucket, it.dir, it.qs)
 	out.tags.CopyFrom(it)
 	return out
 }
 
 func (it *AllIterator) Next() bool {
-	if !it.open {
-		it.result = nil
+	if it.done {
 		return false
 	}
-	var out []byte
-	out = make([]byte, len(it.iter.Key()))
-	copy(out, it.iter.Key())
-	it.iter.Next()
-	if !it.iter.Valid() {
-		it.Close()
+	if len(it.buffer) <= it.offset+1 {
+		it.offset = 0
+		var last []byte
+		if it.buffer != nil {
+			last = it.buffer[len(it.buffer)-1]
+		}
+		it.buffer = make([][]byte, 0, bufferSize)
+		err := it.qs.db.View(func(tx *bolt.Tx) error {
+			i := 0
+			b := tx.Bucket(it.bucket)
+			cur := b.Cursor()
+			if last == nil {
+				k, _ := cur.First()
+				var out []byte
+				out = make([]byte, len(k))
+				copy(out, k)
+				it.buffer = append(it.buffer, out)
+				i++
+			} else {
+				k, _ := cur.Seek(last)
+				if !bytes.Equal(k, last) {
+					return fmt.Errorf("Couldn't pick up after", k)
+				}
+			}
+			for i < bufferSize {
+				k, _ := cur.Next()
+				if k == nil {
+					it.buffer = append(it.buffer, k)
+					break
+				}
+				var out []byte
+				out = make([]byte, len(k))
+				copy(out, k)
+				it.buffer = append(it.buffer, out)
+				i++
+			}
+			return nil
+		})
+		if err != nil {
+			glog.Error("Error nexting in database: ", err)
+			it.done = true
+			return false
+		}
+	} else {
+		it.offset++
 	}
-	if !bytes.HasPrefix(out, it.prefix) {
-		it.Close()
+	if it.Result() == nil {
+		it.done = true
 		return false
 	}
-	it.result = Token(out)
 	return true
 }
 
@@ -121,7 +143,16 @@ func (it *AllIterator) ResultTree() *graph.ResultTree {
 }
 
 func (it *AllIterator) Result() graph.Value {
-	return it.result
+	if it.done {
+		return nil
+	}
+	if it.result != nil {
+		return it.result
+	}
+	if it.offset >= len(it.buffer) {
+		return nil
+	}
+	return &Token{bucket: it.bucket, key: it.buffer[it.offset]}
 }
 
 func (it *AllIterator) NextPath() bool {
@@ -134,29 +165,23 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 }
 
 func (it *AllIterator) Contains(v graph.Value) bool {
-	it.result = v
+	it.result = v.(*Token)
 	return true
 }
 
 func (it *AllIterator) Close() {
-	if it.open {
-		it.iter.Release()
-		it.open = false
-	}
+	it.result = nil
+	it.buffer = nil
+	it.done = true
 }
 
 func (it *AllIterator) Size() (int64, bool) {
-	size, err := it.ts.SizeOfPrefix(it.prefix)
-	if err == nil {
-		return size, false
-	}
-	// INT64_MAX
-	return int64(^uint64(0) >> 1), false
+	return it.qs.size, true
 }
 
 func (it *AllIterator) DebugString(indent int) string {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s tags: %v leveldb size:%d %s %p)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags(), size, it.dir, it)
+	return fmt.Sprintf("%s(%s tags: %v bolt size:%d %s %p)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags(), size, it.dir, it)
 }
 
 func (it *AllIterator) Type() graph.Type { return graph.All }

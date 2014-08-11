@@ -41,6 +41,7 @@ import (
 	"github.com/google/cayley/quad/nquads"
 
 	// Load all supported backends.
+	_ "github.com/google/cayley/graph/bolt"
 	_ "github.com/google/cayley/graph/leveldb"
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/graph/mongo"
