@@ -70,7 +70,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// now a permutation of itself, but the contents are unchanged.
 	its = optimizeOrder(its)
 
-	its = materializeIts(its)
+	//its = materializeIts(its)
 
 	// Okay! At this point we have an optimized order.
 

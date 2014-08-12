@@ -19,6 +19,7 @@ import (
 	"compress/bzip2"
 	"compress/gzip"
 	"io"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -358,9 +359,16 @@ func TestQueries(t *testing.T) {
 			continue
 		}
 
-		// TODO(kortschak) Be more rigorous in this result validation.
 		if len(got) != len(test.expect) {
 			t.Errorf("Unexpected number of results, got:%d expect:%d on %s.", len(got), len(test.expect), test.message)
+			continue
+		}
+		if reflect.DeepEqual(got, test.expect) {
+			continue
+		}
+		t.Errorf("Unexpected results for %s:\n", test.message)
+		for i := range got {
+			t.Errorf("\n\tgot:%#v\n\texpect:%#v\n", got[i], test.expect[i])
 		}
 	}
 }
