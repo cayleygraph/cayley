@@ -21,5 +21,5 @@ install:
   - go get gopkg.in/mgo.v2
   - go get gopkg.in/mgo.v2/bson
 
-script: go test -v -short ./...
+script: go test -v ./...
 
