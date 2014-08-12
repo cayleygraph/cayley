@@ -152,6 +152,9 @@ func (it *AllIterator) Result() graph.Value {
 	if it.offset >= len(it.buffer) {
 		return nil
 	}
+	if it.buffer[it.offset] == nil {
+		return nil
+	}
 	return &Token{bucket: it.bucket, key: it.buffer[it.offset]}
 }
 
