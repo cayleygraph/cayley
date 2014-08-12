@@ -179,10 +179,13 @@ func (it *HasA) NextPath() bool {
 	//
 	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
+	glog.V(4).Infoln("HASA", it.UID(), "NextPath")
 	if it.primaryIt.NextPath() {
 		return true
 	}
-	return it.NextContains()
+	result := it.NextContains()
+	glog.V(4).Infoln("HASA", it.UID(), "NextPath Returns", result, "")
+	return result
 }
 
 // Next advances the iterator. This is simpler than Contains. We have a
