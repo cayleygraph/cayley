@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/robertkrimen/otto"
+	_ "github.com/robertkrimen/otto/underscore"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/query"
