@@ -48,6 +48,7 @@ func (it *And) UID() uint64 {
 
 // Reset all internal iterators
 func (it *And) Reset() {
+	it.result = nil
 	it.primaryIt.Reset()
 	for _, sub := range it.internalIterators {
 		sub.Reset()
@@ -159,7 +160,7 @@ func (it *And) Next() bool {
 	graph.NextLogIn(it)
 	for graph.Next(it.primaryIt) {
 		curr := it.primaryIt.Result()
-		if it.subItsContain(curr) {
+		if it.subItsContain(curr, nil) {
 			it.result = curr
 			return graph.NextLogOut(it, curr, true)
 		}
@@ -172,22 +173,32 @@ func (it *And) Result() graph.Value {
 }
 
 // Checks a value against the non-primary iterators, in order.
-func (it *And) subItsContain(val graph.Value) bool {
+func (it *And) subItsContain(val graph.Value, lastResult graph.Value) bool {
 	var subIsGood = true
-	for _, sub := range it.internalIterators {
+	for i, sub := range it.internalIterators {
 		subIsGood = sub.Contains(val)
 		if !subIsGood {
+			if lastResult != nil {
+				for j := 0; j < i; j++ {
+					it.internalIterators[j].Contains(lastResult)
+				}
+			}
 			break
 		}
 	}
 	return subIsGood
 }
 
-func (it *And) checkContainsList(val graph.Value) bool {
+func (it *And) checkContainsList(val graph.Value, lastResult graph.Value) bool {
 	ok := true
-	for _, c := range it.checkList {
+	for i, c := range it.checkList {
 		ok = c.Contains(val)
 		if !ok {
+			if lastResult != nil {
+				for j := 0; j < i; j++ {
+					it.checkList[j].Contains(lastResult)
+				}
+			}
 			break
 		}
 	}
@@ -200,19 +211,22 @@ func (it *And) checkContainsList(val graph.Value) bool {
 // Check a value against the entire iterator, in order.
 func (it *And) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
+	lastResult := it.result
 	if it.checkList != nil {
-		return it.checkContainsList(val)
+		return it.checkContainsList(val, lastResult)
 	}
 	mainGood := it.primaryIt.Contains(val)
-	if !mainGood {
-		return graph.ContainsLogOut(it, val, false)
+	if mainGood {
+		othersGood := it.subItsContain(val, lastResult)
+		if othersGood {
+			it.result = val
+			return graph.ContainsLogOut(it, val, true)
+		}
 	}
-	othersGood := it.subItsContain(val)
-	if !othersGood {
-		return graph.ContainsLogOut(it, val, false)
+	if lastResult != nil {
+		it.primaryIt.Contains(lastResult)
 	}
-	it.result = val
-	return graph.ContainsLogOut(it, val, true)
+	return graph.ContainsLogOut(it, val, false)
 }
 
 // Returns the approximate size of the And iterator. Because we're dealing

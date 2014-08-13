@@ -327,7 +327,7 @@ func (it *And) Stats() graph.IteratorStats {
 		}
 	}
 	return graph.IteratorStats{
-		ContainsCost: ContainsCost,
+		ContainsCost: ContainsCost * 2,
 		NextCost:     NextCost,
 		Size:         Size,
 	}
