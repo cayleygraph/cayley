@@ -193,6 +193,9 @@ func load(ts graph.TripleStore, cfg *config.Config, path, typ string) error {
 	if path == "" {
 		path = cfg.DatabasePath
 	}
+	if path == "" {
+		return nil
+	}
 	u, err := url.Parse(path)
 	if err != nil || u.Scheme == "file" || u.Scheme == "" {
 		// Don't alter relative URL path or non-URL path parameter.
