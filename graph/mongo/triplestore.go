@@ -39,11 +39,11 @@ var _ graph.BulkLoader = (*TripleStore)(nil)
 const DefaultDBName = "cayley"
 
 type TripleStore struct {
-	session     *mgo.Session
-	db          *mgo.Database
-	hasher_size int
-	make_hasher func() hash.Hash
-	idCache     *IDLru
+	session    *mgo.Session
+	db         *mgo.Database
+	hasherSize int
+	makeHasher func() hash.Hash
+	idCache    *IDLru
 }
 
 func createNewMongoGraph(addr string, options graph.Options) error {
@@ -87,14 +87,14 @@ func newTripleStore(addr string, options graph.Options) (graph.TripleStore, erro
 	}
 	qs.db = conn.DB(dbName)
 	qs.session = conn
-	qs.hasher_size = sha1.Size
-	qs.make_hasher = func() hash.Hash { return sha1.New() }
+	qs.hasherSize = sha1.Size
+	qs.makeHasher = sha1.New
 	qs.idCache = NewIDLru(1 << 16)
 	return &qs, nil
 }
 
 func (qs *TripleStore) getIdForTriple(t quad.Quad) string {
-	hasher := qs.make_hasher()
+	hasher := qs.makeHasher()
 	id := qs.convertStringToByteHash(t.Subject, hasher)
 	id += qs.convertStringToByteHash(t.Predicate, hasher)
 	id += qs.convertStringToByteHash(t.Object, hasher)
@@ -104,7 +104,7 @@ func (qs *TripleStore) getIdForTriple(t quad.Quad) string {
 
 func (qs *TripleStore) convertStringToByteHash(s string, hasher hash.Hash) string {
 	hasher.Reset()
-	key := make([]byte, 0, qs.hasher_size)
+	key := make([]byte, 0, qs.hasherSize)
 	hasher.Write([]byte(s))
 	key = hasher.Sum(key)
 	return hex.EncodeToString(key)
@@ -246,7 +246,7 @@ func (qs *TripleStore) TriplesAllIterator() graph.Iterator {
 }
 
 func (qs *TripleStore) ValueOf(s string) graph.Value {
-	h := qs.make_hasher()
+	h := qs.makeHasher()
 	return qs.convertStringToByteHash(s, h)
 }
 
@@ -292,13 +292,13 @@ func (qs *TripleStore) TripleDirection(in graph.Value, d quad.Direction) graph.V
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (qs.hasher_size * 2)
+		offset = (qs.hasherSize * 2)
 	case quad.Object:
-		offset = (qs.hasher_size * 2) * 2
+		offset = (qs.hasherSize * 2) * 2
 	case quad.Label:
-		offset = (qs.hasher_size * 2) * 3
+		offset = (qs.hasherSize * 2) * 3
 	}
-	val := in.(string)[offset : qs.hasher_size*2+offset]
+	val := in.(string)[offset : qs.hasherSize*2+offset]
 	return val
 }
 
