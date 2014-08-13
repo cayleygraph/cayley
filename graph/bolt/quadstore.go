@@ -44,12 +44,13 @@ func (t *Token) Key() interface{} {
 }
 
 type QuadStore struct {
-	db      *bolt.DB
-	path    string
-	open    bool
-	size    int64
-	horizon int64
-	hasher  hash.Hash
+	db         *bolt.DB
+	path       string
+	open       bool
+	size       int64
+	horizon    int64
+	makeHasher func() hash.Hash
+	hasherSize int
 }
 
 func createNewBolt(path string, _ graph.Options) error {
@@ -72,7 +73,8 @@ func createNewBolt(path string, _ graph.Options) error {
 func newQuadStore(path string, options graph.Options) (graph.TripleStore, error) {
 	var qs QuadStore
 	var err error
-	qs.hasher = sha1.New()
+	qs.hasherSize = sha1.Size
+	qs.makeHasher = sha1.New
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
 		glog.Errorln("Error, couldn't open! ", err)
@@ -128,17 +130,19 @@ func bucketFor(d [4]quad.Direction) []byte {
 }
 
 func (qs *QuadStore) createKeyFor(d [4]quad.Direction, triple quad.Quad) []byte {
-	key := make([]byte, 0, (qs.hasher.Size() * 4))
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[3]))...)
+	hasher := qs.makeHasher()
+	key := make([]byte, 0, (qs.hasherSize * 4))
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]), hasher)...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]), hasher)...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]), hasher)...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[3]), hasher)...)
 	return key
 }
 
 func (qs *QuadStore) createValueKeyFor(s string) []byte {
-	key := make([]byte, 0, qs.hasher.Size())
-	key = append(key, qs.convertStringToByteHash(s)...)
+	hasher := qs.makeHasher()
+	key := make([]byte, 0, qs.hasherSize)
+	key = append(key, qs.convertStringToByteHash(s, hasher)...)
 	return key
 }
 
@@ -354,11 +358,11 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	return q
 }
 
-func (qs *QuadStore) convertStringToByteHash(s string) []byte {
-	qs.hasher.Reset()
-	key := make([]byte, 0, qs.hasher.Size())
-	qs.hasher.Write([]byte(s))
-	key = qs.hasher.Sum(key)
+func (qs *QuadStore) convertStringToByteHash(s string, hasher hash.Hash) []byte {
+	hasher.Reset()
+	key := make([]byte, 0, qs.hasherSize)
+	hasher.Write([]byte(s))
+	key = hasher.Sum(key)
 	return key
 }
 
@@ -463,7 +467,7 @@ func (qs *QuadStore) TripleDirection(val graph.Value, d quad.Direction) graph.Va
 	if offset != -1 {
 		return &Token{
 			bucket: nodeBucket,
-			key:    v.key[offset : offset+qs.hasher.Size()],
+			key:    v.key[offset : offset+qs.hasherSize],
 		}
 	} else {
 		return qs.ValueOf(qs.Quad(v).Get(d))

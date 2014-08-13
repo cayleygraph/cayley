@@ -212,45 +212,45 @@ func PositionOf(tok *Token, d quad.Direction, qs *QuadStore) int {
 		case quad.Subject:
 			return 0
 		case quad.Predicate:
-			return qs.hasher.Size()
+			return qs.hasherSize
 		case quad.Object:
-			return 2 * qs.hasher.Size()
+			return 2 * qs.hasherSize
 		case quad.Label:
-			return 3 * qs.hasher.Size()
+			return 3 * qs.hasherSize
 		}
 	}
 	if bytes.Equal(tok.bucket, posBucket) {
 		switch d {
 		case quad.Subject:
-			return 2 * qs.hasher.Size()
+			return 2 * qs.hasherSize
 		case quad.Predicate:
 			return 0
 		case quad.Object:
-			return qs.hasher.Size()
+			return qs.hasherSize
 		case quad.Label:
-			return 3 * qs.hasher.Size()
+			return 3 * qs.hasherSize
 		}
 	}
 	if bytes.Equal(tok.bucket, ospBucket) {
 		switch d {
 		case quad.Subject:
-			return qs.hasher.Size()
+			return qs.hasherSize
 		case quad.Predicate:
-			return 2 * qs.hasher.Size()
+			return 2 * qs.hasherSize
 		case quad.Object:
 			return 0
 		case quad.Label:
-			return 3 * qs.hasher.Size()
+			return 3 * qs.hasherSize
 		}
 	}
 	if bytes.Equal(tok.bucket, cpsBucket) {
 		switch d {
 		case quad.Subject:
-			return 2 * qs.hasher.Size()
+			return 2 * qs.hasherSize
 		case quad.Predicate:
-			return qs.hasher.Size()
+			return qs.hasherSize
 		case quad.Object:
-			return 3 * qs.hasher.Size()
+			return 3 * qs.hasherSize
 		case quad.Label:
 			return 0
 		}
