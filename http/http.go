@@ -107,7 +107,7 @@ func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 type Api struct {
 	config *config.Config
-	ts     graph.TripleStore
+	handle *graph.Handle
 }
 
 func (api *Api) ApiV1(r *httprouter.Router) {
@@ -119,7 +119,7 @@ func (api *Api) ApiV1(r *httprouter.Router) {
 	r.POST("/api/v1/delete", LogRequest(api.ServeV1Delete))
 }
 
-func SetupRoutes(ts graph.TripleStore, cfg *config.Config) {
+func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	r := httprouter.New()
 	assets := findAssetsPath()
 	if glog.V(2) {
@@ -129,7 +129,7 @@ func SetupRoutes(ts graph.TripleStore, cfg *config.Config) {
 	templates.ParseGlob(fmt.Sprint(assets, "/templates/*.html"))
 	root := &TemplateRequestHandler{templates: templates}
 	docs := &DocRequestHandler{assets: assets}
-	api := &Api{config: cfg, ts: ts}
+	api := &Api{config: cfg, handle: handle}
 	api.ApiV1(r)
 
 	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
@@ -141,8 +141,8 @@ func SetupRoutes(ts graph.TripleStore, cfg *config.Config) {
 	http.Handle("/", r)
 }
 
-func Serve(ts graph.TripleStore, cfg *config.Config) {
-	SetupRoutes(ts, cfg)
+func Serve(handle *graph.Handle, cfg *config.Config) {
+	SetupRoutes(handle, cfg)
 	glog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
 	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenHost, cfg.ListenPort), nil)

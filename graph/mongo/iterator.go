@@ -140,10 +140,9 @@ func (it *Iterator) Clone() graph.Iterator {
 
 func (it *Iterator) Next() bool {
 	var result struct {
-		Id string "_id"
-		//Sub string "Sub"
-		//Pred string "Pred"
-		//Obj string "Obj"
+		Id      string  "_id"
+		Added   []int64 "Added"
+		Deleted []int64 "Deleted"
 	}
 	found := it.iter.Next(&result)
 	if !found {
@@ -152,6 +151,9 @@ func (it *Iterator) Next() bool {
 			glog.Errorln("Error Nexting Iterator: ", err)
 		}
 		return false
+	}
+	if it.collection == "quads" && len(result.Added) <= len(result.Deleted) {
+		return it.Next()
 	}
 	it.result = result.Id
 	return true

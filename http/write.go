@@ -55,7 +55,7 @@ func (api *Api) ServeV1Write(w http.ResponseWriter, r *http.Request, _ httproute
 	if terr != nil {
 		return FormatJson400(w, terr)
 	}
-	api.ts.AddTripleSet(tripleList)
+	api.handle.QuadWriter.AddQuadSet(tripleList)
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d triples.\"}", len(tripleList))
 	return 200
 }
@@ -97,11 +97,11 @@ func (api *Api) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		block = append(block, t)
 		n++
 		if len(block) == cap(block) {
-			api.ts.AddTripleSet(block)
+			api.handle.QuadWriter.AddQuadSet(block)
 			block = block[:0]
 		}
 	}
-	api.ts.AddTripleSet(block)
+	api.handle.QuadWriter.AddQuadSet(block)
 
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d triples.\"}", n)
 
@@ -122,7 +122,7 @@ func (api *Api) ServeV1Delete(w http.ResponseWriter, r *http.Request, params htt
 	}
 	count := 0
 	for _, triple := range tripleList {
-		api.ts.RemoveTriple(triple)
+		api.handle.QuadWriter.RemoveQuad(triple)
 		count++
 	}
 	fmt.Fprintf(w, "{\"result\": \"Successfully deleted %d triples.\"}", count)

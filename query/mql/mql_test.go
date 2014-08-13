@@ -22,6 +22,7 @@ import (
 	"github.com/google/cayley/graph"
 	_ "github.com/google/cayley/graph/memstore"
 	"github.com/google/cayley/quad"
+	_ "github.com/google/cayley/writer"
 )
 
 // This is a simple test graph.
@@ -53,8 +54,9 @@ var simpleGraph = []quad.Quad{
 
 func makeTestSession(data []quad.Quad) *Session {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", ts, nil)
 	for _, t := range data {
-		ts.AddTriple(t)
+		w.AddQuad(t)
 	}
 	return NewSession(ts)
 }

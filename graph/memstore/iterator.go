@@ -26,6 +26,7 @@ import (
 
 type Iterator struct {
 	uid    uint64
+	ts     *TripleStore
 	tags   graph.Tagger
 	tree   *b.Tree
 	iter   *b.Enumerator
@@ -37,13 +38,14 @@ func cmp(a, b int64) int {
 	return int(a - b)
 }
 
-func NewIterator(tree *b.Tree, data string) *Iterator {
+func NewIterator(tree *b.Tree, data string, ts *TripleStore) *Iterator {
 	iter, err := tree.SeekFirst()
 	if err != nil {
 		iter = nil
 	}
 	return &Iterator{
 		uid:  iterator.NextUID(),
+		ts:   ts,
 		tree: tree,
 		iter: iter,
 		data: data,
@@ -94,6 +96,7 @@ func (it *Iterator) Clone() graph.Iterator {
 
 	m := &Iterator{
 		uid:  iterator.NextUID(),
+		ts:   it.ts,
 		tree: it.tree,
 		iter: iter,
 		data: it.data,
@@ -103,11 +106,10 @@ func (it *Iterator) Clone() graph.Iterator {
 	return m
 }
 
-func (it *Iterator) Close() {
-	if it.iter != nil {
-		it.iter.Close()
-		it.iter = nil
-	}
+func (it *Iterator) Close() {}
+
+func (it *Iterator) checkValid(index int64) bool {
+	return it.ts.log[index].DeletedBy == 0
 }
 
 func (it *Iterator) Next() bool {
@@ -120,8 +122,10 @@ func (it *Iterator) Next() bool {
 	if err != nil {
 		return graph.NextLogOut(it, nil, false)
 	}
+	if !it.checkValid(result) {
+		return it.Next()
+	}
 	it.result = result
-
 	return graph.NextLogOut(it, it.result, true)
 }
 

@@ -71,9 +71,9 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	var ses query.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.ts, api.config.Timeout, false)
+		ses = gremlin.NewSession(api.handle.QuadStore, api.config.Timeout, false)
 	case "mql":
-		ses = mql.NewSession(api.ts)
+		ses = mql.NewSession(api.handle.QuadStore)
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
@@ -110,18 +110,15 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		ses = nil
 		return FormatJsonError(w, 500, "Incomplete data?")
 	}
-	http.Error(w, "", http.StatusNotFound)
-	ses = nil
-	return http.StatusNotFound
 }
 
 func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
 	var ses query.HttpSession
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.ts, api.config.Timeout, false)
+		ses = gremlin.NewSession(api.handle.QuadStore, api.config.Timeout, false)
 	case "mql":
-		ses = mql.NewSession(api.ts)
+		ses = mql.NewSession(api.handle.QuadStore)
 	default:
 		return FormatJson400(w, "Need a query language.")
 	}
@@ -146,6 +143,4 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 	default:
 		return FormatJsonError(w, 500, "Incomplete data?")
 	}
-	http.Error(w, "", http.StatusNotFound)
-	return http.StatusNotFound
 }

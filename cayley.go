@@ -44,6 +44,9 @@ import (
 	_ "github.com/google/cayley/graph/leveldb"
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/graph/mongo"
+
+	// Load writer registry
+	_ "github.com/google/cayley/writer"
 )
 
 var (
@@ -105,8 +108,8 @@ func main() {
 	}
 
 	var (
-		ts  graph.TripleStore
-		err error
+		handle *graph.Handle
+		err    error
 	)
 	switch cmd {
 	case "version":
@@ -123,60 +126,60 @@ func main() {
 			break
 		}
 		if *tripleFile != "" {
-			ts, err = db.Open(cfg)
+			handle, err = db.Open(cfg)
 			if err != nil {
 				break
 			}
-			err = load(ts, cfg, *tripleFile, *tripleType)
+			err = load(handle.QuadWriter, cfg, *tripleFile, *tripleType)
 			if err != nil {
 				break
 			}
-			ts.Close()
+			handle.Close()
 		}
 
 	case "load":
-		ts, err = db.Open(cfg)
+		handle, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
-		err = load(ts, cfg, *tripleFile, *tripleType)
+		err = load(handle.QuadWriter, cfg, *tripleFile, *tripleType)
 		if err != nil {
 			break
 		}
 
-		ts.Close()
+		handle.Close()
 
 	case "repl":
-		ts, err = db.Open(cfg)
+		handle, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = load(ts, cfg, "", *tripleType)
+			err = load(handle.QuadWriter, cfg, "", *tripleType)
 			if err != nil {
 				break
 			}
 		}
 
-		err = db.Repl(ts, *queryLanguage, cfg)
+		err = db.Repl(handle, *queryLanguage, cfg)
 
-		ts.Close()
+		handle.Close()
 
 	case "http":
-		ts, err = db.Open(cfg)
+		handle, err = db.Open(cfg)
 		if err != nil {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = load(ts, cfg, "", *tripleType)
+			err = load(handle.QuadWriter, cfg, "", *tripleType)
 			if err != nil {
 				break
 			}
 		}
 
-		http.Serve(ts, cfg)
+		http.Serve(handle, cfg)
 
-		ts.Close()
+		handle.Close()
 
 	default:
 		fmt.Println("No command", cmd)
@@ -187,7 +190,29 @@ func main() {
 	}
 }
 
-func load(ts graph.TripleStore, cfg *config.Config, path, typ string) error {
+func load(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
+	return decompressAndLoad(qw, cfg, path, typ, db.Load)
+}
+
+func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
+	return decompressAndLoad(qw, cfg, path, typ, remove)
+}
+
+func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
+	for {
+		t, err := dec.Unmarshal()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		qw.RemoveQuad(t)
+	}
+	return nil
+}
+
+func decompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string, loadFn func(graph.QuadWriter, *config.Config, quad.Unmarshaler) error) error {
 	var r io.Reader
 
 	if path == "" {
@@ -233,7 +258,7 @@ func load(ts graph.TripleStore, cfg *config.Config, path, typ string) error {
 		return fmt.Errorf("unknown quad format %q", typ)
 	}
 
-	return db.Load(ts, cfg, dec)
+	return db.Load(qw, cfg, dec)
 }
 
 const (

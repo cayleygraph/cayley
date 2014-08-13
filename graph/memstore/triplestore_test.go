@@ -22,6 +22,7 @@ import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
+	"github.com/google/cayley/writer"
 )
 
 // This is a simple test graph.
@@ -51,13 +52,14 @@ var simpleGraph = []quad.Quad{
 	{"G", "status", "cool", "status_graph"},
 }
 
-func makeTestStore(data []quad.Quad) (*TripleStore, []pair) {
+func makeTestStore(data []quad.Quad) (*TripleStore, graph.QuadWriter, []pair) {
 	seen := make(map[string]struct{})
 	ts := newTripleStore()
 	var (
 		val int64
 		ind []pair
 	)
+	writer, _ := writer.NewSingleReplication(ts, nil)
 	for _, t := range data {
 		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Label} {
 			if _, ok := seen[qp]; !ok && qp != "" {
@@ -66,9 +68,10 @@ func makeTestStore(data []quad.Quad) (*TripleStore, []pair) {
 				seen[qp] = struct{}{}
 			}
 		}
-		ts.AddTriple(t)
+
+		writer.AddQuad(t)
 	}
-	return ts, ind
+	return ts, writer, ind
 }
 
 type pair struct {
@@ -77,7 +80,7 @@ type pair struct {
 }
 
 func TestMemstore(t *testing.T) {
-	ts, index := makeTestStore(simpleGraph)
+	ts, _, index := makeTestStore(simpleGraph)
 	if size := ts.Size(); size != int64(len(simpleGraph)) {
 		t.Errorf("Triple store has unexpected size, got:%d expected %d", size, len(simpleGraph))
 	}
@@ -95,7 +98,7 @@ func TestMemstore(t *testing.T) {
 }
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
-	ts, _ := makeTestStore(simpleGraph)
+	ts, _, _ := makeTestStore(simpleGraph)
 
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("C"))
@@ -144,7 +147,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 }
 
 func TestLinksToOptimization(t *testing.T) {
-	ts, _ := makeTestStore(simpleGraph)
+	ts, _, _ := makeTestStore(simpleGraph)
 
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("cool"))
@@ -172,9 +175,9 @@ func TestLinksToOptimization(t *testing.T) {
 }
 
 func TestRemoveTriple(t *testing.T) {
-	ts, _ := makeTestStore(simpleGraph)
+	ts, w, _ := makeTestStore(simpleGraph)
 
-	ts.RemoveTriple(quad.Quad{"E", "follows", "F", ""})
+	w.RemoveQuad(quad.Quad{"E", "follows", "F", ""})
 
 	fixed := ts.FixedIterator()
 	fixed.Add(ts.ValueOf("E"))

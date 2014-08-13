@@ -21,6 +21,7 @@ import (
 	"github.com/google/cayley/quad"
 
 	_ "github.com/google/cayley/graph/memstore"
+	_ "github.com/google/cayley/writer"
 )
 
 func TestBadParse(t *testing.T) {
@@ -55,13 +56,14 @@ var testQueries = []struct {
 
 func TestMemstoreBackedSexp(t *testing.T) {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", ts, nil)
 	it := BuildIteratorTreeForQuery(ts, "()")
 	if it.Type() != graph.Null {
 		t.Errorf(`Incorrect type for empty query, got:%q expect: "null"`, it.Type())
 	}
 	for _, test := range testQueries {
 		if test.add.IsValid() {
-			ts.AddTriple(test.add)
+			w.AddQuad(test.add)
 		}
 		it := BuildIteratorTreeForQuery(ts, test.query)
 		if it.Type() != test.typ {
@@ -79,8 +81,9 @@ func TestMemstoreBackedSexp(t *testing.T) {
 
 func TestTreeConstraintParse(t *testing.T) {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	ts.AddTriple(quad.Quad{"i", "like", "food", ""})
-	ts.AddTriple(quad.Quad{"food", "is", "good", ""})
+	w, _ := graph.NewQuadWriter("single", ts, nil)
+	w.AddQuad(quad.Quad{"i", "like", "food", ""})
+	w.AddQuad(quad.Quad{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -99,8 +102,9 @@ func TestTreeConstraintParse(t *testing.T) {
 
 func TestTreeConstraintTagParse(t *testing.T) {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	ts.AddTriple(quad.Quad{"i", "like", "food", ""})
-	ts.AddTriple(quad.Quad{"food", "is", "good", ""})
+	w, _ := graph.NewQuadWriter("single", ts, nil)
+	w.AddQuad(quad.Quad{"i", "like", "food", ""})
+	w.AddQuad(quad.Quad{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -118,12 +122,13 @@ func TestTreeConstraintTagParse(t *testing.T) {
 
 func TestMultipleConstraintParse(t *testing.T) {
 	ts, _ := graph.NewTripleStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", ts, nil)
 	for _, tv := range []quad.Quad{
 		{"i", "like", "food", ""},
 		{"i", "like", "beer", ""},
 		{"you", "like", "beer", ""},
 	} {
-		ts.AddTriple(tv)
+		w.AddQuad(tv)
 	}
 	query := `(
 		$a
