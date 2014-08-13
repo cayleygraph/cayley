@@ -185,7 +185,9 @@ func (qs *QuadStore) ApplyDeltas(deltas []*graph.Delta) error {
 			if err != nil {
 				return err
 			}
-			err = qs.buildQuadWrite(tx, d.Quad, d.ID, d.Action == graph.Add)
+		}
+		for _, d := range deltas {
+			err := qs.buildQuadWrite(tx, d.Quad, d.ID, d.Action == graph.Add)
 			if err != nil {
 				return err
 			}
