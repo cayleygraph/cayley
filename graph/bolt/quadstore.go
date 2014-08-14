@@ -121,8 +121,8 @@ func (qs *QuadStore) Horizon() int64 {
 	return qs.horizon
 }
 
-func (qa *QuadStore) createDeltaKeyFor(d *graph.Delta) []byte {
-	return []byte(fmt.Sprintf("%018x", d.ID))
+func (qs *QuadStore) createDeltaKeyFor(id int64) []byte {
+	return []byte(fmt.Sprintf("%018x", id))
 }
 
 func bucketFor(d [4]quad.Direction) []byte {
@@ -147,7 +147,6 @@ func (qs *QuadStore) createValueKeyFor(s string) []byte {
 }
 
 type IndexEntry struct {
-	quad.Quad
 	History []int64
 }
 
@@ -181,7 +180,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []*graph.Delta) error {
 				return err
 			}
 			b = tx.Bucket(logBucket)
-			err = b.Put(qs.createDeltaKeyFor(d), bytes)
+			err = b.Put(qs.createDeltaKeyFor(d.ID), bytes)
 			if err != nil {
 				return err
 			}
@@ -235,8 +234,6 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 		if err != nil {
 			return err
 		}
-	} else {
-		entry.Quad = q
 	}
 
 	if isAdd && len(entry.History)%2 == 1 {
@@ -342,11 +339,24 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
+	var in IndexEntry
 	var q quad.Quad
 	tok := k.(*Token)
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(tok.bucket)
 		data := b.Get(tok.key)
+		if data == nil {
+			return nil
+		}
+		err := json.Unmarshal(data, &in)
+		if err != nil {
+			return err
+		}
+		if len(in.History) == 0 {
+			return nil
+		}
+		b = tx.Bucket(logBucket)
+		data = b.Get(qs.createDeltaKeyFor(in.History[len(in.History)-1]))
 		if data == nil {
 			// No harm, no foul.
 			return nil
