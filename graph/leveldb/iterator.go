@@ -45,7 +45,7 @@ type Iterator struct {
 
 func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) graph.Iterator {
 	vb := value.(Token)
-	p := make([]byte, 0, 2+qs.hasher.Size())
+	p := make([]byte, 0, 2+qs.hasherSize)
 	p = append(p, []byte(prefix)...)
 	p = append(p, []byte(vb[1:])...)
 
@@ -180,9 +180,9 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 		case quad.Subject:
 			return 2
 		case quad.Predicate:
-			return qs.hasher.Size() + 2
+			return qs.hasherSize + 2
 		case quad.Object:
-			return 2*qs.hasher.Size() + 2
+			return 2*qs.hasherSize + 2
 		case quad.Label:
 			return 3*qs.hasher.Size() + 2
 		}
@@ -190,11 +190,11 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 	if bytes.Equal(prefix, []byte("po")) {
 		switch d {
 		case quad.Subject:
-			return 2*qs.hasher.Size() + 2
+			return 2*qs.hasherSize + 2
 		case quad.Predicate:
 			return 2
 		case quad.Object:
-			return qs.hasher.Size() + 2
+			return qs.hasherSize + 2
 		case quad.Label:
 			return 3*qs.hasher.Size() + 2
 		}
@@ -202,9 +202,9 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 	if bytes.Equal(prefix, []byte("os")) {
 		switch d {
 		case quad.Subject:
-			return qs.hasher.Size() + 2
+			return qs.hasherSize + 2
 		case quad.Predicate:
-			return 2*qs.hasher.Size() + 2
+			return 2*qs.hasherSize + 2
 		case quad.Object:
 			return 2
 		case quad.Label:
@@ -214,11 +214,11 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 	if bytes.Equal(prefix, []byte("cp")) {
 		switch d {
 		case quad.Subject:
-			return 2*qs.hasher.Size() + 2
+			return 2*qs.hasherSize + 2
 		case quad.Predicate:
-			return qs.hasher.Size() + 2
+			return qs.hasherSize + 2
 		case quad.Object:
-			return 3*qs.hasher.Size() + 2
+			return 3*qs.hasherSize + 2
 		case quad.Label:
 			return 2
 		}

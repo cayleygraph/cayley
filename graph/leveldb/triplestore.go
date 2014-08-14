@@ -50,15 +50,17 @@ func (t Token) Key() interface{} {
 }
 
 type TripleStore struct {
-	dbOpts    *opt.Options
-	db        *leveldb.DB
-	path      string
-	open      bool
-	size      int64
-	horizon   int64
-	hasher    hash.Hash
-	writeopts *opt.WriteOptions
-	readopts  *opt.ReadOptions
+	dbOpts     *opt.Options
+	db         *leveldb.DB
+	path       string
+	open       bool
+	size       int64
+	horizon    int64
+	hasher     hash.Hash
+	hasherSize int
+	makeHasher func() hash.Hash
+	writeopts  *opt.WriteOptions
+	readopts   *opt.ReadOptions
 }
 
 func createNewLevelDB(path string, _ graph.Options) error {
@@ -96,7 +98,8 @@ func newTripleStore(path string, options graph.Options) (graph.TripleStore, erro
 		write_buffer_mb = val
 	}
 	qs.dbOpts.WriteBuffer = write_buffer_mb * opt.MiB
-	qs.hasher = sha1.New()
+	qs.hasherSize = sha1.Size
+	qs.makeHasher = sha1.New
 	qs.writeopts = &opt.WriteOptions{
 		Sync: false,
 	}
@@ -141,20 +144,22 @@ func (qa *TripleStore) createDeltaKeyFor(d *graph.Delta) []byte {
 }
 
 func (qs *TripleStore) createKeyFor(d [4]quad.Direction, triple quad.Quad) []byte {
-	key := make([]byte, 0, 2+(qs.hasher.Size()*4))
+	hasher := qs.makeHasher()
+	key := make([]byte, 0, 2+(qs.hasherSize*3))
 	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[3]))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]), hasher)...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]), hasher)...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]), hasher)...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[3]), hasher)...)
 	return key
 }
 
 func (qs *TripleStore) createValueKeyFor(s string) []byte {
-	key := make([]byte, 0, 1+qs.hasher.Size())
+	hasher := qs.makeHasher()
+	key := make([]byte, 0, 1+qs.hasherSize)
 	key = append(key, []byte("z")...)
-	key = append(key, qs.convertStringToByteHash(s)...)
+	key = append(key, qs.convertStringToByteHash(s, hasher)...)
 	return key
 }
 
@@ -341,11 +346,11 @@ func (qs *TripleStore) Quad(k graph.Value) quad.Quad {
 	return triple
 }
 
-func (qs *TripleStore) convertStringToByteHash(s string) []byte {
-	qs.hasher.Reset()
-	key := make([]byte, 0, qs.hasher.Size())
-	qs.hasher.Write([]byte(s))
-	key = qs.hasher.Sum(key)
+func (qs *TripleStore) convertStringToByteHash(s string, hasher hash.Hash) []byte {
+	hasher.Reset()
+	key := make([]byte, 0, qs.hasherSize)
+	hasher.Write([]byte(s))
+	key = hasher.Sum(key)
 	return key
 }
 
@@ -462,7 +467,7 @@ func (qs *TripleStore) TripleDirection(val graph.Value, d quad.Direction) graph.
 	v := val.(Token)
 	offset := PositionOf(v[0:2], d, qs)
 	if offset != -1 {
-		return Token(append([]byte("z"), v[offset:offset+qs.hasher.Size()]...))
+		return Token(append([]byte("z"), v[offset:offset+qs.hasherSize]...))
 	} else {
 		return Token(qs.Quad(val).Get(d))
 	}
