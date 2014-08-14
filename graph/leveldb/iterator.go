@@ -184,7 +184,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 		case quad.Object:
 			return 2*qs.hasherSize + 2
 		case quad.Label:
-			return 3*qs.hasher.Size() + 2
+			return 3*qs.hasherSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("po")) {
@@ -196,7 +196,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 		case quad.Object:
 			return qs.hasherSize + 2
 		case quad.Label:
-			return 3*qs.hasher.Size() + 2
+			return 3*qs.hasherSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("os")) {
@@ -208,7 +208,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 		case quad.Object:
 			return 2
 		case quad.Label:
-			return 3*qs.hasher.Size() + 2
+			return 3*qs.hasherSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("cp")) {
