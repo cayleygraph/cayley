@@ -202,8 +202,7 @@ func (it *HasA) Next() bool {
 		return graph.NextLogOut(it, 0, false)
 	}
 	tID := it.primaryIt.Result()
-	name := it.ts.Quad(tID).Get(it.dir)
-	val := it.ts.ValueOf(name)
+	val := it.ts.TripleDirection(tID, it.dir)
 	it.result = val
 	return graph.NextLogOut(it, val, true)
 }

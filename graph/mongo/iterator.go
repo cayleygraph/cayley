@@ -185,13 +185,13 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (it.qs.hasher.Size() * 2)
+		offset = (it.qs.hasherSize * 2)
 	case quad.Object:
-		offset = (it.qs.hasher.Size() * 2) * 2
+		offset = (it.qs.hasherSize * 2) * 2
 	case quad.Label:
-		offset = (it.qs.hasher.Size() * 2) * 3
+		offset = (it.qs.hasherSize * 2) * 3
 	}
-	val := v.(string)[offset : it.qs.hasher.Size()*2+offset]
+	val := v.(string)[offset : it.qs.hasherSize*2+offset]
 	if val == it.hash {
 		it.result = v
 		return graph.ContainsLogOut(it, v, true)
