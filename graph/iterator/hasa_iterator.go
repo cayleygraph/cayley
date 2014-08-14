@@ -179,10 +179,13 @@ func (it *HasA) NextPath() bool {
 	//
 	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
+	glog.V(4).Infoln("HASA", it.UID(), "NextPath")
 	if it.primaryIt.NextPath() {
 		return true
 	}
-	return it.NextContains()
+	result := it.NextContains()
+	glog.V(4).Infoln("HASA", it.UID(), "NextPath Returns", result, "")
+	return result
 }
 
 // Next advances the iterator. This is simpler than Contains. We have a
@@ -199,8 +202,7 @@ func (it *HasA) Next() bool {
 		return graph.NextLogOut(it, 0, false)
 	}
 	tID := it.primaryIt.Result()
-	name := it.ts.Quad(tID).Get(it.dir)
-	val := it.ts.ValueOf(name)
+	val := it.ts.TripleDirection(tID, it.dir)
 	it.result = val
 	return graph.NextLogOut(it, val, true)
 }
