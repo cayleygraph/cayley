@@ -45,17 +45,7 @@ type Iterator struct {
 func NewIterator(qs *TripleStore, collection string, d quad.Direction, val graph.Value) *Iterator {
 	name := qs.NameOf(val)
 
-	var constraint bson.M
-	switch d {
-	case quad.Subject:
-		constraint = bson.M{"Subject": name}
-	case quad.Predicate:
-		constraint = bson.M{"Predicate": name}
-	case quad.Object:
-		constraint = bson.M{"Object": name}
-	case quad.Label:
-		constraint = bson.M{"Label": name}
-	}
+	constraint := bson.M{d.String(): name}
 
 	size, err := qs.db.C(collection).Find(constraint).Count()
 	if err != nil {

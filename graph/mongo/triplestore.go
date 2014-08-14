@@ -54,18 +54,18 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 	}
 	db := conn.DB(dbName)
 	indexOpts := mgo.Index{
-		Key:        []string{"Sub"},
+		Key:        []string{"subject"},
 		Unique:     false,
 		DropDups:   false,
 		Background: true,
 		Sparse:     true,
 	}
 	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Pred"}
+	indexOpts.Key = []string{"predicate"}
 	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Obj"}
+	indexOpts.Key = []string{"object"}
 	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Label"}
+	indexOpts.Key = []string{"label"}
 	db.C("quads").EnsureIndex(indexOpts)
 	logOpts := mgo.Index{
 		Key:        []string{"LogID"},
@@ -97,7 +97,7 @@ func newTripleStore(addr string, options graph.Options) (graph.TripleStore, erro
 	return &qs, nil
 }
 
-func (qs *TripleStore) getIdForTriple(t quad.Quad) string {
+func (qs *TripleStore) getIdForQuad(t quad.Quad) string {
 	hasher := qs.makeHasher()
 	id := qs.convertStringToByteHash(t.Subject, hasher)
 	id += qs.convertStringToByteHash(t.Predicate, hasher)
@@ -147,26 +147,20 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) error {
 	return err
 }
 
-func (qs *TripleStore) updateTriple(t quad.Quad, id int64, proc graph.Procedure) error {
+func (qs *TripleStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) error {
 	var setname string
 	if proc == graph.Add {
 		setname = "Added"
 	} else if proc == graph.Delete {
 		setname = "Deleted"
 	}
-	tripledoc := bson.M{
-		"Subject":   t.Subject,
-		"Predicate": t.Predicate,
-		"Object":    t.Object,
-		"Label":     t.Label,
-	}
 	upsert := bson.M{
-		"$setOnInsert": tripledoc,
+		"$setOnInsert": q,
 		"$push": bson.M{
 			setname: id,
 		},
 	}
-	_, err := qs.db.C("quads").UpsertId(qs.getIdForTriple(t), upsert)
+	_, err := qs.db.C("quads").UpsertId(qs.getIdForQuad(q), upsert)
 	if err != nil {
 		glog.Errorf("Error: %v", err)
 	}
@@ -202,7 +196,7 @@ func (qs *TripleStore) updateLog(d graph.Delta) error {
 	entry := MongoLogEntry{
 		LogID:     d.ID,
 		Action:    action,
-		Key:       qs.getIdForTriple(d.Quad),
+		Key:       qs.getIdForQuad(d.Quad),
 		Timestamp: d.Timestamp.UnixNano(),
 	}
 	err := qs.db.C("log").Insert(entry)
@@ -217,7 +211,7 @@ func (qs *TripleStore) ApplyDeltas(in []graph.Delta) error {
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
 	for _, d := range in {
-		key := qs.getIdForTriple(d.Quad)
+		key := qs.getIdForQuad(d.Quad)
 		switch d.Action {
 		case graph.Add:
 			if qs.checkValid(key) {
@@ -239,7 +233,7 @@ func (qs *TripleStore) ApplyDeltas(in []graph.Delta) error {
 		}
 	}
 	for _, d := range in {
-		err := qs.updateTriple(d.Quad, d.ID, d.Action)
+		err := qs.updateQuad(d.Quad, d.ID, d.Action)
 		if err != nil {
 			return err
 		}
