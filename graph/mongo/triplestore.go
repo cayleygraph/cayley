@@ -192,7 +192,7 @@ func (qs *TripleStore) checkValid(key string) bool {
 	return true
 }
 
-func (qs *TripleStore) updateLog(d *graph.Delta) error {
+func (qs *TripleStore) updateLog(d graph.Delta) error {
 	var action string
 	if d.Action == graph.Add {
 		action = "Add"
@@ -212,7 +212,7 @@ func (qs *TripleStore) updateLog(d *graph.Delta) error {
 	return err
 }
 
-func (qs *TripleStore) ApplyDeltas(in []*graph.Delta) error {
+func (qs *TripleStore) ApplyDeltas(in []graph.Delta) error {
 	qs.session.SetSafe(nil)
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
@@ -267,17 +267,12 @@ func (qs *TripleStore) ApplyDeltas(in []*graph.Delta) error {
 }
 
 func (qs *TripleStore) Quad(val graph.Value) quad.Quad {
-	var bsonDoc bson.M
-	err := qs.db.C("quads").FindId(val.(string)).One(&bsonDoc)
+	var q quad.Quad
+	err := qs.db.C("quads").FindId(val.(string)).One(&q)
 	if err != nil {
 		glog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
 	}
-	return quad.Quad{
-		bsonDoc["Subject"].(string),
-		bsonDoc["Predicate"].(string),
-		bsonDoc["Object"].(string),
-		bsonDoc["Label"].(string),
-	}
+	return q
 }
 
 func (qs *TripleStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {

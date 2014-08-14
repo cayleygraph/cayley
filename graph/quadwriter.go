@@ -53,8 +53,10 @@ func (h *Handle) Close() {
 	h.QuadWriter.Close()
 }
 
-var ErrQuadExists = errors.New("Quad exists")
-var ErrQuadNotExist = errors.New("Quad doesn't exist")
+var (
+	ErrQuadExists   = errors.New("Quad exists")
+	ErrQuadNotExist = errors.New("Quad doesn't exist")
+)
 
 type QuadWriter interface {
 	// Add a quad to the store.

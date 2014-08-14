@@ -136,7 +136,7 @@ func (qs *TripleStore) Horizon() int64 {
 	return qs.horizon
 }
 
-func (qa *TripleStore) createDeltaKeyFor(d *graph.Delta) []byte {
+func (qa *TripleStore) createDeltaKeyFor(d graph.Delta) []byte {
 	key := make([]byte, 0, 19)
 	key = append(key, 'd')
 	key = append(key, []byte(fmt.Sprintf("%018x", d.ID))...)
@@ -176,7 +176,7 @@ var (
 	cps = [4]quad.Direction{quad.Label, quad.Predicate, quad.Subject, quad.Object}
 )
 
-func (qs *TripleStore) ApplyDeltas(deltas []*graph.Delta) error {
+func (qs *TripleStore) ApplyDeltas(deltas []graph.Delta) error {
 	batch := &leveldb.Batch{}
 	resizeMap := make(map[string]int64)
 	size_change := int64(0)

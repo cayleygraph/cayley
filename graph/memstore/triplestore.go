@@ -105,7 +105,7 @@ func newTripleStore() *TripleStore {
 	return &ts
 }
 
-func (ts *TripleStore) ApplyDeltas(deltas []*graph.Delta) error {
+func (ts *TripleStore) ApplyDeltas(deltas []graph.Delta) error {
 	for _, d := range deltas {
 		var err error
 		if d.Action == graph.Add {
@@ -154,13 +154,13 @@ func (ts *TripleStore) quadExists(t quad.Quad) (bool, int64) {
 	return false, 0
 }
 
-func (ts *TripleStore) AddDelta(d *graph.Delta) error {
+func (ts *TripleStore) AddDelta(d graph.Delta) error {
 	if exists, _ := ts.quadExists(d.Quad); exists {
 		return graph.ErrQuadExists
 	}
 	var quadID int64
 	quadID = ts.quadIdCounter
-	ts.log = append(ts.log, LogEntry{Delta: *d})
+	ts.log = append(ts.log, LogEntry{Delta: d})
 	ts.size++
 	ts.quadIdCounter++
 
@@ -189,7 +189,7 @@ func (ts *TripleStore) AddDelta(d *graph.Delta) error {
 	return nil
 }
 
-func (ts *TripleStore) RemoveDelta(d *graph.Delta) error {
+func (ts *TripleStore) RemoveDelta(d graph.Delta) error {
 	var prevQuadID int64
 	var exists bool
 	prevQuadID = 0
@@ -199,7 +199,7 @@ func (ts *TripleStore) RemoveDelta(d *graph.Delta) error {
 
 	var quadID int64
 	quadID = ts.quadIdCounter
-	ts.log = append(ts.log, LogEntry{Delta: *d})
+	ts.log = append(ts.log, LogEntry{Delta: d})
 	ts.log[prevQuadID].DeletedBy = quadID
 	ts.size--
 	ts.quadIdCounter++

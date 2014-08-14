@@ -43,7 +43,7 @@ type Iterator struct {
 	result         graph.Value
 }
 
-func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) graph.Iterator {
+func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) *Iterator {
 	vb := value.(Token)
 	p := make([]byte, 0, 2+qs.hasherSize)
 	p = append(p, []byte(prefix)...)
@@ -70,7 +70,6 @@ func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleS
 		it.open = false
 		it.iter.Release()
 		glog.Error("Opening LevelDB iterator couldn't seek to location ", it.nextPrefix)
-		return &iterator.Null{}
 	}
 
 	return &it
@@ -108,7 +107,7 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 
 func (it *Iterator) Clone() graph.Iterator {
 	out := NewIterator(it.originalPrefix, it.dir, Token(it.checkId), it.qs)
-	out.Tagger().CopyFrom(it)
+	out.tags.CopyFrom(it)
 	return out
 }
 

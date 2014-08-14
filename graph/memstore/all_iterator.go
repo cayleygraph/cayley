@@ -35,17 +35,17 @@ func NewMemstoreNodesAllIterator(ts *TripleStore) *NodesAllIterator {
 }
 
 // No subiterators.
-func (nit *NodesAllIterator) SubIterators() []graph.Iterator {
+func (it *NodesAllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (nit *NodesAllIterator) Next() bool {
-	if !nit.Int64.Next() {
+func (it *NodesAllIterator) Next() bool {
+	if !it.Int64.Next() {
 		return false
 	}
-	_, ok := nit.ts.revIdMap[nit.Int64.Result().(int64)]
+	_, ok := it.ts.revIdMap[it.Int64.Result().(int64)]
 	if !ok {
-		return nit.Next()
+		return it.Next()
 	}
 	return true
 }
