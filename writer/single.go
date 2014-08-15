@@ -50,8 +50,8 @@ func (s *Single) AcquireNextID() int64 {
 }
 
 func (s *Single) AddQuad(q quad.Quad) error {
-	deltas := make([]*graph.Delta, 1)
-	deltas[0] = &graph.Delta{
+	deltas := make([]graph.Delta, 1)
+	deltas[0] = graph.Delta{
 		ID:        s.AcquireNextID(),
 		Quad:      q,
 		Action:    graph.Add,
@@ -61,9 +61,9 @@ func (s *Single) AddQuad(q quad.Quad) error {
 }
 
 func (s *Single) AddQuadSet(set []quad.Quad) error {
-	deltas := make([]*graph.Delta, len(set))
+	deltas := make([]graph.Delta, len(set))
 	for i, q := range set {
-		deltas[i] = &graph.Delta{
+		deltas[i] = graph.Delta{
 			ID:        s.AcquireNextID(),
 			Quad:      q,
 			Action:    graph.Add,
@@ -75,8 +75,8 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 }
 
 func (s *Single) RemoveQuad(q quad.Quad) error {
-	deltas := make([]*graph.Delta, 1)
-	deltas[0] = &graph.Delta{
+	deltas := make([]graph.Delta, 1)
+	deltas[0] = graph.Delta{
 		ID:        s.AcquireNextID(),
 		Quad:      q,
 		Action:    graph.Delete,

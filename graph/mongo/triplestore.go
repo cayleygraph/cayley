@@ -35,10 +35,11 @@ func init() {
 const DefaultDBName = "cayley"
 
 type TripleStore struct {
-	session *mgo.Session
-	db      *mgo.Database
-	hasher  hash.Hash
-	idCache *IDLru
+	session    *mgo.Session
+	db         *mgo.Database
+	hasherSize int
+	makeHasher func() hash.Hash
+	idCache    *IDLru
 }
 
 func createNewMongoGraph(addr string, options graph.Options) error {
@@ -53,18 +54,18 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 	}
 	db := conn.DB(dbName)
 	indexOpts := mgo.Index{
-		Key:        []string{"Sub"},
+		Key:        []string{"subject"},
 		Unique:     false,
 		DropDups:   false,
 		Background: true,
 		Sparse:     true,
 	}
 	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Pred"}
+	indexOpts.Key = []string{"predicate"}
 	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Obj"}
+	indexOpts.Key = []string{"object"}
 	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"Label"}
+	indexOpts.Key = []string{"label"}
 	db.C("quads").EnsureIndex(indexOpts)
 	logOpts := mgo.Index{
 		Key:        []string{"LogID"},
@@ -90,24 +91,26 @@ func newTripleStore(addr string, options graph.Options) (graph.TripleStore, erro
 	}
 	qs.db = conn.DB(dbName)
 	qs.session = conn
-	qs.hasher = sha1.New()
+	qs.hasherSize = sha1.Size
+	qs.makeHasher = sha1.New
 	qs.idCache = NewIDLru(1 << 16)
 	return &qs, nil
 }
 
-func (qs *TripleStore) getIdForTriple(t quad.Quad) string {
-	id := qs.ConvertStringToByteHash(t.Subject)
-	id += qs.ConvertStringToByteHash(t.Predicate)
-	id += qs.ConvertStringToByteHash(t.Object)
-	id += qs.ConvertStringToByteHash(t.Label)
+func (qs *TripleStore) getIdForQuad(t quad.Quad) string {
+	hasher := qs.makeHasher()
+	id := qs.convertStringToByteHash(t.Subject, hasher)
+	id += qs.convertStringToByteHash(t.Predicate, hasher)
+	id += qs.convertStringToByteHash(t.Object, hasher)
+	id += qs.convertStringToByteHash(t.Label, hasher)
 	return id
 }
 
-func (qs *TripleStore) ConvertStringToByteHash(s string) string {
-	qs.hasher.Reset()
-	key := make([]byte, 0, qs.hasher.Size())
-	qs.hasher.Write([]byte(s))
-	key = qs.hasher.Sum(key)
+func (qs *TripleStore) convertStringToByteHash(s string, hasher hash.Hash) string {
+	hasher.Reset()
+	key := make([]byte, 0, qs.hasherSize)
+	hasher.Write([]byte(s))
+	key = hasher.Sum(key)
 	return hex.EncodeToString(key)
 }
 
@@ -144,26 +147,20 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) error {
 	return err
 }
 
-func (qs *TripleStore) updateTriple(t quad.Quad, id int64, proc graph.Procedure) error {
+func (qs *TripleStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) error {
 	var setname string
 	if proc == graph.Add {
 		setname = "Added"
 	} else if proc == graph.Delete {
 		setname = "Deleted"
 	}
-	tripledoc := bson.M{
-		"Subject":   t.Subject,
-		"Predicate": t.Predicate,
-		"Object":    t.Object,
-		"Label":     t.Label,
-	}
 	upsert := bson.M{
-		"$setOnInsert": tripledoc,
+		"$setOnInsert": q,
 		"$push": bson.M{
 			setname: id,
 		},
 	}
-	_, err := qs.db.C("quads").UpsertId(qs.getIdForTriple(t), upsert)
+	_, err := qs.db.C("quads").UpsertId(qs.getIdForQuad(q), upsert)
 	if err != nil {
 		glog.Errorf("Error: %v", err)
 	}
@@ -189,7 +186,7 @@ func (qs *TripleStore) checkValid(key string) bool {
 	return true
 }
 
-func (qs *TripleStore) updateLog(d *graph.Delta) error {
+func (qs *TripleStore) updateLog(d graph.Delta) error {
 	var action string
 	if d.Action == graph.Add {
 		action = "Add"
@@ -199,7 +196,7 @@ func (qs *TripleStore) updateLog(d *graph.Delta) error {
 	entry := MongoLogEntry{
 		LogID:     d.ID,
 		Action:    action,
-		Key:       qs.getIdForTriple(d.Quad),
+		Key:       qs.getIdForQuad(d.Quad),
 		Timestamp: d.Timestamp.UnixNano(),
 	}
 	err := qs.db.C("log").Insert(entry)
@@ -209,12 +206,12 @@ func (qs *TripleStore) updateLog(d *graph.Delta) error {
 	return err
 }
 
-func (qs *TripleStore) ApplyDeltas(in []*graph.Delta) error {
+func (qs *TripleStore) ApplyDeltas(in []graph.Delta) error {
 	qs.session.SetSafe(nil)
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
 	for _, d := range in {
-		key := qs.getIdForTriple(d.Quad)
+		key := qs.getIdForQuad(d.Quad)
 		switch d.Action {
 		case graph.Add:
 			if qs.checkValid(key) {
@@ -236,7 +233,7 @@ func (qs *TripleStore) ApplyDeltas(in []*graph.Delta) error {
 		}
 	}
 	for _, d := range in {
-		err := qs.updateTriple(d.Quad, d.ID, d.Action)
+		err := qs.updateQuad(d.Quad, d.ID, d.Action)
 		if err != nil {
 			return err
 		}
@@ -264,17 +261,12 @@ func (qs *TripleStore) ApplyDeltas(in []*graph.Delta) error {
 }
 
 func (qs *TripleStore) Quad(val graph.Value) quad.Quad {
-	var bsonDoc bson.M
-	err := qs.db.C("quads").FindId(val.(string)).One(&bsonDoc)
+	var q quad.Quad
+	err := qs.db.C("quads").FindId(val.(string)).One(&q)
 	if err != nil {
 		glog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
 	}
-	return quad.Quad{
-		bsonDoc["Subject"].(string),
-		bsonDoc["Predicate"].(string),
-		bsonDoc["Object"].(string),
-		bsonDoc["Label"].(string),
-	}
+	return q
 }
 
 func (qs *TripleStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
@@ -290,7 +282,8 @@ func (qs *TripleStore) TriplesAllIterator() graph.Iterator {
 }
 
 func (qs *TripleStore) ValueOf(s string) graph.Value {
-	return qs.ConvertStringToByteHash(s)
+	h := qs.makeHasher()
+	return qs.convertStringToByteHash(s, h)
 }
 
 func (qs *TripleStore) NameOf(v graph.Value) string {
@@ -348,13 +341,13 @@ func (qs *TripleStore) TripleDirection(in graph.Value, d quad.Direction) graph.V
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (qs.hasher.Size() * 2)
+		offset = (qs.hasherSize * 2)
 	case quad.Object:
-		offset = (qs.hasher.Size() * 2) * 2
+		offset = (qs.hasherSize * 2) * 2
 	case quad.Label:
-		offset = (qs.hasher.Size() * 2) * 3
+		offset = (qs.hasherSize * 2) * 3
 	}
-	val := in.(string)[offset : qs.hasher.Size()*2+offset]
+	val := in.(string)[offset : qs.hasherSize*2+offset]
 	return val
 }
 

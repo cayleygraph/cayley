@@ -45,17 +45,7 @@ type Iterator struct {
 func NewIterator(qs *TripleStore, collection string, d quad.Direction, val graph.Value) *Iterator {
 	name := qs.NameOf(val)
 
-	var constraint bson.M
-	switch d {
-	case quad.Subject:
-		constraint = bson.M{"Subject": name}
-	case quad.Predicate:
-		constraint = bson.M{"Predicate": name}
-	case quad.Object:
-		constraint = bson.M{"Object": name}
-	case quad.Label:
-		constraint = bson.M{"Label": name}
-	}
+	constraint := bson.M{d.String(): name}
 
 	size, err := qs.db.C(collection).Find(constraint).Count()
 	if err != nil {
@@ -187,13 +177,13 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (it.qs.hasher.Size() * 2)
+		offset = (it.qs.hasherSize * 2)
 	case quad.Object:
-		offset = (it.qs.hasher.Size() * 2) * 2
+		offset = (it.qs.hasherSize * 2) * 2
 	case quad.Label:
-		offset = (it.qs.hasher.Size() * 2) * 3
+		offset = (it.qs.hasherSize * 2) * 3
 	}
-	val := v.(string)[offset : it.qs.hasher.Size()*2+offset]
+	val := v.(string)[offset : it.qs.hasherSize*2+offset]
 	if val == it.hash {
 		it.result = v
 		return graph.ContainsLogOut(it, v, true)
