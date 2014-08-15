@@ -19,6 +19,7 @@ import (
 	"encoding/hex"
 	"hash"
 	"io"
+	"sync"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -38,12 +39,17 @@ var _ graph.BulkLoader = (*TripleStore)(nil)
 
 const DefaultDBName = "cayley"
 
+var (
+	hashPool = sync.Pool{
+		New: func() interface{} { return sha1.New() },
+	}
+	hashSize = sha1.Size
+)
+
 type TripleStore struct {
-	session    *mgo.Session
-	db         *mgo.Database
-	hasherSize int
-	makeHasher func() hash.Hash
-	idCache    *IDLru
+	session *mgo.Session
+	db      *mgo.Database
+	idCache *IDLru
 }
 
 func createNewMongoGraph(addr string, options graph.Options) error {
@@ -87,26 +93,26 @@ func newTripleStore(addr string, options graph.Options) (graph.TripleStore, erro
 	}
 	qs.db = conn.DB(dbName)
 	qs.session = conn
-	qs.hasherSize = sha1.Size
-	qs.makeHasher = sha1.New
 	qs.idCache = NewIDLru(1 << 16)
 	return &qs, nil
 }
 
 func (qs *TripleStore) getIdForTriple(t quad.Quad) string {
-	hasher := qs.makeHasher()
-	id := qs.convertStringToByteHash(t.Subject, hasher)
-	id += qs.convertStringToByteHash(t.Predicate, hasher)
-	id += qs.convertStringToByteHash(t.Object, hasher)
-	id += qs.convertStringToByteHash(t.Label, hasher)
+	id := qs.convertStringToByteHash(t.Subject)
+	id += qs.convertStringToByteHash(t.Predicate)
+	id += qs.convertStringToByteHash(t.Object)
+	id += qs.convertStringToByteHash(t.Label)
 	return id
 }
 
-func (qs *TripleStore) convertStringToByteHash(s string, hasher hash.Hash) string {
-	hasher.Reset()
-	key := make([]byte, 0, qs.hasherSize)
-	hasher.Write([]byte(s))
-	key = hasher.Sum(key)
+func (qs *TripleStore) convertStringToByteHash(s string) string {
+	h := hashPool.Get().(hash.Hash)
+	h.Reset()
+	defer hashPool.Put(h)
+
+	key := make([]byte, 0, hashSize)
+	h.Write([]byte(s))
+	key = h.Sum(key)
 	return hex.EncodeToString(key)
 }
 
@@ -246,8 +252,7 @@ func (qs *TripleStore) TriplesAllIterator() graph.Iterator {
 }
 
 func (qs *TripleStore) ValueOf(s string) graph.Value {
-	h := qs.makeHasher()
-	return qs.convertStringToByteHash(s, h)
+	return qs.convertStringToByteHash(s)
 }
 
 func (qs *TripleStore) NameOf(v graph.Value) string {
@@ -292,13 +297,13 @@ func (qs *TripleStore) TripleDirection(in graph.Value, d quad.Direction) graph.V
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (qs.hasherSize * 2)
+		offset = (hashSize * 2)
 	case quad.Object:
-		offset = (qs.hasherSize * 2) * 2
+		offset = (hashSize * 2) * 2
 	case quad.Label:
-		offset = (qs.hasherSize * 2) * 3
+		offset = (hashSize * 2) * 3
 	}
-	val := in.(string)[offset : qs.hasherSize*2+offset]
+	val := in.(string)[offset : hashSize*2+offset]
 	return val
 }
 
