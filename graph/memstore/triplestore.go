@@ -18,11 +18,11 @@ import (
 	"fmt"
 
 	"github.com/barakmich/glog"
+
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/memstore/b"
 	"github.com/google/cayley/quad"
-
-	"github.com/petar/GoLLRB/llrb"
 )
 
 func init() {
@@ -32,47 +32,36 @@ func init() {
 }
 
 type QuadDirectionIndex struct {
-	subject   map[int64]*llrb.LLRB
-	predicate map[int64]*llrb.LLRB
-	object    map[int64]*llrb.LLRB
-	label     map[int64]*llrb.LLRB
+	index [4]map[int64]*b.Tree
 }
 
-func NewQuadDirectionIndex() *QuadDirectionIndex {
-	var qdi QuadDirectionIndex
-	qdi.subject = make(map[int64]*llrb.LLRB)
-	qdi.predicate = make(map[int64]*llrb.LLRB)
-	qdi.object = make(map[int64]*llrb.LLRB)
-	qdi.label = make(map[int64]*llrb.LLRB)
-	return &qdi
+func NewQuadDirectionIndex() QuadDirectionIndex {
+	return QuadDirectionIndex{[...]map[int64]*b.Tree{
+		quad.Subject - 1:   make(map[int64]*b.Tree),
+		quad.Predicate - 1: make(map[int64]*b.Tree),
+		quad.Object - 1:    make(map[int64]*b.Tree),
+		quad.Label - 1:     make(map[int64]*b.Tree),
+	}}
 }
 
-func (qdi *QuadDirectionIndex) GetForDir(d quad.Direction) map[int64]*llrb.LLRB {
-	switch d {
-	case quad.Subject:
-		return qdi.subject
-	case quad.Object:
-		return qdi.object
-	case quad.Predicate:
-		return qdi.predicate
-	case quad.Label:
-		return qdi.label
+func (qdi QuadDirectionIndex) Tree(d quad.Direction, id int64) *b.Tree {
+	if d < quad.Subject || d > quad.Label {
+		panic("illegal direction")
 	}
-	panic("illegal direction")
-}
-
-func (qdi *QuadDirectionIndex) GetOrCreate(d quad.Direction, id int64) *llrb.LLRB {
-	directionIndex := qdi.GetForDir(d)
-	if _, ok := directionIndex[id]; !ok {
-		directionIndex[id] = llrb.New()
+	tree, ok := qdi.index[d-1][id]
+	if !ok {
+		tree = b.TreeNew(cmp)
+		qdi.index[d-1][id] = tree
 	}
-	return directionIndex[id]
+	return tree
 }
 
-func (qdi *QuadDirectionIndex) Get(d quad.Direction, id int64) (*llrb.LLRB, bool) {
-	directionIndex := qdi.GetForDir(d)
-	tree, exists := directionIndex[id]
-	return tree, exists
+func (qdi QuadDirectionIndex) Get(d quad.Direction, id int64) (*b.Tree, bool) {
+	if d < quad.Subject || d > quad.Label {
+		panic("illegal direction")
+	}
+	tree, ok := qdi.index[d-1][id]
+	return tree, ok
 }
 
 type LogEntry struct {
@@ -88,21 +77,21 @@ type TripleStore struct {
 	log           []LogEntry
 	size          int64
 	index         QuadDirectionIndex
-	// vip_index map[string]map[int64]map[string]map[int64]*llrb.Tree
+	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
 }
 
 func newTripleStore() *TripleStore {
-	var ts TripleStore
-	ts.idMap = make(map[string]int64)
-	ts.revIdMap = make(map[int64]string)
-	ts.log = make([]LogEntry, 1, 200)
+	return &TripleStore{
+		idMap:    make(map[string]int64),
+		revIdMap: make(map[int64]string),
 
-	// Sentinel null entry so indices start at 1
-	ts.log[0] = LogEntry{}
-	ts.index = *NewQuadDirectionIndex()
-	ts.idCounter = 1
-	ts.quadIdCounter = 1
-	return &ts
+		// Sentinel null entry so indices start at 1
+		log: make([]LogEntry, 1, 200),
+
+		index:         NewQuadDirectionIndex(),
+		idCounter:     1,
+		quadIdCounter: 1,
+	}
 }
 
 func (ts *TripleStore) ApplyDeltas(deltas []graph.Delta) error {
@@ -120,46 +109,46 @@ func (ts *TripleStore) ApplyDeltas(deltas []graph.Delta) error {
 	return nil
 }
 
-func (ts *TripleStore) quadExists(t quad.Quad) (bool, int64) {
-	smallest := -1
-	var smallest_tree *llrb.LLRB
+const maxInt = int(^uint(0) >> 1)
+
+func (ts *TripleStore) indexOf(t quad.Quad) (int64, bool) {
+	min := maxInt
+	var tree *b.Tree
 	for d := quad.Subject; d <= quad.Label; d++ {
 		sid := t.Get(d)
 		if d == quad.Label && sid == "" {
 			continue
 		}
 		id, ok := ts.idMap[sid]
-		// If we've never heard about a node, it most not exist
+		// If we've never heard about a node, it must not exist
 		if !ok {
-			return false, 0
+			return 0, false
 		}
-		index, exists := ts.index.Get(d, id)
-		if !exists {
+		index, ok := ts.index.Get(d, id)
+		if !ok {
 			// If it's never been indexed in this direction, it can't exist.
-			return false, 0
+			return 0, false
 		}
-		if smallest == -1 || index.Len() < smallest {
-			smallest = index.Len()
-			smallest_tree = index
+		if l := index.Len(); l < min {
+			min, tree = l, index
 		}
 	}
-	it := NewLlrbIterator(smallest_tree, "", ts)
+	it := NewIterator(tree, "", ts)
 
 	for it.Next() {
 		val := it.Result()
 		if t == ts.log[val.(int64)].Quad {
-			return true, val.(int64)
+			return val.(int64), true
 		}
 	}
-	return false, 0
+	return 0, false
 }
 
 func (ts *TripleStore) AddDelta(d graph.Delta) error {
-	if exists, _ := ts.quadExists(d.Quad); exists {
+	if _, exists := ts.indexOf(d.Quad); exists {
 		return graph.ErrQuadExists
 	}
-	var quadID int64
-	quadID = ts.quadIdCounter
+	qid := ts.quadIdCounter
 	ts.log = append(ts.log, LogEntry{Delta: d})
 	ts.size++
 	ts.quadIdCounter++
@@ -181,8 +170,8 @@ func (ts *TripleStore) AddDelta(d graph.Delta) error {
 			continue
 		}
 		id := ts.idMap[d.Quad.Get(dir)]
-		tree := ts.index.GetOrCreate(dir, id)
-		tree.ReplaceOrInsert(Int64(quadID))
+		tree := ts.index.Tree(dir, id)
+		tree.Set(qid, struct{}{})
 	}
 
 	// TODO(barakmich): Add VIP indexing
@@ -190,15 +179,12 @@ func (ts *TripleStore) AddDelta(d graph.Delta) error {
 }
 
 func (ts *TripleStore) RemoveDelta(d graph.Delta) error {
-	var prevQuadID int64
-	var exists bool
-	prevQuadID = 0
-	if exists, prevQuadID = ts.quadExists(d.Quad); !exists {
+	prevQuadID, exists := ts.indexOf(d.Quad)
+	if !exists {
 		return graph.ErrQuadNotExist
 	}
 
-	var quadID int64
-	quadID = ts.quadIdCounter
+	quadID := ts.quadIdCounter
 	ts.log = append(ts.log, LogEntry{Delta: d})
 	ts.log[prevQuadID].DeletedBy = quadID
 	ts.size--
@@ -214,7 +200,7 @@ func (ts *TripleStore) TripleIterator(d quad.Direction, value graph.Value) graph
 	index, ok := ts.index.Get(d, value.(int64))
 	data := fmt.Sprintf("dir:%s val:%d", d, value.(int64))
 	if ok {
-		return NewLlrbIterator(index, data, ts)
+		return NewIterator(index, data, ts)
 	}
 	return &iterator.Null{}
 }
@@ -260,4 +246,5 @@ func (ts *TripleStore) TripleDirection(val graph.Value, d quad.Direction) graph.
 func (ts *TripleStore) NodesAllIterator() graph.Iterator {
 	return NewMemstoreNodesAllIterator(ts)
 }
+
 func (ts *TripleStore) Close() {}
