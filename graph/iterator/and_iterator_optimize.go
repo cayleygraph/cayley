@@ -164,7 +164,7 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 				continue
 			}
 			stats := f.Stats()
-			cost += stats.ContainsCost * (rootStats.Size / (stats.Size + 1))
+			cost += stats.ContainsCost * (1 + (rootStats.Size / (stats.Size + 1)))
 		}
 		cost *= rootStats.Size
 		if glog.V(3) {
@@ -306,9 +306,12 @@ func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 
 func materializeIts(its []graph.Iterator) []graph.Iterator {
 	var out []graph.Iterator
-	for _, it := range its {
+
+	allStats := getStatsForSlice(its)
+	out = append(out, its[0])
+	for _, it := range its[1:] {
 		stats := it.Stats()
-		if stats.Size*stats.NextCost < stats.ContainsCost {
+		if stats.Size*stats.NextCost < (stats.ContainsCost * (1 + (stats.Size / (allStats.Size + 1)))) {
 			if graph.Height(it, graph.Materialize) > 10 {
 				out = append(out, NewMaterialize(it))
 				continue
@@ -319,28 +322,34 @@ func materializeIts(its []graph.Iterator) []graph.Iterator {
 	return out
 }
 
-// and.Stats() lives here in and-iterator-optimize.go because it may
-// in the future return different statistics based on how it is optimized.
-// For now, however, it's pretty static.
-func (it *And) Stats() graph.IteratorStats {
-	primaryStats := it.primaryIt.Stats()
+func getStatsForSlice(its []graph.Iterator) graph.IteratorStats {
+	primary := its[0]
+	primaryStats := primary.Stats()
 	ContainsCost := primaryStats.ContainsCost
 	NextCost := primaryStats.NextCost
 	Size := primaryStats.Size
-	for _, sub := range it.internalIterators {
+	for _, sub := range its[1:] {
 		stats := sub.Stats()
-		NextCost += stats.ContainsCost * (primaryStats.Size / (stats.Size + 1))
+		NextCost += stats.ContainsCost * (1 + (primaryStats.Size / (stats.Size + 1)))
 		ContainsCost += stats.ContainsCost
 		if Size > stats.Size {
 			Size = stats.Size
 		}
 	}
 	return graph.IteratorStats{
-		ContainsCost: ContainsCost * 2,
+		ContainsCost: ContainsCost,
 		NextCost:     NextCost,
 		Size:         Size,
-		Next:         it.runstats.Next,
-		Contains:     it.runstats.Contains,
 	}
 
+}
+
+// and.Stats() lives here in and-iterator-optimize.go because it may
+// in the future return different statistics based on how it is optimized.
+// For now, however, it's pretty static.
+func (it *And) Stats() graph.IteratorStats {
+	stats := getStatsForSlice(it.SubIterators())
+	stats.Next = it.runstats.Next
+	stats.Contains = it.runstats.Contains
+	return stats
 }
