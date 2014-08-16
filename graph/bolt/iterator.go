@@ -314,7 +314,7 @@ func (it *Iterator) Stats() graph.IteratorStats {
 	s, _ := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: 1,
-		NextCost:     2,
+		NextCost:     4,
 		Size:         s,
 	}
 }
