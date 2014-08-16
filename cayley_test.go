@@ -297,26 +297,45 @@ var m2_actors = movie2.Save("name","movie2").Follow(filmToActor)
 `
 
 var (
-	once sync.Once
-	cfg  = &config.Config{
-		DatabasePath: "30kmoviedata.nq.gz",
-		DatabaseType: "memstore",
-		Timeout:      300 * time.Second,
+	create            sync.Once
+	deleteAndRecreate sync.Once
+	cfg               = &config.Config{
+		DatabasePath:    "30kmoviedata.nq.gz",
+		DatabaseType:    "memstore",
+		ReplicationType: "single",
+		Timeout:         300 * time.Second,
 	}
 
-	ts graph.TripleStore
+	handle *graph.Handle
 )
 
 func prepare(t testing.TB) {
 	var err error
-	once.Do(func() {
-		ts, err = db.Open(cfg)
+	create.Do(func() {
+		handle, err = db.Open(cfg)
 		if err != nil {
 			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
 		}
 
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = load(ts, cfg, "", "cquad")
+			err = load(handle.QuadWriter, cfg, "", "cquad")
+			if err != nil {
+				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
+			}
+		}
+	})
+}
+
+func deletePrepare(t testing.TB) {
+	var err error
+	deleteAndRecreate.Do(func() {
+		prepare(t)
+		if !graph.IsPersistent(cfg.DatabaseType) {
+			err = removeAll(handle.QuadWriter, cfg, "", "cquad")
+			if err != nil {
+				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
+			}
+			err = load(handle.QuadWriter, cfg, "", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -326,11 +345,23 @@ func prepare(t testing.TB) {
 
 func TestQueries(t *testing.T) {
 	prepare(t)
+	checkQueries(t)
+}
+
+func TestDeletedAndRecreatedQueries(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	deletePrepare(t)
+	checkQueries(t)
+}
+
+func checkQueries(t *testing.T) {
 	for _, test := range benchmarkQueries {
 		if testing.Short() && test.long {
 			continue
 		}
-		ses := gremlin.NewSession(ts, cfg.Timeout, true)
+		ses := gremlin.NewSession(handle.QuadStore, cfg.Timeout, true)
 		_, err := ses.InputParses(test.query)
 		if err != nil {
 			t.Fatalf("Failed to parse benchmark gremlin %s: %v", test.message, err)
@@ -382,7 +413,7 @@ func runBench(n int, b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		c := make(chan interface{}, 5)
-		ses := gremlin.NewSession(ts, cfg.Timeout, true)
+		ses := gremlin.NewSession(handle.QuadStore, cfg.Timeout, true)
 		// Do the parsing we know works.
 		ses.InputParses(benchmarkQueries[n].query)
 		b.StartTimer()

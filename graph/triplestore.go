@@ -42,15 +42,9 @@ import (
 type Value interface{}
 
 type TripleStore interface {
-	// Add a triple to the store.
-	AddTriple(quad.Quad)
-
-	// Add a set of triples to the store, atomically if possible.
-	AddTripleSet([]quad.Quad)
-
-	// Removes a triple matching the given one  from the database,
-	// if it exists. Does nothing otherwise.
-	RemoveTriple(quad.Quad)
+	// The only way in is through building a transaction, which
+	// is done by a replication strategy.
+	ApplyDeltas([]Delta) error
 
 	// Given an opaque token, returns the triple for that token from the store.
 	Quad(Value) quad.Quad
@@ -74,6 +68,9 @@ type TripleStore interface {
 
 	// Returns the number of triples currently stored.
 	Size() int64
+
+	// The last replicated transaction ID that this triplestore has verified.
+	Horizon() int64
 
 	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator

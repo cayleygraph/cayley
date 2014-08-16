@@ -16,9 +16,11 @@ package leveldb
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/barakmich/glog"
 	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
@@ -65,10 +67,9 @@ func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleS
 
 	ok := it.iter.Seek(it.nextPrefix)
 	if !ok {
-		// FIXME(kortschak) What are the semantics here? Is this iterator usable?
-		// If not, we should return nil *Iterator and an error.
 		it.open = false
 		it.iter.Release()
+		glog.Error("Opening LevelDB iterator couldn't seek to location ", it.nextPrefix)
 	}
 
 	return &it
@@ -117,6 +118,12 @@ func (it *Iterator) Close() {
 	}
 }
 
+func (it *Iterator) isLiveValue(val []byte) bool {
+	var entry IndexEntry
+	json.Unmarshal(val, &entry)
+	return len(entry.History)%2 != 0
+}
+
 func (it *Iterator) Next() bool {
 	if it.iter == nil {
 		it.result = nil
@@ -132,6 +139,9 @@ func (it *Iterator) Next() bool {
 		return false
 	}
 	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
+		if !it.isLiveValue(it.iter.Value()) {
+			return it.Next()
+		}
 		out := make([]byte, len(it.iter.Key()))
 		copy(out, it.iter.Key())
 		it.result = Token(out)
@@ -173,7 +183,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 		case quad.Object:
 			return 2*hashSize + 2
 		case quad.Label:
-			return -1
+			return 3*hashSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("po")) {
@@ -185,7 +195,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 		case quad.Object:
 			return hashSize + 2
 		case quad.Label:
-			return -1
+			return hashSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("os")) {
@@ -197,7 +207,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
 		case quad.Object:
 			return 2
 		case quad.Label:
-			return -1
+			return 3*hashSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("cp")) {
@@ -221,16 +231,17 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return false
 	}
 	offset := PositionOf(val[0:2], it.dir, it.qs)
-	if offset != -1 {
-		if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
-			return true
-		}
-	} else {
-		nameForDir := it.qs.Quad(v).Get(it.dir)
-		hashForDir := it.qs.ValueOf(nameForDir).(Token)
-		if bytes.Equal(hashForDir, it.checkId) {
-			return true
-		}
+	if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
+		// You may ask, why don't we check to see if it's a valid (not deleted) triple
+		// again?
+		//
+		// We've already done that -- in order to get the graph.Value token in the
+		// first place, we had to have done the check already; it came from a Next().
+		//
+		// However, if it ever starts coming from somewhere else, it'll be more
+		// efficient to change the interface of the graph.Value for LevelDB to a
+		// struct with a flag for isValid, to save another random read.
+		return true
 	}
 	return false
 }

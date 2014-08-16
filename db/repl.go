@@ -70,17 +70,17 @@ const (
 	history = ".cayley_history"
 )
 
-func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error {
+func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 	var ses query.Session
 	switch queryLanguage {
 	case "sexp":
-		ses = sexp.NewSession(ts)
+		ses = sexp.NewSession(h.QuadStore)
 	case "mql":
-		ses = mql.NewSession(ts)
+		ses = mql.NewSession(h.QuadStore)
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewSession(ts, cfg.Timeout, true)
+		ses = gremlin.NewSession(h.QuadStore, cfg.Timeout, true)
 	}
 
 	term, err := terminal(history)
@@ -124,25 +124,25 @@ func Repl(ts graph.TripleStore, queryLanguage string, cfg *config.Config) error 
 				continue
 
 			case strings.HasPrefix(line, ":a"):
-				triple, err := cquads.Parse(line[3:])
-				if !triple.IsValid() {
+				quad, err := cquads.Parse(line[3:])
+				if !quad.IsValid() {
 					if err != nil {
-						fmt.Printf("not a valid triple: %v\n", err)
+						fmt.Printf("not a valid quad: %v\n", err)
 					}
 					continue
 				}
-				ts.AddTriple(triple)
+				h.QuadWriter.AddQuad(quad)
 				continue
 
 			case strings.HasPrefix(line, ":d"):
-				triple, err := cquads.Parse(line[3:])
-				if !triple.IsValid() {
+				quad, err := cquads.Parse(line[3:])
+				if !quad.IsValid() {
 					if err != nil {
-						fmt.Printf("not a valid triple: %v\n", err)
+						fmt.Printf("not a valid quad: %v\n", err)
 					}
 					continue
 				}
-				ts.RemoveTriple(triple)
+				h.QuadWriter.RemoveQuad(quad)
 				continue
 			}
 		}

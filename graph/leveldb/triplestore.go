@@ -19,6 +19,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash"
 	"sync"
@@ -62,6 +63,7 @@ type TripleStore struct {
 	path      string
 	open      bool
 	size      int64
+	horizon   int64
 	writeopts *opt.WriteOptions
 	readopts  *opt.ReadOptions
 }
@@ -85,6 +87,7 @@ func createNewLevelDB(path string, _ graph.Options) error {
 
 func newTripleStore(path string, options graph.Options) (graph.TripleStore, error) {
 	var qs TripleStore
+	var err error
 	qs.path = path
 	cache_size := DefaultCacheSize
 	if val, ok := options.IntKey("cache_size_mb"); ok {
@@ -106,11 +109,15 @@ func newTripleStore(path string, options graph.Options) (graph.TripleStore, erro
 	qs.readopts = &opt.ReadOptions{}
 	db, err := leveldb.OpenFile(qs.path, qs.dbOpts)
 	if err != nil {
-		panic("Error, couldn't open! " + err.Error())
+		glog.Errorln("Error, couldn't open! ", err)
+		return nil, err
 	}
 	qs.db = db
 	glog.Infoln(qs.GetStats())
-	qs.getSize()
+	err = qs.getMetadata()
+	if err != nil {
+		return nil, err
+	}
 	return &qs, nil
 }
 
@@ -128,24 +135,25 @@ func (qs *TripleStore) Size() int64 {
 	return qs.size
 }
 
-func (qs *TripleStore) createKeyFor(d [3]quad.Direction, triple quad.Quad) []byte {
+func (qs *TripleStore) Horizon() int64 {
+	return qs.horizon
+}
+
+func (qa *TripleStore) createDeltaKeyFor(d graph.Delta) []byte {
+	key := make([]byte, 0, 19)
+	key = append(key, 'd')
+	key = append(key, []byte(fmt.Sprintf("%018x", d.ID))...)
+	return key
+}
+
+func (qs *TripleStore) createKeyFor(d [4]quad.Direction, triple quad.Quad) []byte {
 	key := make([]byte, 0, 2+(hashSize*3))
 	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
 	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
 	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
 	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
-	return key
-}
-
-func (qs *TripleStore) createProvKeyFor(d [3]quad.Direction, triple quad.Quad) []byte {
-	key := make([]byte, 0, 2+(hashSize*4))
-	// TODO(kortschak) Remove dependence on String() method.
-	key = append(key, []byte{quad.Label.Prefix(), d[0].Prefix()}...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(quad.Label))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
+	key = append(key, qs.convertStringToByteHash(triple.Get(d[3]))...)
 	return key
 }
 
@@ -156,76 +164,98 @@ func (qs *TripleStore) createValueKeyFor(s string) []byte {
 	return key
 }
 
-func (qs *TripleStore) AddTriple(t quad.Quad) {
-	batch := &leveldb.Batch{}
-	qs.buildWrite(batch, t)
-	err := qs.db.Write(batch, qs.writeopts)
-	if err != nil {
-		glog.Errorf("Couldn't write to DB for triple %s.", t)
-		return
-	}
-	qs.size++
+type IndexEntry struct {
+	quad.Quad
+	History []int64
 }
 
 // Short hand for direction permutations.
 var (
-	spo = [3]quad.Direction{quad.Subject, quad.Predicate, quad.Object}
-	osp = [3]quad.Direction{quad.Object, quad.Subject, quad.Predicate}
-	pos = [3]quad.Direction{quad.Predicate, quad.Object, quad.Subject}
-	pso = [3]quad.Direction{quad.Predicate, quad.Subject, quad.Object}
+	spo = [4]quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label}
+	osp = [4]quad.Direction{quad.Object, quad.Subject, quad.Predicate, quad.Label}
+	pos = [4]quad.Direction{quad.Predicate, quad.Object, quad.Subject, quad.Label}
+	cps = [4]quad.Direction{quad.Label, quad.Predicate, quad.Subject, quad.Object}
 )
 
-func (qs *TripleStore) RemoveTriple(t quad.Quad) {
-	_, err := qs.db.Get(qs.createKeyFor(spo, t), qs.readopts)
-	if err != nil && err != leveldb.ErrNotFound {
-		glog.Error("Couldn't access DB to confirm deletion")
-		return
-	}
-	if err == leveldb.ErrNotFound {
-		// No such triple in the database, forget about it.
-		return
-	}
+func (qs *TripleStore) ApplyDeltas(deltas []graph.Delta) error {
 	batch := &leveldb.Batch{}
-	batch.Delete(qs.createKeyFor(spo, t))
-	batch.Delete(qs.createKeyFor(osp, t))
-	batch.Delete(qs.createKeyFor(pos, t))
-	qs.UpdateValueKeyBy(t.Get(quad.Subject), -1, batch)
-	qs.UpdateValueKeyBy(t.Get(quad.Predicate), -1, batch)
-	qs.UpdateValueKeyBy(t.Get(quad.Object), -1, batch)
-	if t.Get(quad.Label) != "" {
-		batch.Delete(qs.createProvKeyFor(pso, t))
-		qs.UpdateValueKeyBy(t.Get(quad.Label), -1, batch)
+	resizeMap := make(map[string]int64)
+	size_change := int64(0)
+	for _, d := range deltas {
+		bytes, err := json.Marshal(d)
+		if err != nil {
+			return err
+		}
+		batch.Put(qs.createDeltaKeyFor(d), bytes)
+		err = qs.buildQuadWrite(batch, d.Quad, d.ID, d.Action == graph.Add)
+		if err != nil {
+			return err
+		}
+		delta := int64(1)
+		if d.Action == graph.Delete {
+			delta = int64(-1)
+		}
+		resizeMap[d.Quad.Subject] += delta
+		resizeMap[d.Quad.Predicate] += delta
+		resizeMap[d.Quad.Object] += delta
+		if d.Quad.Label != "" {
+			resizeMap[d.Quad.Label] += delta
+		}
+		size_change += delta
+		qs.horizon = d.ID
 	}
-	err = qs.db.Write(batch, nil)
+	for k, v := range resizeMap {
+		if v != 0 {
+			err := qs.UpdateValueKeyBy(k, v, batch)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	err := qs.db.Write(batch, qs.writeopts)
 	if err != nil {
-		glog.Errorf("Couldn't delete triple %s.", t)
-		return
+		glog.Error("Couldn't write to DB for tripleset.")
+		return err
 	}
-	qs.size--
+	qs.size += size_change
+	return nil
 }
 
-func (qs *TripleStore) buildTripleWrite(batch *leveldb.Batch, t quad.Quad) {
-	bytes, err := json.Marshal(t)
-	if err != nil {
-		glog.Errorf("Couldn't write to buffer for triple %s: %s", t, err)
-		return
+func (qs *TripleStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64, isAdd bool) error {
+	var entry IndexEntry
+	data, err := qs.db.Get(qs.createKeyFor(spo, q), qs.readopts)
+	if err != nil && err != leveldb.ErrNotFound {
+		glog.Error("Couldn't access DB to prepare index: ", err)
+		return err
 	}
-	batch.Put(qs.createKeyFor(spo, t), bytes)
-	batch.Put(qs.createKeyFor(osp, t), bytes)
-	batch.Put(qs.createKeyFor(pos, t), bytes)
-	if t.Get(quad.Label) != "" {
-		batch.Put(qs.createProvKeyFor(pso, t), bytes)
+	if err == nil {
+		// We got something.
+		err = json.Unmarshal(data, &entry)
+		if err != nil {
+			return err
+		}
+	} else {
+		entry.Quad = q
 	}
-}
+	entry.History = append(entry.History, id)
 
-func (qs *TripleStore) buildWrite(batch *leveldb.Batch, t quad.Quad) {
-	qs.buildTripleWrite(batch, t)
-	qs.UpdateValueKeyBy(t.Get(quad.Subject), 1, nil)
-	qs.UpdateValueKeyBy(t.Get(quad.Predicate), 1, nil)
-	qs.UpdateValueKeyBy(t.Get(quad.Object), 1, nil)
-	if t.Get(quad.Label) != "" {
-		qs.UpdateValueKeyBy(t.Get(quad.Label), 1, nil)
+	if isAdd && len(entry.History)%2 == 0 {
+		glog.Error("Entry History is out of sync for", entry)
+		return errors.New("Odd index history")
 	}
+
+	bytes, err := json.Marshal(entry)
+	if err != nil {
+		glog.Errorf("Couldn't write to buffer for entry %#v: %s", entry, err)
+		return err
+	}
+	batch.Put(qs.createKeyFor(spo, q), bytes)
+	batch.Put(qs.createKeyFor(osp, q), bytes)
+	batch.Put(qs.createKeyFor(pos, q), bytes)
+	if q.Get(quad.Label) != "" {
+		batch.Put(qs.createKeyFor(cps, q), bytes)
+	}
+	return nil
 }
 
 type ValueData struct {
@@ -233,15 +263,15 @@ type ValueData struct {
 	Size int64
 }
 
-func (qs *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.Batch) {
-	value := &ValueData{name, int64(amount)}
+func (qs *TripleStore) UpdateValueKeyBy(name string, amount int64, batch *leveldb.Batch) error {
+	value := &ValueData{name, amount}
 	key := qs.createValueKeyFor(name)
 	b, err := qs.db.Get(key, qs.readopts)
 
 	// Error getting the node from the database.
 	if err != nil && err != leveldb.ErrNotFound {
 		glog.Errorf("Error reading Value %s from the DB.", name)
-		return
+		return err
 	}
 
 	// Node exists in the database -- unmarshal and update.
@@ -249,58 +279,28 @@ func (qs *TripleStore) UpdateValueKeyBy(name string, amount int, batch *leveldb.
 		err = json.Unmarshal(b, value)
 		if err != nil {
 			glog.Errorf("Error: couldn't reconstruct value: %v", err)
-			return
+			return err
 		}
-		value.Size += int64(amount)
+		value.Size += amount
 	}
 
 	// Are we deleting something?
-	if amount < 0 {
-		if value.Size <= 0 {
-			if batch == nil {
-				qs.db.Delete(key, qs.writeopts)
-			} else {
-				batch.Delete(key)
-			}
-			return
-		}
+	if value.Size <= 0 {
+		value.Size = 0
 	}
 
 	// Repackage and rewrite.
 	bytes, err := json.Marshal(&value)
 	if err != nil {
 		glog.Errorf("Couldn't write to buffer for value %s: %s", name, err)
-		return
+		return err
 	}
 	if batch == nil {
 		qs.db.Put(key, bytes, qs.writeopts)
 	} else {
 		batch.Put(key, bytes)
 	}
-}
-
-func (qs *TripleStore) AddTripleSet(t_s []quad.Quad) {
-	batch := &leveldb.Batch{}
-	newTs := len(t_s)
-	resizeMap := make(map[string]int)
-	for _, t := range t_s {
-		qs.buildTripleWrite(batch, t)
-		resizeMap[t.Subject]++
-		resizeMap[t.Predicate]++
-		resizeMap[t.Object]++
-		if t.Label != "" {
-			resizeMap[t.Label]++
-		}
-	}
-	for k, v := range resizeMap {
-		qs.UpdateValueKeyBy(k, v, batch)
-	}
-	err := qs.db.Write(batch, qs.writeopts)
-	if err != nil {
-		glog.Error("Couldn't write to DB for tripleset.")
-		return
-	}
-	qs.size += int64(newTs)
+	return nil
 }
 
 func (qs *TripleStore) Close() {
@@ -313,6 +313,16 @@ func (qs *TripleStore) Close() {
 		}
 	} else {
 		glog.Errorf("Couldn't convert size before closing!")
+	}
+	buf.Reset()
+	err = binary.Write(buf, binary.LittleEndian, qs.horizon)
+	if err == nil {
+		werr := qs.db.Put([]byte("__horizon"), buf.Bytes(), qs.writeopts)
+		if werr != nil {
+			glog.Error("Couldn't write horizon before closing!")
+		}
+	} else {
+		glog.Errorf("Couldn't convert horizon before closing!")
 	}
 	qs.db.Close()
 	qs.open = false
@@ -386,23 +396,34 @@ func (qs *TripleStore) SizeOf(k graph.Value) int64 {
 	return int64(qs.valueData(k.(Token)).Size)
 }
 
-func (qs *TripleStore) getSize() {
-	var size int64
-	b, err := qs.db.Get([]byte("__size"), qs.readopts)
+func (qs *TripleStore) getInt64ForKey(key string, empty int64) (int64, error) {
+	var out int64
+	b, err := qs.db.Get([]byte(key), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		panic("Couldn't read size " + err.Error())
+		glog.Errorln("Couldn't read " + key + ": " + err.Error())
+		return 0, err
 	}
 	if err == leveldb.ErrNotFound {
 		// Must be a new database. Cool
-		qs.size = 0
-		return
+		return empty, nil
 	}
 	buf := bytes.NewBuffer(b)
-	err = binary.Read(buf, binary.LittleEndian, &size)
+	err = binary.Read(buf, binary.LittleEndian, &out)
 	if err != nil {
-		glog.Errorln("Error: couldn't parse size")
+		glog.Errorln("Error: couldn't parse", key)
+		return 0, err
 	}
-	qs.size = size
+	return out, nil
+}
+
+func (qs *TripleStore) getMetadata() error {
+	var err error
+	qs.size, err = qs.getInt64ForKey("__size", 0)
+	if err != nil {
+		return err
+	}
+	qs.horizon, err = qs.getInt64ForKey("__horizon", 0)
+	return err
 }
 
 func (qs *TripleStore) SizeOfPrefix(pre []byte) (int64, error) {

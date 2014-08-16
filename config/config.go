@@ -26,25 +26,29 @@ import (
 )
 
 type Config struct {
-	DatabaseType    string
-	DatabasePath    string
-	DatabaseOptions map[string]interface{}
-	ListenHost      string
-	ListenPort      string
-	ReadOnly        bool
-	Timeout         time.Duration
-	LoadSize        int
+	DatabaseType       string
+	DatabasePath       string
+	DatabaseOptions    map[string]interface{}
+	ReplicationType    string
+	ReplicationOptions map[string]interface{}
+	ListenHost         string
+	ListenPort         string
+	ReadOnly           bool
+	Timeout            time.Duration
+	LoadSize           int
 }
 
 type config struct {
-	DatabaseType    string                 `json:"database"`
-	DatabasePath    string                 `json:"db_path"`
-	DatabaseOptions map[string]interface{} `json:"db_options"`
-	ListenHost      string                 `json:"listen_host"`
-	ListenPort      string                 `json:"listen_port"`
-	ReadOnly        bool                   `json:"read_only"`
-	Timeout         duration               `json:"timeout"`
-	LoadSize        int                    `json:"load_size"`
+	DatabaseType       string                 `json:"database"`
+	DatabasePath       string                 `json:"db_path"`
+	DatabaseOptions    map[string]interface{} `json:"db_options"`
+	ReplicationType    string                 `json:"replication"`
+	ReplicationOptions map[string]interface{} `json:"replication_options"`
+	ListenHost         string                 `json:"listen_host"`
+	ListenPort         string                 `json:"listen_port"`
+	ReadOnly           bool                   `json:"read_only"`
+	Timeout            duration               `json:"timeout"`
+	LoadSize           int                    `json:"load_size"`
 }
 
 func (c *Config) UnmarshalJSON(data []byte) error {
@@ -54,28 +58,32 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*c = Config{
-		DatabaseType:    t.DatabaseType,
-		DatabasePath:    t.DatabasePath,
-		DatabaseOptions: t.DatabaseOptions,
-		ListenHost:      t.ListenHost,
-		ListenPort:      t.ListenPort,
-		ReadOnly:        t.ReadOnly,
-		Timeout:         time.Duration(t.Timeout),
-		LoadSize:        t.LoadSize,
+		DatabaseType:       t.DatabaseType,
+		DatabasePath:       t.DatabasePath,
+		DatabaseOptions:    t.DatabaseOptions,
+		ReplicationType:    t.ReplicationType,
+		ReplicationOptions: t.ReplicationOptions,
+		ListenHost:         t.ListenHost,
+		ListenPort:         t.ListenPort,
+		ReadOnly:           t.ReadOnly,
+		Timeout:            time.Duration(t.Timeout),
+		LoadSize:           t.LoadSize,
 	}
 	return nil
 }
 
 func (c *Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(config{
-		DatabaseType:    c.DatabaseType,
-		DatabasePath:    c.DatabasePath,
-		DatabaseOptions: c.DatabaseOptions,
-		ListenHost:      c.ListenHost,
-		ListenPort:      c.ListenPort,
-		ReadOnly:        c.ReadOnly,
-		Timeout:         duration(c.Timeout),
-		LoadSize:        c.LoadSize,
+		DatabaseType:       c.DatabaseType,
+		DatabasePath:       c.DatabasePath,
+		DatabaseOptions:    c.DatabaseOptions,
+		ReplicationType:    c.ReplicationType,
+		ReplicationOptions: c.ReplicationOptions,
+		ListenHost:         c.ListenHost,
+		ListenPort:         c.ListenPort,
+		ReadOnly:           c.ReadOnly,
+		Timeout:            duration(c.Timeout),
+		LoadSize:           c.LoadSize,
 	})
 }
 
@@ -115,13 +123,14 @@ func (d *duration) MarshalJSON() ([]byte, error) {
 }
 
 var (
-	databasePath    = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
-	databaseBackend = flag.String("db", "memstore", "Database Backend.")
-	host            = flag.String("host", "0.0.0.0", "Host to listen on (defaults to all).")
-	loadSize        = flag.Int("load_size", 10000, "Size of triplesets to load")
-	port            = flag.String("port", "64210", "Port to listen on.")
-	readOnly        = flag.Bool("read_only", false, "Disable writing via HTTP.")
-	timeout         = flag.Duration("timeout", 30*time.Second, "Elapsed time until an individual query times out.")
+	databasePath       = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
+	databaseBackend    = flag.String("db", "memstore", "Database Backend.")
+	replicationBackend = flag.String("replication", "single", "Replication method.")
+	host               = flag.String("host", "0.0.0.0", "Host to listen on (defaults to all).")
+	loadSize           = flag.Int("load_size", 10000, "Size of triplesets to load")
+	port               = flag.String("port", "64210", "Port to listen on.")
+	readOnly           = flag.Bool("read_only", false, "Disable writing via HTTP.")
+	timeout            = flag.Duration("timeout", 30*time.Second, "Elapsed time until an individual query times out.")
 )
 
 func ParseConfigFromFile(filename string) *Config {
@@ -173,6 +182,10 @@ func ParseConfigFromFlagsAndFile(fileFlag string) *Config {
 
 	if config.DatabaseType == "" {
 		config.DatabaseType = *databaseBackend
+	}
+
+	if config.ReplicationType == "" {
+		config.ReplicationType = *replicationBackend
 	}
 
 	if config.ListenHost == "" {

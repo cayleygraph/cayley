@@ -36,9 +36,7 @@ func (qs *store) ValueOf(s string) graph.Value {
 	return nil
 }
 
-func (qs *store) AddTriple(quad.Quad) {}
-
-func (qs *store) AddTripleSet([]quad.Quad) {}
+func (qs *store) ApplyDeltas([]graph.Delta) error { return nil }
 
 func (qs *store) Quad(graph.Value) quad.Quad { return quad.Quad{} }
 
@@ -59,6 +57,8 @@ func (qs *store) NameOf(v graph.Value) string {
 }
 
 func (qs *store) Size() int64 { return 0 }
+
+func (qs *store) Horizon() int64 { return 0 }
 
 func (qs *store) DebugPrint() {}
 

@@ -36,8 +36,20 @@ func Init(cfg *config.Config) error {
 	return graph.InitTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 }
 
-func Open(cfg *config.Config) (graph.TripleStore, error) {
-	glog.Infof("Opening database %q at %s", cfg.DatabaseType, cfg.DatabasePath)
+func Open(cfg *config.Config) (*graph.Handle, error) {
+	qs, err := OpenQuadStore(cfg)
+	if err != nil {
+		return nil, err
+	}
+	qw, err := OpenQuadWriter(qs, cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
+}
+
+func OpenQuadStore(cfg *config.Config) (graph.TripleStore, error) {
+	glog.Infof("Opening quad store %q at %s", cfg.DatabaseType, cfg.DatabasePath)
 	ts, err := graph.NewTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	if err != nil {
 		return nil, err
@@ -46,19 +58,17 @@ func Open(cfg *config.Config) (graph.TripleStore, error) {
 	return ts, nil
 }
 
-func Load(ts graph.TripleStore, cfg *config.Config, dec quad.Unmarshaler) error {
-	bulker, canBulk := ts.(graph.BulkLoader)
-	if canBulk {
-		switch err := bulker.BulkLoad(dec); err {
-		case nil:
-			return nil
-		case graph.ErrCannotBulkLoad:
-			// Try individual loading.
-		default:
-			return err
-		}
+func OpenQuadWriter(qs graph.TripleStore, cfg *config.Config) (graph.QuadWriter, error) {
+	glog.Infof("Opening replication method %q", cfg.ReplicationType)
+	w, err := graph.NewQuadWriter(cfg.ReplicationType, qs, cfg.ReplicationOptions)
+	if err != nil {
+		return nil, err
 	}
 
+	return w, nil
+}
+
+func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
 	block := make([]quad.Quad, 0, cfg.LoadSize)
 	for {
 		t, err := dec.Unmarshal()
@@ -70,11 +80,11 @@ func Load(ts graph.TripleStore, cfg *config.Config, dec quad.Unmarshaler) error 
 		}
 		block = append(block, t)
 		if len(block) == cap(block) {
-			ts.AddTripleSet(block)
+			qw.AddQuadSet(block)
 			block = block[:0]
 		}
 	}
-	ts.AddTripleSet(block)
+	qw.AddQuadSet(block)
 
 	return nil
 }
