@@ -166,7 +166,7 @@ var logBucket = []byte("log")
 var nodeBucket = []byte("node")
 var metaBucket = []byte("meta")
 
-func (qs *QuadStore) ApplyDeltas(deltas []*graph.Delta) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	var old_size = qs.size
 	var old_horizon = qs.horizon
 	var size_change int64
