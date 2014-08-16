@@ -44,7 +44,7 @@ type Value interface{}
 type TripleStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.
-	ApplyDeltas([]*Delta) error
+	ApplyDeltas([]Delta) error
 
 	// Given an opaque token, returns the triple for that token from the store.
 	Quad(Value) quad.Quad
