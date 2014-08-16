@@ -111,7 +111,6 @@ func (s *Session) SendResult(r *Result) bool {
 }
 
 func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
-	s.kill = make(chan struct{})
 	defer func() {
 		if r := recover(); r != nil {
 			if r == ErrKillTimeout {
@@ -125,9 +124,12 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	// Use buffered chan to prevent blocking.
 	s.env.Interrupt = make(chan func(), 1)
 
+	ready := make(chan struct{})
+	s.kill = make(chan struct{})
 	if s.timeout >= 0 {
 		go func() {
 			time.Sleep(s.timeout)
+			<-ready
 			close(s.kill)
 			s.envLock.Lock()
 			defer s.envLock.Unlock()
@@ -143,6 +145,7 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	s.envLock.Lock()
 	env := s.env
 	s.envLock.Unlock()
+	close(ready)
 	return env.Run(input)
 }
 
