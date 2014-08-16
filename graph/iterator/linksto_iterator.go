@@ -48,6 +48,7 @@ type LinksTo struct {
 	dir       quad.Direction
 	nextIt    graph.Iterator
 	result    graph.Value
+	runstats  graph.IteratorStats
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
@@ -118,6 +119,7 @@ func (it *LinksTo) DebugString(indent int) string {
 // for the LinksTo.
 func (it *LinksTo) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
+	it.runstats.Contains += 1
 	node := it.ts.TripleDirection(val, it.dir)
 	if it.primaryIt.Contains(node) {
 		it.result = val
@@ -155,7 +157,9 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 // Next()ing a LinksTo operates as described above.
 func (it *LinksTo) Next() bool {
 	graph.NextLogIn(it)
+	it.runstats.Next += 1
 	if graph.Next(it.nextIt) {
+		it.runstats.ContainsNext += 1
 		it.result = it.nextIt.Result()
 		return graph.NextLogOut(it, it.nextIt, true)
 	}
@@ -201,6 +205,9 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 		NextCost:     nextConstant + subitStats.NextCost,
 		ContainsCost: checkConstant + subitStats.ContainsCost,
 		Size:         fanoutFactor * subitStats.Size,
+		Next:         it.runstats.Next,
+		Contains:     it.runstats.Contains,
+		ContainsNext: it.runstats.ContainsNext,
 	}
 }
 

@@ -36,6 +36,7 @@ type Int64 struct {
 	max, min int64
 	at       int64
 	result   graph.Value
+	runstats graph.IteratorStats
 }
 
 // Creates a new Int64 with the given range.
@@ -89,6 +90,7 @@ func (it *Int64) DebugString(indent int) string {
 // Return the next integer, and mark it as the result.
 func (it *Int64) Next() bool {
 	graph.NextLogIn(it)
+	it.runstats.Next += 1
 	if it.at == -1 {
 		return graph.NextLogOut(it, nil, false)
 	}
@@ -130,6 +132,7 @@ func (it *Int64) Size() (int64, bool) {
 // withing the range, assuming the value is an int64.
 func (it *Int64) Contains(tsv graph.Value) bool {
 	graph.ContainsLogIn(it, tsv)
+	it.runstats.Contains += 1
 	v := tsv.(int64)
 	if it.min <= v && v <= it.max {
 		it.result = v
@@ -153,5 +156,7 @@ func (it *Int64) Stats() graph.IteratorStats {
 		ContainsCost: 1,
 		NextCost:     1,
 		Size:         s,
+		Next:         it.runstats.Next,
+		Contains:     it.runstats.Contains,
 	}
 }

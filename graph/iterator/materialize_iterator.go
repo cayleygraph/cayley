@@ -45,11 +45,13 @@ type Materialize struct {
 	tags        graph.Tagger
 	containsMap map[graph.Value]int
 	values      [][]result
+	actualSize  int64
 	index       int
 	subindex    int
 	subIt       graph.Iterator
 	hasRun      bool
 	aborted     bool
+	runstats    graph.IteratorStats
 }
 
 func NewMaterialize(sub graph.Iterator) *Materialize {
@@ -111,6 +113,7 @@ func (it *Materialize) Clone() graph.Iterator {
 		out.aborted = it.aborted
 		out.values = it.values
 		out.containsMap = it.containsMap
+		out.actualSize = it.actualSize
 	}
 	return out
 }
@@ -171,8 +174,10 @@ func (it *Materialize) Optimize() (graph.Iterator, bool) {
 // Otherwise, guess based on the size of the subiterator.
 func (it *Materialize) Size() (int64, bool) {
 	if it.hasRun && !it.aborted {
-		return int64(len(it.values)), true
+		glog.V(2).Infoln("returning size", it.actualSize)
+		return it.actualSize, true
 	}
+	glog.V(2).Infoln("bailing size", it.actualSize)
 	return it.subIt.Size()
 }
 
@@ -186,11 +191,14 @@ func (it *Materialize) Stats() graph.IteratorStats {
 		ContainsCost: overhead * subitStats.NextCost,
 		NextCost:     overhead * subitStats.NextCost,
 		Size:         size,
+		Next:         it.runstats.Next,
+		Contains:     it.runstats.Contains,
 	}
 }
 
 func (it *Materialize) Next() bool {
 	graph.NextLogIn(it)
+	it.runstats.Next += 1
 	if !it.hasRun {
 		it.materializeSet()
 	}
@@ -208,6 +216,7 @@ func (it *Materialize) Next() bool {
 
 func (it *Materialize) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
+	it.runstats.Contains += 1
 	if !it.hasRun {
 		it.materializeSet()
 	}
@@ -264,10 +273,17 @@ func (it *Materialize) materializeSet() {
 		tags := make(map[string]graph.Value)
 		it.subIt.TagResults(tags)
 		it.values[index] = append(it.values[index], result{id: id, tags: tags})
+		it.actualSize += 1
 		for it.subIt.NextPath() {
+			i++
+			if i > abortMaterializeAt {
+				it.aborted = true
+				break
+			}
 			tags := make(map[string]graph.Value)
 			it.subIt.TagResults(tags)
 			it.values[index] = append(it.values[index], result{id: id, tags: tags})
+			it.actualSize += 1
 		}
 	}
 	if it.aborted {

@@ -32,6 +32,7 @@ type And struct {
 	primaryIt         graph.Iterator
 	checkList         []graph.Iterator
 	result            graph.Value
+	runstats          graph.IteratorStats
 }
 
 // Creates a new And iterator.
@@ -158,6 +159,7 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 // is therefore very important.
 func (it *And) Next() bool {
 	graph.NextLogIn(it)
+	it.runstats.Next += 1
 	for graph.Next(it.primaryIt) {
 		curr := it.primaryIt.Result()
 		if it.subItsContain(curr, nil) {
@@ -211,6 +213,7 @@ func (it *And) checkContainsList(val graph.Value, lastResult graph.Value) bool {
 // Check a value against the entire iterator, in order.
 func (it *And) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
+	it.runstats.Contains += 1
 	lastResult := it.result
 	if it.checkList != nil {
 		return it.checkContainsList(val, lastResult)
