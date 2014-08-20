@@ -17,6 +17,8 @@ package iterator
 import (
 	"sort"
 
+	"github.com/barakmich/glog"
+
 	"github.com/google/cayley/graph"
 )
 
@@ -68,7 +70,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	// And now, without changing any of the iterators, we reorder them. it_list is
 	// now a permutation of itself, but the contents are unchanged.
-	its = optimizeOrder(its)
+	its = it.optimizeOrder(its)
 
 	its = materializeIts(its)
 
@@ -87,6 +89,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	newAnd.tags.CopyFrom(it)
 
 	newAnd.optimizeContains()
+	glog.V(3).Infoln(it.UID(), "became", newAnd.UID())
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the
@@ -133,7 +136,7 @@ func (_ *And) optimizeReplacement(its []graph.Iterator) graph.Iterator {
 
 // optimizeOrder(l) takes a list and returns a list, containing the same contents
 // but with a new ordering, however it wishes.
-func optimizeOrder(its []graph.Iterator) []graph.Iterator {
+func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	var (
 		// bad contains iterators that can't be (efficiently) nexted, such as
 		// graph.Optional or graph.Not. Separate them out and tack them on at the end.
@@ -146,28 +149,34 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	// Total cost is defined as The Next()ed iterator's cost to Next() out
 	// all of it's contents, and to Contains() each of those against everyone
 	// else.
-	for _, it := range its {
-		if _, canNext := it.(graph.Nexter); !canNext {
-			bad = append(bad, it)
+	for _, root := range its {
+		if _, canNext := root.(graph.Nexter); !canNext {
+			bad = append(bad, root)
 			continue
 		}
-		rootStats := it.Stats()
+		rootStats := root.Stats()
 		cost := rootStats.NextCost
 		for _, f := range its {
-			if _, canNext := it.(graph.Nexter); !canNext {
+			if _, canNext := f.(graph.Nexter); !canNext {
 				continue
 			}
-			if f == it {
+			if f == root {
 				continue
 			}
 			stats := f.Stats()
-			cost += stats.ContainsCost
+			cost += stats.ContainsCost * (1 + (rootStats.Size / (stats.Size + 1)))
 		}
 		cost *= rootStats.Size
+		if glog.V(3) {
+			glog.V(3).Infoln("And:", it.UID(), "Root:", root.UID(), "Total Cost:", cost, "Best:", bestCost)
+		}
 		if cost < bestCost {
-			best = it
+			best = root
 			bestCost = cost
 		}
+	}
+	if glog.V(3) {
+		glog.V(3).Infoln("And:", it.UID(), "Choosing:", best.UID(), "Best:", bestCost)
 	}
 
 	// TODO(barakmich): Optimization of order need not stop here. Picking a smart
@@ -297,9 +306,12 @@ func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 
 func materializeIts(its []graph.Iterator) []graph.Iterator {
 	var out []graph.Iterator
-	for _, it := range its {
+
+	allStats := getStatsForSlice(its)
+	out = append(out, its[0])
+	for _, it := range its[1:] {
 		stats := it.Stats()
-		if stats.Size*stats.NextCost < stats.ContainsCost {
+		if stats.Size*stats.NextCost < (stats.ContainsCost * (1 + (stats.Size / (allStats.Size + 1)))) {
 			if graph.Height(it, graph.Materialize) > 10 {
 				out = append(out, NewMaterialize(it))
 				continue
@@ -310,26 +322,34 @@ func materializeIts(its []graph.Iterator) []graph.Iterator {
 	return out
 }
 
-// and.Stats() lives here in and-iterator-optimize.go because it may
-// in the future return different statistics based on how it is optimized.
-// For now, however, it's pretty static.
-func (it *And) Stats() graph.IteratorStats {
-	primaryStats := it.primaryIt.Stats()
+func getStatsForSlice(its []graph.Iterator) graph.IteratorStats {
+	primary := its[0]
+	primaryStats := primary.Stats()
 	ContainsCost := primaryStats.ContainsCost
 	NextCost := primaryStats.NextCost
 	Size := primaryStats.Size
-	for _, sub := range it.internalIterators {
+	for _, sub := range its[1:] {
 		stats := sub.Stats()
-		NextCost += stats.ContainsCost
+		NextCost += stats.ContainsCost * (1 + (primaryStats.Size / (stats.Size + 1)))
 		ContainsCost += stats.ContainsCost
 		if Size > stats.Size {
 			Size = stats.Size
 		}
 	}
 	return graph.IteratorStats{
-		ContainsCost: ContainsCost * 2,
+		ContainsCost: ContainsCost,
 		NextCost:     NextCost,
 		Size:         Size,
 	}
 
+}
+
+// and.Stats() lives here in and-iterator-optimize.go because it may
+// in the future return different statistics based on how it is optimized.
+// For now, however, it's pretty static.
+func (it *And) Stats() graph.IteratorStats {
+	stats := getStatsForSlice(it.SubIterators())
+	stats.Next = it.runstats.Next
+	stats.Contains = it.runstats.Contains
+	return stats
 }

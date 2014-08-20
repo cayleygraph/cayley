@@ -15,6 +15,8 @@
 package gremlin
 
 import (
+	"encoding/json"
+
 	"github.com/barakmich/glog"
 	"github.com/robertkrimen/otto"
 
@@ -277,6 +279,10 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 				break
 			}
 		}
+	}
+	if glog.V(2) {
+		bytes, _ := json.MarshalIndent(graph.DumpStats(it), "", "  ")
+		glog.V(2).Infoln(string(bytes))
 	}
 	it.Close()
 }
