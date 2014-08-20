@@ -126,7 +126,7 @@ var (
 	databasePath       = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
 	databaseBackend    = flag.String("db", "memstore", "Database Backend.")
 	replicationBackend = flag.String("replication", "single", "Replication method.")
-	host               = flag.String("host", "0.0.0.0", "Host to listen on (defaults to all).")
+	host               = flag.String("host", "127.0.0.1", "Host to listen on (defaults to all).")
 	loadSize           = flag.Int("load_size", 10000, "Size of triplesets to load")
 	port               = flag.String("port", "64210", "Port to listen on.")
 	readOnly           = flag.Bool("read_only", false, "Disable writing via HTTP.")
