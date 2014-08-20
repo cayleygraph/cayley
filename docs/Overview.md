@@ -62,7 +62,7 @@ Just as before:
 And you'll see a message not unlike
 
 ```bash
-Cayley now listening on 0.0.0.0:64210
+Cayley now listening on 127.0.0.1:64210
 ```
 
 If you visit that address (often, [http://localhost:64210](http://localhost:64210)) you'll see the full web interface and also have a graph ready to serve queries via the [HTTP API](/docs/HTTP.md)
