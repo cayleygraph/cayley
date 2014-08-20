@@ -39,7 +39,7 @@ All command line flags take precedence over the configuration file.
 #### **`listen_host`**
 
   * Type: String
-  * Default: "0.0.0.0"
+  * Default: "127.0.0.1"
 
   The hostname or IP address for Cayley's HTTP server to listen on. Defaults to all interfaces.
 
