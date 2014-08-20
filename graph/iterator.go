@@ -183,6 +183,9 @@ type IteratorStats struct {
 	ContainsCost int64
 	NextCost     int64
 	Size         int64
+	Next         int64
+	Contains     int64
+	ContainsNext int64
 }
 
 // Type enumerates the set of Iterator types.
@@ -248,6 +251,24 @@ func (t Type) String() string {
 		return "illegal-type"
 	}
 	return types[t]
+}
+
+type StatsContainer struct {
+	IteratorStats
+	Kind   string
+	Uid    uint64
+	SubIts []StatsContainer
+}
+
+func DumpStats(it Iterator) StatsContainer {
+	var out StatsContainer
+	out.IteratorStats = it.Stats()
+	out.Kind = it.Type().String()
+	out.Uid = it.UID()
+	for _, sub := range it.SubIterators() {
+		out.SubIts = append(out.SubIts, DumpStats(sub))
+	}
+	return out
 }
 
 // Utility logging functions for when an iterator gets called Next upon, or Contains upon, as

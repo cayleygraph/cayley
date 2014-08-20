@@ -54,6 +54,7 @@ type HasA struct {
 	dir       quad.Direction
 	resultIt  graph.Iterator
 	result    graph.Value
+	runstats  graph.IteratorStats
 }
 
 // Construct a new HasA iterator, given the triple subiterator, and the triple
@@ -143,6 +144,7 @@ func (it *HasA) DebugString(indent int) string {
 // and then Next() values out of that iterator and Contains() them against our subiterator.
 func (it *HasA) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
+	it.runstats.Contains += 1
 	if glog.V(4) {
 		glog.V(4).Infoln("Id is", it.ts.NameOf(val))
 	}
@@ -159,6 +161,7 @@ func (it *HasA) Contains(val graph.Value) bool {
 // another match is made.
 func (it *HasA) NextContains() bool {
 	for graph.Next(it.resultIt) {
+		it.runstats.ContainsNext += 1
 		link := it.resultIt.Result()
 		if glog.V(4) {
 			glog.V(4).Infoln("Quad is", it.ts.Quad(link))
@@ -193,6 +196,7 @@ func (it *HasA) NextPath() bool {
 // pull our direction out of it, and return that.
 func (it *HasA) Next() bool {
 	graph.NextLogIn(it)
+	it.runstats.Next += 1
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
@@ -229,6 +233,9 @@ func (it *HasA) Stats() graph.IteratorStats {
 		NextCost:     tripleConstant + subitStats.NextCost,
 		ContainsCost: (fanoutFactor * nextConstant) * subitStats.ContainsCost,
 		Size:         faninFactor * subitStats.Size,
+		Next:         it.runstats.Next,
+		Contains:     it.runstats.Contains,
+		ContainsNext: it.runstats.ContainsNext,
 	}
 }
 
@@ -244,5 +251,5 @@ func (it *HasA) Close() {
 func (it *HasA) Type() graph.Type { return graph.HasA }
 
 func (it *HasA) Size() (int64, bool) {
-	return 0, true
+	return it.Stats().Size, false
 }
