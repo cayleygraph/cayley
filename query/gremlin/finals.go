@@ -210,6 +210,7 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Value, this otto.FunctionCall, limit int) {
 	count := 0
 	it, _ = it.Optimize()
+	glog.V(2).Infoln(it.DebugString(0))
 	for {
 		select {
 		case <-ses.kill:
