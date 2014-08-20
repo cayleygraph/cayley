@@ -25,6 +25,10 @@ import (
 
 var nextIteratorID uint64
 
+func init() {
+	atomic.StoreUint64(&nextIteratorID, 1)
+}
+
 func NextUID() uint64 {
 	return atomic.AddUint64(&nextIteratorID, 1) - 1
 }
