@@ -24,12 +24,12 @@ $(function() {
       $.post("/api/v1/query/gremlin", gremlin_predicate_in)
     ).then(function(predOutData, predInData) {
 
-        var removeList = _getParsedResult(predOutData[0], vertex, false).concat(
+        var tripleList = _getParsedResult(predOutData[0], vertex, false).concat(
           _getParsedResult(predInData[0], false, vertex))
 
-        $.post("/api/v1/delete", JSON.stringify(removeList))
+        $.post("/api/v1/delete", JSON.stringify(tripleList))
           .done(function() {
-            $("#status").prepend('[' + vertex + '] removed ' + removeList.length + ' items <hr>')
+            $("#status").prepend('[' + vertex + '] removed ' + tripleList.length + ' items <hr>')
           })
           .fail(function(jqxhr, textStatus, errorThrown) {
             $("#status").prepend('[' + vertex + '] ' + jqxhr.responseText + ' <hr>')
@@ -41,21 +41,20 @@ $(function() {
   });
 
   _getParsedResult = function(data, subject, object) {
-    var _list = []
+    var _tripleList = []
 
     _dataJson = JSON.parse(data)
-
     if(itemList = _dataJson['result']) {
-      itemList.forEach(function(n) {
-        _list.push({
-          "subject": subject ? subject : n.id,
-          "predicate": n.pred,
-          "object": object ? object : n.id
+      itemList.forEach(function(item) {
+        _tripleList.push({
+          "subject": subject ? subject : item.id,
+          "predicate": item.pred,
+          "object": object ? object : item.id
         })
       })
     }
 
-    return _list;
+    return _tripleList;
   }
 
 });
