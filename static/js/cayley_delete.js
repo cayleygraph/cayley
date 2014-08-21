@@ -14,36 +14,39 @@
 
 $(function() {
 
-  $("#delete_object").click(function() {
-    var subject = $("#object").val()
-    var gremlin_predicate_in = "g.V('" + subject + "').In(g.V(), 'pred').All()"
-    var gremlin_predicate_out = "g.V('" + subject + "').Out(g.V(), 'pred').All()"
+  $("#delete_node").click(function() {
+    var vertex = $("#node").val()
+    var gremlin_predicate_in = "g.V('" + vertex + "').In(g.V(), 'pred').All()"
+    var gremlin_predicate_out = "g.V('" + vertex + "').Out(g.V(), 'pred').All()"
 
     $.when(
       $.post("/api/v1/query/gremlin", gremlin_predicate_out),
       $.post("/api/v1/query/gremlin", gremlin_predicate_in)
-    ).then(function(pred_out_data, pred_in_data) {
+    ).then(function(predOutData, predInData) {
 
-        var remove_list = _getParsedResult(pred_out_data[0], subject, false).concat(
-          _getParsedResult(pred_in_data[0], false, subject))
+        var removeList = _getParsedResult(predOutData[0], vertex, false).concat(
+          _getParsedResult(predInData[0], false, vertex))
 
-        $.post("/api/v1/delete", JSON.stringify(remove_list)).done(function() {
-          $("#status").prepend('[' + subject + '] removed ' + remove_list.length + ' items <hr>')
-        })
+        $.post("/api/v1/delete", JSON.stringify(removeList))
+          .done(function() {
+            $("#status").prepend('[' + vertex + '] removed ' + removeList.length + ' items <hr>')
+          })
+          .fail(function(jqxhr, textStatus, errorThrown) {
+            $("#status").prepend('[' + vertex + '] ' + jqxhr.responseText + ' <hr>')
+          })
 
-    }, function(pred_out_data, pred_in_data) {
-        $("#status").prepend('[' + subject + '] failed <hr>')
+    }, function(predOutData, predInData) {
+        $("#status").prepend('[' + vertex + '] failed during query for data<hr>')
       });
   });
 
   _getParsedResult = function(data, subject, object) {
     var _list = []
 
-    output_json = JSON.parse(data)
-    item_list = output_json['result']
+    _dataJson = JSON.parse(data)
 
-    if(item_list) {
-      item_list.forEach(function(n) {
+    if(itemList = _dataJson['result']) {
+      itemList.forEach(function(n) {
         _list.push({
           "subject": subject ? subject : n.id,
           "predicate": n.pred,
