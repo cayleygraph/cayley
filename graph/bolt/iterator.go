@@ -17,7 +17,6 @@ package bolt
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -28,6 +27,15 @@ import (
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
 )
+
+var (
+	boltType   graph.Type
+	bufferSize = 50
+)
+
+func init() {
+	boltType = graph.RegisterIterator("bolt")
+}
 
 type Iterator struct {
 	uid     uint64
@@ -43,13 +51,11 @@ type Iterator struct {
 	size    int64
 }
 
-var bufferSize = 50
-
-func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) graph.Iterator {
+func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
 	tok := value.(*Token)
 	if !bytes.Equal(tok.bucket, nodeBucket) {
 		glog.Error("Creating an iterator from a non-node value.")
-		return &iterator.Null{}
+		return &Iterator{done: true}
 	}
 
 	it := Iterator{
@@ -65,6 +71,8 @@ func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadSto
 
 	return &it
 }
+
+func Type() graph.Type { return boltType }
 
 func (it *Iterator) UID() uint64 {
 	return it.uid
@@ -108,8 +116,6 @@ func (it *Iterator) isLiveValue(val []byte) bool {
 	return len(entry.History)%2 != 0
 }
 
-var errNotExist = errors.New("Triple doesn't exist")
-
 func (it *Iterator) Next() bool {
 	if it.done {
 		return false
@@ -135,7 +141,7 @@ func (it *Iterator) Next() bool {
 					i++
 				} else {
 					it.buffer = append(it.buffer, nil)
-					return errNotExist
+					return quad.ErrNotExist
 				}
 			} else {
 				k, _ := cur.Seek(last)
@@ -161,7 +167,7 @@ func (it *Iterator) Next() bool {
 			return nil
 		})
 		if err != nil {
-			if err != errNotExist {
+			if err != quad.ErrNotExist {
 				glog.Error("Error nexting in database: ", err)
 			}
 			it.done = true
@@ -212,45 +218,45 @@ func PositionOf(tok *Token, d quad.Direction, qs *QuadStore) int {
 		case quad.Subject:
 			return 0
 		case quad.Predicate:
-			return qs.hasherSize
+			return hashSize
 		case quad.Object:
-			return 2 * qs.hasherSize
+			return 2 * hashSize
 		case quad.Label:
-			return 3 * qs.hasherSize
+			return 3 * hashSize
 		}
 	}
 	if bytes.Equal(tok.bucket, posBucket) {
 		switch d {
 		case quad.Subject:
-			return 2 * qs.hasherSize
+			return 2 * hashSize
 		case quad.Predicate:
 			return 0
 		case quad.Object:
-			return qs.hasherSize
+			return hashSize
 		case quad.Label:
-			return 3 * qs.hasherSize
+			return 3 * hashSize
 		}
 	}
 	if bytes.Equal(tok.bucket, ospBucket) {
 		switch d {
 		case quad.Subject:
-			return qs.hasherSize
+			return hashSize
 		case quad.Predicate:
-			return 2 * qs.hasherSize
+			return 2 * hashSize
 		case quad.Object:
 			return 0
 		case quad.Label:
-			return 3 * qs.hasherSize
+			return 3 * hashSize
 		}
 	}
 	if bytes.Equal(tok.bucket, cpsBucket) {
 		switch d {
 		case quad.Subject:
-			return 2 * qs.hasherSize
+			return 2 * hashSize
 		case quad.Predicate:
-			return qs.hasherSize
+			return hashSize
 		case quad.Object:
-			return 3 * qs.hasherSize
+			return 3 * hashSize
 		case quad.Label:
 			return 0
 		}
@@ -294,14 +300,6 @@ func (it *Iterator) DebugString(indent int) string {
 		it.qs.NameOf(&Token{it.bucket, it.checkId}),
 	)
 }
-
-var boltType graph.Type
-
-func init() {
-	boltType = graph.RegisterIterator("bolt")
-}
-
-func Type() graph.Type { return boltType }
 
 func (it *Iterator) Type() graph.Type { return boltType }
 func (it *Iterator) Sorted() bool     { return false }

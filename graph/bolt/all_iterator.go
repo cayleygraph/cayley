@@ -40,15 +40,12 @@ type AllIterator struct {
 }
 
 func NewAllIterator(bucket []byte, d quad.Direction, qs *QuadStore) *AllIterator {
-
-	it := AllIterator{
+	return &AllIterator{
 		uid:    iterator.NextUID(),
 		bucket: bucket,
 		dir:    d,
 		qs:     qs,
 	}
-
-	return &it
 }
 
 func (it *AllIterator) UID() uint64 {

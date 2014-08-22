@@ -44,6 +44,7 @@ import (
 var (
 	ErrInvalid    = errors.New("invalid N-Quad")
 	ErrIncomplete = errors.New("incomplete N-Quad")
+	ErrNotExist   = errors.New("Quad does not exist")
 )
 
 // Our triple struct, used throughout.
