@@ -64,8 +64,7 @@ var (
 )
 
 func usage() {
-	fmt.Fprintln(os.Stderr, `Cayley is a graph store and graph query layer.
-
+	fmt.Fprintln(os.Stderr, `
 Usage:
   cayley COMMAND [flags]
 
@@ -87,6 +86,7 @@ func init() {
 func main() {
 	// No command? It's time for usage.
 	if len(os.Args) == 1 {
+		fmt.Fprintln(os.Stderr, "Cayley is a graph store and graph query layer.")
 		usage()
 		os.Exit(1)
 	}
