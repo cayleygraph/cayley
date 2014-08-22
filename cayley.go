@@ -194,24 +194,6 @@ func load(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
 	return decompressAndLoad(qw, cfg, path, typ, db.Load)
 }
 
-func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
-	return decompressAndLoad(qw, cfg, path, typ, remove)
-}
-
-func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
-	for {
-		t, err := dec.Unmarshal()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		qw.RemoveQuad(t)
-	}
-	return nil
-}
-
 func decompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string, loadFn func(graph.QuadWriter, *config.Config, quad.Unmarshaler) error) error {
 	var r io.Reader
 
