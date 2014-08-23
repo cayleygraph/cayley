@@ -17,7 +17,8 @@ You can set up a full [configuration file](/docs/Configuration) if you'd prefer,
 Examples for each backend:
 
   * `leveldb`:  `./cayley init --db=leveldb --dbpath=/tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
-  * `mongodb`: `./cayley init --db=mongodb --dbpath="<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
+  * `bolt`:  `./cayley init --db=bolt --dbpath=/tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
+  * `mongo`: `./cayley init --db=mongo --dbpath="<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
 
 Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley.cfg.example` in the root directory.
 

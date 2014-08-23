@@ -121,6 +121,18 @@ func (d Options) StringKey(key string) (string, bool) {
 	return "", false
 }
 
+func (d Options) BoolKey(key string) (bool, bool) {
+	if val, ok := d[key]; ok {
+		switch vv := val.(type) {
+		case bool:
+			return vv, true
+		default:
+			glog.Fatalln("Invalid", key, "parameter type from config.")
+		}
+	}
+	return false, false
+}
+
 var ErrCannotBulkLoad = errors.New("triplestore: cannot bulk load")
 
 type BulkLoader interface {

@@ -70,6 +70,7 @@ func OpenQuadWriter(qs graph.TripleStore, cfg *config.Config) (graph.QuadWriter,
 
 func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
 	block := make([]quad.Quad, 0, cfg.LoadSize)
+	count := 0
 	for {
 		t, err := dec.Unmarshal()
 		if err != nil {
@@ -80,11 +81,19 @@ func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
 		}
 		block = append(block, t)
 		if len(block) == cap(block) {
+			count += len(block)
 			qw.AddQuadSet(block)
+			if glog.V(2) {
+				glog.V(2).Infof("Wrote %d quads.", count)
+			}
 			block = block[:0]
 		}
 	}
+	count += len(block)
 	qw.AddQuadSet(block)
+	if glog.V(2) {
+		glog.V(2).Infof("Wrote %d quads.", count)
+	}
 
 	return nil
 }

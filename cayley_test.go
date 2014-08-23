@@ -18,9 +18,11 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
+	"flag"
 	"fmt"
 	"github.com/google/cayley/quad"
 	"io"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -33,6 +35,8 @@ import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/query/gremlin"
 )
+
+var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
 
 var benchmarkQueries = []struct {
 	message string
@@ -379,15 +383,42 @@ var (
 )
 
 func prepare(t testing.TB) {
+	switch *backend {
+	case "memstore":
+		break
+	case "leveldb":
+		fallthrough
+	case "bolt":
+		cfg.DatabaseType = *backend
+		cfg.DatabasePath = fmt.Sprint("/tmp/cayley_test_", *backend)
+		cfg.DatabaseOptions = map[string]interface{}{
+			"nosync": true, // It's a test. If we need to load, do it fast.
+		}
+	default:
+		t.Fatalf("Untestable backend store %s", *backend)
+	}
+
 	var err error
 	create.Do(func() {
+		needsLoad := true
+		if graph.IsPersistent(cfg.DatabaseType) {
+			if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
+				err = db.Init(cfg)
+				if err != nil {
+					t.Fatalf("Could not initialize database: %v", err)
+				}
+			} else {
+				needsLoad = false
+			}
+		}
+
 		handle, err = db.Open(cfg)
 		if err != nil {
 			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
 		}
 
-		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = load(handle.QuadWriter, cfg, "", "cquad")
+		if needsLoad {
+			err = load(handle.QuadWriter, cfg, "30kmoviedata.nq.gz", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
