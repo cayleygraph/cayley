@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/barakmich/glog"
 
@@ -51,11 +52,19 @@ import (
 )
 
 var (
-	tripleFile    = flag.String("triples", "", "Triple File to load before going to REPL.")
-	tripleType    = flag.String("format", "cquad", `Triple format to use for loading ("cquad" or "nquad").`)
-	cpuprofile    = flag.String("prof", "", "Output profiling file.")
-	queryLanguage = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
-	configFile    = flag.String("config", "", "Path to an explicit configuration file.")
+	tripleFile         = flag.String("triples", "", "Triple File to load before going to REPL.")
+	tripleType         = flag.String("format", "cquad", `Triple format to use for loading ("cquad" or "nquad").`)
+	cpuprofile         = flag.String("prof", "", "Output profiling file.")
+	queryLanguage      = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
+	configFile         = flag.String("config", "", "Path to an explicit configuration file.")
+	databasePath       = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
+	databaseBackend    = flag.String("db", "memstore", "Database Backend.")
+	replicationBackend = flag.String("replication", "single", "Replication method.")
+	host               = flag.String("host", "127.0.0.1", "Host to listen on (defaults to all).")
+	loadSize           = flag.Int("load_size", 10000, "Size of triplesets to load")
+	port               = flag.String("port", "64210", "Port to listen on.")
+	readOnly           = flag.Bool("read_only", false, "Disable writing via HTTP.")
+	timeout            = flag.Duration("timeout", 30*time.Second, "Elapsed time until an individual query times out.")
 )
 
 // Filled in by `go build ldflags="-X main.VERSION `ver`"`.
@@ -64,33 +73,88 @@ var (
 	VERSION    string
 )
 
-func Usage() {
-	fmt.Println("Cayley is a graph store and graph query layer.")
-	fmt.Println("\nUsage:")
-	fmt.Println("  cayley COMMAND [flags]")
-	fmt.Println("\nCommands:")
-	fmt.Println("  init      Create an empty database.")
-	fmt.Println("  load      Bulk-load a triple file into the database.")
-	fmt.Println("  http      Serve an HTTP endpoint on the given host and port.")
-	fmt.Println("  repl      Drop into a REPL of the given query language.")
-	fmt.Println("  version   Version information.")
-	fmt.Println("\nFlags:")
-	flag.Parse()
+func usage() {
+	fmt.Fprintln(os.Stderr, `
+Usage:
+  cayley COMMAND [flags]
+
+Commands:
+  init      Create an empty database.
+  load      Bulk-load a triple file into the database.
+  http      Serve an HTTP endpoint on the given host and port.
+  repl      Drop into a REPL of the given query language.
+  version   Version information.
+
+Flags:`)
 	flag.PrintDefaults()
+}
+
+func init() {
+	flag.Usage = usage
+}
+
+func configFrom(file string) *config.Config {
+	// Find the file...
+	if file != "" {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			glog.Fatalln("Cannot find specified configuration file", file, ", aborting.")
+		}
+	} else if _, err := os.Stat(os.Getenv("CAYLEY_CFG")); err == nil {
+		file = os.Getenv("CAYLEY_CFG")
+	} else if _, err := os.Stat("/etc/cayley.cfg"); err == nil {
+		file = "/etc/cayley.cfg"
+	}
+	if file == "" {
+		glog.Infoln("Couldn't find a config file in either $CAYLEY_CFG or /etc/cayley.cfg. Going by flag defaults only.")
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		glog.Fatalln(err)
+	}
+
+	if cfg.DatabasePath == "" {
+		cfg.DatabasePath = *databasePath
+	}
+
+	if cfg.DatabaseType == "" {
+		cfg.DatabaseType = *databaseBackend
+	}
+
+	if cfg.ReplicationType == "" {
+		cfg.ReplicationType = *replicationBackend
+	}
+
+	if cfg.ListenHost == "" {
+		cfg.ListenHost = *host
+	}
+
+	if cfg.ListenPort == "" {
+		cfg.ListenPort = *port
+	}
+
+	if cfg.Timeout == 0 {
+		cfg.Timeout = *timeout
+	}
+
+	if cfg.LoadSize == 0 {
+		cfg.LoadSize = *loadSize
+	}
+
+	cfg.ReadOnly = cfg.ReadOnly || *readOnly
+
+	return cfg
 }
 
 func main() {
 	// No command? It's time for usage.
 	if len(os.Args) == 1 {
-		Usage()
+		fmt.Fprintln(os.Stderr, "Cayley is a graph store and graph query layer.")
+		usage()
 		os.Exit(1)
 	}
 
 	cmd := os.Args[1]
-	var newargs []string
-	newargs = append(newargs, os.Args[0])
-	newargs = append(newargs, os.Args[2:]...)
-	os.Args = newargs
+	os.Args = append(os.Args[:1], os.Args[2:]...)
 	flag.Parse()
 
 	var buildString string
@@ -99,7 +163,7 @@ func main() {
 		glog.Infoln(buildString)
 	}
 
-	cfg := config.ParseConfigFromFlagsAndFile(*configFile)
+	cfg := configFrom(*configFile)
 
 	if os.Getenv("GOMAXPROCS") == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -184,7 +248,7 @@ func main() {
 
 	default:
 		fmt.Println("No command", cmd)
-		flag.Usage()
+		usage()
 	}
 	if err != nil {
 		glog.Errorln(err)

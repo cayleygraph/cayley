@@ -16,15 +16,13 @@ package config
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/barakmich/glog"
 )
 
+// Config defines the behavior of cayley database instances.
 type Config struct {
 	DatabaseType       string
 	DatabasePath       string
@@ -122,89 +120,23 @@ func (d *duration) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("%q", *d)), nil
 }
 
-var (
-	databasePath       = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
-	databaseBackend    = flag.String("db", "memstore", "Database Backend.")
-	replicationBackend = flag.String("replication", "single", "Replication method.")
-	host               = flag.String("host", "127.0.0.1", "Host to listen on (defaults to all).")
-	loadSize           = flag.Int("load_size", 10000, "Size of triplesets to load")
-	port               = flag.String("port", "64210", "Port to listen on.")
-	readOnly           = flag.Bool("read_only", false, "Disable writing via HTTP.")
-	timeout            = flag.Duration("timeout", 30*time.Second, "Elapsed time until an individual query times out.")
-)
-
-func ParseConfigFromFile(filename string) *Config {
+// Load reads a JSON-encoded config contained in the given file. A zero value
+// config is returned if the filename is empty.
+func Load(file string) (*Config, error) {
 	config := &Config{}
-	if filename == "" {
-		return config
+	if file == "" {
+		return config, nil
 	}
-	f, err := os.Open(filename)
+	f, err := os.Open(file)
 	if err != nil {
-		glog.Fatalln("Couldn't open config file", filename)
+		return nil, fmt.Errorf("could not open config file %q: %v", file, err)
 	}
-
 	defer f.Close()
 
 	dec := json.NewDecoder(f)
 	err = dec.Decode(config)
 	if err != nil {
-		glog.Fatalln("Couldn't read config file:", err)
+		return nil, fmt.Errorf("could not parse config file %q: %v", file, err)
 	}
-	return config
-}
-
-func ParseConfigFromFlagsAndFile(fileFlag string) *Config {
-	// Find the file...
-	var trueFilename string
-	if fileFlag != "" {
-		if _, err := os.Stat(fileFlag); os.IsNotExist(err) {
-			glog.Fatalln("Cannot find specified configuration file", fileFlag, ", aborting.")
-		} else {
-			trueFilename = fileFlag
-		}
-	} else {
-		if _, err := os.Stat(os.Getenv("CAYLEY_CFG")); err == nil {
-			trueFilename = os.Getenv("CAYLEY_CFG")
-		} else {
-			if _, err := os.Stat("/etc/cayley.cfg"); err == nil {
-				trueFilename = "/etc/cayley.cfg"
-			}
-		}
-	}
-	if trueFilename == "" {
-		glog.Infoln("Couldn't find a config file in either $CAYLEY_CFG or /etc/cayley.cfg. Going by flag defaults only.")
-	}
-	config := ParseConfigFromFile(trueFilename)
-
-	if config.DatabasePath == "" {
-		config.DatabasePath = *databasePath
-	}
-
-	if config.DatabaseType == "" {
-		config.DatabaseType = *databaseBackend
-	}
-
-	if config.ReplicationType == "" {
-		config.ReplicationType = *replicationBackend
-	}
-
-	if config.ListenHost == "" {
-		config.ListenHost = *host
-	}
-
-	if config.ListenPort == "" {
-		config.ListenPort = *port
-	}
-
-	if config.Timeout == 0 {
-		config.Timeout = *timeout
-	}
-
-	if config.LoadSize == 0 {
-		config.LoadSize = *loadSize
-	}
-
-	config.ReadOnly = config.ReadOnly || *readOnly
-
-	return config
+	return config, nil
 }

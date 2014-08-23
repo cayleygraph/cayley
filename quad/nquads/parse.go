@@ -317,6 +317,8 @@ tr120:
 	st_case_2:
 // line 319 "parse.go"
 		switch data[p] {
+		case 33:
+			goto st2
 		case 62:
 			goto st3
 		case 92:
@@ -328,7 +330,7 @@ tr120:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto st2
 			}
 		case data[p] > 93:
@@ -356,7 +358,7 @@ tr121:
 			goto _test_eof3
 		}
 	st_case_3:
-// line 360 "parse.go"
+// line 362 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
@@ -382,7 +384,7 @@ tr7:
 			goto _test_eof4
 		}
 	st_case_4:
-// line 386 "parse.go"
+// line 388 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st4
@@ -427,8 +429,10 @@ tr108:
 			goto _test_eof5
 		}
 	st_case_5:
-// line 431 "parse.go"
+// line 433 "parse.go"
 		switch data[p] {
+		case 33:
+			goto st5
 		case 62:
 			goto st6
 		case 92:
@@ -440,7 +444,7 @@ tr108:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto st5
 			}
 		case data[p] > 93:
@@ -468,7 +472,7 @@ tr109:
 			goto _test_eof6
 		}
 	st_case_6:
-// line 472 "parse.go"
+// line 476 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr14
@@ -498,7 +502,7 @@ tr14:
 			goto _test_eof7
 		}
 	st_case_7:
-// line 502 "parse.go"
+// line 506 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st7
@@ -547,7 +551,7 @@ tr79:
 			goto _test_eof8
 		}
 	st_case_8:
-// line 551 "parse.go"
+// line 555 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st9
@@ -579,7 +583,7 @@ tr80:
 			goto _test_eof9
 		}
 	st_case_9:
-// line 583 "parse.go"
+// line 587 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -633,7 +637,7 @@ tr96:
 			goto _test_eof10
 		}
 	st_case_10:
-// line 637 "parse.go"
+// line 641 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st10
@@ -674,7 +678,7 @@ tr39:
 			goto _test_eof88
 		}
 	st_case_88:
-// line 678 "parse.go"
+// line 682 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -695,7 +699,7 @@ tr127:
 			goto _test_eof89
 		}
 	st_case_89:
-// line 699 "parse.go"
+// line 703 "parse.go"
 		goto st89
 tr27:
 // line 54 "actions.rl"
@@ -732,8 +736,10 @@ tr50:
 			goto _test_eof11
 		}
 	st_case_11:
-// line 736 "parse.go"
+// line 740 "parse.go"
 		switch data[p] {
+		case 33:
+			goto st11
 		case 62:
 			goto st12
 		case 92:
@@ -745,7 +751,7 @@ tr50:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto st11
 			}
 		case data[p] > 93:
@@ -773,7 +779,7 @@ tr51:
 			goto _test_eof12
 		}
 	st_case_12:
-// line 777 "parse.go"
+// line 783 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr38
@@ -799,7 +805,7 @@ tr38:
 			goto _test_eof13
 		}
 	st_case_13:
-// line 803 "parse.go"
+// line 809 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st13
@@ -821,7 +827,7 @@ tr52:
 			goto _test_eof14
 		}
 	st_case_14:
-// line 825 "parse.go"
+// line 831 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st15
@@ -979,6 +985,8 @@ tr52:
 		}
 	st_case_23:
 		switch data[p] {
+		case 33:
+			goto tr50
 		case 62:
 			goto tr51
 		case 92:
@@ -990,7 +998,7 @@ tr52:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto tr50
 			}
 		case data[p] > 93:
@@ -1034,7 +1042,7 @@ tr34:
 			goto _test_eof24
 		}
 	st_case_24:
-// line 1038 "parse.go"
+// line 1046 "parse.go"
 		if data[p] == 58 {
 			goto st25
 		}
@@ -1216,7 +1224,7 @@ tr55:
 			goto _test_eof90
 		}
 	st_case_90:
-// line 1220 "parse.go"
+// line 1228 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -1527,8 +1535,10 @@ tr73:
 			goto _test_eof34
 		}
 	st_case_34:
-// line 1531 "parse.go"
+// line 1539 "parse.go"
 		switch data[p] {
+		case 33:
+			goto st34
 		case 62:
 			goto st35
 		case 92:
@@ -1540,7 +1550,7 @@ tr73:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto st34
 			}
 		case data[p] > 93:
@@ -1568,7 +1578,7 @@ tr74:
 			goto _test_eof35
 		}
 	st_case_35:
-// line 1572 "parse.go"
+// line 1582 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -1594,7 +1604,7 @@ tr75:
 			goto _test_eof36
 		}
 	st_case_36:
-// line 1598 "parse.go"
+// line 1608 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st37
@@ -1752,6 +1762,8 @@ tr75:
 		}
 	st_case_45:
 		switch data[p] {
+		case 33:
+			goto tr73
 		case 62:
 			goto tr74
 		case 92:
@@ -1763,7 +1775,7 @@ tr75:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto tr73
 			}
 		case data[p] > 93:
@@ -1791,7 +1803,7 @@ tr81:
 			goto _test_eof46
 		}
 	st_case_46:
-// line 1795 "parse.go"
+// line 1807 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st47
@@ -2011,7 +2023,7 @@ tr21:
 			goto _test_eof56
 		}
 	st_case_56:
-// line 2015 "parse.go"
+// line 2027 "parse.go"
 		if data[p] == 58 {
 			goto st57
 		}
@@ -2195,7 +2207,7 @@ tr90:
 			goto _test_eof91
 		}
 	st_case_91:
-// line 2199 "parse.go"
+// line 2211 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -2382,7 +2394,7 @@ tr91:
 			goto _test_eof60
 		}
 	st_case_60:
-// line 2386 "parse.go"
+// line 2398 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr25
@@ -2587,7 +2599,7 @@ tr95:
 			goto _test_eof62
 		}
 	st_case_62:
-// line 2591 "parse.go"
+// line 2603 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr96
@@ -2696,7 +2708,7 @@ tr97:
 			goto _test_eof92
 		}
 	st_case_92:
-// line 2700 "parse.go"
+// line 2712 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st88
@@ -2874,7 +2886,7 @@ tr110:
 			goto _test_eof64
 		}
 	st_case_64:
-// line 2878 "parse.go"
+// line 2890 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st65
@@ -3032,6 +3044,8 @@ tr110:
 		}
 	st_case_73:
 		switch data[p] {
+		case 33:
+			goto tr108
 		case 62:
 			goto tr109
 		case 92:
@@ -3043,7 +3057,7 @@ tr110:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto tr108
 			}
 		case data[p] > 93:
@@ -3071,7 +3085,7 @@ tr122:
 			goto _test_eof74
 		}
 	st_case_74:
-// line 3075 "parse.go"
+// line 3089 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st75
@@ -3229,6 +3243,8 @@ tr122:
 		}
 	st_case_83:
 		switch data[p] {
+		case 33:
+			goto tr120
 		case 62:
 			goto tr121
 		case 92:
@@ -3240,7 +3256,7 @@ tr122:
 		}
 		switch {
 		case data[p] < 61:
-			if 33 <= data[p] && data[p] <= 59 {
+			if 35 <= data[p] && data[p] <= 59 {
 				goto tr120
 			}
 		case data[p] > 93:
@@ -3268,7 +3284,7 @@ tr3:
 			goto _test_eof84
 		}
 	st_case_84:
-// line 3272 "parse.go"
+// line 3288 "parse.go"
 		if data[p] == 58 {
 			goto st85
 		}
@@ -3644,7 +3660,7 @@ tr3:
 
 		return q, nil
 	
-// line 3648 "parse.go"
+// line 3664 "parse.go"
 		}
 	}
 

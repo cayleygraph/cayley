@@ -104,6 +104,7 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 		line, err := term.Prompt(prompt)
 		if err != nil {
 			if err == io.EOF {
+				fmt.Println()
 				return nil
 			}
 			return err
@@ -170,9 +171,7 @@ func terminal(path string) (*liner.State, error) {
 		signal.Notify(c, os.Interrupt, os.Kill)
 		<-c
 
-		persist(term, history)
-
-		err := term.Close()
+		err := persist(term, history)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to properly clean up terminal: %v\n", err)
 			os.Exit(1)
@@ -200,5 +199,5 @@ func persist(term *liner.State, path string) error {
 	if err != nil {
 		return fmt.Errorf("could not write history to %q: %v", path, err)
 	}
-	return nil
+	return term.Close()
 }

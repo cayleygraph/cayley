@@ -51,14 +51,16 @@ func (t *Tagger) Fixed() map[string]Value {
 }
 
 func (t *Tagger) CopyFrom(src Iterator) {
-	for _, tag := range src.Tagger().Tags() {
-		t.Add(tag)
-	}
+	st := src.Tagger()
 
-	for k, v := range src.Tagger().Fixed() {
-		t.AddFixed(k, v)
-	}
+	t.tags = append(t.tags, st.tags...)
 
+	if t.fixedTags == nil {
+		t.fixedTags = make(map[string]Value, len(st.fixedTags))
+	}
+	for k, v := range st.fixedTags {
+		t.fixedTags[k] = v
+	}
 }
 
 type Iterator interface {

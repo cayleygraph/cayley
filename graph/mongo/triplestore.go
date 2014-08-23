@@ -121,15 +121,15 @@ func (qs *TripleStore) convertStringToByteHash(s string) string {
 }
 
 type MongoNode struct {
-	Id   string "_id"
-	Name string "Name"
-	Size int    "Size"
+	Id   string `bson:"_id"`
+	Name string `bson:"Name"`
+	Size int    `bson:"Size"`
 }
 
 type MongoLogEntry struct {
-	LogID     int64  "LogID"
-	Action    string "Action"
-	Key       string "Key"
+	LogID     int64  `bson:"LogID"`
+	Action    string `bson:"Action"`
+	Key       string `bson:"Key"`
 	Timestamp int64
 }
 
@@ -175,8 +175,8 @@ func (qs *TripleStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) e
 
 func (qs *TripleStore) checkValid(key string) bool {
 	var indexEntry struct {
-		Added   []int64 "Added"
-		Deleted []int64 "Deleted"
+		Added   []int64 `bson:"Added"`
+		Deleted []int64 `bson:"Deleted"`
 	}
 	err := qs.db.C("quads").FindId(key).One(&indexEntry)
 	if err == mgo.ErrNotFound {
