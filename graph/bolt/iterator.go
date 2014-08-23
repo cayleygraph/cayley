@@ -17,6 +17,7 @@ package bolt
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -29,8 +30,9 @@ import (
 )
 
 var (
-	boltType   graph.Type
-	bufferSize = 50
+	boltType    graph.Type
+	bufferSize  = 50
+	errNotExist = errors.New("Quad does not exist")
 )
 
 func init() {
@@ -141,7 +143,7 @@ func (it *Iterator) Next() bool {
 					i++
 				} else {
 					it.buffer = append(it.buffer, nil)
-					return quad.ErrNotExist
+					return errNotExist
 				}
 			} else {
 				k, _ := cur.Seek(last)
@@ -167,7 +169,7 @@ func (it *Iterator) Next() bool {
 			return nil
 		})
 		if err != nil {
-			if err != quad.ErrNotExist {
+			if err != errNotExist {
 				glog.Error("Error nexting in database: ", err)
 			}
 			it.done = true

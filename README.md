@@ -27,8 +27,9 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
   * JavaScript, with a [Gremlin](http://gremlindocs.com/)-inspired\* graph object.
   * (simplified) [MQL](https://developers.google.com/freebase/v1/mql-overview), for Freebase fans
 * Plays well with multiple backend stores:
-  * [LevelDB](http://code.google.com/p/leveldb/) for single-machine storage
-  * [MongoDB](http://mongodb.org)
+  * [LevelDB](http://code.google.com/p/leveldb/) 
+  * [Bolt](http://github.com/boltdb/bolt) 
+  * [MongoDB](http://mongodb.org) for distributed stores
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
 * Good test coverage
