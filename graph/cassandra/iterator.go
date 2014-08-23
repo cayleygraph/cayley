@@ -1,4 +1,4 @@
-// Copyright 2014 The Cayley Authors. All rights reserved.
+// Copyright 2014 The Cayley Authors. All righqs reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,45 +23,82 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 var cassandraType graph.Type
 
 func init() {
-	cassandraType = graph.Register("cassandra")
+	cassandraType = graph.RegisterIterator("cassandra")
 }
 
 type Iterator struct {
-	iterator.Base
-	ts      *TripleStore
-	dir     graph.Direction
+	uid     uint64
+	qs      *QuadStore
+	dir     quad.Direction
 	isNode  bool
 	table   string
 	iter    *gocql.Iter
 	val     string
 	size    int64
 	hasSize bool
+	tags    graph.Tagger
+	result  graph.Value
 }
 
-func NewIterator(ts *TripleStore, d graph.Direction, val graph.Value) graph.Iterator {
-	it := &Iterator{}
+func NewIterator(qs *QuadStore, d quad.Direction, val graph.Value) graph.Iterator {
+	it := &Iterator{
+		uid: iterator.NextUID(),
+		qs:  qs,
+		dir: d,
+		val: val.(string),
+	}
 	it.isNode = false
-	it.ts = ts
-	it.dir = d
-	it.val = val.(string)
 	it.table = fmt.Sprint("triples_by_", string(d.Prefix()))
-	if it.dir == graph.Any {
+	if it.dir == quad.Any {
 		it.table = "triples_by_s"
 	}
 	return it
 }
 
-func NewNodeIterator(ts *TripleStore) *Iterator {
-	it := &Iterator{}
-	it.ts = ts
-	it.dir = graph.Any
+func NewNodeIterator(qs *QuadStore) *Iterator {
+	it := &Iterator{
+		qs:  qs,
+		dir: quad.Any,
+	}
 	it.isNode = true
 	return it
+}
+
+func (it *Iterator) UID() uint64 {
+	return it.uid
+}
+
+func (it *Iterator) Tagger() *graph.Tagger {
+	return &it.tags
+}
+
+func (it *Iterator) Result() graph.Value {
+	return it.result
+}
+
+func (it *Iterator) ResultTree() *graph.ResultTree {
+	return graph.NewResultTree(it.Result())
+}
+
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.Iterator {
+	return nil
+}
+
+func (it *Iterator) TagResults(dst map[string]graph.Value) {
+	for _, tag := range it.tags.Tags() {
+		dst[tag] = it.Result()
+	}
+
+	for tag, value := range it.tags.Fixed() {
+		dst[tag] = value
+	}
 }
 
 func (it *Iterator) closeIterator() {
@@ -85,32 +122,36 @@ func (it *Iterator) Close() {
 func (it *Iterator) Clone() graph.Iterator {
 	var newIt graph.Iterator
 	if it.isNode {
-		newIt = NewNodeIterator(it.ts)
+		newIt = NewNodeIterator(it.qs)
 	} else {
-		newIt = NewIterator(it.ts, it.dir, it.val)
+		newIt = NewIterator(it.qs, it.dir, it.val)
 	}
-	newIt.CopyTagsFrom(it)
+	newIt.Tagger().CopyFrom(it)
 	return newIt
 }
 
-func (it *Iterator) Check(v graph.Value) bool {
-	graph.CheckLogIn(it, v)
-	if it.dir == graph.Any || it.isNode {
-		return graph.CheckLogOut(it, v, true)
+func (it *Iterator) NextPath() bool {
+	return false
+}
+
+func (it *Iterator) Contains(v graph.Value) bool {
+	graph.ContainsLogIn(it, v)
+	if it.dir == quad.Any || it.isNode {
+		return graph.ContainsLogOut(it, v, true)
 	}
-	triple := v.(*graph.Triple)
+	triple := v.(quad.Quad)
 	if triple.Get(it.dir) == it.val {
-		it.Last = &triple
-		return graph.CheckLogOut(it, v, true)
+		it.result = &triple
+		return graph.ContainsLogOut(it, v, true)
 	}
-	return graph.CheckLogOut(it, v, false)
+	return graph.ContainsLogOut(it, v, false)
 }
 
 func (it *Iterator) prepareIterator() {
 	if it.isNode {
-		it.iter = it.ts.sess.Query("SELECT node FROM nodes").Iter()
+		it.iter = it.qs.sess.Query("SELECT node FROM nodes").Iter()
 	} else {
-		it.iter = it.ts.sess.Query(
+		it.iter = it.qs.sess.Query(
 			fmt.Sprint(
 				"SELECT subject, predicate, object, provenance FROM ",
 				it.table,
@@ -142,17 +183,17 @@ func (it *Iterator) nodeNext() (graph.Value, bool) {
 		}
 		return nil, false
 	}
-	it.Last = node
+	it.result = node
 	return node, true
 }
 
 func (it *Iterator) tripleNext() (graph.Value, bool) {
-	triple := graph.Triple{}
+	q := quad.Quad{}
 	ok := it.iter.Scan(
-		&triple.Subject,
-		&triple.Predicate,
-		&triple.Object,
-		&triple.Provenance,
+		&q.Subject,
+		&q.Predicate,
+		&q.Object,
+		&q.Label,
 	)
 	if !ok {
 		err := it.iter.Close()
@@ -161,18 +202,18 @@ func (it *Iterator) tripleNext() (graph.Value, bool) {
 		}
 		return nil, false
 	}
-	it.Last = &triple
-	return &triple, true
+	it.result = q
+	return q, true
 }
 
 func (it *Iterator) Size() (int64, bool) {
 	if it.hasSize {
 		return it.size, true
 	}
-	if it.dir == graph.Any {
-		return it.ts.Size(), true
+	if it.dir == quad.Any {
+		return it.qs.Size(), true
 	}
-	err := it.ts.sess.Query(
+	err := it.qs.sess.Query(
 		fmt.Sprint("SELECT ", it.dir, "_count FROM nodes WHERE node = ?"),
 		it.val,
 	).Scan(&it.size)
@@ -189,7 +230,7 @@ func (it *Iterator) Sorted() bool                     { return false }
 func (it *Iterator) CanNext() bool                    { return true }
 
 func (it *Iterator) Type() graph.Type {
-	if it.dir == graph.Any {
+	if it.dir == quad.Any {
 		return graph.All
 	}
 	return cassandraType
@@ -203,8 +244,8 @@ func (it *Iterator) DebugString(indent int) string {
 func (it *Iterator) Stats() graph.IteratorStats {
 	size, _ := it.Size()
 	return graph.IteratorStats{
-		CheckCost: 1,
-		NextCost:  5,
-		Size:      size,
+		ContainsCost: 1,
+		NextCost:     5,
+		Size:         size,
 	}
 }

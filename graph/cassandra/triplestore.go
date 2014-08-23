@@ -23,11 +23,12 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/quad"
 )
 
 const DefaultKeyspace = "cayley"
 
-type TripleStore struct {
+type QuadStore struct {
 	sess *gocql.Session
 	size int64
 }
@@ -125,36 +126,36 @@ func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	return true
 }
 
-func NewTripleStore(addr string, options graph.Options) graph.TripleStore {
+func NewQuadStore(addr string, options graph.Options) graph.TripleStore {
 	cluster := clusterWithOptions(addr, options)
 	session, err := cluster.CreateSession()
 	if err != nil {
 		glog.Fatalln("Could not connect to Cassandra graph:", err)
 	}
 
-	ts := &TripleStore{}
-	ts.sess = session
-	session.Query("SELECT COUNT(*) FROM triples_by_s").Scan(&ts.size)
-	return ts
+	qs := &QuadStore{}
+	qs.sess = session
+	session.Query("SELECT COUNT(*) FROM triples_by_s").Scan(&qs.size)
+	return qs
 }
 
-func (ts *TripleStore) Close() {
-	ts.sess.Close()
+func (qs *QuadStore) Close() {
+	qs.sess.Close()
 }
 
 var tables = []string{"triples_by_s", "triples_by_p", "triples_by_o", "triples_by_c"}
 
-func (ts *TripleStore) addTripleToBatch(t *graph.Triple, data *gocql.Batch, count *gocql.Batch) {
+func (qs *QuadStore) addTripleToBatch(t *quad.Quad, data *gocql.Batch, count *gocql.Batch) {
 	data.Cons = gocql.Quorum
 	for _, table := range tables {
-		if t.Provenance == "" && table == "triples_by_c" {
+		if t.Label == "" && table == "triples_by_c" {
 			continue
 		}
 		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, provenance) VALUES (?, ?, ?, ?)")
-		data.Query(query, t.Subject, t.Predicate, t.Object, t.Provenance)
+		data.Query(query, t.Subject, t.Predicate, t.Object, t.Label)
 	}
 	count.Cons = gocql.Quorum
-	for _, dir := range []graph.Direction{graph.Subject, graph.Predicate, graph.Object, graph.Provenance} {
+	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
 		if t.Get(dir) == "" {
 			continue
 		}
@@ -163,90 +164,90 @@ func (ts *TripleStore) addTripleToBatch(t *graph.Triple, data *gocql.Batch, coun
 	}
 }
 
-func (ts *TripleStore) AddTriple(t *graph.Triple) {
-	batch := ts.sess.NewBatch(gocql.LoggedBatch)
-	counter_batch := ts.sess.NewBatch(gocql.CounterBatch)
-	ts.addTripleToBatch(t, batch, counter_batch)
-	err := ts.sess.ExecuteBatch(batch)
+func (qs *QuadStore) AddTriple(t *quad.Quad) {
+	batch := qs.sess.NewBatch(gocql.LoggedBatch)
+	counter_batch := qs.sess.NewBatch(gocql.CounterBatch)
+	qs.addTripleToBatch(t, batch, counter_batch)
+	err := qs.sess.ExecuteBatch(batch)
 	if err != nil {
 		glog.Errorln("Couldn't write triple:", t, ", ", err)
 	}
-	err = ts.sess.ExecuteBatch(counter_batch)
+	err = qs.sess.ExecuteBatch(counter_batch)
 	if err != nil {
 		glog.Errorln("Couldn't write triple:", t, ", ", err)
 	}
-	ts.size += 1
+	qs.size += 1
 }
 
-func (ts *TripleStore) RemoveTriple(t *graph.Triple) {
+func (qs *QuadStore) RemoveTriple(t *quad.Quad) {
 }
 
-func (ts *TripleStore) AddTripleSet(set []*graph.Triple) {
-	batch := ts.sess.NewBatch(gocql.LoggedBatch)
-	counter_batch := ts.sess.NewBatch(gocql.CounterBatch)
+func (qs *QuadStore) AddTripleSet(set []*quad.Quad) {
+	batch := qs.sess.NewBatch(gocql.LoggedBatch)
+	counter_batch := qs.sess.NewBatch(gocql.CounterBatch)
 	for _, t := range set {
-		ts.addTripleToBatch(t, batch, counter_batch)
+		qs.addTripleToBatch(t, batch, counter_batch)
 	}
-	err := ts.sess.ExecuteBatch(batch)
+	err := qs.sess.ExecuteBatch(batch)
 	if err != nil {
 		glog.Errorln("Couldn't write tripleset:", err)
 	}
-	err = ts.sess.ExecuteBatch(counter_batch)
+	err = qs.sess.ExecuteBatch(counter_batch)
 	if err != nil {
 		glog.Errorln("Couldn't write tripleset:", err)
 	}
-	ts.size += int64(len(set))
+	qs.size += int64(len(set))
 }
 
-func (ts *TripleStore) TripleIterator(d graph.Direction, val graph.Value) graph.Iterator {
-	return NewIterator(ts, d, val)
+func (qs *QuadStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
+	return NewIterator(qs, d, val)
 }
 
-func (ts *TripleStore) NodesAllIterator() graph.Iterator {
-	return NewNodeIterator(ts)
+func (qs *QuadStore) NodesAllIterator() graph.Iterator {
+	return NewNodeIterator(qs)
 }
 
-func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
-	return NewIterator(ts, graph.Any, "")
+func (qs *QuadStore) TriplesAllIterator() graph.Iterator {
+	return NewIterator(qs, quad.Any, "")
 }
 
 func compareStrings(a, b graph.Value) bool {
 	return a.(string) == b.(string)
 }
 
-func (ts *TripleStore) FixedIterator() graph.FixedIterator {
+func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(compareStrings)
 }
 
-func (ts *TripleStore) Triple(val graph.Value) *graph.Triple {
-	return val.(*graph.Triple)
+func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
+	return val.(quad.Quad)
 }
 
-func (ts *TripleStore) ValueOf(node string) graph.Value {
+func (qs *QuadStore) ValueOf(node string) graph.Value {
 	return node
 }
 
-func (ts *TripleStore) NameOf(val graph.Value) string {
+func (qs *QuadStore) NameOf(val graph.Value) string {
 	return val.(string)
 }
 
-func (ts *TripleStore) TripleDirection(triple_id graph.Value, d graph.Direction) graph.Value {
-	return ts.ValueOf(ts.Triple(triple_id).Get(d))
+func (qs *QuadStore) TripleDirection(triple_id graph.Value, d quad.Direction) graph.Value {
+	return qs.ValueOf(qs.Quad(triple_id).Get(d))
 }
 
-func (ts *TripleStore) Size() int64 {
-	return ts.size
+func (qs *QuadStore) Size() int64 {
+	return qs.size
 }
 
-func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
+func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	switch it.Type() {
 	case graph.LinksTo:
-		return ts.optimizeLinksTo(it.(*iterator.LinksTo))
+		return qs.optimizeLinksTo(it.(*iterator.LinksTo))
 	}
 	return it, false
 }
 
-func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
+func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
 	subs := it.SubIterators()
 	if len(subs) != 1 {
 		return it, false
@@ -255,14 +256,15 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
-			val, ok := primary.Next()
-			if !ok {
-				panic("Sizes lie")
+			if !graph.Next(primary) {
+				panic("unexpected size during optimize")
 			}
-			newIt := ts.TripleIterator(it.Direction(), val)
-			newIt.CopyTagsFrom(it)
-			for _, tag := range primary.Tags() {
-				newIt.AddFixedTag(tag, val)
+			val := primary.Result()
+			newIt := qs.TripleIterator(it.Direction(), val)
+			nt := newIt.Tagger()
+			nt.CopyFrom(it)
+			for _, tag := range primary.Tagger().Tags() {
+				nt.AddFixed(tag, val)
 			}
 			it.Close()
 			return newIt, true
