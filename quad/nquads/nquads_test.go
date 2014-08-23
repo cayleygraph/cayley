@@ -420,6 +420,19 @@ var testNTriples = []struct {
 		},
 		err: fmt.Errorf("%v: unexpected rune '.' at 78", quad.ErrInvalid),
 	},
+
+	// Example quad from issue #140.
+	{
+		message: "parse incomplete quad",
+		input:   "<ns:m.0y_chx>\t<ns:music.recording.lyrics_website..common.webpage.uri>\t<http://www.metrolyrics.com/?\"-lyrics-stephen-sondheim.html>.",
+		expect: quad.Quad{
+			Subject:   "<ns:m.0y_chx>",
+			Predicate: "<ns:music.recording.lyrics_website..common.webpage.uri>",
+			Object:    "",
+			Label:     "",
+		},
+		err: fmt.Errorf("%v: unexpected rune '\"' at 99", quad.ErrInvalid),
+	},
 }
 
 func TestParse(t *testing.T) {
