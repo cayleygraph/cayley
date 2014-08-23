@@ -39,7 +39,8 @@ var (
 	hashPool = sync.Pool{
 		New: func() interface{} { return sha1.New() },
 	}
-	hashSize = sha1.Size
+	hashSize         = sha1.Size
+	localFillPercent = 0.7
 )
 
 type Token struct {
@@ -76,7 +77,7 @@ func createNewBolt(path string, _ graph.Options) error {
 	return nil
 }
 
-func newQuadStore(path string, _ graph.Options) (graph.TripleStore, error) {
+func newQuadStore(path string, options graph.Options) (graph.TripleStore, error) {
 	var qs QuadStore
 	var err error
 	db, err := bolt.Open(path, 0600, nil)
@@ -85,6 +86,8 @@ func newQuadStore(path string, _ graph.Options) (graph.TripleStore, error) {
 		return nil, err
 	}
 	qs.db = db
+	// BoolKey returns false on non-existence. IE, Sync by default.
+	qs.db.NoSync, _ = options.BoolKey("nosync")
 	err = qs.getMetadata()
 	if err != nil {
 		return nil, err
@@ -173,7 +176,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	old_size := qs.size
 	old_horizon := qs.horizon
 	err := qs.db.Update(func(tx *bolt.Tx) error {
-		var b *bolt.Bucket
+		b := tx.Bucket(logBucket)
+		b.FillPercent = localFillPercent
 		resizeMap := make(map[string]int64)
 		size_change := int64(0)
 		for _, d := range deltas {
@@ -181,7 +185,6 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 			if err != nil {
 				return err
 			}
-			b = tx.Bucket(logBucket)
 			err = b.Put(qs.createDeltaKeyFor(d.ID), bytes)
 			if err != nil {
 				return err
@@ -229,6 +232,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bool) error {
 	var entry IndexEntry
 	b := tx.Bucket(spoBucket)
+	b.FillPercent = localFillPercent
 	data := b.Get(qs.createKeyFor(spo, q))
 	if data != nil {
 		// We got something.
@@ -259,6 +263,7 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 			continue
 		}
 		b := tx.Bucket(bucketFor(index))
+		b.FillPercent = localFillPercent
 		err = b.Put(qs.createKeyFor(index, q), jsonbytes)
 		if err != nil {
 			return err
@@ -275,6 +280,7 @@ type ValueData struct {
 func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, tx *bolt.Tx) error {
 	value := ValueData{name, amount}
 	b := tx.Bucket(nodeBucket)
+	b.FillPercent = localFillPercent
 	key := qs.createValueKeyFor(name)
 	data := b.Get(key)
 
@@ -311,6 +317,7 @@ func (qs *QuadStore) WriteHorizonAndSize(tx *bolt.Tx) error {
 		return err
 	}
 	b := tx.Bucket(metaBucket)
+	b.FillPercent = localFillPercent
 	werr := b.Put([]byte("size"), buf.Bytes())
 	if werr != nil {
 		glog.Error("Couldn't write size!")
@@ -323,7 +330,6 @@ func (qs *QuadStore) WriteHorizonAndSize(tx *bolt.Tx) error {
 		glog.Errorf("Couldn't convert horizon!")
 	}
 
-	b = tx.Bucket(metaBucket)
 	werr = b.Put([]byte("horizon"), buf.Bytes())
 
 	if werr != nil {
