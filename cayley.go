@@ -63,33 +63,36 @@ var (
 	VERSION    string
 )
 
-func Usage() {
-	fmt.Println("Cayley is a graph store and graph query layer.")
-	fmt.Println("\nUsage:")
-	fmt.Println("  cayley COMMAND [flags]")
-	fmt.Println("\nCommands:")
-	fmt.Println("  init      Create an empty database.")
-	fmt.Println("  load      Bulk-load a triple file into the database.")
-	fmt.Println("  http      Serve an HTTP endpoint on the given host and port.")
-	fmt.Println("  repl      Drop into a REPL of the given query language.")
-	fmt.Println("  version   Version information.")
-	fmt.Println("\nFlags:")
-	flag.Parse()
+func usage() {
+	fmt.Fprintln(os.Stderr, `
+Usage:
+  cayley COMMAND [flags]
+
+Commands:
+  init      Create an empty database.
+  load      Bulk-load a triple file into the database.
+  http      Serve an HTTP endpoint on the given host and port.
+  repl      Drop into a REPL of the given query language.
+  version   Version information.
+
+Flags:`)
 	flag.PrintDefaults()
+}
+
+func init() {
+	flag.Usage = usage
 }
 
 func main() {
 	// No command? It's time for usage.
 	if len(os.Args) == 1 {
-		Usage()
+		fmt.Fprintln(os.Stderr, "Cayley is a graph store and graph query layer.")
+		usage()
 		os.Exit(1)
 	}
 
 	cmd := os.Args[1]
-	var newargs []string
-	newargs = append(newargs, os.Args[0])
-	newargs = append(newargs, os.Args[2:]...)
-	os.Args = newargs
+	os.Args = append(os.Args[:1], os.Args[2:]...)
 	flag.Parse()
 
 	var buildString string
@@ -183,7 +186,7 @@ func main() {
 
 	default:
 		fmt.Println("No command", cmd)
-		flag.Usage()
+		usage()
 	}
 	if err != nil {
 		glog.Errorln(err)
