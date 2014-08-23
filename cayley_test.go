@@ -19,6 +19,7 @@ import (
 	"compress/bzip2"
 	"compress/gzip"
 	"fmt"
+	"github.com/google/cayley/quad"
 	"io"
 	"reflect"
 	"sort"
@@ -409,6 +410,24 @@ func deletePrepare(t testing.TB) {
 			}
 		}
 	})
+}
+
+func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
+	return decompressAndLoad(qw, cfg, path, typ, remove)
+}
+
+func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
+	for {
+		t, err := dec.Unmarshal()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		qw.RemoveQuad(t)
+	}
+	return nil
 }
 
 func TestQueries(t *testing.T) {
