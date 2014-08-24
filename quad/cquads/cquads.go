@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate ragel -Z -G2 parse.rl
+
 // Package cquads implements parsing N-Quads like line-based syntax
 // for RDF datasets.
 //
