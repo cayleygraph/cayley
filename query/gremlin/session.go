@@ -54,7 +54,7 @@ func NewSession(ts graph.TripleStore, timeout time.Duration, persist bool) *Sess
 		limit:   -1,
 		timeout: timeout,
 	}
-	g.env = BuildEnviron(&g)
+	g.env = g.setup(otto.New())
 	if persist {
 		g.emptyEnv = g.env
 	}

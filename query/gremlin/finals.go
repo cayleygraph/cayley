@@ -26,45 +26,45 @@ import (
 
 const TopResultTag = "id"
 
-func embedFinals(env *otto.Otto, ses *Session, obj *otto.Object) {
-	obj.Set("All", allFunc(env, ses, obj))
-	obj.Set("GetLimit", limitFunc(env, ses, obj))
-	obj.Set("ToArray", toArrayFunc(env, ses, obj, false))
-	obj.Set("ToValue", toValueFunc(env, ses, obj, false))
-	obj.Set("TagArray", toArrayFunc(env, ses, obj, true))
-	obj.Set("TagValue", toValueFunc(env, ses, obj, true))
-	obj.Set("Map", mapFunc(env, ses, obj))
-	obj.Set("ForEach", mapFunc(env, ses, obj))
+func (s *Session) embedFinals(env *otto.Otto, obj *otto.Object) {
+	obj.Set("All", s.allFunc(env, obj))
+	obj.Set("GetLimit", s.limitFunc(env, obj))
+	obj.Set("ToArray", s.toArrayFunc(env, obj, false))
+	obj.Set("ToValue", s.toValueFunc(env, obj, false))
+	obj.Set("TagArray", s.toArrayFunc(env, obj, true))
+	obj.Set("TagValue", s.toValueFunc(env, obj, true))
+	obj.Set("Map", s.mapFunc(env, obj))
+	obj.Set("ForEach", s.mapFunc(env, obj))
 }
 
-func allFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
+func (s *Session) allFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, ses.ts)
+		it := buildIteratorTree(obj, s.ts)
 		it.Tagger().Add(TopResultTag)
-		ses.limit = -1
-		ses.count = 0
-		runIteratorOnSession(it, ses)
+		s.limit = -1
+		s.count = 0
+		s.runIterator(it)
 		return otto.NullValue()
 	}
 }
 
-func limitFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
+func (s *Session) limitFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) > 0 {
 			limitVal, _ := call.Argument(0).ToInteger()
-			it := buildIteratorTree(obj, ses.ts)
+			it := buildIteratorTree(obj, s.ts)
 			it.Tagger().Add(TopResultTag)
-			ses.limit = int(limitVal)
-			ses.count = 0
-			runIteratorOnSession(it, ses)
+			s.limit = int(limitVal)
+			s.count = 0
+			s.runIterator(it)
 		}
 		return otto.NullValue()
 	}
 }
 
-func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
+func (s *Session) toArrayFunc(env *otto.Otto, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, ses.ts)
+		it := buildIteratorTree(obj, s.ts)
 		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) > 0 {
@@ -74,10 +74,10 @@ func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) 
 		var val otto.Value
 		var err error
 		if !withTags {
-			array := runIteratorToArrayNoTags(it, ses, limit)
+			array := s.runIteratorToArrayNoTags(it, limit)
 			val, err = call.Otto.ToValue(array)
 		} else {
-			array := runIteratorToArray(it, ses, limit)
+			array := s.runIteratorToArray(it, limit)
 			val, err = call.Otto.ToValue(array)
 		}
 
@@ -89,21 +89,21 @@ func toArrayFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) 
 	}
 }
 
-func toValueFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
+func (s *Session) toValueFunc(env *otto.Otto, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, ses.ts)
+		it := buildIteratorTree(obj, s.ts)
 		it.Tagger().Add(TopResultTag)
 		limit := 1
 		var val otto.Value
 		var err error
 		if !withTags {
-			array := runIteratorToArrayNoTags(it, ses, limit)
+			array := s.runIteratorToArrayNoTags(it, limit)
 			if len(array) < 1 {
 				return otto.NullValue()
 			}
 			val, err = call.Otto.ToValue(array[0])
 		} else {
-			array := runIteratorToArray(it, ses, limit)
+			array := s.runIteratorToArray(it, limit)
 			if len(array) < 1 {
 				return otto.NullValue()
 			}
@@ -119,9 +119,9 @@ func toValueFunc(env *otto.Otto, ses *Session, obj *otto.Object, withTags bool) 
 	}
 }
 
-func mapFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionCall) otto.Value {
+func (s *Session) mapFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, ses.ts)
+		it := buildIteratorTree(obj, s.ts)
 		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) == 0 {
@@ -132,26 +132,26 @@ func mapFunc(env *otto.Otto, ses *Session, obj *otto.Object) func(otto.FunctionC
 			limitParsed, _ := call.Argument(0).ToInteger()
 			limit = int(limitParsed)
 		}
-		runIteratorWithCallback(it, ses, callback, call, limit)
+		s.runIteratorWithCallback(it, callback, call, limit)
 		return otto.NullValue()
 	}
 }
 
-func tagsToValueMap(m map[string]graph.Value, ses *Session) map[string]string {
+func (s *Session) tagsToValueMap(m map[string]graph.Value) map[string]string {
 	outputMap := make(map[string]string)
 	for k, v := range m {
-		outputMap[k] = ses.ts.NameOf(v)
+		outputMap[k] = s.ts.NameOf(v)
 	}
 	return outputMap
 }
 
-func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string]string {
+func (s *Session) runIteratorToArray(it graph.Iterator, limit int) []map[string]string {
 	output := make([]map[string]string, 0)
 	count := 0
 	it, _ = it.Optimize()
 	for {
 		select {
-		case <-ses.kill:
+		case <-s.kill:
 			return nil
 		default:
 		}
@@ -160,20 +160,20 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		output = append(output, tagsToValueMap(tags, ses))
+		output = append(output, s.tagsToValueMap(tags))
 		count++
 		if limit >= 0 && count >= limit {
 			break
 		}
 		for it.NextPath() {
 			select {
-			case <-ses.kill:
+			case <-s.kill:
 				return nil
 			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			output = append(output, tagsToValueMap(tags, ses))
+			output = append(output, s.tagsToValueMap(tags))
 			count++
 			if limit >= 0 && count >= limit {
 				break
@@ -184,20 +184,20 @@ func runIteratorToArray(it graph.Iterator, ses *Session, limit int) []map[string
 	return output
 }
 
-func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []string {
+func (s *Session) runIteratorToArrayNoTags(it graph.Iterator, limit int) []string {
 	output := make([]string, 0)
 	count := 0
 	it, _ = it.Optimize()
 	for {
 		select {
-		case <-ses.kill:
+		case <-s.kill:
 			return nil
 		default:
 		}
 		if !graph.Next(it) {
 			break
 		}
-		output = append(output, ses.ts.NameOf(it.Result()))
+		output = append(output, s.ts.NameOf(it.Result()))
 		count++
 		if limit >= 0 && count >= limit {
 			break
@@ -207,13 +207,13 @@ func runIteratorToArrayNoTags(it graph.Iterator, ses *Session, limit int) []stri
 	return output
 }
 
-func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Value, this otto.FunctionCall, limit int) {
+func (s *Session) runIteratorWithCallback(it graph.Iterator, callback otto.Value, this otto.FunctionCall, limit int) {
 	count := 0
 	it, _ = it.Optimize()
 	glog.V(2).Infoln(it.DebugString(0))
 	for {
 		select {
-		case <-ses.kill:
+		case <-s.kill:
 			return
 		default:
 		}
@@ -222,7 +222,7 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		val, _ := this.Otto.ToValue(tagsToValueMap(tags, ses))
+		val, _ := this.Otto.ToValue(s.tagsToValueMap(tags))
 		val, _ = callback.Call(this.This, val)
 		count++
 		if limit >= 0 && count >= limit {
@@ -230,13 +230,13 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 		}
 		for it.NextPath() {
 			select {
-			case <-ses.kill:
+			case <-s.kill:
 				return
 			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			val, _ := this.Otto.ToValue(tagsToValueMap(tags, ses))
+			val, _ := this.Otto.ToValue(s.tagsToValueMap(tags))
 			val, _ = callback.Call(this.This, val)
 			count++
 			if limit >= 0 && count >= limit {
@@ -247,16 +247,16 @@ func runIteratorWithCallback(it graph.Iterator, ses *Session, callback otto.Valu
 	it.Close()
 }
 
-func runIteratorOnSession(it graph.Iterator, ses *Session) {
-	if ses.wantShape {
-		iterator.OutputQueryShapeForIterator(it, ses.ts, ses.shape)
+func (s *Session) runIterator(it graph.Iterator) {
+	if s.wantShape {
+		iterator.OutputQueryShapeForIterator(it, s.ts, s.shape)
 		return
 	}
 	it, _ = it.Optimize()
 	glog.V(2).Infoln(it.DebugString(0))
 	for {
 		select {
-		case <-ses.kill:
+		case <-s.kill:
 			return
 		default:
 		}
@@ -265,18 +265,18 @@ func runIteratorOnSession(it graph.Iterator, ses *Session) {
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		if !ses.SendResult(&Result{actualResults: &tags}) {
+		if !s.SendResult(&Result{actualResults: &tags}) {
 			break
 		}
 		for it.NextPath() {
 			select {
-			case <-ses.kill:
+			case <-s.kill:
 				return
 			default:
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			if !ses.SendResult(&Result{actualResults: &tags}) {
+			if !s.SendResult(&Result{actualResults: &tags}) {
 				break
 			}
 		}

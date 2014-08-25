@@ -25,20 +25,14 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-func getStrings(obj *otto.Object, field string) []string {
-	strings := make([]string, 0)
-	val, _ := obj.Get(field)
-	if !val.IsUndefined() {
-		export, _ := val.Export()
-		array := export.([]interface{})
-		for _, arg := range array {
-			strings = append(strings, arg.(string))
-		}
+func propertiesOf(obj *otto.Object, name string) []string {
+	val, _ := obj.Get(name)
+	if val.IsUndefined() {
+		return nil
 	}
-	return strings
+	export, _ := val.Export()
+	return export.([]string)
 }
-
-func getStringArgs(obj *otto.Object) []string { return getStrings(obj, "string_args") }
 
 func buildIteratorTree(obj *otto.Object, ts graph.TripleStore) graph.Iterator {
 	if !isVertexChain(obj) {
@@ -47,7 +41,7 @@ func buildIteratorTree(obj *otto.Object, ts graph.TripleStore) graph.Iterator {
 	return buildIteratorTreeHelper(obj, ts, iterator.NewNull())
 }
 
-func makeListOfStringsFromArrayValue(obj *otto.Object) []string {
+func stringsFrom(obj *otto.Object) []string {
 	var output []string
 	lengthValue, _ := obj.Get("length")
 	length, _ := lengthValue.ToInteger()
@@ -55,14 +49,10 @@ func makeListOfStringsFromArrayValue(obj *otto.Object) []string {
 	for index := uint32(0); index < ulength; index += 1 {
 		name := strconv.FormatInt(int64(index), 10)
 		value, err := obj.Get(name)
-		if err != nil {
+		if err != nil || !value.IsString() {
 			continue
 		}
-		if !value.IsString() {
-			continue
-		}
-		s, _ := value.ToString()
-		output = append(output, s)
+		output = append(output, value.String())
 	}
 	return output
 }
@@ -87,7 +77,7 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 		return buildIteratorTree(val.Object(), ts)
 	case "Array":
 		// Had better be an array of strings
-		strings := makeListOfStringsFromArrayValue(val.Object())
+		strings := stringsFrom(val.Object())
 		it := ts.FixedIterator()
 		for _, x := range strings {
 			it.Add(ts.ValueOf(x))
@@ -101,8 +91,7 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 		fallthrough
 	case "String":
 		it := ts.FixedIterator()
-		str, _ := val.ToString()
-		it.Add(ts.ValueOf(str))
+		it.Add(ts.ValueOf(val.String()))
 		return it
 	default:
 		glog.Errorln("Trying to handle unsupported Javascript value.")
@@ -130,10 +119,9 @@ func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Itera
 		var tags []string
 		one, _ := argArray.Get("1")
 		if one.IsString() {
-			s, _ := one.ToString()
-			tags = append(tags, s)
+			tags = append(tags, one.String())
 		} else if one.Class() == "Array" {
-			tags = makeListOfStringsFromArrayValue(one.Object())
+			tags = stringsFrom(one.Object())
 		}
 		for _, tag := range tags {
 			predicateNodeIterator.Tagger().Add(tag)
@@ -152,21 +140,19 @@ func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Itera
 }
 
 func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.Iterator) graph.Iterator {
-	var it graph.Iterator
-	it = base
+	var it graph.Iterator = base
+
 	// TODO: Better error handling
-	kindVal, _ := obj.Get("_gremlin_type")
-	stringArgs := getStringArgs(obj)
 	var subIt graph.Iterator
-	prevVal, _ := obj.Get("_gremlin_prev")
-	if !prevVal.IsObject() {
+	if prev, _ := obj.Get("_gremlin_prev"); !prev.IsObject() {
 		subIt = base
 	} else {
-		subIt = buildIteratorTreeHelper(prevVal.Object(), ts, base)
+		subIt = buildIteratorTreeHelper(prev.Object(), ts, base)
 	}
 
-	kind, _ := kindVal.ToString()
-	switch kind {
+	stringArgs := propertiesOf(obj, "string_args")
+	val, _ := obj.Get("_gremlin_type")
+	switch val.String() {
 	case "vertex":
 		if len(stringArgs) == 0 {
 			it = ts.NodesAllIterator()
