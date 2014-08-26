@@ -17,9 +17,79 @@ package gremlin
 // Builds a new Gremlin environment pointing at a session.
 
 import (
+	"sync"
+
 	"github.com/barakmich/glog"
 	"github.com/robertkrimen/otto"
+
+	"github.com/google/cayley/graph"
 )
+
+type worker struct {
+	ts      graph.TripleStore
+	env     *otto.Otto
+	envLock sync.Mutex
+
+	results chan interface{}
+	shape   map[string]interface{}
+
+	count int
+	limit int
+
+	kill chan struct{}
+}
+
+func newWorker(ts graph.TripleStore) *worker {
+	env := otto.New()
+	wk := &worker{
+		ts:    ts,
+		env:   env,
+		limit: -1,
+	}
+	graph, _ := env.Object("graph = {}")
+	env.Run("g = graph")
+
+	graph.Set("Vertex", func(call otto.FunctionCall) otto.Value {
+		call.Otto.Run("var out = {}")
+		out, err := call.Otto.Object("out")
+		if err != nil {
+			glog.Error(err.Error())
+			return otto.TrueValue()
+		}
+		out.Set("_gremlin_type", "vertex")
+		args := argsOf(call)
+		if len(args) > 0 {
+			out.Set("string_args", args)
+		}
+		wk.embedTraversals(env, out)
+		wk.embedFinals(env, out)
+		return out.Value()
+	})
+	env.Run("graph.V = graph.Vertex")
+
+	graph.Set("Morphism", func(call otto.FunctionCall) otto.Value {
+		call.Otto.Run("var out = {}")
+		out, _ := call.Otto.Object("out")
+		out.Set("_gremlin_type", "morphism")
+		wk.embedTraversals(env, out)
+		return out.Value()
+	})
+	env.Run("graph.M = graph.Morphism")
+
+	graph.Set("Emit", func(call otto.FunctionCall) otto.Value {
+		value := call.Argument(0)
+		if value.IsDefined() {
+			wk.send(&Result{val: &value})
+		}
+		return otto.NullValue()
+	})
+
+	return wk
+}
+
+func (wk *worker) wantShape() bool {
+	return wk.shape != nil
+}
 
 func argsOf(call otto.FunctionCall) []string {
 	var out []string
@@ -47,46 +117,4 @@ func isVertexChain(obj *otto.Object) bool {
 		return isVertexChain(val.Object())
 	}
 	return false
-}
-
-func (s *Session) setup(env *otto.Otto) *otto.Otto {
-	graph, _ := env.Object("graph = {}")
-	env.Run("g = graph")
-
-	graph.Set("Vertex", func(call otto.FunctionCall) otto.Value {
-		call.Otto.Run("var out = {}")
-		out, err := call.Otto.Object("out")
-		if err != nil {
-			glog.Error(err.Error())
-			return otto.TrueValue()
-		}
-		out.Set("_gremlin_type", "vertex")
-		args := argsOf(call)
-		if len(args) > 0 {
-			out.Set("string_args", args)
-		}
-		s.embedTraversals(env, out)
-		s.embedFinals(env, out)
-		return out.Value()
-	})
-	env.Run("graph.V = graph.Vertex")
-
-	graph.Set("Morphism", func(call otto.FunctionCall) otto.Value {
-		call.Otto.Run("var out = {}")
-		out, _ := call.Otto.Object("out")
-		out.Set("_gremlin_type", "morphism")
-		s.embedTraversals(env, out)
-		return out.Value()
-	})
-	env.Run("graph.M = graph.Morphism")
-
-	graph.Set("Emit", func(call otto.FunctionCall) otto.Value {
-		value := call.Argument(0)
-		if value.IsDefined() {
-			s.SendResult(&Result{val: &value})
-		}
-		return otto.NullValue()
-	})
-
-	return env
 }

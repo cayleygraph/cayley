@@ -46,8 +46,8 @@ func stringsFrom(obj *otto.Object) []string {
 	lengthValue, _ := obj.Get("length")
 	length, _ := lengthValue.ToInteger()
 	ulength := uint32(length)
-	for index := uint32(0); index < ulength; index += 1 {
-		name := strconv.FormatInt(int64(index), 10)
+	for i := uint32(0); i < ulength; i++ {
+		name := strconv.FormatInt(int64(i), 10)
 		value, err := obj.Get(name)
 		if err != nil || !value.IsString() {
 			continue

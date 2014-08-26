@@ -21,26 +21,26 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-func (s *Session) embedTraversals(env *otto.Otto, obj *otto.Object) {
-	obj.Set("In", gremlinFunc("in", obj, env, s))
-	obj.Set("Out", gremlinFunc("out", obj, env, s))
-	obj.Set("Is", gremlinFunc("is", obj, env, s))
-	obj.Set("Both", gremlinFunc("both", obj, env, s))
-	obj.Set("Follow", gremlinFunc("follow", obj, env, s))
-	obj.Set("FollowR", gremlinFollowR("followr", obj, env, s))
-	obj.Set("And", gremlinFunc("and", obj, env, s))
-	obj.Set("Intersect", gremlinFunc("and", obj, env, s))
-	obj.Set("Union", gremlinFunc("or", obj, env, s))
-	obj.Set("Or", gremlinFunc("or", obj, env, s))
-	obj.Set("Back", gremlinBack("back", obj, env, s))
-	obj.Set("Tag", gremlinFunc("tag", obj, env, s))
-	obj.Set("As", gremlinFunc("tag", obj, env, s))
-	obj.Set("Has", gremlinFunc("has", obj, env, s))
-	obj.Set("Save", gremlinFunc("save", obj, env, s))
-	obj.Set("SaveR", gremlinFunc("saver", obj, env, s))
+func (wk *worker) embedTraversals(env *otto.Otto, obj *otto.Object) {
+	obj.Set("In", wk.gremlinFunc("in", obj, env))
+	obj.Set("Out", wk.gremlinFunc("out", obj, env))
+	obj.Set("Is", wk.gremlinFunc("is", obj, env))
+	obj.Set("Both", wk.gremlinFunc("both", obj, env))
+	obj.Set("Follow", wk.gremlinFunc("follow", obj, env))
+	obj.Set("FollowR", wk.gremlinFollowR("followr", obj, env))
+	obj.Set("And", wk.gremlinFunc("and", obj, env))
+	obj.Set("Intersect", wk.gremlinFunc("and", obj, env))
+	obj.Set("Union", wk.gremlinFunc("or", obj, env))
+	obj.Set("Or", wk.gremlinFunc("or", obj, env))
+	obj.Set("Back", wk.gremlinBack("back", obj, env))
+	obj.Set("Tag", wk.gremlinFunc("tag", obj, env))
+	obj.Set("As", wk.gremlinFunc("tag", obj, env))
+	obj.Set("Has", wk.gremlinFunc("has", obj, env))
+	obj.Set("Save", wk.gremlinFunc("save", obj, env))
+	obj.Set("SaveR", wk.gremlinFunc("saver", obj, env))
 }
 
-func gremlinFunc(kind string, prev *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
+func (wk *worker) gremlinFunc(kind string, prev *otto.Object, env *otto.Otto) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
@@ -51,15 +51,15 @@ func gremlinFunc(kind string, prev *otto.Object, env *otto.Otto, ses *Session) f
 		if len(args) > 0 {
 			out.Set("string_args", args)
 		}
-		ses.embedTraversals(env, out)
+		wk.embedTraversals(env, out)
 		if isVertexChain(call.This.Object()) {
-			ses.embedFinals(env, out)
+			wk.embedFinals(env, out)
 		}
 		return out.Value()
 	}
 }
 
-func gremlinBack(kind string, prev *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
+func (wk *worker) gremlinBack(kind string, prev *otto.Object, env *otto.Otto) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
@@ -78,16 +78,16 @@ func gremlinBack(kind string, prev *otto.Object, env *otto.Otto, ses *Session) f
 		}
 		out.Set("_gremlin_prev", thisObj)
 		out.Set("_gremlin_back_chain", otherChain)
-		ses.embedTraversals(env, out)
+		wk.embedTraversals(env, out)
 		if isVertexChain(call.This.Object()) {
-			ses.embedFinals(env, out)
+			wk.embedFinals(env, out)
 		}
 		return out.Value()
 
 	}
 }
 
-func gremlinFollowR(kind string, prev *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
+func (wk *worker) gremlinFollowR(kind string, prev *otto.Object, env *otto.Otto) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
@@ -107,9 +107,9 @@ func gremlinFollowR(kind string, prev *otto.Object, env *otto.Otto, ses *Session
 		newChain, _ := reverseGremlinChainTo(call.Otto, arg.Object(), "")
 		out.Set("_gremlin_prev", prev)
 		out.Set("_gremlin_followr", newChain)
-		ses.embedTraversals(env, out)
+		wk.embedTraversals(env, out)
 		if isVertexChain(call.This.Object()) {
-			ses.embedFinals(env, out)
+			wk.embedFinals(env, out)
 		}
 		return out.Value()
 	}
