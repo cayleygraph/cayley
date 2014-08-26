@@ -115,7 +115,6 @@ func (wk *worker) toValueFunc(env *otto.Otto, obj *otto.Object, withTags bool) f
 		} else {
 			return val
 		}
-
 	}
 }
 

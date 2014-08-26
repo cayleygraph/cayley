@@ -83,7 +83,6 @@ func (wk *worker) gremlinBack(kind string, prev *otto.Object, env *otto.Otto) fu
 			wk.embedFinals(env, out)
 		}
 		return out.Value()
-
 	}
 }
 
