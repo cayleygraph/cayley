@@ -298,6 +298,79 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		it = buildIteratorTreeHelper(arg.Object(), ts, subIt)
 	case "in":
 		it = buildInOutIterator(obj, ts, subIt, true)
+	case "not":
+		// Not is implemented as the difference between the primary iterator
+		// and the iterator chain of (primaryIt, follow, followR).
+		// Build the follow iterator
+		arg, _ := obj.Get("_gremlin_values")
+		firstArg, _ := arg.Object().Get("0")
+		if isVertexChain(firstArg.Object()) {
+			return iterator.NewNull()
+		}
+
+		// Build the followR iterator
+		revArg, _ := obj.Get("_gremlin_followr")
+		if isVertexChain(revArg.Object()) {
+			return iterator.NewNull()
+		}
+
+		followIt := buildIteratorTreeHelper(firstArg.Object(), ts, subIt)
+		forbiddenIt := buildIteratorTreeHelper(revArg.Object(), ts, followIt)
+
+		it = iterator.NewNot(subIt, forbiddenIt)
+	case "loop":
+		arg, _ := obj.Get("_gremlin_values")
+		firstArg, _ := arg.Object().Get("0")
+		secondArg, _ := arg.Object().Get("1")
+		thirdArg, _ := arg.Object().Get("2")
+
+		// Parse the loop iterating sequence
+		// Check if the first argument is a vertex chain
+		if isVertexChain(firstArg.Object()) {
+			return iterator.NewNull()
+		}
+
+		loopEntryIt := iterator.NewEntryPoint(subIt)
+		loopIt := buildIteratorTreeHelper(firstArg.Object(), ts, loopEntryIt)
+
+		// Parse the number of loops to execute
+		noLoops := 0
+		bounded := false
+		if secondArg.IsNumber() {
+			if no, err := secondArg.ToInteger(); err == nil {
+				noLoops = int(no)
+				bounded = true
+			} else {
+				return iterator.NewNull()
+			}
+		} else if secondArg.IsBoolean() {
+			if boolVal, err := secondArg.ToBoolean(); err == nil && boolVal {
+				bounded = false
+			} else {
+				return iterator.NewNull()
+			}
+		} else {
+			thirdArg = secondArg
+		}
+
+		// If the number of loops is negative, the loop is unbounded
+		if noLoops <= 0 {
+			bounded = false
+		} else {
+			bounded = true
+		}
+
+		filterEntryIt := iterator.NewEntryPoint(nil)
+		var filterIt graph.Iterator
+		if thirdArg.IsNull() || thirdArg.IsUndefined() {
+			filterIt = filterEntryIt
+		} else if isVertexChain(thirdArg.Object()) {
+			return iterator.NewNull()
+		} else {
+			filterIt = buildIteratorTreeHelper(thirdArg.Object(), ts, filterEntryIt)
+		}
+
+		it = iterator.NewLoop(ts, subIt, loopIt, filterIt, loopEntryIt, filterEntryIt, noLoops, bounded)
 	}
 	return it
 }
