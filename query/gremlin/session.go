@@ -134,7 +134,7 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	return out, err
 }
 
-func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
+func (s *Session) ExecInput(input string, out chan interface{}, _ int) {
 	defer close(out)
 	s.err = nil
 	s.wk.results = out

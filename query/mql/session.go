@@ -72,7 +72,7 @@ func (s *Session) InputParses(input string) (query.ParseResult, error) {
 	return query.Parsed, nil
 }
 
-func (s *Session) ExecInput(input string, c chan interface{}, limit int) {
+func (s *Session) ExecInput(input string, c chan interface{}, _ int) {
 	defer close(c)
 	var mqlQuery interface{}
 	err := json.Unmarshal([]byte(input), &mqlQuery)
