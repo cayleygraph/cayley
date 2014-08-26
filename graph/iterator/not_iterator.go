@@ -2,6 +2,8 @@ package iterator
 
 import "github.com/google/cayley/graph"
 
+// Not iterator acts like a set difference between the primary iterator
+// and the forbidden iterator.
 type Not struct {
 	uid         uint64
 	tags        graph.Tagger
@@ -33,6 +35,7 @@ func (it *Not) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
+// TODO
 func (it *Not) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
@@ -45,8 +48,6 @@ func (it *Not) TagResults(dst map[string]graph.Value) {
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)
 	}
-
-	// todo
 }
 
 func (it *Not) Clone() graph.Iterator {
@@ -73,7 +74,10 @@ func (it *Not) DebugString(indent int) string {
 func (it *Not) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
+
 	for graph.Next(it.primaryIt) {
+		// Consider only the elements from the primary set which are not
+		// contained in the forbidden set.
 		if curr := it.primaryIt.Result(); !it.forbiddenIt.Contains(curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1
@@ -112,11 +116,13 @@ func (it *Not) Close() {
 
 func (it *Not) Type() graph.Type { return graph.Not }
 
+// TODO
 func (it *Not) Optimize() (graph.Iterator, bool) {
 	//it.forbiddenIt = NewMaterialize(it.forbiddenIt)
 	return it, false
 }
 
+// TODO
 func (it *Not) Stats() graph.IteratorStats {
 	subitStats := it.primaryIt.Stats()
 	// TODO(barakmich): These should really come from the triplestore itself
