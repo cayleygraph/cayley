@@ -40,7 +40,7 @@ Arguments:
 
   * `data`: A Javascript object that can be serialized to JSON
 
-Adds data programatically to the JSON result list. Can be any JSON type.
+Adds data programmatically to the JSON result list. Can be any JSON type.
 
 
 ## Path objects
@@ -255,7 +255,7 @@ Alias: `path.And`
 
 Arguments:
 
-  * `query`: Antother query path, the result sets of which will be intersected
+  * `query`: Another query path, the result sets of which will be intersected
 
 Filters all paths by the result of another query path (efficiently computed).
 
@@ -275,7 +275,7 @@ Alias: `path.Or`
 
 Arguments:
 
-  * `query`: Antother query path, the result sets of which will form a union
+  * `query`: Another query path, the result sets of which will form a union
 
 Given two queries, returns the combined paths of the two queries.
 Notice that it's per-path, not per-node. Once again, if multiple paths reach the
