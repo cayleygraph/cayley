@@ -289,7 +289,7 @@ func (wk *worker) runIterator(it graph.Iterator) {
 		}
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		if !wk.send(&Result{actualResults: &tags}) {
+		if !wk.send(&Result{actualResults: tags}) {
 			break
 		}
 		for it.NextPath() {
@@ -300,7 +300,7 @@ func (wk *worker) runIterator(it graph.Iterator) {
 			}
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			if !wk.send(&Result{actualResults: &tags}) {
+			if !wk.send(&Result{actualResults: tags}) {
 				break
 			}
 		}

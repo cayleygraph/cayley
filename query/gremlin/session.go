@@ -59,7 +59,7 @@ type Result struct {
 	metaresult    bool
 	err           error
 	val           *otto.Value
-	actualResults *map[string]graph.Value
+	actualResults map[string]graph.Value
 }
 
 func (s *Session) ToggleDebug() {
@@ -179,9 +179,9 @@ func (s *Session) ToText(result interface{}) string {
 	out = fmt.Sprintln("****")
 	if data.val == nil {
 		tags := data.actualResults
-		tagKeys := make([]string, len(*tags))
+		tagKeys := make([]string, len(tags))
 		i := 0
-		for k, _ := range *tags {
+		for k, _ := range tags {
 			tagKeys[i] = k
 			i++
 		}
@@ -190,7 +190,7 @@ func (s *Session) ToText(result interface{}) string {
 			if k == "$_" {
 				continue
 			}
-			out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf((*tags)[k]))
+			out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf(tags[k]))
 		}
 	} else {
 		if data.val.IsObject() {
@@ -214,15 +214,15 @@ func (s *Session) BuildJson(result interface{}) {
 		if data.val == nil {
 			obj := make(map[string]string)
 			tags := data.actualResults
-			tagKeys := make([]string, len(*tags))
+			tagKeys := make([]string, len(tags))
 			i := 0
-			for k, _ := range *tags {
+			for k, _ := range tags {
 				tagKeys[i] = k
 				i++
 			}
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
-				obj[k] = s.ts.NameOf((*tags)[k])
+				obj[k] = s.ts.NameOf(tags[k])
 			}
 			s.dataOutput = append(s.dataOutput, obj)
 		} else {
