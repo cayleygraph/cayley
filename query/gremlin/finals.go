@@ -251,11 +251,8 @@ func (wk *worker) send(r *Result) bool {
 	if wk.limit >= 0 && wk.limit == wk.count {
 		return false
 	}
-	wk.envLock.Lock()
-	kill := wk.kill
-	wk.envLock.Unlock()
 	select {
-	case <-kill:
+	case <-wk.kill:
 		return false
 	default:
 	}

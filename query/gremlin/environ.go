@@ -26,9 +26,9 @@ import (
 )
 
 type worker struct {
-	ts      graph.TripleStore
-	env     *otto.Otto
-	envLock sync.Mutex
+	ts  graph.TripleStore
+	env *otto.Otto
+	sync.Mutex
 
 	results chan interface{}
 	shape   map[string]interface{}
@@ -36,7 +36,7 @@ type worker struct {
 	count int
 	limit int
 
-	kill chan struct{}
+	kill <-chan struct{}
 }
 
 func newWorker(ts graph.TripleStore) *worker {
