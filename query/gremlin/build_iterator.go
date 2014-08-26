@@ -328,15 +328,17 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		thirdArg, _ := arg.Object().Get("2")
 
 		// Parse the loop iterating sequence
-		// Check if the first argument is a vertex chain
 		if isVertexChain(firstArg.Object()) {
 			return iterator.NewNull()
 		}
 
+		// Create the loop iterator: first, create an entry point iterator.
 		loopEntryIt := iterator.NewEntryPoint(subIt)
+		// Then create a loop iterator on top of the entry point.
 		loopIt := buildIteratorTreeHelper(firstArg.Object(), ts, loopEntryIt)
 
-		// Parse the number of loops to execute
+		// Parse the number of loops to execute.
+		// bounded=false means it will loop until no more results are produced.
 		noLoops := 0
 		bounded := false
 		if secondArg.IsNumber() {
@@ -356,20 +358,23 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			thirdArg = secondArg
 		}
 
-		// If the number of loops is negative, the loop is unbounded
+		// If the number of loops is le 0, the loop is unbounded
 		if noLoops <= 0 {
 			bounded = false
 		} else {
 			bounded = true
 		}
 
+		// Create the filter iterator
 		filterEntryIt := iterator.NewEntryPoint(nil)
 		var filterIt graph.Iterator
 		if thirdArg.IsNull() || thirdArg.IsUndefined() {
+			// There is no filter morphism, use the entry point as a filter.
 			filterIt = filterEntryIt
 		} else if isVertexChain(thirdArg.Object()) {
 			return iterator.NewNull()
 		} else {
+			// There is a filter morphism, create the filter iterator based on the entry point.
 			filterIt = buildIteratorTreeHelper(thirdArg.Object(), ts, filterEntryIt)
 		}
 

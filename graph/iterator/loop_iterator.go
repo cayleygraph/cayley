@@ -7,6 +7,14 @@ import (
 	"github.com/google/cayley/graph"
 )
 
+// Loop implements a loop operator. Composed of the following members:
+// - baseIt - the iterator composing the query preceding the loop.
+// - loopIt - an iterator implementing the loop morph query; has an EntryPoint iterator as starting point.
+// - loopEntryIt - the starting point for the loop iterator; knowing this allows us to plug and change the source iterator
+// - filterIt - an iterator implementing the filtering part of the loop; has an EntryPoint iterator as starting point
+// - filterEntryIt - the starting point for the filter iterator; allows to plug and change the source iterator
+// - prevValuesIt - the results obtained for each loop iteration will be stored in this iterator;
+//					this allows us to use this iterator as source for the next loop
 type Loop struct {
 	uid            uint64
 	tags           graph.Tagger
@@ -50,6 +58,7 @@ func (it *Loop) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
+// TODO
 func (it *Loop) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
@@ -63,6 +72,7 @@ func (it *Loop) TagResults(dst map[string]graph.Value) {
 	it.loopIt.TagResults(dst)
 }
 
+// TODO
 func (it *Loop) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	if it.loopIt.Contains(val) {
@@ -71,6 +81,7 @@ func (it *Loop) Contains(val graph.Value) bool {
 	return graph.ContainsLogOut(it, val, false)
 }
 
+// TODO
 func (it *Loop) Clone() graph.Iterator {
 	out := NewLoop(it.ts, it.baseIt, it.loopIt, it.filterIt, it.loopEntryIt, it.filterEntryIt, it.loops, it.bounded)
 	out.tags.CopyFrom(it)
@@ -116,20 +127,18 @@ func (it *Loop) advanceLoop() {
 	it.prevValuesIt = it.ts.FixedIterator()
 }
 
+// checkFilter checks whether a value is expandable using the filter iterator.
 func (it *Loop) checkFilter(value graph.Value) bool {
+	// Create a fixed iterator containing the value
 	fixed := it.ts.FixedIterator()
 	fixed.Add(value)
 
+	// Set is as the source for the filter iterator.
 	it.filterEntryIt.SetIterator(fixed)
 	it.filterIt.Reset()
 
-	//fmt.Println("Before add value")
-	//it.filterEntryIt.Add(value)
-	//fmt.Println("After add value")
-
-	//fmt.Println("Before next")
+	// Check if the filter has a next value.
 	answer := graph.Next(it.filterIt)
-	//fmt.Println("After next")
 	return answer
 }
 
@@ -148,11 +157,12 @@ func (it *Loop) next() bool {
 
 	for i := 0; ; i++ {
 		if found := graph.Next(it.loopIt); !found {
-			// A value has not been found, try looping again
+			// A value has not been found, try a new loop iteration.
 			it.advanceLoop()
 			return it.next()
 		}
 
+		// For a found value, we must check it passes the filter.
 		if it.checkFilter(it.loopIt.Result()) {
 			// A value has been found.
 			it.result = it.loopIt.Result()
@@ -168,10 +178,12 @@ func (it *Loop) Result() graph.Value {
 	return it.result
 }
 
+// TODO
 func (it *Loop) NextPath() bool {
 	return it.loopIt.NextPath()
 }
 
+// TODO
 func (it *Loop) Stats() graph.IteratorStats {
 	subitStats := it.loopIt.Stats()
 	// TODO(barakmich): These should really come from the triplestore itself
@@ -197,10 +209,12 @@ func (it *Loop) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
+// TODO
 func (it *Loop) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.baseIt, it.loopIt}
 }
 
+// TODO
 func (it *Loop) DebugString(indent int) string {
 	return fmt.Sprintf("%s(%s %d \n%s)",
 		strings.Repeat(" ", indent),
@@ -210,6 +224,7 @@ func (it *Loop) DebugString(indent int) string {
 func (it *Loop) Close() {
 	it.baseIt.Close()
 	it.loopIt.Close()
+	it.filterIt.Close()
 }
 
 // DEPRECATED
