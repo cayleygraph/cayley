@@ -21,123 +21,121 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-func embedTraversals(env *otto.Otto, ses *Session, obj *otto.Object) {
-	obj.Set("In", gremlinFunc("in", obj, env, ses))
-	obj.Set("Out", gremlinFunc("out", obj, env, ses))
-	obj.Set("Is", gremlinFunc("is", obj, env, ses))
-	obj.Set("Both", gremlinFunc("both", obj, env, ses))
-	obj.Set("Follow", gremlinFunc("follow", obj, env, ses))
-	obj.Set("FollowR", gremlinFollowR("followr", obj, env, ses))
-	obj.Set("And", gremlinFunc("and", obj, env, ses))
-	obj.Set("Intersect", gremlinFunc("and", obj, env, ses))
-	obj.Set("Union", gremlinFunc("or", obj, env, ses))
-	obj.Set("Or", gremlinFunc("or", obj, env, ses))
-	obj.Set("Back", gremlinBack("back", obj, env, ses))
-	obj.Set("Tag", gremlinFunc("tag", obj, env, ses))
-	obj.Set("As", gremlinFunc("tag", obj, env, ses))
-	obj.Set("Has", gremlinFunc("has", obj, env, ses))
-	obj.Set("Save", gremlinFunc("save", obj, env, ses))
-	obj.Set("SaveR", gremlinFunc("saver", obj, env, ses))
+func (wk *worker) embedTraversals(env *otto.Otto, obj *otto.Object) {
+	obj.Set("In", wk.gremlinFunc("in", obj, env))
+	obj.Set("Out", wk.gremlinFunc("out", obj, env))
+	obj.Set("Is", wk.gremlinFunc("is", obj, env))
+	obj.Set("Both", wk.gremlinFunc("both", obj, env))
+	obj.Set("Follow", wk.gremlinFunc("follow", obj, env))
+	obj.Set("FollowR", wk.gremlinFollowR("followr", obj, env))
+	obj.Set("And", wk.gremlinFunc("and", obj, env))
+	obj.Set("Intersect", wk.gremlinFunc("and", obj, env))
+	obj.Set("Union", wk.gremlinFunc("or", obj, env))
+	obj.Set("Or", wk.gremlinFunc("or", obj, env))
+	obj.Set("Back", wk.gremlinBack("back", obj, env))
+	obj.Set("Tag", wk.gremlinFunc("tag", obj, env))
+	obj.Set("As", wk.gremlinFunc("tag", obj, env))
+	obj.Set("Has", wk.gremlinFunc("has", obj, env))
+	obj.Set("Save", wk.gremlinFunc("save", obj, env))
+	obj.Set("SaveR", wk.gremlinFunc("saver", obj, env))
 }
 
-func gremlinFunc(kind string, prevObj *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
+func (wk *worker) gremlinFunc(kind string, prev *otto.Object, env *otto.Otto) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
 		out.Set("_gremlin_type", kind)
 		out.Set("_gremlin_values", call.ArgumentList)
-		out.Set("_gremlin_prev", prevObj)
-		outStrings := concatStringArgs(call)
-		if len(*outStrings) > 0 {
-			out.Set("string_args", *outStrings)
+		out.Set("_gremlin_prev", prev)
+		args := argsOf(call)
+		if len(args) > 0 {
+			out.Set("string_args", args)
 		}
-		embedTraversals(env, ses, out)
+		wk.embedTraversals(env, out)
 		if isVertexChain(call.This.Object()) {
-			embedFinals(env, ses, out)
+			wk.embedFinals(env, out)
 		}
 		return out.Value()
 	}
 }
 
-func gremlinBack(kind string, prevObj *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
+func (wk *worker) gremlinBack(kind string, prev *otto.Object, env *otto.Otto) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
 		out.Set("_gremlin_type", kind)
 		out.Set("_gremlin_values", call.ArgumentList)
-		outStrings := concatStringArgs(call)
-		if len(*outStrings) > 0 {
-			out.Set("string_args", *outStrings)
+		args := argsOf(call)
+		if len(args) > 0 {
+			out.Set("string_args", args)
 		}
 		var otherChain *otto.Object
 		var thisObj *otto.Object
-		if len(*outStrings) != 0 {
-			otherChain, thisObj = reverseGremlinChainTo(call.Otto, prevObj, (*outStrings)[0].(string))
+		if len(args) != 0 {
+			otherChain, thisObj = reverseGremlinChainTo(call.Otto, prev, args[0])
 		} else {
-			otherChain, thisObj = reverseGremlinChainTo(call.Otto, prevObj, "")
+			otherChain, thisObj = reverseGremlinChainTo(call.Otto, prev, "")
 		}
 		out.Set("_gremlin_prev", thisObj)
 		out.Set("_gremlin_back_chain", otherChain)
-		embedTraversals(env, ses, out)
+		wk.embedTraversals(env, out)
 		if isVertexChain(call.This.Object()) {
-			embedFinals(env, ses, out)
+			wk.embedFinals(env, out)
 		}
 		return out.Value()
-
 	}
 }
 
-func gremlinFollowR(kind string, prevObj *otto.Object, env *otto.Otto, ses *Session) func(otto.FunctionCall) otto.Value {
+func (wk *worker) gremlinFollowR(kind string, prev *otto.Object, env *otto.Otto) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		call.Otto.Run("var out = {}")
 		out, _ := call.Otto.Object("out")
 		out.Set("_gremlin_type", kind)
 		out.Set("_gremlin_values", call.ArgumentList)
-		outStrings := concatStringArgs(call)
-		if len(*outStrings) > 0 {
-			out.Set("string_args", *outStrings)
+		args := argsOf(call)
+		if len(args) > 0 {
+			out.Set("string_args", args)
 		}
 		if len(call.ArgumentList) == 0 {
-			return prevObj.Value()
+			return prev.Value()
 		}
 		arg := call.Argument(0)
 		if isVertexChain(arg.Object()) {
-			return prevObj.Value()
+			return prev.Value()
 		}
 		newChain, _ := reverseGremlinChainTo(call.Otto, arg.Object(), "")
-		out.Set("_gremlin_prev", prevObj)
+		out.Set("_gremlin_prev", prev)
 		out.Set("_gremlin_followr", newChain)
-		embedTraversals(env, ses, out)
+		wk.embedTraversals(env, out)
 		if isVertexChain(call.This.Object()) {
-			embedFinals(env, ses, out)
+			wk.embedFinals(env, out)
 		}
 		return out.Value()
-
 	}
 }
 
-func reverseGremlinChainTo(env *otto.Otto, prevObj *otto.Object, tag string) (*otto.Object, *otto.Object) {
+func reverseGremlinChainTo(env *otto.Otto, prev *otto.Object, tag string) (*otto.Object, *otto.Object) {
 	env.Run("var _base_object = {}")
 	base, err := env.Object("_base_object")
 	if err != nil {
 		glog.Error(err)
 		return otto.NullValue().Object(), otto.NullValue().Object()
 	}
-	if isVertexChain(prevObj) {
+	if isVertexChain(prev) {
 		base.Set("_gremlin_type", "vertex")
 	} else {
 		base.Set("_gremlin_type", "morphism")
 	}
-	return reverseGremlinChainHelper(env, prevObj, base, tag)
+	return reverseGremlinChainHelper(env, prev, base, tag)
 }
 
 func reverseGremlinChainHelper(env *otto.Otto, chain *otto.Object, newBase *otto.Object, tag string) (*otto.Object, *otto.Object) {
 	kindVal, _ := chain.Get("_gremlin_type")
-	kind, _ := kindVal.ToString()
+	kind := kindVal.String()
 
 	if tag != "" {
 		if kind == "tag" {
-			tags := getStringArgs(chain)
+			tags := propertiesOf(chain, "string_args")
 			for _, t := range tags {
 				if t == tag {
 					return newBase, chain
@@ -174,8 +172,7 @@ func reverseGremlinChainHelper(env *otto.Otto, chain *otto.Object, newBase *otto
 
 func debugChain(obj *otto.Object) bool {
 	val, _ := obj.Get("_gremlin_type")
-	x, _ := val.ToString()
-	glog.V(2).Infoln(x)
+	glog.V(2).Infoln(val)
 	val, _ = obj.Get("_gremlin_prev")
 	if val.IsObject() {
 		return debugChain(val.Object())

@@ -257,7 +257,7 @@ func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
 	for res := range c {
 		data := res.(*Result)
 		if data.val == nil {
-			val := (*data.actualResults)[tag]
+			val := data.actualResults[tag]
 			if val != nil {
 				results = append(results, js.ts.NameOf(val))
 			}
