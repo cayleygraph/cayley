@@ -29,8 +29,9 @@ import (
 const DefaultKeyspace = "cayley"
 
 type QuadStore struct {
-	sess *gocql.Session
-	size int64
+	sess    *gocql.Session
+	size    int64
+	horizon int64
 }
 
 func getAllAddresses(addr string, options graph.Options) []string {
@@ -54,78 +55,6 @@ func clusterWithOptions(addr string, options graph.Options) *gocql.ClusterConfig
 	return cluster
 }
 
-func CreateNewCassandraGraph(addr string, options graph.Options) bool {
-	cluster := clusterWithOptions(addr, options)
-	cluster.Consistency = gocql.All
-	session, err := cluster.CreateSession()
-	if err != nil {
-		glog.Fatalln("Could not create a Cassandra graph:", err)
-		return false
-	}
-	err = session.Query(`
-	CREATE TABLE triples_by_s (
-		subject text,
-		predicate text,
-		object text,
-		provenance text,
-		PRIMARY KEY (subject, predicate, object, provenance)
-	)
-	`).Exec()
-	if err != nil {
-		glog.Fatalln("Could not create table triples_by_s:", err)
-	}
-	err = session.Query(`
-	CREATE TABLE triples_by_p (
-		subject text,
-		predicate text,
-		object text,
-		provenance text,
-		PRIMARY KEY (predicate, object, subject, provenance)
-	)
-	`).Exec()
-	if err != nil {
-		glog.Fatalln("Could not create table triples_by_p:", err)
-	}
-	err = session.Query(`
-	CREATE TABLE triples_by_o (
-		subject text,
-		predicate text,
-		object text,
-		provenance text,
-		PRIMARY KEY (object, subject, predicate, provenance)
-	)
-	`).Exec()
-	if err != nil {
-		glog.Fatalln("Could not create table triples_by_o:", err)
-	}
-	err = session.Query(`
-	CREATE TABLE triples_by_c (
-		subject text,
-		predicate text,
-		object text,
-		provenance text,
-		PRIMARY KEY (provenance, subject, predicate, object)
-	)
-	`).Exec()
-	if err != nil {
-		glog.Fatalln("Could not create table triples_by_c:", err)
-	}
-	err = session.Query(`
-	CREATE TABLE nodes (
-		node text,
-		subject_count counter,
-		predicate_count counter,
-		object_count counter,
-		provenance_count counter,
-		PRIMARY KEY (node)
-	)
-	`).Exec()
-	if err != nil {
-		glog.Fatalln("Could not create table nodes:", err)
-	}
-	return true
-}
-
 func NewQuadStore(addr string, options graph.Options) graph.TripleStore {
 	cluster := clusterWithOptions(addr, options)
 	session, err := cluster.CreateSession()
@@ -135,7 +64,7 @@ func NewQuadStore(addr string, options graph.Options) graph.TripleStore {
 
 	qs := &QuadStore{}
 	qs.sess = session
-	session.Query("SELECT COUNT(*) FROM triples_by_s").Scan(&qs.size)
+	session.Query("SELECT COUNT(*) FROM quads_by_s").Scan(&qs.size)
 	return qs
 }
 
@@ -143,31 +72,43 @@ func (qs *QuadStore) Close() {
 	qs.sess.Close()
 }
 
-var tables = []string{"triples_by_s", "triples_by_p", "triples_by_o", "triples_by_c"}
+var tables = []string{"quads_by_s", "quads_by_p", "quads_by_o", "quads_by_c"}
 
-func (qs *QuadStore) addTripleToBatch(t *quad.Quad, data *gocql.Batch, count *gocql.Batch) {
+func (qs *QuadStore) addDeltaToBatch(d graph.Delta, data *gocql.Batch, count *gocql.Batch) {
 	data.Cons = gocql.Quorum
+	q := &d.Quad
 	for _, table := range tables {
-		if t.Label == "" && table == "triples_by_c" {
+		if q.Label == "" && table == "quads_by_c" {
 			continue
 		}
-		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, provenance) VALUES (?, ?, ?, ?)")
-		data.Query(query, t.Subject, t.Predicate, t.Object, t.Label)
+		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, label, created) VALUES (?, ?, ?, ?)")
+		data.Query(query, q.Subject, q.Predicate, q.Object, q.Label, d.ID)
 	}
 	count.Cons = gocql.Quorum
 	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
-		if t.Get(dir) == "" {
+		if q.Get(dir) == "" {
 			continue
 		}
 		query := fmt.Sprint("UPDATE nodes SET ", dir, "_count = ", dir, "_count + 1 WHERE node = ?")
-		count.Query(query, t.Get(dir))
+		count.Query(query, q.Get(dir))
 	}
 }
 
-func (qs *QuadStore) AddTriple(t *quad.Quad) {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	batch := qs.sess.NewBatch(gocql.LoggedBatch)
 	counter_batch := qs.sess.NewBatch(gocql.CounterBatch)
-	qs.addTripleToBatch(t, batch, counter_batch)
+	new_size := qs.size
+	new_horizon := qs.horizon
+	for _, d := range deltas {
+		if d.Action == graph.Add {
+			qs.addTripleToBatch(t, batch, counter_batch)
+		}
+
+	}
+
+}
+
+func (qs *QuadStore) AddTriple(t *quad.Quad) {
 	err := qs.sess.ExecuteBatch(batch)
 	if err != nil {
 		glog.Errorln("Couldn't write triple:", t, ", ", err)
