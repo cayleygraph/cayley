@@ -37,6 +37,16 @@ const (
 	Delete Procedure = -1
 )
 
+func (p Procedure) String() string {
+	switch p {
+	case Add:
+		return "add"
+	case Delete:
+		return "delete"
+	}
+	panic("Unknown procedure type.")
+}
+
 type Delta struct {
 	ID        PrimaryKey
 	Quad      quad.Quad

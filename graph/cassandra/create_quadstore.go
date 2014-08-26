@@ -21,13 +21,13 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-func CreateNewCassandraGraph(addr string, options graph.Options) bool {
+func createNewCassandraGraph(addr string, options graph.Options) error {
 	cluster := clusterWithOptions(addr, options)
 	cluster.Consistency = gocql.All
 	session, err := cluster.CreateSession()
 	if err != nil {
-		glog.Fatalln("Could not create a Cassandra graph:", err)
-		return false
+		glog.Errorln("Could not create a Cassandra graph:", err)
+		return err
 	}
 	err = session.Query(`
 	CREATE TABLE quads_by_s (
@@ -41,7 +41,8 @@ func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	)
 	`).Exec()
 	if err != nil {
-		glog.Fatalln("Could not create table quads_by_s:", err)
+		glog.Errorln("Could not create table quads_by_s:", err)
+		return err
 	}
 	err = session.Query(`
 	CREATE TABLE quads_by_p (
@@ -55,7 +56,8 @@ func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	)
 	`).Exec()
 	if err != nil {
-		glog.Fatalln("Could not create table quads_by_p:", err)
+		glog.Errorln("Could not create table quads_by_p:", err)
+		return err
 	}
 	err = session.Query(`
 	CREATE TABLE quads_by_o (
@@ -69,7 +71,8 @@ func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	)
 	`).Exec()
 	if err != nil {
-		glog.Fatalln("Could not create table quads_by_o:", err)
+		glog.Errorln("Could not create table quads_by_o:", err)
+		return err
 	}
 	err = session.Query(`
 	CREATE TABLE quads_by_c (
@@ -83,7 +86,8 @@ func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	)
 	`).Exec()
 	if err != nil {
-		glog.Fatalln("Could not create table triples_by_c:", err)
+		glog.Errorln("Could not create table triples_by_c:", err)
+		return err
 	}
 	err = session.Query(`
 	CREATE TABLE log (
@@ -98,7 +102,8 @@ func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	)
 	`).Exec()
 	if err != nil {
-		glog.Fatalln("Could not create table triples_by_c:", err)
+		glog.Errorln("Could not create table triples_by_c:", err)
+		return err
 	}
 	err = session.Query(`
 	CREATE TABLE nodes (
@@ -111,7 +116,9 @@ func CreateNewCassandraGraph(addr string, options graph.Options) bool {
 	)
 	`).Exec()
 	if err != nil {
-		glog.Fatalln("Could not create table nodes:", err)
+		glog.Errorln("Could not create table nodes:", err)
+		return err
 	}
-	return true
+	session.Close()
+	return nil
 }

@@ -26,6 +26,10 @@ import (
 	"github.com/google/cayley/quad"
 )
 
+func init() {
+	graph.RegisterTripleStore("cassandra", true, newQuadStore, createNewCassandraGraph)
+}
+
 const DefaultKeyspace = "cayley"
 
 type QuadStore struct {
@@ -55,17 +59,17 @@ func clusterWithOptions(addr string, options graph.Options) *gocql.ClusterConfig
 	return cluster
 }
 
-func NewQuadStore(addr string, options graph.Options) graph.TripleStore {
+func newQuadStore(addr string, options graph.Options) (graph.TripleStore, error) {
 	cluster := clusterWithOptions(addr, options)
 	session, err := cluster.CreateSession()
 	if err != nil {
-		glog.Fatalln("Could not connect to Cassandra graph:", err)
+		return nil, err
 	}
 
 	qs := &QuadStore{}
 	qs.sess = session
-	session.Query("SELECT COUNT(*) FROM quads_by_s").Scan(&qs.size)
-	return qs
+	session.Query("SELECT id, size FROM log ORDER BY id DESC LIMIT 1").Scan(&qs.horizon, &qs.size)
+	return qs, nil
 }
 
 func (qs *QuadStore) Close() {
@@ -74,7 +78,7 @@ func (qs *QuadStore) Close() {
 
 var tables = []string{"quads_by_s", "quads_by_p", "quads_by_o", "quads_by_c"}
 
-func (qs *QuadStore) addDeltaToBatch(d graph.Delta, data *gocql.Batch, count *gocql.Batch) {
+func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *gocql.Batch) {
 	data.Cons = gocql.Quorum
 	q := &d.Quad
 	for _, table := range tables {
@@ -94,50 +98,52 @@ func (qs *QuadStore) addDeltaToBatch(d graph.Delta, data *gocql.Batch, count *go
 	}
 }
 
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
-	batch := qs.sess.NewBatch(gocql.LoggedBatch)
-	counter_batch := qs.sess.NewBatch(gocql.CounterBatch)
-	new_size := qs.size
-	new_horizon := qs.horizon
-	for _, d := range deltas {
-		if d.Action == graph.Add {
-			qs.addTripleToBatch(t, batch, counter_batch)
-		}
-
-	}
-
+func (qs *QuadStore) addDeltaToLog(d graph.Delta, data *gocql.Batch, size int64) {
+	data.Query(
+		"INSERT INTO log (id, size, timestamp, action, subject, predicate, object, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		d.ID,
+		size,
+		d.Timestamp,
+		d.Action.String(),
+		d.Quad.Subject,
+		d.Quad.Predicate,
+		d.Quad.Object,
+		d.Quad.Label,
+	)
 }
 
-func (qs *QuadStore) AddTriple(t *quad.Quad) {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
+	batch := qs.sess.NewBatch(gocql.LoggedBatch)
+	counterBatch := qs.sess.NewBatch(gocql.CounterBatch)
+	newSize := qs.size
+	newHorizon := qs.horizon
+	for _, d := range deltas {
+		if d.Action == graph.Add {
+			newSize++
+			qs.addDeltaToLog(d, batch, newSize)
+			qs.addQuadToBatch(d, batch, counterBatch)
+		} else if d.Action == graph.Delete {
+			newSize--
+		}
+		newHorizon = d.ID
+	}
+
 	err := qs.sess.ExecuteBatch(batch)
 	if err != nil {
-		glog.Errorln("Couldn't write triple:", t, ", ", err)
+		glog.Errorf("Couldn't write log batch: %x-%x", deltas[0].ID, deltas[len(deltas)-1].ID)
+		return err
 	}
-	err = qs.sess.ExecuteBatch(counter_batch)
+	err = qs.sess.ExecuteBatch(counterBatch)
 	if err != nil {
-		glog.Errorln("Couldn't write triple:", t, ", ", err)
+		glog.Errorf("Couldn't write node stats batch: %x-%x", deltas[0].ID, deltas[len(deltas)-1].ID)
+		return err
 	}
-	qs.size += 1
+	qs.size = newSize
+	qs.horizon = newHorizon
+	return nil
 }
 
 func (qs *QuadStore) RemoveTriple(t *quad.Quad) {
-}
-
-func (qs *QuadStore) AddTripleSet(set []*quad.Quad) {
-	batch := qs.sess.NewBatch(gocql.LoggedBatch)
-	counter_batch := qs.sess.NewBatch(gocql.CounterBatch)
-	for _, t := range set {
-		qs.addTripleToBatch(t, batch, counter_batch)
-	}
-	err := qs.sess.ExecuteBatch(batch)
-	if err != nil {
-		glog.Errorln("Couldn't write tripleset:", err)
-	}
-	err = qs.sess.ExecuteBatch(counter_batch)
-	if err != nil {
-		glog.Errorln("Couldn't write tripleset:", err)
-	}
-	qs.size += int64(len(set))
 }
 
 func (qs *QuadStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
@@ -172,12 +178,16 @@ func (qs *QuadStore) NameOf(val graph.Value) string {
 	return val.(string)
 }
 
-func (qs *QuadStore) TripleDirection(triple_id graph.Value, d quad.Direction) graph.Value {
-	return qs.ValueOf(qs.Quad(triple_id).Get(d))
+func (qs *QuadStore) TripleDirection(quad graph.Value, d quad.Direction) graph.Value {
+	return qs.ValueOf(qs.Quad(quad).Get(d))
 }
 
 func (qs *QuadStore) Size() int64 {
 	return qs.size
+}
+
+func (qs *QuadStore) Horizon() int64 {
+	return qs.horizon
 }
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
