@@ -54,9 +54,9 @@ func NewIterator(qs *QuadStore, d quad.Direction, val graph.Value) graph.Iterato
 		val: val.(string),
 	}
 	it.isNode = false
-	it.table = fmt.Sprint("triples_by_", string(d.Prefix()))
+	it.table = fmt.Sprint("quads_by_", string(d.Prefix()))
 	if it.dir == quad.Any {
-		it.table = "triples_by_s"
+		it.table = "quads_by_s"
 	}
 	return it
 }
@@ -153,7 +153,7 @@ func (it *Iterator) prepareIterator() {
 	} else {
 		it.iter = it.qs.sess.Query(
 			fmt.Sprint(
-				"SELECT subject, predicate, object, provenance FROM ",
+				"SELECT subject, predicate, object, label FROM ",
 				it.table,
 				" WHERE ",
 				it.dir,
@@ -163,7 +163,7 @@ func (it *Iterator) prepareIterator() {
 	}
 }
 
-func (it *Iterator) Next() (graph.Value, bool) {
+func (it *Iterator) Next() bool {
 	if it.iter == nil {
 		it.prepareIterator()
 	}
@@ -173,7 +173,7 @@ func (it *Iterator) Next() (graph.Value, bool) {
 	return it.tripleNext()
 }
 
-func (it *Iterator) nodeNext() (graph.Value, bool) {
+func (it *Iterator) nodeNext() bool {
 	var node string
 	ok := it.iter.Scan(&node)
 	if !ok {
@@ -181,13 +181,13 @@ func (it *Iterator) nodeNext() (graph.Value, bool) {
 		if err != nil {
 			glog.Errorln("Iterator failed with", err)
 		}
-		return nil, false
+		return false
 	}
 	it.result = node
-	return node, true
+	return true
 }
 
-func (it *Iterator) tripleNext() (graph.Value, bool) {
+func (it *Iterator) tripleNext() bool {
 	q := quad.Quad{}
 	ok := it.iter.Scan(
 		&q.Subject,
@@ -200,10 +200,10 @@ func (it *Iterator) tripleNext() (graph.Value, bool) {
 		if err != nil {
 			glog.Errorln("Iterator failed with", err)
 		}
-		return nil, false
+		return false
 	}
 	it.result = q
-	return q, true
+	return true
 }
 
 func (it *Iterator) Size() (int64, bool) {

@@ -68,7 +68,16 @@ func newQuadStore(addr string, options graph.Options) (graph.TripleStore, error)
 
 	qs := &QuadStore{}
 	qs.sess = session
-	session.Query("SELECT id, size FROM log ORDER BY id DESC LIMIT 1").Scan(&qs.horizon, &qs.size)
+	qs.size = 0
+	qs.horizon = -1
+	err = session.Query("SELECT value FROM metadata WHERE meta_key = ?", "size").Scan(&qs.size)
+	if err != nil && err != gocql.ErrNotFound {
+		return nil, err
+	}
+	err = session.Query("SELECT value FROM metadata WHERE meta_key = ?", "horizon").Scan(&qs.horizon)
+	if err != nil && err != gocql.ErrNotFound {
+		return nil, err
+	}
 	return qs, nil
 }
 
@@ -85,7 +94,7 @@ func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *goc
 		if q.Label == "" && table == "quads_by_c" {
 			continue
 		}
-		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, label, created) VALUES (?, ?, ?, ?)")
+		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, label, created) VALUES (?, ?, ?, ?, ?)")
 		data.Query(query, q.Subject, q.Predicate, q.Object, q.Label, d.ID)
 	}
 	count.Cons = gocql.Quorum
@@ -112,6 +121,11 @@ func (qs *QuadStore) addDeltaToLog(d graph.Delta, data *gocql.Batch, size int64)
 	)
 }
 
+func (qs *QuadStore) updateMetadata(data *gocql.Batch, size int64, horizon int64) {
+	data.Query("UPDATE metadata SET value = ? WHERE meta_key = ?", size, "size")
+	data.Query("UPDATE metadata SET value = ? WHERE meta_key = ?", horizon, "horizon")
+}
+
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	batch := qs.sess.NewBatch(gocql.LoggedBatch)
 	counterBatch := qs.sess.NewBatch(gocql.CounterBatch)
@@ -127,6 +141,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 		}
 		newHorizon = d.ID
 	}
+
+	qs.updateMetadata(batch, newSize, newHorizon)
 
 	err := qs.sess.ExecuteBatch(batch)
 	if err != nil {

@@ -30,6 +30,22 @@ func createNewCassandraGraph(addr string, options graph.Options) error {
 		return err
 	}
 	err = session.Query(`
+	CREATE TABLE log (
+		id bigint PRIMARY KEY,
+		size bigint,
+		timestamp timestamp,
+		action text,
+		subject text,
+		predicate text,
+		object text,
+		label text,
+	)
+	`).Exec()
+	if err != nil {
+		glog.Errorln("Could not create table log:", err)
+		return err
+	}
+	err = session.Query(`
 	CREATE TABLE quads_by_s (
 		subject text,
 		predicate text,
@@ -90,22 +106,6 @@ func createNewCassandraGraph(addr string, options graph.Options) error {
 		return err
 	}
 	err = session.Query(`
-	CREATE TABLE log (
-		id bigint PRIMARY KEY,
-		size bigint,
-		timestamp timestamp,
-		action text,
-		subject text,
-		predicate text,
-		object text,
-		label text,
-	)
-	`).Exec()
-	if err != nil {
-		glog.Errorln("Could not create table triples_by_c:", err)
-		return err
-	}
-	err = session.Query(`
 	CREATE TABLE nodes (
 		node text,
 		subject_count counter,
@@ -117,6 +117,16 @@ func createNewCassandraGraph(addr string, options graph.Options) error {
 	`).Exec()
 	if err != nil {
 		glog.Errorln("Could not create table nodes:", err)
+		return err
+	}
+	err = session.Query(`
+	CREATE TABLE metadata (
+		meta_key text PRIMARY KEY,
+		value bigint,
+	)
+	`).Exec()
+	if err != nil {
+		glog.Errorln("Could not create table metadata:", err)
 		return err
 	}
 	session.Close()

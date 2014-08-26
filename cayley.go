@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/barakmich/glog"
@@ -43,6 +44,7 @@ import (
 
 	// Load all supported backends.
 	_ "github.com/google/cayley/graph/bolt"
+	_ "github.com/google/cayley/graph/cassandra"
 	_ "github.com/google/cayley/graph/leveldb"
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/graph/mongo"
@@ -87,6 +89,13 @@ Commands:
 
 Flags:`)
 	flag.PrintDefaults()
+
+	fmt.Fprintln(os.Stderr, `
+
+Backends supported:
+ `,
+		strings.Join(graph.TripleStores(), "\n  "),
+	)
 }
 
 func init() {
