@@ -27,7 +27,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("cassandra", true, newQuadStore, createNewCassandraGraph)
+	graph.RegisterQuadStore("cassandra", true, newQuadStore, createNewCassandraGraph)
 }
 
 const DefaultKeyspace = "cayley"
@@ -59,7 +59,7 @@ func clusterWithOptions(addr string, options graph.Options) *gocql.ClusterConfig
 	return cluster
 }
 
-func newQuadStore(addr string, options graph.Options) (graph.TripleStore, error) {
+func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	cluster := clusterWithOptions(addr, options)
 	session, err := cluster.CreateSession()
 	if err != nil {
@@ -159,10 +159,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	return nil
 }
 
-func (qs *QuadStore) RemoveTriple(t *quad.Quad) {
-}
-
-func (qs *QuadStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
 	return NewIterator(qs, d, val)
 }
 
@@ -170,7 +167,7 @@ func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 	return NewNodeIterator(qs)
 }
 
-func (qs *QuadStore) TriplesAllIterator() graph.Iterator {
+func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return NewIterator(qs, quad.Any, "")
 }
 
@@ -194,7 +191,7 @@ func (qs *QuadStore) NameOf(val graph.Value) string {
 	return val.(string)
 }
 
-func (qs *QuadStore) TripleDirection(quad graph.Value, d quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(quad graph.Value, d quad.Direction) graph.Value {
 	return qs.ValueOf(qs.Quad(quad).Get(d))
 }
 
@@ -227,7 +224,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 				panic("unexpected size during optimize")
 			}
 			val := primary.Result()
-			newIt := qs.TripleIterator(it.Direction(), val)
+			newIt := qs.QuadIterator(it.Direction(), val)
 			nt := newIt.Tagger()
 			nt.CopyFrom(it)
 			for _, tag := range primary.Tagger().Tags() {
