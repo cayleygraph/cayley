@@ -273,7 +273,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	}
 	offset := PositionOf(val, it.dir, it.qs)
 	if bytes.HasPrefix(val.key[offset:], it.checkId) {
-		// You may ask, why don't we check to see if it's a valid (not deleted) triple
+		// You may ask, why don't we check to see if it's a valid (not deleted) quad
 		// again?
 		//
 		// We've already done that -- in order to get the graph.Value token in the

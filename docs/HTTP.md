@@ -86,7 +86,7 @@ Responses come in the form
 
 #### `/api/v1/write`
 
-POST Body: JSON triples
+POST Body: JSON quads
 
 ```json
 [{
@@ -94,7 +94,7 @@ POST Body: JSON triples
 	"predicate": "Predicate Node",
 	"object": "Object node",
 	"label": "Label node"  // Optional
-}]   // More than one triple allowed.
+}]   // More than one quad allowed.
 ```
 
 Response: JSON response message
@@ -114,7 +114,7 @@ curl http://localhost:64210/api/v1/write/file/nquad -F NQuadFile=@30k.n3
 
 #### `/api/v1/delete`
 
-POST Body: JSON triples
+POST Body: JSON quads
 
 ```json
 [{
@@ -122,7 +122,7 @@ POST Body: JSON triples
 	"predicate": "Predicate Node",
 	"object": "Object node",
 	"label": "Label node"  // Optional
-}]   // More than one triple allowed.
+}]   // More than one quad allowed.
 ```
 
 Response: JSON response message.

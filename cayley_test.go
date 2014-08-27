@@ -20,7 +20,6 @@ import (
 	"compress/gzip"
 	"flag"
 	"fmt"
-	"github.com/google/cayley/quad"
 	"io"
 	"os"
 	"reflect"
@@ -33,6 +32,7 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
 	"github.com/google/cayley/query/gremlin"
 )
 
@@ -373,8 +373,6 @@ var (
 	create            sync.Once
 	deleteAndRecreate sync.Once
 	cfg               = &config.Config{
-		DatabasePath:    "30kmoviedata.nq.gz",
-		DatabaseType:    "memstore",
 		ReplicationType: "single",
 		Timeout:         300 * time.Second,
 	}
@@ -383,17 +381,17 @@ var (
 )
 
 func prepare(t testing.TB) {
+	cfg.DatabaseType = *backend
 	switch *backend {
 	case "memstore":
-		break
-	case "leveldb":
-		fallthrough
-	case "bolt":
-		cfg.DatabaseType = *backend
-		cfg.DatabasePath = fmt.Sprint("/tmp/cayley_test_", *backend)
+		cfg.DatabasePath = "30kmoviedata.nq.gz"
+	case "leveldb", "bolt":
+		cfg.DatabasePath = "/tmp/cayley_test_" + *backend
 		cfg.DatabaseOptions = map[string]interface{}{
 			"nosync": true, // It's a test. If we need to load, do it fast.
 		}
+	case "mongo":
+		cfg.DatabasePath = "localhost:27017"
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
 	}

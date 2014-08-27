@@ -65,14 +65,14 @@ func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 		}
 		dec.line = dec.line[:0]
 	}
-	triple, err := Parse(string(line))
+	q, err := Parse(string(line))
 	if err != nil {
 		return quad.Quad{}, fmt.Errorf("failed to parse %q: %v", dec.line, err)
 	}
-	if !triple.IsValid() {
+	if !q.IsValid() {
 		return dec.Unmarshal()
 	}
-	return triple, nil
+	return q, nil
 }
 
 func unEscape(r []rune, isQuoted, isEscaped bool) string {

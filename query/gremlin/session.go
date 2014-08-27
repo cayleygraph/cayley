@@ -30,7 +30,7 @@ import (
 var ErrKillTimeout = errors.New("query timed out")
 
 type Session struct {
-	ts graph.TripleStore
+	qs graph.QuadStore
 
 	wk      *worker
 	script  *otto.Script
@@ -45,10 +45,10 @@ type Session struct {
 	err error
 }
 
-func NewSession(ts graph.TripleStore, timeout time.Duration, persist bool) *Session {
+func NewSession(qs graph.QuadStore, timeout time.Duration, persist bool) *Session {
 	g := Session{
-		ts:      ts,
-		wk:      newWorker(ts),
+		qs:      qs,
+		wk:      newWorker(qs),
 		timeout: timeout,
 	}
 	if persist {
@@ -185,7 +185,7 @@ func (s *Session) ToText(result interface{}) string {
 			if k == "$_" {
 				continue
 			}
-			out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf(tags[k]))
+			out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
 		}
 	} else {
 		if data.val.IsObject() {
@@ -217,7 +217,7 @@ func (s *Session) BuildJson(result interface{}) {
 			}
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
-				obj[k] = s.ts.NameOf(tags[k])
+				obj[k] = s.qs.NameOf(tags[k])
 			}
 			s.dataOutput = append(s.dataOutput, obj)
 		} else {

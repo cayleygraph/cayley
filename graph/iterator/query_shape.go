@@ -37,47 +37,47 @@ type Link struct {
 type queryShape struct {
 	nodes    []Node
 	links    []Link
-	ts       graph.TripleStore
+	qs       graph.QuadStore
 	nodeId   int
 	hasaIds  []int
 	hasaDirs []quad.Direction
 }
 
-func OutputQueryShapeForIterator(it graph.Iterator, ts graph.TripleStore, outputMap map[string]interface{}) {
-	qs := &queryShape{
-		ts:     ts,
+func OutputQueryShapeForIterator(it graph.Iterator, qs graph.QuadStore, outputMap map[string]interface{}) {
+	s := &queryShape{
+		qs:     qs,
 		nodeId: 1,
 	}
 
-	node := qs.MakeNode(it.Clone())
-	qs.AddNode(node)
-	outputMap["nodes"] = qs.nodes
-	outputMap["links"] = qs.links
+	node := s.MakeNode(it.Clone())
+	s.AddNode(node)
+	outputMap["nodes"] = s.nodes
+	outputMap["links"] = s.links
 }
 
-func (qs *queryShape) AddNode(n *Node) {
-	qs.nodes = append(qs.nodes, *n)
+func (s *queryShape) AddNode(n *Node) {
+	s.nodes = append(s.nodes, *n)
 }
 
-func (qs *queryShape) AddLink(l *Link) {
-	qs.links = append(qs.links, *l)
+func (s *queryShape) AddLink(l *Link) {
+	s.links = append(s.links, *l)
 }
 
-func (qs *queryShape) LastHasa() (int, quad.Direction) {
-	return qs.hasaIds[len(qs.hasaIds)-1], qs.hasaDirs[len(qs.hasaDirs)-1]
+func (s *queryShape) LastHasa() (int, quad.Direction) {
+	return s.hasaIds[len(s.hasaIds)-1], s.hasaDirs[len(s.hasaDirs)-1]
 }
 
-func (qs *queryShape) PushHasa(i int, d quad.Direction) {
-	qs.hasaIds = append(qs.hasaIds, i)
-	qs.hasaDirs = append(qs.hasaDirs, d)
+func (s *queryShape) PushHasa(i int, d quad.Direction) {
+	s.hasaIds = append(s.hasaIds, i)
+	s.hasaDirs = append(s.hasaDirs, d)
 }
 
-func (qs *queryShape) RemoveHasa() {
-	qs.hasaIds = qs.hasaIds[:len(qs.hasaIds)-1]
-	qs.hasaDirs = qs.hasaDirs[:len(qs.hasaDirs)-1]
+func (s *queryShape) RemoveHasa() {
+	s.hasaIds = s.hasaIds[:len(s.hasaIds)-1]
+	s.hasaDirs = s.hasaDirs[:len(s.hasaDirs)-1]
 }
 
-func (qs *queryShape) StealNode(left *Node, right *Node) {
+func (s *queryShape) StealNode(left *Node, right *Node) {
 	for _, v := range right.Values {
 		left.Values = append(left.Values, v)
 	}
@@ -86,7 +86,7 @@ func (qs *queryShape) StealNode(left *Node, right *Node) {
 	}
 	left.IsLinkNode = left.IsLinkNode || right.IsLinkNode
 	left.IsFixed = left.IsFixed || right.IsFixed
-	for i, link := range qs.links {
+	for i, link := range s.links {
 		rewrite := false
 		if link.LinkNode == right.Id {
 			link.LinkNode = left.Id
@@ -101,13 +101,13 @@ func (qs *queryShape) StealNode(left *Node, right *Node) {
 			rewrite = true
 		}
 		if rewrite {
-			qs.links = append(append(qs.links[:i], qs.links[i+1:]...), link)
+			s.links = append(append(s.links[:i], s.links[i+1:]...), link)
 		}
 	}
 }
 
-func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
-	n := Node{Id: qs.nodeId}
+func (s *queryShape) MakeNode(it graph.Iterator) *Node {
+	n := Node{Id: s.nodeId}
 	for _, tag := range it.Tagger().Tags() {
 		n.Tags = append(n.Tags, tag)
 	}
@@ -118,56 +118,56 @@ func (qs *queryShape) MakeNode(it graph.Iterator) *Node {
 	switch it.Type() {
 	case graph.And:
 		for _, sub := range it.SubIterators() {
-			qs.nodeId++
-			newNode := qs.MakeNode(sub)
+			s.nodeId++
+			newNode := s.MakeNode(sub)
 			if sub.Type() != graph.Or {
-				qs.StealNode(&n, newNode)
+				s.StealNode(&n, newNode)
 			} else {
-				qs.AddNode(newNode)
-				qs.AddLink(&Link{n.Id, newNode.Id, 0, 0})
+				s.AddNode(newNode)
+				s.AddLink(&Link{n.Id, newNode.Id, 0, 0})
 			}
 		}
 	case graph.Fixed:
 		n.IsFixed = true
 		for graph.Next(it) {
-			n.Values = append(n.Values, qs.ts.NameOf(it.Result()))
+			n.Values = append(n.Values, s.qs.NameOf(it.Result()))
 		}
 	case graph.HasA:
 		hasa := it.(*HasA)
-		qs.PushHasa(n.Id, hasa.dir)
-		qs.nodeId++
-		newNode := qs.MakeNode(hasa.primaryIt)
-		qs.AddNode(newNode)
-		qs.RemoveHasa()
+		s.PushHasa(n.Id, hasa.dir)
+		s.nodeId++
+		newNode := s.MakeNode(hasa.primaryIt)
+		s.AddNode(newNode)
+		s.RemoveHasa()
 	case graph.Or:
 		for _, sub := range it.SubIterators() {
-			qs.nodeId++
-			newNode := qs.MakeNode(sub)
+			s.nodeId++
+			newNode := s.MakeNode(sub)
 			if sub.Type() == graph.Or {
-				qs.StealNode(&n, newNode)
+				s.StealNode(&n, newNode)
 			} else {
-				qs.AddNode(newNode)
-				qs.AddLink(&Link{n.Id, newNode.Id, 0, 0})
+				s.AddNode(newNode)
+				s.AddLink(&Link{n.Id, newNode.Id, 0, 0})
 			}
 		}
 	case graph.LinksTo:
 		n.IsLinkNode = true
 		lto := it.(*LinksTo)
-		qs.nodeId++
-		newNode := qs.MakeNode(lto.primaryIt)
-		hasaID, hasaDir := qs.LastHasa()
+		s.nodeId++
+		newNode := s.MakeNode(lto.primaryIt)
+		hasaID, hasaDir := s.LastHasa()
 		if (hasaDir == quad.Subject && lto.dir == quad.Object) ||
 			(hasaDir == quad.Object && lto.dir == quad.Subject) {
-			qs.AddNode(newNode)
+			s.AddNode(newNode)
 			if hasaDir == quad.Subject {
-				qs.AddLink(&Link{hasaID, newNode.Id, 0, n.Id})
+				s.AddLink(&Link{hasaID, newNode.Id, 0, n.Id})
 			} else {
-				qs.AddLink(&Link{newNode.Id, hasaID, 0, n.Id})
+				s.AddLink(&Link{newNode.Id, hasaID, 0, n.Id})
 			}
 		} else if lto.primaryIt.Type() == graph.Fixed {
-			qs.StealNode(&n, newNode)
+			s.StealNode(&n, newNode)
 		} else {
-			qs.AddNode(newNode)
+			s.AddNode(newNode)
 		}
 	case graph.Optional:
 		// Unsupported, for the moment

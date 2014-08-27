@@ -1,5 +1,5 @@
 // Defines the And iterator, one of the base iterators. And requires no
-// knowledge of the constituent TripleStore; its sole purpose is to act as an
+// knowledge of the constituent QuadStore; its sole purpose is to act as an
 // intersection operator across the subiterators it is given. If one iterator
 // contains [1,3,5] and another [2,3,4] -- then And is an iterator that
 // 'contains' [3]

@@ -34,11 +34,11 @@ func propertiesOf(obj *otto.Object, name string) []string {
 	return export.([]string)
 }
 
-func buildIteratorTree(obj *otto.Object, ts graph.TripleStore) graph.Iterator {
+func buildIteratorTree(obj *otto.Object, qs graph.QuadStore) graph.Iterator {
 	if !isVertexChain(obj) {
 		return iterator.NewNull()
 	}
-	return buildIteratorTreeHelper(obj, ts, iterator.NewNull())
+	return buildIteratorTreeHelper(obj, qs, iterator.NewNull())
 }
 
 func stringsFrom(obj *otto.Object) []string {
@@ -57,16 +57,16 @@ func stringsFrom(obj *otto.Object) []string {
 	return output
 }
 
-func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator {
+func buildIteratorFromValue(val otto.Value, qs graph.QuadStore) graph.Iterator {
 	if val.IsNull() || val.IsUndefined() {
-		return ts.NodesAllIterator()
+		return qs.NodesAllIterator()
 	}
 	if val.IsPrimitive() {
 		thing, _ := val.Export()
 		switch v := thing.(type) {
 		case string:
-			it := ts.FixedIterator()
-			it.Add(ts.ValueOf(v))
+			it := qs.FixedIterator()
+			it.Add(qs.ValueOf(v))
 			return it
 		default:
 			glog.Errorln("Trying to build unknown primitive value.")
@@ -74,13 +74,13 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 	}
 	switch val.Class() {
 	case "Object":
-		return buildIteratorTree(val.Object(), ts)
+		return buildIteratorTree(val.Object(), qs)
 	case "Array":
 		// Had better be an array of strings
 		strings := stringsFrom(val.Object())
-		it := ts.FixedIterator()
+		it := qs.FixedIterator()
 		for _, x := range strings {
-			it.Add(ts.ValueOf(x))
+			it.Add(qs.ValueOf(x))
 		}
 		return it
 	case "Number":
@@ -90,8 +90,8 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 	case "Date":
 		fallthrough
 	case "String":
-		it := ts.FixedIterator()
-		it.Add(ts.ValueOf(val.String()))
+		it := qs.FixedIterator()
+		it.Add(qs.ValueOf(val.String()))
 		return it
 	default:
 		glog.Errorln("Trying to handle unsupported Javascript value.")
@@ -99,7 +99,7 @@ func buildIteratorFromValue(val otto.Value, ts graph.TripleStore) graph.Iterator
 	}
 }
 
-func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Iterator, isReverse bool) graph.Iterator {
+func buildInOutIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterator, isReverse bool) graph.Iterator {
 	argList, _ := obj.Get("_gremlin_values")
 	if argList.Class() != "GoArray" {
 		glog.Errorln("How is arglist not an array? Return nothing.", argList.Class())
@@ -110,10 +110,10 @@ func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Itera
 	length, _ := lengthVal.ToInteger()
 	var predicateNodeIterator graph.Iterator
 	if length == 0 {
-		predicateNodeIterator = ts.NodesAllIterator()
+		predicateNodeIterator = qs.NodesAllIterator()
 	} else {
 		zero, _ := argArray.Get("0")
-		predicateNodeIterator = buildIteratorFromValue(zero, ts)
+		predicateNodeIterator = buildIteratorFromValue(zero, qs)
 	}
 	if length >= 2 {
 		var tags []string
@@ -132,14 +132,14 @@ func buildInOutIterator(obj *otto.Object, ts graph.TripleStore, base graph.Itera
 	if isReverse {
 		in, out = out, in
 	}
-	lto := iterator.NewLinksTo(ts, base, in)
+	lto := iterator.NewLinksTo(qs, base, in)
 	and := iterator.NewAnd()
-	and.AddSubIterator(iterator.NewLinksTo(ts, predicateNodeIterator, quad.Predicate))
+	and.AddSubIterator(iterator.NewLinksTo(qs, predicateNodeIterator, quad.Predicate))
 	and.AddSubIterator(lto)
-	return iterator.NewHasA(ts, and, out)
+	return iterator.NewHasA(qs, and, out)
 }
 
-func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.Iterator) graph.Iterator {
+func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.Iterator) graph.Iterator {
 	var it graph.Iterator = base
 
 	// TODO: Better error handling
@@ -147,7 +147,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 	if prev, _ := obj.Get("_gremlin_prev"); !prev.IsObject() {
 		subIt = base
 	} else {
-		subIt = buildIteratorTreeHelper(prev.Object(), ts, base)
+		subIt = buildIteratorTreeHelper(prev.Object(), qs, base)
 	}
 
 	stringArgs := propertiesOf(obj, "string_args")
@@ -155,11 +155,11 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 	switch val.String() {
 	case "vertex":
 		if len(stringArgs) == 0 {
-			it = ts.NodesAllIterator()
+			it = qs.NodesAllIterator()
 		} else {
-			fixed := ts.FixedIterator()
+			fixed := qs.FixedIterator()
 			for _, name := range stringArgs {
-				fixed.Add(ts.ValueOf(name))
+				fixed.Add(qs.ValueOf(name))
 			}
 			it = fixed
 		}
@@ -169,7 +169,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			it.Tagger().Add(tag)
 		}
 	case "save":
-		all := ts.NodesAllIterator()
+		all := qs.NodesAllIterator()
 		if len(stringArgs) > 2 || len(stringArgs) == 0 {
 			return iterator.NewNull()
 		}
@@ -178,18 +178,18 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		} else {
 			all.Tagger().Add(stringArgs[0])
 		}
-		predFixed := ts.FixedIterator()
-		predFixed.Add(ts.ValueOf(stringArgs[0]))
+		predFixed := qs.FixedIterator()
+		predFixed.Add(qs.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, quad.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, quad.Object))
-		hasa := iterator.NewHasA(ts, subAnd, quad.Subject)
+		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
+		subAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
+		hasa := iterator.NewHasA(qs, subAnd, quad.Subject)
 		and := iterator.NewAnd()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
 		it = and
 	case "saver":
-		all := ts.NodesAllIterator()
+		all := qs.NodesAllIterator()
 		if len(stringArgs) > 2 || len(stringArgs) == 0 {
 			return iterator.NewNull()
 		}
@@ -198,30 +198,30 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		} else {
 			all.Tagger().Add(stringArgs[0])
 		}
-		predFixed := ts.FixedIterator()
-		predFixed.Add(ts.ValueOf(stringArgs[0]))
+		predFixed := qs.FixedIterator()
+		predFixed.Add(qs.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, quad.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, all, quad.Subject))
-		hasa := iterator.NewHasA(ts, subAnd, quad.Object)
+		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
+		subAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Subject))
+		hasa := iterator.NewHasA(qs, subAnd, quad.Object)
 		and := iterator.NewAnd()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
 		it = and
 	case "has":
-		fixed := ts.FixedIterator()
+		fixed := qs.FixedIterator()
 		if len(stringArgs) < 2 {
 			return iterator.NewNull()
 		}
 		for _, name := range stringArgs[1:] {
-			fixed.Add(ts.ValueOf(name))
+			fixed.Add(qs.ValueOf(name))
 		}
-		predFixed := ts.FixedIterator()
-		predFixed.Add(ts.ValueOf(stringArgs[0]))
+		predFixed := qs.FixedIterator()
+		predFixed.Add(qs.ValueOf(stringArgs[0]))
 		subAnd := iterator.NewAnd()
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, predFixed, quad.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, quad.Object))
-		hasa := iterator.NewHasA(ts, subAnd, quad.Subject)
+		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
+		subAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed, quad.Object))
+		hasa := iterator.NewHasA(qs, subAnd, quad.Subject)
 		and := iterator.NewAnd()
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
@@ -234,7 +234,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		if !isVertexChain(firstArg.Object()) {
 			return iterator.NewNull()
 		}
-		argIt := buildIteratorTree(firstArg.Object(), ts)
+		argIt := buildIteratorTree(firstArg.Object(), qs)
 
 		and := iterator.NewAnd()
 		and.AddSubIterator(subIt)
@@ -242,15 +242,15 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		it = and
 	case "back":
 		arg, _ := obj.Get("_gremlin_back_chain")
-		argIt := buildIteratorTree(arg.Object(), ts)
+		argIt := buildIteratorTree(arg.Object(), qs)
 		and := iterator.NewAnd()
 		and.AddSubIterator(subIt)
 		and.AddSubIterator(argIt)
 		it = and
 	case "is":
-		fixed := ts.FixedIterator()
+		fixed := qs.FixedIterator()
 		for _, name := range stringArgs {
-			fixed.Add(ts.ValueOf(name))
+			fixed.Add(qs.ValueOf(name))
 		}
 		and := iterator.NewAnd()
 		and.AddSubIterator(fixed)
@@ -262,7 +262,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		if !isVertexChain(firstArg.Object()) {
 			return iterator.NewNull()
 		}
-		argIt := buildIteratorTree(firstArg.Object(), ts)
+		argIt := buildIteratorTree(firstArg.Object(), qs)
 
 		or := iterator.NewOr()
 		or.AddSubIterator(subIt)
@@ -272,15 +272,15 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		// Hardly the most efficient pattern, but the most general.
 		// Worth looking into an Optimize() optimization here.
 		clone := subIt.Clone()
-		it1 := buildInOutIterator(obj, ts, subIt, false)
-		it2 := buildInOutIterator(obj, ts, clone, true)
+		it1 := buildInOutIterator(obj, qs, subIt, false)
+		it2 := buildInOutIterator(obj, qs, clone, true)
 
 		or := iterator.NewOr()
 		or.AddSubIterator(it1)
 		or.AddSubIterator(it2)
 		it = or
 	case "out":
-		it = buildInOutIterator(obj, ts, subIt, false)
+		it = buildInOutIterator(obj, qs, subIt, false)
 	case "follow":
 		// Follow a morphism
 		arg, _ := obj.Get("_gremlin_values")
@@ -288,16 +288,16 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		if isVertexChain(firstArg.Object()) {
 			return iterator.NewNull()
 		}
-		it = buildIteratorTreeHelper(firstArg.Object(), ts, subIt)
+		it = buildIteratorTreeHelper(firstArg.Object(), qs, subIt)
 	case "followr":
 		// Follow a morphism
 		arg, _ := obj.Get("_gremlin_followr")
 		if isVertexChain(arg.Object()) {
 			return iterator.NewNull()
 		}
-		it = buildIteratorTreeHelper(arg.Object(), ts, subIt)
+		it = buildIteratorTreeHelper(arg.Object(), qs, subIt)
 	case "in":
-		it = buildInOutIterator(obj, ts, subIt, true)
+		it = buildInOutIterator(obj, qs, subIt, true)
 	}
 	return it
 }

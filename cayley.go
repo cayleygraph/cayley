@@ -52,8 +52,8 @@ import (
 )
 
 var (
-	tripleFile         = flag.String("triples", "", "Triple File to load before going to REPL.")
-	tripleType         = flag.String("format", "cquad", `Triple format to use for loading ("cquad" or "nquad").`)
+	quadFile           = flag.String("quads", "", "Quad file to load before going to REPL.")
+	quadType           = flag.String("format", "cquad", `Quad format to use for loading ("cquad" or "nquad").`)
 	cpuprofile         = flag.String("prof", "", "Output profiling file.")
 	queryLanguage      = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
 	configFile         = flag.String("config", "", "Path to an explicit configuration file.")
@@ -61,7 +61,7 @@ var (
 	databaseBackend    = flag.String("db", "memstore", "Database Backend.")
 	replicationBackend = flag.String("replication", "single", "Replication method.")
 	host               = flag.String("host", "127.0.0.1", "Host to listen on (defaults to all).")
-	loadSize           = flag.Int("load_size", 10000, "Size of triplesets to load")
+	loadSize           = flag.Int("load_size", 10000, "Size of quadsets to load")
 	port               = flag.String("port", "64210", "Port to listen on.")
 	readOnly           = flag.Bool("read_only", false, "Disable writing via HTTP.")
 	timeout            = flag.Duration("timeout", 30*time.Second, "Elapsed time until an individual query times out.")
@@ -80,7 +80,7 @@ Usage:
 
 Commands:
   init      Create an empty database.
-  load      Bulk-load a triple file into the database.
+  load      Bulk-load a quad file into the database.
   http      Serve an HTTP endpoint on the given host and port.
   repl      Drop into a REPL of the given query language.
   version   Version information.
@@ -190,12 +190,12 @@ func main() {
 		if err != nil {
 			break
 		}
-		if *tripleFile != "" {
+		if *quadFile != "" {
 			handle, err = db.Open(cfg)
 			if err != nil {
 				break
 			}
-			err = load(handle.QuadWriter, cfg, *tripleFile, *tripleType)
+			err = load(handle.QuadWriter, cfg, *quadFile, *quadType)
 			if err != nil {
 				break
 			}
@@ -207,7 +207,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		err = load(handle.QuadWriter, cfg, *tripleFile, *tripleType)
+		err = load(handle.QuadWriter, cfg, *quadFile, *quadType)
 		if err != nil {
 			break
 		}
@@ -220,7 +220,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = load(handle.QuadWriter, cfg, "", *tripleType)
+			err = load(handle.QuadWriter, cfg, "", *quadType)
 			if err != nil {
 				break
 			}
@@ -236,7 +236,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = load(handle.QuadWriter, cfg, "", *tripleType)
+			err = load(handle.QuadWriter, cfg, "", *quadType)
 			if err != nil {
 				break
 			}

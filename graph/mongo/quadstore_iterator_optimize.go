@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package leveldb
+package mongo
 
 import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 )
 
-func (ts *TripleStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
+func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	switch it.Type() {
 	case graph.LinksTo:
-		return ts.optimizeLinksTo(it.(*iterator.LinksTo))
+		return qs.optimizeLinksTo(it.(*iterator.LinksTo))
 
 	}
 	return it, false
 }
 
-func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
+func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
 	subs := it.SubIterators()
 	if len(subs) != 1 {
 		return it, false
@@ -41,7 +41,7 @@ func (ts *TripleStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bo
 				panic("unexpected size during optimize")
 			}
 			val := primary.Result()
-			newIt := ts.TripleIterator(it.Direction(), val)
+			newIt := qs.QuadIterator(it.Direction(), val)
 			nt := newIt.Tagger()
 			nt.CopyFrom(it)
 			for _, tag := range primary.Tagger().Tags() {

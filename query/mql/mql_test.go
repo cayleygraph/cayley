@@ -53,12 +53,12 @@ var simpleGraph = []quad.Quad{
 }
 
 func makeTestSession(data []quad.Quad) *Session {
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	w, _ := graph.NewQuadWriter("single", ts, nil)
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, t := range data {
 		w.AddQuad(t)
 	}
-	return NewSession(ts)
+	return NewSession(qs)
 }
 
 var testQueries = []struct {

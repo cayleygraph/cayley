@@ -14,12 +14,12 @@
 
 package graph
 
-// Defines the TripleStore interface. Every backing store must implement at
+// Defines the QuadStore interface. Every backing store must implement at
 // least this interface.
 //
 // Most of these are pretty straightforward. As long as we can surface this
 // interface, the rest of the stack will "just work" and we can connect to any
-// triple backing store we prefer.
+// quad backing store we prefer.
 
 import (
 	"errors"
@@ -28,71 +28,73 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-// Value defines an opaque "triple store value" type. However the backend wishes
-// to implement it, a Value is merely a token to a triple or a node that the
+// Value defines an opaque "quad store value" type. However the backend wishes
+// to implement it, a Value is merely a token to a quad or a node that the
 // backing store itself understands, and the base iterators pass around.
 //
 // For example, in a very traditional, graphd-style graph, these are int64s
 // (guids of the primitives). In a very direct sort of graph, these could be
-// pointers to structs, or merely triples, or whatever works best for the
+// pointers to structs, or merely quads, or whatever works best for the
 // backing store.
 //
 // These must be comparable, or implement a `Key() interface{}` function
 // so that they may be stored in maps.
 type Value interface{}
 
-type TripleStore interface {
+type QuadStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.
 	ApplyDeltas([]Delta) error
 
-	// Given an opaque token, returns the triple for that token from the store.
+	// Given an opaque token, returns the quad for that token from the store.
 	Quad(Value) quad.Quad
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	TripleIterator(quad.Direction, Value) Iterator
+	QuadIterator(quad.Direction, Value) Iterator
 
 	// Returns an iterator enumerating all nodes in the graph.
 	NodesAllIterator() Iterator
 
 	// Returns an iterator enumerating all links in the graph.
-	TriplesAllIterator() Iterator
+	QuadsAllIterator() Iterator
 
-	// Given a node ID, return the opaque token used by the TripleStore
+	// Given a node ID, return the opaque token used by the QuadStore
 	// to represent that id.
 	ValueOf(string) Value
 
 	// Given an opaque token, return the node that it represents.
 	NameOf(Value) string
 
-	// Returns the number of triples currently stored.
+	// Returns the number of quads currently stored.
 	Size() int64
 
-	// The last replicated transaction ID that this triplestore has verified.
+	// The last replicated transaction ID that this quadstore has verified.
 	Horizon() int64
 
 	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator
 
-	// Optimize an iterator in the context of the triple store.
+	// Optimize an iterator in the context of the quad store.
 	// Suppose we have a better index for the passed tree; this
-	// gives the TripleStore the opportunity to replace it
+	// gives the QuadStore the opportunity to replace it
 	// with a more efficient iterator.
 	OptimizeIterator(it Iterator) (Iterator, bool)
 
-	// Close the triple store and clean up. (Flush to disk, cleanly
+	// Close the quad store and clean up. (Flush to disk, cleanly
 	// sever connections, etc)
 	Close()
 
-	// Convenience function for speed. Given a triple token and a direction
-	// return the node token for that direction. Sometimes, a TripleStore
+	// Convenience function for speed. Given a quad token and a direction
+	// return the node token for that direction. Sometimes, a QuadStore
 	// can do this without going all the way to the backing store, and
-	// gives the TripleStore the opportunity to make this optimization.
+	// gives the QuadStore the opportunity to make this optimization.
 	//
 	// Iterators will call this. At worst, a valid implementation is
-	// ts.IdFor(ts.quad.Quad(id).Get(dir))
-	TripleDirection(id Value, d quad.Direction) Value
+	//
+	//  qs.ValueOf(qs.Quad(id).Get(dir))
+	//
+	QuadDirection(id Value, d quad.Direction) Value
 }
 
 type Options map[string]interface{}
@@ -133,16 +135,16 @@ func (d Options) BoolKey(key string) (bool, bool) {
 	return false, false
 }
 
-var ErrCannotBulkLoad = errors.New("triplestore: cannot bulk load")
+var ErrCannotBulkLoad = errors.New("quadstore: cannot bulk load")
 
 type BulkLoader interface {
-	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the TripleStore.
+	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the QuadStore.
 	// It returns ErrCannotBulkLoad if bulk loading is not possible. For example if
 	// you cannot load in bulk to a non-empty database, and the db is non-empty.
 	BulkLoad(quad.Unmarshaler) error
 }
 
-type NewStoreFunc func(string, Options) (TripleStore, error)
+type NewStoreFunc func(string, Options) (QuadStore, error)
 type InitStoreFunc func(string, Options) error
 
 type register struct {
@@ -153,9 +155,9 @@ type register struct {
 
 var storeRegistry = make(map[string]register)
 
-func RegisterTripleStore(name string, persists bool, newFunc NewStoreFunc, initFunc InitStoreFunc) {
+func RegisterQuadStore(name string, persists bool, newFunc NewStoreFunc, initFunc InitStoreFunc) {
 	if _, found := storeRegistry[name]; found {
-		panic("already registered TripleStore " + name)
+		panic("already registered QuadStore " + name)
 	}
 	storeRegistry[name] = register{
 		newFunc:      newFunc,
@@ -164,27 +166,27 @@ func RegisterTripleStore(name string, persists bool, newFunc NewStoreFunc, initF
 	}
 }
 
-func NewTripleStore(name, dbpath string, opts Options) (TripleStore, error) {
+func NewQuadStore(name, dbpath string, opts Options) (QuadStore, error) {
 	r, registered := storeRegistry[name]
 	if !registered {
-		return nil, errors.New("triplestore: name '" + name + "' is not registered")
+		return nil, errors.New("quadstore: name '" + name + "' is not registered")
 	}
 	return r.newFunc(dbpath, opts)
 }
 
-func InitTripleStore(name, dbpath string, opts Options) error {
+func InitQuadStore(name, dbpath string, opts Options) error {
 	r, registered := storeRegistry[name]
 	if registered {
 		return r.initFunc(dbpath, opts)
 	}
-	return errors.New("triplestore: name '" + name + "' is not registered")
+	return errors.New("quadstore: name '" + name + "' is not registered")
 }
 
 func IsPersistent(name string) bool {
 	return storeRegistry[name].isPersistent
 }
 
-func TripleStores() []string {
+func QuadStores() []string {
 	t := make([]string, 0, len(storeRegistry))
 	for n := range storeRegistry {
 		t = append(t, n)

@@ -37,13 +37,13 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-// A LinksTo has a reference back to the graph.TripleStore (to create the iterators
+// A LinksTo has a reference back to the graph.QuadStore (to create the iterators
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
 	uid       uint64
 	tags      graph.Tagger
-	ts        graph.TripleStore
+	qs        graph.QuadStore
 	primaryIt graph.Iterator
 	dir       quad.Direction
 	nextIt    graph.Iterator
@@ -53,10 +53,10 @@ type LinksTo struct {
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func NewLinksTo(ts graph.TripleStore, it graph.Iterator, d quad.Direction) *LinksTo {
+func NewLinksTo(qs graph.QuadStore, it graph.Iterator, d quad.Direction) *LinksTo {
 	return &LinksTo{
 		uid:       NextUID(),
-		ts:        ts,
+		qs:        qs,
 		primaryIt: it,
 		dir:       d,
 		nextIt:    &Null{},
@@ -80,7 +80,7 @@ func (it *LinksTo) Tagger() *graph.Tagger {
 }
 
 func (it *LinksTo) Clone() graph.Iterator {
-	out := NewLinksTo(it.ts, it.primaryIt.Clone(), it.dir)
+	out := NewLinksTo(it.qs, it.primaryIt.Clone(), it.dir)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -120,7 +120,7 @@ func (it *LinksTo) DebugString(indent int) string {
 func (it *LinksTo) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
-	node := it.ts.TripleDirection(val, it.dir)
+	node := it.qs.QuadDirection(val, it.dir)
 	if it.primaryIt.Contains(node) {
 		it.result = val
 		return graph.ContainsLogOut(it, val, true)
@@ -143,10 +143,10 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 			return it.primaryIt, true
 		}
 	}
-	// Ask the graph.TripleStore if we can be replaced. Often times, this is a great
+	// Ask the graph.QuadStore if we can be replaced. Often times, this is a great
 	// optimization opportunity (there's a fixed iterator underneath us, for
 	// example).
-	newReplacement, hasOne := it.ts.OptimizeIterator(it)
+	newReplacement, hasOne := it.qs.OptimizeIterator(it)
 	if hasOne {
 		it.Close()
 		return newReplacement, true
@@ -170,7 +170,7 @@ func (it *LinksTo) Next() bool {
 		return graph.NextLogOut(it, 0, false)
 	}
 	it.nextIt.Close()
-	it.nextIt = it.ts.TripleIterator(it.dir, it.primaryIt.Result())
+	it.nextIt = it.qs.QuadIterator(it.dir, it.primaryIt.Result())
 
 	// Recurse -- return the first in the next set.
 	return it.Next()
@@ -197,7 +197,7 @@ func (it *LinksTo) Type() graph.Type { return graph.LinksTo }
 // Return a guess as to how big or costly it is to next the iterator.
 func (it *LinksTo) Stats() graph.IteratorStats {
 	subitStats := it.primaryIt.Stats()
-	// TODO(barakmich): These should really come from the triplestore itself
+	// TODO(barakmich): These should really come from the quadstore itself
 	fanoutFactor := int64(20)
 	checkConstant := int64(1)
 	nextConstant := int64(2)

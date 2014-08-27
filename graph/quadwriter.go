@@ -16,9 +16,9 @@ package graph
 
 // Defines the interface for consistent replication of a graph instance.
 //
-// Separate from the backend, this dictates how individual triples get
+// Separate from the backend, this dictates how individual quads get
 // identified and replicated consistently across (potentially) multiple
-// instances. The simplest case is to keep an append-only log of triple
+// instances. The simplest case is to keep an append-only log of quad
 // changes.
 
 import (
@@ -44,7 +44,7 @@ type Delta struct {
 }
 
 type Handle struct {
-	QuadStore  TripleStore
+	QuadStore  QuadStore
 	QuadWriter QuadWriter
 }
 
@@ -73,23 +73,23 @@ type QuadWriter interface {
 	Close() error
 }
 
-type NewQuadWriterFunc func(TripleStore, Options) (QuadWriter, error)
+type NewQuadWriterFunc func(QuadStore, Options) (QuadWriter, error)
 
 var writerRegistry = make(map[string]NewQuadWriterFunc)
 
 func RegisterWriter(name string, newFunc NewQuadWriterFunc) {
 	if _, found := writerRegistry[name]; found {
-		panic("already registered TripleWriter " + name)
+		panic("already registered QuadWriter " + name)
 	}
 	writerRegistry[name] = newFunc
 }
 
-func NewQuadWriter(name string, ts TripleStore, opts Options) (QuadWriter, error) {
+func NewQuadWriter(name string, qs QuadStore, opts Options) (QuadWriter, error) {
 	newFunc, hasNew := writerRegistry[name]
 	if !hasNew {
 		return nil, errors.New("replication: name '" + name + "' is not registered")
 	}
-	return newFunc(ts, opts)
+	return newFunc(qs, opts)
 }
 
 func WriterMethods() []string {

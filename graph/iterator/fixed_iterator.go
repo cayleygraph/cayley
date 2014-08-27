@@ -18,7 +18,7 @@ package iterator
 // contains an explicit fixed array of values.
 //
 // A fixed iterator requires an Equality function to be passed to it, by reason that graph.Value, the
-// opaque Triple store value, may not answer to ==.
+// opaque Quad store value, may not answer to ==.
 
 import (
 	"fmt"

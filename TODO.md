@@ -24,7 +24,7 @@ Also always good.
 Usually something that should be taken care of.
 
 ### Bootstraps
-Start discussing bootstrap triples, things that make the database self-describing, if they exist (though they need not). Talk about sameAs and indexing and type systems and whatnot.
+Start discussing bootstrap quads, things that make the database self-describing, if they exist (though they need not). Talk about sameAs and indexing and type systems and whatnot.
 
 ### Better surfacing of Label
 It exists, it's indexed, but it's basically useless right now
@@ -68,7 +68,7 @@ The necessary component to make mid-query limit work. Acts as a limit on Next(),
 ### Postgres Backend
   It'd be nice to run on SQL as well. It's a big why not?
 #### Generalist layout
-  Notionally, this is a simple triple table with a number of indicies. Iterators and iterator optimization (ie, rewriting SQL queries) is the 'fun' part
+  Notionally, this is a simple quad table with a number of indicies. Iterators and iterator optimization (ie, rewriting SQL queries) is the 'fun' part
 #### "Short Schema" Layout?
   This one is the crazy one. Suppose a world where we actually use the table schema for predicates, and update the table schema as we go along. Yes, it sucks when you add a new predicate (and the cell values are unclear) but for small worlds (or, "short schemas") it may (or may not) be interesting.
 
@@ -83,7 +83,7 @@ The necessary component to make mid-query limit work. Acts as a limit on Next(),
   There's a whole body of work there, and a lot of interested researchers. They're the choir who already know the sermon of graph stores. Once ease-of-use gets people in the door, supporting extensions that make everyone happy seems like a win. And because we're query-language agnostic, it's a cleaner win. See also bootstrapping, which is the first goal toward this (eg, let's talk about sameAs, and index it appropriately.)
 
 ### Replication
-  Technically it works now if you piggyback on someone else's replication, but that's cheating.  We speak HTTP, we can send triple sets over the wire to some other instance. Bonus points for a way to apply morphisms first -- massive graph on the backend, important graph on the frontend.
+  Technically it works now if you piggyback on someone else's replication, but that's cheating.  We speak HTTP, we can send quad sets over the wire to some other instance. Bonus points for a way to apply morphisms first -- massive graph on the backend, important graph on the frontend.
 
 ### Related services
   Eg, topic service, recon service -- whether in Cayley itself or as part of the greater project.

@@ -25,7 +25,7 @@ $(function() {
     $("#alertBox").addClass("alert-success").fadeIn(300).delay(2000).fadeOut(300).queue(function(){ $(this).removeClass("alert-success")});
   }
 
-  var checkTriple = function(t) {
+  var checkQuad = function(t) {
     if (t.subject == "") {
       alertFail("Need a subject")
       return false
@@ -43,19 +43,19 @@ $(function() {
 
   $("#sbWrite").addClass("active");
 
-  $("#add_triple").click(function() {
-    var triple = {
+  $("#add_quad").click(function() {
+    var quad = {
       subject: $("#subject").val(),
       predicate: $("#predicate").val(),
       object: $("#object").val(),
       label: $("#label").val()
     }
-    if (!checkTriple(triple)) {
+    if (!checkQuad(quad)) {
       return
     }
-    $.post("/api/v1/write", JSON.stringify([triple]))
+    $.post("/api/v1/write", JSON.stringify([quad]))
       .done(function(return_data){
-        alertSucceed("Wrote a triple!")
+        alertSucceed("Wrote a quad!")
       })
       .fail(function(jqxhr) {
         var data = $.parseJSON(jqxhr.responseText)
@@ -63,19 +63,19 @@ $(function() {
       })
   })
 
-  $("#delete_triple").click(function() {
-    var triple = {
+  $("#delete_quad").click(function() {
+    var quad = {
       subject: $("#rsubject").val(),
       predicate: $("#rpredicate").val(),
       object: $("#robject").val(),
       label: $("#rlabel").val()
     }
-    if (!checkTriple(triple)) {
+    if (!checkQuad(quad)) {
       return
     }
-    $.post("/api/v1/delete", JSON.stringify([triple]))
+    $.post("/api/v1/delete", JSON.stringify([quad]))
       .done(function(return_data){
-        alertSucceed("Deleted a triple!")
+        alertSucceed("Deleted a quad!")
       })
       .fail(function(jqxhr) {
         var data = $.parseJSON(jqxhr.responseText)
