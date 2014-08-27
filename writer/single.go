@@ -28,13 +28,13 @@ func init() {
 
 type Single struct {
 	nextID int64
-	ts     graph.TripleStore
+	qs     graph.QuadStore
 	mut    sync.Mutex
 }
 
-func NewSingleReplication(ts graph.TripleStore, opts graph.Options) (graph.QuadWriter, error) {
-	horizon := ts.Horizon()
-	rep := &Single{nextID: horizon + 1, ts: ts}
+func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
+	horizon := qs.Horizon()
+	rep := &Single{nextID: horizon + 1, qs: qs}
 	if horizon <= 0 {
 		rep.nextID = 1
 	}
@@ -57,7 +57,7 @@ func (s *Single) AddQuad(q quad.Quad) error {
 		Action:    graph.Add,
 		Timestamp: time.Now(),
 	}
-	return s.ts.ApplyDeltas(deltas)
+	return s.qs.ApplyDeltas(deltas)
 }
 
 func (s *Single) AddQuadSet(set []quad.Quad) error {
@@ -70,7 +70,7 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 			Timestamp: time.Now(),
 		}
 	}
-	s.ts.ApplyDeltas(deltas)
+	s.qs.ApplyDeltas(deltas)
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 		Action:    graph.Delete,
 		Timestamp: time.Now(),
 	}
-	return s.ts.ApplyDeltas(deltas)
+	return s.qs.ApplyDeltas(deltas)
 }
 
 func (s *Single) Close() error {

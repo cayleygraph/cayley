@@ -65,12 +65,12 @@ var comparisonTests = []struct {
 
 func TestValueComparison(t *testing.T) {
 	for _, test := range comparisonTests {
-		ts := simpleStore
-		vc := NewComparison(simpleFixedIterator(), test.operator, test.operand, ts)
+		qs := simpleStore
+		vc := NewComparison(simpleFixedIterator(), test.operator, test.operand, qs)
 
 		var got []string
 		for vc.Next() {
-			got = append(got, ts.NameOf(vc.Result()))
+			got = append(got, qs.NameOf(vc.Result()))
 		}
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to show %s, got:%q expect:%q", test.message, got, test.expect)

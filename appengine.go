@@ -30,8 +30,8 @@ import (
 func init() {
 	glog.SetToStderr(true)
 	cfg := config.ParseConfigFromFile("cayley_appengine.cfg")
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	glog.Errorln(cfg)
-	db.Load(ts, cfg, cfg.DatabasePath)
-	http.SetupRoutes(ts, cfg)
+	db.Load(qs, cfg, cfg.DatabasePath)
+	http.SetupRoutes(qs, cfg)
 }

@@ -33,7 +33,7 @@ func Init(cfg *config.Config) error {
 		return fmt.Errorf("ignoring unproductive database initialization request: %v", ErrNotPersistent)
 	}
 
-	return graph.InitTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+	return graph.InitQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 }
 
 func Open(cfg *config.Config) (*graph.Handle, error) {
@@ -48,17 +48,17 @@ func Open(cfg *config.Config) (*graph.Handle, error) {
 	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
 }
 
-func OpenQuadStore(cfg *config.Config) (graph.TripleStore, error) {
+func OpenQuadStore(cfg *config.Config) (graph.QuadStore, error) {
 	glog.Infof("Opening quad store %q at %s", cfg.DatabaseType, cfg.DatabasePath)
-	ts, err := graph.NewTripleStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	return ts, nil
+	return qs, nil
 }
 
-func OpenQuadWriter(qs graph.TripleStore, cfg *config.Config) (graph.QuadWriter, error) {
+func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, error) {
 	glog.Infof("Opening replication method %q", cfg.ReplicationType)
 	w, err := graph.NewQuadWriter(cfg.ReplicationType, qs, cfg.ReplicationOptions)
 	if err != nil {

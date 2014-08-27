@@ -15,17 +15,17 @@
 // Package quad defines quad and triple handling.
 package quad
 
-// Defines the struct which makes the TripleStore possible -- the triple.
+// Defines the struct which makes the QuadStore possible -- the quad.
 //
 // At its heart, it consists of three fields -- Subject, Predicate, and Object.
-// Three IDs that relate to each other. That's all there is to it. The triples
+// Three IDs that relate to each other. That's all there is to it. The quads
 // are the links in the graph, and the existence of node IDs is defined by the
-// fact that some triple in the graph mentions them.
+// fact that some quad in the graph mentions them.
 //
 // This means that a complete representation of the graph is equivalent to a
-// list of triples. The rest is just indexing for speed.
+// list of quads. The rest is just indexing for speed.
 //
-// Adding fields to the triple is not to be taken lightly. You'll see I mention
+// Adding fields to the quad is not to be taken lightly. You'll see I mention
 // label, but don't as yet use it in any backing store. In general, there
 // can be features that can be turned on or off for any store, but I haven't
 // decided how to allow/disallow them yet. Another such example would be to add
@@ -46,7 +46,7 @@ var (
 	ErrIncomplete = errors.New("incomplete N-Quad")
 )
 
-// Our triple struct, used throughout.
+// Our quad struct, used throughout.
 type Quad struct {
 	Subject   string `json:"subject"`
 	Predicate string `json:"predicate"`
@@ -57,7 +57,7 @@ type Quad struct {
 // Direction specifies an edge's type.
 type Direction byte
 
-// List of the valid directions of a triple.
+// List of the valid directions of a quad.
 const (
 	Any Direction = iota
 	Subject
@@ -100,7 +100,7 @@ func (d Direction) String() string {
 	}
 }
 
-// Per-field accessor for triples
+// Per-field accessor for quads.
 func (q Quad) Get(d Direction) string {
 	switch d {
 	case Subject:
@@ -116,7 +116,7 @@ func (q Quad) Get(d Direction) string {
 	}
 }
 
-// Pretty-prints a triple.
+// Pretty-prints a quad.
 func (q Quad) String() string {
 	return fmt.Sprintf("%s -- %s -> %s", q.Subject, q.Predicate, q.Object)
 }
@@ -125,8 +125,8 @@ func (q Quad) IsValid() bool {
 	return q.Subject != "" && q.Predicate != "" && q.Object != ""
 }
 
-// Prints a triple in N-Quad format.
-func (q Quad) NTriple() string {
+// Prints a quad in N-Quad format.
+func (q Quad) NQuad() string {
 	if q.Label == "" {
 		//TODO(barakmich): Proper escaping.
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)

@@ -30,7 +30,7 @@ import (
 type Iterator struct {
 	uid        uint64
 	tags       graph.Tagger
-	qs         *TripleStore
+	qs         *QuadStore
 	dir        quad.Direction
 	iter       *mgo.Iter
 	hash       string
@@ -42,7 +42,7 @@ type Iterator struct {
 	result     graph.Value
 }
 
-func NewIterator(qs *TripleStore, collection string, d quad.Direction, val graph.Value) *Iterator {
+func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.Value) *Iterator {
 	name := qs.NameOf(val)
 
 	constraint := bson.M{d.String(): name}
@@ -68,7 +68,7 @@ func NewIterator(qs *TripleStore, collection string, d quad.Direction, val graph
 	}
 }
 
-func NewAllIterator(qs *TripleStore, collection string) *Iterator {
+func NewAllIterator(qs *QuadStore, collection string) *Iterator {
 	size, err := qs.db.C(collection).Count()
 	if err != nil {
 		// FIXME(kortschak) This should be passed back rather than just logging.

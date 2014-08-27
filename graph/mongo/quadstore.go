@@ -30,7 +30,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("mongo", true, newTripleStore, createNewMongoGraph)
+	graph.RegisterQuadStore("mongo", true, newQuadStore, createNewMongoGraph)
 }
 
 const DefaultDBName = "cayley"
@@ -42,7 +42,7 @@ var (
 	hashSize = sha1.Size
 )
 
-type TripleStore struct {
+type QuadStore struct {
 	session *mgo.Session
 	db      *mgo.Database
 	idCache *IDLru
@@ -84,8 +84,8 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 	return nil
 }
 
-func newTripleStore(addr string, options graph.Options) (graph.TripleStore, error) {
-	var qs TripleStore
+func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
+	var qs QuadStore
 	conn, err := mgo.Dial(addr)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func newTripleStore(addr string, options graph.Options) (graph.TripleStore, erro
 	return &qs, nil
 }
 
-func (qs *TripleStore) getIdForQuad(t quad.Quad) string {
+func (qs *QuadStore) getIdForQuad(t quad.Quad) string {
 	id := qs.convertStringToByteHash(t.Subject)
 	id += qs.convertStringToByteHash(t.Predicate)
 	id += qs.convertStringToByteHash(t.Object)
@@ -109,7 +109,7 @@ func (qs *TripleStore) getIdForQuad(t quad.Quad) string {
 	return id
 }
 
-func (qs *TripleStore) convertStringToByteHash(s string) string {
+func (qs *QuadStore) convertStringToByteHash(s string) string {
 	h := hashPool.Get().(hash.Hash)
 	h.Reset()
 	defer hashPool.Put(h)
@@ -133,7 +133,7 @@ type MongoLogEntry struct {
 	Timestamp int64
 }
 
-func (qs *TripleStore) updateNodeBy(node_name string, inc int) error {
+func (qs *QuadStore) updateNodeBy(node_name string, inc int) error {
 	node := qs.ValueOf(node_name)
 	doc := bson.M{
 		"_id":  node.(string),
@@ -153,7 +153,7 @@ func (qs *TripleStore) updateNodeBy(node_name string, inc int) error {
 	return err
 }
 
-func (qs *TripleStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) error {
+func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) error {
 	var setname string
 	if proc == graph.Add {
 		setname = "Added"
@@ -173,7 +173,7 @@ func (qs *TripleStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) e
 	return err
 }
 
-func (qs *TripleStore) checkValid(key string) bool {
+func (qs *QuadStore) checkValid(key string) bool {
 	var indexEntry struct {
 		Added   []int64 `bson:"Added"`
 		Deleted []int64 `bson:"Deleted"`
@@ -192,7 +192,7 @@ func (qs *TripleStore) checkValid(key string) bool {
 	return true
 }
 
-func (qs *TripleStore) updateLog(d graph.Delta) error {
+func (qs *QuadStore) updateLog(d graph.Delta) error {
 	var action string
 	if d.Action == graph.Add {
 		action = "Add"
@@ -212,7 +212,7 @@ func (qs *TripleStore) updateLog(d graph.Delta) error {
 	return err
 }
 
-func (qs *TripleStore) ApplyDeltas(in []graph.Delta) error {
+func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
 	qs.session.SetSafe(nil)
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
@@ -266,7 +266,7 @@ func (qs *TripleStore) ApplyDeltas(in []graph.Delta) error {
 	return nil
 }
 
-func (qs *TripleStore) Quad(val graph.Value) quad.Quad {
+func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	var q quad.Quad
 	err := qs.db.C("quads").FindId(val.(string)).One(&q)
 	if err != nil {
@@ -275,23 +275,23 @@ func (qs *TripleStore) Quad(val graph.Value) quad.Quad {
 	return q
 }
 
-func (qs *TripleStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
 	return NewIterator(qs, "quads", d, val)
 }
 
-func (qs *TripleStore) NodesAllIterator() graph.Iterator {
+func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 	return NewAllIterator(qs, "nodes")
 }
 
-func (qs *TripleStore) TriplesAllIterator() graph.Iterator {
+func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return NewAllIterator(qs, "quads")
 }
 
-func (qs *TripleStore) ValueOf(s string) graph.Value {
+func (qs *QuadStore) ValueOf(s string) graph.Value {
 	return qs.convertStringToByteHash(s)
 }
 
-func (qs *TripleStore) NameOf(v graph.Value) string {
+func (qs *QuadStore) NameOf(v graph.Value) string {
 	val, ok := qs.idCache.Get(v.(string))
 	if ok {
 		return val
@@ -305,7 +305,7 @@ func (qs *TripleStore) NameOf(v graph.Value) string {
 	return node.Name
 }
 
-func (qs *TripleStore) Size() int64 {
+func (qs *QuadStore) Size() int64 {
 	// TODO(barakmich): Make size real; store it in the log, and retrieve it.
 	count, err := qs.db.C("quads").Count()
 	if err != nil {
@@ -315,7 +315,7 @@ func (qs *TripleStore) Size() int64 {
 	return int64(count)
 }
 
-func (qs *TripleStore) Horizon() int64 {
+func (qs *QuadStore) Horizon() int64 {
 	var log MongoLogEntry
 	err := qs.db.C("log").Find(nil).Sort("-LogID").One(&log)
 	if err != nil {
@@ -331,15 +331,15 @@ func compareStrings(a, b graph.Value) bool {
 	return a.(string) == b.(string)
 }
 
-func (qs *TripleStore) FixedIterator() graph.FixedIterator {
+func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(compareStrings)
 }
 
-func (qs *TripleStore) Close() {
+func (qs *QuadStore) Close() {
 	qs.db.Session.Close()
 }
 
-func (qs *TripleStore) TripleDirection(in graph.Value, d quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
 	// Maybe do the trick here
 	var offset int
 	switch d {

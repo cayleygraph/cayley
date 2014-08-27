@@ -85,7 +85,7 @@ Arguments:
 	* a string: A single tag to add the predicate used to the output set.
 	* a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
 
-Out is the work-a-day way to get between nodes, in the forward direction. Starting with the nodes in `path` on the subject, follow the triples with predicates defined by `predicatePath` to their objects.
+Out is the work-a-day way to get between nodes, in the forward direction. Starting with the nodes in `path` on the subject, follow the quads with predicates defined by `predicatePath` to their objects.
 
 Example:
 ```javascript
@@ -117,7 +117,7 @@ Arguments:
 	* a string: A single tag to add the predicate used to the output set.
 	* a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
 
-Same as Out, but in the other direction.  Starting with the nodes in `path` on the object, follow the triples with predicates defined by `predicatePath` to their subjects.
+Same as Out, but in the other direction.  Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects.
 
 Example:
 ```javascript
@@ -235,7 +235,7 @@ Arguments:
   * `predicate`: A string for a predicate node.
   * `tag`: A string for a tag key to store the object node.
 
-From the current node as the subject, save the object of all triples with `predicate` into `tag`, without traversal.
+From the current node as the subject, save the object of all quads with `predicate` into `tag`, without traversal.
 
 Example:
 ```javascript

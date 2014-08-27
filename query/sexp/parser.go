@@ -22,9 +22,9 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-func BuildIteratorTreeForQuery(ts graph.TripleStore, query string) graph.Iterator {
+func BuildIteratorTreeForQuery(qs graph.QuadStore, query string) graph.Iterator {
 	tree := parseQuery(query)
-	return buildIteratorTree(tree, ts)
+	return buildIteratorTree(tree, qs)
 }
 
 func ParseString(input string) string {
@@ -181,15 +181,15 @@ func getIdentString(tree *peg.ExpressionTree) string {
 	return out
 }
 
-func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Iterator {
+func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Iterator {
 	switch tree.Name {
 	case "Start":
-		return buildIteratorTree(tree.Children[0], ts)
+		return buildIteratorTree(tree.Children[0], qs)
 	case "NodeIdentifier":
 		var out graph.Iterator
 		nodeID := getIdentString(tree)
 		if tree.Children[0].Name == "Variable" {
-			allIt := ts.NodesAllIterator()
+			allIt := qs.NodesAllIterator()
 			allIt.Tagger().Add(nodeID)
 			out = allIt
 		} else {
@@ -197,8 +197,8 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			if tree.Children[0].Children[0].Name == "ColonIdentifier" {
 				n = nodeID[1:]
 			}
-			fixed := ts.FixedIterator()
-			fixed.Add(ts.ValueOf(n))
+			fixed := qs.FixedIterator()
+			fixed.Add(qs.ValueOf(n))
 			out = fixed
 		}
 		return out
@@ -208,8 +208,8 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			//Taken care of below
 			i++
 		}
-		it := buildIteratorTree(tree.Children[i], ts)
-		lto := iterator.NewLinksTo(ts, it, quad.Predicate)
+		it := buildIteratorTree(tree.Children[i], qs)
+		lto := iterator.NewLinksTo(qs, it, quad.Predicate)
 		return lto
 	case "RootConstraint":
 		constraintCount := 0
@@ -219,7 +219,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			case "NodeIdentifier":
 				fallthrough
 			case "Constraint":
-				it := buildIteratorTree(c, ts)
+				it := buildIteratorTree(c, qs)
 				and.AddSubIterator(it)
 				constraintCount++
 				continue
@@ -241,7 +241,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 					topLevelDir = quad.Object
 					subItDir = quad.Subject
 				}
-				it := buildIteratorTree(c, ts)
+				it := buildIteratorTree(c, qs)
 				subAnd.AddSubIterator(it)
 				continue
 			case "PredicateKeyword":
@@ -252,15 +252,15 @@ func buildIteratorTree(tree *peg.ExpressionTree, ts graph.TripleStore) graph.Ite
 			case "NodeIdentifier":
 				fallthrough
 			case "RootConstraint":
-				it := buildIteratorTree(c, ts)
-				l := iterator.NewLinksTo(ts, it, subItDir)
+				it := buildIteratorTree(c, qs)
+				l := iterator.NewLinksTo(qs, it, subItDir)
 				subAnd.AddSubIterator(l)
 				continue
 			default:
 				continue
 			}
 		}
-		hasa = iterator.NewHasA(ts, subAnd, topLevelDir)
+		hasa = iterator.NewHasA(qs, subAnd, topLevelDir)
 		if isOptional {
 			optional := iterator.NewOptional(hasa)
 			return optional

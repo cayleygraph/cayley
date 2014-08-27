@@ -27,14 +27,14 @@ import (
 )
 
 type Session struct {
-	ts           graph.TripleStore
+	qs           graph.QuadStore
 	currentQuery *Query
 	debug        bool
 }
 
-func NewSession(ts graph.TripleStore) *Session {
+func NewSession(qs graph.QuadStore) *Session {
 	var m Session
-	m.ts = ts
+	m.qs = qs
 	return &m
 }
 
@@ -52,7 +52,7 @@ func (m *Session) GetQuery(input string, output_struct chan map[string]interface
 	m.currentQuery = NewQuery(m)
 	m.currentQuery.BuildIteratorTree(mqlQuery)
 	output := make(map[string]interface{})
-	iterator.OutputQueryShapeForIterator(m.currentQuery.it, m.ts, output)
+	iterator.OutputQueryShapeForIterator(m.currentQuery.it, m.qs, output)
 	nodes := output["nodes"].([]iterator.Node)
 	new_nodes := make([]iterator.Node, 0)
 	for _, n := range nodes {
@@ -118,7 +118,7 @@ func (s *Session) ToText(result interface{}) string {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf(tags[k]))
+		out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
 	}
 	return out
 }

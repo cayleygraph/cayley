@@ -29,13 +29,13 @@ You can repeat the `--db` and `--dbpath` flags from here forward instead of the 
 First we load the data.
 
 ```bash
-./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nq.gz
+./cayley load --config=cayley.cfg.overview --quads=30kmoviedata.nq.gz
 ```
 
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nq.gz --alsologtostderr
+./cayley load --config=cayley.cfg.overview --quads=30kmoviedata.nq.gz --alsologtostderr
 ```
 
 And watch the log output go by.
@@ -82,7 +82,7 @@ Along the side are the various actions or views you can take. From the top, thes
 * Query (a request/response editor for the query language)
 * Query Shape (a visualization of the shape of the final query. Does not execute the query.)
 * Visualize  (runs a query and, if tagged correctly, gives a sigmajs view of the results)
-* Write (an interface to write or remove individual triples or triple files)
+* Write (an interface to write or remove individual quads or quad files)
 
 ----
 

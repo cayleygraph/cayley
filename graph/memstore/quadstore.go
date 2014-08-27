@@ -26,8 +26,8 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("memstore", false, func(string, graph.Options) (graph.TripleStore, error) {
-		return newTripleStore(), nil
+	graph.RegisterQuadStore("memstore", false, func(string, graph.Options) (graph.QuadStore, error) {
+		return newQuadStore(), nil
 	}, nil)
 }
 
@@ -69,7 +69,7 @@ type LogEntry struct {
 	DeletedBy int64
 }
 
-type TripleStore struct {
+type QuadStore struct {
 	idCounter     int64
 	quadIdCounter int64
 	idMap         map[string]int64
@@ -80,8 +80,8 @@ type TripleStore struct {
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
 }
 
-func newTripleStore() *TripleStore {
-	return &TripleStore{
+func newQuadStore() *QuadStore {
+	return &QuadStore{
 		idMap:    make(map[string]int64),
 		revIdMap: make(map[int64]string),
 
@@ -94,13 +94,13 @@ func newTripleStore() *TripleStore {
 	}
 }
 
-func (ts *TripleStore) ApplyDeltas(deltas []graph.Delta) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	for _, d := range deltas {
 		var err error
 		if d.Action == graph.Add {
-			err = ts.AddDelta(d)
+			err = qs.AddDelta(d)
 		} else {
-			err = ts.RemoveDelta(d)
+			err = qs.RemoveDelta(d)
 		}
 		if err != nil {
 			return err
@@ -111,7 +111,7 @@ func (ts *TripleStore) ApplyDeltas(deltas []graph.Delta) error {
 
 const maxInt = int(^uint(0) >> 1)
 
-func (ts *TripleStore) indexOf(t quad.Quad) (int64, bool) {
+func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 	min := maxInt
 	var tree *b.Tree
 	for d := quad.Subject; d <= quad.Label; d++ {
@@ -119,12 +119,12 @@ func (ts *TripleStore) indexOf(t quad.Quad) (int64, bool) {
 		if d == quad.Label && sid == "" {
 			continue
 		}
-		id, ok := ts.idMap[sid]
+		id, ok := qs.idMap[sid]
 		// If we've never heard about a node, it must not exist
 		if !ok {
 			return 0, false
 		}
-		index, ok := ts.index.Get(d, id)
+		index, ok := qs.index.Get(d, id)
 		if !ok {
 			// If it's never been indexed in this direction, it can't exist.
 			return 0, false
@@ -133,35 +133,35 @@ func (ts *TripleStore) indexOf(t quad.Quad) (int64, bool) {
 			min, tree = l, index
 		}
 	}
-	it := NewIterator(tree, "", ts)
+	it := NewIterator(tree, "", qs)
 
 	for it.Next() {
 		val := it.Result()
-		if t == ts.log[val.(int64)].Quad {
+		if t == qs.log[val.(int64)].Quad {
 			return val.(int64), true
 		}
 	}
 	return 0, false
 }
 
-func (ts *TripleStore) AddDelta(d graph.Delta) error {
-	if _, exists := ts.indexOf(d.Quad); exists {
+func (qs *QuadStore) AddDelta(d graph.Delta) error {
+	if _, exists := qs.indexOf(d.Quad); exists {
 		return graph.ErrQuadExists
 	}
-	qid := ts.quadIdCounter
-	ts.log = append(ts.log, LogEntry{Delta: d})
-	ts.size++
-	ts.quadIdCounter++
+	qid := qs.quadIdCounter
+	qs.log = append(qs.log, LogEntry{Delta: d})
+	qs.size++
+	qs.quadIdCounter++
 
 	for dir := quad.Subject; dir <= quad.Label; dir++ {
 		sid := d.Quad.Get(dir)
 		if dir == quad.Label && sid == "" {
 			continue
 		}
-		if _, ok := ts.idMap[sid]; !ok {
-			ts.idMap[sid] = ts.idCounter
-			ts.revIdMap[ts.idCounter] = sid
-			ts.idCounter++
+		if _, ok := qs.idMap[sid]; !ok {
+			qs.idMap[sid] = qs.idCounter
+			qs.revIdMap[qs.idCounter] = sid
+			qs.idCounter++
 		}
 	}
 
@@ -169,8 +169,8 @@ func (ts *TripleStore) AddDelta(d graph.Delta) error {
 		if dir == quad.Label && d.Quad.Get(dir) == "" {
 			continue
 		}
-		id := ts.idMap[d.Quad.Get(dir)]
-		tree := ts.index.Tree(dir, id)
+		id := qs.idMap[d.Quad.Get(dir)]
+		tree := qs.index.Tree(dir, id)
 		tree.Set(qid, struct{}{})
 	}
 
@@ -178,43 +178,43 @@ func (ts *TripleStore) AddDelta(d graph.Delta) error {
 	return nil
 }
 
-func (ts *TripleStore) RemoveDelta(d graph.Delta) error {
-	prevQuadID, exists := ts.indexOf(d.Quad)
+func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
+	prevQuadID, exists := qs.indexOf(d.Quad)
 	if !exists {
 		return graph.ErrQuadNotExist
 	}
 
-	quadID := ts.quadIdCounter
-	ts.log = append(ts.log, LogEntry{Delta: d})
-	ts.log[prevQuadID].DeletedBy = quadID
-	ts.size--
-	ts.quadIdCounter++
+	quadID := qs.quadIdCounter
+	qs.log = append(qs.log, LogEntry{Delta: d})
+	qs.log[prevQuadID].DeletedBy = quadID
+	qs.size--
+	qs.quadIdCounter++
 	return nil
 }
 
-func (ts *TripleStore) Quad(index graph.Value) quad.Quad {
-	return ts.log[index.(int64)].Quad
+func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
+	return qs.log[index.(int64)].Quad
 }
 
-func (ts *TripleStore) TripleIterator(d quad.Direction, value graph.Value) graph.Iterator {
-	index, ok := ts.index.Get(d, value.(int64))
+func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Iterator {
+	index, ok := qs.index.Get(d, value.(int64))
 	data := fmt.Sprintf("dir:%s val:%d", d, value.(int64))
 	if ok {
-		return NewIterator(index, data, ts)
+		return NewIterator(index, data, qs)
 	}
 	return &iterator.Null{}
 }
 
-func (ts *TripleStore) Horizon() int64 {
-	return ts.log[len(ts.log)-1].ID
+func (qs *QuadStore) Horizon() int64 {
+	return qs.log[len(qs.log)-1].ID
 }
 
-func (ts *TripleStore) Size() int64 {
-	return ts.size
+func (qs *QuadStore) Size() int64 {
+	return qs.size
 }
 
-func (ts *TripleStore) DebugPrint() {
-	for i, l := range ts.log {
+func (qs *QuadStore) DebugPrint() {
+	for i, l := range qs.log {
 		if i == 0 {
 			continue
 		}
@@ -222,29 +222,29 @@ func (ts *TripleStore) DebugPrint() {
 	}
 }
 
-func (ts *TripleStore) ValueOf(name string) graph.Value {
-	return ts.idMap[name]
+func (qs *QuadStore) ValueOf(name string) graph.Value {
+	return qs.idMap[name]
 }
 
-func (ts *TripleStore) NameOf(id graph.Value) string {
-	return ts.revIdMap[id.(int64)]
+func (qs *QuadStore) NameOf(id graph.Value) string {
+	return qs.revIdMap[id.(int64)]
 }
 
-func (ts *TripleStore) TriplesAllIterator() graph.Iterator {
-	return NewMemstoreQuadsAllIterator(ts)
+func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
+	return NewMemstoreQuadsAllIterator(qs)
 }
 
-func (ts *TripleStore) FixedIterator() graph.FixedIterator {
+func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixedIteratorWithCompare(iterator.BasicEquality)
 }
 
-func (ts *TripleStore) TripleDirection(val graph.Value, d quad.Direction) graph.Value {
-	name := ts.Quad(val).Get(d)
-	return ts.ValueOf(name)
+func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
+	name := qs.Quad(val).Get(d)
+	return qs.ValueOf(name)
 }
 
-func (ts *TripleStore) NodesAllIterator() graph.Iterator {
-	return NewMemstoreNodesAllIterator(ts)
+func (qs *QuadStore) NodesAllIterator() graph.Iterator {
+	return NewMemstoreNodesAllIterator(qs)
 }
 
-func (ts *TripleStore) Close() {}
+func (qs *QuadStore) Close() {}

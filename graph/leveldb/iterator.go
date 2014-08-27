@@ -37,13 +37,13 @@ type Iterator struct {
 	dir            quad.Direction
 	open           bool
 	iter           ldbit.Iterator
-	qs             *TripleStore
+	qs             *QuadStore
 	ro             *opt.ReadOptions
 	originalPrefix string
 	result         graph.Value
 }
 
-func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) *Iterator {
+func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
 	vb := value.(Token)
 	p := make([]byte, 0, 2+hashSize)
 	p = append(p, []byte(prefix)...)
@@ -173,7 +173,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
+func PositionOf(prefix []byte, d quad.Direction, qs *QuadStore) int {
 	if bytes.Equal(prefix, []byte("sp")) {
 		switch d {
 		case quad.Subject:
@@ -232,7 +232,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	}
 	offset := PositionOf(val[0:2], it.dir, it.qs)
 	if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
-		// You may ask, why don't we check to see if it's a valid (not deleted) triple
+		// You may ask, why don't we check to see if it's a valid (not deleted) quad
 		// again?
 		//
 		// We've already done that -- in order to get the graph.Value token in the

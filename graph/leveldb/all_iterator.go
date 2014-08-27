@@ -34,12 +34,12 @@ type AllIterator struct {
 	dir    quad.Direction
 	open   bool
 	iter   ldbit.Iterator
-	ts     *TripleStore
+	qs     *QuadStore
 	ro     *opt.ReadOptions
 	result graph.Value
 }
 
-func NewAllIterator(prefix string, d quad.Direction, ts *TripleStore) *AllIterator {
+func NewAllIterator(prefix string, d quad.Direction, qs *QuadStore) *AllIterator {
 	opts := &opt.ReadOptions{
 		DontFillCache: true,
 	}
@@ -47,11 +47,11 @@ func NewAllIterator(prefix string, d quad.Direction, ts *TripleStore) *AllIterat
 	it := AllIterator{
 		uid:    iterator.NextUID(),
 		ro:     opts,
-		iter:   ts.db.NewIterator(nil, opts),
+		iter:   qs.db.NewIterator(nil, opts),
 		prefix: []byte(prefix),
 		dir:    d,
 		open:   true,
-		ts:     ts,
+		qs:     qs,
 	}
 
 	it.iter.Seek(it.prefix)
@@ -71,7 +71,7 @@ func (it *AllIterator) UID() uint64 {
 
 func (it *AllIterator) Reset() {
 	if !it.open {
-		it.iter = it.ts.db.NewIterator(nil, it.ro)
+		it.iter = it.qs.db.NewIterator(nil, it.ro)
 		it.open = true
 	}
 	it.iter.Seek(it.prefix)
@@ -96,7 +96,7 @@ func (it *AllIterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *AllIterator) Clone() graph.Iterator {
-	out := NewAllIterator(string(it.prefix), it.dir, it.ts)
+	out := NewAllIterator(string(it.prefix), it.dir, it.qs)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -151,7 +151,7 @@ func (it *AllIterator) Close() {
 }
 
 func (it *AllIterator) Size() (int64, bool) {
-	size, err := it.ts.SizeOfPrefix(it.prefix)
+	size, err := it.qs.SizeOfPrefix(it.prefix)
 	if err == nil {
 		return size, false
 	}

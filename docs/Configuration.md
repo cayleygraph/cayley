@@ -23,7 +23,7 @@ All command line flags take precedence over the configuration file.
 
   * `mem`: An in-memory store, based on an initial N-Quads file. Loses all changes when the process exits.
   * `leveldb`: A persistent on-disk store backed by [LevelDB](http://code.google.com/p/leveldb/).
-  * `bolt`: Stores the graph data on-disk in a [Bolt](http://github.com/boltdb/bolt) file. Uses more disk space and memory than LevelDB for smaller stores, but is often faster to write to and comparable for large ones, with faster average query times. 
+  * `bolt`: Stores the graph data on-disk in a [Bolt](http://github.com/boltdb/bolt) file. Uses more disk space and memory than LevelDB for smaller stores, but is often faster to write to and comparable for large ones, with faster average query times.
   * `mongo`: Stores the graph data and indices in a [MongoDB](http://mongodb.org) instance. Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
 
 #### **`db_path`**
@@ -33,7 +33,7 @@ All command line flags take precedence over the configuration file.
 
   Where does the database actually live? Dependent on the type of database. For each datastore:
 
-  * `mem`: Path to a triple file to automatically load.
+  * `mem`: Path to a quad file to automatically load.
   * `leveldb`: Directory to hold the LevelDB database files.
   * `bolt`: Path to the persistent single Bolt database file.
   * `mongo`: "hostname:port" of the desired MongoDB server.
@@ -64,7 +64,7 @@ All command line flags take precedence over the configuration file.
   * Type: Integer
   * Default: 10000
 
-  The number of triples to buffer from a loaded file before writing a block of triples to the database. Larger numbers are good for larger loads.
+  The number of quads to buffer from a loaded file before writing a block of quads to the database. Larger numbers are good for larger loads.
 
 #### **`db_options`**
 
@@ -103,7 +103,7 @@ The size in MiB of the LevelDB write cache. Increasing this number allows for mo
   * Type: Integer
   * Default: 2
 
-The size in MiB of the LevelDB block cache. Increasing this number uses more memory to maintain a bigger cache of triple blocks for better performance.
+The size in MiB of the LevelDB block cache. Increasing this number uses more memory to maintain a bigger cache of quad blocks for better performance.
 
 ### Bolt
 

@@ -27,7 +27,7 @@ func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string
 		if v == nil {
 			continue
 		}
-		results[Path(k)] = q.ses.ts.NameOf(v)
+		results[Path(k)] = q.ses.qs.NameOf(v)
 	}
 	resultPaths := make(map[ResultPath]string)
 	for k, v := range results {
