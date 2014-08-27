@@ -299,14 +299,19 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 	case "in":
 		it = buildInOutIterator(obj, ts, subIt, true)
 	case "not":
-		// arg, _ := obj.Get("_gremlin_values")
-		// firstArg, _ := arg.Object().Get("0")
-		// if !isVertexChain(firstArg.Object()) {
-		// 	return iterator.NewNull()
-		// }
-		// forbiddenIt := buildIteratorTree(firstArg.Object(), ts)
+		arg, _ := obj.Get("_gremlin_values")
+		firstArg, _ := arg.Object().Get("0")
+		if !isVertexChain(firstArg.Object()) {
+			return iterator.NewNull()
+		}
 
-		it = iterator.NewNot(ts, subIt)
+		toComplementIt := buildIteratorTree(firstArg.Object(), ts)
+		notIt := iterator.NewNot(ts, toComplementIt)
+
+		and := iterator.NewAnd()
+		and.AddSubIterator(subIt)
+		and.AddSubIterator(notIt)
+		it = and
 	case "loop":
 		arg, _ := obj.Get("_gremlin_values")
 		firstArg, _ := arg.Object().Get("0")
