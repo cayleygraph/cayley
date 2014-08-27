@@ -138,16 +138,16 @@ func bucketFor(d [4]quad.Direction) []byte {
 
 func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
 	key := make([]byte, 0, (hashSize * 4))
-	key = append(key, qs.convertStringToByteHash(q.Get(d[0]))...)
-	key = append(key, qs.convertStringToByteHash(q.Get(d[1]))...)
-	key = append(key, qs.convertStringToByteHash(q.Get(d[2]))...)
-	key = append(key, qs.convertStringToByteHash(q.Get(d[3]))...)
+	key = append(key, qs.hashOf(q.Get(d[0]))...)
+	key = append(key, qs.hashOf(q.Get(d[1]))...)
+	key = append(key, qs.hashOf(q.Get(d[2]))...)
+	key = append(key, qs.hashOf(q.Get(d[3]))...)
 	return key
 }
 
 func (qs *QuadStore) createValueKeyFor(s string) []byte {
 	key := make([]byte, 0, hashSize)
-	key = append(key, qs.convertStringToByteHash(s)...)
+	key = append(key, qs.hashOf(s)...)
 	return key
 }
 
@@ -379,7 +379,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	return q
 }
 
-func (qs *QuadStore) convertStringToByteHash(s string) []byte {
+func (qs *QuadStore) hashOf(s string) []byte {
 	h := hashPool.Get().(hash.Hash)
 	h.Reset()
 	defer hashPool.Put(h)
