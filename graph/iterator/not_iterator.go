@@ -5,19 +5,21 @@ import "github.com/google/cayley/graph"
 // Not iterator acts like a set difference between the primary iterator
 // and the forbidden iterator.
 type Not struct {
-	uid         uint64
-	tags        graph.Tagger
-	primaryIt   graph.Iterator
-	forbiddenIt graph.Iterator
-	result      graph.Value
-	runstats    graph.IteratorStats
+	uid       uint64
+	tags      graph.Tagger
+	ts        graph.TripleStore
+	primaryIt graph.Iterator
+	allIt     graph.Iterator
+	result    graph.Value
+	runstats  graph.IteratorStats
 }
 
-func NewNot(primaryIt, forbiddenIt graph.Iterator) *Not {
+func NewNot(ts graph.TripleStore, primaryIt graph.Iterator) *Not {
 	return &Not{
-		uid:         NextUID(),
-		primaryIt:   primaryIt,
-		forbiddenIt: forbiddenIt,
+		uid:       NextUID(),
+		ts:        ts,
+		allIt:     ts.NodesAllIterator(),
+		primaryIt: primaryIt,
 	}
 }
 
@@ -28,14 +30,13 @@ func (it *Not) UID() uint64 {
 func (it *Not) Reset() {
 	it.result = nil
 	it.primaryIt.Reset()
-	it.forbiddenIt.Reset()
+	it.allIt = it.ts.NodesAllIterator()
 }
 
 func (it *Not) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
-// TODO
 func (it *Not) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
@@ -51,19 +52,19 @@ func (it *Not) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Not) Clone() graph.Iterator {
-	not := NewNot(it.primaryIt.Clone(), it.forbiddenIt.Clone())
+	not := NewNot(it.ts, it.primaryIt.Clone())
 	not.tags.CopyFrom(it)
 	return not
 }
 
 func (it *Not) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.primaryIt, it.forbiddenIt}
+	return []graph.Iterator{it.primaryIt, it.allIt}
 }
 
 func (it *Not) ResultTree() *graph.ResultTree {
 	tree := graph.NewResultTree(it.Result())
 	tree.AddSubtree(it.primaryIt.ResultTree())
-	tree.AddSubtree(it.forbiddenIt.ResultTree())
+	tree.AddSubtree(it.allIt.ResultTree())
 	return tree
 }
 
@@ -76,9 +77,7 @@ func (it *Not) Next() bool {
 	it.runstats.Next += 1
 
 	for graph.Next(it.primaryIt) {
-		// Consider only the elements from the primary set which are not
-		// contained in the forbidden set.
-		if curr := it.primaryIt.Result(); !it.forbiddenIt.Contains(curr) {
+		if curr := it.allIt.Result(); !it.primaryIt.Contains(curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1
 			return graph.NextLogOut(it, curr, true)
@@ -95,28 +94,30 @@ func (it *Not) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 
-	mainGood := it.primaryIt.Contains(val)
-	if mainGood {
-		mainGood = !it.forbiddenIt.Contains(val)
+	if it.primaryIt.Contains(val) {
+		return graph.ContainsLogOut(it, val, false)
 	}
-	return graph.ContainsLogOut(it, val, mainGood)
+
+	// TODO - figure out if this really needs to be checked or it's safe to return true directly
+	return graph.ContainsLogOut(it, val, it.allIt.Contains(val))
 }
 
+// TODO
 func (it *Not) NextPath() bool {
 	if it.primaryIt.NextPath() {
 		return true
 	}
-	return it.forbiddenIt.NextPath()
+	return false
 }
 
 func (it *Not) Close() {
 	it.primaryIt.Close()
-	it.forbiddenIt.Close()
+	it.allIt.Close()
 }
 
 func (it *Not) Type() graph.Type { return graph.Not }
 
-// TODO
+// TODO - call optimize for the primaryIt and allIt?
 func (it *Not) Optimize() (graph.Iterator, bool) {
 	//it.forbiddenIt = NewMaterialize(it.forbiddenIt)
 	return it, false

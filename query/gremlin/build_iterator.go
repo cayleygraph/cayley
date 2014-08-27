@@ -299,28 +299,14 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 	case "in":
 		it = buildInOutIterator(obj, ts, subIt, true)
 	case "not":
-		// Not is implemented as the difference between the primary iterator
-		// and the iterator chain composed of (primaryIt->Follow->FollowR).
+		// arg, _ := obj.Get("_gremlin_values")
+		// firstArg, _ := arg.Object().Get("0")
+		// if !isVertexChain(firstArg.Object()) {
+		// 	return iterator.NewNull()
+		// }
+		// forbiddenIt := buildIteratorTree(firstArg.Object(), ts)
 
-		// Arguments for follow iterator
-		arg, _ := obj.Get("_gremlin_values")
-		firstArg, _ := arg.Object().Get("0")
-		if isVertexChain(firstArg.Object()) {
-			return iterator.NewNull()
-		}
-
-		// Arguments for followR iterator
-		revArg, _ := obj.Get("_gremlin_followr")
-		if isVertexChain(revArg.Object()) {
-			return iterator.NewNull()
-		}
-
-		// Build the primaryIt->Follow iterator
-		followIt := buildIteratorTreeHelper(firstArg.Object(), ts, subIt)
-		// Build the primaryIt->Follow->FollowR iterator
-		forbiddenIt := buildIteratorTreeHelper(revArg.Object(), ts, followIt)
-
-		it = iterator.NewNot(subIt, forbiddenIt)
+		it = iterator.NewNot(ts, subIt)
 	case "loop":
 		arg, _ := obj.Get("_gremlin_values")
 		firstArg, _ := arg.Object().Get("0")
