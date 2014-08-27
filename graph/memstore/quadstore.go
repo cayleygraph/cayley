@@ -231,7 +231,7 @@ func (qs *QuadStore) NameOf(id graph.Value) string {
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return NewMemstoreQuadsAllIterator(qs)
+	return newQuadsAllIterator(qs)
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
@@ -244,7 +244,7 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return NewMemstoreNodesAllIterator(qs)
+	return newNodesAllIterator(qs)
 }
 
 func (qs *QuadStore) Close() {}

@@ -24,22 +24,24 @@ type AllIterator struct {
 	qs *QuadStore
 }
 
-type NodesAllIterator AllIterator
-type QuadsAllIterator AllIterator
+type (
+	nodesAllIterator AllIterator
+	quadsAllIterator AllIterator
+)
 
-func NewMemstoreNodesAllIterator(qs *QuadStore) *NodesAllIterator {
-	var out NodesAllIterator
+func newNodesAllIterator(qs *QuadStore) *nodesAllIterator {
+	var out nodesAllIterator
 	out.Int64 = *iterator.NewInt64(1, qs.idCounter-1)
 	out.qs = qs
 	return &out
 }
 
 // No subiterators.
-func (it *NodesAllIterator) SubIterators() []graph.Iterator {
+func (it *nodesAllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *NodesAllIterator) Next() bool {
+func (it *nodesAllIterator) Next() bool {
 	if !it.Int64.Next() {
 		return false
 	}
@@ -50,19 +52,19 @@ func (it *NodesAllIterator) Next() bool {
 	return true
 }
 
-func NewMemstoreQuadsAllIterator(qs *QuadStore) *QuadsAllIterator {
-	var out QuadsAllIterator
+func newQuadsAllIterator(qs *QuadStore) *quadsAllIterator {
+	var out quadsAllIterator
 	out.Int64 = *iterator.NewInt64(1, qs.quadIdCounter-1)
 	out.qs = qs
 	return &out
 }
 
-func (qit *QuadsAllIterator) Next() bool {
-	out := qit.Int64.Next()
+func (it *quadsAllIterator) Next() bool {
+	out := it.Int64.Next()
 	if out {
-		i64 := qit.Int64.Result().(int64)
-		if qit.qs.log[i64].DeletedBy != 0 || qit.qs.log[i64].Action == graph.Delete {
-			return qit.Next()
+		i64 := it.Int64.Result().(int64)
+		if it.qs.log[i64].DeletedBy != 0 || it.qs.log[i64].Action == graph.Delete {
+			return it.Next()
 		}
 	}
 	return out
