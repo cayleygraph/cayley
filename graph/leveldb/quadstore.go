@@ -146,21 +146,31 @@ func (qa *QuadStore) createDeltaKeyFor(d graph.Delta) []byte {
 	return key
 }
 
+func hashOf(s string) []byte {
+	h := hashPool.Get().(hash.Hash)
+	h.Reset()
+	defer hashPool.Put(h)
+	key := make([]byte, 0, hashSize)
+	h.Write([]byte(s))
+	key = h.Sum(key)
+	return key
+}
+
 func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
 	key := make([]byte, 0, 2+(hashSize*3))
 	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
-	key = append(key, qs.hashOf(q.Get(d[0]))...)
-	key = append(key, qs.hashOf(q.Get(d[1]))...)
-	key = append(key, qs.hashOf(q.Get(d[2]))...)
-	key = append(key, qs.hashOf(q.Get(d[3]))...)
+	key = append(key, hashOf(q.Get(d[0]))...)
+	key = append(key, hashOf(q.Get(d[1]))...)
+	key = append(key, hashOf(q.Get(d[2]))...)
+	key = append(key, hashOf(q.Get(d[3]))...)
 	return key
 }
 
 func (qs *QuadStore) createValueKeyFor(s string) []byte {
 	key := make([]byte, 0, 1+hashSize)
 	key = append(key, []byte("z")...)
-	key = append(key, qs.hashOf(s)...)
+	key = append(key, hashOf(s)...)
 	return key
 }
 
@@ -345,16 +355,6 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 		return quad.Quad{}
 	}
 	return q
-}
-
-func (qs *QuadStore) hashOf(s string) []byte {
-	h := hashPool.Get().(hash.Hash)
-	h.Reset()
-	defer hashPool.Put(h)
-	key := make([]byte, 0, hashSize)
-	h.Write([]byte(s))
-	key = h.Sum(key)
-	return key
 }
 
 func (qs *QuadStore) ValueOf(s string) graph.Value {

@@ -102,14 +102,14 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 }
 
 func (qs *QuadStore) getIdForQuad(t quad.Quad) string {
-	id := qs.hashOf(t.Subject)
-	id += qs.hashOf(t.Predicate)
-	id += qs.hashOf(t.Object)
-	id += qs.hashOf(t.Label)
+	id := hashOf(t.Subject)
+	id += hashOf(t.Predicate)
+	id += hashOf(t.Object)
+	id += hashOf(t.Label)
 	return id
 }
 
-func (qs *QuadStore) hashOf(s string) string {
+func hashOf(s string) string {
 	h := hashPool.Get().(hash.Hash)
 	h.Reset()
 	defer hashPool.Put(h)
@@ -288,7 +288,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) ValueOf(s string) graph.Value {
-	return qs.hashOf(s)
+	return hashOf(s)
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) string {
