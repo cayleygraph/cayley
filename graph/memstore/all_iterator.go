@@ -31,7 +31,7 @@ type (
 
 func newNodesAllIterator(qs *QuadStore) *nodesAllIterator {
 	var out nodesAllIterator
-	out.Int64 = *iterator.NewInt64(1, qs.idCounter-1)
+	out.Int64 = *iterator.NewInt64(1, qs.nextID-1)
 	out.qs = qs
 	return &out
 }
@@ -45,7 +45,7 @@ func (it *nodesAllIterator) Next() bool {
 	if !it.Int64.Next() {
 		return false
 	}
-	_, ok := it.qs.revIdMap[it.Int64.Result().(int64)]
+	_, ok := it.qs.revIDMap[it.Int64.Result().(int64)]
 	if !ok {
 		return it.Next()
 	}
@@ -54,7 +54,7 @@ func (it *nodesAllIterator) Next() bool {
 
 func newQuadsAllIterator(qs *QuadStore) *quadsAllIterator {
 	var out quadsAllIterator
-	out.Int64 = *iterator.NewInt64(1, qs.quadIdCounter-1)
+	out.Int64 = *iterator.NewInt64(1, qs.nextQuadID-1)
 	out.qs = qs
 	return &out
 }

@@ -20,7 +20,7 @@ import (
 )
 
 type Node struct {
-	Id         int      `json:"id"`
+	ID         int      `json:"id"`
 	Tags       []string `json:"tags,omitempty"`
 	Values     []string `json:"values,omitempty"`
 	IsLinkNode bool     `json:"is_link_node"`
@@ -38,15 +38,15 @@ type queryShape struct {
 	nodes    []Node
 	links    []Link
 	qs       graph.QuadStore
-	nodeId   int
-	hasaIds  []int
+	nodeID   int
+	hasaIDs  []int
 	hasaDirs []quad.Direction
 }
 
 func OutputQueryShapeForIterator(it graph.Iterator, qs graph.QuadStore, outputMap map[string]interface{}) {
 	s := &queryShape{
 		qs:     qs,
-		nodeId: 1,
+		nodeID: 1,
 	}
 
 	node := s.MakeNode(it.Clone())
@@ -64,16 +64,16 @@ func (s *queryShape) AddLink(l *Link) {
 }
 
 func (s *queryShape) LastHasa() (int, quad.Direction) {
-	return s.hasaIds[len(s.hasaIds)-1], s.hasaDirs[len(s.hasaDirs)-1]
+	return s.hasaIDs[len(s.hasaIDs)-1], s.hasaDirs[len(s.hasaDirs)-1]
 }
 
 func (s *queryShape) PushHasa(i int, d quad.Direction) {
-	s.hasaIds = append(s.hasaIds, i)
+	s.hasaIDs = append(s.hasaIDs, i)
 	s.hasaDirs = append(s.hasaDirs, d)
 }
 
 func (s *queryShape) RemoveHasa() {
-	s.hasaIds = s.hasaIds[:len(s.hasaIds)-1]
+	s.hasaIDs = s.hasaIDs[:len(s.hasaIDs)-1]
 	s.hasaDirs = s.hasaDirs[:len(s.hasaDirs)-1]
 }
 
@@ -88,16 +88,16 @@ func (s *queryShape) StealNode(left *Node, right *Node) {
 	left.IsFixed = left.IsFixed || right.IsFixed
 	for i, link := range s.links {
 		rewrite := false
-		if link.LinkNode == right.Id {
-			link.LinkNode = left.Id
+		if link.LinkNode == right.ID {
+			link.LinkNode = left.ID
 			rewrite = true
 		}
-		if link.Source == right.Id {
-			link.Source = left.Id
+		if link.Source == right.ID {
+			link.Source = left.ID
 			rewrite = true
 		}
-		if link.Target == right.Id {
-			link.Target = left.Id
+		if link.Target == right.ID {
+			link.Target = left.ID
 			rewrite = true
 		}
 		if rewrite {
@@ -107,24 +107,24 @@ func (s *queryShape) StealNode(left *Node, right *Node) {
 }
 
 func (s *queryShape) MakeNode(it graph.Iterator) *Node {
-	n := Node{Id: s.nodeId}
+	n := Node{ID: s.nodeID}
 	for _, tag := range it.Tagger().Tags() {
 		n.Tags = append(n.Tags, tag)
 	}
-	for k, _ := range it.Tagger().Fixed() {
+	for k := range it.Tagger().Fixed() {
 		n.Tags = append(n.Tags, k)
 	}
 
 	switch it.Type() {
 	case graph.And:
 		for _, sub := range it.SubIterators() {
-			s.nodeId++
+			s.nodeID++
 			newNode := s.MakeNode(sub)
 			if sub.Type() != graph.Or {
 				s.StealNode(&n, newNode)
 			} else {
 				s.AddNode(newNode)
-				s.AddLink(&Link{n.Id, newNode.Id, 0, 0})
+				s.AddLink(&Link{n.ID, newNode.ID, 0, 0})
 			}
 		}
 	case graph.Fixed:
@@ -134,35 +134,35 @@ func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 		}
 	case graph.HasA:
 		hasa := it.(*HasA)
-		s.PushHasa(n.Id, hasa.dir)
-		s.nodeId++
+		s.PushHasa(n.ID, hasa.dir)
+		s.nodeID++
 		newNode := s.MakeNode(hasa.primaryIt)
 		s.AddNode(newNode)
 		s.RemoveHasa()
 	case graph.Or:
 		for _, sub := range it.SubIterators() {
-			s.nodeId++
+			s.nodeID++
 			newNode := s.MakeNode(sub)
 			if sub.Type() == graph.Or {
 				s.StealNode(&n, newNode)
 			} else {
 				s.AddNode(newNode)
-				s.AddLink(&Link{n.Id, newNode.Id, 0, 0})
+				s.AddLink(&Link{n.ID, newNode.ID, 0, 0})
 			}
 		}
 	case graph.LinksTo:
 		n.IsLinkNode = true
 		lto := it.(*LinksTo)
-		s.nodeId++
+		s.nodeID++
 		newNode := s.MakeNode(lto.primaryIt)
 		hasaID, hasaDir := s.LastHasa()
 		if (hasaDir == quad.Subject && lto.dir == quad.Object) ||
 			(hasaDir == quad.Object && lto.dir == quad.Subject) {
 			s.AddNode(newNode)
 			if hasaDir == quad.Subject {
-				s.AddLink(&Link{hasaID, newNode.Id, 0, n.Id})
+				s.AddLink(&Link{hasaID, newNode.ID, 0, n.ID})
 			} else {
-				s.AddLink(&Link{newNode.Id, hasaID, 0, n.Id})
+				s.AddLink(&Link{newNode.ID, hasaID, 0, n.ID})
 			}
 		} else if lto.primaryIt.Type() == graph.Fixed {
 			s.StealNode(&n, newNode)

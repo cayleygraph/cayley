@@ -70,27 +70,27 @@ type LogEntry struct {
 }
 
 type QuadStore struct {
-	idCounter     int64
-	quadIdCounter int64
-	idMap         map[string]int64
-	revIdMap      map[int64]string
-	log           []LogEntry
-	size          int64
-	index         QuadDirectionIndex
+	nextID     int64
+	nextQuadID int64
+	idMap      map[string]int64
+	revIDMap   map[int64]string
+	log        []LogEntry
+	size       int64
+	index      QuadDirectionIndex
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
 }
 
 func newQuadStore() *QuadStore {
 	return &QuadStore{
 		idMap:    make(map[string]int64),
-		revIdMap: make(map[int64]string),
+		revIDMap: make(map[int64]string),
 
 		// Sentinel null entry so indices start at 1
 		log: make([]LogEntry, 1, 200),
 
-		index:         NewQuadDirectionIndex(),
-		idCounter:     1,
-		quadIdCounter: 1,
+		index:      NewQuadDirectionIndex(),
+		nextID:     1,
+		nextQuadID: 1,
 	}
 }
 
@@ -148,10 +148,10 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 	if _, exists := qs.indexOf(d.Quad); exists {
 		return graph.ErrQuadExists
 	}
-	qid := qs.quadIdCounter
+	qid := qs.nextQuadID
 	qs.log = append(qs.log, LogEntry{Delta: d})
 	qs.size++
-	qs.quadIdCounter++
+	qs.nextQuadID++
 
 	for dir := quad.Subject; dir <= quad.Label; dir++ {
 		sid := d.Quad.Get(dir)
@@ -159,9 +159,9 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 			continue
 		}
 		if _, ok := qs.idMap[sid]; !ok {
-			qs.idMap[sid] = qs.idCounter
-			qs.revIdMap[qs.idCounter] = sid
-			qs.idCounter++
+			qs.idMap[sid] = qs.nextID
+			qs.revIDMap[qs.nextID] = sid
+			qs.nextID++
 		}
 	}
 
@@ -184,11 +184,11 @@ func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 		return graph.ErrQuadNotExist
 	}
 
-	quadID := qs.quadIdCounter
+	quadID := qs.nextQuadID
 	qs.log = append(qs.log, LogEntry{Delta: d})
 	qs.log[prevQuadID].DeletedBy = quadID
 	qs.size--
-	qs.quadIdCounter++
+	qs.nextQuadID++
 	return nil
 }
 
@@ -227,7 +227,7 @@ func (qs *QuadStore) ValueOf(name string) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(id graph.Value) string {
-	return qs.revIdMap[id.(int64)]
+	return qs.revIDMap[id.(int64)]
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {

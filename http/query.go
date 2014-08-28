@@ -47,18 +47,18 @@ func WrapResult(result interface{}) ([]byte, error) {
 	return json.MarshalIndent(wrap, "", " ")
 }
 
-func RunJsonQuery(query string, ses query.HttpSession) (interface{}, error) {
+func Run(q string, ses query.HTTP) (interface{}, error) {
 	c := make(chan interface{}, 5)
-	go ses.ExecInput(query, c, 100)
+	go ses.ExecInput(q, c, 100)
 	for res := range c {
-		ses.BuildJson(res)
+		ses.BuildJSON(res)
 	}
-	return ses.GetJson()
+	return ses.GetJSON()
 }
 
-func GetQueryShape(query string, ses query.HttpSession) ([]byte, error) {
+func GetQueryShape(q string, ses query.HTTP) ([]byte, error) {
 	c := make(chan map[string]interface{}, 5)
-	go ses.GetQuery(query, c)
+	go ses.GetQuery(q, c)
 	var data map[string]interface{}
 	for res := range c {
 		data = res
@@ -67,19 +67,19 @@ func GetQueryShape(query string, ses query.HttpSession) ([]byte, error) {
 }
 
 // TODO(barakmich): Turn this into proper middleware.
-func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
-	var ses query.HttpSession
+func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+	var ses query.HTTP
 	switch params.ByName("query_lang") {
 	case "gremlin":
 		ses = gremlin.NewSession(api.handle.QuadStore, api.config.Timeout, false)
 	case "mql":
 		ses = mql.NewSession(api.handle.QuadStore)
 	default:
-		return FormatJson400(w, "Need a query language.")
+		return jsonResponse(w, 400, "Need a query language.")
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return FormatJson400(w, err)
+		return jsonResponse(w, 400, err)
 	}
 	code := string(bodyBytes)
 	result, err := ses.InputParses(code)
@@ -88,7 +88,7 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		var output interface{}
 		var bytes []byte
 		var err error
-		output, err = RunJsonQuery(code, ses)
+		output, err = Run(code, ses)
 		if err != nil {
 			bytes, err = WrapErrResult(err)
 			http.Error(w, string(bytes), 400)
@@ -98,33 +98,33 @@ func (api *Api) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		bytes, err = WrapResult(output)
 		if err != nil {
 			ses = nil
-			return FormatJson400(w, err)
+			return jsonResponse(w, 400, err)
 		}
 		fmt.Fprint(w, string(bytes))
 		ses = nil
 		return 200
 	case query.ParseFail:
 		ses = nil
-		return FormatJson400(w, err)
+		return jsonResponse(w, 400, err)
 	default:
 		ses = nil
-		return FormatJsonError(w, 500, "Incomplete data?")
+		return jsonResponse(w, 500, "Incomplete data?")
 	}
 }
 
-func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
-	var ses query.HttpSession
+func (api *API) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+	var ses query.HTTP
 	switch params.ByName("query_lang") {
 	case "gremlin":
 		ses = gremlin.NewSession(api.handle.QuadStore, api.config.Timeout, false)
 	case "mql":
 		ses = mql.NewSession(api.handle.QuadStore)
 	default:
-		return FormatJson400(w, "Need a query language.")
+		return jsonResponse(w, 400, "Need a query language.")
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return FormatJson400(w, err)
+		return jsonResponse(w, 400, err)
 	}
 	code := string(bodyBytes)
 	result, err := ses.InputParses(code)
@@ -134,13 +134,13 @@ func (api *Api) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 		var err error
 		output, err = GetQueryShape(code, ses)
 		if err != nil {
-			return FormatJson400(w, err)
+			return jsonResponse(w, 400, err)
 		}
 		fmt.Fprint(w, string(output))
 		return 200
 	case query.ParseFail:
-		return FormatJson400(w, err)
+		return jsonResponse(w, 400, err)
 	default:
-		return FormatJsonError(w, 500, "Incomplete data?")
+		return jsonResponse(w, 500, "Incomplete data?")
 	}
 }

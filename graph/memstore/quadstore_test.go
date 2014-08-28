@@ -164,11 +164,11 @@ func TestLinksToOptimization(t *testing.T) {
 	}
 
 	v := newIt.(*Iterator)
-	v_clone := v.Clone()
-	if v_clone.DebugString(0) != v.DebugString(0) {
-		t.Fatal("Wrong iterator. Got ", v_clone.DebugString(0))
+	vClone := v.Clone()
+	if vClone.DebugString(0) != v.DebugString(0) {
+		t.Fatal("Wrong iterator. Got ", vClone.DebugString(0))
 	}
-	vt := v_clone.Tagger()
+	vt := vClone.Tagger()
 	if len(vt.Tags()) < 1 || vt.Tags()[0] != "foo" {
 		t.Fatal("Tag on LinksTo did not persist")
 	}

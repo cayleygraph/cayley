@@ -140,7 +140,7 @@ func buildInOutIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterato
 }
 
 func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.Iterator) graph.Iterator {
-	var it graph.Iterator = base
+	it := base
 
 	// TODO: Better error handling
 	var subIt graph.Iterator

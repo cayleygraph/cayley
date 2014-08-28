@@ -32,7 +32,7 @@ import (
 var (
 	boltType    graph.Type
 	bufferSize  = 50
-	errNotExist = errors.New("Quad does not exist")
+	errNotExist = errors.New("quad does not exist")
 )
 
 func init() {
@@ -43,7 +43,7 @@ type Iterator struct {
 	uid     uint64
 	tags    graph.Tagger
 	bucket  []byte
-	checkId []byte
+	checkID []byte
 	dir     quad.Direction
 	qs      *QuadStore
 	result  *Token
@@ -56,7 +56,7 @@ type Iterator struct {
 func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
 	tok := value.(*Token)
 	if !bytes.Equal(tok.bucket, nodeBucket) {
-		glog.Error("Creating an iterator from a non-node value.")
+		glog.Error("creating an iterator from a non-node value")
 		return &Iterator{done: true}
 	}
 
@@ -68,8 +68,8 @@ func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadSto
 		size:   qs.SizeOf(value),
 	}
 
-	it.checkId = make([]byte, len(tok.key))
-	copy(it.checkId, tok.key)
+	it.checkID = make([]byte, len(tok.key))
+	copy(it.checkID, tok.key)
 
 	return &it
 }
@@ -101,7 +101,7 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	out := NewIterator(it.bucket, it.dir, &Token{nodeBucket, it.checkId}, it.qs)
+	out := NewIterator(it.bucket, it.dir, &Token{nodeBucket, it.checkID}, it.qs)
 	out.Tagger().CopyFrom(it)
 	return out
 }
@@ -134,8 +134,8 @@ func (it *Iterator) Next() bool {
 			b := tx.Bucket(it.bucket)
 			cur := b.Cursor()
 			if last == nil {
-				k, _ := cur.Seek(it.checkId)
-				if bytes.HasPrefix(k, it.checkId) {
+				k, _ := cur.Seek(it.checkID)
+				if bytes.HasPrefix(k, it.checkID) {
 					var out []byte
 					out = make([]byte, len(k))
 					copy(out, k)
@@ -148,12 +148,12 @@ func (it *Iterator) Next() bool {
 			} else {
 				k, _ := cur.Seek(last)
 				if !bytes.Equal(k, last) {
-					return fmt.Errorf("Couldn't pick up after", k)
+					return fmt.Errorf("could not pick up after", k)
 				}
 			}
 			for i < bufferSize {
 				k, v := cur.Next()
-				if k == nil || !bytes.HasPrefix(k, it.checkId) {
+				if k == nil || !bytes.HasPrefix(k, it.checkID) {
 					it.buffer = append(it.buffer, nil)
 					break
 				}
@@ -170,7 +170,7 @@ func (it *Iterator) Next() bool {
 		})
 		if err != nil {
 			if err != errNotExist {
-				glog.Error("Error nexting in database: ", err)
+				glog.Errorf("Error nexting in database: %v", err)
 			}
 			it.done = true
 			return false
@@ -272,7 +272,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return false
 	}
 	offset := PositionOf(val, it.dir, it.qs)
-	if bytes.HasPrefix(val.key[offset:], it.checkId) {
+	if bytes.HasPrefix(val.key[offset:], it.checkID) {
 		// You may ask, why don't we check to see if it's a valid (not deleted) quad
 		// again?
 		//
@@ -299,7 +299,7 @@ func (it *Iterator) DebugString(indent int) string {
 		it.tags.Tags(),
 		it.dir,
 		it.size,
-		it.qs.NameOf(&Token{it.bucket, it.checkId}),
+		it.qs.NameOf(&Token{it.bucket, it.checkID}),
 	)
 }
 

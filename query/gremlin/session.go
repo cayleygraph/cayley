@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/robertkrimen/otto"
+	// Provide underscore JS library.
 	_ "github.com/robertkrimen/otto/underscore"
 
 	"github.com/google/cayley/graph"
@@ -176,7 +177,7 @@ func (s *Session) ToText(result interface{}) string {
 		tags := data.actualResults
 		tagKeys := make([]string, len(tags))
 		i := 0
-		for k, _ := range tags {
+		for k := range tags {
 			tagKeys[i] = k
 			i++
 		}
@@ -203,7 +204,7 @@ func (s *Session) ToText(result interface{}) string {
 }
 
 // Web stuff
-func (s *Session) BuildJson(result interface{}) {
+func (s *Session) BuildJSON(result interface{}) {
 	data := result.(*Result)
 	if !data.metaresult {
 		if data.val == nil {
@@ -211,7 +212,7 @@ func (s *Session) BuildJson(result interface{}) {
 			tags := data.actualResults
 			tagKeys := make([]string, len(tags))
 			i := 0
-			for k, _ := range tags {
+			for k := range tags {
 				tagKeys[i] = k
 				i++
 			}
@@ -232,8 +233,8 @@ func (s *Session) BuildJson(result interface{}) {
 	}
 }
 
-func (s *Session) GetJson() ([]interface{}, error) {
-	defer s.ClearJson()
+func (s *Session) GetJSON() ([]interface{}, error) {
+	defer s.ClearJSON()
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -245,6 +246,6 @@ func (s *Session) GetJson() ([]interface{}, error) {
 	}
 }
 
-func (s *Session) ClearJson() {
+func (s *Session) ClearJSON() {
 	s.dataOutput = nil
 }

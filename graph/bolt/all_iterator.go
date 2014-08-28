@@ -103,7 +103,7 @@ func (it *AllIterator) Next() bool {
 			} else {
 				k, _ := cur.Seek(last)
 				if !bytes.Equal(k, last) {
-					return fmt.Errorf("Couldn't pick up after", k)
+					return fmt.Errorf("could not pick up after", k)
 				}
 			}
 			for i < bufferSize {

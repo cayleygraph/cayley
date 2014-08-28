@@ -130,9 +130,8 @@ func (q Quad) NQuad() string {
 	if q.Label == "" {
 		//TODO(barakmich): Proper escaping.
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)
-	} else {
-		return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
 	}
+	return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
 }
 
 type Unmarshaler interface {

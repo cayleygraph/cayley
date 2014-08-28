@@ -53,7 +53,7 @@ func (s *Session) InputParses(input string) (query.ParseResult, error) {
 				if (i - 10) > min {
 					min = i - 10
 				}
-				return query.ParseFail, errors.New(fmt.Sprintf("Too many close parens at char %d: %s", i, input[min:i]))
+				return query.ParseFail, fmt.Errorf("too many close parentheses at char %d: %s", i, input[min:i])
 			}
 		}
 	}
@@ -63,7 +63,7 @@ func (s *Session) InputParses(input string) (query.ParseResult, error) {
 	if len(ParseString(input)) > 0 {
 		return query.Parsed, nil
 	}
-	return query.ParseFail, errors.New("Invalid Syntax")
+	return query.ParseFail, errors.New("invalid syntax")
 }
 
 func (s *Session) ExecInput(input string, out chan interface{}, limit int) {

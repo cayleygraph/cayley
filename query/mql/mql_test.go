@@ -172,9 +172,9 @@ func runQuery(g []quad.Quad, query string) interface{} {
 	c := make(chan interface{}, 5)
 	go s.ExecInput(query, c, -1)
 	for result := range c {
-		s.BuildJson(result)
+		s.BuildJSON(result)
 	}
-	result, _ := s.GetJson()
+	result, _ := s.GetJSON()
 	return result
 }
 

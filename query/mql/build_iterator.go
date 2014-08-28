@@ -47,7 +47,7 @@ func (q *Query) BuildIteratorTree(query interface{}) {
 	var isOptional bool
 	q.it, isOptional, q.err = q.buildIteratorTreeInternal(query, NewPath())
 	if isOptional {
-		q.err = errors.New("Optional iterator at the top level?")
+		q.err = errors.New("optional iterator at the top level")
 	}
 }
 
@@ -84,7 +84,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 		} else if len(t) == 1 {
 			it, optional, err = q.buildIteratorTreeInternal(t[0], path)
 		} else {
-			err = errors.New(fmt.Sprintf("Multiple fields at location root%s", path.DisplayString()))
+			err = fmt.Errorf("multiple fields at location root %s", path.DisplayString())
 		}
 	case map[string]interface{}:
 		// for JSON objects
@@ -166,13 +166,13 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 	return it, nil
 }
 
-type ResultPathSlice []ResultPath
+type byRecordLength []ResultPath
 
-func (p ResultPathSlice) Len() int {
+func (p byRecordLength) Len() int {
 	return len(p)
 }
 
-func (p ResultPathSlice) Less(i, j int) bool {
+func (p byRecordLength) Less(i, j int) bool {
 	iLen := len(strings.Split(string(p[i]), "\x30"))
 	jLen := len(strings.Split(string(p[j]), "\x30"))
 	if iLen < jLen {
@@ -186,6 +186,6 @@ func (p ResultPathSlice) Less(i, j int) bool {
 	return false
 }
 
-func (p ResultPathSlice) Swap(i, j int) {
+func (p byRecordLength) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }

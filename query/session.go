@@ -32,14 +32,14 @@ type Session interface {
 	ToggleDebug()
 }
 
-type HttpSession interface {
+type HTTP interface {
 	// Return whether the string is a valid expression.
 	InputParses(string) (ParseResult, error)
 	// Runs the query and returns individual results on the channel.
 	ExecInput(string, chan interface{}, int)
 	GetQuery(string, chan map[string]interface{})
-	BuildJson(interface{})
-	GetJson() ([]interface{}, error)
-	ClearJson()
+	BuildJSON(interface{})
+	GetJSON() ([]interface{}, error)
+	ClearJSON()
 	ToggleDebug()
 }
