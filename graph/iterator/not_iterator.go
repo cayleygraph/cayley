@@ -1,25 +1,28 @@
 package iterator
 
-import "github.com/google/cayley/graph"
+import (
+	"fmt"
+	"strings"
 
-// Not iterator acts like a set difference between the primary iterator
-// and the forbidden iterator.
+	"github.com/google/cayley/graph"
+)
+
+// Not iterator acts like a complement for the primary iterator.
+// It will return all the vertices which are not part of the primary iterator.
 type Not struct {
 	uid       uint64
 	tags      graph.Tagger
-	ts        graph.TripleStore
 	primaryIt graph.Iterator
 	allIt     graph.Iterator
 	result    graph.Value
 	runstats  graph.IteratorStats
 }
 
-func NewNot(ts graph.TripleStore, primaryIt graph.Iterator) *Not {
+func NewNot(primaryIt, allIt graph.Iterator) *Not {
 	return &Not{
 		uid:       NextUID(),
-		ts:        ts,
-		allIt:     ts.NodesAllIterator(),
 		primaryIt: primaryIt,
+		allIt:     allIt,
 	}
 }
 
@@ -27,10 +30,11 @@ func (it *Not) UID() uint64 {
 	return it.uid
 }
 
+// Reset resets the internal iterators and the iterator itself.
 func (it *Not) Reset() {
 	it.result = nil
 	it.primaryIt.Reset()
-	it.allIt = it.ts.NodesAllIterator()
+	it.allIt.Reset()
 }
 
 func (it *Not) Tagger() *graph.Tagger {
@@ -52,15 +56,19 @@ func (it *Not) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Not) Clone() graph.Iterator {
-	not := NewNot(it.ts, it.primaryIt.Clone())
+	not := NewNot(it.primaryIt.Clone(), it.allIt.Clone())
 	not.tags.CopyFrom(it)
 	return not
 }
 
+// SubIterators returns a slice of the sub iterators.
+// The first iterator is the primary iterator, for which the complement
+// is generated.
 func (it *Not) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.primaryIt, it.allIt}
 }
 
+// DEPRECATED
 func (it *Not) ResultTree() *graph.ResultTree {
 	tree := graph.NewResultTree(it.Result())
 	tree.AddSubtree(it.primaryIt.ResultTree())
@@ -68,15 +76,33 @@ func (it *Not) ResultTree() *graph.ResultTree {
 	return tree
 }
 
+// DebugString prints information about the iterator.
 func (it *Not) DebugString(indent int) string {
-	return "todo"
+	var tags string
+	for _, k := range it.tags.Tags() {
+		tags += fmt.Sprintf("%s;", k)
+	}
+
+	spaces := strings.Repeat(" ", indent+2)
+	return fmt.Sprintf("%s(%s %d\n%stags:%v\n%sprimary_it:\n%s\n)",
+		strings.Repeat(" ", indent),
+		it.Type(),
+		it.UID(),
+		spaces,
+		it.tags.Tags(),
+		spaces,
+		it.primaryIt.DebugString(indent+4),
+	)
 }
 
+// Next advances the Not iterator. It returns whether there is another valid
+// new value. It fetches the next value of the all iterator which is not
+// contained by the primary iterator.
 func (it *Not) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for graph.Next(it.primaryIt) {
+	for graph.Next(it.allIt) {
 		if curr := it.allIt.Result(); !it.primaryIt.Contains(curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1
@@ -90,6 +116,9 @@ func (it *Not) Result() graph.Value {
 	return it.result
 }
 
+// Contains checks whether the passed value is part of the primary iterator's
+// complement. For a valid value, it updates the Result returned by the iterator
+// to the value itself.
 func (it *Not) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
@@ -98,15 +127,13 @@ func (it *Not) Contains(val graph.Value) bool {
 		return graph.ContainsLogOut(it, val, false)
 	}
 
-	// TODO - figure out if this really needs to be checked or it's safe to return true directly
-	return graph.ContainsLogOut(it, val, it.allIt.Contains(val))
+	it.result = val
+	return graph.ContainsLogOut(it, val, true)
 }
 
-// TODO
+// NextPath checks whether there is another path. Not applicable, hence it will
+// return false.
 func (it *Not) NextPath() bool {
-	if it.primaryIt.NextPath() {
-		return true
-	}
 	return false
 }
 
@@ -117,13 +144,15 @@ func (it *Not) Close() {
 
 func (it *Not) Type() graph.Type { return graph.Not }
 
-// TODO - call optimize for the primaryIt and allIt?
 func (it *Not) Optimize() (graph.Iterator, bool) {
-	//it.forbiddenIt = NewMaterialize(it.forbiddenIt)
+	// TODO - consider wrapping the primaryIt with a MaterializeIt
+	if optimizedPrimaryIt, optimized := it.primaryIt.Optimize(); optimized {
+		it.primaryIt = optimizedPrimaryIt
+		return it, true
+	}
 	return it, false
 }
 
-// TODO
 func (it *Not) Stats() graph.IteratorStats {
 	subitStats := it.primaryIt.Stats()
 	// TODO(barakmich): These should really come from the triplestore itself

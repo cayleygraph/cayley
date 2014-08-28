@@ -305,8 +305,9 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 			return iterator.NewNull()
 		}
 
+		allIt := ts.NodesAllIterator()
 		toComplementIt := buildIteratorTree(firstArg.Object(), ts)
-		notIt := iterator.NewNot(ts, toComplementIt)
+		notIt := iterator.NewNot(toComplementIt, allIt)
 
 		and := iterator.NewAnd()
 		and.AddSubIterator(subIt)
