@@ -114,7 +114,6 @@ func (qs *QuadStore) Close() {
 var tables = []string{"quads_by_s", "quads_by_p", "quads_by_o", "quads_by_c"}
 
 func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *gocql.Batch) {
-	data.Cons = gocql.Quorum
 	q := &d.Quad
 	for _, table := range tables {
 		if q.Label == "" && table == "quads_by_c" {
@@ -130,7 +129,6 @@ func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *goc
 		`)
 		data.Query(query, []int64{d.ID}, q.Subject, q.Predicate, q.Object, q.Label)
 	}
-	count.Cons = gocql.Quorum
 	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
 		if q.Get(dir) == "" {
 			continue
@@ -141,7 +139,6 @@ func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *goc
 }
 
 func (qs *QuadStore) addRemoveQuadToBatch(d graph.Delta, data *gocql.Batch, count *gocql.Batch) {
-	data.Cons = gocql.Quorum
 	q := &d.Quad
 	for _, table := range tables {
 		if q.Label == "" && table == "quads_by_c" {
@@ -157,7 +154,6 @@ func (qs *QuadStore) addRemoveQuadToBatch(d graph.Delta, data *gocql.Batch, coun
 		`)
 		data.Query(query, []int64{d.ID}, q.Subject, q.Predicate, q.Object, q.Label)
 	}
-	count.Cons = gocql.Quorum
 	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
 		if q.Get(dir) == "" {
 			continue

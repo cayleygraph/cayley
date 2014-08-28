@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -170,6 +171,14 @@ func main() {
 	if Version != "" {
 		buildString = fmt.Sprint("Cayley ", Version, " built ", BuildDate)
 		glog.Infoln(buildString)
+	}
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			glog.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
 	}
 
 	cfg := configFrom(*configFile)
