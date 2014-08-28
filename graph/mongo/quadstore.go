@@ -327,12 +327,8 @@ func (qs *QuadStore) Horizon() int64 {
 	return log.LogID
 }
 
-func compareStrings(a, b graph.Value) bool {
-	return a.(string) == b.(string)
-}
-
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(compareStrings)
+	return iterator.NewFixed(iterator.Identity)
 }
 
 func (qs *QuadStore) Close() {

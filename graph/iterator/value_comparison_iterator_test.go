@@ -24,7 +24,7 @@ import (
 var simpleStore = &store{data: []string{"0", "1", "2", "3", "4", "5"}}
 
 func simpleFixedIterator() *Fixed {
-	f := newFixed()
+	f := NewFixed(Identity)
 	for i := 0; i < 5; i++ {
 		f.Add(i)
 	}

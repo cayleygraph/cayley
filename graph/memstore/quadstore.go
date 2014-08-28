@@ -235,7 +235,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(iterator.BasicEquality)
+	return iterator.NewFixed(iterator.Identity)
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {

@@ -503,5 +503,5 @@ func compareTokens(a, b graph.Value) bool {
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(compareTokens)
+	return iterator.NewFixed(compareTokens)
 }

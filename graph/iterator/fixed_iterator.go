@@ -42,24 +42,16 @@ type Fixed struct {
 type Equality func(a, b graph.Value) bool
 
 // Define an equality function of purely ==, which works for native types.
-func BasicEquality(a, b graph.Value) bool {
-	if a == b {
-		return true
-	}
-	return false
+func Identity(a, b graph.Value) bool {
+	return a == b
 }
 
-// Creates a new Fixed iterator based around == equality.
-func newFixed() *Fixed {
-	return NewFixedIteratorWithCompare(BasicEquality)
-}
-
-// Creates a new Fixed iterator with a custom comparitor.
-func NewFixedIteratorWithCompare(compareFn Equality) *Fixed {
+// Creates a new Fixed iterator with a custom comparator.
+func NewFixed(cmp Equality) *Fixed {
 	return &Fixed{
 		uid:    NextUID(),
 		values: make([]graph.Value, 0, 20),
-		cmp:    compareFn,
+		cmp:    cmp,
 	}
 }
 
@@ -88,7 +80,7 @@ func (it *Fixed) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Fixed) Clone() graph.Iterator {
-	out := NewFixedIteratorWithCompare(it.cmp)
+	out := NewFixed(it.cmp)
 	for _, val := range it.values {
 		out.Add(val)
 	}
