@@ -269,5 +269,4 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 	default:
 		return &iterator.Null{}
 	}
-	panic("Not reached")
 }

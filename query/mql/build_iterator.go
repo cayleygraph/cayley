@@ -68,7 +68,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 		// Damn you, Javascript, and your lack of integer values.
 		if math.Floor(t) == t {
 			// Treat it like an integer.
-			it = q.buildFixed(fmt.Sprintf("%d", t))
+			it = q.buildFixed(fmt.Sprintf("%0.f", t))
 		} else {
 			it = q.buildFixed(fmt.Sprintf("%f", t))
 		}

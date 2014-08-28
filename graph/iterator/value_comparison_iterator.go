@@ -154,7 +154,7 @@ func (it *Comparison) NextPath() bool {
 			return false
 		}
 		if it.doComparison(it.subIt.Result()) {
-			return true
+			break
 		}
 	}
 	it.result = it.subIt.Result()

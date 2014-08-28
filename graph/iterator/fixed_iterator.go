@@ -100,7 +100,7 @@ func (it *Fixed) DebugString(indent int) string {
 	if len(it.values) > 0 {
 		value = fmt.Sprint(it.values[0])
 	}
-	return fmt.Sprintf("%s(%s %d tags: %s Size: %d id0: %d)",
+	return fmt.Sprintf("%s(%s %d tags: %s Size: %d id0: %s)",
 		strings.Repeat(" ", indent),
 		it.Type(),
 		it.UID(),

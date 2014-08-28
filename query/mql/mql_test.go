@@ -186,7 +186,7 @@ func TestMQL(t *testing.T) {
 		if !reflect.DeepEqual(got, expect) {
 			b, err := json.MarshalIndent(got, "", " ")
 			if err != nil {
-				t.Fatalf("unexpected JSON marshal error", err)
+				t.Fatalf("unexpected JSON marshal error: %v", err)
 			}
 			t.Errorf("Failed to %s, got: %s expected: %s", test.message, b, test.expect)
 		}

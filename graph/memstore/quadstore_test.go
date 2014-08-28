@@ -177,7 +177,12 @@ func TestLinksToOptimization(t *testing.T) {
 func TestRemoveQuad(t *testing.T) {
 	qs, w, _ := makeTestStore(simpleGraph)
 
-	w.RemoveQuad(quad.Quad{"E", "follows", "F", ""})
+	w.RemoveQuad(quad.Quad{
+		Subject:   "E",
+		Predicate: "follows",
+		Object:    "F",
+		Label:     "",
+	})
 
 	fixed := qs.FixedIterator()
 	fixed.Add(qs.ValueOf("E"))
