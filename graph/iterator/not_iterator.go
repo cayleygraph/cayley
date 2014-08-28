@@ -154,15 +154,12 @@ func (it *Not) Optimize() (graph.Iterator, bool) {
 }
 
 func (it *Not) Stats() graph.IteratorStats {
-	subitStats := it.primaryIt.Stats()
-	// TODO(barakmich): These should really come from the triplestore itself
-	fanoutFactor := int64(20)
-	checkConstant := int64(1)
-	nextConstant := int64(2)
+	primaryStats := it.primaryIt.Stats()
+	allStats := it.allIt.Stats()
 	return graph.IteratorStats{
-		NextCost:     nextConstant + subitStats.NextCost,
-		ContainsCost: checkConstant + subitStats.ContainsCost,
-		Size:         fanoutFactor * subitStats.Size,
+		NextCost:     allStats.NextCost + primaryStats.ContainsCost,
+		ContainsCost: primaryStats.ContainsCost,
+		Size:         allStats.Size - primaryStats.Size,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 		ContainsNext: it.runstats.ContainsNext,
