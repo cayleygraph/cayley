@@ -22,7 +22,10 @@ import (
 )
 
 func createNewCassandraGraph(addr string, options graph.Options) error {
-	cluster := clusterWithOptions(addr, options)
+	cluster, err := clusterWithOptions(addr, options)
+	if err != nil {
+		return err
+	}
 	cluster.Consistency = gocql.All
 	session, err := cluster.CreateSession()
 	if err != nil {
@@ -51,8 +54,8 @@ func createNewCassandraGraph(addr string, options graph.Options) error {
 		predicate text,
 		object text,
 		label text,
-		created bigint,
-		deleted bigint,
+		created list<bigint>,
+		deleted list<bigint>,
 		PRIMARY KEY (subject, predicate, object, label)
 	)
 	`).Exec()
@@ -66,8 +69,8 @@ func createNewCassandraGraph(addr string, options graph.Options) error {
 		predicate text,
 		object text,
 		label text,
-		created bigint,
-		deleted bigint,
+		created list<bigint>,
+		deleted list<bigint>,
 		PRIMARY KEY (predicate, object, subject, label)
 	)
 	`).Exec()
@@ -81,8 +84,8 @@ func createNewCassandraGraph(addr string, options graph.Options) error {
 		predicate text,
 		object text,
 		label text,
-		created bigint,
-		deleted bigint,
+		created list<bigint>,
+		deleted list<bigint>,
 		PRIMARY KEY (object, subject, predicate, label)
 	)
 	`).Exec()
@@ -96,8 +99,8 @@ func createNewCassandraGraph(addr string, options graph.Options) error {
 		predicate text,
 		object text,
 		label text,
-		created bigint,
-		deleted bigint,
+		created list<bigint>,
+		deleted list<bigint>,
 		PRIMARY KEY (label, subject, predicate, object)
 	)
 	`).Exec()

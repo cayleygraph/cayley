@@ -17,6 +17,7 @@ package cassandra
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/barakmich/glog"
 	"github.com/gocql/gocql"
@@ -30,7 +31,13 @@ func init() {
 	graph.RegisterQuadStore("cassandra", true, newQuadStore, createNewCassandraGraph)
 }
 
-const DefaultKeyspace = "cayley"
+const (
+	// DefaultKeyspace is the name of the (preexisting) keyspace prepared in Cassandra.
+	DefaultKeyspace = "cayley"
+
+	// DefaultConsistency is the default consistency level for writes to Cassandra.
+	DefaultConsistency = "default"
+)
 
 type QuadStore struct {
 	sess    *gocql.Session
@@ -47,20 +54,39 @@ func getAllAddresses(addr string, options graph.Options) []string {
 	return out
 }
 
-func clusterWithOptions(addr string, options graph.Options) *gocql.ClusterConfig {
+func clusterWithOptions(addr string, options graph.Options) (*gocql.ClusterConfig, error) {
 	allAddrs := getAllAddresses(addr, options)
 	cluster := gocql.NewCluster(allAddrs...)
 	keyspace := DefaultKeyspace
 	if val, ok := options.StringKey("keyspace"); ok {
 		keyspace = val
 	}
+	consistencyStr := DefaultConsistency
+	if val, ok := options.StringKey("consistency"); ok {
+		consistencyStr = val
+	}
+	foundCons := false
+	for i, c := range gocql.ConsistencyNames {
+		if c == consistencyStr {
+			cluster.Consistency = gocql.Consistency(i)
+			foundCons = true
+			break
+		}
+	}
+	if !foundCons {
+		return nil, fmt.Errorf("No such consistency: %s", consistencyStr)
+	}
 	cluster.Keyspace = keyspace
-	cluster.Consistency = gocql.One
-	return cluster
+	return cluster, nil
 }
 
 func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
-	cluster := clusterWithOptions(addr, options)
+	cluster, err := clusterWithOptions(addr, options)
+	if err != nil {
+		return nil, err
+	}
+	cluster.SocketKeepalive = time.Millisecond * 500
+	cluster.Timeout = time.Second * 1
 	session, err := cluster.CreateSession()
 	if err != nil {
 		return nil, err
@@ -94,8 +120,15 @@ func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *goc
 		if q.Label == "" && table == "quads_by_c" {
 			continue
 		}
-		query := fmt.Sprint("INSERT INTO ", table, " (subject, predicate, object, label, created) VALUES (?, ?, ?, ?, ?)")
-		data.Query(query, q.Subject, q.Predicate, q.Object, q.Label, d.ID)
+		query := fmt.Sprint("UPDATE ", table, `
+		SET created = created + ?
+		WHERE
+		subject = ? AND
+		predicate = ? AND
+		object = ? AND
+		label = ?
+		`)
+		data.Query(query, []int64{d.ID}, q.Subject, q.Predicate, q.Object, q.Label)
 	}
 	count.Cons = gocql.Quorum
 	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
@@ -103,6 +136,33 @@ func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *goc
 			continue
 		}
 		query := fmt.Sprint("UPDATE nodes SET ", dir, "_count = ", dir, "_count + 1 WHERE node = ?")
+		count.Query(query, q.Get(dir))
+	}
+}
+
+func (qs *QuadStore) addRemoveQuadToBatch(d graph.Delta, data *gocql.Batch, count *gocql.Batch) {
+	data.Cons = gocql.Quorum
+	q := &d.Quad
+	for _, table := range tables {
+		if q.Label == "" && table == "quads_by_c" {
+			continue
+		}
+		query := fmt.Sprint("UPDATE ", table, `
+		SET deleted = deleted + ?
+		WHERE
+		subject = ? AND
+		predicate = ? AND
+		object = ? AND
+		label = ?
+		`)
+		data.Query(query, []int64{d.ID}, q.Subject, q.Predicate, q.Object, q.Label)
+	}
+	count.Cons = gocql.Quorum
+	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
+		if q.Get(dir) == "" {
+			continue
+		}
+		query := fmt.Sprint("UPDATE nodes SET ", dir, "_count = ", dir, "_count - 1 WHERE node = ?")
 		count.Query(query, q.Get(dir))
 	}
 }
@@ -138,6 +198,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 			qs.addQuadToBatch(d, batch, counterBatch)
 		} else if d.Action == graph.Delete {
 			newSize--
+			qs.addDeltaToLog(d, batch, newSize)
+			qs.addRemoveQuadToBatch(d, batch, counterBatch)
 		}
 		newHorizon = d.ID
 	}
@@ -146,12 +208,12 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 
 	err := qs.sess.ExecuteBatch(batch)
 	if err != nil {
-		glog.Errorf("Couldn't write log batch: %x-%x", deltas[0].ID, deltas[len(deltas)-1].ID)
+		glog.Errorf("Couldn't write log batch: %x-%x: %v", deltas[0].ID, deltas[len(deltas)-1].ID, err)
 		return err
 	}
 	err = qs.sess.ExecuteBatch(counterBatch)
 	if err != nil {
-		glog.Errorf("Couldn't write node stats batch: %x-%x", deltas[0].ID, deltas[len(deltas)-1].ID)
+		glog.Errorf("Couldn't write node stats batch: %x-%x: %v", deltas[0].ID, deltas[len(deltas)-1].ID, err)
 		return err
 	}
 	qs.size = newSize

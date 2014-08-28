@@ -94,7 +94,7 @@ Flags:`)
 
 Backends supported:
  `,
-		strings.Join(graph.TripleStores(), "\n  "),
+		strings.Join(graph.QuadStores(), "\n  "),
 	)
 }
 

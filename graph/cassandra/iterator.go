@@ -153,7 +153,7 @@ func (it *Iterator) prepareIterator() {
 	} else {
 		it.iter = it.qs.sess.Query(
 			fmt.Sprint(
-				"SELECT subject, predicate, object, label FROM ",
+				"SELECT subject, predicate, object, label, created, deleted FROM ",
 				it.table,
 				" WHERE ",
 				it.dir,
@@ -189,11 +189,16 @@ func (it *Iterator) nodeNext() bool {
 
 func (it *Iterator) tripleNext() bool {
 	q := quad.Quad{}
+	var created []int64
+	var deleted []int64
+
 	ok := it.iter.Scan(
 		&q.Subject,
 		&q.Predicate,
 		&q.Object,
 		&q.Label,
+		&created,
+		&deleted,
 	)
 	if !ok {
 		err := it.iter.Close()
@@ -201,6 +206,11 @@ func (it *Iterator) tripleNext() bool {
 			glog.Errorln("Iterator failed with", err)
 		}
 		return false
+	}
+	if len(deleted) != 0 {
+		if len(created) == 0 || created[len(created)-1] < deleted[len(deleted)-1] {
+			return it.Next()
+		}
 	}
 	it.result = q
 	return true
