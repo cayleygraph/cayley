@@ -246,6 +246,9 @@ func (qs *QuadStore) ValueOf(node string) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(val graph.Value) string {
+	if val == nil {
+		return "!NIL"
+	}
 	return val.(string)
 }
 

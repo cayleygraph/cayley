@@ -137,11 +137,12 @@ func (it *Iterator) NextPath() bool {
 func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if it.dir == quad.Any || it.isNode {
+		it.result = v
 		return graph.ContainsLogOut(it, v, true)
 	}
-	triple := v.(quad.Quad)
-	if triple.Get(it.dir) == it.val {
-		it.result = &triple
+	quad := v.(quad.Quad)
+	if quad.Get(it.dir) == it.val {
+		it.result = quad
 		return graph.ContainsLogOut(it, v, true)
 	}
 	return graph.ContainsLogOut(it, v, false)
