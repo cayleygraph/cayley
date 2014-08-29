@@ -39,8 +39,8 @@ func (wk *worker) embedTraversals(env *otto.Otto, obj *otto.Object) {
 	obj.Set("Save", wk.gremlinFunc("save", obj, env))
 	obj.Set("SaveR", wk.gremlinFunc("saver", obj, env))
 	obj.Set("Loop", wk.gremlinFunc("loop", obj, env))
-	obj.Set("Except", wk.gremlinFunc("not", obj, env))
-	obj.Set("Difference", wk.gremlinFunc("not", obj, env))
+	obj.Set("Except", wk.gremlinFunc("except", obj, env))
+	obj.Set("Difference", wk.gremlinFunc("except", obj, env))
 }
 
 func (wk *worker) gremlinFunc(kind string, prev *otto.Object, env *otto.Otto) func(otto.FunctionCall) otto.Value {

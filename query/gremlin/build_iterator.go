@@ -298,7 +298,7 @@ func buildIteratorTreeHelper(obj *otto.Object, ts graph.TripleStore, base graph.
 		it = buildIteratorTreeHelper(arg.Object(), ts, subIt)
 	case "in":
 		it = buildInOutIterator(obj, ts, subIt, true)
-	case "not":
+	case "except":
 		arg, _ := obj.Get("_gremlin_values")
 		firstArg, _ := arg.Object().Get("0")
 		if !isVertexChain(firstArg.Object()) {
