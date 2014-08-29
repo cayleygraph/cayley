@@ -146,11 +146,11 @@ func (it *Not) Type() graph.Type { return graph.Not }
 
 func (it *Not) Optimize() (graph.Iterator, bool) {
 	// TODO - consider wrapping the primaryIt with a MaterializeIt
-	if optimizedPrimaryIt, optimized := it.primaryIt.Optimize(); optimized {
+	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()
+	if optimized {
 		it.primaryIt = optimizedPrimaryIt
-		return it, true
 	}
-	return it, false
+	return it, optimized
 }
 
 func (it *Not) Stats() graph.IteratorStats {
