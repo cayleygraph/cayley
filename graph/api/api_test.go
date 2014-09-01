@@ -38,6 +38,8 @@ var simpleGraph = []quad.Quad{
 	{"B", "status", "cool", "status_graph"},
 	{"D", "status", "cool", "status_graph"},
 	{"G", "status", "cool", "status_graph"},
+	{"predicates", "are", "follows", ""},
+	{"predicates", "are", "status", ""},
 }
 
 func makeTestStore(data []quad.Quad) graph.QuadStore {
@@ -77,6 +79,11 @@ func testSet(qs graph.QuadStore) []test {
 			message: "use in",
 			path:    V(qs, "B").In("follows"),
 			expect:  []string{"A", "C", "D"},
+		},
+		{
+			message: "use path Out",
+			path:    V(qs, "B").Out(V(qs, "predicates").Out("are")),
+			expect:  []string{"F", "cool"},
 		},
 	}
 }
