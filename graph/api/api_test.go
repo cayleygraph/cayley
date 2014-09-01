@@ -69,9 +69,14 @@ type test struct {
 func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
-			message: "out",
+			message: "use out",
 			path:    V(qs, "A").Out("follows"),
 			expect:  []string{"B"},
+		},
+		{
+			message: "use in",
+			path:    V(qs, "B").In("follows"),
+			expect:  []string{"A", "C", "D"},
 		},
 	}
 }

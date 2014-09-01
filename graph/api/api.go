@@ -61,9 +61,21 @@ func M(qs graph.QuadStore) *Path {
 	}
 }
 
+func (p *Path) Reverse() *Path {
+	newPath := M(p.qs)
+	for i := len(p.stack) - 1; i >= 0; i-- {
+		newPath.stack = append(newPath.stack, p.stack[i].Reversal())
+	}
+	return newPath
+}
+
 func (p *Path) IsConcrete() bool { return p.it != nil }
 
-func (p *Path) Tag(tags ...string) *Path { p.stack = append(p.stack, TagMorphism(tags...)); return p }
+func (p *Path) Tag(tags ...string) *Path {
+	p.stack = append(p.stack, TagMorphism(tags...))
+	return p
+}
+
 func (p *Path) Out(via ...interface{}) *Path {
 	p.stack = append(p.stack, OutMorphism(p.qs, via...))
 	return p
