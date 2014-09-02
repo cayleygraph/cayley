@@ -32,31 +32,29 @@ type iteratorMorphism interface {
 
 type Path struct {
 	stack []Morphism
-	it    graph.Iterator
 	qs    graph.QuadStore
 }
 
 func V(qs graph.QuadStore, nodes ...string) *Path {
-	fixed := qs.FixedIterator()
-	for _, n := range nodes {
-		fixed.Add(qs.ValueOf(n))
-	}
 	return &Path{
-		it: fixed,
+		stack: []Morphism{
+			IsMorphism(qs, nodes...),
+		},
 		qs: qs,
 	}
 }
 
 func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 	return &Path{
-		it: it,
+		stack: []Morphism{
+			intersectIteratorMorphism(it),
+		},
 		qs: qs,
 	}
 }
 
 func M(qs graph.QuadStore) *Path {
 	return &Path{
-		it: nil,
 		qs: qs,
 	}
 }
@@ -68,8 +66,6 @@ func (p *Path) Reverse() *Path {
 	}
 	return newPath
 }
-
-func (p *Path) IsConcrete() bool { return p.it != nil }
 
 func (p *Path) Tag(tags ...string) *Path {
 	p.stack = append(p.stack, TagMorphism(tags...))
@@ -87,7 +83,7 @@ func (p *Path) In(via ...interface{}) *Path {
 
 func (p *Path) BuildIterator() graph.Iterator {
 	f := p.MorphismFunc()
-	return f(p.it)
+	return f(p.qs.NodesAllIterator())
 }
 
 func (p *Path) MorphismFunc() graph.MorphismFunc {
@@ -97,6 +93,23 @@ func (p *Path) MorphismFunc() graph.MorphismFunc {
 			i = m.Apply(i)
 		}
 		return i
+	}
+}
+
+func IsMorphism(qs graph.QuadStore, nodes ...string) Morphism {
+	return Morphism{
+		"is",
+		func() Morphism { return IsMorphism(qs, nodes...) },
+		func(it graph.Iterator) graph.Iterator {
+			fixed := qs.FixedIterator()
+			for _, n := range nodes {
+				fixed.Add(qs.ValueOf(n))
+			}
+			and := iterator.NewAnd()
+			and.AddSubIterator(fixed)
+			and.AddSubIterator(it)
+			return and
+		},
 	}
 }
 
@@ -127,6 +140,33 @@ func InMorphism(qs graph.QuadStore, via ...interface{}) Morphism {
 		"in",
 		func() Morphism { return OutMorphism(qs, via...) },
 		inOutIterator(path, true),
+	}
+}
+
+func intersectIteratorMorphism(it graph.Iterator) Morphism {
+	return Morphism{
+		"iterator",
+		func() Morphism { return intersectIteratorMorphism(it) },
+		func(subIt graph.Iterator) graph.Iterator {
+			and := iterator.NewAnd()
+			and.AddSubIterator(it)
+			and.AddSubIterator(subIt)
+			return and
+		},
+	}
+}
+
+func AndMorphism(path *Path) Morphism {
+	return Morphism{
+		"and",
+		func() Morphism { return AndMorphism(path) },
+		func(it graph.Iterator) graph.Iterator {
+			subIt := path.BuildIterator()
+			and := iterator.NewAnd()
+			and.AddSubIterator(it)
+			and.AddSubIterator(subIt)
+			return and
+		},
 	}
 }
 
