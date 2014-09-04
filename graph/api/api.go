@@ -26,16 +26,12 @@ type morphism struct {
 	Apply    graph.MorphismFunc
 }
 
-type iteratorMorphism interface {
-	Apply(graph.Iterator) graph.Iterator
-}
-
 type Path struct {
 	stack []morphism
 	qs    graph.QuadStore
 }
 
-func V(qs graph.QuadStore, nodes ...string) *Path {
+func StartPath(qs graph.QuadStore, nodes ...string) *Path {
 	return &Path{
 		stack: []morphism{
 			isMorphism(qs, nodes...),
@@ -53,14 +49,14 @@ func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 	}
 }
 
-func M(qs graph.QuadStore) *Path {
+func NewPath(qs graph.QuadStore) *Path {
 	return &Path{
 		qs: qs,
 	}
 }
 
 func (p *Path) Reverse() *Path {
-	newPath := M(p.qs)
+	newPath := NewPath(p.qs)
 	for i := len(p.stack) - 1; i >= 0; i-- {
 		newPath.stack = append(newPath.stack, p.stack[i].Reversal())
 	}
@@ -216,7 +212,7 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 		if path, ok := v.(*Path); ok {
 			return path
 		} else if str, ok := v.(string); ok {
-			return V(qs, str)
+			return StartPath(qs, str)
 		} else {
 			panic("Invalid type passed to buildViaPath.")
 		}
@@ -229,5 +225,5 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 			panic("Non-string type passed to long Via path")
 		}
 	}
-	return V(qs, strings...)
+	return StartPath(qs, strings...)
 }

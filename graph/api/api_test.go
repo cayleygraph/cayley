@@ -72,23 +72,23 @@ func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
 			message: "use out",
-			path:    V(qs, "A").Out("follows"),
+			path:    StartPath(qs, "A").Out("follows"),
 			expect:  []string{"B"},
 		},
 		{
 			message: "use in",
-			path:    V(qs, "B").In("follows"),
+			path:    StartPath(qs, "B").In("follows"),
 			expect:  []string{"A", "C", "D"},
 		},
 		{
 			message: "use path Out",
-			path:    V(qs, "B").Out(V(qs, "predicates").Out("are")),
+			path:    StartPath(qs, "B").Out(StartPath(qs, "predicates").Out("are")),
 			expect:  []string{"F", "cool"},
 		},
 		{
 			message: "in",
-			path: V(qs, "D").Out("follows").And(
-				V(qs, "C").Out("follows")),
+			path: StartPath(qs, "D").Out("follows").And(
+				StartPath(qs, "C").Out("follows")),
 			expect: []string{"B"},
 		},
 	}
