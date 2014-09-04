@@ -17,6 +17,7 @@ package graph
 // Define the general iterator interface.
 
 import (
+	"github.com/google/cayley/quad"
 	"strings"
 	"sync"
 
@@ -130,14 +131,25 @@ type Iterator interface {
 	// Return a slice of the subiterators for this iterator.
 	SubIterators() []Iterator
 
-	// Return a string representation of the iterator, indented by the given amount.
-	DebugString(int) string
+	// Return a string representation of the iterator.
+	Describe() Description
 
 	// Close the iterator and do internal cleanup.
 	Close()
 
 	// UID returns the unique identifier of the iterator.
 	UID() uint64
+}
+
+type Description struct {
+	UID       uint64         `json:",omitempty"`
+	Name      string         `json:",omitempty"`
+	Type      string         `json:",omitempty"`
+	Tags      []string       `json:",omitempty"`
+	Size      int64          `json:",omitempty"`
+	Direction quad.Direction `json:",omitempty"`
+	Iterator  *Description   `json:",omitempty"`
+	Iterators []Description  `json:",omitempty"`
 }
 
 type Nexter interface {
@@ -256,16 +268,16 @@ func (t Type) String() string {
 }
 
 type StatsContainer struct {
+	UID  uint64
+	Type string
 	IteratorStats
-	Kind   string
-	UID    uint64
 	SubIts []StatsContainer
 }
 
 func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
-	out.Kind = it.Type().String()
+	out.Type = it.Type().String()
 	out.UID = it.UID()
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))

@@ -22,9 +22,6 @@ package iterator
 // May return the same value twice -- once for each branch.
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/google/cayley/graph"
 )
 
@@ -113,26 +110,17 @@ func (it *Or) ResultTree() *graph.ResultTree {
 	return tree
 }
 
-// Prints information about this graph.iterator.
-func (it *Or) DebugString(indent int) string {
-	var total string
+func (it *Or) Describe() graph.Description {
+	var subIts []graph.Description
 	for i, sub := range it.internalIterators {
-		total += strings.Repeat(" ", indent+2)
-		total += fmt.Sprintf("%d:\n%s\n", i, sub.DebugString(indent+4))
+		subIts[i] = sub.Describe()
 	}
-	var tags string
-	for _, k := range it.tags.Tags() {
-		tags += fmt.Sprintf("%s;", k)
+	return graph.Description{
+		UID:       it.UID(),
+		Type:      it.Type().String(),
+		Tags:      it.tags.Tags(),
+		Iterators: subIts,
 	}
-	spaces := strings.Repeat(" ", indent+2)
-
-	return fmt.Sprintf("%s(%s\n%stags:%s\n%sits:\n%s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		spaces,
-		tags,
-		spaces,
-		total)
 }
 
 // Add a subiterator to this Or graph.iterator. Order matters.

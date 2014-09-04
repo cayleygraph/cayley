@@ -30,9 +30,6 @@ package iterator
 // Can be seen as the dual of the HasA iterator.
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/quad"
 )
@@ -108,11 +105,14 @@ func (it *LinksTo) ResultTree() *graph.ResultTree {
 	return tree
 }
 
-// Print the iterator.
-func (it *LinksTo) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s %d direction:%s\n%s)",
-		strings.Repeat(" ", indent),
-		it.Type(), it.UID(), it.dir, it.primaryIt.DebugString(indent+4))
+func (it *LinksTo) Describe() graph.Description {
+	primary := it.primaryIt.Describe()
+	return graph.Description{
+		UID:       it.UID(),
+		Type:      it.Type().String(),
+		Direction: it.dir,
+		Iterator:  &primary,
+	}
 }
 
 // If it checks in the right direction for the subiterator, it is a valid link

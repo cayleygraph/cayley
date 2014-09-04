@@ -27,10 +27,8 @@ package iterator
 // In MQL terms, this is the [{"age>=": 21}] concept.
 
 import (
-	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/google/cayley/graph"
 )
@@ -190,11 +188,13 @@ func (it *Comparison) TagResults(dst map[string]graph.Value) {
 // Registers the value-comparison iterator.
 func (it *Comparison) Type() graph.Type { return graph.Comparison }
 
-// Prints the value-comparison and its subiterator.
-func (it *Comparison) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s\n%s)",
-		strings.Repeat(" ", indent),
-		it.Type(), it.subIt.DebugString(indent+4))
+func (it *Comparison) Describe() graph.Description {
+	primary := it.subIt.Describe()
+	return graph.Description{
+		UID:      it.UID(),
+		Type:     it.Type().String(),
+		Iterator: &primary,
+	}
 }
 
 // There's nothing to optimize, locally, for a value-comparison iterator.

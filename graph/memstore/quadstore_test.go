@@ -165,8 +165,11 @@ func TestLinksToOptimization(t *testing.T) {
 
 	v := newIt.(*Iterator)
 	vClone := v.Clone()
-	if vClone.DebugString(0) != v.DebugString(0) {
-		t.Fatal("Wrong iterator. Got ", vClone.DebugString(0))
+	origDesc := v.Describe()
+	cloneDesc := vClone.Describe()
+	origDesc.UID, cloneDesc.UID = 0, 0 // We are more strict now, so fake UID equality.
+	if !reflect.DeepEqual(cloneDesc, origDesc) {
+		t.Fatalf("Unexpected iterator description.\ngot: %#v\nexpect: %#v", cloneDesc, origDesc)
 	}
 	vt := vClone.Tagger()
 	if len(vt.Tags()) < 1 || vt.Tags()[0] != "foo" {

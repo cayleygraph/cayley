@@ -17,8 +17,6 @@ package leveldb
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"strings"
 
 	"github.com/barakmich/glog"
 	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
@@ -250,17 +248,16 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.qs.SizeOf(Token(it.checkID)), true
 }
 
-func (it *Iterator) DebugString(indent int) string {
+func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		it.UID(),
-		it.tags.Tags(),
-		it.dir,
-		size,
-		it.qs.NameOf(Token(it.checkID)),
-	)
+	return graph.Description{
+		UID:       it.UID(),
+		Name:      it.qs.NameOf(Token(it.checkID)),
+		Type:      it.Type().String(),
+		Tags:      it.tags.Tags(),
+		Size:      size,
+		Direction: it.dir,
+	}
 }
 
 var levelDBType graph.Type

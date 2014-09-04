@@ -22,7 +22,7 @@ package iterator
 
 import (
 	"fmt"
-	"strings"
+	"sort"
 
 	"github.com/google/cayley/graph"
 )
@@ -94,20 +94,23 @@ func (it *Fixed) Add(v graph.Value) {
 	it.values = append(it.values, v)
 }
 
-// Print some information about the iterator.
-func (it *Fixed) DebugString(indent int) string {
-	value := ""
+func (it *Fixed) Describe() graph.Description {
+	var value string
 	if len(it.values) > 0 {
 		value = fmt.Sprint(it.values[0])
 	}
-	return fmt.Sprintf("%s(%s %d tags: %s Size: %d id0: %s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		it.UID(),
-		it.tags.Fixed(),
-		len(it.values),
-		value,
-	)
+	fixed := make([]string, 0, len(it.tags.Fixed()))
+	for k := range it.tags.Fixed() {
+		fixed = append(fixed, k)
+	}
+	sort.Strings(fixed)
+	return graph.Description{
+		UID:  it.UID(),
+		Name: value,
+		Type: it.Type().String(),
+		Tags: fixed,
+		Size: int64(len(it.values)),
+	}
 }
 
 // Register this iterator as a Fixed iterator.

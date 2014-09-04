@@ -16,7 +16,6 @@ package mongo
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/barakmich/glog"
 	"gopkg.in/mgo.v2"
@@ -213,9 +212,14 @@ func (it *Iterator) Type() graph.Type {
 func (it *Iterator) Sorted() bool                     { return true }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 
-func (it *Iterator) DebugString(indent int) string {
+func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s size:%d %s %s)", strings.Repeat(" ", indent), it.Type(), size, it.hash, it.name)
+	return graph.Description{
+		UID:  it.UID(),
+		Name: fmt.Sprintf("%s/%s", it.name, it.hash),
+		Type: it.Type().String(),
+		Size: size,
+	}
 }
 
 func (it *Iterator) Stats() graph.IteratorStats {

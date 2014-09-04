@@ -16,9 +16,6 @@
 package iterator
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/google/cayley/graph"
 )
 
@@ -111,30 +108,19 @@ func (it *And) ResultTree() *graph.ResultTree {
 	return tree
 }
 
-// Prints information about this iterator.
-func (it *And) DebugString(indent int) string {
-	var total string
+func (it *And) Describe() graph.Description {
+	subIts := make([]graph.Description, len(it.internalIterators))
 	for i, sub := range it.internalIterators {
-		total += strings.Repeat(" ", indent+2)
-		total += fmt.Sprintf("%d:\n%s\n", i, sub.DebugString(indent+4))
+		subIts[i] = sub.Describe()
 	}
-	var tags string
-	for _, k := range it.tags.Tags() {
-		tags += fmt.Sprintf("%s;", k)
+	primary := it.primaryIt.Describe()
+	return graph.Description{
+		UID:       it.UID(),
+		Type:      it.Type().String(),
+		Tags:      it.tags.Tags(),
+		Iterator:  &primary,
+		Iterators: subIts,
 	}
-	spaces := strings.Repeat(" ", indent+2)
-
-	return fmt.Sprintf("%s(%s %d\n%stags:%s\n%sprimary_it:\n%s\n%sother_its:\n%s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		it.UID(),
-		spaces,
-		tags,
-		spaces,
-		it.primaryIt.DebugString(indent+4),
-		spaces,
-		total,
-	)
 }
 
 // Add a subiterator to this And iterator.

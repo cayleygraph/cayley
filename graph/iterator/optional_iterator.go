@@ -27,9 +27,6 @@ package iterator
 // -- all things in the graph. It matches everything (as does the regex "(a)?")
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/google/cayley/graph"
 )
 
@@ -120,13 +117,14 @@ func (it *Optional) TagResults(dst map[string]graph.Value) {
 // Registers the optional iterator.
 func (it *Optional) Type() graph.Type { return graph.Optional }
 
-// Prints the optional and it's subiterator.
-func (it *Optional) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s tags:%s\n%s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		it.tags.Tags(),
-		it.subIt.DebugString(indent+4))
+func (it *Optional) Describe() graph.Description {
+	primary := it.subIt.Describe()
+	return graph.Description{
+		UID:      it.UID(),
+		Type:     it.Type().String(),
+		Tags:     it.tags.Tags(),
+		Iterator: &primary,
+	}
 }
 
 // There's nothing to optimize for an optional. Optimize the subiterator and

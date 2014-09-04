@@ -34,9 +34,6 @@ package iterator
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
@@ -130,13 +127,15 @@ func (it *HasA) ResultTree() *graph.ResultTree {
 	return tree
 }
 
-// Print some information about this iterator.
-func (it *HasA) DebugString(indent int) string {
-	var tags string
-	for _, k := range it.tags.Tags() {
-		tags += fmt.Sprintf("%s;", k)
+func (it *HasA) Describe() graph.Description {
+	primary := it.primaryIt.Describe()
+	return graph.Description{
+		UID:       it.UID(),
+		Type:      it.Type().String(),
+		Tags:      it.tags.Tags(),
+		Direction: it.dir,
+		Iterator:  &primary,
 	}
-	return fmt.Sprintf("%s(%s %d tags:%s direction:%s\n%s)", strings.Repeat(" ", indent), it.Type(), it.UID(), tags, it.dir, it.primaryIt.DebugString(indent+4))
 }
 
 // Check a value against our internal iterator. In order to do this, we must first open a new
