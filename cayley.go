@@ -67,10 +67,10 @@ var (
 	timeout            = flag.Duration("timeout", 30*time.Second, "Elapsed time until an individual query times out.")
 )
 
-// Filled in by `go build ldflags="-X main.VERSION `ver`"`.
+// Filled in by `go build ldflags="-X main.Version `ver`"`.
 var (
-	BUILD_DATE string
-	VERSION    string
+	BuildDate string
+	Version   string
 )
 
 func usage() {
@@ -158,8 +158,8 @@ func main() {
 	flag.Parse()
 
 	var buildString string
-	if VERSION != "" {
-		buildString = fmt.Sprint("Cayley ", VERSION, " built ", BUILD_DATE)
+	if Version != "" {
+		buildString = fmt.Sprint("Cayley ", Version, " built ", BuildDate)
 		glog.Infoln(buildString)
 	}
 
@@ -178,7 +178,7 @@ func main() {
 	)
 	switch cmd {
 	case "version":
-		if VERSION != "" {
+		if Version != "" {
 			fmt.Println(buildString)
 		} else {
 			fmt.Println("Cayley snapshot")

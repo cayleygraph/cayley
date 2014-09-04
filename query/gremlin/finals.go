@@ -112,9 +112,8 @@ func (wk *worker) toValueFunc(env *otto.Otto, obj *otto.Object, withTags bool) f
 		if err != nil {
 			glog.Error(err)
 			return otto.NullValue()
-		} else {
-			return val
 		}
+		return val
 	}
 }
 
@@ -260,9 +259,8 @@ func (wk *worker) send(r *Result) bool {
 		wk.count++
 		if wk.limit >= 0 && wk.limit == wk.count {
 			return false
-		} else {
-			return true
 		}
+		return true
 	}
 	return false
 }

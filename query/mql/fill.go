@@ -34,13 +34,11 @@ func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string
 		resultPaths[k.ToResultPathFromMap(results)] = v
 	}
 
-	var paths ResultPathSlice
-
-	for path, _ := range resultPaths {
+	paths := make([]ResultPath, 0, len(resultPaths))
+	for path := range resultPaths {
 		paths = append(paths, path)
 	}
-
-	sort.Sort(paths)
+	sort.Sort(byRecordLength(paths))
 
 	// Build Structure
 	for _, path := range paths {

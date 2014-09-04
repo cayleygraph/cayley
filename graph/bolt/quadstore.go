@@ -101,20 +101,20 @@ func (qs *QuadStore) createBuckets() error {
 		for _, index := range [][4]quad.Direction{spo, osp, pos, cps} {
 			_, err = tx.CreateBucket(bucketFor(index))
 			if err != nil {
-				return fmt.Errorf("Couldn't create bucket: %s", err)
+				return fmt.Errorf("could not create bucket: %s", err)
 			}
 		}
 		_, err = tx.CreateBucket(logBucket)
 		if err != nil {
-			return fmt.Errorf("Couldn't create bucket: %s", err)
+			return fmt.Errorf("could not create bucket: %s", err)
 		}
 		_, err = tx.CreateBucket(nodeBucket)
 		if err != nil {
-			return fmt.Errorf("Couldn't create bucket: %s", err)
+			return fmt.Errorf("could not create bucket: %s", err)
 		}
 		_, err = tx.CreateBucket(metaBucket)
 		if err != nil {
-			return fmt.Errorf("Couldn't create bucket: %s", err)
+			return fmt.Errorf("could not create bucket: %s", err)
 		}
 		return nil
 	})
@@ -183,13 +183,13 @@ var (
 )
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
-	old_size := qs.size
-	old_horizon := qs.horizon
+	oldSize := qs.size
+	oldHorizon := qs.horizon
 	err := qs.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(logBucket)
 		b.FillPercent = localFillPercent
 		resizeMap := make(map[string]int64)
-		size_change := int64(0)
+		sizeChange := int64(0)
 		for _, d := range deltas {
 			bytes, err := json.Marshal(d)
 			if err != nil {
@@ -215,7 +215,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 			if d.Quad.Label != "" {
 				resizeMap[d.Quad.Label] += delta
 			}
-			size_change += delta
+			sizeChange += delta
 			qs.horizon = d.ID
 		}
 		for k, v := range resizeMap {
@@ -226,14 +226,14 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 				}
 			}
 		}
-		qs.size += size_change
+		qs.size += sizeChange
 		return qs.WriteHorizonAndSize(tx)
 	})
 
 	if err != nil {
 		glog.Error("Couldn't write to DB for Delta set. Error: ", err)
-		qs.horizon = old_horizon
-		qs.size = old_size
+		qs.horizon = oldHorizon
+		qs.size = oldSize
 		return err
 	}
 	return nil
@@ -503,5 +503,5 @@ func compareTokens(a, b graph.Value) bool {
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(compareTokens)
+	return iterator.NewFixed(compareTokens)
 }

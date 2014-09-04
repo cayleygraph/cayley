@@ -23,10 +23,10 @@ import (
 func TestLinksTo(t *testing.T) {
 	qs := &store{
 		data: []string{1: "cool"},
-		iter: newFixed(),
+		iter: NewFixed(Identity),
 	}
 	qs.iter.(*Fixed).Add(2)
-	fixed := newFixed()
+	fixed := NewFixed(Identity)
 	val := qs.ValueOf("cool")
 	if val != 1 {
 		t.Fatalf("Failed to return correct value, got:%v expect:1", val)

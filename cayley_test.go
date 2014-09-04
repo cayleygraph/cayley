@@ -489,8 +489,8 @@ func checkQueries(t *testing.T) {
 			timedOut bool
 		)
 		for r := range c {
-			ses.BuildJson(r)
-			j, err := ses.GetJson()
+			ses.BuildJSON(r)
+			j, err := ses.GetJSON()
 			if j == nil && err == nil {
 				continue
 			}

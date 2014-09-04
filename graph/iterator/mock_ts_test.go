@@ -65,7 +65,7 @@ func (qs *store) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 }
 
 func (qs *store) FixedIterator() graph.FixedIterator {
-	return NewFixedIteratorWithCompare(BasicEquality)
+	return NewFixed(Identity)
 }
 
 func (qs *store) Close() {}

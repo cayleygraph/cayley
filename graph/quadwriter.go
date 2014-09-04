@@ -54,8 +54,8 @@ func (h *Handle) Close() {
 }
 
 var (
-	ErrQuadExists   = errors.New("Quad exists")
-	ErrQuadNotExist = errors.New("Quad doesn't exist")
+	ErrQuadExists   = errors.New("quad exists")
+	ErrQuadNotExist = errors.New("quad does not exist")
 )
 
 type QuadWriter interface {

@@ -38,10 +38,10 @@ import (
 type Operator int
 
 const (
-	kCompareLT Operator = iota
-	kCompareLTE
-	kCompareGT
-	kCompareGTE
+	compareLT Operator = iota
+	compareLTE
+	compareGT
+	compareGTE
 	// Why no Equals? Because that's usually an AndIterator.
 )
 
@@ -99,13 +99,13 @@ func (it *Comparison) Close() {
 
 func RunIntOp(a int64, op Operator, b int64) bool {
 	switch op {
-	case kCompareLT:
+	case compareLT:
 		return a < b
-	case kCompareLTE:
+	case compareLTE:
 		return a <= b
-	case kCompareGT:
+	case compareGT:
 		return a > b
-	case kCompareGTE:
+	case compareGTE:
 		return a >= b
 	default:
 		log.Fatal("Unknown operator type")
@@ -154,7 +154,7 @@ func (it *Comparison) NextPath() bool {
 			return false
 		}
 		if it.doComparison(it.subIt.Result()) {
-			return true
+			break
 		}
 	}
 	it.result = it.subIt.Result()

@@ -130,7 +130,7 @@ func (it *Iterator) Clone() graph.Iterator {
 
 func (it *Iterator) Next() bool {
 	var result struct {
-		Id      string  `bson:"_id"`
+		ID      string  `bson:"_id"`
 		Added   []int64 `bson:"Added"`
 		Deleted []int64 `bson:"Deleted"`
 	}
@@ -145,7 +145,7 @@ func (it *Iterator) Next() bool {
 	if it.collection == "quads" && len(result.Added) <= len(result.Deleted) {
 		return it.Next()
 	}
-	it.result = result.Id
+	it.result = result.ID
 	return true
 }
 

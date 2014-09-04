@@ -77,14 +77,14 @@ func TestQueryShape(t *testing.T) {
 	// Link should be correctly typed.
 	nodes = shape["nodes"].([]Node)
 	link := shape["links"].([]Link)[0]
-	if link.Source != nodes[2].Id {
-		t.Errorf("Failed to get correct link source, got:%v expect:%v", link.Source, nodes[2].Id)
+	if link.Source != nodes[2].ID {
+		t.Errorf("Failed to get correct link source, got:%v expect:%v", link.Source, nodes[2].ID)
 	}
-	if link.Target != nodes[0].Id {
-		t.Errorf("Failed to get correct link target, got:%v expect:%v", link.Target, nodes[0].Id)
+	if link.Target != nodes[0].ID {
+		t.Errorf("Failed to get correct link target, got:%v expect:%v", link.Target, nodes[0].ID)
 	}
-	if link.LinkNode != nodes[1].Id {
-		t.Errorf("Failed to get correct link node, got:%v expect:%v", link.LinkNode, nodes[1].Id)
+	if link.LinkNode != nodes[1].ID {
+		t.Errorf("Failed to get correct link node, got:%v expect:%v", link.LinkNode, nodes[1].ID)
 	}
 	if link.Pred != 0 {
 		t.Errorf("Failed to get correct number of predecessors:%v expect:0", link.Pred)

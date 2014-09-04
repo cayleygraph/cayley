@@ -45,7 +45,7 @@ var (
 type QuadStore struct {
 	session *mgo.Session
 	db      *mgo.Database
-	idCache *IDLru
+	ids     *cache
 }
 
 func createNewMongoGraph(addr string, options graph.Options) error {
@@ -97,11 +97,11 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	}
 	qs.db = conn.DB(dbName)
 	qs.session = conn
-	qs.idCache = NewIDLru(1 << 16)
+	qs.ids = newCache(1 << 16)
 	return &qs, nil
 }
 
-func (qs *QuadStore) getIdForQuad(t quad.Quad) string {
+func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	id := hashOf(t.Subject)
 	id += hashOf(t.Predicate)
 	id += hashOf(t.Object)
@@ -121,7 +121,7 @@ func hashOf(s string) string {
 }
 
 type MongoNode struct {
-	Id   string `bson:"_id"`
+	ID   string `bson:"_id"`
 	Name string `bson:"Name"`
 	Size int    `bson:"Size"`
 }
@@ -133,11 +133,11 @@ type MongoLogEntry struct {
 	Timestamp int64
 }
 
-func (qs *QuadStore) updateNodeBy(node_name string, inc int) error {
-	node := qs.ValueOf(node_name)
+func (qs *QuadStore) updateNodeBy(name string, inc int) error {
+	node := qs.ValueOf(name)
 	doc := bson.M{
 		"_id":  node.(string),
-		"Name": node_name,
+		"Name": name,
 	}
 	upsert := bson.M{
 		"$setOnInsert": doc,
@@ -166,7 +166,7 @@ func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) err
 			setname: id,
 		},
 	}
-	_, err := qs.db.C("quads").UpsertId(qs.getIdForQuad(q), upsert)
+	_, err := qs.db.C("quads").UpsertId(qs.getIDForQuad(q), upsert)
 	if err != nil {
 		glog.Errorf("Error: %v", err)
 	}
@@ -202,7 +202,7 @@ func (qs *QuadStore) updateLog(d graph.Delta) error {
 	entry := MongoLogEntry{
 		LogID:     d.ID,
 		Action:    action,
-		Key:       qs.getIdForQuad(d.Quad),
+		Key:       qs.getIDForQuad(d.Quad),
 		Timestamp: d.Timestamp.UnixNano(),
 	}
 	err := qs.db.C("log").Insert(entry)
@@ -217,7 +217,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
 	for _, d := range in {
-		key := qs.getIdForQuad(d.Quad)
+		key := qs.getIDForQuad(d.Quad)
 		switch d.Action {
 		case graph.Add:
 			if qs.checkValid(key) {
@@ -292,7 +292,7 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) string {
-	val, ok := qs.idCache.Get(v.(string))
+	val, ok := qs.ids.Get(v.(string))
 	if ok {
 		return val
 	}
@@ -301,7 +301,7 @@ func (qs *QuadStore) NameOf(v graph.Value) string {
 	if err != nil {
 		glog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
 	}
-	qs.idCache.Put(v.(string), node.Name)
+	qs.ids.Put(v.(string), node.Name)
 	return node.Name
 }
 
@@ -327,12 +327,8 @@ func (qs *QuadStore) Horizon() int64 {
 	return log.LogID
 }
 
-func compareStrings(a, b graph.Value) bool {
-	return a.(string) == b.(string)
-}
-
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(compareStrings)
+	return iterator.NewFixed(iterator.Identity)
 }
 
 func (qs *QuadStore) Close() {

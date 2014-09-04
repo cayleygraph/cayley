@@ -72,7 +72,7 @@ func createNewLevelDB(path string, _ graph.Options) error {
 	opts := &opt.Options{}
 	db, err := leveldb.OpenFile(path, opts)
 	if err != nil {
-		glog.Errorf("Error: couldn't create database: %v", err)
+		glog.Errorf("Error: could not create database: %v", err)
 		return err
 	}
 	defer db.Close()
@@ -89,27 +89,27 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	var qs QuadStore
 	var err error
 	qs.path = path
-	cache_size := DefaultCacheSize
+	cacheSize := DefaultCacheSize
 	if val, ok := options.IntKey("cache_size_mb"); ok {
-		cache_size = val
+		cacheSize = val
 	}
 	qs.dbOpts = &opt.Options{
-		BlockCache: cache.NewLRUCache(cache_size * opt.MiB),
+		BlockCache: cache.NewLRUCache(cacheSize * opt.MiB),
 	}
 	qs.dbOpts.ErrorIfMissing = true
 
-	write_buffer_mb := DefaultWriteBufferSize
-	if val, ok := options.IntKey("write_buffer_mb"); ok {
-		write_buffer_mb = val
+	writeBufferSize := DefaultWriteBufferSize
+	if val, ok := options.IntKey("writeBufferSize"); ok {
+		writeBufferSize = val
 	}
-	qs.dbOpts.WriteBuffer = write_buffer_mb * opt.MiB
+	qs.dbOpts.WriteBuffer = writeBufferSize * opt.MiB
 	qs.writeopts = &opt.WriteOptions{
 		Sync: false,
 	}
 	qs.readopts = &opt.ReadOptions{}
 	db, err := leveldb.OpenFile(qs.path, qs.dbOpts)
 	if err != nil {
-		glog.Errorln("Error, couldn't open! ", err)
+		glog.Errorln("Error, could not open! ", err)
 		return nil, err
 	}
 	qs.db = db
@@ -137,13 +137,6 @@ func (qs *QuadStore) Size() int64 {
 
 func (qs *QuadStore) Horizon() int64 {
 	return qs.horizon
-}
-
-func (qa *QuadStore) createDeltaKeyFor(d graph.Delta) []byte {
-	key := make([]byte, 0, 19)
-	key = append(key, 'd')
-	key = append(key, []byte(fmt.Sprintf("%018x", d.ID))...)
-	return key
 }
 
 func hashOf(s string) []byte {
@@ -190,13 +183,13 @@ var (
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	batch := &leveldb.Batch{}
 	resizeMap := make(map[string]int64)
-	size_change := int64(0)
+	sizeChange := int64(0)
 	for _, d := range deltas {
 		bytes, err := json.Marshal(d)
 		if err != nil {
 			return err
 		}
-		batch.Put(qs.createDeltaKeyFor(d), bytes)
+		batch.Put(keyFor(d), bytes)
 		err = qs.buildQuadWrite(batch, d.Quad, d.ID, d.Action == graph.Add)
 		if err != nil {
 			return err
@@ -211,7 +204,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 		if d.Quad.Label != "" {
 			resizeMap[d.Quad.Label] += delta
 		}
-		size_change += delta
+		sizeChange += delta
 		qs.horizon = d.ID
 	}
 	for k, v := range resizeMap {
@@ -224,18 +217,25 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	}
 	err := qs.db.Write(batch, qs.writeopts)
 	if err != nil {
-		glog.Error("Couldn't write to DB for quadset.")
+		glog.Error("could not write to DB for quadset.")
 		return err
 	}
-	qs.size += size_change
+	qs.size += sizeChange
 	return nil
+}
+
+func keyFor(d graph.Delta) []byte {
+	key := make([]byte, 0, 19)
+	key = append(key, 'd')
+	key = append(key, []byte(fmt.Sprintf("%018x", d.ID))...)
+	return key
 }
 
 func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64, isAdd bool) error {
 	var entry IndexEntry
 	data, err := qs.db.Get(qs.createKeyFor(spo, q), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Error("Couldn't access DB to prepare index: ", err)
+		glog.Error("could not access DB to prepare index: ", err)
 		return err
 	}
 	if err == nil {
@@ -251,12 +251,12 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 
 	if isAdd && len(entry.History)%2 == 0 {
 		glog.Error("Entry History is out of sync for", entry)
-		return errors.New("Odd index history")
+		return errors.New("odd index history")
 	}
 
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		glog.Errorf("Couldn't write to buffer for entry %#v: %s", entry, err)
+		glog.Errorf("could not write to buffer for entry %#v: %s", entry, err)
 		return err
 	}
 	batch.Put(qs.createKeyFor(spo, q), bytes)
@@ -288,7 +288,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, batch *leveldb.
 	if b != nil && err != leveldb.ErrNotFound {
 		err = json.Unmarshal(b, value)
 		if err != nil {
-			glog.Errorf("Error: couldn't reconstruct value: %v", err)
+			glog.Errorf("Error: could not reconstruct value: %v", err)
 			return err
 		}
 		value.Size += amount
@@ -302,7 +302,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, batch *leveldb.
 	// Repackage and rewrite.
 	bytes, err := json.Marshal(&value)
 	if err != nil {
-		glog.Errorf("Couldn't write to buffer for value %s: %s", name, err)
+		glog.Errorf("could not write to buffer for value %s: %s", name, err)
 		return err
 	}
 	if batch == nil {
@@ -319,20 +319,20 @@ func (qs *QuadStore) Close() {
 	if err == nil {
 		werr := qs.db.Put([]byte("__size"), buf.Bytes(), qs.writeopts)
 		if werr != nil {
-			glog.Error("Couldn't write size before closing!")
+			glog.Error("could not write size before closing!")
 		}
 	} else {
-		glog.Errorf("Couldn't convert size before closing!")
+		glog.Errorf("could not convert size before closing!")
 	}
 	buf.Reset()
 	err = binary.Write(buf, binary.LittleEndian, qs.horizon)
 	if err == nil {
 		werr := qs.db.Put([]byte("__horizon"), buf.Bytes(), qs.writeopts)
 		if werr != nil {
-			glog.Error("Couldn't write horizon before closing!")
+			glog.Error("could not write horizon before closing!")
 		}
 	} else {
-		glog.Errorf("Couldn't convert horizon before closing!")
+		glog.Errorf("could not convert horizon before closing!")
 	}
 	qs.db.Close()
 	qs.open = false
@@ -342,7 +342,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	var q quad.Quad
 	b, err := qs.db.Get(k.(Token), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Error("Error: couldn't get quad from DB.")
+		glog.Error("Error: could not get quad from DB.")
 		return quad.Quad{}
 	}
 	if err == leveldb.ErrNotFound {
@@ -351,7 +351,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	}
 	err = json.Unmarshal(b, &q)
 	if err != nil {
-		glog.Error("Error: couldn't reconstruct quad.")
+		glog.Error("Error: could not reconstruct quad.")
 		return quad.Quad{}
 	}
 	return q
@@ -361,20 +361,20 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 	return Token(qs.createValueKeyFor(s))
 }
 
-func (qs *QuadStore) valueData(value_key []byte) ValueData {
+func (qs *QuadStore) valueData(key []byte) ValueData {
 	var out ValueData
 	if glog.V(3) {
-		glog.V(3).Infof("%s %v", string(value_key[0]), value_key)
+		glog.V(3).Infof("%c %v", key[0], key)
 	}
-	b, err := qs.db.Get(value_key, qs.readopts)
+	b, err := qs.db.Get(key, qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorln("Error: couldn't get value from DB")
+		glog.Errorln("Error: could not get value from DB")
 		return out
 	}
 	if b != nil && err != leveldb.ErrNotFound {
 		err = json.Unmarshal(b, &out)
 		if err != nil {
-			glog.Errorln("Error: couldn't reconstruct value")
+			glog.Errorln("Error: could not reconstruct value")
 			return ValueData{}
 		}
 	}
@@ -400,7 +400,7 @@ func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {
 	var out int64
 	b, err := qs.db.Get([]byte(key), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorln("Couldn't read " + key + ": " + err.Error())
+		glog.Errorln("could not read " + key + ": " + err.Error())
 		return 0, err
 	}
 	if err == leveldb.ErrNotFound {
@@ -410,7 +410,7 @@ func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {
 	buf := bytes.NewBuffer(b)
 	err = binary.Read(buf, binary.LittleEndian, &out)
 	if err != nil {
-		glog.Errorln("Error: couldn't parse", key)
+		glog.Errorln("Error: could not parse", key)
 		return 0, err
 	}
 	return out, nil
@@ -471,9 +471,8 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	offset := PositionOf(v[0:2], d, qs)
 	if offset != -1 {
 		return Token(append([]byte("z"), v[offset:offset+hashSize]...))
-	} else {
-		return Token(qs.Quad(val).Get(d))
 	}
+	return Token(qs.Quad(val).Get(d))
 }
 
 func compareBytes(a, b graph.Value) bool {
@@ -481,5 +480,5 @@ func compareBytes(a, b graph.Value) bool {
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(compareBytes)
+	return iterator.NewFixed(compareBytes)
 }

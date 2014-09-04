@@ -47,9 +47,8 @@ func findAssetsPath() string {
 	if *assetsPath != "" {
 		if hasAssets(*assetsPath) {
 			return *assetsPath
-		} else {
-			glog.Fatalln("Cannot find assets at", *assetsPath, ".")
 		}
+		glog.Fatalln("Cannot find assets at", *assetsPath, ".")
 	}
 
 	if hasAssets(".") {
@@ -61,7 +60,7 @@ func findAssetsPath() string {
 		return gopathPath
 	}
 	glog.Fatalln("Cannot find assets in any of the default search paths. Please run in the same directory, in a Go workspace, or set --assets .")
-	return ""
+	panic("cannot reach")
 }
 
 func LogRequest(handler ResponseHandler) httprouter.Handle {
@@ -81,11 +80,7 @@ func LogRequest(handler ResponseHandler) httprouter.Handle {
 	}
 }
 
-func FormatJson400(w http.ResponseWriter, err interface{}) int {
-	return FormatJsonError(w, 400, err)
-}
-
-func FormatJsonError(w http.ResponseWriter, code int, err interface{}) int {
+func jsonResponse(w http.ResponseWriter, code int, err interface{}) int {
 	http.Error(w, fmt.Sprintf("{\"error\" : \"%s\"}", err), code)
 	return code
 }
@@ -105,12 +100,12 @@ func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-type Api struct {
+type API struct {
 	config *config.Config
 	handle *graph.Handle
 }
 
-func (api *Api) ApiV1(r *httprouter.Router) {
+func (api *API) APIv1(r *httprouter.Router) {
 	r.POST("/api/v1/query/:query_lang", LogRequest(api.ServeV1Query))
 	r.POST("/api/v1/shape/:query_lang", LogRequest(api.ServeV1Shape))
 	r.POST("/api/v1/write", LogRequest(api.ServeV1Write))
@@ -129,8 +124,8 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	templates.ParseGlob(fmt.Sprint(assets, "/templates/*.html"))
 	root := &TemplateRequestHandler{templates: templates}
 	docs := &DocRequestHandler{assets: assets}
-	api := &Api{config: cfg, handle: handle}
-	api.ApiV1(r)
+	api := &API{config: cfg, handle: handle}
+	api.APIv1(r)
 
 	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
 	//r.Handler("GET", "/static", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))

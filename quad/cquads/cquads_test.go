@@ -644,7 +644,7 @@ func TestDecoder(t *testing.T) {
 		q, err := dec.Unmarshal()
 		if err != nil {
 			if err != io.EOF {
-				t.Fatalf("Failed to read document:", err)
+				t.Fatalf("Failed to read document: %v", err)
 			}
 			break
 		}
