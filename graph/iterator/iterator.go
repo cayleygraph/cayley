@@ -80,7 +80,7 @@ func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Null) Describe() graph.Description {
 	return graph.Description{
 		UID:  it.UID(),
-		Type: it.Type().String(),
+		Type: it.Type(),
 	}
 }
 

@@ -81,7 +81,7 @@ func (it *Int64) TagResults(dst map[string]graph.Value) {
 func (it *Int64) Describe() graph.Description {
 	return graph.Description{
 		UID:  it.UID(),
-		Type: it.Type().String(),
+		Type: it.Type(),
 		Tags: it.tags.Tags(),
 	}
 }

@@ -121,7 +121,7 @@ func (it *Optional) Describe() graph.Description {
 	primary := it.subIt.Describe()
 	return graph.Description{
 		UID:      it.UID(),
-		Type:     it.Type().String(),
+		Type:     it.Type(),
 		Tags:     it.tags.Tags(),
 		Iterator: &primary,
 	}

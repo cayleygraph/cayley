@@ -107,7 +107,7 @@ func (it *Fixed) Describe() graph.Description {
 	return graph.Description{
 		UID:  it.UID(),
 		Name: value,
-		Type: it.Type().String(),
+		Type: it.Type(),
 		Tags: fixed,
 		Size: int64(len(it.values)),
 	}

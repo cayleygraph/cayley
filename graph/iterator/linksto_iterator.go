@@ -109,7 +109,7 @@ func (it *LinksTo) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{
 		UID:       it.UID(),
-		Type:      it.Type().String(),
+		Type:      it.Type(),
 		Direction: it.dir,
 		Iterator:  &primary,
 	}

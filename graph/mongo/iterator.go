@@ -217,7 +217,7 @@ func (it *Iterator) Describe() graph.Description {
 	return graph.Description{
 		UID:  it.UID(),
 		Name: fmt.Sprintf("%s/%s", it.name, it.hash),
-		Type: it.Type().String(),
+		Type: it.Type(),
 		Size: size,
 	}
 }

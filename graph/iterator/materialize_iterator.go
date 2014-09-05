@@ -119,7 +119,7 @@ func (it *Materialize) Describe() graph.Description {
 	primary := it.subIt.Describe()
 	return graph.Description{
 		UID:      it.UID(),
-		Type:     it.Type().String(),
+		Type:     it.Type(),
 		Tags:     it.tags.Tags(),
 		Size:     int64(len(it.values)),
 		Iterator: &primary,

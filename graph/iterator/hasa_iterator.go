@@ -131,7 +131,7 @@ func (it *HasA) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{
 		UID:       it.UID(),
-		Type:      it.Type().String(),
+		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Direction: it.dir,
 		Iterator:  &primary,

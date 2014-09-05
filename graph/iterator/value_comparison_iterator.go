@@ -192,7 +192,7 @@ func (it *Comparison) Describe() graph.Description {
 	primary := it.subIt.Describe()
 	return graph.Description{
 		UID:      it.UID(),
-		Type:     it.Type().String(),
+		Type:     it.Type(),
 		Iterator: &primary,
 	}
 }

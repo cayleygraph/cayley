@@ -116,7 +116,7 @@ func (it *And) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{
 		UID:       it.UID(),
-		Type:      it.Type().String(),
+		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Iterator:  &primary,
 		Iterators: subIts,

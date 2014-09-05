@@ -161,7 +161,7 @@ func (it *AllIterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
 		UID:       it.UID(),
-		Type:      it.Type().String(),
+		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      size,
 		Direction: it.dir,

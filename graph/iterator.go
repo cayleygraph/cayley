@@ -17,11 +17,12 @@ package graph
 // Define the general iterator interface.
 
 import (
-	"github.com/google/cayley/quad"
+	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/barakmich/glog"
+	"github.com/google/cayley/quad"
 )
 
 type Tagger struct {
@@ -144,7 +145,7 @@ type Iterator interface {
 type Description struct {
 	UID       uint64         `json:",omitempty"`
 	Name      string         `json:",omitempty"`
-	Type      string         `json:",omitempty"`
+	Type      Type           `json:",omitempty"`
 	Tags      []string       `json:",omitempty"`
 	Size      int64          `json:",omitempty"`
 	Direction quad.Direction `json:",omitempty"`
@@ -267,9 +268,27 @@ func (t Type) String() string {
 	return types[t]
 }
 
+func (t *Type) MarshalText() (text []byte, err error) {
+	if *t < 0 || int(*t) >= len(types) {
+		return nil, fmt.Errorf("graph: illegal iterator type: %d", *t)
+	}
+	return []byte(types[*t]), nil
+}
+
+func (t *Type) UnmarshalText(text []byte) error {
+	s := string(text)
+	for i, c := range types[1:] {
+		if c == s {
+			*t = Type(i + 1)
+			return nil
+		}
+	}
+	return fmt.Errorf("graph: unknown iterator label: %q", text)
+}
+
 type StatsContainer struct {
 	UID  uint64
-	Type string
+	Type Type
 	IteratorStats
 	SubIts []StatsContainer
 }
@@ -277,7 +296,7 @@ type StatsContainer struct {
 func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
-	out.Type = it.Type().String()
+	out.Type = it.Type()
 	out.UID = it.UID()
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))
