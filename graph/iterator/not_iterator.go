@@ -84,7 +84,7 @@ func (it *Not) DebugString(indent int) string {
 	}
 
 	spaces := strings.Repeat(" ", indent+2)
-	return fmt.Sprintf("%s(%s %d\n%stags:%v\n%sprimary_it:\n%s\n)",
+	return fmt.Sprintf("%s(%s %d\n%stags:%v\n%sprimary_it:\n%s\n%sall_it:\n%s\n%s)",
 		strings.Repeat(" ", indent),
 		it.Type(),
 		it.UID(),
@@ -92,6 +92,9 @@ func (it *Not) DebugString(indent int) string {
 		it.tags.Tags(),
 		spaces,
 		it.primaryIt.DebugString(indent+4),
+		spaces,
+		it.allIt.DebugString(indent+4),
+		strings.Repeat(" ", indent),
 	)
 }
 
@@ -150,7 +153,7 @@ func (it *Not) Optimize() (graph.Iterator, bool) {
 	if optimized {
 		it.primaryIt = optimizedPrimaryIt
 	}
-	return it, optimized
+	return it, false
 }
 
 func (it *Not) Stats() graph.IteratorStats {
