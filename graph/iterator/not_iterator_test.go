@@ -6,13 +6,13 @@ import (
 )
 
 func TestNotIteratorBasics(t *testing.T) {
-	allIt := newFixed()
+	allIt := NewFixed(Identity)
 	allIt.Add(1)
 	allIt.Add(2)
 	allIt.Add(3)
 	allIt.Add(4)
 
-	toComplementIt := newFixed()
+	toComplementIt := NewFixed(Identity)
 	toComplementIt.Add(2)
 	toComplementIt.Add(4)
 
