@@ -206,7 +206,6 @@ const (
 	Not
 	Optional
 	Materialize
-	Loop
 )
 
 var (
@@ -228,7 +227,6 @@ var (
 		"not",
 		"optional",
 		"materialize",
-		"loop",
 	}
 )
 
