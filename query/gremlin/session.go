@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/robertkrimen/otto"
+	// Provide underscore JS library.
 	_ "github.com/robertkrimen/otto/underscore"
 
 	"github.com/google/cayley/graph"
@@ -30,7 +31,7 @@ import (
 var ErrKillTimeout = errors.New("query timed out")
 
 type Session struct {
-	ts graph.TripleStore
+	qs graph.QuadStore
 
 	wk      *worker
 	script  *otto.Script
@@ -45,10 +46,10 @@ type Session struct {
 	err error
 }
 
-func NewSession(ts graph.TripleStore, timeout time.Duration, persist bool) *Session {
+func NewSession(qs graph.QuadStore, timeout time.Duration, persist bool) *Session {
 	g := Session{
-		ts:      ts,
-		wk:      newWorker(ts),
+		qs:      qs,
+		wk:      newWorker(qs),
 		timeout: timeout,
 	}
 	if persist {
@@ -176,7 +177,7 @@ func (s *Session) ToText(result interface{}) string {
 		tags := data.actualResults
 		tagKeys := make([]string, len(tags))
 		i := 0
-		for k, _ := range tags {
+		for k := range tags {
 			tagKeys[i] = k
 			i++
 		}
@@ -185,7 +186,7 @@ func (s *Session) ToText(result interface{}) string {
 			if k == "$_" {
 				continue
 			}
-			out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf(tags[k]))
+			out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
 		}
 	} else {
 		if data.val.IsObject() {
@@ -203,7 +204,7 @@ func (s *Session) ToText(result interface{}) string {
 }
 
 // Web stuff
-func (s *Session) BuildJson(result interface{}) {
+func (s *Session) BuildJSON(result interface{}) {
 	data := result.(*Result)
 	if !data.metaresult {
 		if data.val == nil {
@@ -211,13 +212,13 @@ func (s *Session) BuildJson(result interface{}) {
 			tags := data.actualResults
 			tagKeys := make([]string, len(tags))
 			i := 0
-			for k, _ := range tags {
+			for k := range tags {
 				tagKeys[i] = k
 				i++
 			}
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
-				obj[k] = s.ts.NameOf(tags[k])
+				obj[k] = s.qs.NameOf(tags[k])
 			}
 			s.dataOutput = append(s.dataOutput, obj)
 		} else {
@@ -232,8 +233,8 @@ func (s *Session) BuildJson(result interface{}) {
 	}
 }
 
-func (s *Session) GetJson() ([]interface{}, error) {
-	defer s.ClearJson()
+func (s *Session) GetJSON() ([]interface{}, error) {
+	defer s.ClearJSON()
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -245,6 +246,6 @@ func (s *Session) GetJson() ([]interface{}, error) {
 	}
 }
 
-func (s *Session) ClearJson() {
+func (s *Session) ClearJSON() {
 	s.dataOutput = nil
 }

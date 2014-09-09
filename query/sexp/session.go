@@ -26,13 +26,13 @@ import (
 )
 
 type Session struct {
-	ts    graph.TripleStore
+	qs    graph.QuadStore
 	debug bool
 }
 
-func NewSession(inputTripleStore graph.TripleStore) *Session {
+func NewSession(qs graph.QuadStore) *Session {
 	var s Session
-	s.ts = inputTripleStore
+	s.qs = qs
 	return &s
 }
 
@@ -53,7 +53,7 @@ func (s *Session) InputParses(input string) (query.ParseResult, error) {
 				if (i - 10) > min {
 					min = i - 10
 				}
-				return query.ParseFail, errors.New(fmt.Sprintf("Too many close parens at char %d: %s", i, input[min:i]))
+				return query.ParseFail, fmt.Errorf("too many close parentheses at char %d: %s", i, input[min:i])
 			}
 		}
 	}
@@ -63,11 +63,11 @@ func (s *Session) InputParses(input string) (query.ParseResult, error) {
 	if len(ParseString(input)) > 0 {
 		return query.Parsed, nil
 	}
-	return query.ParseFail, errors.New("Invalid Syntax")
+	return query.ParseFail, errors.New("invalid syntax")
 }
 
 func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
-	it := BuildIteratorTreeForQuery(s.ts, input)
+	it := BuildIteratorTreeForQuery(s.qs, input)
 	newIt, changed := it.Optimize()
 	if changed {
 		it = newIt
@@ -112,7 +112,7 @@ func (s *Session) ToText(result interface{}) string {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, s.ts.NameOf(tags[k]))
+		out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
 	}
 	return out
 }

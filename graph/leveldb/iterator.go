@@ -33,17 +33,17 @@ type Iterator struct {
 	uid            uint64
 	tags           graph.Tagger
 	nextPrefix     []byte
-	checkId        []byte
+	checkID        []byte
 	dir            quad.Direction
 	open           bool
 	iter           ldbit.Iterator
-	qs             *TripleStore
+	qs             *QuadStore
 	ro             *opt.ReadOptions
 	originalPrefix string
 	result         graph.Value
 }
 
-func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleStore) *Iterator {
+func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
 	vb := value.(Token)
 	p := make([]byte, 0, 2+hashSize)
 	p = append(p, []byte(prefix)...)
@@ -56,7 +56,7 @@ func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *TripleS
 	it := Iterator{
 		uid:            iterator.NextUID(),
 		nextPrefix:     p,
-		checkId:        vb,
+		checkID:        vb,
 		dir:            d,
 		originalPrefix: prefix,
 		ro:             opts,
@@ -106,7 +106,7 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	out := NewIterator(it.originalPrefix, it.dir, Token(it.checkId), it.qs)
+	out := NewIterator(it.originalPrefix, it.dir, Token(it.checkID), it.qs)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -173,7 +173,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func PositionOf(prefix []byte, d quad.Direction, qs *TripleStore) int {
+func PositionOf(prefix []byte, d quad.Direction, qs *QuadStore) int {
 	if bytes.Equal(prefix, []byte("sp")) {
 		switch d {
 		case quad.Subject:
@@ -231,8 +231,8 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return false
 	}
 	offset := PositionOf(val[0:2], it.dir, it.qs)
-	if bytes.HasPrefix(val[offset:], it.checkId[1:]) {
-		// You may ask, why don't we check to see if it's a valid (not deleted) triple
+	if bytes.HasPrefix(val[offset:], it.checkID[1:]) {
+		// You may ask, why don't we check to see if it's a valid (not deleted) quad
 		// again?
 		//
 		// We've already done that -- in order to get the graph.Value token in the
@@ -247,7 +247,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 }
 
 func (it *Iterator) Size() (int64, bool) {
-	return it.qs.SizeOf(Token(it.checkId)), true
+	return it.qs.SizeOf(Token(it.checkID)), true
 }
 
 func (it *Iterator) DebugString(indent int) string {
@@ -259,7 +259,7 @@ func (it *Iterator) DebugString(indent int) string {
 		it.tags.Tags(),
 		it.dir,
 		size,
-		it.qs.NameOf(Token(it.checkId)),
+		it.qs.NameOf(Token(it.checkID)),
 	)
 }
 

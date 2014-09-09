@@ -39,14 +39,14 @@ var testQueries = []struct {
 	expect  string
 }{
 	{
-		message: "get a single triple linkage",
+		message: "get a single quad linkage",
 		add:     quad.Quad{"i", "can", "win", ""},
 		query:   "($a (:can \"win\"))",
 		typ:     graph.And,
 		expect:  "i",
 	},
 	{
-		message: "get a single triple linkage",
+		message: "get a single quad linkage",
 		add:     quad.Quad{"i", "can", "win", ""},
 		query:   "(\"i\" (:can $a))",
 		typ:     graph.And,
@@ -55,9 +55,9 @@ var testQueries = []struct {
 }
 
 func TestMemstoreBackedSexp(t *testing.T) {
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	w, _ := graph.NewQuadWriter("single", ts, nil)
-	it := BuildIteratorTreeForQuery(ts, "()")
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", qs, nil)
+	it := BuildIteratorTreeForQuery(qs, "()")
 	if it.Type() != graph.Null {
 		t.Errorf(`Incorrect type for empty query, got:%q expect: "null"`, it.Type())
 	}
@@ -65,7 +65,7 @@ func TestMemstoreBackedSexp(t *testing.T) {
 		if test.add.IsValid() {
 			w.AddQuad(test.add)
 		}
-		it := BuildIteratorTreeForQuery(ts, test.query)
+		it := BuildIteratorTreeForQuery(qs, test.query)
 		if it.Type() != test.typ {
 			t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
 		}
@@ -73,56 +73,56 @@ func TestMemstoreBackedSexp(t *testing.T) {
 			t.Errorf("Failed to %s", test.message)
 		}
 		got := it.Result()
-		if expect := ts.ValueOf(test.expect); got != expect {
+		if expect := qs.ValueOf(test.expect); got != expect {
 			t.Errorf("Incorrect result for %s, got:%v expect %v", test.message, got, expect)
 		}
 	}
 }
 
 func TestTreeConstraintParse(t *testing.T) {
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	w, _ := graph.NewQuadWriter("single", ts, nil)
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", qs, nil)
 	w.AddQuad(quad.Quad{"i", "like", "food", ""})
 	w.AddQuad(quad.Quad{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
-	it := BuildIteratorTreeForQuery(ts, query)
+	it := BuildIteratorTreeForQuery(qs, query)
 	if it.Type() != graph.And {
-		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
+		t.Errorf("Odd iterator tree. Got: %s", it.DebugString(0))
 	}
 	if !graph.Next(it) {
 		t.Error("Got no results")
 	}
 	out := it.Result()
-	if out != ts.ValueOf("i") {
-		t.Errorf("Got %d, expected %d", out, ts.ValueOf("i"))
+	if out != qs.ValueOf("i") {
+		t.Errorf("Got %d, expected %d", out, qs.ValueOf("i"))
 	}
 }
 
 func TestTreeConstraintTagParse(t *testing.T) {
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	w, _ := graph.NewQuadWriter("single", ts, nil)
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", qs, nil)
 	w.AddQuad(quad.Quad{"i", "like", "food", ""})
 	w.AddQuad(quad.Quad{"food", "is", "good", ""})
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
-	it := BuildIteratorTreeForQuery(ts, query)
+	it := BuildIteratorTreeForQuery(qs, query)
 	if !graph.Next(it) {
 		t.Error("Got no results")
 	}
 	tags := make(map[string]graph.Value)
 	it.TagResults(tags)
-	if ts.NameOf(tags["$a"]) != "food" {
-		t.Errorf("Got %s, expected food", ts.NameOf(tags["$a"]))
+	if qs.NameOf(tags["$a"]) != "food" {
+		t.Errorf("Got %s, expected food", qs.NameOf(tags["$a"]))
 	}
 
 }
 
 func TestMultipleConstraintParse(t *testing.T) {
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	w, _ := graph.NewQuadWriter("single", ts, nil)
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, tv := range []quad.Quad{
 		{"i", "like", "food", ""},
 		{"i", "like", "beer", ""},
@@ -135,16 +135,16 @@ func TestMultipleConstraintParse(t *testing.T) {
 		(:like :beer)
 		(:like "food")
 	)`
-	it := BuildIteratorTreeForQuery(ts, query)
+	it := BuildIteratorTreeForQuery(qs, query)
 	if it.Type() != graph.And {
-		t.Error("Odd iterator tree. Got: %s", it.DebugString(0))
+		t.Errorf("Odd iterator tree. Got: %s", it.DebugString(0))
 	}
 	if !graph.Next(it) {
 		t.Error("Got no results")
 	}
 	out := it.Result()
-	if out != ts.ValueOf("i") {
-		t.Errorf("Got %d, expected %d", out, ts.ValueOf("i"))
+	if out != qs.ValueOf("i") {
+		t.Errorf("Got %d, expected %d", out, qs.ValueOf("i"))
 	}
 	if graph.Next(it) {
 		t.Error("Too many results")

@@ -21,8 +21,10 @@ import (
 	"github.com/google/cayley/graph"
 )
 
-type Path string
-type ResultPath string
+type (
+	Path       string
+	ResultPath string
+)
 
 type Query struct {
 	ses            *Session

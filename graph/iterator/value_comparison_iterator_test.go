@@ -24,7 +24,7 @@ import (
 var simpleStore = &store{data: []string{"0", "1", "2", "3", "4", "5"}}
 
 func simpleFixedIterator() *Fixed {
-	f := newFixed()
+	f := NewFixed(Identity)
 	for i := 0; i < 5; i++ {
 		f.Add(i)
 	}
@@ -40,37 +40,37 @@ var comparisonTests = []struct {
 	{
 		message:  "successful int64 less than comparison",
 		operand:  int64(3),
-		operator: kCompareLT,
+		operator: compareLT,
 		expect:   []string{"0", "1", "2"},
 	},
 	{
 		message:  "empty int64 less than comparison",
 		operand:  int64(0),
-		operator: kCompareLT,
+		operator: compareLT,
 		expect:   nil,
 	},
 	{
 		message:  "successful int64 greater than comparison",
 		operand:  int64(2),
-		operator: kCompareGT,
+		operator: compareGT,
 		expect:   []string{"3", "4"},
 	},
 	{
 		message:  "successful int64 greater than or equal comparison",
 		operand:  int64(2),
-		operator: kCompareGTE,
+		operator: compareGTE,
 		expect:   []string{"2", "3", "4"},
 	},
 }
 
 func TestValueComparison(t *testing.T) {
 	for _, test := range comparisonTests {
-		ts := simpleStore
-		vc := NewComparison(simpleFixedIterator(), test.operator, test.operand, ts)
+		qs := simpleStore
+		vc := NewComparison(simpleFixedIterator(), test.operator, test.operand, qs)
 
 		var got []string
 		for vc.Next() {
-			got = append(got, ts.NameOf(vc.Result()))
+			got = append(got, qs.NameOf(vc.Result()))
 		}
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to show %s, got:%q expect:%q", test.message, got, test.expect)
@@ -86,25 +86,25 @@ var vciContainsTests = []struct {
 }{
 	{
 		message:  "1 is less than 2",
-		operator: kCompareGTE,
+		operator: compareGTE,
 		check:    1,
 		expect:   false,
 	},
 	{
 		message:  "2 is greater than or equal to 2",
-		operator: kCompareGTE,
+		operator: compareGTE,
 		check:    2,
 		expect:   true,
 	},
 	{
 		message:  "3 is greater than or equal to 2",
-		operator: kCompareGTE,
+		operator: compareGTE,
 		check:    3,
 		expect:   true,
 	},
 	{
 		message:  "5 is absent from iterator",
-		operator: kCompareGTE,
+		operator: compareGTE,
 		check:    5,
 		expect:   false,
 	},

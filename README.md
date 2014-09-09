@@ -27,15 +27,15 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
   * JavaScript, with a [Gremlin](http://gremlindocs.com/)-inspired\* graph object.
   * (simplified) [MQL](https://developers.google.com/freebase/v1/mql-overview), for Freebase fans
 * Plays well with multiple backend stores:
-  * [LevelDB](http://code.google.com/p/leveldb/) 
-  * [Bolt](http://github.com/boltdb/bolt) 
+  * [LevelDB](http://code.google.com/p/leveldb/)
+  * [Bolt](http://github.com/boltdb/bolt)
   * [MongoDB](http://mongodb.org) for distributed stores
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
 * Good test coverage
 * Speed, where possible.
 
-Rough performance testing shows that, on consumer hardware and an average disk, 134m triples in LevelDB is no problem and a multi-hop intersection query -- films starring X and Y -- takes ~150ms.
+Rough performance testing shows that, on consumer hardware and an average disk, 134m quads in LevelDB is no problem and a multi-hop intersection query -- films starring X and Y -- takes ~150ms.
 
 \* Note that while it's not exactly Gremlin, it certainly takes inspiration from that API. For this flavor, [see the documentation](docs/GremlinAPI.md).
 

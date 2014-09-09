@@ -18,45 +18,48 @@ import (
 	"container/list"
 )
 
-type IDLru struct {
+// TODO(kortschak) Reimplement without container/list.
+
+// cache implements an LRU cache.
+type cache struct {
 	cache    map[string]*list.Element
 	priority *list.List
 	maxSize  int
 }
 
-type KV struct {
+type kv struct {
 	key   string
 	value string
 }
 
-func NewIDLru(size int) *IDLru {
-	var lru IDLru
+func newCache(size int) *cache {
+	var lru cache
 	lru.maxSize = size
 	lru.priority = list.New()
 	lru.cache = make(map[string]*list.Element)
 	return &lru
 }
 
-func (lru *IDLru) Put(key string, value string) {
+func (lru *cache) Put(key string, value string) {
 	if _, ok := lru.Get(key); ok {
 		return
 	}
 	if len(lru.cache) == lru.maxSize {
 		lru.removeOldest()
 	}
-	lru.priority.PushFront(KV{key: key, value: value})
+	lru.priority.PushFront(kv{key: key, value: value})
 	lru.cache[key] = lru.priority.Front()
 }
 
-func (lru *IDLru) Get(key string) (string, bool) {
+func (lru *cache) Get(key string) (string, bool) {
 	if element, ok := lru.cache[key]; ok {
 		lru.priority.MoveToFront(element)
-		return element.Value.(KV).value, true
+		return element.Value.(kv).value, true
 	}
 	return "", false
 }
 
-func (lru *IDLru) removeOldest() {
+func (lru *cache) removeOldest() {
 	last := lru.priority.Remove(lru.priority.Back())
-	delete(lru.cache, last.(KV).key)
+	delete(lru.cache, last.(kv).key)
 }

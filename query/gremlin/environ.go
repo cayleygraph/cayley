@@ -26,7 +26,7 @@ import (
 )
 
 type worker struct {
-	ts  graph.TripleStore
+	qs  graph.QuadStore
 	env *otto.Otto
 	sync.Mutex
 
@@ -39,10 +39,10 @@ type worker struct {
 	kill <-chan struct{}
 }
 
-func newWorker(ts graph.TripleStore) *worker {
+func newWorker(qs graph.QuadStore) *worker {
 	env := otto.New()
 	wk := &worker{
-		ts:    ts,
+		qs:    qs,
 		env:   env,
 		limit: -1,
 	}

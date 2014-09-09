@@ -32,7 +32,7 @@ import (
 )
 
 func init() {
-	graph.RegisterTripleStore("bolt", true, newQuadStore, createNewBolt)
+	graph.RegisterQuadStore("bolt", true, newQuadStore, createNewBolt)
 }
 
 var (
@@ -77,7 +77,7 @@ func createNewBolt(path string, _ graph.Options) error {
 	return nil
 }
 
-func newQuadStore(path string, options graph.Options) (graph.TripleStore, error) {
+func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	var qs QuadStore
 	var err error
 	db, err := bolt.Open(path, 0600, nil)
@@ -101,20 +101,20 @@ func (qs *QuadStore) createBuckets() error {
 		for _, index := range [][4]quad.Direction{spo, osp, pos, cps} {
 			_, err = tx.CreateBucket(bucketFor(index))
 			if err != nil {
-				return fmt.Errorf("Couldn't create bucket: %s", err)
+				return fmt.Errorf("could not create bucket: %s", err)
 			}
 		}
 		_, err = tx.CreateBucket(logBucket)
 		if err != nil {
-			return fmt.Errorf("Couldn't create bucket: %s", err)
+			return fmt.Errorf("could not create bucket: %s", err)
 		}
 		_, err = tx.CreateBucket(nodeBucket)
 		if err != nil {
-			return fmt.Errorf("Couldn't create bucket: %s", err)
+			return fmt.Errorf("could not create bucket: %s", err)
 		}
 		_, err = tx.CreateBucket(metaBucket)
 		if err != nil {
-			return fmt.Errorf("Couldn't create bucket: %s", err)
+			return fmt.Errorf("could not create bucket: %s", err)
 		}
 		return nil
 	})
@@ -136,18 +136,28 @@ func bucketFor(d [4]quad.Direction) []byte {
 	return []byte{d[0].Prefix(), d[1].Prefix(), d[2].Prefix(), d[3].Prefix()}
 }
 
-func (qs *QuadStore) createKeyFor(d [4]quad.Direction, triple quad.Quad) []byte {
+func hashOf(s string) []byte {
+	h := hashPool.Get().(hash.Hash)
+	h.Reset()
+	defer hashPool.Put(h)
+	key := make([]byte, 0, hashSize)
+	h.Write([]byte(s))
+	key = h.Sum(key)
+	return key
+}
+
+func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
 	key := make([]byte, 0, (hashSize * 4))
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[0]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[1]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[2]))...)
-	key = append(key, qs.convertStringToByteHash(triple.Get(d[3]))...)
+	key = append(key, hashOf(q.Get(d[0]))...)
+	key = append(key, hashOf(q.Get(d[1]))...)
+	key = append(key, hashOf(q.Get(d[2]))...)
+	key = append(key, hashOf(q.Get(d[3]))...)
 	return key
 }
 
 func (qs *QuadStore) createValueKeyFor(s string) []byte {
 	key := make([]byte, 0, hashSize)
-	key = append(key, qs.convertStringToByteHash(s)...)
+	key = append(key, hashOf(s)...)
 	return key
 }
 
@@ -173,13 +183,13 @@ var (
 )
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
-	old_size := qs.size
-	old_horizon := qs.horizon
+	oldSize := qs.size
+	oldHorizon := qs.horizon
 	err := qs.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(logBucket)
 		b.FillPercent = localFillPercent
 		resizeMap := make(map[string]int64)
-		size_change := int64(0)
+		sizeChange := int64(0)
 		for _, d := range deltas {
 			bytes, err := json.Marshal(d)
 			if err != nil {
@@ -205,7 +215,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 			if d.Quad.Label != "" {
 				resizeMap[d.Quad.Label] += delta
 			}
-			size_change += delta
+			sizeChange += delta
 			qs.horizon = d.ID
 		}
 		for k, v := range resizeMap {
@@ -216,14 +226,14 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 				}
 			}
 		}
-		qs.size += size_change
+		qs.size += sizeChange
 		return qs.WriteHorizonAndSize(tx)
 	})
 
 	if err != nil {
 		glog.Error("Couldn't write to DB for Delta set. Error: ", err)
-		qs.horizon = old_horizon
-		qs.size = old_size
+		qs.horizon = oldHorizon
+		qs.size = oldSize
 		return err
 	}
 	return nil
@@ -243,11 +253,11 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 	}
 
 	if isAdd && len(entry.History)%2 == 1 {
-		glog.Error("Adding a valid triple ", entry)
+		glog.Error("Adding a valid quad ", entry)
 		return graph.ErrQuadExists
 	}
 	if !isAdd && len(entry.History)%2 == 0 {
-		glog.Error("Deleting an invalid triple ", entry)
+		glog.Error("Deleting an invalid quad ", entry)
 		return graph.ErrQuadNotExist
 	}
 
@@ -373,20 +383,10 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 		return json.Unmarshal(data, &q)
 	})
 	if err != nil {
-		glog.Error("Error getting triple: ", err)
+		glog.Error("Error getting quad: ", err)
 		return quad.Quad{}
 	}
 	return q
-}
-
-func (qs *QuadStore) convertStringToByteHash(s string) []byte {
-	h := hashPool.Get().(hash.Hash)
-	h.Reset()
-	defer hashPool.Put(h)
-	key := make([]byte, 0, hashSize)
-	h.Write([]byte(s))
-	key = h.Sum(key)
-	return key
 }
 
 func (qs *QuadStore) ValueOf(s string) graph.Value {
@@ -459,7 +459,7 @@ func (qs *QuadStore) getMetadata() error {
 	return err
 }
 
-func (qs *QuadStore) TripleIterator(d quad.Direction, val graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
 	var bucket []byte
 	switch d {
 	case quad.Subject:
@@ -480,11 +480,11 @@ func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 	return NewAllIterator(nodeBucket, quad.Any, qs)
 }
 
-func (qs *QuadStore) TriplesAllIterator() graph.Iterator {
+func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return NewAllIterator(posBucket, quad.Predicate, qs)
 }
 
-func (qs *QuadStore) TripleDirection(val graph.Value, d quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
 	v := val.(*Token)
 	offset := PositionOf(v, d, qs)
 	if offset != -1 {
@@ -503,5 +503,5 @@ func compareTokens(a, b graph.Value) bool {
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(compareTokens)
+	return iterator.NewFixed(compareTokens)
 }

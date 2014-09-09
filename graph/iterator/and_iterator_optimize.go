@@ -110,7 +110,7 @@ func closeIteratorList(its []graph.Iterator, except graph.Iterator) {
 
 // Find if there is a single subiterator which is a valid replacement for this
 // And.
-func (_ *And) optimizeReplacement(its []graph.Iterator) graph.Iterator {
+func (*And) optimizeReplacement(its []graph.Iterator) graph.Iterator {
 	// If we were created with no SubIterators, we're as good as Null.
 	if len(its) == 0 {
 		return &Null{}

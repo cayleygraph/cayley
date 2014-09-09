@@ -52,14 +52,14 @@ var simpleGraph = []quad.Quad{
 	{"G", "status", "cool", "status_graph"},
 }
 
-func makeTestStore(data []quad.Quad) (*TripleStore, graph.QuadWriter, []pair) {
+func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 	seen := make(map[string]struct{})
-	ts := newTripleStore()
+	qs := newQuadStore()
 	var (
 		val int64
 		ind []pair
 	)
-	writer, _ := writer.NewSingleReplication(ts, nil)
+	writer, _ := writer.NewSingleReplication(qs, nil)
 	for _, t := range data {
 		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Label} {
 			if _, ok := seen[qp]; !ok && qp != "" {
@@ -71,7 +71,7 @@ func makeTestStore(data []quad.Quad) (*TripleStore, graph.QuadWriter, []pair) {
 
 		writer.AddQuad(t)
 	}
-	return ts, writer, ind
+	return qs, writer, ind
 }
 
 type pair struct {
@@ -80,12 +80,12 @@ type pair struct {
 }
 
 func TestMemstore(t *testing.T) {
-	ts, _, index := makeTestStore(simpleGraph)
-	if size := ts.Size(); size != int64(len(simpleGraph)) {
-		t.Errorf("Triple store has unexpected size, got:%d expected %d", size, len(simpleGraph))
+	qs, _, index := makeTestStore(simpleGraph)
+	if size := qs.Size(); size != int64(len(simpleGraph)) {
+		t.Errorf("Quad store has unexpected size, got:%d expected %d", size, len(simpleGraph))
 	}
 	for _, test := range index {
-		v := ts.ValueOf(test.query)
+		v := qs.ValueOf(test.query)
 		switch v := v.(type) {
 		default:
 			t.Errorf("ValueOf(%q) returned unexpected type, got:%T expected int64", test.query, v)
@@ -98,21 +98,21 @@ func TestMemstore(t *testing.T) {
 }
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
-	ts, _, _ := makeTestStore(simpleGraph)
+	qs, _, _ := makeTestStore(simpleGraph)
 
-	fixed := ts.FixedIterator()
-	fixed.Add(ts.ValueOf("C"))
+	fixed := qs.FixedIterator()
+	fixed.Add(qs.ValueOf("C"))
 
-	fixed2 := ts.FixedIterator()
-	fixed2.Add(ts.ValueOf("follows"))
+	fixed2 := qs.FixedIterator()
+	fixed2.Add(qs.ValueOf("follows"))
 
-	all := ts.NodesAllIterator()
+	all := qs.NodesAllIterator()
 
 	innerAnd := iterator.NewAnd()
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, quad.Predicate))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, all, quad.Object))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
 
-	hasa := iterator.NewHasA(ts, innerAnd, quad.Subject)
+	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
 	outerAnd := iterator.NewAnd()
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
@@ -121,8 +121,8 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		t.Error("Expected one matching subtree")
 	}
 	val := outerAnd.Result()
-	if ts.NameOf(val) != "C" {
-		t.Errorf("Matching subtree should be %s, got %s", "barak", ts.NameOf(val))
+	if qs.NameOf(val) != "C" {
+		t.Errorf("Matching subtree should be %s, got %s", "barak", qs.NameOf(val))
 	}
 
 	var (
@@ -130,7 +130,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, ts.NameOf(all.Result()))
+		got = append(got, qs.NameOf(all.Result()))
 		if !outerAnd.NextPath() {
 			break
 		}
@@ -147,12 +147,12 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 }
 
 func TestLinksToOptimization(t *testing.T) {
-	ts, _, _ := makeTestStore(simpleGraph)
+	qs, _, _ := makeTestStore(simpleGraph)
 
-	fixed := ts.FixedIterator()
-	fixed.Add(ts.ValueOf("cool"))
+	fixed := qs.FixedIterator()
+	fixed.Add(qs.ValueOf("cool"))
 
-	lto := iterator.NewLinksTo(ts, fixed, quad.Object)
+	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
 	lto.Tagger().Add("foo")
 
 	newIt, changed := lto.Optimize()
@@ -164,32 +164,37 @@ func TestLinksToOptimization(t *testing.T) {
 	}
 
 	v := newIt.(*Iterator)
-	v_clone := v.Clone()
-	if v_clone.DebugString(0) != v.DebugString(0) {
-		t.Fatal("Wrong iterator. Got ", v_clone.DebugString(0))
+	vClone := v.Clone()
+	if vClone.DebugString(0) != v.DebugString(0) {
+		t.Fatal("Wrong iterator. Got ", vClone.DebugString(0))
 	}
-	vt := v_clone.Tagger()
+	vt := vClone.Tagger()
 	if len(vt.Tags()) < 1 || vt.Tags()[0] != "foo" {
 		t.Fatal("Tag on LinksTo did not persist")
 	}
 }
 
-func TestRemoveTriple(t *testing.T) {
-	ts, w, _ := makeTestStore(simpleGraph)
+func TestRemoveQuad(t *testing.T) {
+	qs, w, _ := makeTestStore(simpleGraph)
 
-	w.RemoveQuad(quad.Quad{"E", "follows", "F", ""})
+	w.RemoveQuad(quad.Quad{
+		Subject:   "E",
+		Predicate: "follows",
+		Object:    "F",
+		Label:     "",
+	})
 
-	fixed := ts.FixedIterator()
-	fixed.Add(ts.ValueOf("E"))
+	fixed := qs.FixedIterator()
+	fixed.Add(qs.ValueOf("E"))
 
-	fixed2 := ts.FixedIterator()
-	fixed2.Add(ts.ValueOf("follows"))
+	fixed2 := qs.FixedIterator()
+	fixed2.Add(qs.ValueOf("follows"))
 
 	innerAnd := iterator.NewAnd()
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed, quad.Subject))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(ts, fixed2, quad.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed, quad.Subject))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
 
-	hasa := iterator.NewHasA(ts, innerAnd, quad.Object)
+	hasa := iterator.NewHasA(qs, innerAnd, quad.Object)
 
 	newIt, _ := hasa.Optimize()
 	if graph.Next(newIt) {

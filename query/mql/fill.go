@@ -27,20 +27,18 @@ func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string
 		if v == nil {
 			continue
 		}
-		results[Path(k)] = q.ses.ts.NameOf(v)
+		results[Path(k)] = q.ses.qs.NameOf(v)
 	}
 	resultPaths := make(map[ResultPath]string)
 	for k, v := range results {
 		resultPaths[k.ToResultPathFromMap(results)] = v
 	}
 
-	var paths ResultPathSlice
-
-	for path, _ := range resultPaths {
+	paths := make([]ResultPath, 0, len(resultPaths))
+	for path := range resultPaths {
 		paths = append(paths, path)
 	}
-
-	sort.Sort(paths)
+	sort.Sort(byRecordLength(paths))
 
 	// Build Structure
 	for _, path := range paths {

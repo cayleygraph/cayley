@@ -53,12 +53,12 @@ var simpleGraph = []quad.Quad{
 }
 
 func makeTestSession(data []quad.Quad) *Session {
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	w, _ := graph.NewQuadWriter("single", ts, nil)
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, t := range data {
 		w.AddQuad(t)
 	}
-	return NewSession(ts)
+	return NewSession(qs)
 }
 
 var testQueries = []struct {
@@ -172,9 +172,9 @@ func runQuery(g []quad.Quad, query string) interface{} {
 	c := make(chan interface{}, 5)
 	go s.ExecInput(query, c, -1)
 	for result := range c {
-		s.BuildJson(result)
+		s.BuildJSON(result)
 	}
-	result, _ := s.GetJson()
+	result, _ := s.GetJSON()
 	return result
 }
 
@@ -186,7 +186,7 @@ func TestMQL(t *testing.T) {
 		if !reflect.DeepEqual(got, expect) {
 			b, err := json.MarshalIndent(got, "", " ")
 			if err != nil {
-				t.Fatalf("unexpected JSON marshal error", err)
+				t.Fatalf("unexpected JSON marshal error: %v", err)
 			}
 			t.Errorf("Failed to %s, got: %s expected: %s", test.message, b, test.expect)
 		}

@@ -27,7 +27,7 @@ import (
 
 func TestIteratorPromotion(t *testing.T) {
 	all := NewInt64(1, 3)
-	fixed := newFixed()
+	fixed := NewFixed(Identity)
 	fixed.Add(3)
 	a := NewAnd()
 	a.AddSubIterator(all)

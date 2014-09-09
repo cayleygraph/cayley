@@ -260,7 +260,7 @@ func (t Type) String() string {
 type StatsContainer struct {
 	IteratorStats
 	Kind   string
-	Uid    uint64
+	UID    uint64
 	SubIts []StatsContainer
 }
 
@@ -268,7 +268,7 @@ func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
 	out.Kind = it.Type().String()
-	out.Uid = it.UID()
+	out.UID = it.UID()
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))
 	}

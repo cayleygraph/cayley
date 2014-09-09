@@ -22,7 +22,7 @@ import (
 
 // Make sure that tags work on the And.
 func TestTag(t *testing.T) {
-	fix1 := newFixed()
+	fix1 := NewFixed(Identity)
 	fix1.Add(234)
 	fix1.Tagger().Add("foo")
 	and := NewAnd()
@@ -55,12 +55,12 @@ func TestTag(t *testing.T) {
 
 // Do a simple itersection of fixed values.
 func TestAndAndFixedIterators(t *testing.T) {
-	fix1 := newFixed()
+	fix1 := NewFixed(Identity)
 	fix1.Add(1)
 	fix1.Add(2)
 	fix1.Add(3)
 	fix1.Add(4)
-	fix2 := newFixed()
+	fix2 := NewFixed(Identity)
 	fix2.Add(3)
 	fix2.Add(4)
 	fix2.Add(5)
@@ -93,12 +93,12 @@ func TestAndAndFixedIterators(t *testing.T) {
 // If there's no intersection, the size should still report the same,
 // but there should be nothing to Next()
 func TestNonOverlappingFixedIterators(t *testing.T) {
-	fix1 := newFixed()
+	fix1 := NewFixed(Identity)
 	fix1.Add(1)
 	fix1.Add(2)
 	fix1.Add(3)
 	fix1.Add(4)
-	fix2 := newFixed()
+	fix2 := NewFixed(Identity)
 	fix2.Add(5)
 	fix2.Add(6)
 	fix2.Add(7)

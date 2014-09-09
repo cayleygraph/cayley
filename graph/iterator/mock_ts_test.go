@@ -14,14 +14,12 @@
 
 package iterator
 
-// A quickly mocked version of the TripleStore interface, for use in tests.
-// Can better used Mock.Called but will fill in as needed.
-
 import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/quad"
 )
 
+// store is a mocked version of the QuadStore interface, for use in tests.
 type store struct {
 	data []string
 	iter graph.Iterator
@@ -40,13 +38,13 @@ func (qs *store) ApplyDeltas([]graph.Delta) error { return nil }
 
 func (qs *store) Quad(graph.Value) quad.Quad { return quad.Quad{} }
 
-func (qs *store) TripleIterator(d quad.Direction, i graph.Value) graph.Iterator {
+func (qs *store) QuadIterator(d quad.Direction, i graph.Value) graph.Iterator {
 	return qs.iter
 }
 
 func (qs *store) NodesAllIterator() graph.Iterator { return &Null{} }
 
-func (qs *store) TriplesAllIterator() graph.Iterator { return &Null{} }
+func (qs *store) QuadsAllIterator() graph.Iterator { return &Null{} }
 
 func (qs *store) NameOf(v graph.Value) string {
 	i := v.(int)
@@ -67,11 +65,11 @@ func (qs *store) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 }
 
 func (qs *store) FixedIterator() graph.FixedIterator {
-	return NewFixedIteratorWithCompare(BasicEquality)
+	return NewFixed(Identity)
 }
 
 func (qs *store) Close() {}
 
-func (qs *store) TripleDirection(graph.Value, quad.Direction) graph.Value { return 0 }
+func (qs *store) QuadDirection(graph.Value, quad.Direction) graph.Value { return 0 }
 
-func (qs *store) RemoveTriple(t quad.Quad) {}
+func (qs *store) RemoveQuad(t quad.Quad) {}

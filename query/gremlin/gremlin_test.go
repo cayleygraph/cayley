@@ -54,12 +54,12 @@ var simpleGraph = []quad.Quad{
 }
 
 func makeTestSession(data []quad.Quad) *Session {
-	ts, _ := graph.NewTripleStore("memstore", "", nil)
-	w, _ := graph.NewQuadWriter("single", ts, nil)
+	qs, _ := graph.NewQuadStore("memstore", "", nil)
+	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, t := range data {
 		w.AddQuad(t)
 	}
-	return NewSession(ts, -1, false)
+	return NewSession(qs, -1, false)
 }
 
 var testQueries = []struct {
@@ -273,7 +273,7 @@ func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
 		if data.val == nil {
 			val := data.actualResults[tag]
 			if val != nil {
-				results = append(results, js.ts.NameOf(val))
+				results = append(results, js.qs.NameOf(val))
 			}
 		}
 	}

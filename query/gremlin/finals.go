@@ -39,7 +39,7 @@ func (wk *worker) embedFinals(env *otto.Otto, obj *otto.Object) {
 
 func (wk *worker) allFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.ts)
+		it := buildIteratorTree(obj, wk.qs)
 		it.Tagger().Add(TopResultTag)
 		wk.limit = -1
 		wk.count = 0
@@ -52,7 +52,7 @@ func (wk *worker) limitFunc(env *otto.Otto, obj *otto.Object) func(otto.Function
 	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) > 0 {
 			limitVal, _ := call.Argument(0).ToInteger()
-			it := buildIteratorTree(obj, wk.ts)
+			it := buildIteratorTree(obj, wk.qs)
 			it.Tagger().Add(TopResultTag)
 			wk.limit = int(limitVal)
 			wk.count = 0
@@ -64,7 +64,7 @@ func (wk *worker) limitFunc(env *otto.Otto, obj *otto.Object) func(otto.Function
 
 func (wk *worker) toArrayFunc(env *otto.Otto, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.ts)
+		it := buildIteratorTree(obj, wk.qs)
 		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) > 0 {
@@ -91,7 +91,7 @@ func (wk *worker) toArrayFunc(env *otto.Otto, obj *otto.Object, withTags bool) f
 
 func (wk *worker) toValueFunc(env *otto.Otto, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.ts)
+		it := buildIteratorTree(obj, wk.qs)
 		it.Tagger().Add(TopResultTag)
 		limit := 1
 		var val otto.Value
@@ -112,15 +112,14 @@ func (wk *worker) toValueFunc(env *otto.Otto, obj *otto.Object, withTags bool) f
 		if err != nil {
 			glog.Error(err)
 			return otto.NullValue()
-		} else {
-			return val
 		}
+		return val
 	}
 }
 
 func (wk *worker) mapFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.ts)
+		it := buildIteratorTree(obj, wk.qs)
 		it.Tagger().Add(TopResultTag)
 		limit := -1
 		if len(call.ArgumentList) == 0 {
@@ -139,7 +138,7 @@ func (wk *worker) mapFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCa
 func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]string {
 	outputMap := make(map[string]string)
 	for k, v := range m {
-		outputMap[k] = wk.ts.NameOf(v)
+		outputMap[k] = wk.qs.NameOf(v)
 	}
 	return outputMap
 }
@@ -196,7 +195,7 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []strin
 		if !graph.Next(it) {
 			break
 		}
-		output = append(output, wk.ts.NameOf(it.Result()))
+		output = append(output, wk.qs.NameOf(it.Result()))
 		n++
 		if limit >= 0 && n >= limit {
 			break
@@ -260,16 +259,15 @@ func (wk *worker) send(r *Result) bool {
 		wk.count++
 		if wk.limit >= 0 && wk.limit == wk.count {
 			return false
-		} else {
-			return true
 		}
+		return true
 	}
 	return false
 }
 
 func (wk *worker) runIterator(it graph.Iterator) {
 	if wk.wantShape() {
-		iterator.OutputQueryShapeForIterator(it, wk.ts, wk.shape)
+		iterator.OutputQueryShapeForIterator(it, wk.qs, wk.shape)
 		return
 	}
 	it, _ = it.Optimize()

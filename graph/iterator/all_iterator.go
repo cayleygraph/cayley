@@ -17,9 +17,9 @@ package iterator
 // Defines one of the base iterators, the All iterator. Which, logically
 // enough, represents all nodes or all links in the graph.
 //
-// This particular file is actually vestigial. It's up to the TripleStore to give
+// This particular file is actually vestigial. It's up to the QuadStore to give
 // us an All iterator that represents all things in the graph. So this is
-// really the All iterator for the MemTripleStore. That said, it *is* one of
+// really the All iterator for the memstore.QuadStore. That said, it *is* one of
 // the base iterators, and it helps just to see it here.
 
 import (

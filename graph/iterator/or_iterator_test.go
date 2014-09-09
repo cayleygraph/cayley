@@ -31,11 +31,11 @@ func iterated(it graph.Iterator) []int {
 
 func TestOrIteratorBasics(t *testing.T) {
 	or := NewOr()
-	f1 := newFixed()
+	f1 := NewFixed(Identity)
 	f1.Add(1)
 	f1.Add(2)
 	f1.Add(3)
-	f2 := newFixed()
+	f2 := NewFixed(Identity)
 	f2.Add(3)
 	f2.Add(9)
 	f2.Add(20)
@@ -77,11 +77,11 @@ func TestOrIteratorBasics(t *testing.T) {
 func TestShortCircuitingOrBasics(t *testing.T) {
 	var or *Or
 
-	f1 := newFixed()
+	f1 := NewFixed(Identity)
 	f1.Add(1)
 	f1.Add(2)
 	f1.Add(3)
-	f2 := newFixed()
+	f2 := NewFixed(Identity)
 	f2.Add(3)
 	f2.Add(9)
 	f2.Add(20)
@@ -133,7 +133,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 
 	// Check that it pulls the second iterator's numbers if the first is empty.
 	or = NewShortCircuitOr()
-	or.AddSubIterator(newFixed())
+	or.AddSubIterator(NewFixed(Identity))
 	or.AddSubIterator(f2)
 	expect = []int{3, 9, 20, 21}
 	for i := 0; i < 2; i++ {

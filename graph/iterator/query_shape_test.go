@@ -22,23 +22,23 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-func hasaWithTag(ts graph.TripleStore, tag string, target string) *HasA {
+func hasaWithTag(qs graph.QuadStore, tag string, target string) *HasA {
 	and := NewAnd()
 
-	obj := ts.FixedIterator()
-	obj.Add(ts.ValueOf(target))
+	obj := qs.FixedIterator()
+	obj.Add(qs.ValueOf(target))
 	obj.Tagger().Add(tag)
-	and.AddSubIterator(NewLinksTo(ts, obj, quad.Object))
+	and.AddSubIterator(NewLinksTo(qs, obj, quad.Object))
 
-	pred := ts.FixedIterator()
-	pred.Add(ts.ValueOf("status"))
-	and.AddSubIterator(NewLinksTo(ts, pred, quad.Predicate))
+	pred := qs.FixedIterator()
+	pred.Add(qs.ValueOf("status"))
+	and.AddSubIterator(NewLinksTo(qs, pred, quad.Predicate))
 
-	return NewHasA(ts, and, quad.Subject)
+	return NewHasA(qs, and, quad.Subject)
 }
 
 func TestQueryShape(t *testing.T) {
-	ts := &store{
+	qs := &store{
 		data: []string{
 			1: "cool",
 			2: "status",
@@ -48,11 +48,11 @@ func TestQueryShape(t *testing.T) {
 	}
 
 	// Given a single linkage iterator's shape.
-	hasa := hasaWithTag(ts, "tag", "cool")
+	hasa := hasaWithTag(qs, "tag", "cool")
 	hasa.Tagger().Add("top")
 
 	shape := make(map[string]interface{})
-	OutputQueryShapeForIterator(hasa, ts, shape)
+	OutputQueryShapeForIterator(hasa, qs, shape)
 
 	nodes := shape["nodes"].([]Node)
 	if len(nodes) != 3 {
@@ -77,14 +77,14 @@ func TestQueryShape(t *testing.T) {
 	// Link should be correctly typed.
 	nodes = shape["nodes"].([]Node)
 	link := shape["links"].([]Link)[0]
-	if link.Source != nodes[2].Id {
-		t.Errorf("Failed to get correct link source, got:%v expect:%v", link.Source, nodes[2].Id)
+	if link.Source != nodes[2].ID {
+		t.Errorf("Failed to get correct link source, got:%v expect:%v", link.Source, nodes[2].ID)
 	}
-	if link.Target != nodes[0].Id {
-		t.Errorf("Failed to get correct link target, got:%v expect:%v", link.Target, nodes[0].Id)
+	if link.Target != nodes[0].ID {
+		t.Errorf("Failed to get correct link target, got:%v expect:%v", link.Target, nodes[0].ID)
 	}
-	if link.LinkNode != nodes[1].Id {
-		t.Errorf("Failed to get correct link node, got:%v expect:%v", link.LinkNode, nodes[1].Id)
+	if link.LinkNode != nodes[1].ID {
+		t.Errorf("Failed to get correct link node, got:%v expect:%v", link.LinkNode, nodes[1].ID)
 	}
 	if link.Pred != 0 {
 		t.Errorf("Failed to get correct number of predecessors:%v expect:0", link.Pred)
@@ -93,23 +93,23 @@ func TestQueryShape(t *testing.T) {
 	// Given a name-of-an-and-iterator's shape.
 	andInternal := NewAnd()
 
-	hasa1 := hasaWithTag(ts, "tag1", "cool")
+	hasa1 := hasaWithTag(qs, "tag1", "cool")
 	hasa1.Tagger().Add("hasa1")
 	andInternal.AddSubIterator(hasa1)
 
-	hasa2 := hasaWithTag(ts, "tag2", "fun")
+	hasa2 := hasaWithTag(qs, "tag2", "fun")
 	hasa2.Tagger().Add("hasa2")
 	andInternal.AddSubIterator(hasa2)
 
-	pred := ts.FixedIterator()
-	pred.Add(ts.ValueOf("name"))
+	pred := qs.FixedIterator()
+	pred.Add(qs.ValueOf("name"))
 
 	and := NewAnd()
-	and.AddSubIterator(NewLinksTo(ts, andInternal, quad.Subject))
-	and.AddSubIterator(NewLinksTo(ts, pred, quad.Predicate))
+	and.AddSubIterator(NewLinksTo(qs, andInternal, quad.Subject))
+	and.AddSubIterator(NewLinksTo(qs, pred, quad.Predicate))
 
 	shape = make(map[string]interface{})
-	OutputQueryShapeForIterator(NewHasA(ts, and, quad.Object), ts, shape)
+	OutputQueryShapeForIterator(NewHasA(qs, and, quad.Object), qs, shape)
 
 	links = shape["links"].([]Link)
 	if len(links) != 3 {

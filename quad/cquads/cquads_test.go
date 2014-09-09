@@ -28,7 +28,7 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-var testNTriples = []struct {
+var testNQuads = []struct {
 	message string
 	input   string
 	expect  quad.Quad
@@ -596,7 +596,7 @@ var testNTriples = []struct {
 }
 
 func TestParse(t *testing.T) {
-	for _, test := range testNTriples {
+	for _, test := range testNQuads {
 		got, err := Parse(test.input)
 		_ = err
 		if err != test.err && (err != nil && err.Error() != test.err.Error()) {
@@ -641,20 +641,20 @@ func TestDecoder(t *testing.T) {
 	dec := NewDecoder(strings.NewReader(document))
 	var n int
 	for {
-		triple, err := dec.Unmarshal()
+		q, err := dec.Unmarshal()
 		if err != nil {
 			if err != io.EOF {
-				t.Fatalf("Failed to read document:", err)
+				t.Fatalf("Failed to read document: %v", err)
 			}
 			break
 		}
-		if triple.Subject == "" || triple.Predicate == "" || triple.Object == "" {
-			t.Errorf("Unexpected triple, got:%v", triple)
+		if q.Subject == "" || q.Predicate == "" || q.Object == "" {
+			t.Errorf("Unexpected quad, got:%v", q)
 		}
 		n++
 	}
 	if n != 20 {
-		t.Errorf("Unexpected number of triples read, got:%d expect:20", n)
+		t.Errorf("Unexpected number of quads read, got:%d expect:20", n)
 	}
 }
 

@@ -40,7 +40,7 @@ Predicates always assume a forward direction. That is,
 }]
 ```
 
-will only match if the triple
+will only match if the quad
 ```
 A some_predicate B .
 ```
@@ -54,7 +54,7 @@ exists. In order to reverse the directions, "!predicates" are used. So that:
 }]
 ```
 
-will only match if the triple
+will only match if the quad
 ```
 B some_predicate A .
 ```

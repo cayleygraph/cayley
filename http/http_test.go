@@ -56,13 +56,13 @@ var parseTests = []struct {
 			{"subject": "foo", "predicate": "bar"}
 		]`,
 		expect: nil,
-		err:    fmt.Errorf("Invalid triple at index %d. %v", 0, quad.Quad{"foo", "bar", "", ""}),
+		err:    fmt.Errorf("invalid quad at index %d. %v", 0, quad.Quad{"foo", "bar", "", ""}),
 	},
 }
 
 func TestParseJSON(t *testing.T) {
 	for _, test := range parseTests {
-		got, err := ParseJsonToTripleList([]byte(test.input))
+		got, err := ParseJSONToQuadList([]byte(test.input))
 		if fmt.Sprint(err) != fmt.Sprint(test.err) {
 			t.Errorf("Failed to %v with unexpected error, got:%v expected %v", test.message, err, test.err)
 		}

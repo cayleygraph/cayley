@@ -38,10 +38,10 @@ import (
 type Operator int
 
 const (
-	kCompareLT Operator = iota
-	kCompareLTE
-	kCompareGT
-	kCompareGTE
+	compareLT Operator = iota
+	compareLTE
+	compareGT
+	compareGTE
 	// Why no Equals? Because that's usually an AndIterator.
 )
 
@@ -51,17 +51,17 @@ type Comparison struct {
 	subIt  graph.Iterator
 	op     Operator
 	val    interface{}
-	ts     graph.TripleStore
+	qs     graph.QuadStore
 	result graph.Value
 }
 
-func NewComparison(sub graph.Iterator, op Operator, val interface{}, ts graph.TripleStore) *Comparison {
+func NewComparison(sub graph.Iterator, op Operator, val interface{}, qs graph.QuadStore) *Comparison {
 	return &Comparison{
 		uid:   NextUID(),
 		subIt: sub,
 		op:    op,
 		val:   val,
-		ts:    ts,
+		qs:    qs,
 	}
 }
 
@@ -73,7 +73,7 @@ func (it *Comparison) UID() uint64 {
 // and our operator, determine whether or not we meet the requirement.
 func (it *Comparison) doComparison(val graph.Value) bool {
 	//TODO(barakmich): Implement string comparison.
-	nodeStr := it.ts.NameOf(val)
+	nodeStr := it.qs.NameOf(val)
 	switch cVal := it.val.(type) {
 	case int:
 		cInt := int64(cVal)
@@ -99,13 +99,13 @@ func (it *Comparison) Close() {
 
 func RunIntOp(a int64, op Operator, b int64) bool {
 	switch op {
-	case kCompareLT:
+	case compareLT:
 		return a < b
-	case kCompareLTE:
+	case compareLTE:
 		return a <= b
-	case kCompareGT:
+	case compareGT:
 		return a > b
-	case kCompareGTE:
+	case compareGTE:
 		return a >= b
 	default:
 		log.Fatal("Unknown operator type")
@@ -122,7 +122,7 @@ func (it *Comparison) Tagger() *graph.Tagger {
 }
 
 func (it *Comparison) Clone() graph.Iterator {
-	out := NewComparison(it.subIt.Clone(), it.op, it.val, it.ts)
+	out := NewComparison(it.subIt.Clone(), it.op, it.val, it.qs)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -154,7 +154,7 @@ func (it *Comparison) NextPath() bool {
 			return false
 		}
 		if it.doComparison(it.subIt.Result()) {
-			return true
+			break
 		}
 	}
 	it.result = it.subIt.Result()
