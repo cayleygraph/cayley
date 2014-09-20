@@ -23,9 +23,6 @@ package iterator
 // the base iterators, and it helps just to see it here.
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/google/cayley/graph"
 )
 
@@ -81,9 +78,12 @@ func (it *Int64) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-// Prints the All iterator as just an "all".
-func (it *Int64) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s tags: %v)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags())
+func (it *Int64) Describe() graph.Description {
+	return graph.Description{
+		UID:  it.UID(),
+		Type: it.Type(),
+		Tags: it.tags.Tags(),
+	}
 }
 
 // Next() on an Int64 all iterator is a simple incrementing counter.

@@ -17,7 +17,6 @@ package bolt
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
@@ -179,9 +178,15 @@ func (it *AllIterator) Size() (int64, bool) {
 	return it.qs.size, true
 }
 
-func (it *AllIterator) DebugString(indent int) string {
+func (it *AllIterator) Describe() graph.Description {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s tags: %v bolt size:%d %s %p)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags(), size, it.dir, it)
+	return graph.Description{
+		UID:       it.UID(),
+		Type:      it.Type(),
+		Tags:      it.tags.Tags(),
+		Size:      size,
+		Direction: it.dir,
+	}
 }
 
 func (it *AllIterator) Type() graph.Type { return graph.All }

@@ -17,6 +17,7 @@ package sexp
 // Defines a running session of the sexp query language.
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -74,7 +75,12 @@ func (s *Session) ExecInput(input string, out chan interface{}, limit int) {
 	}
 
 	if s.debug {
-		fmt.Println(it.DebugString(0))
+		b, err := json.MarshalIndent(it.Describe(), "", "  ")
+		if err != nil {
+			fmt.Printf("failed to format description: %v", err)
+		} else {
+			fmt.Printf("%s", b)
+		}
 	}
 	nResults := 0
 	for graph.Next(it) {

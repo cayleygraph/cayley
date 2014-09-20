@@ -89,7 +89,7 @@ func TestTreeConstraintParse(t *testing.T) {
 		"($a (:is :good))))"
 	it := BuildIteratorTreeForQuery(qs, query)
 	if it.Type() != graph.And {
-		t.Errorf("Odd iterator tree. Got: %s", it.DebugString(0))
+		t.Errorf("Odd iterator tree. Got: %#v", it.Describe())
 	}
 	if !graph.Next(it) {
 		t.Error("Got no results")
@@ -137,7 +137,7 @@ func TestMultipleConstraintParse(t *testing.T) {
 	)`
 	it := BuildIteratorTreeForQuery(qs, query)
 	if it.Type() != graph.And {
-		t.Errorf("Odd iterator tree. Got: %s", it.DebugString(0))
+		t.Errorf("Odd iterator tree. Got: %#v", it.Describe())
 	}
 	if !graph.Next(it) {
 		t.Error("Got no results")

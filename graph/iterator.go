@@ -17,10 +17,12 @@ package graph
 // Define the general iterator interface.
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/barakmich/glog"
+	"github.com/google/cayley/quad"
 )
 
 type Tagger struct {
@@ -130,14 +132,25 @@ type Iterator interface {
 	// Return a slice of the subiterators for this iterator.
 	SubIterators() []Iterator
 
-	// Return a string representation of the iterator, indented by the given amount.
-	DebugString(int) string
+	// Return a string representation of the iterator.
+	Describe() Description
 
 	// Close the iterator and do internal cleanup.
 	Close()
 
 	// UID returns the unique identifier of the iterator.
 	UID() uint64
+}
+
+type Description struct {
+	UID       uint64         `json:",omitempty"`
+	Name      string         `json:",omitempty"`
+	Type      Type           `json:",omitempty"`
+	Tags      []string       `json:",omitempty"`
+	Size      int64          `json:",omitempty"`
+	Direction quad.Direction `json:",omitempty"`
+	Iterator  *Description   `json:",omitempty"`
+	Iterators []Description  `json:",omitempty"`
 }
 
 type Nexter interface {
@@ -255,17 +268,35 @@ func (t Type) String() string {
 	return types[t]
 }
 
+func (t *Type) MarshalText() (text []byte, err error) {
+	if *t < 0 || int(*t) >= len(types) {
+		return nil, fmt.Errorf("graph: illegal iterator type: %d", *t)
+	}
+	return []byte(types[*t]), nil
+}
+
+func (t *Type) UnmarshalText(text []byte) error {
+	s := string(text)
+	for i, c := range types[1:] {
+		if c == s {
+			*t = Type(i + 1)
+			return nil
+		}
+	}
+	return fmt.Errorf("graph: unknown iterator label: %q", text)
+}
+
 type StatsContainer struct {
+	UID  uint64
+	Type Type
 	IteratorStats
-	Kind   string
-	UID    uint64
 	SubIts []StatsContainer
 }
 
 func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
-	out.Kind = it.Type().String()
+	out.Type = it.Type()
 	out.UID = it.UID()
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))
