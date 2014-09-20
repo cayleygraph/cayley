@@ -105,7 +105,7 @@ func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, dire
 func (s *Single) RemoveNode(v graph.Value) error {
 	var deltas []graph.Delta
 	for _, d := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
-		s.addNodeDeleteToDeltas(deltas, v, d)
+		deltas = s.addNodeDeleteToDeltas(deltas, v, d)
 	}
 	return s.qs.ApplyDeltas(deltas)
 }
