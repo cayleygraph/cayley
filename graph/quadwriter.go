@@ -69,6 +69,10 @@ type QuadWriter interface {
 	// if it exists. Does nothing otherwise.
 	RemoveQuad(quad.Quad) error
 
+	// Removes all quads which have the given node as either the subject
+	// or object. Does nothing otherwise.
+	RemoveNode(Value) error
+
 	// Cleans up replication and closes the writing aspect of the database.
 	Close() error
 }

@@ -85,6 +85,38 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	return s.qs.ApplyDeltas(deltas)
 }
 
+func (s *Single) RemoveNode(n graph.Value) error {
+	var it graph.Iterator
+	deltas := make([]graph.Delta, 0, 100) //What is a good default size?
+	it = s.qs.QuadIterator(quad.Subject, n)
+	for i := 0; graph.Next(it); i += 1 {
+		if !graph.Next(it) {
+			break
+		}
+		q := s.qs.Quad(it.Result())
+		deltas = append(deltas, graph.Delta{
+			ID:        s.AcquireNextID(),
+			Quad:      q,
+			Action:    graph.Delete,
+			Timestamp: time.Now(),
+		})
+	}
+	it = s.qs.QuadIterator(quad.Object, n)
+	for i := 0; graph.Next(it); i += 1 {
+		if !graph.Next(it) {
+			break
+		}
+		q := s.qs.Quad(it.Result())
+		deltas = append(deltas, graph.Delta{
+			ID:        s.AcquireNextID(),
+			Quad:      q,
+			Action:    graph.Delete,
+			Timestamp: time.Now(),
+		})
+	}
+	return s.qs.ApplyDeltas(deltas)
+}
+
 func (s *Single) Close() error {
 	// Nothing to clean up locally.
 	return nil
