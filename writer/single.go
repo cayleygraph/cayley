@@ -85,14 +85,11 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	return s.qs.ApplyDeltas(deltas)
 }
 
-func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, direction quad.Direction) {
+func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, direction quad.Direction) []graph.Delta {
 	var it graph.Iterator
 	it = s.qs.QuadIterator(direction, v)
 	defer it.Close()
-	if !graph.Next(it) {
-		return
-	}
-	for i := 0; graph.Next(it); i += 1 {
+	for graph.Next(it) {
 		q := s.qs.Quad(it.Result())
 		deltas = append(deltas, graph.Delta{
 			ID:        s.AcquireNextID(),
@@ -101,14 +98,15 @@ func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, dire
 			Timestamp: time.Now(),
 		})
 	}
+	return deltas
 }
 
+// RemoveNode removes all quads with the given value
 func (s *Single) RemoveNode(v graph.Value) error {
 	var deltas []graph.Delta
-	s.addNodeDeleteToDeltas(deltas, v, quad.Object)
-	s.addNodeDeleteToDeltas(deltas, v, quad.Label)
-	s.addNodeDeleteToDeltas(deltas, v, quad.Predicate)
-	s.addNodeDeleteToDeltas(deltas, v, quad.Subject)
+	for _, d := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
+		s.addNodeDeleteToDeltas(deltas, v, d)
+	}
 	return s.qs.ApplyDeltas(deltas)
 }
 
