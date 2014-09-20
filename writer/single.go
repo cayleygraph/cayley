@@ -86,18 +86,7 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 }
 
 func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, direction quad.Direction) []graph.Delta {
-	var it graph.Iterator
-	it = s.qs.QuadIterator(direction, v)
-	defer it.Close()
-	for graph.Next(it) {
-		q := s.qs.Quad(it.Result())
-		deltas = append(deltas, graph.Delta{
-			ID:        s.AcquireNextID(),
-			Quad:      q,
-			Action:    graph.Delete,
-			Timestamp: time.Now(),
-		})
-	}
+
 	return deltas
 }
 
@@ -105,7 +94,16 @@ func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, dire
 func (s *Single) RemoveNode(v graph.Value) error {
 	var deltas []graph.Delta
 	for _, d := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
-		deltas = s.addNodeDeleteToDeltas(deltas, v, d)
+		it := s.qs.QuadIterator(d, v)
+		for graph.Next(it) {
+			deltas = append(deltas, graph.Delta{
+				ID:        s.AcquireNextID(),
+				Quad:      s.qs.Quad(it.Result()),
+				Action:    graph.Delete,
+				Timestamp: time.Now(),
+			})
+		}
+		it.Close()
 	}
 	return s.qs.ApplyDeltas(deltas)
 }
