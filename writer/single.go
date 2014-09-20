@@ -104,7 +104,7 @@ func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, dire
 }
 
 func (s *Single) RemoveNode(v graph.Value) error {
-	deltas := make([]graph.Delta, 0, 100) //What is a good default capacity?
+	var deltas []graph.Delta
 	s.addNodeDeleteToDeltas(deltas, v, quad.Object)
 	s.addNodeDeleteToDeltas(deltas, v, quad.Label)
 	s.addNodeDeleteToDeltas(deltas, v, quad.Predicate)

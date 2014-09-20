@@ -59,21 +59,20 @@ var (
 )
 
 type QuadWriter interface {
-	// Add a quad to the store.
+	// AddQuad adds a quad to the store.
 	AddQuad(quad.Quad) error
 
-	// Add a set of quads to the store, atomically if possible.
+	// AddQuadSet adds a set of quads to the store, atomically if possible.
 	AddQuadSet([]quad.Quad) error
 
-	// Removes a quad matching the given one  from the database,
+	// RemoveQuad removes a quad matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
 	RemoveQuad(quad.Quad) error
 
-	// Removes all quads which have the given node as either the subject
-	// or object. Does nothing otherwise.
+	// RemoveNode removes all quads which have the given node as subject, predicate, object, or label.
 	RemoveNode(Value) error
 
-	// Cleans up replication and closes the writing aspect of the database.
+	// Close cleans up replication and closes the writing aspect of the database.
 	Close() error
 }
 
