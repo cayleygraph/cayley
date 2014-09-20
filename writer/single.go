@@ -85,14 +85,14 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	return s.qs.ApplyDeltas(deltas)
 }
 
-func (s *Single) RemoveNode(n graph.Value) error {
+func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, direction quad.Direction) {
 	var it graph.Iterator
-	deltas := make([]graph.Delta, 0, 100) //What is a good default size?
-	it = s.qs.QuadIterator(quad.Subject, n)
+	it = s.qs.QuadIterator(direction, v)
+	defer it.Close()
+	if !graph.Next(it) {
+		return
+	}
 	for i := 0; graph.Next(it); i += 1 {
-		if !graph.Next(it) {
-			break
-		}
 		q := s.qs.Quad(it.Result())
 		deltas = append(deltas, graph.Delta{
 			ID:        s.AcquireNextID(),
@@ -101,19 +101,14 @@ func (s *Single) RemoveNode(n graph.Value) error {
 			Timestamp: time.Now(),
 		})
 	}
-	it = s.qs.QuadIterator(quad.Object, n)
-	for i := 0; graph.Next(it); i += 1 {
-		if !graph.Next(it) {
-			break
-		}
-		q := s.qs.Quad(it.Result())
-		deltas = append(deltas, graph.Delta{
-			ID:        s.AcquireNextID(),
-			Quad:      q,
-			Action:    graph.Delete,
-			Timestamp: time.Now(),
-		})
-	}
+}
+
+func (s *Single) RemoveNode(v graph.Value) error {
+	deltas := make([]graph.Delta, 0, 100) //What is a good default capacity?
+	s.addNodeDeleteToDeltas(deltas, v, quad.Object)
+	s.addNodeDeleteToDeltas(deltas, v, quad.Label)
+	s.addNodeDeleteToDeltas(deltas, v, quad.Predicate)
+	s.addNodeDeleteToDeltas(deltas, v, quad.Subject)
 	return s.qs.ApplyDeltas(deltas)
 }
 
