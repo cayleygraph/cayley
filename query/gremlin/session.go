@@ -210,17 +210,22 @@ func (s *Session) BuildJSON(result interface{}) {
 		if data.val == nil {
 			obj := make(map[string]string)
 			tags := data.actualResults
-			tagKeys := make([]string, len(tags))
-			i := 0
+			var tagKeys []string
 			for k := range tags {
-				tagKeys[i] = k
-				i++
+				tagKeys = append(tagKeys, k)
 			}
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
-				obj[k] = s.qs.NameOf(tags[k])
+				name := s.qs.NameOf(tags[k])
+				if name != "" {
+					obj[k] = name
+				} else {
+					delete(obj, k)
+				}
 			}
-			s.dataOutput = append(s.dataOutput, obj)
+			if len(obj) != 0 {
+				s.dataOutput = append(s.dataOutput, obj)
+			}
 		} else {
 			if data.val.IsObject() {
 				export, _ := data.val.Export()
