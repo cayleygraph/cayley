@@ -271,7 +271,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return false
 	}
 	offset := PositionOf(val, it.dir, it.qs)
-	if bytes.HasPrefix(val.key[offset:], it.checkID) {
+	if len(val.key) != 0 && bytes.HasPrefix(val.key[offset:], it.checkID) {
 		// You may ask, why don't we check to see if it's a valid (not deleted) quad
 		// again?
 		//
