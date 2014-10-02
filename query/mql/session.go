@@ -85,7 +85,12 @@ func (s *Session) ExecInput(input string, c chan interface{}, _ int) {
 	}
 	it, _ := s.currentQuery.it.Optimize()
 	if glog.V(2) {
-		glog.V(2).Infoln(it.DebugString(0))
+		b, err := json.MarshalIndent(it.Describe(), "", "  ")
+		if err != nil {
+			glog.Infof("failed to format description: %v", err)
+		} else {
+			glog.Infof("%s", b)
+		}
 	}
 	for graph.Next(it) {
 		tags := make(map[string]graph.Value)

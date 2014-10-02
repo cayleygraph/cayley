@@ -15,9 +15,7 @@
 package memstore
 
 import (
-	"fmt"
 	"math"
-	"strings"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
@@ -159,9 +157,15 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	return graph.ContainsLogOut(it, v, false)
 }
 
-func (it *Iterator) DebugString(indent int) string {
+func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
-	return fmt.Sprintf("%s(%s tags:%s size:%d %s)", strings.Repeat(" ", indent), it.Type(), it.tags.Tags(), size, it.data)
+	return graph.Description{
+		UID:  it.UID(),
+		Name: it.data,
+		Type: it.Type(),
+		Tags: it.tags.Tags(),
+		Size: size,
+	}
 }
 
 var memType graph.Type

@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
@@ -272,7 +271,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return false
 	}
 	offset := PositionOf(val, it.dir, it.qs)
-	if bytes.HasPrefix(val.key[offset:], it.checkID) {
+	if len(val.key) != 0 && bytes.HasPrefix(val.key[offset:], it.checkID) {
 		// You may ask, why don't we check to see if it's a valid (not deleted) quad
 		// again?
 		//
@@ -291,16 +290,15 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.size, true
 }
 
-func (it *Iterator) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s %d tags: %v dir: %s size:%d %s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		it.UID(),
-		it.tags.Tags(),
-		it.dir,
-		it.size,
-		it.qs.NameOf(&Token{it.bucket, it.checkID}),
-	)
+func (it *Iterator) Describe() graph.Description {
+	return graph.Description{
+		UID:       it.UID(),
+		Name:      it.qs.NameOf(&Token{it.bucket, it.checkID}),
+		Type:      it.Type(),
+		Tags:      it.tags.Tags(),
+		Size:      it.size,
+		Direction: it.dir,
+	}
 }
 
 func (it *Iterator) Type() graph.Type { return boltType }

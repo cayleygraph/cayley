@@ -17,9 +17,6 @@ package iterator
 // A simple iterator that, when first called Contains() or Next() upon, materializes the whole subiterator, stores it locally, and responds. Essentially a cache.
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
@@ -118,15 +115,15 @@ func (it *Materialize) Clone() graph.Iterator {
 	return out
 }
 
-// Print some information about the iterator.
-func (it *Materialize) DebugString(indent int) string {
-	return fmt.Sprintf("%s(%s tags: %s Size: %d\n%s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		it.tags.Tags(),
-		len(it.values),
-		it.subIt.DebugString(indent+4),
-	)
+func (it *Materialize) Describe() graph.Description {
+	primary := it.subIt.Describe()
+	return graph.Description{
+		UID:      it.UID(),
+		Type:     it.Type(),
+		Tags:     it.tags.Tags(),
+		Size:     int64(len(it.values)),
+		Iterator: &primary,
+	}
 }
 
 // Register this iterator as a Materialize iterator.

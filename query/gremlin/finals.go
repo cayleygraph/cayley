@@ -208,7 +208,14 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []strin
 func (wk *worker) runIteratorWithCallback(it graph.Iterator, callback otto.Value, this otto.FunctionCall, limit int) {
 	n := 0
 	it, _ = it.Optimize()
-	glog.V(2).Infoln(it.DebugString(0))
+	if glog.V(2) {
+		b, err := json.MarshalIndent(it.Describe(), "", "  ")
+		if err != nil {
+			glog.V(2).Infof("failed to format description: %v", err)
+		} else {
+			glog.V(2).Infof("%s", b)
+		}
+	}
 	for {
 		select {
 		case <-wk.kill:
@@ -271,7 +278,14 @@ func (wk *worker) runIterator(it graph.Iterator) {
 		return
 	}
 	it, _ = it.Optimize()
-	glog.V(2).Infoln(it.DebugString(0))
+	if glog.V(2) {
+		b, err := json.MarshalIndent(it.Describe(), "", "  ")
+		if err != nil {
+			glog.Infof("failed to format description: %v", err)
+		} else {
+			glog.Infof("%s", b)
+		}
+	}
 	for {
 		select {
 		case <-wk.kill:
