@@ -1,9 +1,6 @@
 package iterator
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/google/cayley/graph"
 )
 
@@ -74,28 +71,6 @@ func (it *Not) ResultTree() *graph.ResultTree {
 	tree.AddSubtree(it.primaryIt.ResultTree())
 	tree.AddSubtree(it.allIt.ResultTree())
 	return tree
-}
-
-// DebugString prints information about the iterator.
-func (it *Not) DebugString(indent int) string {
-	var tags string
-	for _, k := range it.tags.Tags() {
-		tags += fmt.Sprintf("%s;", k)
-	}
-
-	spaces := strings.Repeat(" ", indent+2)
-	return fmt.Sprintf("%s(%s %d\n%stags:%v\n%sprimary_it:\n%s\n%sall_it:\n%s\n%s)",
-		strings.Repeat(" ", indent),
-		it.Type(),
-		it.UID(),
-		spaces,
-		it.tags.Tags(),
-		spaces,
-		it.primaryIt.DebugString(indent+4),
-		spaces,
-		it.allIt.DebugString(indent+4),
-		strings.Repeat(" ", indent),
-	)
 }
 
 // Next advances the Not iterator. It returns whether there is another valid
@@ -171,4 +146,18 @@ func (it *Not) Stats() graph.IteratorStats {
 
 func (it *Not) Size() (int64, bool) {
 	return it.Stats().Size, false
+}
+
+func (it *Not) Describe() graph.Description {
+	subIts := []graph.Description{
+		it.primaryIt.Describe(),
+		it.allIt.Describe(),
+	}
+
+	return graph.Description{
+		UID:       it.UID(),
+		Type:      it.Type(),
+		Tags:      it.tags.Tags(),
+		Iterators: subIts,
+	}
 }
