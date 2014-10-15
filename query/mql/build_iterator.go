@@ -34,7 +34,6 @@ func (q *Query) buildFixed(s string) graph.Iterator {
 
 func (q *Query) buildResultIterator(path Path) graph.Iterator {
 	all := q.ses.qs.NodesAllIterator()
-	all.Tagger().Add(string(path))
 	return all
 }
 
@@ -110,9 +109,14 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 	outputStructure := make(map[string]interface{})
 	for key, subquery := range query {
 		optional := false
-		outputStructure[key] = nil
 		reverse := false
+		orEquals := false
 		pred := key
+		if strings.HasSuffix(pred, "|=") {
+			orEquals = true
+			pred = strings.TrimSuffix(pred, "|=")
+			key = pred
+		}
 		if strings.HasPrefix(pred, "@") {
 			i := strings.Index(pred, ":")
 			if i != -1 {
@@ -126,32 +130,18 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 
 		// Other special constructs here
 		var subit graph.Iterator
-		if key == "id" {
-			subit, optional, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
-			if err != nil {
-				return nil, err
+		if orEquals {
+			or := iterator.NewOr()
+			var orIt graph.Iterator
+			orArgs := subquery.([]interface {})
+			for _, orArg := range orArgs {
+				orIt, subit, optional, err = q.buildSubIteratorTree(key, pred, orArg, path, reverse)
+				or.AddSubIterator(orIt)
 			}
+			subit = or
 		} else {
-			var builtIt graph.Iterator
-			builtIt, optional, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
-			if err != nil {
-				return nil, err
-			}
-			subAnd := iterator.NewAnd()
-			predFixed := q.ses.qs.FixedIterator()
-			predFixed.Add(q.ses.qs.ValueOf(pred))
-			subAnd.AddSubIterator(iterator.NewLinksTo(q.ses.qs, predFixed, quad.Predicate))
-			if reverse {
-				lto := iterator.NewLinksTo(q.ses.qs, builtIt, quad.Subject)
-				subAnd.AddSubIterator(lto)
-				hasa := iterator.NewHasA(q.ses.qs, subAnd, quad.Object)
-				subit = hasa
-			} else {
-				lto := iterator.NewLinksTo(q.ses.qs, builtIt, quad.Object)
-				subAnd.AddSubIterator(lto)
-				hasa := iterator.NewHasA(q.ses.qs, subAnd, quad.Subject)
-				subit = hasa
-			}
+			outputStructure[key] = nil
+			_, subit, optional, err = q.buildSubIteratorTree(key, pred, subquery, path, reverse)
 		}
 		if optional {
 			it.AddSubIterator(iterator.NewOptional(subit))
@@ -164,6 +154,34 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 	}
 	q.queryStructure[path] = outputStructure
 	return it, nil
+}
+
+func (q *Query) buildSubIteratorTree(key string, pred string, query interface{}, path Path, reverse bool) (graph.Iterator, graph.Iterator, bool, error) {
+	var subit graph.Iterator
+	builtIt, optional, err := q.buildIteratorTreeInternal(query, path.Follow(key))
+	if err != nil {
+		return nil, nil, optional, err
+	}
+	if key == "id" {
+		return builtIt, builtIt, optional, err
+	}
+	subAnd := iterator.NewAnd()
+	predFixed := q.ses.qs.FixedIterator()
+	predFixed.Add(q.ses.qs.ValueOf(pred))
+	subAnd.AddSubIterator(iterator.NewLinksTo(q.ses.qs, predFixed, quad.Predicate))
+	if reverse {
+		lto := iterator.NewLinksTo(q.ses.qs, builtIt, quad.Subject)
+		subAnd.AddSubIterator(lto)
+		hasa := iterator.NewHasA(q.ses.qs, subAnd, quad.Object)
+		subit = hasa
+	} else {
+		lto := iterator.NewLinksTo(q.ses.qs, builtIt, quad.Object)
+		subAnd.AddSubIterator(lto)
+		hasa := iterator.NewHasA(q.ses.qs, subAnd, quad.Subject)
+		subit = hasa
+	}
+
+	return builtIt, subit, optional, err
 }
 
 type byRecordLength []ResultPath

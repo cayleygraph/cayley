@@ -165,6 +165,28 @@ var testQueries = []struct {
 			]
 		`,
 	},
+	{
+		message: "get correct or-equals id",
+		query:   `[{"id": null, "id|=": ["A", "B"]}]`,
+		expect: `
+			[
+				{"id": "A"},
+				{"id": "B"}
+			]
+		`,
+	},
+	{
+		message: "get correct or-equals object subquery",
+		query:   `[{"id": null, "id|=": [{ "follows": "F" }, { "status": "cool" }]}]`,
+		expect: `
+			[
+				{"id": "B"},
+				{"id": "E"},
+				{"id": "D"},
+				{"id": "G"}
+			]
+		`,
+	},
 }
 
 func runQuery(g []quad.Quad, query string) interface{} {
