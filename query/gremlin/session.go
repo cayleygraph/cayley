@@ -191,9 +191,17 @@ func (s *Session) ToText(result interface{}) string {
 	} else {
 		if data.val.IsObject() {
 			export, _ := data.val.Export()
-			mapExport := export.(map[string]string)
-			for k, v := range mapExport {
-				out += fmt.Sprintf("%s : %v\n", k, v)
+			switch export := export.(type) {
+			case map[string]string:
+				for k, v := range export {
+					out += fmt.Sprintf("%s : %s\n", k, v)
+				}
+			case map[string]interface{}:
+				for k, v := range export {
+					out += fmt.Sprintf("%s : %v\n", k, v)
+				}
+			default:
+				panic(fmt.Sprintf("unexpected type: %T", export))
 			}
 		} else {
 			strVersion, _ := data.val.ToString()

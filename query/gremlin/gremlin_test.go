@@ -280,3 +280,44 @@ func TestGremlin(t *testing.T) {
 		}
 	}
 }
+
+var issue160TestGraph = []quad.Quad{
+	{"alice", "follows", "bob", ""},
+	{"bob", "follows", "alice", ""},
+	{"charlie", "follows", "bob", ""},
+	{"dani", "follows", "charlie", ""},
+	{"dani", "follows", "alice", ""},
+	{"alice", "is", "cool", ""},
+	{"bob", "is", "not cool", ""},
+	{"charlie", "is", "cool", ""},
+	{"danie", "is", "not cool", ""},
+}
+
+func TestIssue160(t *testing.T) {
+	query := `g.V().Tag('query').Out('follows').Out('follows').ForEach(function (item) { if (item.id !== item.query) g.Emit({ id: item.id }); })`
+	expect := []string{
+		"****\nid : alice\n",
+		"****\nid : bob\n",
+		"****\nid : bob\n",
+		"=> <nil>\n",
+	}
+
+	ses := makeTestSession(issue160TestGraph)
+	c := make(chan interface{}, 5)
+	go ses.ExecInput(query, c, 100)
+	var got []string
+	for res := range c {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Unexpected panic: %v", r)
+				}
+			}()
+			got = append(got, ses.ToText(res))
+		}()
+	}
+	sort.Strings(got)
+	if !reflect.DeepEqual(got, expect) {
+		t.Errorf("Unexpected result, got: %q expected: %q", got, expect)
+	}
+}
