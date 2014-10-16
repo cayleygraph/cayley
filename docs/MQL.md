@@ -84,3 +84,30 @@ A some_predicate C .
 exist.
 
 This combines with the reversal rule to create paths like ``"@a:!some_predicate"``
+
+## Union Queries (aka or-equals)
+
+To query for predicates that match one of a number of constraints the suffix `"|="` can be used along with an array of subqueries.  Subqueries can be simple strings to match against specific values or they can also be objects that describe constraints to match against.
+
+```json
+[{
+  "id|=": ["A", "B"]
+}]
+```
+
+Will match *either* A or B.
+
+```json
+[{
+  "id|=": [
+    {
+      "follows": "F"
+    },
+    {
+      "status": "cool"
+    }
+  ]
+}]
+```
+
+Will match everyone who follows F or is cool.
