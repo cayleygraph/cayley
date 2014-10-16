@@ -187,6 +187,18 @@ var testQueries = []struct {
 			]
 		`,
 	},
+	{
+		message: "get correct or-equals reversal",
+		query:   `[{"id": null, "!follows|=": ["F", { "id": null, "status": "cool" }]}]`,
+		expect: `
+			[
+				{"id": "G"}
+				{"id": "D"},
+				{"id": "B"},
+				{"id": "F"}
+			]
+		`,
+	},
 }
 
 func runQuery(g []quad.Quad, query string) interface{} {
