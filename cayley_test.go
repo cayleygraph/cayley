@@ -392,6 +392,9 @@ func prepare(t testing.TB) {
 		}
 	case "mongo":
 		cfg.DatabasePath = "localhost:27017"
+		cfg.DatabaseOptions = map[string]interface{}{
+			"database_name": "cayley_test", // provide a default test database
+		}
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
 	}
