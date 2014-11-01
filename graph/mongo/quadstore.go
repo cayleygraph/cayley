@@ -300,8 +300,9 @@ func (qs *QuadStore) NameOf(v graph.Value) string {
 	err := qs.db.C("nodes").FindId(v.(string)).One(&node)
 	if err != nil {
 		glog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
+	} else if node.ID != "" && node.Name != "" {
+		qs.ids.Put(v.(string), node.Name)
 	}
-	qs.ids.Put(v.(string), node.Name)
 	return node.Name
 }
 

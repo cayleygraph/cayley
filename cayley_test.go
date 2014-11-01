@@ -381,6 +381,11 @@ var (
 )
 
 func prepare(t testing.TB) {
+	// check for CAYLEY_TEST_BACKEND env var
+	envBackend := os.Getenv("CAYLEY_TEST_BACKEND")
+	if envBackend != "" {
+		*backend = envBackend
+	}
 	cfg.DatabaseType = *backend
 	switch *backend {
 	case "memstore":
@@ -392,6 +397,9 @@ func prepare(t testing.TB) {
 		}
 	case "mongo":
 		cfg.DatabasePath = "localhost:27017"
+		cfg.DatabaseOptions = map[string]interface{}{
+			"database_name": "cayley_test", // provide a default test database
+		}
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
 	}
