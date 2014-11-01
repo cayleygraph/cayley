@@ -381,6 +381,11 @@ var (
 )
 
 func prepare(t testing.TB) {
+	// check for CAYLEY_TEST_BACKEND env var
+	envBackend := os.Getenv("CAYLEY_TEST_BACKEND")
+	if envBackend != "" {
+		*backend = envBackend
+	}
 	cfg.DatabaseType = *backend
 	switch *backend {
 	case "memstore":
