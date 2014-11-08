@@ -85,11 +85,6 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	return s.qs.ApplyDeltas(deltas)
 }
 
-func (s *Single) addNodeDeleteToDeltas(deltas []graph.Delta, v graph.Value, direction quad.Direction) []graph.Delta {
-
-	return deltas
-}
-
 // RemoveNode removes all quads with the given value
 func (s *Single) RemoveNode(v graph.Value) error {
 	var deltas []graph.Delta
