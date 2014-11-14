@@ -5,16 +5,7 @@ Cayley is an open-source graph inspired by the graph database behind [Freebase](
 
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
-[![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley)
-
-## What's new?
-* 2014-08-06:
-  * 0.3.1 Binary Release including:
-    * New Quad Parser (more strictly passing the [W3C spec](http://www.w3.org/TR/n-quads) and test suite)
-    * Automatic decompression of quad files
-  * Ruby and a Node.JS [client libraries](https://github.com/google/cayley/wiki/Client-APIs) from the community.
-  * Benchmarks
-  * [Large speedups on HEAD](https://github.com/google/cayley/pull/101) (in for the next binary release)
+[![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley) [Trello Board](https://trello.com/b/KioFZb5O)
 
 ## Features
 
