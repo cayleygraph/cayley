@@ -95,6 +95,10 @@ type QuadStore interface {
 	//  qs.ValueOf(qs.Quad(id).Get(dir))
 	//
 	QuadDirection(id Value, d quad.Direction) Value
+
+	// Get the type of QuadStore
+	//TODO replace this using reflection
+	GetType() string
 }
 
 type Options map[string]interface{}
@@ -146,23 +150,26 @@ type BulkLoader interface {
 
 type NewStoreFunc func(string, Options) (QuadStore, error)
 type InitStoreFunc func(string, Options) error
+type NewStoreForRequestFunc func(QuadStore, Options) (QuadStore, error)
 
 type register struct {
-	newFunc      NewStoreFunc
-	initFunc     InitStoreFunc
-	isPersistent bool
+	newFunc           NewStoreFunc
+	newForRequestFunc NewStoreForRequestFunc
+	initFunc          InitStoreFunc
+	isPersistent      bool
 }
 
 var storeRegistry = make(map[string]register)
 
-func RegisterQuadStore(name string, persists bool, newFunc NewStoreFunc, initFunc InitStoreFunc) {
+func RegisterQuadStore(name string, persists bool, newFunc NewStoreFunc, initFunc InitStoreFunc, newForRequestFunc NewStoreForRequestFunc) {
 	if _, found := storeRegistry[name]; found {
 		panic("already registered QuadStore " + name)
 	}
 	storeRegistry[name] = register{
-		newFunc:      newFunc,
-		initFunc:     initFunc,
-		isPersistent: persists,
+		newFunc:           newFunc,
+		initFunc:          initFunc,
+		newForRequestFunc: newForRequestFunc,
+		isPersistent:      persists,
 	}
 }
 
@@ -180,6 +187,14 @@ func InitQuadStore(name, dbpath string, opts Options) error {
 		return r.initFunc(dbpath, opts)
 	}
 	return errors.New("quadstore: name '" + name + "' is not registered")
+}
+
+func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
+	r, registered := storeRegistry[qs.GetType()]
+	if registered {
+		return r.newForRequestFunc(qs, opts)
+	}
+	return nil, errors.New("QuadStore does not support Per Request construction, check config")
 }
 
 func IsPersistent(name string) bool {

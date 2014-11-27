@@ -26,6 +26,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/google/cayley/config"
+	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 )
 
@@ -53,6 +54,10 @@ func findAssetsPath() string {
 
 	if hasAssets(".") {
 		return "."
+	}
+
+	if hasAssets("..") {
+		return ".."
 	}
 
 	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/google/cayley")
@@ -103,6 +108,25 @@ func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 type API struct {
 	config *config.Config
 	handle *graph.Handle
+}
+
+func (api *API) GetHandleForRequest(r *http.Request) (*graph.Handle, error) {
+	if !api.config.RequiresHTTPRequestContext {
+		return api.handle, nil
+	}
+
+	opts := make(graph.Options)
+	opts["HTTPRequest"] = r
+
+	qs, err := graph.NewQuadStoreForRequest(api.handle.QuadStore, opts)
+	if err != nil {
+		return nil, err
+	}
+	qw, err := db.OpenQuadWriter(qs, api.config)
+	if err != nil {
+		return nil, err
+	}
+	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
 }
 
 func (api *API) APIv1(r *httprouter.Router) {

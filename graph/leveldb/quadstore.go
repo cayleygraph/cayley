@@ -35,12 +35,13 @@ import (
 )
 
 func init() {
-	graph.RegisterQuadStore("leveldb", true, newQuadStore, createNewLevelDB)
+	graph.RegisterQuadStore(QuadStoreType, true, newQuadStore, createNewLevelDB, nil)
 }
 
 const (
 	DefaultCacheSize       = 2
 	DefaultWriteBufferSize = 20
+	QuadStoreType          = "leveldb"
 )
 
 var (
@@ -494,4 +495,8 @@ func compareBytes(a, b graph.Value) bool {
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(compareBytes)
+}
+
+func (qs *QuadStore) GetType() string {
+	return QuadStoreType
 }

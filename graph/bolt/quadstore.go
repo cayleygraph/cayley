@@ -33,7 +33,7 @@ import (
 )
 
 func init() {
-	graph.RegisterQuadStore("bolt", true, newQuadStore, createNewBolt)
+	graph.RegisterQuadStore("bolt", true, newQuadStore, createNewBolt, nil)
 }
 
 var (
@@ -42,6 +42,10 @@ var (
 	}
 	hashSize         = sha1.Size
 	localFillPercent = 0.7
+)
+
+const (
+	QuadStoreType = "bolt"
 )
 
 type Token struct {
@@ -514,4 +518,8 @@ func compareTokens(a, b graph.Value) bool {
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(compareTokens)
+}
+
+func (qs *QuadStore) GetType() string {
+	return QuadStoreType
 }

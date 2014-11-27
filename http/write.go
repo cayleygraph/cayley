@@ -55,7 +55,12 @@ func (api *API) ServeV1Write(w http.ResponseWriter, r *http.Request, _ httproute
 	if err != nil {
 		return jsonResponse(w, 400, err)
 	}
-	api.handle.QuadWriter.AddQuadSet(quads)
+	h, err := api.GetHandleForRequest(r)
+	if err != nil {
+		return jsonResponse(w, 400, err)
+	}
+
+	h.QuadWriter.AddQuadSet(quads)
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d quads.\"}", len(quads))
 	return 200
 }
@@ -81,9 +86,13 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 	// TODO(kortschak) Make this configurable from the web UI.
 	dec := cquads.NewDecoder(formFile)
 
-	var (
-		n int
+	h, err := api.GetHandleForRequest(r)
+	if err != nil {
+		return jsonResponse(w, 400, err)
+	}
 
+	var (
+		n     int
 		block = make([]quad.Quad, 0, blockSize)
 	)
 	for {
@@ -97,11 +106,11 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		block = append(block, t)
 		n++
 		if len(block) == cap(block) {
-			api.handle.QuadWriter.AddQuadSet(block)
+			h.QuadWriter.AddQuadSet(block)
 			block = block[:0]
 		}
 	}
-	api.handle.QuadWriter.AddQuadSet(block)
+	h.QuadWriter.AddQuadSet(block)
 
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d quads.\"}", n)
 
@@ -120,9 +129,13 @@ func (api *API) ServeV1Delete(w http.ResponseWriter, r *http.Request, params htt
 	if err != nil {
 		return jsonResponse(w, 400, err)
 	}
+	h, err := api.GetHandleForRequest(r)
+	if err != nil {
+		return jsonResponse(w, 400, err)
+	}
 	count := 0
 	for _, q := range quads {
-		api.handle.QuadWriter.RemoveQuad(q)
+		h.QuadWriter.RemoveQuad(q)
 		count++
 	}
 	fmt.Fprintf(w, "{\"result\": \"Successfully deleted %d quads.\"}", count)
