@@ -18,20 +18,90 @@ package main
 
 import (
 	"github.com/barakmich/glog"
+	"os"
+	"time"
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
 
-	_ "github.com/google/cayley/graph/memstore"
+	_ "github.com/google/cayley/graph/gaedatastore"
+	_ "github.com/google/cayley/writer"
 )
+
+var (
+	quadFile           = ""
+	quadType           = "cquad"
+	cpuprofile         = ""
+	queryLanguage      = "gremlin"
+	configFile         = ""
+	databasePath       = ""
+	databaseBackend    = "gaedatastore"
+	replicationBackend = "single"
+	host               = "127.0.0.1"
+	loadSize           = 100
+	port               = "64210"
+	readOnly           = false
+	timeout            = 30 * time.Second
+)
+
+func configFrom(file string) *config.Config {
+	// Find the file...
+	if file != "" {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			glog.Fatalln("Cannot find specified configuration file", file, ", aborting.")
+		}
+	} else if _, err := os.Stat("/cayley_appengine.cfg"); err == nil {
+		file = "/cayley_appengine.cfg"
+	}
+	if file == "" {
+		glog.Infoln("Couldn't find a config file appengine.cfg. Going by flag defaults only.")
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		glog.Fatalln(err)
+	}
+
+	if cfg.DatabasePath == "" {
+		cfg.DatabasePath = databasePath
+	}
+
+	if cfg.DatabaseType == "" {
+		cfg.DatabaseType = databaseBackend
+	}
+
+	if cfg.ReplicationType == "" {
+		cfg.ReplicationType = replicationBackend
+	}
+
+	if cfg.ListenHost == "" {
+		cfg.ListenHost = host
+	}
+
+	if cfg.ListenPort == "" {
+		cfg.ListenPort = port
+	}
+
+	if cfg.Timeout == 0 {
+		cfg.Timeout = timeout
+	}
+
+	if cfg.LoadSize == 0 {
+		cfg.LoadSize = loadSize
+	}
+
+	cfg.ReadOnly = cfg.ReadOnly || readOnly
+
+	return cfg
+}
 
 func init() {
 	glog.SetToStderr(true)
-	cfg, _ := config.Load("cayley_appengine.cfg")
-	qs, _ := graph.NewQuadStore("memstore", "", nil)
-	glog.Errorln(cfg)
-	db.Load(qs, cfg, cfg.DatabasePath)
-	http.SetupRoutes(qs, cfg)
+	cfg := configFrom("cayley_appengine.cfg")
+	handle, err := db.Open(cfg)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	http.SetupRoutes(&handle, cfg)
 }
