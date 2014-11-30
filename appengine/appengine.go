@@ -23,7 +23,6 @@ import (
 
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
-	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
 
 	_ "github.com/google/cayley/graph/gaedatastore"
@@ -103,5 +102,5 @@ func init() {
 	if err != nil {
 		glog.Fatal(err)
 	}
-	http.SetupRoutes(&handle, cfg)
+	http.SetupRoutes(handle, cfg)
 }

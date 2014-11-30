@@ -194,6 +194,9 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
 			toKeep = append(toKeep, d)
 		}
 	}
+	if len(toKeep) == 0 {
+		return nil
+	}
 	err := qs.updateLog(toKeep)
 	if err != nil {
 		glog.Errorf("Updating log failed %v", err)
@@ -480,7 +483,7 @@ func (qs *QuadStore) NodeSize() int64 {
 
 func (qs *QuadStore) Horizon() int64 {
 	if qs.context == nil {
-		glog.Warning("Error fetching horizon, context is nil, graph not correctly initialised")
+		glog.Warning("Warning: HTTP Request context is nil, cannot get horizon from datastore.")
 		return 0
 	}
 	// Query log for last entry...
