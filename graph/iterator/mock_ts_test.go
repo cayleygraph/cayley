@@ -16,6 +16,7 @@ package iterator
 
 import (
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -56,7 +57,7 @@ func (qs *store) NameOf(v graph.Value) string {
 
 func (qs *store) Size() int64 { return 0 }
 
-func (qs *store) Horizon() int64 { return 0 }
+func (qs *store) Horizon() graph.PrimaryKey { return keys.NewSequentialKey(0) }
 
 func (qs *store) DebugPrint() {}
 

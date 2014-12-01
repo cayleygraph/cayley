@@ -26,6 +26,7 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -200,7 +201,7 @@ func (qs *QuadStore) updateLog(d graph.Delta) error {
 		action = "Delete"
 	}
 	entry := MongoLogEntry{
-		LogID:     d.ID,
+		LogID:     d.ID.Int(),
 		Action:    action,
 		Key:       qs.getIDForQuad(d.Quad),
 		Timestamp: d.Timestamp.UnixNano(),
@@ -239,7 +240,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
 		}
 	}
 	for _, d := range in {
-		err := qs.updateQuad(d.Quad, d.ID, d.Action)
+		err := qs.updateQuad(d.Quad, d.ID.Int(), d.Action)
 		if err != nil {
 			return err
 		}
@@ -315,16 +316,16 @@ func (qs *QuadStore) Size() int64 {
 	return int64(count)
 }
 
-func (qs *QuadStore) Horizon() int64 {
+func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	var log MongoLogEntry
 	err := qs.db.C("log").Find(nil).Sort("-LogID").One(&log)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return 0
+			return keys.NewSequentialKey(0)
 		}
 		glog.Errorf("Could not get Horizon from Mongo: %v", err)
 	}
-	return log.LogID
+	return keys.NewSequentialKey(log.LogID)
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {

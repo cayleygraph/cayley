@@ -32,6 +32,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -135,8 +136,8 @@ func (qs *QuadStore) Size() int64 {
 	return qs.size
 }
 
-func (qs *QuadStore) Horizon() int64 {
-	return qs.horizon
+func (qs *QuadStore) Horizon() graph.PrimaryKey {
+	return keys.NewSequentialKey(qs.horizon)
 }
 
 func hashOf(s string) []byte {
@@ -190,7 +191,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 			return err
 		}
 		batch.Put(keyFor(d), bytes)
-		err = qs.buildQuadWrite(batch, d.Quad, d.ID, d.Action == graph.Add)
+		err = qs.buildQuadWrite(batch, d.Quad, d.ID.Int(), d.Action == graph.Add)
 		if err != nil {
 			return err
 		}
@@ -205,7 +206,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 			resizeMap[d.Quad.Label] += delta
 		}
 		sizeChange += delta
-		qs.horizon = d.ID
+		qs.horizon = d.ID.Int()
 	}
 	for k, v := range resizeMap {
 		if v != 0 {
@@ -227,7 +228,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 func keyFor(d graph.Delta) []byte {
 	key := make([]byte, 0, 19)
 	key = append(key, 'd')
-	key = append(key, []byte(fmt.Sprintf("%018x", d.ID))...)
+	key = append(key, []byte(fmt.Sprintf("%018x", d.ID.Int()))...)
 	return key
 }
 

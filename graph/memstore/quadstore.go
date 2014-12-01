@@ -16,12 +16,14 @@ package memstore
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/graph/memstore/b"
+	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -65,7 +67,10 @@ func (qdi QuadDirectionIndex) Get(d quad.Direction, id int64) (*b.Tree, bool) {
 }
 
 type LogEntry struct {
-	graph.Delta
+	ID        int64
+	Quad      quad.Quad
+	Action    graph.Procedure
+	Timestamp time.Time
 	DeletedBy int64
 }
 
@@ -149,7 +154,11 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 		return graph.ErrQuadExists
 	}
 	qid := qs.nextQuadID
-	qs.log = append(qs.log, LogEntry{Delta: d})
+	qs.log = append(qs.log, LogEntry{
+		ID:        d.ID.Int(),
+		Quad:      d.Quad,
+		Action:    d.Action,
+		Timestamp: d.Timestamp})
 	qs.size++
 	qs.nextQuadID++
 
@@ -185,7 +194,11 @@ func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 	}
 
 	quadID := qs.nextQuadID
-	qs.log = append(qs.log, LogEntry{Delta: d})
+	qs.log = append(qs.log, LogEntry{
+		ID:        d.ID.Int(),
+		Quad:      d.Quad,
+		Action:    d.Action,
+		Timestamp: d.Timestamp})
 	qs.log[prevQuadID].DeletedBy = quadID
 	qs.size--
 	qs.nextQuadID++
@@ -205,8 +218,8 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 	return &iterator.Null{}
 }
 
-func (qs *QuadStore) Horizon() int64 {
-	return qs.log[len(qs.log)-1].ID
+func (qs *QuadStore) Horizon() graph.PrimaryKey {
+	return keys.NewSequentialKey(qs.log[len(qs.log)-1].ID)
 }
 
 func (qs *QuadStore) Size() int64 {
