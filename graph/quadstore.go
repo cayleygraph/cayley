@@ -98,7 +98,7 @@ type QuadStore interface {
 
 	// Get the type of QuadStore
 	//TODO replace this using reflection
-	GetType() string
+	Type() string
 }
 
 type Options map[string]interface{}
@@ -190,7 +190,7 @@ func InitQuadStore(name, dbpath string, opts Options) error {
 }
 
 func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
-	r, registered := storeRegistry[qs.GetType()]
+	r, registered := storeRegistry[qs.Type()]
 	if registered {
 		return r.newForRequestFunc(qs, opts)
 	}

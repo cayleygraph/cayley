@@ -548,6 +548,6 @@ func (qs *QuadStore) hashOf(s string, hasher hash.Hash) string {
 	return hex.EncodeToString(key)
 }
 
-func (qs *QuadStore) GetType() string {
+func (qs *QuadStore) Type() string {
 	return QuadStoreType
 }

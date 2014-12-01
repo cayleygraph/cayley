@@ -273,6 +273,6 @@ func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 
 func (qs *QuadStore) Close() {}
 
-func (qs *QuadStore) GetType() string {
+func (qs *QuadStore) Type() string {
 	return QuadStoreType
 }

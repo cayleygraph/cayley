@@ -73,3 +73,5 @@ func (qs *store) Close() {}
 func (qs *store) QuadDirection(graph.Value, quad.Direction) graph.Value { return 0 }
 
 func (qs *store) RemoveQuad(t quad.Quad) {}
+
+func (qs *store) Type() string { return "mockstore" }
