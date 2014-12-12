@@ -26,7 +26,6 @@ import (
 
 	"github.com/barakmich/glog"
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/cache"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
@@ -94,7 +93,7 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 		cacheSize = val
 	}
 	qs.dbOpts = &opt.Options{
-		BlockCache: cache.NewLRUCache(cacheSize * opt.MiB),
+		BlockCacheCapacity: cacheSize * opt.MiB,
 	}
 	qs.dbOpts.ErrorIfMissing = true
 
