@@ -190,7 +190,10 @@ func (it *Iterator) Clone() graph.Iterator {
 		m.tags.CopyFrom(it)
 		return m
 	}
-	m := NewIterator(it.qs, it.kind, it.dir, it.hash)
+
+	// Create a token, the tokens kind is ignored in creation of the iterator
+	t := &Token{nodeKind, it.hash}
+	m := NewIterator(it.qs, it.kind, it.dir, t)
 	m.tags.CopyFrom(it)
 	return m
 }

@@ -254,6 +254,16 @@ func TestIterators(t *testing.T) {
 	if !it.Contains(token) {
 		t.Error("Contains failed")
 	}
+
+	// Test cloning an iterator
+	var it2 graph.Iterator
+	it2 = it.Clone()
+	x := it2.Describe()
+	y := it.Describe()
+
+	if x.Name != y.Name {
+		t.Errorf("Iterator Clone was not successful got: %v, expected: %v", x.Name, y.Name)
+	}
 }
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
