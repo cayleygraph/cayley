@@ -10,7 +10,7 @@ go:
 install:
   - go get github.com/badgerodon/peg
   - go get github.com/barakmich/glog
-  - git clone https://github.com/cznic/mathutil -b go1.4 $HOME/gopath/src/github.com/cznic/mathutil
+  - go get github.com/cznic/mathutil
   - go get github.com/julienschmidt/httprouter
   - go get github.com/petar/GoLLRB/llrb
   - go get github.com/peterh/liner
