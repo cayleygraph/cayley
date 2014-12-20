@@ -66,12 +66,13 @@ func GetQueryShape(q string, ses query.HTTP) ([]byte, error) {
 
 // TODO(barakmich): Turn this into proper middleware.
 func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+	h, err := api.GetHandleForRequest(r)
 	var ses query.HTTP
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.handle.QuadStore, api.config.Timeout, false)
+		ses = gremlin.NewSession(h.QuadStore, api.config.Timeout, false)
 	case "mql":
-		ses = mql.NewSession(api.handle.QuadStore)
+		ses = mql.NewSession(h.QuadStore)
 	default:
 		return jsonResponse(w, 400, "Need a query language.")
 	}
@@ -111,12 +112,13 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 }
 
 func (api *API) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+	h, err := api.GetHandleForRequest(r)
 	var ses query.HTTP
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(api.handle.QuadStore, api.config.Timeout, false)
+		ses = gremlin.NewSession(h.QuadStore, api.config.Timeout, false)
 	case "mql":
-		ses = mql.NewSession(api.handle.QuadStore)
+		ses = mql.NewSession(h.QuadStore)
 	default:
 		return jsonResponse(w, 400, "Need a query language.")
 	}
