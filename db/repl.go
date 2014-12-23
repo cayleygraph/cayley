@@ -124,7 +124,7 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 				fmt.Println("Debug Toggled")
 				continue
 
-			case strings.HasPrefix(line, ":a"):
+			case strings.HasPrefix(line, ":a "):
 				quad, err := cquads.Parse(line[3:])
 				if !quad.IsValid() {
 					if err != nil {
@@ -135,7 +135,7 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 				h.QuadWriter.AddQuad(quad)
 				continue
 
-			case strings.HasPrefix(line, ":d"):
+			case strings.HasPrefix(line, ":d "):
 				quad, err := cquads.Parse(line[3:])
 				if !quad.IsValid() {
 					if err != nil {
