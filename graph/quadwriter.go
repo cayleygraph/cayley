@@ -37,7 +37,7 @@ const (
 )
 
 type Delta struct {
-	ID        int64
+	ID        PrimaryKey
 	Quad      quad.Quad
 	Action    Procedure
 	Timestamp time.Time

@@ -15,7 +15,6 @@
 package writer
 
 import (
-	"sync"
 	"time"
 
 	"github.com/google/cayley/graph"
@@ -27,32 +26,18 @@ func init() {
 }
 
 type Single struct {
-	nextID int64
-	qs     graph.QuadStore
-	mut    sync.Mutex
+	currentID graph.PrimaryKey
+	qs        graph.QuadStore
 }
 
 func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
-	horizon := qs.Horizon()
-	rep := &Single{nextID: horizon + 1, qs: qs}
-	if horizon <= 0 {
-		rep.nextID = 1
-	}
-	return rep, nil
-}
-
-func (s *Single) AcquireNextID() int64 {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-	id := s.nextID
-	s.nextID++
-	return id
+	return &Single{currentID: qs.Horizon(), qs: qs}, nil
 }
 
 func (s *Single) AddQuad(q quad.Quad) error {
 	deltas := make([]graph.Delta, 1)
 	deltas[0] = graph.Delta{
-		ID:        s.AcquireNextID(),
+		ID:        s.currentID.Next(),
 		Quad:      q,
 		Action:    graph.Add,
 		Timestamp: time.Now(),
@@ -64,7 +49,7 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 	deltas := make([]graph.Delta, len(set))
 	for i, q := range set {
 		deltas[i] = graph.Delta{
-			ID:        s.AcquireNextID(),
+			ID:        s.currentID.Next(),
 			Quad:      q,
 			Action:    graph.Add,
 			Timestamp: time.Now(),
@@ -77,7 +62,7 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 func (s *Single) RemoveQuad(q quad.Quad) error {
 	deltas := make([]graph.Delta, 1)
 	deltas[0] = graph.Delta{
-		ID:        s.AcquireNextID(),
+		ID:        s.currentID.Next(),
 		Quad:      q,
 		Action:    graph.Delete,
 		Timestamp: time.Now(),

@@ -168,12 +168,22 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Could not convert from generic to LevelDB QuadStore")
 	}
 
+	//Test horizon
+	horizon := qs.Horizon()
+	if horizon.Int() != 1 {
+		t.Errorf("Unexpected horizon value, got:%d expect:1", horizon.Int())
+	}
+
 	w.AddQuadSet(makeQuadSet())
 	if s := qs.Size(); s != 11 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:11", s)
 	}
 	if s := ts2.SizeOf(qs.ValueOf("B")); s != 5 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
+	}
+	horizon = qs.Horizon()
+	if horizon.Int() != 12 {
+		t.Errorf("Unexpected horizon value, got:%d expect:12", horizon.Int())
 	}
 
 	w.RemoveQuad(quad.Quad{
