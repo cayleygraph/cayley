@@ -118,29 +118,28 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 		}
 
 		if code == "" {
-			switch {
-			case strings.HasPrefix(line, ":debug"):
+			command, arguments := splitLine(line)
+
+			switch command {
+			case ":debug":
 				ses.ToggleDebug()
 				fmt.Println("Debug Toggled")
 				continue
 
-			case strings.HasPrefix(line, ":a "):
-				quad, err := cquads.Parse(line[3:])
-				if !quad.IsValid() {
-					if err != nil {
-						fmt.Printf("not a valid quad: %v\n", err)
-					}
+			case ":a":
+				quad, err := cquads.Parse(arguments)
+				if err != nil {
+					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue
 				}
+
 				h.QuadWriter.AddQuad(quad)
 				continue
 
-			case strings.HasPrefix(line, ":d "):
-				quad, err := cquads.Parse(line[3:])
-				if !quad.IsValid() {
-					if err != nil {
-						fmt.Printf("not a valid quad: %v\n", err)
-					}
+			case ":d":
+				quad, err := cquads.Parse(arguments)
+				if err != nil {
+					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue
 				}
 				h.QuadWriter.RemoveQuad(quad)
@@ -161,6 +160,26 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 		case query.ParseMore:
 		}
 	}
+}
+
+// Splits a line into a command and its arguments
+// e.g. ":a b c d ." will be split into ":a" and " b c d ."
+func splitLine(line string) (string, string) {
+	var command, arguments string
+
+	line = strings.TrimSpace(line)
+
+	// An empty line/a line consisting of whitespace contains neither command nor arguments
+	if len(line) > 0 {
+		command = strings.Fields(line)[0]
+
+		// A line containing only a command has no arguments
+		if len(line) > len(command) {
+			arguments = line[len(command):]
+		}
+	}
+
+	return command, arguments
 }
 
 func terminal(path string) (*liner.State, error) {
