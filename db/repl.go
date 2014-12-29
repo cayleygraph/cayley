@@ -118,16 +118,16 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 		}
 
 		if code == "" {
-			command, arguments := splitLine(line)
+			cmd, args := splitLine(line)
 
-			switch command {
+			switch cmd {
 			case ":debug":
 				ses.ToggleDebug()
 				fmt.Println("Debug Toggled")
 				continue
 
 			case ":a":
-				quad, err := cquads.Parse(arguments)
+				quad, err := cquads.Parse(args)
 				if err != nil {
 					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue
@@ -137,7 +137,7 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 				continue
 
 			case ":d":
-				quad, err := cquads.Parse(arguments)
+				quad, err := cquads.Parse(args)
 				if err != nil {
 					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue
@@ -146,8 +146,8 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 				continue
 
 			default:
-				if command[0] == ':' {
-					fmt.Printf("Unknown command: %q\n", command)
+				if cmd[0] == ':' {
+					fmt.Printf("Unknown command: %q\n", cmd)
 					continue
 				}
 			}
