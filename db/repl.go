@@ -144,6 +144,12 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 				}
 				h.QuadWriter.RemoveQuad(quad)
 				continue
+
+			default:
+				if command[0] == ':' {
+					fmt.Printf("Unknown command: %q\n", command)
+					continue
+				}
 			}
 		}
 
