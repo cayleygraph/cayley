@@ -31,7 +31,7 @@ const quadsStart int = 1
 const quadsFirstFinal int = 178
 const quadsError int = 0
 
-const quads_en_statement int = 1
+const quadsEnStatement int = 1
 
 
 // line 34 "parse.rl"
