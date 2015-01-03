@@ -27,11 +27,11 @@ import (
 
 
 // line 30 "parse.go"
-const quads_start int = 1
-const quads_first_final int = 88
-const quads_error int = 0
+const quadsStart int = 1
+const quadsFirstFinal int = 88
+const quadsError int = 0
 
-const quads_en_statement int = 1
+const quadsEnStatement int = 1
 
 
 // line 34 "parse.rl"
@@ -61,7 +61,7 @@ func Parse(statement string) (quad.Quad, error) {
 	
 // line 63 "parse.go"
 	{
-	cs = quads_start
+	cs = quadsStart
 	}
 
 // line 58 "parse.rl"
