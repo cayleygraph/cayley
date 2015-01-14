@@ -14,7 +14,7 @@ Arguments:
 
   * `nodeId` (Optional): A string or list of strings representing the starting vertices.
 
-Returns: Query object
+Returns: Path object
 
 Starts a query path at the given vertex/verticies. No ids means "all vertices".
 
