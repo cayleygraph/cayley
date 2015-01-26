@@ -454,7 +454,10 @@ func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error
 			}
 			return err
 		}
-		qw.RemoveQuad(t)
+		err = qw.RemoveQuad(t)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
