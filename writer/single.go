@@ -55,8 +55,7 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 			Timestamp: time.Now(),
 		}
 	}
-	s.qs.ApplyDeltas(deltas)
-	return nil
+	return s.qs.ApplyDeltas(deltas)
 }
 
 func (s *Single) RemoveQuad(q quad.Quad) error {
