@@ -28,12 +28,12 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-type Procedure byte
+type Procedure int8
 
 // The different types of actions a transaction can do.
 const (
-	Add Procedure = iota
-	Delete
+	Add    Procedure = +1
+	Delete Procedure = -1
 )
 
 type Delta struct {

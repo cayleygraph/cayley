@@ -17,6 +17,7 @@ package mongo
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"hash"
 	"sync"
 
@@ -218,6 +219,9 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
 	for _, d := range in {
+		if d.Action != graph.Add && d.Action != graph.Delete {
+			return errors.New("mongo: invalid action")
+		}
 		key := qs.getIDForQuad(d.Quad)
 		switch d.Action {
 		case graph.Add:

@@ -15,6 +15,7 @@
 package memstore
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -102,10 +103,13 @@ func newQuadStore() *QuadStore {
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 	for _, d := range deltas {
 		var err error
-		if d.Action == graph.Add {
+		switch d.Action {
+		case graph.Add:
 			err = qs.AddDelta(d)
-		} else {
+		case graph.Delete:
 			err = qs.RemoveDelta(d)
+		default:
+			err = errors.New("memstore: invalid action")
 		}
 		if err != nil {
 			return err
