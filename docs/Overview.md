@@ -50,6 +50,18 @@ Now it's loaded. We can use Cayley now to connect to the graph. As you might hav
 
 Where you'll be given a `cayley>` prompt. It's expecting Gremlin/JS, but that can also be configured with a flag.
 
+New nodes and links can be added with the following command:
+
+```bash
+cayley> :a object predicate subject label .
+```
+
+Removing links works similarly:
+
+```bash
+cayley> :d object predicate subject .
+```
+
 This is great for testing, and ultimately also for scripting, but the real workhorse is the next step.
 
 ### Serve Your Graph
