@@ -150,7 +150,7 @@ func hashOf(s string) []byte {
 }
 
 func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
-	key := make([]byte, 0, 2+(hashSize*3))
+	key := make([]byte, 0, 2+(hashSize*4))
 	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
 	key = append(key, hashOf(q.Get(d[0]))...)
