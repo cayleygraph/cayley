@@ -305,6 +305,10 @@ func decompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 		return fmt.Errorf("unknown quad format %q", typ)
 	}
 
+	if loadFn != nil {
+		return loadFn(qw, cfg, dec)
+	}
+
 	return db.Load(qw, cfg, dec)
 }
 

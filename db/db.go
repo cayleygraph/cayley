@@ -82,15 +82,21 @@ func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
 		block = append(block, t)
 		if len(block) == cap(block) {
 			count += len(block)
-			qw.AddQuadSet(block)
+			err := qw.AddQuadSet(block)
+			if err != nil {
+				return fmt.Errorf("db: failed to load data: %v", err)
+			}
+			block = block[:0]
 			if glog.V(2) {
 				glog.V(2).Infof("Wrote %d quads.", count)
 			}
-			block = block[:0]
 		}
 	}
 	count += len(block)
-	qw.AddQuadSet(block)
+	err := qw.AddQuadSet(block)
+	if err != nil {
+		return fmt.Errorf("db: failed to load data: %v", err)
+	}
 	if glog.V(2) {
 		glog.V(2).Infof("Wrote %d quads.", count)
 	}
