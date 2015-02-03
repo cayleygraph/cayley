@@ -19,6 +19,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash"
 	"sync"
@@ -192,6 +193,9 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 		resizeMap := make(map[string]int64)
 		sizeChange := int64(0)
 		for _, d := range deltas {
+			if d.Action != graph.Add && d.Action != graph.Delete {
+				return errors.New("bolt: invalid action")
+			}
 			bytes, err := json.Marshal(d)
 			if err != nil {
 				return err
