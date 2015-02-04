@@ -12,7 +12,7 @@ If you prefer to build from source, see the documentation on the wiki at [How to
 
 Now that Cayley is built, let's create our database. `init` is the subcommand to set up a database and the right indices.
 
-You can set up a full [configuration file](/docs/Configuration) if you'd prefer, but it will also work from the command line.
+You can set up a full [configuration file](/docs/Configuration.md) if you'd prefer, but it will also work from the command line.
 
 Examples for each backend:
 
