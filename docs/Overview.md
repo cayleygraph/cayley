@@ -12,7 +12,7 @@ If you prefer to build from source, see the documentation on the wiki at [How to
 
 Now that Cayley is built, let's create our database. `init` is the subcommand to set up a database and the right indices.
 
-You can set up a full [configuration file](/docs/Configuration) if you'd prefer, but it will also work from the command line.
+You can set up a full [configuration file](/docs/Configuration.md) if you'd prefer, but it will also work from the command line.
 
 Examples for each backend:
 
@@ -29,13 +29,13 @@ You can repeat the `--db` and `--dbpath` flags from here forward instead of the 
 First we load the data.
 
 ```bash
-./cayley load --config=cayley.cfg.overview --quads=30kmoviedata.nq.gz
+./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nq.gz
 ```
 
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load --config=cayley.cfg.overview --quads=30kmoviedata.nq.gz --alsologtostderr
+./cayley load --config=cayley.cfg.overview --triples=30kmoviedata.nq.gz --alsologtostderr
 ```
 
 And watch the log output go by.
