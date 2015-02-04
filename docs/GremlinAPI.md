@@ -45,7 +45,7 @@ Adds data programatically to the JSON result list. Can be any JSON type.
 
 ## Path objects
 
-Both `.Morphism()` and `.Vertex()` create path objects, which provide the following traversal methods.
+Both `.Morphism()` and `.Vertex()` create path objects, which provide the following traversal methods. Note that `.Vertex()` returns a query object, which is a subclass of path object.
 
 For these examples, suppose we have the following graph:
 ```
