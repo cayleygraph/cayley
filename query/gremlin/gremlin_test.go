@@ -120,6 +120,20 @@ var testQueries = []struct {
 		tag:    "acd",
 		expect: []string{"D"},
 	},
+	{
+		message: "use Except to filter out a single vertex",
+		query: `
+			g.V("A", "B").Except(g.V("A")).All()
+		`,
+		expect: []string{"B"},
+	},
+	{
+		message: "use chained Except",
+		query: `
+			g.V("A", "B", "C").Except(g.V("B")).Except(g.V("C")).All()
+		`,
+		expect: []string{"A"},
+	},
 
 	// Morphism tests.
 	{

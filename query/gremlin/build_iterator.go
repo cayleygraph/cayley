@@ -298,6 +298,21 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		it = buildIteratorTreeHelper(arg.Object(), qs, subIt)
 	case "in":
 		it = buildInOutIterator(obj, qs, subIt, true)
+	case "except":
+		arg, _ := obj.Get("_gremlin_values")
+		firstArg, _ := arg.Object().Get("0")
+		if !isVertexChain(firstArg.Object()) {
+			return iterator.NewNull()
+		}
+
+		allIt := qs.NodesAllIterator()
+		toComplementIt := buildIteratorTree(firstArg.Object(), qs)
+		notIt := iterator.NewNot(toComplementIt, allIt)
+
+		and := iterator.NewAnd()
+		and.AddSubIterator(subIt)
+		and.AddSubIterator(notIt)
+		it = and
 	}
 	return it
 }
