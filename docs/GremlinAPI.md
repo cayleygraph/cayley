@@ -289,6 +289,27 @@ var dFollows = g.V("D").Out("follows")
 // People followed by both C (B and D) and D (B and G) -- returns B (from C), B (from D), D and G.
 cFollows.Union(dFollows)
 ```
+####**`path.Except(query)`**
+
+Alias: `path.Difference`
+
+Arguments:
+
+  * `query`: Another query path, the result sets of which will be intersected and negated
+
+Removes all paths which match `query` from `path`.
+
+In a set-theoretic sense, this is (A - B). While `g.V().Except(path)` to achieve `U - B = !B` is supported, it's often very slow.
+
+Example:
+```javascript
+var cFollows = g.V("C").Out("follows")
+var dFollows = g.V("D").Out("follows")
+// People followed by both C (B and D) and D (B and G) -- returns B.
+cFollows.Except(dFollows)   // The set (D) -- what C follows that D does not also follow.
+// Equivalently, g.V("C").Out("follows").Except(g.V("D").Out("follows"))
+```
+
 
 ### Using Morphisms
 
