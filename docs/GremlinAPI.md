@@ -45,7 +45,7 @@ Adds data programatically to the JSON result list. Can be any JSON type.
 
 ## Path objects
 
-Both `.Morphism()` and `.Vertex()` create path objects, which provide the following traversal methods.
+Both `.Morphism()` and `.Vertex()` create path objects, which provide the following traversal methods. Note that `.Vertex()` returns a query object, which is a subclass of path object.
 
 For these examples, suppose we have the following graph:
 ```
@@ -362,10 +362,10 @@ Returns: Array
 
 Executes a query and returns the results at the end of the query path.
 Example:
-``javascript
+```javascript
 // fooNames contains an Array of names for foo.
 var fooNames = g.V("foo").Out("name").ToArray()
-``
+```
 
 ####**`query.ToValue()`**
 
@@ -383,12 +383,12 @@ Returns: Array of string-to-string objects
 
 As `.ToArray` above, but instead of a list of top-level strings, returns an Array of tag-to-string dictionaries, much as `.All` would, except inside the Javascript environment.
 Example:
-``javascript
+```javascript
 // fooNames contains an Array of names for foo.
 var fooTags = g.V("foo").Tag("foo_value").Out("name").ToArray()
 // fooValue should be the string "foo"
 var fooValue = fooTags[0]["foo_value"]
-``
+```
 
 ####**`query.TagValue()`**
 
