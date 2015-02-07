@@ -155,7 +155,11 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 
 func (qs *QuadStore) AddDelta(d graph.Delta) error {
 	if _, exists := qs.indexOf(d.Quad); exists {
-		return graph.ErrQuadExists
+		if *graph.NoErrorDup {
+			return nil
+		}else{
+			return graph.ErrQuadExists
+		}
 	}
 	qid := qs.nextQuadID
 	qs.log = append(qs.log, LogEntry{
@@ -194,7 +198,11 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 	prevQuadID, exists := qs.indexOf(d.Quad)
 	if !exists {
-		return graph.ErrQuadNotExist
+		if *graph.NoErrorDel {
+			return nil
+		}else{
+			return graph.ErrQuadNotExist
+		}
 	}
 
 	quadID := qs.nextQuadID

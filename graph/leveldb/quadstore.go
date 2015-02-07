@@ -49,6 +49,7 @@ var (
 		New: func() interface{} { return sha1.New() },
 	}
 	hashSize = sha1.Size
+
 )
 
 type Token []byte
@@ -195,6 +196,12 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 		batch.Put(keyFor(d), bytes)
 		err = qs.buildQuadWrite(batch, d.Quad, d.ID.Int(), d.Action == graph.Add)
 		if err != nil {
+			if err == graph.ErrQuadExists && *graph.NoErrorDup{
+				continue
+			}
+			if err == graph.ErrQuadNotExist && *graph.NoErrorDel{
+				continue
+			}
 			return err
 		}
 		delta := int64(1)
@@ -243,6 +250,7 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 	}
 	if err == nil {
 		// We got something.
+		fmt.Printf("Got something")
 		err = json.Unmarshal(data, &entry)
 		if err != nil {
 			return err
@@ -250,12 +258,17 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 	} else {
 		entry.Quad = q
 	}
-	entry.History = append(entry.History, id)
 
-	if isAdd && len(entry.History)%2 == 0 {
-		glog.Error("Entry History is out of sync for", entry)
-		return errors.New("odd index history")
+	if isAdd && len(entry.History)%2 == 1 {
+		glog.Errorf("attempt to add existing quad %v: %#v", entry, q)
+		return graph.ErrQuadExists
 	}
+	if !isAdd && len(entry.History)%2 == 0 {
+		glog.Error("attempt to delete non-existent quad %v: %#c", entry, q)
+		return graph.ErrQuadNotExist
+	}
+
+	entry.History = append(entry.History, id)
 
 	bytes, err := json.Marshal(entry)
 	if err != nil {

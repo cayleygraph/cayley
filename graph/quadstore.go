@@ -23,6 +23,7 @@ package graph
 
 import (
 	"errors"
+	"flag"
 
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/quad"
@@ -193,3 +194,8 @@ func QuadStores() []string {
 	}
 	return t
 }
+
+var (
+	NoErrorDup = flag.Bool("noerrdup", false, "Don't stop loading on duplicated key on add")
+	NoErrorDel = flag.Bool("noerrdel", false, "Don't stop loading on missing key on delete")
+)

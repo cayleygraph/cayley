@@ -226,11 +226,19 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
 		switch d.Action {
 		case graph.Add:
 			if qs.checkValid(key) {
-				return graph.ErrQuadExists
+				if *graph.NoErrorDup {
+					continue
+				}else{
+					return graph.ErrQuadExists
+				}
 			}
 		case graph.Delete:
 			if !qs.checkValid(key) {
-				return graph.ErrQuadNotExist
+				if *graph.NoErrorDel {
+					continue
+				}else{
+					return graph.ErrQuadNotExist
+				}
 			}
 		}
 	}
