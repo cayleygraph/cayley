@@ -250,7 +250,6 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 	}
 	if err == nil {
 		// We got something.
-		fmt.Printf("Got something")
 		err = json.Unmarshal(data, &entry)
 		if err != nil {
 			return err
