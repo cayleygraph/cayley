@@ -26,6 +26,20 @@ import (
 	_ "github.com/google/cayley/writer"
 )
 
+// This is a simple test graph.
+//
+//    +---+                        +---+
+//    | A |-------               ->| F |<--
+//    +---+       \------>+---+-/  +---+   \--+---+
+//                 ------>|#B#|      |        | E |
+//    +---+-------/      >+---+      |        +---+
+//    | C |             /            v
+//    +---+           -/           +---+
+//      ----    +---+/             |#G#|
+//          \-->|#D#|------------->+---+
+//              +---+
+//
+
 var simpleGraph = []quad.Quad{
 	{"A", "follows", "B", ""},
 	{"C", "follows", "B", ""},
@@ -62,10 +76,28 @@ func runTopLevel(path *Path) []string {
 	return out
 }
 
+func runTag(path *Path, tag string) []string {
+	var out []string
+	it := path.BuildIterator()
+	it, _ = it.Optimize()
+	for graph.Next(it) {
+		tags := make(map[string]graph.Value)
+		it.TagResults(tags)
+		out = append(out, path.qs.NameOf(tags[tag]))
+		for it.NextPath() {
+			tags := make(map[string]graph.Value)
+			it.TagResults(tags)
+			out = append(out, path.qs.NameOf(tags[tag]))
+		}
+	}
+	return out
+}
+
 type test struct {
 	message string
 	path    *Path
 	expect  []string
+	tag     string
 }
 
 func testSet(qs graph.QuadStore) []test {
@@ -86,10 +118,37 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []string{"F", "cool"},
 		},
 		{
-			message: "in",
+			message: "use And",
 			path: StartPath(qs, "D").Out("follows").And(
 				StartPath(qs, "C").Out("follows")),
 			expect: []string{"B"},
+		},
+		{
+			message: "use Or",
+			path: StartPath(qs, "F").Out("follows").Or(
+				StartPath(qs, "A").Out("follows")),
+			expect: []string{"B", "G"},
+		},
+		{
+			message: "implicit All",
+			path:    StartPath(qs),
+			expect:  []string{"A", "B", "C", "D", "E", "F", "G", "follows", "status", "cool", "status_graph", "predicates", "are"},
+		},
+		{
+			message: "follow",
+			path:    StartPath(qs, "C").Follow(StartPath(qs).Out("follows").Out("follows")),
+			expect:  []string{"B", "F", "G"},
+		},
+		{
+			message: "followR",
+			path:    StartPath(qs, "F").FollowReverse(StartPath(qs).Out("follows").Out("follows")),
+			expect:  []string{"A", "C", "D"},
+		},
+		{
+			message: "is, tag, instead of FollowR",
+			path:    StartPath(qs).Tag("first").Follow(StartPath(qs).Out("follows").Out("follows")).Is("F"),
+			expect:  []string{"A", "C", "D"},
+			tag:     "first",
 		},
 	}
 }
@@ -97,7 +156,12 @@ func testSet(qs graph.QuadStore) []test {
 func TestMorphisms(t *testing.T) {
 	qs := makeTestStore(simpleGraph)
 	for _, test := range testSet(qs) {
-		got := runTopLevel(test.path)
+		var got []string
+		if test.tag == "" {
+			got = runTopLevel(test.path)
+		} else {
+			got = runTag(test.path, test.tag)
+		}
 		sort.Strings(got)
 		sort.Strings(test.expect)
 		if !reflect.DeepEqual(got, test.expect) {

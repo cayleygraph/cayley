@@ -32,6 +32,9 @@ type Path struct {
 }
 
 func StartPath(qs graph.QuadStore, nodes ...string) *Path {
+	if len(nodes) == 0 {
+		return PathFromIterator(qs, qs.NodesAllIterator())
+	}
 	return &Path{
 		stack: []morphism{
 			isMorphism(qs, nodes...),
@@ -43,7 +46,7 @@ func StartPath(qs graph.QuadStore, nodes ...string) *Path {
 func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 	return &Path{
 		stack: []morphism{
-			intersectIteratorMorphism(it),
+			iteratorMorphism(it),
 		},
 		qs: qs,
 	}
@@ -61,6 +64,11 @@ func (p *Path) Reverse() *Path {
 		newPath.stack = append(newPath.stack, p.stack[i].Reversal())
 	}
 	return newPath
+}
+
+func (p *Path) Is(nodes ...string) *Path {
+	p.stack = append(p.stack, isMorphism(p.qs, nodes...))
+	return p
 }
 
 func (p *Path) Tag(tags ...string) *Path {
@@ -84,6 +92,16 @@ func (p *Path) And(path *Path) *Path {
 
 func (p *Path) Or(path *Path) *Path {
 	p.stack = append(p.stack, orMorphism(path))
+	return p
+}
+
+func (p *Path) Follow(path *Path) *Path {
+	p.stack = append(p.stack, followMorphism(path))
+	return p
+}
+
+func (p *Path) FollowReverse(path *Path) *Path {
+	p.stack = append(p.stack, followMorphism(path.Reverse()))
 	return p
 }
 
@@ -149,10 +167,10 @@ func inMorphism(qs graph.QuadStore, via ...interface{}) morphism {
 	}
 }
 
-func intersectIteratorMorphism(it graph.Iterator) morphism {
+func iteratorMorphism(it graph.Iterator) morphism {
 	return morphism{
 		"iterator",
-		func() morphism { return intersectIteratorMorphism(it) },
+		func() morphism { return iteratorMorphism(it) },
 		func(subIt graph.Iterator) graph.Iterator {
 			and := iterator.NewAnd()
 			and.AddSubIterator(it)
@@ -186,6 +204,17 @@ func orMorphism(path *Path) morphism {
 			and.AddSubIterator(it)
 			and.AddSubIterator(subIt)
 			return and
+		},
+	}
+}
+
+func followMorphism(path *Path) morphism {
+	return morphism{
+		"follow",
+		func() morphism { return followMorphism(path.Reverse()) },
+		func(base graph.Iterator) graph.Iterator {
+			p := path.MorphismFunc()
+			return p(base)
 		},
 	}
 }
