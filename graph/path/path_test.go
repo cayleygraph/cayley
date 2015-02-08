@@ -136,19 +136,29 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "follow",
-			path:    StartPath(qs, "C").Follow(StartPath(qs).Out("follows").Out("follows")),
+			path:    StartPath(qs, "C").Follow(StartMorphism().Out("follows").Out("follows")),
 			expect:  []string{"B", "F", "G"},
 		},
 		{
 			message: "followR",
-			path:    StartPath(qs, "F").FollowReverse(StartPath(qs).Out("follows").Out("follows")),
+			path:    StartPath(qs, "F").FollowReverse(StartMorphism().Out("follows").Out("follows")),
 			expect:  []string{"A", "C", "D"},
 		},
 		{
 			message: "is, tag, instead of FollowR",
-			path:    StartPath(qs).Tag("first").Follow(StartPath(qs).Out("follows").Out("follows")).Is("F"),
+			path:    StartPath(qs).Tag("first").Follow(StartMorphism().Out("follows").Out("follows")).Is("F"),
 			expect:  []string{"A", "C", "D"},
 			tag:     "first",
+		},
+		{
+			message: "use Except to filter out a single vertex",
+			path:    StartPath(qs, "A", "B").Except(StartPath(qs, "A")),
+			expect:  []string{"B"},
+		},
+		{
+			message: "use chained Except",
+			path:    StartPath(qs, "A", "B", "C").Except(StartPath(qs, "B")).Except(StartPath(qs, "A")),
+			expect:  []string{"C"},
 		},
 	}
 }

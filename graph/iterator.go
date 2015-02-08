@@ -166,7 +166,7 @@ type Description struct {
 }
 
 // A curried function that can generates a new iterator based on some prior iterator.
-type MorphismFunc func(Iterator) Iterator
+type ApplyMorphismFunc func(QuadStore, Iterator) Iterator
 
 type Nexter interface {
 	// Next advances the iterator to the next value, which will then be available through
