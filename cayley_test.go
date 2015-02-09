@@ -127,6 +127,41 @@ var benchmarkQueries = []struct {
 		},
 	},
 
+	// Exercises Not().Contains(), as above.
+	{
+		message: "the helpless checker, negated (films without Ingrid Bergman)",
+		long:    true,
+		query: `
+			g.V().As("person").In("name").In().In().Out("name").Except(g.V("Ingrid Bergman").In("name").In().In().Out("name")).Is("Casablanca").All()
+			`,
+		tag:    "person",
+		expect: [][]interface{}{},
+	},
+	{
+		message: "the helpless checker, negated (without actors Ingrid Bergman)",
+		long:    true,
+		query: `
+			g.V().As("person").In("name").Except(g.V("Ingrid Bergman").In("name")).In().In().Out("name").Is("Casablanca").All()
+			`,
+		tag: "person",
+		expect: [][]interface{}{
+			{map[string]string{"id": "Casablanca", "person": "Madeleine LeBeau"}},
+			{map[string]string{"id": "Casablanca", "person": "Joy Page"}},
+			{map[string]string{"id": "Casablanca", "person": "Claude Rains"}},
+			{map[string]string{"id": "Casablanca", "person": "S.Z. Sakall"}},
+			{map[string]string{"id": "Casablanca", "person": "Helmut Dantine"}},
+			{map[string]string{"id": "Casablanca", "person": "Conrad Veidt"}},
+			{map[string]string{"id": "Casablanca", "person": "Paul Henreid"}},
+			{map[string]string{"id": "Casablanca", "person": "Peter Lorre"}},
+			{map[string]string{"id": "Casablanca", "person": "Sydney Greenstreet"}},
+			{map[string]string{"id": "Casablanca", "person": "Leonid Kinskey"}},
+			{map[string]string{"id": "Casablanca", "person": "Lou Marcelle"}},
+			{map[string]string{"id": "Casablanca", "person": "Dooley Wilson"}},
+			{map[string]string{"id": "Casablanca", "person": "John Qualen"}},
+			{map[string]string{"id": "Casablanca", "person": "Humphrey Bogart"}},
+		},
+	},
+
 	//Q: Who starred in both "The Net" and "Speed" ?
 	//A: "Sandra Bullock"
 	{
@@ -585,24 +620,32 @@ func BenchmarkHelplessContainsChecker(b *testing.B) {
 	runBench(3, b)
 }
 
-func BenchmarkNetAndSpeed(b *testing.B) {
+func BenchmarkHelplessNotContainsFilms(b *testing.B) {
 	runBench(4, b)
 }
 
-func BenchmarkKeanuAndNet(b *testing.B) {
+func BenchmarkHelplessNotContainsActors(b *testing.B) {
 	runBench(5, b)
 }
 
-func BenchmarkKeanuAndSpeed(b *testing.B) {
+func BenchmarkNetAndSpeed(b *testing.B) {
 	runBench(6, b)
 }
 
-func BenchmarkKeanuOther(b *testing.B) {
+func BenchmarkKeanuAndNet(b *testing.B) {
 	runBench(7, b)
 }
 
-func BenchmarkKeanuBullockOther(b *testing.B) {
+func BenchmarkKeanuAndSpeed(b *testing.B) {
 	runBench(8, b)
+}
+
+func BenchmarkKeanuOther(b *testing.B) {
+	runBench(9, b)
+}
+
+func BenchmarkKeanuBullockOther(b *testing.B) {
+	runBench(10, b)
 }
 
 // reader is a test helper to filter non-io.Reader methods from the contained io.Reader.
