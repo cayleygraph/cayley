@@ -49,21 +49,19 @@ func WrapResult(result interface{}) ([]byte, error) {
 
 func Run(q string, ses query.HTTP) (interface{}, error) {
 	c := make(chan interface{}, 5)
-	go ses.ExecInput(q, c, 100)
+	go ses.Execute(q, c, 100)
 	for res := range c {
-		ses.BuildJSON(res)
+		ses.Collate(res)
 	}
-	return ses.GetJSON()
+	return ses.Results()
 }
 
 func GetQueryShape(q string, ses query.HTTP) ([]byte, error) {
-	c := make(chan map[string]interface{}, 5)
-	go ses.GetQuery(q, c)
-	var data map[string]interface{}
-	for res := range c {
-		data = res
+	s, err := ses.ShapeOf(q)
+	if err != nil {
+		return nil, err
 	}
-	return json.Marshal(data)
+	return json.Marshal(s)
 }
 
 // TODO(barakmich): Turn this into proper middleware.
@@ -82,7 +80,7 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		return jsonResponse(w, 400, err)
 	}
 	code := string(bodyBytes)
-	result, err := ses.InputParses(code)
+	result, err := ses.Parse(code)
 	switch result {
 	case query.Parsed:
 		var output interface{}
@@ -127,7 +125,7 @@ func (api *API) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 		return jsonResponse(w, 400, err)
 	}
 	code := string(bodyBytes)
-	result, err := ses.InputParses(code)
+	result, err := ses.Parse(code)
 	switch result {
 	case query.Parsed:
 		var output []byte

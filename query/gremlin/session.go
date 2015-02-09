@@ -65,19 +65,21 @@ type Result struct {
 	actualResults map[string]graph.Value
 }
 
-func (s *Session) ToggleDebug() {
-	s.debug = !s.debug
+func (s *Session) Debug(ok bool) {
+	s.debug = ok
 }
 
-func (s *Session) GetQuery(input string, out chan map[string]interface{}) {
-	defer close(out)
+func (s *Session) ShapeOf(query string) (interface{}, error) {
+	// TODO(kortschak) It would be nice to be able
+	// to return an error for bad queries here.
 	s.wk.shape = make(map[string]interface{})
-	s.wk.env.Run(input)
-	out <- s.wk.shape
+	s.wk.env.Run(query)
+	out := s.wk.shape
 	s.wk.shape = nil
+	return out, nil
 }
 
-func (s *Session) InputParses(input string) (query.ParseResult, error) {
+func (s *Session) Parse(input string) (query.ParseResult, error) {
 	script, err := s.wk.env.Compile("", input)
 	if err != nil {
 		return query.ParseFail, err
@@ -130,7 +132,7 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 	return env.Run(input)
 }
 
-func (s *Session) ExecInput(input string, out chan interface{}, _ int) {
+func (s *Session) Execute(input string, out chan interface{}, _ int) {
 	defer close(out)
 	s.err = nil
 	s.wk.results = out
@@ -153,7 +155,7 @@ func (s *Session) ExecInput(input string, out chan interface{}, _ int) {
 	s.wk.Unlock()
 }
 
-func (s *Session) ToText(result interface{}) string {
+func (s *Session) Format(result interface{}) string {
 	data := result.(*Result)
 	if data.metaresult {
 		if data.err != nil {
@@ -212,7 +214,7 @@ func (s *Session) ToText(result interface{}) string {
 }
 
 // Web stuff
-func (s *Session) BuildJSON(result interface{}) {
+func (s *Session) Collate(result interface{}) {
 	data := result.(*Result)
 	if !data.metaresult {
 		if data.val == nil {
@@ -246,8 +248,8 @@ func (s *Session) BuildJSON(result interface{}) {
 	}
 }
 
-func (s *Session) GetJSON() ([]interface{}, error) {
-	defer s.ClearJSON()
+func (s *Session) Results() (interface{}, error) {
+	defer s.Clear()
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -259,6 +261,6 @@ func (s *Session) GetJSON() ([]interface{}, error) {
 	}
 }
 
-func (s *Session) ClearJSON() {
+func (s *Session) Clear() {
 	s.dataOutput = nil
 }

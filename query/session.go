@@ -26,20 +26,19 @@ const (
 
 type Session interface {
 	// Return whether the string is a valid expression.
-	InputParses(string) (ParseResult, error)
-	ExecInput(string, chan interface{}, int)
-	ToText(interface{}) string
-	ToggleDebug()
+	Parse(string) (ParseResult, error)
+	Execute(string, chan interface{}, int)
+	Format(interface{}) string
+	Debug(bool)
 }
 
 type HTTP interface {
 	// Return whether the string is a valid expression.
-	InputParses(string) (ParseResult, error)
+	Parse(string) (ParseResult, error)
 	// Runs the query and returns individual results on the channel.
-	ExecInput(string, chan interface{}, int)
-	GetQuery(string, chan map[string]interface{})
-	BuildJSON(interface{})
-	GetJSON() ([]interface{}, error)
-	ClearJSON()
-	ToggleDebug()
+	Execute(string, chan interface{}, int)
+	ShapeOf(string) (interface{}, error)
+	Collate(interface{})
+	Results() (interface{}, error)
+	Clear()
 }
