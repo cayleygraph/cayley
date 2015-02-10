@@ -123,3 +123,23 @@ Optionally disable syncing to disk per transaction. Nosync being true means much
   * Default: "cayley"
 
 The name of the database within MongoDB to connect to. Manages its own collections and indicies therein.
+
+## Per-Replication Options
+
+The `replication_options` object in the main configuration file contains any of these following options that change the behavior of the replication manager.
+
+### All
+
+#### **`ignore_missing`**
+
+  * Type: Boolean
+  * Default: false
+
+Optionally ignore missing quad on delete.
+
+#### **`ignore_duplicate`**
+
+  * Type: Boolean
+  * Default: false
+
+Optionally ignore duplicated quad on add.
