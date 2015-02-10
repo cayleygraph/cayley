@@ -23,7 +23,6 @@ package graph
 
 import (
 	"errors"
-	"flag"
 
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/quad"
@@ -45,7 +44,7 @@ type Value interface{}
 type QuadStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.
-	ApplyDeltas([]Delta) error
+	ApplyDeltas([]Delta, bool, bool) error
 
 	// Given an opaque token, returns the quad for that token from the store.
 	Quad(Value) quad.Quad
@@ -194,8 +193,3 @@ func QuadStores() []string {
 	}
 	return t
 }
-
-var (
-	NoErrorDup = flag.Bool("noerrdup", false, "Don't stop loading on duplicated key on add")
-	NoErrorDel = flag.Bool("noerrdel", false, "Don't stop loading on missing key on delete")
-)

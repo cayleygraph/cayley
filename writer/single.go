@@ -26,12 +26,28 @@ func init() {
 }
 
 type Single struct {
-	currentID graph.PrimaryKey
-	qs        graph.QuadStore
+	currentID        graph.PrimaryKey
+	qs               graph.QuadStore
+	ignoreMissing    bool
+	ignoreDuplicate  bool
 }
 
 func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
-	return &Single{currentID: qs.Horizon(), qs: qs}, nil
+	ignoreMissing, imset := opts.BoolKey("ignore_missing")
+	if !imset {
+		ignoreMissing = *graph.IgnoreMissing
+	}
+	ignoreDuplicate, idset := opts.BoolKey("ignore_duplicate")
+	if !idset {
+		ignoreDuplicate = *graph.IgnoreDup
+	}
+
+	return &Single{
+		currentID: qs.Horizon(), 
+		qs: qs, 
+		ignoreMissing: ignoreMissing, 
+		ignoreDuplicate: ignoreDuplicate,
+	}, nil
 }
 
 func (s *Single) AddQuad(q quad.Quad) error {
@@ -42,7 +58,7 @@ func (s *Single) AddQuad(q quad.Quad) error {
 		Action:    graph.Add,
 		Timestamp: time.Now(),
 	}
-	return s.qs.ApplyDeltas(deltas)
+	return s.qs.ApplyDeltas(deltas, s.ignoreDuplicate, s.ignoreMissing)
 }
 
 func (s *Single) AddQuadSet(set []quad.Quad) error {
@@ -55,7 +71,8 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 			Timestamp: time.Now(),
 		}
 	}
-	return s.qs.ApplyDeltas(deltas)
+	
+	return s.qs.ApplyDeltas(deltas, s.ignoreDuplicate, s.ignoreMissing)
 }
 
 func (s *Single) RemoveQuad(q quad.Quad) error {
@@ -66,7 +83,7 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 		Action:    graph.Delete,
 		Timestamp: time.Now(),
 	}
-	return s.qs.ApplyDeltas(deltas)
+	return s.qs.ApplyDeltas(deltas, s.ignoreDuplicate, s.ignoreMissing)
 }
 
 func (s *Single) Close() error {

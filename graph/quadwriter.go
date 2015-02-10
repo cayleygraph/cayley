@@ -24,6 +24,7 @@ package graph
 import (
 	"errors"
 	"time"
+	"flag"
 
 	"github.com/google/cayley/quad"
 )
@@ -56,6 +57,11 @@ func (h *Handle) Close() {
 var (
 	ErrQuadExists   = errors.New("quad exists")
 	ErrQuadNotExist = errors.New("quad does not exist")
+)
+
+var (
+	IgnoreDup = flag.Bool("ignoredup", false, "Don't stop loading on duplicated key on add")
+	IgnoreMissing = flag.Bool("ignoremissing", false, "Don't stop loading on missing key on delete")
 )
 
 type QuadWriter interface {

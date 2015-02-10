@@ -100,14 +100,20 @@ func newQuadStore() *QuadStore {
 	}
 }
 
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDuplicate bool, ignoreMissing bool) error {
 	for _, d := range deltas {
 		var err error
 		switch d.Action {
 		case graph.Add:
 			err = qs.AddDelta(d)
+			if err != nil && ignoreDuplicate{
+				err = nil
+			}
 		case graph.Delete:
 			err = qs.RemoveDelta(d)
+			if err != nil && ignoreMissing{
+				err = nil
+			}
 		default:
 			err = errors.New("memstore: invalid action")
 		}
@@ -155,11 +161,7 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 
 func (qs *QuadStore) AddDelta(d graph.Delta) error {
 	if _, exists := qs.indexOf(d.Quad); exists {
-		if *graph.NoErrorDup {
-			return nil
-		}else{
-			return graph.ErrQuadExists
-		}
+		return graph.ErrQuadExists
 	}
 	qid := qs.nextQuadID
 	qs.log = append(qs.log, LogEntry{
@@ -198,11 +200,7 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 	prevQuadID, exists := qs.indexOf(d.Quad)
 	if !exists {
-		if *graph.NoErrorDel {
-			return nil
-		}else{
-			return graph.ErrQuadNotExist
-		}
+		return graph.ErrQuadNotExist
 	}
 
 	quadID := qs.nextQuadID
