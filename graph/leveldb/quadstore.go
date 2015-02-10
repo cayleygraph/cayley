@@ -181,7 +181,7 @@ var (
 	cps = [4]quad.Direction{quad.Label, quad.Predicate, quad.Subject, quad.Object}
 )
 
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDuplicate bool, ignoreMissing bool) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDup, ignoreMiss bool) error {
 	batch := &leveldb.Batch{}
 	resizeMap := make(map[string]int64)
 	sizeChange := int64(0)
@@ -196,10 +196,10 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDuplicate bool, ign
 		batch.Put(keyFor(d), bytes)
 		err = qs.buildQuadWrite(batch, d.Quad, d.ID.Int(), d.Action == graph.Add)
 		if err != nil {
-			if err == graph.ErrQuadExists && ignoreDuplicate{
+			if err == graph.ErrQuadExists && ignoreDup{
 				continue
 			}
-			if err == graph.ErrQuadNotExist && ignoreMissing{
+			if err == graph.ErrQuadNotExist && ignoreMiss{
 				continue
 			}
 			return err

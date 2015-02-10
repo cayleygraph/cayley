@@ -185,7 +185,7 @@ var (
 	metaBucket = []byte("meta")
 )
 
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDuplicate bool, ignoreMissing bool) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDup, ignoreMiss bool) error {
 	oldSize := qs.size
 	oldHorizon := qs.horizon
 	err := qs.db.Update(func(tx *bolt.Tx) error {
@@ -209,10 +209,10 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDuplicate bool, ign
 		for _, d := range deltas {
 			err := qs.buildQuadWrite(tx, d.Quad, d.ID.Int(), d.Action == graph.Add)
 			if err != nil {
-				if err == graph.ErrQuadExists && ignoreDuplicate{
+				if err == graph.ErrQuadExists && ignoreDup{
 					continue
 				}
-				if err == graph.ErrQuadNotExist && ignoreMissing{
+				if err == graph.ErrQuadNotExist && ignoreMiss{
 					continue
 				}
 				return err

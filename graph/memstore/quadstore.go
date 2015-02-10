@@ -100,18 +100,18 @@ func newQuadStore() *QuadStore {
 	}
 }
 
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDuplicate bool, ignoreMissing bool) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreDupl, ignoreMiss bool) error {
 	for _, d := range deltas {
 		var err error
 		switch d.Action {
 		case graph.Add:
 			err = qs.AddDelta(d)
-			if err != nil && ignoreDuplicate{
+			if err != nil && ignoreDupl{
 				err = nil
 			}
 		case graph.Delete:
 			err = qs.RemoveDelta(d)
-			if err != nil && ignoreMissing{
+			if err != nil && ignoreMiss{
 				err = nil
 			}
 		default:

@@ -33,13 +33,18 @@ type Single struct {
 }
 
 func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
-	ignoreMissing, imset := opts.BoolKey("ignore_missing")
-	if !imset {
-		ignoreMissing = *graph.IgnoreMissing
+	var ignoreMissing, ignoreDuplicate bool
+
+	if *graph.IgnoreMissing{
+		ignoreMissing = true
+	}else{
+		ignoreMissing,_ = opts.BoolKey("ignore_missing")
 	}
-	ignoreDuplicate, idset := opts.BoolKey("ignore_duplicate")
-	if !idset {
-		ignoreDuplicate = *graph.IgnoreDup
+
+	if *graph.IgnoreDup{
+		ignoreDuplicate = true
+	}else{
+		ignoreDuplicate,_ = opts.BoolKey("ignore_duplicate")
 	}
 
 	return &Single{
