@@ -108,8 +108,6 @@ func (p Path) ToResultPathFromMap(resultMap map[Path]string) ResultPath {
 func NewQuery(ses *Session) *Query {
 	var q Query
 	q.ses = ses
-	q.results = make([]interface{}, 0)
-	q.resultOrder = make([]string, 0)
 	q.err = nil
 	return &q
 }
