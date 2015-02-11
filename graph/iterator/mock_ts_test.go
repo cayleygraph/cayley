@@ -35,7 +35,7 @@ func (qs *store) ValueOf(s string) graph.Value {
 	return nil
 }
 
-func (qs *store) ApplyDeltas([]graph.Delta, bool, bool) error { return nil }
+func (qs *store) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return nil }
 
 func (qs *store) Quad(graph.Value) quad.Quad { return quad.Quad{} }
 

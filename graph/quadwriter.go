@@ -49,6 +49,10 @@ type Handle struct {
 	QuadWriter QuadWriter
 }
 
+type IgnoreOpts struct {
+	IgnoreDup, IgnoreMissing bool
+}
+
 func (h *Handle) Close() {
 	h.QuadStore.Close()
 	h.QuadWriter.Close()

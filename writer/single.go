@@ -28,8 +28,7 @@ func init() {
 type Single struct {
 	currentID        graph.PrimaryKey
 	qs               graph.QuadStore
-	ignoreMissing    bool
-	ignoreDuplicate  bool
+	ignoreOpts       graph.IgnoreOpts
 }
 
 func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
@@ -50,8 +49,10 @@ func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWri
 	return &Single{
 		currentID: qs.Horizon(), 
 		qs: qs, 
-		ignoreMissing: ignoreMissing, 
-		ignoreDuplicate: ignoreDuplicate,
+		ignoreOpts: graph.IgnoreOpts{
+			IgnoreDup: ignoreDuplicate, 
+			IgnoreMissing:ignoreMissing,
+		},
 	}, nil
 }
 
@@ -63,7 +64,7 @@ func (s *Single) AddQuad(q quad.Quad) error {
 		Action:    graph.Add,
 		Timestamp: time.Now(),
 	}
-	return s.qs.ApplyDeltas(deltas, s.ignoreDuplicate, s.ignoreMissing)
+	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
 
 func (s *Single) AddQuadSet(set []quad.Quad) error {
@@ -77,7 +78,7 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 		}
 	}
 	
-	return s.qs.ApplyDeltas(deltas, s.ignoreDuplicate, s.ignoreMissing)
+	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
 
 func (s *Single) RemoveQuad(q quad.Quad) error {
@@ -88,7 +89,7 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 		Action:    graph.Delete,
 		Timestamp: time.Now(),
 	}
-	return s.qs.ApplyDeltas(deltas, s.ignoreDuplicate, s.ignoreMissing)
+	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
 
 func (s *Single) Close() error {

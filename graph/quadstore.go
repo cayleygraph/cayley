@@ -44,7 +44,7 @@ type Value interface{}
 type QuadStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.
-	ApplyDeltas([]Delta, bool, bool) error
+	ApplyDeltas([]Delta, IgnoreOpts) error
 
 	// Given an opaque token, returns the quad for that token from the store.
 	Quad(Value) quad.Quad
