@@ -260,3 +260,13 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		Size:         size,
 	}
 }
+
+func (it *Iterator) Describe() graph.Description {
+	size, _ := it.Size()
+	return graph.Description{
+		UID:  it.UID(),
+		Name: fmt.Sprintf("%s/%s", it.table, it.val),
+		Type: it.Type(),
+		Size: size,
+	}
+}

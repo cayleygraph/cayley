@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -127,7 +128,7 @@ func (qs *QuadStore) addQuadToBatch(d graph.Delta, data *gocql.Batch, count *goc
 		object = ? AND
 		label = ?
 		`)
-		data.Query(query, []int64{d.ID}, q.Subject, q.Predicate, q.Object, q.Label)
+		data.Query(query, []int64{d.ID.Int()}, q.Subject, q.Predicate, q.Object, q.Label)
 	}
 	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
 		if q.Get(dir) == "" {
@@ -152,7 +153,7 @@ func (qs *QuadStore) addRemoveQuadToBatch(d graph.Delta, data *gocql.Batch, coun
 		object = ? AND
 		label = ?
 		`)
-		data.Query(query, []int64{d.ID}, q.Subject, q.Predicate, q.Object, q.Label)
+		data.Query(query, []int64{d.ID.Int()}, q.Subject, q.Predicate, q.Object, q.Label)
 	}
 	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
 		if q.Get(dir) == "" {
@@ -197,7 +198,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
 			qs.addDeltaToLog(d, batch, newSize)
 			qs.addRemoveQuadToBatch(d, batch, counterBatch)
 		}
-		newHorizon = d.ID
+		newHorizon = d.ID.Int()
 	}
 
 	qs.updateMetadata(batch, newSize, newHorizon)
@@ -234,7 +235,7 @@ func compareStrings(a, b graph.Value) bool {
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixedIteratorWithCompare(compareStrings)
+	return iterator.NewFixed(compareStrings)
 }
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
@@ -260,8 +261,8 @@ func (qs *QuadStore) Size() int64 {
 	return qs.size
 }
 
-func (qs *QuadStore) Horizon() int64 {
-	return qs.horizon
+func (qs *QuadStore) Horizon() graph.PrimaryKey {
+	return keys.NewSequentialKey(qs.horizon)
 }
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
