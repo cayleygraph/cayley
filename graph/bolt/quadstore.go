@@ -143,8 +143,11 @@ func hashOf(s string) []byte {
 	h := hashPool.Get().(hash.Hash)
 	h.Reset()
 	defer hashPool.Put(h)
+	c := graph.CollatorPool.Get().(*graph.Collator)
+	c.Reset()
+	defer graph.CollatorPool.Put(c)
 	key := make([]byte, 0, hashSize)
-	h.Write([]byte(s))
+	h.Write(c.KeyCollateStr(s))
 	key = h.Sum(key)
 	return key
 }

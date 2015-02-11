@@ -44,11 +44,19 @@ func (self * Collator) Reset() {
 }
 
 func (self * Collator) KeyCollateStr(str string) []byte {
-	return self.c.KeyFromString(self.buf,str)
+	if self.c == nil {
+		return []byte(str)
+	}else{
+		return self.c.KeyFromString(self.buf,str)
+	}
 }
 
 func (self * Collator) KeyCollateBytes(str []byte) []byte {
-	return self.c.Key(self.buf,str)
+	if self.c == nil {
+		return str
+	}else{
+		return self.c.Key(self.buf,str)
+	}
 }
 
 var collatorPrototype * collate.Collator
@@ -77,10 +85,11 @@ func InitCollator(cfg * config.Config) error{
 			case "Numeric":
 				collation_options = append(collation_options,collate.Numeric)
 			default:
-				return errors.New("Unknown Option")
+				return errors.New("Collator: Unknown Option")
 		}
 	}
 
 	collatorPrototype = collate.New(lang, collation_options...)
+
 	return nil
 }

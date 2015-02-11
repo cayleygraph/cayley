@@ -187,7 +187,11 @@ func main() {
 		handle *graph.Handle
 		err    error
 	)
-	graph.InitCollator(cfg)
+	err =graph.InitCollator(cfg)
+	if err != nil{
+		glog.Errorln(err)
+		os.Exit(1)
+	}
 	switch cmd {
 	case "version":
 		if Version != "" {
