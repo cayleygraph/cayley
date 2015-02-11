@@ -214,7 +214,7 @@ func (qs *QuadStore) updateLog(d graph.Delta) error {
 	return err
 }
 
-func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
+func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	qs.session.SetSafe(nil)
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
@@ -226,11 +226,19 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
 		switch d.Action {
 		case graph.Add:
 			if qs.checkValid(key) {
-				return graph.ErrQuadExists
+				if ignoreOpts.IgnoreDup {
+					continue
+				}else{
+					return graph.ErrQuadExists
+				}
 			}
 		case graph.Delete:
 			if !qs.checkValid(key) {
-				return graph.ErrQuadNotExist
+				if ignoreOpts.IgnoreMissing {
+					continue
+				}else{
+					return graph.ErrQuadNotExist
+				}
 			}
 		}
 	}

@@ -100,14 +100,20 @@ func newQuadStore() *QuadStore {
 	}
 }
 
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	for _, d := range deltas {
 		var err error
 		switch d.Action {
 		case graph.Add:
 			err = qs.AddDelta(d)
+			if err != nil && ignoreOpts.IgnoreDup{
+				err = nil
+			}
 		case graph.Delete:
 			err = qs.RemoveDelta(d)
+			if err != nil && ignoreOpts.IgnoreMissing{
+				err = nil
+			}
 		default:
 			err = errors.New("memstore: invalid action")
 		}
