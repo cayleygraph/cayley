@@ -23,7 +23,7 @@ import (
 type morphism struct {
 	Name     string
 	Reversal func() morphism
-	Apply    graph.ApplyMorphismFunc
+	Apply    graph.ApplyMorphism
 }
 
 type Path struct {
@@ -121,11 +121,10 @@ func (p *Path) BuildIterator() graph.Iterator {
 }
 
 func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.Iterator {
-	f := p.MorphismFunc()
-	return f(qs, qs.NodesAllIterator())
+	return p.Morphism()(qs, qs.NodesAllIterator())
 }
 
-func (p *Path) MorphismFunc() graph.ApplyMorphismFunc {
+func (p *Path) Morphism() graph.ApplyMorphism {
 	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
 		i := it.Clone()
 		for _, m := range p.stack {
@@ -205,12 +204,12 @@ func iteratorMorphism(it graph.Iterator) morphism {
 	}
 }
 
-func andMorphism(path *Path) morphism {
+func andMorphism(p *Path) morphism {
 	return morphism{
 		"and",
-		func() morphism { return andMorphism(path) },
+		func() morphism { return andMorphism(p) },
 		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			subIt := path.BuildIteratorOn(qs)
+			subIt := p.BuildIteratorOn(qs)
 			and := iterator.NewAnd()
 			and.AddSubIterator(it)
 			and.AddSubIterator(subIt)
@@ -219,12 +218,12 @@ func andMorphism(path *Path) morphism {
 	}
 }
 
-func orMorphism(path *Path) morphism {
+func orMorphism(p *Path) morphism {
 	return morphism{
 		"or",
-		func() morphism { return orMorphism(path) },
+		func() morphism { return orMorphism(p) },
 		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			subIt := path.BuildIteratorOn(qs)
+			subIt := p.BuildIteratorOn(qs)
 			and := iterator.NewOr()
 			and.AddSubIterator(it)
 			and.AddSubIterator(subIt)
@@ -233,23 +232,22 @@ func orMorphism(path *Path) morphism {
 	}
 }
 
-func followMorphism(path *Path) morphism {
+func followMorphism(p *Path) morphism {
 	return morphism{
 		"follow",
-		func() morphism { return followMorphism(path.Reverse()) },
+		func() morphism { return followMorphism(p.Reverse()) },
 		func(qs graph.QuadStore, base graph.Iterator) graph.Iterator {
-			p := path.MorphismFunc()
-			return p(qs, base)
+			return p.Morphism()(qs, base)
 		},
 	}
 }
 
-func exceptMorphism(path *Path) morphism {
+func exceptMorphism(p *Path) morphism {
 	return morphism{
 		"except",
-		func() morphism { return exceptMorphism(path) },
+		func() morphism { return exceptMorphism(p) },
 		func(qs graph.QuadStore, base graph.Iterator) graph.Iterator {
-			subIt := path.BuildIteratorOn(qs)
+			subIt := p.BuildIteratorOn(qs)
 			notIt := iterator.NewNot(subIt, qs.NodesAllIterator())
 			and := iterator.NewAnd()
 			and.AddSubIterator(base)
@@ -276,11 +274,12 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 		return PathFromIterator(qs, qs.NodesAllIterator())
 	} else if len(via) == 1 {
 		v := via[0]
-		if path, ok := v.(*Path); ok {
-			return path
-		} else if str, ok := v.(string); ok {
-			return StartPath(qs, str)
-		} else {
+		switch v := v.(type) {
+		case *Path:
+			return v
+		case string:
+			return StartPath(qs, v)
+		default:
 			panic("Invalid type passed to buildViaPath.")
 		}
 	}
