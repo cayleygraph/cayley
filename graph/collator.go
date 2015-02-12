@@ -31,9 +31,7 @@ type Collator struct{
 	buf * collate.Buffer
 }
 
-var CollatorPool = sync.Pool{
-	New: func() interface{}{ return newCollator() },
-}
+var CollatorPool sync.Pool
 
 func newCollator() *Collator{
 	return &Collator{c: collatorPrototype, buf: &collate.Buffer{}}
@@ -62,6 +60,11 @@ func (self * Collator) KeyCollateBytes(str []byte) []byte {
 var collatorPrototype * collate.Collator
 
 func InitCollator(cfg * config.Config) error{
+	// Init here. Useful only for test
+	CollatorPool = sync.Pool{
+		New: func() interface{}{ return newCollator() },
+	}
+
 	if cfg.CollationType == ""{
 		collatorPrototype = nil
 		return nil
