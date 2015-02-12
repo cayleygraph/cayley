@@ -24,6 +24,7 @@ install:
   - go get github.com/boltdb/bolt
   - go get gopkg.in/mgo.v2
   - go get gopkg.in/mgo.v2/bson
+  - go get golang.org/x/text
 
 script: go test -v ./...
 
