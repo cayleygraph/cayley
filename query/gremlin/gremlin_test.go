@@ -265,7 +265,7 @@ var testQueries = []struct {
 func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
 	js := makeTestSession(g)
 	c := make(chan interface{}, 5)
-	js.ExecInput(query, c, -1)
+	js.Execute(query, c, -1)
 
 	var results []string
 	for res := range c {
@@ -318,7 +318,7 @@ func TestIssue160(t *testing.T) {
 
 	ses := makeTestSession(issue160TestGraph)
 	c := make(chan interface{}, 5)
-	go ses.ExecInput(query, c, 100)
+	go ses.Execute(query, c, 100)
 	var got []string
 	for res := range c {
 		func() {
@@ -327,7 +327,7 @@ func TestIssue160(t *testing.T) {
 					t.Errorf("Unexpected panic: %v", r)
 				}
 			}()
-			got = append(got, ses.ToText(res))
+			got = append(got, ses.Format(res))
 		}()
 	}
 	sort.Strings(got)

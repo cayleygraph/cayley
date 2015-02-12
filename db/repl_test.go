@@ -30,9 +30,9 @@ var testSplitLines = []struct {
 		expectedArguments: " arg1 arg2 arg3 .",
 	},
 	{
-		line:            ":debug",
-		expectedCommand: ":debug",
-		// expectedArguments is nil
+		line:              ":debug t",
+		expectedCommand:   ":debug",
+		expectedArguments: " t",
 	},
 	{
 		line: "",

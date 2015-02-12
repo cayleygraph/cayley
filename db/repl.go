@@ -19,6 +19,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -53,9 +54,9 @@ func Run(query string, ses query.Session) {
 	}()
 	fmt.Printf("\n")
 	c := make(chan interface{}, 5)
-	go ses.ExecInput(query, c, 100)
+	go ses.Execute(query, c, 100)
 	for res := range c {
-		fmt.Print(ses.ToText(res))
+		fmt.Print(ses.Format(res))
 		nResults++
 	}
 	if nResults > 0 {
@@ -122,8 +123,22 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 
 			switch cmd {
 			case ":debug":
-				ses.ToggleDebug()
-				fmt.Println("Debug Toggled")
+				args = strings.TrimSpace(args)
+				var debug bool
+				switch args {
+				case "t":
+					debug = true
+				case "f":
+					// Do nothing.
+				default:
+					debug, err = strconv.ParseBool(args)
+					if err != nil {
+						fmt.Printf("Error: cannot parse %q as a valid boolean - acceptable values: 't'|'true' or 'f'|'false'\n", args)
+						continue
+					}
+				}
+				ses.Debug(debug)
+				fmt.Printf("Debug set to %t\n", debug)
 				continue
 
 			case ":a":
@@ -155,7 +170,7 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 
 		code += line
 
-		result, err := ses.InputParses(code)
+		result, err := ses.Parse(code)
 		switch result {
 		case query.Parsed:
 			Run(code, ses)

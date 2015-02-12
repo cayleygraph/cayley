@@ -170,11 +170,11 @@ var testQueries = []struct {
 func runQuery(g []quad.Quad, query string) interface{} {
 	s := makeTestSession(g)
 	c := make(chan interface{}, 5)
-	go s.ExecInput(query, c, -1)
+	go s.Execute(query, c, -1)
 	for result := range c {
-		s.BuildJSON(result)
+		s.Collate(result)
 	}
-	result, _ := s.GetJSON()
+	result, _ := s.Results()
 	return result
 }
 
