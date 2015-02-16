@@ -15,6 +15,7 @@
 package cassandra
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -183,7 +184,63 @@ func (qs *QuadStore) updateMetadata(data *gocql.Batch, size int64, horizon int64
 	data.Query("UPDATE metadata SET value = ? WHERE meta_key = ?", horizon, "horizon")
 }
 
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta) error {
+func (qs *QuadStore) checkValid(delta graph.Delta) bool {
+	var created []int64
+	var deleted []int64
+	q := delta.Quad
+	err := qs.sess.Query(
+		`SELECT created, deleted
+		FROM quads_by_s
+		WHERE
+		subject = ? AND
+		predicate = ? AND
+		object = ? AND
+		label = ?
+		`, q.Subject, q.Predicate, q.Object, q.Label).Scan(&created, &deleted)
+	if err != nil && err != gocql.ErrNotFound {
+		if delta.Action == graph.Add {
+			return true
+		}
+		return false
+	}
+	if len(created) == len(deleted) {
+		if delta.Action == graph.Add {
+			return true
+		}
+		return false
+	}
+	if delta.Action == graph.Add {
+		return false
+	}
+	return true
+}
+
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	// Precheck existence.
+	for _, d := range deltas {
+		if d.Action != graph.Add && d.Action != graph.Delete {
+			return errors.New("cassandra: invalid action")
+		}
+		switch d.Action {
+		case graph.Add:
+			if qs.checkValid(d) {
+				if ignoreOpts.IgnoreDup {
+					continue
+				} else {
+					return graph.ErrQuadExists
+				}
+			}
+		case graph.Delete:
+			if !qs.checkValid(d) {
+				if ignoreOpts.IgnoreMissing {
+					continue
+				} else {
+					return graph.ErrQuadNotExist
+				}
+			}
+		}
+	}
+	// Write the data.
 	batch := qs.sess.NewBatch(gocql.LoggedBatch)
 	counterBatch := qs.sess.NewBatch(gocql.CounterBatch)
 	newSize := qs.size
