@@ -83,6 +83,7 @@ func newWorker(qs graph.QuadStore) *worker {
 		}
 		return otto.NullValue()
 	})
+	env.Run("graph.E = graph.Emit")
 
 	return wk
 }

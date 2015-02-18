@@ -42,6 +42,7 @@ Arguments:
 
 Adds data programmatically to the JSON result list. Can be any JSON type.
 
+Alias: `graph.E`
 
 ## Path objects
 
