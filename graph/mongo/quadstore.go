@@ -27,7 +27,6 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -228,7 +227,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			if qs.checkValid(key) {
 				if ignoreOpts.IgnoreDup {
 					continue
-				}else{
+				} else {
 					return graph.ErrQuadExists
 				}
 			}
@@ -236,7 +235,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			if !qs.checkValid(key) {
 				if ignoreOpts.IgnoreMissing {
 					continue
-				}else{
+				} else {
 					return graph.ErrQuadNotExist
 				}
 			}
@@ -334,11 +333,11 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	err := qs.db.C("log").Find(nil).Sort("-LogID").One(&log)
 	if err != nil {
 		if err == mgo.ErrNotFound {
-			return keys.NewSequentialKey(0)
+			return graph.NewSequentialKey(0)
 		}
 		glog.Errorf("Could not get Horizon from Mongo: %v", err)
 	}
-	return keys.NewSequentialKey(log.LogID)
+	return graph.NewSequentialKey(log.LogID)
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {

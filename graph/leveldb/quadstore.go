@@ -31,7 +31,6 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -49,7 +48,6 @@ var (
 		New: func() interface{} { return sha1.New() },
 	}
 	hashSize = sha1.Size
-
 )
 
 type Token []byte
@@ -137,7 +135,7 @@ func (qs *QuadStore) Size() int64 {
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return keys.NewSequentialKey(qs.horizon)
+	return graph.NewSequentialKey(qs.horizon)
 }
 
 func hashOf(s string) []byte {

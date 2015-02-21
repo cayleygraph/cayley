@@ -29,7 +29,6 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -43,7 +42,6 @@ var (
 	}
 	hashSize         = sha1.Size
 	localFillPercent = 0.7
-
 )
 
 type Token struct {
@@ -128,7 +126,7 @@ func (qs *QuadStore) Size() int64 {
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return keys.NewSequentialKey(qs.horizon)
+	return graph.NewSequentialKey(qs.horizon)
 }
 
 func (qs *QuadStore) createDeltaKeyFor(id int64) []byte {
@@ -209,10 +207,10 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		for _, d := range deltas {
 			err := qs.buildQuadWrite(tx, d.Quad, d.ID.Int(), d.Action == graph.Add)
 			if err != nil {
-				if err == graph.ErrQuadExists && ignoreOpts.IgnoreDup{
+				if err == graph.ErrQuadExists && ignoreOpts.IgnoreDup {
 					continue
 				}
-				if err == graph.ErrQuadNotExist && ignoreOpts.IgnoreMissing{
+				if err == graph.ErrQuadNotExist && ignoreOpts.IgnoreMissing {
 					continue
 				}
 				return err
