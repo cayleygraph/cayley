@@ -160,7 +160,7 @@ func (it *Iterator) NextPath() bool {
 	return false
 }
 
-// No subiterators.
+// SubIterators returns no subiterators for a Mongo iterator.
 func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }

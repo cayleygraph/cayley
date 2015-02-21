@@ -90,9 +90,9 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
-	v, exact := or.Size()
-	if v != 4 {
-		t.Errorf("Unexpected iterator size, got:%d expected %d", v, 4)
+	size, exact := or.Size()
+	if size != 4 {
+		t.Errorf("Unexpected iterator size, got:%d expected %d", size, 4)
 	}
 	if !exact {
 		t.Error("Size not exact.")

@@ -43,7 +43,6 @@ var (
 	}
 	hashSize         = sha1.Size
 	localFillPercent = 0.7
-
 )
 
 type Token struct {
@@ -209,10 +208,10 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		for _, d := range deltas {
 			err := qs.buildQuadWrite(tx, d.Quad, d.ID.Int(), d.Action == graph.Add)
 			if err != nil {
-				if err == graph.ErrQuadExists && ignoreOpts.IgnoreDup{
+				if err == graph.ErrQuadExists && ignoreOpts.IgnoreDup {
 					continue
 				}
-				if err == graph.ErrQuadNotExist && ignoreOpts.IgnoreMissing{
+				if err == graph.ErrQuadNotExist && ignoreOpts.IgnoreMissing {
 					continue
 				}
 				return err
@@ -269,7 +268,7 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 		return graph.ErrQuadExists
 	}
 	if !isAdd && len(entry.History)%2 == 0 {
-		glog.Error("attempt to delete non-existent quad %v: %#c", entry, q)
+		glog.Errorf("attempt to delete non-existent quad %v: %#v", entry, q)
 		return graph.ErrQuadNotExist
 	}
 

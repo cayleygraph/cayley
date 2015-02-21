@@ -23,8 +23,8 @@ package graph
 
 import (
 	"errors"
-	"time"
 	"flag"
+	"time"
 
 	"github.com/google/cayley/quad"
 )
@@ -64,7 +64,7 @@ var (
 )
 
 var (
-	IgnoreDup = flag.Bool("ignoredup", false, "Don't stop loading on duplicated key on add")
+	IgnoreDup     = flag.Bool("ignoredup", false, "Don't stop loading on duplicated key on add")
 	IgnoreMissing = flag.Bool("ignoremissing", false, "Don't stop loading on missing key on delete")
 )
 
