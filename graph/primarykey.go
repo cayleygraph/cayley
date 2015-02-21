@@ -1,4 +1,4 @@
-// Copyright 2014 The Cayley Authors. All rights reserved.
+// Copyright 2015 The Cayley Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,15 +14,75 @@
 
 package graph
 
+import (
+	"encoding/json"
+	"strconv"
+	"sync"
+)
+
 // Defines the PrimaryKey interface, this abstracts the generation of IDs
 
-type PrimaryKey interface {
-	// Returns a new unique primary key
-	Next() PrimaryKey
+type primaryKeyType uint8
 
-	// Get the integer format if possible, otherwise logs an error and returns -1
-	Int() int64
+const (
+	none primaryKeyType = iota
+	sequential
+)
 
-	// Get the string format
-	String() string
+type PrimaryKey struct {
+	keyType      primaryKeyType
+	mut          sync.Mutex
+	sequentialID int64
+}
+
+func NewSequentialKey(horizon int64) PrimaryKey {
+	return PrimaryKey{
+		keyType:      sequential,
+		sequentialID: horizon,
+	}
+}
+
+func (p *PrimaryKey) Next() PrimaryKey {
+	switch p.keyType {
+	case sequential:
+		p.mut.Lock()
+		defer p.mut.Unlock()
+		p.sequentialID++
+		if p.sequentialID <= 0 {
+			p.sequentialID = 1
+		}
+		return PrimaryKey{
+			keyType:      sequential,
+			sequentialID: p.sequentialID,
+		}
+	case none:
+		panic("Calling next() on a none PrimaryKey")
+	}
+	return PrimaryKey{}
+}
+
+func (p *PrimaryKey) Int() int64 {
+	switch p.keyType {
+	case sequential:
+		return p.sequentialID
+	}
+	return -1
+}
+
+func (p *PrimaryKey) String() string {
+	// More options for more keyTypes
+	return strconv.FormatInt(p.sequentialID, 10)
+}
+
+func (p *PrimaryKey) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.sequentialID)
+}
+
+func (p *PrimaryKey) UnmarshalJSON(bytes []byte) error {
+	/* Careful special casing here. For example, string-related things might begin
+	if bytes[0] == '"' {
+	}
+	*/
+	p.keyType = sequential
+	return json.Unmarshal(bytes, &p.sequentialID)
 }

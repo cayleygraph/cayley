@@ -24,7 +24,6 @@ import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/graph/memstore/b"
-	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
@@ -106,12 +105,12 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		switch d.Action {
 		case graph.Add:
 			err = qs.AddDelta(d)
-			if err != nil && ignoreOpts.IgnoreDup{
+			if err != nil && ignoreOpts.IgnoreDup {
 				err = nil
 			}
 		case graph.Delete:
 			err = qs.RemoveDelta(d)
-			if err != nil && ignoreOpts.IgnoreMissing{
+			if err != nil && ignoreOpts.IgnoreMissing {
 				err = nil
 			}
 		default:
@@ -229,7 +228,7 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return keys.NewSequentialKey(qs.log[len(qs.log)-1].ID)
+	return graph.NewSequentialKey(qs.log[len(qs.log)-1].ID)
 }
 
 func (qs *QuadStore) Size() int64 {

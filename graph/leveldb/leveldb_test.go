@@ -170,8 +170,8 @@ func TestLoadDatabase(t *testing.T) {
 
 	//Test horizon
 	horizon := qs.Horizon()
-	if horizon.Int() != 1 {
-		t.Errorf("Unexpected horizon value, got:%d expect:1", horizon.Int())
+	if horizon.Int() != 0 {
+		t.Errorf("Unexpected horizon value, got:%d expect:0", horizon.Int())
 	}
 
 	w.AddQuadSet(makeQuadSet())
@@ -182,8 +182,8 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
 	}
 	horizon = qs.Horizon()
-	if horizon.Int() != 12 {
-		t.Errorf("Unexpected horizon value, got:%d expect:12", horizon.Int())
+	if horizon.Int() != 11 {
+		t.Errorf("Unexpected horizon value, got:%d expect:11", horizon.Int())
 	}
 
 	w.RemoveQuad(quad.Quad{
