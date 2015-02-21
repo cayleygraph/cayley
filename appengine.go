@@ -29,7 +29,7 @@ import (
 
 func init() {
 	glog.SetToStderr(true)
-	cfg := config.ParseConfigFromFile("cayley_appengine.cfg")
+	cfg, _ := config.Load("cayley_appengine.cfg")
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	glog.Errorln(cfg)
 	db.Load(qs, cfg, cfg.DatabasePath)

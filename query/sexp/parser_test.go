@@ -57,9 +57,9 @@ var testQueries = []struct {
 func TestMemstoreBackedSexp(t *testing.T) {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
-	it := BuildIteratorTreeForQuery(qs, "()")
-	if it.Type() != graph.Null {
-		t.Errorf(`Incorrect type for empty query, got:%q expect: "null"`, it.Type())
+	emptyIt := BuildIteratorTreeForQuery(qs, "()")
+	if emptyIt.Type() != graph.Null {
+		t.Errorf(`Incorrect type for empty query, got:%q expect: "null"`, emptyIt.Type())
 	}
 	for _, test := range testQueries {
 		if test.add.IsValid() {

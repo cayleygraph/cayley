@@ -30,7 +30,7 @@ type Tagger struct {
 	fixedTags map[string]Value
 }
 
-// Adds a tag to the iterator.
+// Add a tag to the iterator.
 func (t *Tagger) Add(tag string) {
 	t.tags = append(t.tags, tag)
 }
@@ -42,12 +42,12 @@ func (t *Tagger) AddFixed(tag string, value Value) {
 	t.fixedTags[tag] = value
 }
 
-// Returns the tags. The returned value must not be mutated.
+// Tags returns the tags held in the tagger. The returned value must not be mutated.
 func (t *Tagger) Tags() []string {
 	return t.tags
 }
 
-// Returns the fixed tags. The returned value must not be mutated.
+// Fixed returns the fixed tags held in the tagger. The returned value must not be mutated.
 func (t *Tagger) Fixed() map[string]Value {
 	return t.fixedTags
 }
@@ -206,6 +206,7 @@ type IteratorStats struct {
 // Type enumerates the set of Iterator types.
 type Type int
 
+// These are the iterator types, defined as constants
 const (
 	Invalid Type = iota
 	All
@@ -306,6 +307,7 @@ func DumpStats(it Iterator) StatsContainer {
 
 // Utility logging functions for when an iterator gets called Next upon, or Contains upon, as
 // well as what they return. Highly useful for tracing the execution path of a query.
+
 func ContainsLogIn(it Iterator, val Value) {
 	if glog.V(4) {
 		glog.V(4).Infof("%s %d CHECK CONTAINS %d", strings.ToUpper(it.Type().String()), it.UID(), val)

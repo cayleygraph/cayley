@@ -140,10 +140,12 @@ func buildInOutIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterato
 }
 
 func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.Iterator) graph.Iterator {
-	it := base
-
 	// TODO: Better error handling
-	var subIt graph.Iterator
+	var (
+		it    graph.Iterator
+		subIt graph.Iterator
+	)
+
 	if prev, _ := obj.Get("_gremlin_prev"); !prev.IsObject() {
 		subIt = base
 	} else {
@@ -313,6 +315,9 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		and.AddSubIterator(subIt)
 		and.AddSubIterator(notIt)
 		it = and
+	}
+	if it == nil {
+		panic("Iterator building does not catch the output iterator in some case.")
 	}
 	return it
 }
