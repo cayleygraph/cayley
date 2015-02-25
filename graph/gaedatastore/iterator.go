@@ -228,7 +228,7 @@ func (it *Iterator) Next() bool {
 	it.offset = 0
 	it.buffer = make([]string, 0, bufferSize)
 	// Create query
-	// TODO (stefankoshiw) Keys only query?
+	// TODO (panamafrancis) Keys only query?
 	q := datastore.NewQuery(it.kind).Limit(bufferSize)
 	if !it.isAll {
 		// Filter on the direction {subject,objekt...}

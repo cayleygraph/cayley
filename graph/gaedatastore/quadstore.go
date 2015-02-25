@@ -62,12 +62,12 @@ type Token struct {
 
 type QuadEntry struct {
 	Hash      string
-	Added     []int64 `datastore:",noindex"`
-	Deleted   []int64 `datastore:",noindex"`
-	Subject   string  `datastore:"subject"`
-	Predicate string  `datastore:"predicate"`
-	Object    string  `datastore:"object"`
-	Label     string  `datastore:"label"`
+	Added     []string `datastore:",noindex"`
+	Deleted   []string `datastore:",noindex"`
+	Subject   string   `datastore:"subject"`
+	Predicate string   `datastore:"predicate"`
+	Object    string   `datastore:"object"`
+	Label     string   `datastore:"label"`
 }
 
 type NodeEntry struct {
@@ -76,7 +76,7 @@ type NodeEntry struct {
 }
 
 type LogEntry struct {
-	LogID     int64
+	LogID     string
 	Action    string
 	Key       string
 	Timestamp int64
@@ -127,8 +127,8 @@ func (qs *QuadStore) createKeyForMetadata() *datastore.Key {
 	return qs.createKeyFromToken(&Token{"metadata", "metadataentry"})
 }
 
-func (qs *QuadStore) createKeyForLog(deltaID int64) *datastore.Key {
-	return datastore.NewKey(qs.context, "logentry", "", deltaID, nil)
+func (qs *QuadStore) createKeyForLog(deltaID graph.PrimaryKey) *datastore.Key {
+	return datastore.NewKey(qs.context, "logentry", deltaID.String(), 0, nil)
 }
 
 func (qs *QuadStore) createKeyFromToken(t *Token) *datastore.Key {
@@ -161,35 +161,42 @@ func getContext(opts graph.Options) (appengine.Context, error) {
 	return appengine.NewContext(req), nil
 }
 
-func (qs *QuadStore) ApplyDeltas(in []graph.Delta) error {
+func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	if qs.context == nil {
 		return errors.New("No context, graph not correctly initialised")
 	}
 	toKeep := make([]graph.Delta, 0)
 	for _, d := range in {
+		if d.Action != graph.Add && d.Action != graph.Delete {
+			//Defensive shortcut
+			return errors.New("Datastore: invalid action")
+		}
 		key := qs.createKeyForQuad(d.Quad)
 		keep := false
 		switch d.Action {
 		case graph.Add:
-			if found, err := qs.checkValid(key); !found && err == nil {
-				keep = true
-			} else if err != nil {
+			found, err := qs.checkValid(key)
+			if err != nil {
 				return err
+			}
+			if !found || ignoreOpts.IgnoreDup {
+				keep = true
 			} else {
 				glog.Warningf("Quad exists already: %v", d)
 			}
 		case graph.Delete:
-			if found, err := qs.checkValid(key); found && err == nil {
-				keep = true
-			} else if err != nil {
+			found, err := qs.checkValid(key)
+			if err != nil {
 				return err
+			}
+			if found || ignoreOpts.IgnoreMissing {
+				keep = true
 			} else {
 				glog.Warningf("Quad does not exist and so cannot be deleted: %v", d)
 			}
 		default:
-			keep = true
+			keep = false
 		}
-
 		if keep {
 			toKeep = append(toKeep, d)
 		}
@@ -309,10 +316,10 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 
 				// If the quad exists the Added[] will be non-empty
 				if in[x].Action == graph.Add {
-					foundQuads[k].Added = append(foundQuads[k].Added, in[x].ID)
+					foundQuads[k].Added = append(foundQuads[k].Added, in[x].ID.String())
 					quadCount += 1
 				} else {
-					foundQuads[k].Deleted = append(foundQuads[k].Deleted, in[x].ID)
+					foundQuads[k].Deleted = append(foundQuads[k].Deleted, in[x].ID.String())
 					quadCount -= 1
 				}
 			}
@@ -365,7 +372,7 @@ func (qs *QuadStore) updateLog(in []graph.Delta) error {
 		}
 
 		entry := LogEntry{
-			LogID:     d.ID,
+			LogID:     d.ID.String(),
 			Action:    action,
 			Key:       qs.createKeyForQuad(d.Quad).String(),
 			Timestamp: d.Timestamp.UnixNano(),
@@ -481,10 +488,10 @@ func (qs *QuadStore) NodeSize() int64 {
 	return foundMetadata.NodeCount
 }
 
-func (qs *QuadStore) Horizon() int64 {
+func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	if qs.context == nil {
 		glog.Warning("Warning: HTTP Request context is nil, cannot get horizon from datastore.")
-		return 0
+		return graph.NewUniqueKey("")
 	}
 	// Query log for last entry...
 	q := datastore.NewQuery("logentry").Order("-Timestamp").Limit(1)
@@ -492,9 +499,9 @@ func (qs *QuadStore) Horizon() int64 {
 	_, err := q.GetAll(qs.context, &logEntries)
 	if err != nil || len(logEntries) == 0 {
 		// Error fetching horizon, probably graph is empty
-		return 0
+		return graph.NewUniqueKey("")
 	}
-	return logEntries[0].LogID
+	return graph.NewUniqueKey(logEntries[0].LogID)
 }
 
 func compareTokens(a, b graph.Value) bool {

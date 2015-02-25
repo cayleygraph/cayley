@@ -134,11 +134,6 @@ func createInstance() (aetest.Instance, graph.Options, error) {
 	}
 	opts := make(graph.Options)
 	opts["HTTPRequest"] = req1
-
-	if inst == nil {
-		glog.Info("help")
-	}
-
 	return inst, opts, nil
 }
 
