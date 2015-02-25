@@ -24,6 +24,14 @@ install:
   - go get github.com/boltdb/bolt
   - go get gopkg.in/mgo.v2
   - go get gopkg.in/mgo.v2/bson
+  - go get code.google.com/p/go-uuid/uuid
 
-script: go test -v ./...
+  # Google App Engine dependencies
+  - wget https://storage.googleapis.com/appengine-sdks/featured/go_appengine_sdk_linux_amd64-1.9.18.zip
+  - unzip -q go_appengine_sdk_linux_amd64-1.9.18.zip
+  - export PATH=$PATH:$PWD/go_appengine/
+
+script: 
+go test -v ./...
+goapp test -v ./graph/gaedatastore
 
