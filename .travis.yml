@@ -32,6 +32,6 @@ install:
   - export PATH=$PATH:$PWD/go_appengine/
 
 script: 
-go test -v ./...
-goapp test -v ./graph/gaedatastore
+  - go test -v ./...
+  - goapp test -v ./graph/gaedatastore
 
