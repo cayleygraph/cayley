@@ -162,13 +162,13 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (it.qs.hashSize * 2)
+		offset = (hashSize * 2)
 	case quad.Object:
-		offset = (it.qs.hashSize * 2) * 2
+		offset = (hashSize * 2) * 2
 	case quad.Label:
-		offset = (it.qs.hashSize * 2) * 3
+		offset = (hashSize * 2) * 3
 	}
-	val := t.Hash[offset : offset+(it.qs.hashSize*2)]
+	val := t.Hash[offset : offset+(hashSize*2)]
 	if val == it.hash {
 		return graph.ContainsLogOut(it, v, true)
 	}
@@ -314,7 +314,7 @@ func (it *Iterator) Describe() graph.Description {
 	}
 }
 
-// TODO (stefankoshiw) calculate costs
+// TODO (panamafrancis) calculate costs
 func (it *Iterator) Stats() graph.IteratorStats {
 	size, _ := it.Size()
 	return graph.IteratorStats{

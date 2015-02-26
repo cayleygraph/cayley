@@ -23,6 +23,7 @@ import (
 	"hash"
 	"math"
 	"net/http"
+	"sync"
 
 	"appengine"
 	"appengine/datastore"
@@ -41,13 +42,15 @@ const (
 
 var (
 	// Order of quad fields
-	spo = [4]quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label}
+	spo      = [4]quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label}
+	hashPool = sync.Pool{
+		New: func() interface{} { return sha1.New() },
+	}
+	hashSize = sha1.Size
 )
 
 type QuadStore struct {
-	hashSize   int
-	makeHasher func() hash.Hash
-	context    appengine.Context
+	context appengine.Context
 }
 
 type MetadataEntry struct {
@@ -87,14 +90,12 @@ func init() {
 }
 
 func initQuadStore(_ string, _ graph.Options) error {
-	// TODO (stefankoshiw) check appengine datastore for consistency
+	// TODO (panamafrancis) check appengine datastore for consistency
 	return nil
 }
 
 func newQuadStore(_ string, options graph.Options) (graph.QuadStore, error) {
 	var qs QuadStore
-	qs.hashSize = sha1.Size
-	qs.makeHasher = sha1.New
 	return &qs, nil
 }
 
@@ -109,17 +110,15 @@ func newQuadStoreForRequest(qs graph.QuadStore, options graph.Options) (graph.Qu
 }
 
 func (qs *QuadStore) createKeyForQuad(q quad.Quad) *datastore.Key {
-	hasher := qs.makeHasher()
-	id := qs.hashOf(q.Subject, hasher)
-	id += qs.hashOf(q.Predicate, hasher)
-	id += qs.hashOf(q.Object, hasher)
-	id += qs.hashOf(q.Label, hasher)
+	id := hashOf(q.Subject)
+	id += hashOf(q.Predicate)
+	id += hashOf(q.Object)
+	id += hashOf(q.Label)
 	return qs.createKeyFromToken(&Token{quadKind, id})
 }
 
 func (qs *QuadStore) createKeyForNode(n string) *datastore.Key {
-	hasher := qs.makeHasher()
-	id := qs.hashOf(n, hasher)
+	id := hashOf(n)
 	return qs.createKeyFromToken(&Token{nodeKind, id})
 }
 
@@ -401,8 +400,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) ValueOf(s string) graph.Value {
-	hasher := qs.makeHasher()
-	id := qs.hashOf(s, hasher)
+	id := hashOf(s)
 	return &Token{Kind: nodeKind, Hash: id}
 }
 
@@ -419,7 +417,7 @@ func (qs *QuadStore) NameOf(val graph.Value) string {
 		return ""
 	}
 
-	// TODO (stefankoshiw) implement a cache
+	// TODO (panamafrancis) implement a cache
 
 	node := new(NodeEntry)
 	err := datastore.Get(qs.context, key, node)
@@ -537,21 +535,24 @@ func (qs *QuadStore) QuadDirection(val graph.Value, dir quad.Direction) graph.Va
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (qs.hashSize * 2)
+		offset = (hashSize * 2)
 	case quad.Object:
-		offset = (qs.hashSize * 2) * 2
+		offset = (hashSize * 2) * 2
 	case quad.Label:
-		offset = (qs.hashSize * 2) * 3
+		offset = (hashSize * 2) * 3
 	}
-	sub := t.Hash[offset : offset+(qs.hashSize*2)]
+	sub := t.Hash[offset : offset+(hashSize*2)]
 	return &Token{Kind: nodeKind, Hash: sub}
 }
 
-func (qs *QuadStore) hashOf(s string, hasher hash.Hash) string {
-	hasher.Reset()
-	key := make([]byte, 0, qs.hashSize)
-	hasher.Write([]byte(s))
-	key = hasher.Sum(key)
+func hashOf(s string) string {
+	h := hashPool.Get().(hash.Hash)
+	h.Reset()
+	defer hashPool.Put(h)
+
+	key := make([]byte, 0, hashSize)
+	h.Write([]byte(s))
+	key = h.Sum(key)
 	return hex.EncodeToString(key)
 }
 
