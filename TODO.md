@@ -68,7 +68,7 @@ The necessary component to make mid-query limit work. Acts as a limit on Next(),
 ### Postgres Backend
   It'd be nice to run on SQL as well. It's a big why not?
 #### Generalist layout
-  Notionally, this is a simple quad table with a number of indicies. Iterators and iterator optimization (ie, rewriting SQL queries) is the 'fun' part
+  Notionally, this is a simple quad table with a number of indices. Iterators and iterator optimization (ie, rewriting SQL queries) is the 'fun' part
 #### "Short Schema" Layout?
   This one is the crazy one. Suppose a world where we actually use the table schema for predicates, and update the table schema as we go along. Yes, it sucks when you add a new predicate (and the cell values are unclear) but for small worlds (or, "short schemas") it may (or may not) be interesting.
 

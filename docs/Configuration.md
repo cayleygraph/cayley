@@ -122,7 +122,7 @@ Optionally disable syncing to disk per transaction. Nosync being true means much
   * Type: String
   * Default: "cayley"
 
-The name of the database within MongoDB to connect to. Manages its own collections and indicies therein.
+The name of the database within MongoDB to connect to. Manages its own collections and indices therein.
 
 ## Per-Replication Options
 
