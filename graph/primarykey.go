@@ -32,16 +32,16 @@ const (
 )
 
 type PrimaryKey struct {
-	KeyType      primaryKeyType
+	keyType      primaryKeyType
 	mut          sync.Mutex
-	SequentialID int64
-	UniqueID     string
+	sequentialID int64
+	uniqueID     string
 }
 
 func NewSequentialKey(horizon int64) PrimaryKey {
 	return PrimaryKey{
-		KeyType:      sequential,
-		SequentialID: horizon,
+		keyType:      sequential,
+		sequentialID: horizon,
 	}
 }
 
@@ -51,27 +51,27 @@ func NewUniqueKey(horizon string) PrimaryKey {
 		id = uuid.NewUUID()
 	}
 	return PrimaryKey{
-		KeyType:  unique,
-		UniqueID: id.String(),
+		keyType:  unique,
+		uniqueID: id.String(),
 	}
 }
 
 func (p *PrimaryKey) Next() PrimaryKey {
-	switch p.KeyType {
+	switch p.keyType {
 	case sequential:
 		p.mut.Lock()
 		defer p.mut.Unlock()
-		p.SequentialID++
-		if p.SequentialID <= 0 {
-			p.SequentialID = 1
+		p.sequentialID++
+		if p.sequentialID <= 0 {
+			p.sequentialID = 1
 		}
 		return PrimaryKey{
-			KeyType:      sequential,
-			SequentialID: p.SequentialID,
+			keyType:      sequential,
+			sequentialID: p.sequentialID,
 		}
 	case unique:
 		id := uuid.NewUUID()
-		p.UniqueID = id.String()
+		p.uniqueID = id.String()
 		return *p
 	case none:
 		panic("Calling next() on a none PrimaryKey")
@@ -80,9 +80,9 @@ func (p *PrimaryKey) Next() PrimaryKey {
 }
 
 func (p *PrimaryKey) Int() int64 {
-	switch p.KeyType {
+	switch p.keyType {
 	case sequential:
-		return p.SequentialID
+		return p.sequentialID
 	case unique:
 		glog.Fatal("UUID cannot be cast to an int64")
 		return -1
@@ -91,11 +91,11 @@ func (p *PrimaryKey) Int() int64 {
 }
 
 func (p *PrimaryKey) String() string {
-	switch p.KeyType {
+	switch p.keyType {
 	case sequential:
-		return strconv.FormatInt(p.SequentialID, 10)
+		return strconv.FormatInt(p.sequentialID, 10)
 	case unique:
-		return p.UniqueID
+		return p.uniqueID
 	case none:
 		panic("Calling String() on a none PrimaryKey")
 	}
@@ -103,27 +103,32 @@ func (p *PrimaryKey) String() string {
 }
 
 func (p *PrimaryKey) MarshalJSON() ([]byte, error) {
-	if p.KeyType == none {
+	switch p.keyType {
+	case none:
 		return nil, errors.New("Cannot marshal PrimaryKey with KeyType of 'none'")
+	case sequential:
+		return json.Marshal(p.sequentialID)
+	case unique:
+		return []byte("\"u" + p.uniqueID + "\""), nil
+	default:
+		return nil, errors.New("Unknown PrimaryKey type")
 	}
-	return json.Marshal(*p)
 }
 
 //To avoid recursion in the implmentation of the UnmarshalJSON interface below
 type primaryKey PrimaryKey
 
 func (p *PrimaryKey) UnmarshalJSON(bytes []byte) error {
-	/* Careful special casing here. For example, string-related things might begin
 	if bytes[0] == '"' {
+		switch bytes[1] {
+		case 'u':
+			p.keyType = unique
+			p.uniqueID = string(bytes[2 : len(bytes)-1])
+			return nil
+		default:
+			return errors.New("Unknown string-like PrimaryKey type")
+		}
 	}
-	*/
-	temp := primaryKey{}
-	if err := json.Unmarshal(bytes, &temp); err != nil {
-		return err
-	}
-	*p = (PrimaryKey)(temp)
-	if p.KeyType == none {
-		return errors.New("Could not properly unmarshal primary key, 'none' keytype detected")
-	}
-	return nil
+	p.keyType = sequential
+	return json.Unmarshal(bytes, &p.sequentialID)
 }
