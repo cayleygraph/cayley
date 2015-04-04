@@ -372,7 +372,7 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
-	var q quad.Quad
+	var d graph.Delta
 	tok := k.(*Token)
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(tok.bucket)
@@ -394,13 +394,13 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 			// No harm, no foul.
 			return nil
 		}
-		return json.Unmarshal(data, &q)
+		return json.Unmarshal(data, &d)
 	})
 	if err != nil {
 		glog.Error("Error getting quad: ", err)
 		return quad.Quad{}
 	}
-	return q
+	return d.Quad
 }
 
 func (qs *QuadStore) ValueOf(s string) graph.Value {

@@ -102,7 +102,7 @@ func (p *PrimaryKey) String() string {
 	return ""
 }
 
-func (p *PrimaryKey) MarshalJSON() ([]byte, error) {
+func (p PrimaryKey) MarshalJSON() ([]byte, error) {
 	switch p.keyType {
 	case none:
 		return nil, errors.New("Cannot marshal PrimaryKey with KeyType of 'none'")
