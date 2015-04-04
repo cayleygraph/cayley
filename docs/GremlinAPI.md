@@ -16,7 +16,7 @@ Arguments:
 
 Returns: Query object
 
-Starts a query path at the given vertex/verticies. No ids means "all vertices".
+Starts a query path at the given vertex/vertices. No ids means "all vertices".
 
 ####**`graph.Morphism()`**
 
@@ -98,7 +98,7 @@ g.V("D").Out()
 // Finds all things D points at on the status linkage.
 // Result is B G and cool_person
 g.V("D").Out(["follows", "status"])
-// Finds all things D points at on the status linkage, given from a seperate query path.
+// Finds all things D points at on the status linkage, given from a separate query path.
 // Result is {"id": cool_person, "pred": "status"}
 g.V("D").Out(g.V("status"), "pred")
 ```
@@ -327,7 +327,7 @@ Starts as if at the g.M() and follows through the morphism path.
 Example:
 ```javascript:
 friendOfFriend = g.Morphism().Out("follows").Out("follows")
-// Returns the followed people of who C follows -- a simplistic "friend of my frind"
+// Returns the followed people of who C follows -- a simplistic "friend of my friend"
 // and whether or not they have a "cool" status. Potential for recommending followers abounds.
 // Returns B and G
 g.V("C").Follow(friendOfFriend).Has("status", "cool_person")
