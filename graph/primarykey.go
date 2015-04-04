@@ -74,7 +74,7 @@ func (p *PrimaryKey) String() string {
 	return strconv.FormatInt(p.sequentialID, 10)
 }
 
-func (p *PrimaryKey) MarshalJSON() ([]byte, error) {
+func (p PrimaryKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.sequentialID)
 }
 
