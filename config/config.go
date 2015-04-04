@@ -34,6 +34,8 @@ type Config struct {
 	ReadOnly           bool
 	Timeout            time.Duration
 	LoadSize           int
+	CollationType      string
+	CollationOptions   []string
 }
 
 type config struct {
@@ -47,6 +49,8 @@ type config struct {
 	ReadOnly           bool                   `json:"read_only"`
 	Timeout            duration               `json:"timeout"`
 	LoadSize           int                    `json:"load_size"`
+	CollationType      string                 `json:"collation_type"`
+	CollationOptions   []string               `json:"collation_options"`
 }
 
 func (c *Config) UnmarshalJSON(data []byte) error {
@@ -66,6 +70,8 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		ReadOnly:           t.ReadOnly,
 		Timeout:            time.Duration(t.Timeout),
 		LoadSize:           t.LoadSize,
+		CollationType:      t.CollationType,
+		CollationOptions:   t.CollationOptions,
 	}
 	return nil
 }
@@ -82,6 +88,8 @@ func (c *Config) MarshalJSON() ([]byte, error) {
 		ReadOnly:           c.ReadOnly,
 		Timeout:            duration(c.Timeout),
 		LoadSize:           c.LoadSize,
+		CollationType:      c.CollationType,
+		CollationOptions:   c.CollationOptions,
 	})
 }
 

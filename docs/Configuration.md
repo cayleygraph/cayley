@@ -66,6 +66,20 @@ All command line flags take precedence over the configuration file.
 
   The number of quads to buffer from a loaded file before writing a block of quads to the database. Larger numbers are good for larger loads.
 
+#### **`collation_type`**
+
+  * Type: String
+  * Default: ""
+
+  The collation to be used for string comparison by the database. The string should be a valid BCP 47 language tag. If empty no collation is used.
+
+#### **`collation_options`**
+
+  * Type: List of String
+  * Default: []
+
+  A list of option tag to be applied to the selected collation. Valid options are: "IgnoreCase", "IgnoreDiacritics", "IgnoreWidth", "Loose", "Force", "Numeric"
+
 #### **`db_options`**
 
   * Type: Object
