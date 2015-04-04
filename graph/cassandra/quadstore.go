@@ -25,12 +25,11 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/keys"
 	"github.com/google/cayley/quad"
 )
 
 func init() {
-	graph.RegisterQuadStore("cassandra", true, newQuadStore, createNewCassandraGraph)
+	graph.RegisterQuadStore(QuadStoreType, true, newQuadStore, createNewCassandraGraph, nil)
 }
 
 const (
@@ -39,6 +38,9 @@ const (
 
 	// DefaultConsistency is the default consistency level for writes to Cassandra.
 	DefaultConsistency = "default"
+
+	// QuadStoreType is the string identifier for this quadstore.
+	QuadStoreType = "cassandra"
 )
 
 type QuadStore struct {
@@ -319,7 +321,7 @@ func (qs *QuadStore) Size() int64 {
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return keys.NewSequentialKey(qs.horizon)
+	return graph.NewSequentialKey(qs.horizon)
 }
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -355,3 +357,5 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 	}
 	return it, false
 }
+
+func (qs *QuadStore) Type() string { return QuadStoreType }
