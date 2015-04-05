@@ -36,17 +36,21 @@ const (
 	// DefaultKeyspace is the name of the (preexisting) keyspace prepared in Cassandra.
 	DefaultKeyspace = "cayley"
 
-	// DefaultConsistency is the default consistency level for writes to Cassandra.
-	DefaultConsistency = "default"
+	// DefaultReadConsistency is the default consistency level for reads to Cassandra.
+	DefaultReadConsistency = "one"
+
+	// DefaultWriteConsistency is the default consistency level for writes to Cassandra.
+	DefaultWriteConsistency = "any"
 
 	// QuadStoreType is the string identifier for this quadstore.
 	QuadStoreType = "cassandra"
 )
 
 type QuadStore struct {
-	sess    *gocql.Session
-	size    int64
-	horizon int64
+	sess             *gocql.Session
+	size             int64
+	horizon          int64
+	writeConsistency gocql.Consistency
 }
 
 func getAllAddresses(addr string, options graph.Options) []string {
@@ -58,6 +62,16 @@ func getAllAddresses(addr string, options graph.Options) []string {
 	return out
 }
 
+func getConsistency(s string) gocql.Consistency {
+	for i, c := range gocql.ConsistencyNames {
+		if c == s {
+			return gocql.Consistency(i)
+		}
+	}
+	glog.Fatalf("No such Cassandra consistency %s", s)
+	return 0
+}
+
 func clusterWithOptions(addr string, options graph.Options) (*gocql.ClusterConfig, error) {
 	allAddrs := getAllAddresses(addr, options)
 	cluster := gocql.NewCluster(allAddrs...)
@@ -65,21 +79,11 @@ func clusterWithOptions(addr string, options graph.Options) (*gocql.ClusterConfi
 	if val, ok := options.StringKey("keyspace"); ok {
 		keyspace = val
 	}
-	consistencyStr := DefaultConsistency
+	consistencyStr := DefaultReadConsistency
 	if val, ok := options.StringKey("consistency"); ok {
 		consistencyStr = val
 	}
-	foundCons := false
-	for i, c := range gocql.ConsistencyNames {
-		if c == consistencyStr {
-			cluster.Consistency = gocql.Consistency(i)
-			foundCons = true
-			break
-		}
-	}
-	if !foundCons {
-		return nil, fmt.Errorf("No such consistency: %s", consistencyStr)
-	}
+	cluster.Consistency = getConsistency(consistencyStr)
 	cluster.Keyspace = keyspace
 	return cluster, nil
 }
@@ -95,11 +99,15 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	wConsistencyStr := DefaultWriteConsistency
+	if val, ok := options.StringKey("write_consistency"); ok {
+		wConsistencyStr = val
+	}
 	qs := &QuadStore{}
 	qs.sess = session
 	qs.size = 0
 	qs.horizon = -1
+	qs.writeConsistency = getConsistency(wConsistencyStr)
 	err = session.Query("SELECT value FROM metadata WHERE meta_key = ?", "size").Scan(&qs.size)
 	if err != nil && err != gocql.ErrNotFound {
 		return nil, err
@@ -170,7 +178,7 @@ func (qs *QuadStore) addRemoveQuadToBatch(d graph.Delta, data *gocql.Batch, coun
 func (qs *QuadStore) addDeltaToLog(d graph.Delta, data *gocql.Batch, size int64) {
 	data.Query(
 		"INSERT INTO log (id, size, timestamp, action, subject, predicate, object, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		d.ID,
+		d.ID.Int(),
 		size,
 		d.Timestamp,
 		d.Action.String(),
@@ -200,11 +208,18 @@ func (qs *QuadStore) checkValid(delta graph.Delta) bool {
 		label = ?
 		`, q.Subject, q.Predicate, q.Object, q.Label).Scan(&created, &deleted)
 	if err != nil && err != gocql.ErrNotFound {
+		return false
+	}
+	if err == gocql.ErrNotFound {
 		if delta.Action == graph.Add {
 			return true
 		}
+		// Can't delete something that doesn't exist.
 		return false
 	}
+
+	// err == nil at this point
+
 	if len(created) == len(deleted) {
 		if delta.Action == graph.Add {
 			return true
@@ -225,7 +240,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		}
 		switch d.Action {
 		case graph.Add:
-			if qs.checkValid(d) {
+			if !qs.checkValid(d) {
 				if ignoreOpts.IgnoreDup {
 					continue
 				} else {
@@ -244,7 +259,9 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	}
 	// Write the data.
 	batch := qs.sess.NewBatch(gocql.LoggedBatch)
+	batch.Cons = qs.writeConsistency
 	counterBatch := qs.sess.NewBatch(gocql.CounterBatch)
+	counterBatch.Cons = qs.writeConsistency
 	newSize := qs.size
 	newHorizon := qs.horizon
 	for _, d := range deltas {
