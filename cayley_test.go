@@ -37,6 +37,7 @@ import (
 )
 
 var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
+var exists = flag.Bool("exists", false, "Whether the data is preloaded to the backend.")
 
 var benchmarkQueries = []struct {
 	message string
@@ -430,6 +431,11 @@ func prepare(t testing.TB) {
 		cfg.DatabaseOptions = map[string]interface{}{
 			"database_name": "cayley_test", // provide a default test database
 		}
+	case "cassandra":
+		cfg.DatabasePath = "localhost"
+		cfg.DatabaseOptions = map[string]interface{}{
+			"keyspace": "cayley_test", // provide a default test database
+		}
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
 	}
@@ -437,7 +443,7 @@ func prepare(t testing.TB) {
 	var err error
 	create.Do(func() {
 		needsLoad := true
-		if graph.IsPersistent(cfg.DatabaseType) {
+		if graph.IsPersistent(cfg.DatabaseType) && !*exists {
 			if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
 				err = db.Init(cfg)
 				if err != nil {
@@ -453,7 +459,7 @@ func prepare(t testing.TB) {
 			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
 		}
 
-		if needsLoad {
+		if needsLoad && !*exists {
 			err = load(handle.QuadWriter, cfg, "30kmoviedata.nq.gz", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
