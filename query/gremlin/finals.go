@@ -281,9 +281,9 @@ func (wk *worker) runIterator(it graph.Iterator) {
 	if glog.V(2) {
 		b, err := json.MarshalIndent(it.Describe(), "", "  ")
 		if err != nil {
-			glog.Infof("failed to format description: %v", err)
+			glog.V(2).Infof("failed to format description: %v", err)
 		} else {
-			glog.Infof("%s", b)
+			glog.V(2).Infof("%s", b)
 		}
 	}
 	for {

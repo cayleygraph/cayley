@@ -66,6 +66,8 @@ const (
 	Label
 )
 
+var Directions = []Direction{Subject, Predicate, Object, Label}
+
 func (d Direction) Prefix() byte {
 	switch d {
 	case Any:
