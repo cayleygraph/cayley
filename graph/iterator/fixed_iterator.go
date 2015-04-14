@@ -143,6 +143,11 @@ func (it *Fixed) Next() bool {
 	return graph.NextLogOut(it, out, true)
 }
 
+func (it *Fixed) Err() error {
+	// This iterator should never error.
+	return nil
+}
+
 // DEPRECATED
 func (it *Fixed) ResultTree() *graph.ResultTree {
 	return graph.NewResultTree(it.Result())
