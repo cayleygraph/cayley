@@ -155,8 +155,13 @@ type Description struct {
 
 type Nexter interface {
 	// Next advances the iterator to the next value, which will then be available through
-	// the Result method. It returns false if no further advancement is possible.
+	// the Result method. It returns false if no further advancement is possible, or if an
+	// error was encountered during iteration.  Err should be consulted to distinguish
+	// between the two cases.
 	Next() bool
+
+	// Err returns the error (if any) encountered during iteration.
+	Err() error
 
 	Iterator
 }
