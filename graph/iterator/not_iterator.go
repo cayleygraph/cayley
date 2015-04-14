@@ -161,3 +161,5 @@ func (it *Not) Describe() graph.Description {
 		Iterators: subIts,
 	}
 }
+
+var _ graph.Nexter = &Not{}

@@ -214,3 +214,5 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 func (it *LinksTo) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
+
+var _ graph.Nexter = &LinksTo{}

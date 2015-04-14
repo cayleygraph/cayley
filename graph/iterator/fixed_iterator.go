@@ -186,3 +186,5 @@ func (it *Fixed) Stats() graph.IteratorStats {
 		Size:         int64(len(it.values)),
 	}
 }
+
+var _ graph.Nexter = &Fixed{}

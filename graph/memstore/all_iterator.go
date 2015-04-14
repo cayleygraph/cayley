@@ -69,3 +69,6 @@ func (it *quadsAllIterator) Next() bool {
 	}
 	return out
 }
+
+var _ graph.Nexter = &nodesAllIterator{}
+var _ graph.Nexter = &quadsAllIterator{}

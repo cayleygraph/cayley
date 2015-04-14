@@ -204,3 +204,5 @@ func (it *AllIterator) Stats() graph.IteratorStats {
 		Size:         s,
 	}
 }
+
+var _ graph.Nexter = &AllIterator{}

@@ -116,3 +116,5 @@ func (it *Null) Close() {}
 func (it *Null) Stats() graph.IteratorStats {
 	return graph.IteratorStats{}
 }
+
+var _ graph.Nexter = &Null{}

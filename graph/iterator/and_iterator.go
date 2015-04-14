@@ -265,3 +265,5 @@ func (it *And) Close() {
 
 // Register this as an "and" iterator.
 func (it *And) Type() graph.Type { return graph.And }
+
+var _ graph.Nexter = &And{}

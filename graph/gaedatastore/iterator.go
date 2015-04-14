@@ -323,3 +323,5 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		Size:         size,
 	}
 }
+
+var _ graph.Nexter = &Iterator{}

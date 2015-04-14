@@ -160,3 +160,5 @@ func (it *Int64) Stats() graph.IteratorStats {
 		Contains:     it.runstats.Contains,
 	}
 }
+
+var _ graph.Nexter = &Int64{}

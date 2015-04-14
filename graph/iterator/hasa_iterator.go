@@ -252,3 +252,5 @@ func (it *HasA) Type() graph.Type { return graph.HasA }
 func (it *HasA) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
+
+var _ graph.Nexter = &HasA{}

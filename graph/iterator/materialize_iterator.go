@@ -293,3 +293,5 @@ func (it *Materialize) materializeSet() {
 	}
 	it.hasRun = true
 }
+
+var _ graph.Nexter = &Materialize{}

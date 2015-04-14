@@ -191,3 +191,5 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		Size:         int64(it.tree.Len()),
 	}
 }
+
+var _ graph.Nexter = &Iterator{}

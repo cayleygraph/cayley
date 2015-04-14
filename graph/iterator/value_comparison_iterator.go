@@ -218,3 +218,5 @@ func (it *Comparison) Stats() graph.IteratorStats {
 func (it *Comparison) Size() (int64, bool) {
 	return 0, true
 }
+
+var _ graph.Nexter = &Comparison{}
