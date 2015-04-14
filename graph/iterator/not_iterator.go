@@ -12,6 +12,7 @@ type Not struct {
 	primaryIt graph.Iterator
 	allIt     graph.Iterator
 	result    graph.Value
+	err       error
 	runstats  graph.IteratorStats
 }
 
@@ -87,7 +88,14 @@ func (it *Not) Next() bool {
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
+	if err := graph.Err(it.allIt); err != nil {
+		it.err = err
+	}
 	return graph.NextLogOut(it, nil, false)
+}
+
+func (it *Not) Err() error {
+	return it.err
 }
 
 func (it *Not) Result() graph.Value {
