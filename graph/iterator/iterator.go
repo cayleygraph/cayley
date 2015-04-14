@@ -88,6 +88,10 @@ func (it *Null) Next() bool {
 	return false
 }
 
+func (it *Null) Err() error {
+	return nil
+}
+
 func (it *Null) Result() graph.Value {
 	return nil
 }
