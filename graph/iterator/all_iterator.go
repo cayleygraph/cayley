@@ -103,6 +103,11 @@ func (it *Int64) Next() bool {
 	return graph.NextLogOut(it, val, true)
 }
 
+func (it *Int64) Err() error {
+	// This iterator should never error.
+	return nil
+}
+
 // DEPRECATED
 func (it *Int64) ResultTree() *graph.ResultTree {
 	return graph.NewResultTree(it.Result())
