@@ -177,6 +177,17 @@ func Next(it Iterator) bool {
 	return false
 }
 
+// Err is a convenience function that conditionally calls the Err method
+// of an Iterator if it is a Nexter.  If the Iterator is not a Nexter, Err
+// returns nil.
+func Err(it Iterator) error {
+	if n, ok := it.(Nexter); ok {
+		return n.Err()
+	}
+	glog.Errorln("Calling Err on an un-nextable iterator")
+	return nil
+}
+
 // Height is a convienence function to measure the height of an iterator tree.
 func Height(it Iterator, until Type) int {
 	if it.Type() == until {
