@@ -27,7 +27,6 @@ package iterator
 // In MQL terms, this is the [{"age>=": 21}] concept.
 
 import (
-	"log"
 	"strconv"
 
 	"github.com/google/cayley/graph"
@@ -107,8 +106,7 @@ func RunIntOp(a int64, op Operator, b int64) bool {
 	case compareGTE:
 		return a >= b
 	default:
-		log.Fatal("Unknown operator type")
-		return false
+		panic("Unknown operator type")
 	}
 }
 

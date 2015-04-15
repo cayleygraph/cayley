@@ -90,7 +90,10 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	var err error
 	qs.path = path
 	cacheSize := DefaultCacheSize
-	if val, ok := options.IntKey("cache_size_mb"); ok {
+	val, ok, err := options.IntKey("cache_size_mb")
+	if err != nil {
+		return nil, err
+	} else if ok {
 		cacheSize = val
 	}
 	qs.dbOpts = &opt.Options{
@@ -99,7 +102,10 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	qs.dbOpts.ErrorIfMissing = true
 
 	writeBufferSize := DefaultWriteBufferSize
-	if val, ok := options.IntKey("writeBufferSize"); ok {
+	val, ok, err = options.IntKey("writeBufferSize")
+	if err != nil {
+		return nil, err
+	} else if ok {
 		writeBufferSize = val
 	}
 	qs.dbOpts.WriteBuffer = writeBufferSize * opt.MiB

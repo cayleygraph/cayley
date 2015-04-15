@@ -17,7 +17,6 @@ package mql
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"strings"
 
@@ -93,7 +92,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 		it = q.buildResultIterator(path)
 		optional = true
 	default:
-		log.Fatal("Unknown JSON type?", query)
+		err = fmt.Errorf("Unknown JSON type: %T")
 	}
 	if err != nil {
 		return nil, false, err

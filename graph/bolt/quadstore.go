@@ -92,7 +92,10 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	}
 	qs.db = db
 	// BoolKey returns false on non-existence. IE, Sync by default.
-	qs.db.NoSync, _ = options.BoolKey("nosync")
+	qs.db.NoSync, _, err = options.BoolKey("nosync")
+	if err != nil {
+		return nil, err
+	}
 	err = qs.getMetadata()
 	if err != nil {
 		return nil, err

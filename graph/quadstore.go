@@ -23,8 +23,8 @@ package graph
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/barakmich/glog"
 	"github.com/google/cayley/quad"
 )
 
@@ -103,40 +103,40 @@ type QuadStore interface {
 
 type Options map[string]interface{}
 
-func (d Options) IntKey(key string) (int, bool) {
+func (d Options) IntKey(key string) (int, bool, error) {
 	if val, ok := d[key]; ok {
 		switch vv := val.(type) {
 		case float64:
-			return int(vv), true
+			return int(vv), true, nil
 		default:
-			glog.Fatalln("Invalid", key, "parameter type from config.")
+			return 0, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 		}
 	}
-	return 0, false
+	return 0, false, nil
 }
 
-func (d Options) StringKey(key string) (string, bool) {
+func (d Options) StringKey(key string) (string, bool, error) {
 	if val, ok := d[key]; ok {
 		switch vv := val.(type) {
 		case string:
-			return vv, true
+			return vv, true, nil
 		default:
-			glog.Fatalln("Invalid", key, "parameter type from config.")
+			return "", false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 		}
 	}
-	return "", false
+	return "", false, nil
 }
 
-func (d Options) BoolKey(key string) (bool, bool) {
+func (d Options) BoolKey(key string) (bool, bool, error) {
 	if val, ok := d[key]; ok {
 		switch vv := val.(type) {
 		case bool:
-			return vv, true
+			return vv, true, nil
 		default:
-			glog.Fatalln("Invalid", key, "parameter type from config.")
+			return false, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 		}
 	}
-	return false, false
+	return false, false, nil
 }
 
 var ErrCannotBulkLoad = errors.New("quadstore: cannot bulk load")
