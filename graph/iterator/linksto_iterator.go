@@ -45,6 +45,7 @@ type LinksTo struct {
 	dir       quad.Direction
 	nextIt    graph.Iterator
 	result    graph.Value
+	err       error
 	runstats  graph.IteratorStats
 }
 
@@ -164,8 +165,17 @@ func (it *LinksTo) Next() bool {
 		return graph.NextLogOut(it, it.nextIt, true)
 	}
 
+	// If there's an error in the 'next' iterator, we save it and we're done.
+	if err := graph.Err(it.nextIt); err != nil {
+		it.err = err
+		return false
+	}
+
 	// Subiterator is empty, get another one
 	if !graph.Next(it.primaryIt) {
+		// Possibly save error
+		it.err = it.primaryIt.Err()
+
 		// We're out of nodes in our subiterator, so we're done as well.
 		return graph.NextLogOut(it, 0, false)
 	}
@@ -174,6 +184,10 @@ func (it *LinksTo) Next() bool {
 
 	// Recurse -- return the first in the next set.
 	return it.Next()
+}
+
+func (it *LinksTo) Err() error {
+	return it.err
 }
 
 func (it *LinksTo) Result() graph.Value {
