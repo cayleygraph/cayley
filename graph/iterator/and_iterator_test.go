@@ -142,8 +142,8 @@ func TestAllIterators(t *testing.T) {
 }
 
 func TestAndIteratorErr(t *testing.T) {
-	retErr := errors.New("unique")
-	allErr := newTestIterator(false, retErr)
+	wantErr := errors.New("unique")
+	allErr := newTestIterator(false, wantErr)
 
 	and := NewAnd()
 	and.AddSubIterator(allErr)
@@ -152,7 +152,7 @@ func TestAndIteratorErr(t *testing.T) {
 	if and.Next() != false {
 		t.Errorf("And iterator did not pass through initial 'false'")
 	}
-	if and.Err() != retErr {
+	if and.Err() != wantErr {
 		t.Errorf("And iterator did not pass through underlying Err")
 	}
 }

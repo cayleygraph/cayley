@@ -151,8 +151,8 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 }
 
 func TestOrIteratorErr(t *testing.T) {
-	retErr := errors.New("unique")
-	orErr := newTestIterator(false, retErr)
+	wantErr := errors.New("unique")
+	orErr := newTestIterator(false, wantErr)
 
 	fix1 := NewFixed(Identity)
 	fix1.Add(1)
@@ -172,14 +172,14 @@ func TestOrIteratorErr(t *testing.T) {
 	if or.Next() != false {
 		t.Errorf("Or iterator did not pass through underlying 'false'")
 	}
-	if or.Err() != retErr {
+	if or.Err() != wantErr {
 		t.Errorf("Or iterator did not pass through underlying Err")
 	}
 }
 
 func TestShortCircuitOrIteratorErr(t *testing.T) {
-	retErr := errors.New("unique")
-	orErr := newTestIterator(false, retErr)
+	wantErr := errors.New("unique")
+	orErr := newTestIterator(false, wantErr)
 
 	or := NewOr()
 	or.AddSubIterator(orErr)
@@ -188,7 +188,7 @@ func TestShortCircuitOrIteratorErr(t *testing.T) {
 	if or.Next() != false {
 		t.Errorf("Or iterator did not pass through underlying 'false'")
 	}
-	if or.Err() != retErr {
+	if or.Err() != wantErr {
 		t.Errorf("Or iterator did not pass through underlying Err")
 	}
 }

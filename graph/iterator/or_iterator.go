@@ -148,8 +148,8 @@ func (it *Or) Next() bool {
 			return graph.NextLogOut(it, it.result, true)
 		}
 
-		if err := curIt.Err(); err != nil {
-			it.err = err
+		it.err = curIt.Err()
+		if it.err != nil {
 			return graph.NextLogOut(it, nil, false)
 		}
 
@@ -182,7 +182,9 @@ func (it *Or) subItsContain(val graph.Value) (bool, error) {
 			it.currentIterator = i
 			break
 		}
-		if err := sub.Err(); err != nil {
+
+		err := sub.Err()
+		if err != nil {
 			return false, err
 		}
 	}
@@ -238,11 +240,11 @@ func (it *Or) Size() (int64, bool) {
 func (it *Or) NextPath() bool {
 	if it.currentIterator != -1 {
 		currIt := it.internalIterators[it.currentIterator]
-		ret := currIt.NextPath()
-		if !ret {
+		ok := currIt.NextPath()
+		if !ok {
 			it.err = currIt.Err()
 		}
-		return ret
+		return ok
 	}
 	return false
 }
@@ -252,16 +254,15 @@ func (it *Or) cleanUp() {}
 
 // Close this graph.iterator, and, by extension, close the subiterators.
 // Close should be idempotent, and it follows that if it's subiterators
-// follow this contract, the Or follows the contract.
-//
-// Note: as this potentially involves closing multiple subiterators, only
-// the first error encountered while closing will be reported (if any).
+// follow this contract, the Or follows the contract.  It closes all
+// subiterators it can, but returns the first error it encounters.
 func (it *Or) Close() error {
 	it.cleanUp()
 
 	var ret error
 	for _, sub := range it.internalIterators {
-		if err := sub.Close(); err != nil && ret != nil {
+		err := sub.Close()
+		if err != nil && ret == nil {
 			ret = err
 		}
 	}

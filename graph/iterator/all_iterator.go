@@ -106,7 +106,6 @@ func (it *Int64) Next() bool {
 }
 
 func (it *Int64) Err() error {
-	// This iterator should never error.
 	return nil
 }
 

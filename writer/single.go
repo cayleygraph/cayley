@@ -32,8 +32,11 @@ type Single struct {
 }
 
 func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
-	var ignoreMissing, ignoreDuplicate bool
-	var err error
+	var (
+		ignoreMissing   bool
+		ignoreDuplicate bool
+		err             error
+	)
 
 	if *graph.IgnoreMissing {
 		ignoreMissing = true

@@ -121,15 +121,15 @@ func TestVCIContains(t *testing.T) {
 }
 
 func TestComparisonIteratorErr(t *testing.T) {
-	retErr := errors.New("unique")
-	errIt := newTestIterator(false, retErr)
+	wantErr := errors.New("unique")
+	errIt := newTestIterator(false, wantErr)
 
 	vc := NewComparison(errIt, compareLT, int64(2), simpleStore)
 
 	if vc.Next() != false {
 		t.Errorf("Comparison iterator did not pass through initial 'false'")
 	}
-	if vc.Err() != retErr {
+	if vc.Err() != wantErr {
 		t.Errorf("Comparison iterator did not pass through underlying Err")
 	}
 }

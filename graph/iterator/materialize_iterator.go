@@ -48,8 +48,8 @@ type Materialize struct {
 	subIt       graph.Iterator
 	hasRun      bool
 	aborted     bool
-	err         error
 	runstats    graph.IteratorStats
+	err         error
 }
 
 func NewMaterialize(sub graph.Iterator) *Materialize {
@@ -206,9 +206,7 @@ func (it *Materialize) Next() bool {
 	}
 	if it.aborted {
 		n := graph.Next(it.subIt)
-		if err := it.subIt.Err(); err != nil {
-			it.err = err
-		}
+		it.err = it.subIt.Err()
 		return n
 	}
 
@@ -302,9 +300,8 @@ func (it *Materialize) materializeSet() {
 			it.actualSize += 1
 		}
 	}
-	if err := it.subIt.Err(); err != nil {
-		it.err = err
-	} else if it.aborted {
+	it.err = it.subIt.Err()
+	if it.err == nil && it.aborted {
 		if glog.V(2) {
 			glog.V(2).Infoln("Aborting subiterator")
 		}

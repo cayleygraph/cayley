@@ -51,8 +51,8 @@ type HasA struct {
 	dir       quad.Direction
 	resultIt  graph.Iterator
 	result    graph.Value
-	err       error
 	runstats  graph.IteratorStats
+	err       error
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
@@ -153,11 +153,11 @@ func (it *HasA) Contains(val graph.Value) bool {
 		it.resultIt.Close()
 	}
 	it.resultIt = it.qs.QuadIterator(it.dir, val)
-	ret := it.NextContains()
+	ok := it.NextContains()
 	if it.err != nil {
 		return false
 	}
-	return graph.ContainsLogOut(it, val, ret)
+	return graph.ContainsLogOut(it, val, ok)
 }
 
 // NextContains() is shared code between Contains() and GetNextResult() -- calls next on the
@@ -175,9 +175,7 @@ func (it *HasA) NextContains() bool {
 			return true
 		}
 	}
-	if err := it.resultIt.Err(); err != nil {
-		it.err = err
-	}
+	it.err = it.resultIt.Err()
 	return false
 }
 
@@ -193,8 +191,8 @@ func (it *HasA) NextPath() bool {
 	if it.primaryIt.NextPath() {
 		return true
 	}
-	if err := it.primaryIt.Err(); err != nil {
-		it.err = err
+	it.err = it.primaryIt.Err()
+	if it.err != nil {
 		return false
 	}
 
@@ -218,9 +216,7 @@ func (it *HasA) Next() bool {
 	it.resultIt = &Null{}
 
 	if !graph.Next(it.primaryIt) {
-		if err := it.primaryIt.Err(); err != nil {
-			it.err = err
-		}
+		it.err = it.primaryIt.Err()
 		return graph.NextLogOut(it, 0, false)
 	}
 	tID := it.primaryIt.Result()
@@ -261,21 +257,19 @@ func (it *HasA) Stats() graph.IteratorStats {
 	}
 }
 
-// Close the subiterator, the result iterator (if any) and the HasA.
-//
-// Note: as this involves closing multiple iterators, only the first error
-// encountered while closing will be reported (if any).
+// Close the subiterator, the result iterator (if any) and the HasA. It closes
+// all subiterators it can, but returns the first error it encounters.
 func (it *HasA) Close() error {
-	var ret error
+	err := it.primaryIt.Close()
 
 	if it.resultIt != nil {
-		ret = it.resultIt.Close()
-	}
-	if err := it.primaryIt.Close(); err != nil && ret != nil {
-		ret = err
+		err2 := it.resultIt.Close()
+		if err == nil {
+			err = err2
+		}
 	}
 
-	return ret
+	return err
 }
 
 // Register this iterator as a HasA.

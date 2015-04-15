@@ -45,8 +45,8 @@ func TestNotIteratorBasics(t *testing.T) {
 }
 
 func TestNotIteratorErr(t *testing.T) {
-	retErr := errors.New("unique")
-	allIt := newTestIterator(false, retErr)
+	wantErr := errors.New("unique")
+	allIt := newTestIterator(false, wantErr)
 
 	toComplementIt := NewFixed(Identity)
 
@@ -55,7 +55,7 @@ func TestNotIteratorErr(t *testing.T) {
 	if not.Next() != false {
 		t.Errorf("Not iterator did not pass through initial 'false'")
 	}
-	if not.Err() != retErr {
+	if not.Err() != wantErr {
 		t.Errorf("Not iterator did not pass through underlying Err")
 	}
 }

@@ -17,13 +17,11 @@ package iterator
 import (
 	"errors"
 	"testing"
-
-	//"github.com/google/cayley/graph"
 )
 
 func TestMaterializeIteratorError(t *testing.T) {
-	retErr := errors.New("unique")
-	errIt := newTestIterator(false, retErr)
+	wantErr := errors.New("unique")
+	errIt := newTestIterator(false, wantErr)
 
 	// This tests that we properly return 0 results and the error when the
 	// underlying iterator returns an error.
@@ -32,14 +30,14 @@ func TestMaterializeIteratorError(t *testing.T) {
 	if mIt.Next() != false {
 		t.Errorf("Materialize iterator did not pass through underlying 'false'")
 	}
-	if mIt.Err() != retErr {
+	if mIt.Err() != wantErr {
 		t.Errorf("Materialize iterator did not pass through underlying Err")
 	}
 }
 
 func TestMaterializeIteratorErrorAbort(t *testing.T) {
-	retErr := errors.New("unique")
-	errIt := newTestIterator(false, retErr)
+	wantErr := errors.New("unique")
+	errIt := newTestIterator(false, wantErr)
 
 	// This tests that we properly return 0 results and the error when the
 	// underlying iterator is larger than our 'abort at' value, and then
@@ -50,7 +48,7 @@ func TestMaterializeIteratorErrorAbort(t *testing.T) {
 
 	mIt := NewMaterialize(or)
 
-	// Should get all the underlying values...
+	// We should get all the underlying values...
 	for i := 0; i < abortMaterializeAt+1; i++ {
 		if !mIt.Next() {
 			t.Errorf("Materialize iterator returned spurious 'false' on iteration %d", i)
@@ -62,11 +60,11 @@ func TestMaterializeIteratorErrorAbort(t *testing.T) {
 		}
 	}
 
-	// ... and then the error value
+	// ... and then the error value.
 	if mIt.Next() != false {
 		t.Errorf("Materialize iterator did not pass through underlying 'false'")
 	}
-	if mIt.Err() != retErr {
+	if mIt.Err() != wantErr {
 		t.Errorf("Materialize iterator did not pass through underlying Err")
 	}
 }

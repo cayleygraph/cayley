@@ -90,11 +90,11 @@ func (it *Optional) Result() graph.Value {
 // optional subbranch.
 func (it *Optional) NextPath() bool {
 	if it.lastCheck {
-		ret := it.subIt.NextPath()
-		if !ret {
+		ok := it.subIt.NextPath()
+		if !ok {
 			it.err = it.subIt.Err()
 		}
-		return ret
+		return ok
 	}
 	return false
 }

@@ -146,7 +146,6 @@ func (it *Fixed) Next() bool {
 }
 
 func (it *Fixed) Err() error {
-	// This iterator should never error.
 	return nil
 }
 

@@ -12,8 +12,8 @@ type Not struct {
 	primaryIt graph.Iterator
 	allIt     graph.Iterator
 	result    graph.Value
-	err       error
 	runstats  graph.IteratorStats
+	err       error
 }
 
 func NewNot(primaryIt, allIt graph.Iterator) *Not {
@@ -88,9 +88,7 @@ func (it *Not) Next() bool {
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
-	if err := it.allIt.Err(); err != nil {
-		it.err = err
-	}
+	it.err = it.allIt.Err()
 	return graph.NextLogOut(it, nil, false)
 }
 
@@ -113,9 +111,8 @@ func (it *Not) Contains(val graph.Value) bool {
 		return graph.ContainsLogOut(it, val, false)
 	}
 
-	if err := it.primaryIt.Err(); err != nil {
-		it.err = err
-
+	it.err = it.primaryIt.Err()
+	if it.err != nil {
 		// Explicitly return 'false', since an error occurred.
 		return false
 	}
@@ -130,19 +127,17 @@ func (it *Not) NextPath() bool {
 	return false
 }
 
-// Close closes the primary and all iterators.  If an error occurs, only the
-// first one will be returned.
+// Close closes the primary and all iterators.  It closes all subiterators
+// it can, but returns the first error it encounters.
 func (it *Not) Close() error {
-	var ret error
+	err := it.primaryIt.Close()
 
-	if err := it.primaryIt.Close(); err != nil && ret != nil {
-		ret = err
-	}
-	if err := it.allIt.Close(); err != nil && ret != nil {
-		ret = err
+	err2 := it.allIt.Close()
+	if err2 != nil && err == nil {
+		err = err2
 	}
 
-	return ret
+	return err
 }
 
 func (it *Not) Type() graph.Type { return graph.Not }

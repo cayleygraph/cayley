@@ -45,8 +45,8 @@ type LinksTo struct {
 	dir       quad.Direction
 	nextIt    graph.Iterator
 	result    graph.Value
-	err       error
 	runstats  graph.IteratorStats
+	err       error
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
@@ -126,9 +126,7 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 		it.result = val
 		return graph.ContainsLogOut(it, val, true)
 	}
-	if err := it.primaryIt.Err(); err != nil {
-		it.err = err
-	}
+	it.err = it.primaryIt.Err()
 	return graph.ContainsLogOut(it, val, false)
 }
 
@@ -169,8 +167,8 @@ func (it *LinksTo) Next() bool {
 	}
 
 	// If there's an error in the 'next' iterator, we save it and we're done.
-	if err := it.nextIt.Err(); err != nil {
-		it.err = err
+	it.err = it.nextIt.Err()
+	if it.err != nil {
 		return false
 	}
 
@@ -197,30 +195,26 @@ func (it *LinksTo) Result() graph.Value {
 	return it.result
 }
 
-// Close our subiterators.
-//
-// Note: as this involves closing multiple subiterators, only the first error
-// encountered while closing will be reported (if any).
+// Close our subiterators.  It closes all subiterators it can, but
+// returns the first error it encounters.
 func (it *LinksTo) Close() error {
-	var ret error
+	err := it.nextIt.Close()
 
-	if err := it.nextIt.Close(); err != nil && ret != nil {
-		ret = err
-	}
-	if err := it.primaryIt.Close(); err != nil && ret != nil {
-		ret = err
+	err2 := it.primaryIt.Close()
+	if err2 != nil && err == nil {
+		err = err2
 	}
 
-	return ret
+	return err
 }
 
 // We won't ever have a new result, but our subiterators might.
 func (it *LinksTo) NextPath() bool {
-	ret := it.primaryIt.NextPath()
-	if !ret {
+	ok := it.primaryIt.NextPath()
+	if !ok {
 		it.err = it.primaryIt.Err()
 	}
-	return ret
+	return ok
 }
 
 // Register the LinksTo.
