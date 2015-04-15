@@ -119,6 +119,10 @@ func (it *AllIterator) Next() bool {
 	return true
 }
 
+func (it *AllIterator) Err() error {
+	return it.iter.Error()
+}
+
 func (it *AllIterator) ResultTree() *graph.ResultTree {
 	return graph.NewResultTree(it.Result())
 }
