@@ -230,6 +230,9 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	if !it.hasRun {
 		it.materializeSet()
 	}
+	if it.err != nil {
+		return false
+	}
 	if it.aborted {
 		return it.subIt.Contains(v)
 	}
@@ -248,6 +251,9 @@ func (it *Materialize) Contains(v graph.Value) bool {
 func (it *Materialize) NextPath() bool {
 	if !it.hasRun {
 		it.materializeSet()
+	}
+	if it.err != nil {
+		return false
 	}
 	if it.aborted {
 		return it.subIt.NextPath()

@@ -174,7 +174,7 @@ func (it *Or) Result() graph.Value {
 }
 
 // Checks a value against the iterators, in order.
-func (it *Or) subItsContain(val graph.Value) bool {
+func (it *Or) subItsContain(val graph.Value) (bool, error) {
 	var subIsGood = false
 	for i, sub := range it.internalIterators {
 		subIsGood = sub.Contains(val)
@@ -182,15 +182,21 @@ func (it *Or) subItsContain(val graph.Value) bool {
 			it.currentIterator = i
 			break
 		}
+		if err := sub.Err(); err != nil {
+			return false, err
+		}
 	}
-	return subIsGood
+	return subIsGood, nil
 }
 
 // Check a value against the entire graph.iterator, in order.
 func (it *Or) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
-	anyGood := it.subItsContain(val)
-	if !anyGood {
+	anyGood, err := it.subItsContain(val)
+	if err != nil {
+		it.err = err
+		return false
+	} else if !anyGood {
 		return graph.ContainsLogOut(it, val, false)
 	}
 	it.result = val
@@ -231,7 +237,12 @@ func (it *Or) Size() (int64, bool) {
 // shortcircuiting, only allow new results from the currently checked graph.iterator
 func (it *Or) NextPath() bool {
 	if it.currentIterator != -1 {
-		return it.internalIterators[it.currentIterator].NextPath()
+		currIt := it.internalIterators[it.currentIterator]
+		ret := currIt.NextPath()
+		if !ret {
+			it.err = currIt.Err()
+		}
+		return ret
 	}
 	return false
 }

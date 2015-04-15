@@ -193,11 +193,16 @@ func (it *HasA) NextPath() bool {
 	if it.primaryIt.NextPath() {
 		return true
 	}
-	result := it.NextContains()
-	glog.V(4).Infoln("HASA", it.UID(), "NextPath Returns", result, "")
+	if err := it.primaryIt.Err(); err != nil {
+		it.err = err
+		return false
+	}
+
+	result := it.NextContains() // Sets it.err if there's an error
 	if it.err != nil {
 		return false
 	}
+	glog.V(4).Infoln("HASA", it.UID(), "NextPath Returns", result, "")
 	return result
 }
 

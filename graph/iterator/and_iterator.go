@@ -190,8 +190,13 @@ func (it *And) checkContainsList(val graph.Value, lastResult graph.Value) bool {
 	for i, c := range it.checkList {
 		ok = c.Contains(val)
 		if !ok {
+			if err := c.Err(); err != nil {
+				it.err = err
+				return false
+			}
 			if lastResult != nil {
 				for j := 0; j < i; j++ {
+					// TODO(andrew-d): Should this result actually be used?
 					it.checkList[j].Contains(lastResult)
 				}
 			}
@@ -249,9 +254,17 @@ func (it *And) NextPath() bool {
 	if it.primaryIt.NextPath() {
 		return true
 	}
+	if err := it.primaryIt.Err(); err != nil {
+		it.err = err
+		return false
+	}
 	for _, sub := range it.internalIterators {
 		if sub.NextPath() {
 			return true
+		}
+		if err := sub.Err(); err != nil {
+			it.err = err
+			return false
 		}
 	}
 	return false

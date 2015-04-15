@@ -38,6 +38,7 @@ type Optional struct {
 	subIt     graph.Iterator
 	lastCheck bool
 	result    graph.Value
+	err       error
 }
 
 // Creates a new optional iterator.
@@ -77,7 +78,7 @@ func (it *Optional) ResultTree() *graph.ResultTree {
 }
 
 func (it *Optional) Err() error {
-	return it.subIt.Err()
+	return it.err
 }
 
 func (it *Optional) Result() graph.Value {
@@ -89,7 +90,11 @@ func (it *Optional) Result() graph.Value {
 // optional subbranch.
 func (it *Optional) NextPath() bool {
 	if it.lastCheck {
-		return it.subIt.NextPath()
+		ret := it.subIt.NextPath()
+		if !ret {
+			it.err = it.subIt.Err()
+		}
+		return ret
 	}
 	return false
 }
@@ -105,6 +110,7 @@ func (it *Optional) SubIterators() []graph.Iterator {
 func (it *Optional) Contains(val graph.Value) bool {
 	checked := it.subIt.Contains(val)
 	it.lastCheck = checked
+	it.err = it.subIt.Err()
 	it.result = val
 	return true
 }

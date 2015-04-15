@@ -113,6 +113,13 @@ func (it *Not) Contains(val graph.Value) bool {
 		return graph.ContainsLogOut(it, val, false)
 	}
 
+	if err := it.primaryIt.Err(); err != nil {
+		it.err = err
+
+		// Explicitly return 'false', since an error occurred.
+		return false
+	}
+
 	it.result = val
 	return graph.ContainsLogOut(it, val, true)
 }

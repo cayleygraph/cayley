@@ -155,6 +155,7 @@ func (it *Comparison) NextPath() bool {
 	for {
 		hasNext := it.subIt.NextPath()
 		if !hasNext {
+			it.err = it.subIt.Err()
 			return false
 		}
 		if it.doComparison(it.subIt.Result()) {
@@ -174,7 +175,11 @@ func (it *Comparison) Contains(val graph.Value) bool {
 	if !it.doComparison(val) {
 		return false
 	}
-	return it.subIt.Contains(val)
+	ret := it.subIt.Contains(val)
+	if !ret {
+		it.err = it.subIt.Err()
+	}
+	return ret
 }
 
 // If we failed the check, then the subiterator should not contribute to the result

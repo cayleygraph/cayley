@@ -126,6 +126,9 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 		it.result = val
 		return graph.ContainsLogOut(it, val, true)
 	}
+	if err := it.primaryIt.Err(); err != nil {
+		it.err = err
+	}
 	return graph.ContainsLogOut(it, val, false)
 }
 
@@ -213,7 +216,11 @@ func (it *LinksTo) Close() error {
 
 // We won't ever have a new result, but our subiterators might.
 func (it *LinksTo) NextPath() bool {
-	return it.primaryIt.NextPath()
+	ret := it.primaryIt.NextPath()
+	if !ret {
+		it.err = it.primaryIt.Err()
+	}
+	return ret
 }
 
 // Register the LinksTo.
