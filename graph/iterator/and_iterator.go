@@ -29,6 +29,7 @@ type And struct {
 	primaryIt         graph.Iterator
 	checkList         []graph.Iterator
 	result            graph.Value
+	err               error
 	runstats          graph.IteratorStats
 }
 
@@ -153,7 +154,14 @@ func (it *And) Next() bool {
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
+	if err := graph.Err(it.primaryIt); err != nil {
+		it.err = err
+	}
 	return graph.NextLogOut(it, nil, false)
+}
+
+func (it *And) Err() error {
+	return it.err
 }
 
 func (it *And) Result() graph.Value {
