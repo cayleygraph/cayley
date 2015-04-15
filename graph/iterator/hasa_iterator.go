@@ -203,7 +203,7 @@ func (it *HasA) Next() bool {
 	it.resultIt = &Null{}
 
 	if !graph.Next(it.primaryIt) {
-		if err := graph.Err(it.primaryIt); err != nil {
+		if err := it.primaryIt.Err(); err != nil {
 			it.err = err
 		}
 		return graph.NextLogOut(it, 0, false)

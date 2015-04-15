@@ -154,7 +154,7 @@ func (it *And) Next() bool {
 			return graph.NextLogOut(it, curr, true)
 		}
 	}
-	if err := graph.Err(it.primaryIt); err != nil {
+	if err := it.primaryIt.Err(); err != nil {
 		it.err = err
 	}
 	return graph.NextLogOut(it, nil, false)

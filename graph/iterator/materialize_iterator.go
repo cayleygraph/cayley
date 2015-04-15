@@ -206,7 +206,7 @@ func (it *Materialize) Next() bool {
 	}
 	if it.aborted {
 		n := graph.Next(it.subIt)
-		if err := graph.Err(it.subIt); err != nil {
+		if err := it.subIt.Err(); err != nil {
 			it.err = err
 		}
 		return n
@@ -296,7 +296,7 @@ func (it *Materialize) materializeSet() {
 			it.actualSize += 1
 		}
 	}
-	if err := graph.Err(it.subIt); err != nil {
+	if err := it.subIt.Err(); err != nil {
 		it.err = err
 	} else if it.aborted {
 		if glog.V(2) {

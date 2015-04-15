@@ -166,7 +166,7 @@ func (it *LinksTo) Next() bool {
 	}
 
 	// If there's an error in the 'next' iterator, we save it and we're done.
-	if err := graph.Err(it.nextIt); err != nil {
+	if err := it.nextIt.Err(); err != nil {
 		it.err = err
 		return false
 	}

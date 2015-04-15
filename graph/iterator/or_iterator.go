@@ -148,7 +148,7 @@ func (it *Or) Next() bool {
 			return graph.NextLogOut(it, it.result, true)
 		}
 
-		if err := graph.Err(curIt); err != nil {
+		if err := curIt.Err(); err != nil {
 			it.err = err
 			return graph.NextLogOut(it, nil, false)
 		}

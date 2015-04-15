@@ -134,7 +134,7 @@ func (it *Comparison) Next() bool {
 			return true
 		}
 	}
-	if err := graph.Err(it.subIt); err != nil {
+	if err := it.subIt.Err(); err != nil {
 		it.err = err
 	}
 	return false
