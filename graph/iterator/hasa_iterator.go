@@ -153,7 +153,11 @@ func (it *HasA) Contains(val graph.Value) bool {
 		it.resultIt.Close()
 	}
 	it.resultIt = it.qs.QuadIterator(it.dir, val)
-	return graph.ContainsLogOut(it, val, it.NextContains())
+	ret := it.NextContains()
+	if it.err != nil {
+		return false
+	}
+	return graph.ContainsLogOut(it, val, ret)
 }
 
 // NextContains() is shared code between Contains() and GetNextResult() -- calls next on the
@@ -170,6 +174,9 @@ func (it *HasA) NextContains() bool {
 			it.result = it.qs.QuadDirection(link, it.dir)
 			return true
 		}
+	}
+	if err := it.resultIt.Err(); err != nil {
+		it.err = err
 	}
 	return false
 }
@@ -188,6 +195,9 @@ func (it *HasA) NextPath() bool {
 	}
 	result := it.NextContains()
 	glog.V(4).Infoln("HASA", it.UID(), "NextPath Returns", result, "")
+	if it.err != nil {
+		return false
+	}
 	return result
 }
 
