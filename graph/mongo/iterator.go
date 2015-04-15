@@ -39,6 +39,7 @@ type Iterator struct {
 	constraint bson.M
 	collection string
 	result     graph.Value
+	err        error
 }
 
 func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.Value) *Iterator {
@@ -137,6 +138,7 @@ func (it *Iterator) Next() bool {
 	if !found {
 		err := it.iter.Err()
 		if err != nil {
+			it.err = err
 			glog.Errorln("Error Nexting Iterator: ", err)
 		}
 		return false
@@ -146,6 +148,10 @@ func (it *Iterator) Next() bool {
 	}
 	it.result = result.ID
 	return true
+}
+
+func (it *Iterator) Err() error {
+	return it.err
 }
 
 func (it *Iterator) ResultTree() *graph.ResultTree {
