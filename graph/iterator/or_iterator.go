@@ -259,15 +259,15 @@ func (it *Or) cleanUp() {}
 func (it *Or) Close() error {
 	it.cleanUp()
 
-	var ret error
+	var err error
 	for _, sub := range it.internalIterators {
-		err := sub.Close()
-		if err != nil && ret == nil {
-			ret = err
+		serr := sub.Close()
+		if serr != nil && err == nil {
+			err = serr
 		}
 	}
 
-	return ret
+	return err
 }
 
 func (it *Or) Optimize() (graph.Iterator, bool) {
