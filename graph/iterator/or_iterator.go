@@ -241,12 +241,21 @@ func (it *Or) cleanUp() {}
 
 // Close this graph.iterator, and, by extension, close the subiterators.
 // Close should be idempotent, and it follows that if it's subiterators
-// follow this contract, the And follows the contract.
-func (it *Or) Close() {
+// follow this contract, the Or follows the contract.
+//
+// Note: as this potentially involves closing multiple subiterators, only
+// the first error encountered while closing will be reported (if any).
+func (it *Or) Close() error {
 	it.cleanUp()
+
+	var ret error
 	for _, sub := range it.internalIterators {
-		sub.Close()
+		if err := sub.Close(); err != nil && ret != nil {
+			ret = err
+		}
 	}
+
+	return ret
 }
 
 func (it *Or) Optimize() (graph.Iterator, bool) {

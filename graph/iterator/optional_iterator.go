@@ -57,8 +57,8 @@ func (it *Optional) Reset() {
 	it.lastCheck = false
 }
 
-func (it *Optional) Close() {
-	it.subIt.Close()
+func (it *Optional) Close() error {
+	return it.subIt.Close()
 }
 
 func (it *Optional) Tagger() *graph.Tagger {

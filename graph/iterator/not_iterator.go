@@ -123,9 +123,19 @@ func (it *Not) NextPath() bool {
 	return false
 }
 
-func (it *Not) Close() {
-	it.primaryIt.Close()
-	it.allIt.Close()
+// Close closes the primary and all iterators.  If an error occurs, only the
+// first one will be returned.
+func (it *Not) Close() error {
+	var ret error
+
+	if err := it.primaryIt.Close(); err != nil && ret != nil {
+		ret = err
+	}
+	if err := it.allIt.Close(); err != nil && ret != nil {
+		ret = err
+	}
+
+	return ret
 }
 
 func (it *Not) Type() graph.Type { return graph.Not }

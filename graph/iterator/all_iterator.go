@@ -55,7 +55,9 @@ func (it *Int64) Reset() {
 	it.at = it.min
 }
 
-func (it *Int64) Close() {}
+func (it *Int64) Close() error {
+	return nil
+}
 
 func (it *Int64) Clone() graph.Iterator {
 	out := NewInt64(it.min, it.max)

@@ -106,10 +106,11 @@ func (it *Iterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Iterator) Close() {
+func (it *Iterator) Close() error {
 	it.result = nil
 	it.buffer = nil
 	it.done = true
+	return nil
 }
 
 func (it *Iterator) isLiveValue(val []byte) bool {

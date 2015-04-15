@@ -105,7 +105,9 @@ func (it *Iterator) Clone() graph.Iterator {
 	return m
 }
 
-func (it *Iterator) Close() {}
+func (it *Iterator) Close() error {
+	return nil
+}
 
 func (it *Iterator) checkValid(index int64) bool {
 	return it.qs.log[index].DeletedBy == 0

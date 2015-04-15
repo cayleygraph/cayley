@@ -136,7 +136,7 @@ type Iterator interface {
 	Describe() Description
 
 	// Close the iterator and do internal cleanup.
-	Close()
+	Close() error
 
 	// UID returns the unique identifier of the iterator.
 	UID() uint64

@@ -69,11 +69,11 @@ func (it *Materialize) Reset() {
 	it.index = -1
 }
 
-func (it *Materialize) Close() {
-	it.subIt.Close()
+func (it *Materialize) Close() error {
 	it.containsMap = nil
 	it.values = nil
 	it.hasRun = false
+	return it.subIt.Close()
 }
 
 func (it *Materialize) Tagger() *graph.Tagger {

@@ -130,12 +130,13 @@ func (it *Iterator) Reset() {
 	it.result = nil
 }
 
-func (it *Iterator) Close() {
+func (it *Iterator) Close() error {
 	it.buffer = nil
 	it.offset = 0
 	it.done = true
 	it.last = ""
 	it.result = nil
+	return nil
 }
 
 func (it *Iterator) Tagger() *graph.Tagger {

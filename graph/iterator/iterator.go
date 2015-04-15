@@ -114,7 +114,9 @@ func (it *Null) Size() (int64, bool) {
 
 func (it *Null) Reset() {}
 
-func (it *Null) Close() {}
+func (it *Null) Close() error {
+	return nil
+}
 
 // A null iterator costs nothing. Use it!
 func (it *Null) Stats() graph.IteratorStats {

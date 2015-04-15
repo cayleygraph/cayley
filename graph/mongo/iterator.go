@@ -99,8 +99,8 @@ func (it *Iterator) Reset() {
 
 }
 
-func (it *Iterator) Close() {
-	it.iter.Close()
+func (it *Iterator) Close() error {
+	return it.iter.Close()
 }
 
 func (it *Iterator) Tagger() *graph.Tagger {

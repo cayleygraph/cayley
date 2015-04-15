@@ -174,10 +174,11 @@ func (it *AllIterator) Contains(v graph.Value) bool {
 	return true
 }
 
-func (it *AllIterator) Close() {
+func (it *AllIterator) Close() error {
 	it.result = nil
 	it.buffer = nil
 	it.done = true
+	return nil
 }
 
 func (it *AllIterator) Size() (int64, bool) {

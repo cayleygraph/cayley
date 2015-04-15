@@ -145,11 +145,12 @@ func (it *AllIterator) Contains(v graph.Value) bool {
 	return true
 }
 
-func (it *AllIterator) Close() {
+func (it *AllIterator) Close() error {
 	if it.open {
 		it.iter.Release()
 		it.open = false
 	}
+	return nil
 }
 
 func (it *AllIterator) Size() (int64, bool) {

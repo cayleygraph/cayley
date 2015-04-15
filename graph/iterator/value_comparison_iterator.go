@@ -92,8 +92,8 @@ func (it *Comparison) doComparison(val graph.Value) bool {
 	}
 }
 
-func (it *Comparison) Close() {
-	it.subIt.Close()
+func (it *Comparison) Close() error {
+	return it.subIt.Close()
 }
 
 func RunIntOp(a int64, op Operator, b int64) bool {

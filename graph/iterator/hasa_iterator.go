@@ -247,11 +247,17 @@ func (it *HasA) Stats() graph.IteratorStats {
 }
 
 // Close the subiterator, the result iterator (if any) and the HasA.
-func (it *HasA) Close() {
+func (it *HasA) Close() error {
+	var ret error
+
 	if it.resultIt != nil {
-		it.resultIt.Close()
+		ret = it.resultIt.Close()
 	}
-	it.primaryIt.Close()
+	if err := it.primaryIt.Close(); err != nil && ret != nil {
+		ret = err
+	}
+
+	return ret
 }
 
 // Register this iterator as a HasA.

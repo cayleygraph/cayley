@@ -181,9 +181,17 @@ func (it *LinksTo) Result() graph.Value {
 }
 
 // Close our subiterators.
-func (it *LinksTo) Close() {
-	it.nextIt.Close()
-	it.primaryIt.Close()
+func (it *LinksTo) Close() error {
+	var ret error
+
+	if err := it.nextIt.Close(); err != nil && ret != nil {
+		ret = err
+	}
+	if err := it.primaryIt.Close(); err != nil && ret != nil {
+		ret = err
+	}
+
+	return ret
 }
 
 // We won't ever have a new result, but our subiterators might.

@@ -63,7 +63,9 @@ func (it *Fixed) Reset() {
 	it.lastIndex = 0
 }
 
-func (it *Fixed) Close() {}
+func (it *Fixed) Close() error {
+	return nil
+}
 
 func (it *Fixed) Tagger() *graph.Tagger {
 	return &it.tags

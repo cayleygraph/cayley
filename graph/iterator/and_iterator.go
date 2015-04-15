@@ -263,12 +263,22 @@ func (it *And) cleanUp() {}
 // Close this iterator, and, by extension, close the subiterators.
 // Close should be idempotent, and it follows that if it's subiterators
 // follow this contract, the And follows the contract.
-func (it *And) Close() {
+//
+// Note: as this potentially involves closing multiple subiterators, only
+// the first error encountered while closing will be reported (if any).
+func (it *And) Close() error {
 	it.cleanUp()
-	it.primaryIt.Close()
+
+	var ret error
+
+	ret = it.primaryIt.Close()
 	for _, sub := range it.internalIterators {
-		sub.Close()
+		if err := sub.Close(); err != nil && ret != nil {
+			ret = err
+		}
 	}
+
+	return ret
 }
 
 // Register this as an "and" iterator.
