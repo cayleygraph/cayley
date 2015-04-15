@@ -195,7 +195,7 @@ func (it *LinksTo) Result() graph.Value {
 	return it.result
 }
 
-// Close our subiterators.  It closes all subiterators it can, but
+// Close closes the iterator.  It closes all subiterators it can, but
 // returns the first error it encounters.
 func (it *LinksTo) Close() error {
 	err := it.nextIt.Close()
