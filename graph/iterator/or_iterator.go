@@ -33,6 +33,7 @@ type Or struct {
 	itCount           int
 	currentIterator   int
 	result            graph.Value
+	err               error
 }
 
 func NewOr() *Or {
@@ -147,6 +148,11 @@ func (it *Or) Next() bool {
 			return graph.NextLogOut(it, it.result, true)
 		}
 
+		if err := graph.Err(curIt); err != nil {
+			it.err = err
+			return graph.NextLogOut(it, nil, false)
+		}
+
 		if it.isShortCircuiting && !first {
 			break
 		}
@@ -157,6 +163,10 @@ func (it *Or) Next() bool {
 	}
 
 	return graph.NextLogOut(it, nil, false)
+}
+
+func (it *Or) Err() error {
+	return it.err
 }
 
 func (it *Or) Result() graph.Value {

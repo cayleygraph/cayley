@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -146,5 +147,48 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	optOr, _ = or.Optimize()
 	if got := iterated(optOr); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to iterate optimized Or correctly, got:%v expect:%v", got, expect)
+	}
+}
+
+func TestOrIteratorErr(t *testing.T) {
+	retErr := errors.New("unique")
+	orErr := newTestIterator(false, retErr)
+
+	fix1 := NewFixed(Identity)
+	fix1.Add(1)
+
+	or := NewOr()
+	or.AddSubIterator(fix1)
+	or.AddSubIterator(orErr)
+	or.AddSubIterator(NewInt64(1, 5))
+
+	if !or.Next() {
+		t.Errorf("Failed to iterate Or correctly")
+	}
+	if got := or.Result(); got != 1 {
+		t.Errorf("Failed to iterate Or correctly, got:%v expect:1", got)
+	}
+
+	if or.Next() != false {
+		t.Errorf("Or iterator did not pass through underlying 'false'")
+	}
+	if or.Err() != retErr {
+		t.Errorf("Or iterator did not pass through underlying Err")
+	}
+}
+
+func TestShortCircuitOrIteratorErr(t *testing.T) {
+	retErr := errors.New("unique")
+	orErr := newTestIterator(false, retErr)
+
+	or := NewOr()
+	or.AddSubIterator(orErr)
+	or.AddSubIterator(NewInt64(1, 5))
+
+	if or.Next() != false {
+		t.Errorf("Or iterator did not pass through underlying 'false'")
+	}
+	if or.Err() != retErr {
+		t.Errorf("Or iterator did not pass through underlying Err")
 	}
 }
