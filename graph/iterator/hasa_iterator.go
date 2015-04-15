@@ -263,9 +263,9 @@ func (it *HasA) Close() error {
 	err := it.primaryIt.Close()
 
 	if it.resultIt != nil {
-		err2 := it.resultIt.Close()
+		_err := it.resultIt.Close()
 		if err == nil {
-			err = err2
+			err = _err
 		}
 	}
 

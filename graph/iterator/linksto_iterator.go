@@ -200,9 +200,9 @@ func (it *LinksTo) Result() graph.Value {
 func (it *LinksTo) Close() error {
 	err := it.nextIt.Close()
 
-	err2 := it.primaryIt.Close()
-	if err2 != nil && err == nil {
-		err = err2
+	_err := it.primaryIt.Close()
+	if _err != nil && err == nil {
+		err = _err
 	}
 
 	return err

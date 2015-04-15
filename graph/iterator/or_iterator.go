@@ -261,9 +261,9 @@ func (it *Or) Close() error {
 
 	var err error
 	for _, sub := range it.internalIterators {
-		serr := sub.Close()
-		if serr != nil && err == nil {
-			err = serr
+		_err := sub.Close()
+		if _err != nil && err == nil {
+			err = _err
 		}
 	}
 

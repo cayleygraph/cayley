@@ -132,9 +132,9 @@ func (it *Not) NextPath() bool {
 func (it *Not) Close() error {
 	err := it.primaryIt.Close()
 
-	err2 := it.allIt.Close()
-	if err2 != nil && err == nil {
-		err = err2
+	_err := it.allIt.Close()
+	if _err != nil && err == nil {
+		err = _err
 	}
 
 	return err
