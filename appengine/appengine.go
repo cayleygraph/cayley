@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/barakmich/glog"
 	"os"
 	"time"
@@ -45,11 +46,11 @@ var (
 	timeout            = 30 * time.Second
 )
 
-func configFrom(file string) *config.Config {
+func configFrom(file string) (*config.Config, error) {
 	// Find the file...
 	if file != "" {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
-			glog.Fatalln("Cannot find specified configuration file", file, ", aborting.")
+			return nil, fmt.Errorf("Cannot find specified configuration file", file)
 		}
 	} else if _, err := os.Stat("/cayley_appengine.cfg"); err == nil {
 		file = "/cayley_appengine.cfg"
@@ -59,7 +60,7 @@ func configFrom(file string) *config.Config {
 	}
 	cfg, err := config.Load(file)
 	if err != nil {
-		glog.Fatalln(err)
+		return nil, err
 	}
 
 	if cfg.DatabasePath == "" {
@@ -92,15 +93,19 @@ func configFrom(file string) *config.Config {
 
 	cfg.ReadOnly = cfg.ReadOnly || readOnly
 
-	return cfg
+	return cfg, nil
 }
 
 func init() {
 	glog.SetToStderr(true)
-	cfg := configFrom("cayley_appengine.cfg")
+	cfg, err := configFrom("cayley_appengine.cfg")
+	if err != nil {
+		glog.Fatalln("Error loading config:", err)
+	}
+
 	handle, err := db.Open(cfg)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatalln("Error opening database:", err)
 	}
 	http.SetupRoutes(handle, cfg)
 }

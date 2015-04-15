@@ -154,7 +154,7 @@ func getContext(opts graph.Options) (appengine.Context, error) {
 	req := opts["HTTPRequest"].(*http.Request)
 	if req == nil {
 		err := errors.New("HTTP Request needed")
-		glog.Fatalln(err)
+		glog.Errorln(err)
 		return nil, err
 	}
 	return appengine.NewContext(req), nil
