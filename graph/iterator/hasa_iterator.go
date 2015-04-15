@@ -51,6 +51,7 @@ type HasA struct {
 	dir       quad.Direction
 	resultIt  graph.Iterator
 	result    graph.Value
+	err       error
 	runstats  graph.IteratorStats
 }
 
@@ -202,12 +203,19 @@ func (it *HasA) Next() bool {
 	it.resultIt = &Null{}
 
 	if !graph.Next(it.primaryIt) {
+		if err := graph.Err(it.primaryIt); err != nil {
+			it.err = err
+		}
 		return graph.NextLogOut(it, 0, false)
 	}
 	tID := it.primaryIt.Result()
 	val := it.qs.QuadDirection(tID, it.dir)
 	it.result = val
 	return graph.NextLogOut(it, val, true)
+}
+
+func (it *HasA) Err() error {
+	return it.err
 }
 
 func (it *HasA) Result() graph.Value {
