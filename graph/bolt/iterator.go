@@ -46,6 +46,7 @@ type Iterator struct {
 	dir     quad.Direction
 	qs      *QuadStore
 	result  *Token
+	err     error
 	buffer  [][]byte
 	offset  int
 	done    bool
@@ -170,6 +171,7 @@ func (it *Iterator) Next() bool {
 		if err != nil {
 			if err != errNotExist {
 				glog.Errorf("Error nexting in database: %v", err)
+				it.err = err
 			}
 			it.done = true
 			return false
@@ -182,6 +184,10 @@ func (it *Iterator) Next() bool {
 		return false
 	}
 	return true
+}
+
+func (it *Iterator) Err() error {
+	return it.err
 }
 
 func (it *Iterator) ResultTree() *graph.ResultTree {
