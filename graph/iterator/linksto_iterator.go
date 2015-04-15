@@ -181,6 +181,9 @@ func (it *LinksTo) Result() graph.Value {
 }
 
 // Close our subiterators.
+//
+// Note: as this involves closing multiple subiterators, only the first error
+// encountered while closing will be reported (if any).
 func (it *LinksTo) Close() error {
 	var ret error
 

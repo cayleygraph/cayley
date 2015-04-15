@@ -247,6 +247,9 @@ func (it *HasA) Stats() graph.IteratorStats {
 }
 
 // Close the subiterator, the result iterator (if any) and the HasA.
+//
+// Note: as this involves closing multiple iterators, only the first error
+// encountered while closing will be reported (if any).
 func (it *HasA) Close() error {
 	var ret error
 
