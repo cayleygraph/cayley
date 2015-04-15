@@ -156,3 +156,5 @@ func (it *Optional) Stats() graph.IteratorStats {
 func (it *Optional) Size() (int64, bool) {
 	return 0, true
 }
+
+var _ graph.Iterator = &Optional{}
