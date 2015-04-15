@@ -41,6 +41,7 @@ type Iterator struct {
 	offset int
 	last   string
 	result graph.Value
+	err    error
 }
 
 var (
@@ -267,7 +268,8 @@ func (it *Iterator) Next() bool {
 		}
 		if err != nil {
 			glog.Errorf("Error fetching next entry %v", err)
-			break
+			it.err = err
+			return false
 		}
 		if !skip {
 			it.buffer = append(it.buffer, k.StringID())
@@ -286,6 +288,10 @@ func (it *Iterator) Next() bool {
 	// First result
 	it.result = &Token{Kind: it.kind, Hash: it.buffer[it.offset]}
 	return true
+}
+
+func (it *Iterator) Err() error {
+	return it.err
 }
 
 func (it *Iterator) Size() (int64, bool) {
