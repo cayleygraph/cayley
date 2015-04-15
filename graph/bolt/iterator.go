@@ -46,11 +46,11 @@ type Iterator struct {
 	dir     quad.Direction
 	qs      *QuadStore
 	result  *Token
-	err     error
 	buffer  [][]byte
 	offset  int
 	done    bool
 	size    int64
+	err     error
 }
 
 func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
