@@ -15,6 +15,7 @@
 package memstore
 
 import (
+	"io"
 	"math"
 
 	"github.com/google/cayley/graph"
@@ -121,7 +122,9 @@ func (it *Iterator) Next() bool {
 	}
 	result, _, err := it.iter.Next()
 	if err != nil {
-		it.err = err
+		if err != io.EOF {
+			it.err = err
+		}
 		return graph.NextLogOut(it, nil, false)
 	}
 	if !it.checkValid(result) {
