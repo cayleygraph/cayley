@@ -48,6 +48,7 @@ type Materialize struct {
 	subIt       graph.Iterator
 	hasRun      bool
 	aborted     bool
+	err         error
 	runstats    graph.IteratorStats
 }
 
@@ -108,6 +109,7 @@ func (it *Materialize) Clone() graph.Iterator {
 	if it.hasRun {
 		out.hasRun = true
 		out.aborted = it.aborted
+		out.err = it.err
 		out.values = it.values
 		out.containsMap = it.containsMap
 		out.actualSize = it.actualSize
@@ -199,8 +201,15 @@ func (it *Materialize) Next() bool {
 	if !it.hasRun {
 		it.materializeSet()
 	}
+	if it.err != nil {
+		return false
+	}
 	if it.aborted {
-		return graph.Next(it.subIt)
+		n := graph.Next(it.subIt)
+		if err := graph.Err(it.subIt); err != nil {
+			it.err = err
+		}
+		return n
 	}
 
 	it.index++
@@ -209,6 +218,10 @@ func (it *Materialize) Next() bool {
 		return graph.NextLogOut(it, nil, false)
 	}
 	return graph.NextLogOut(it, it.Result(), true)
+}
+
+func (it *Materialize) Err() error {
+	return it.err
 }
 
 func (it *Materialize) Contains(v graph.Value) bool {
@@ -283,7 +296,9 @@ func (it *Materialize) materializeSet() {
 			it.actualSize += 1
 		}
 	}
-	if it.aborted {
+	if err := graph.Err(it.subIt); err != nil {
+		it.err = err
+	} else if it.aborted {
 		if glog.V(2) {
 			glog.V(2).Infoln("Aborting subiterator")
 		}
