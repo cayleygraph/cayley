@@ -51,6 +51,7 @@ type Comparison struct {
 	val    interface{}
 	qs     graph.QuadStore
 	result graph.Value
+	err    error
 }
 
 func NewComparison(sub graph.Iterator, op Operator, val interface{}, qs graph.QuadStore) *Comparison {
@@ -133,7 +134,14 @@ func (it *Comparison) Next() bool {
 			return true
 		}
 	}
+	if err := graph.Err(it.subIt); err != nil {
+		it.err = err
+	}
 	return false
+}
+
+func (it *Comparison) Err() error {
+	return it.err
 }
 
 // DEPRECATED
