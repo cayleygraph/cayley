@@ -100,6 +100,9 @@ type Iterator interface {
 	// Contains returns whether the value is within the set held by the iterator.
 	Contains(Value) bool
 
+	// Err returns the error (if any) encountered during iteration.
+	Err() error
+
 	// Start iteration from the beginning
 	Reset()
 
@@ -159,9 +162,6 @@ type Nexter interface {
 	// error was encountered during iteration.  Err should be consulted to distinguish
 	// between the two cases.
 	Next() bool
-
-	// Err returns the error (if any) encountered during iteration.
-	Err() error
 
 	Iterator
 }

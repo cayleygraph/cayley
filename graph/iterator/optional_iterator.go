@@ -76,6 +76,10 @@ func (it *Optional) ResultTree() *graph.ResultTree {
 	return graph.NewResultTree(it.Result())
 }
 
+func (it *Optional) Err() error {
+	return it.subIt.Err()
+}
+
 func (it *Optional) Result() graph.Value {
 	return it.result
 }
