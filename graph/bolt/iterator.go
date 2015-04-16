@@ -20,9 +20,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/barakmich/glog"
-	"github.com/boltdb/bolt"
-
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/boltdb/bolt"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"

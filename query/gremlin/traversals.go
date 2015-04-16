@@ -17,8 +17,8 @@ package gremlin
 // Adds special traversal functions to JS Gremlin objects. Most of these just build the chain of objects, and won't often need the session.
 
 import (
-	"github.com/barakmich/glog"
-	"github.com/robertkrimen/otto"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/robertkrimen/otto"
 )
 
 func (wk *worker) embedTraversals(env *otto.Otto, obj *otto.Object) {

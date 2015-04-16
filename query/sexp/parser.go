@@ -15,8 +15,7 @@
 package sexp
 
 import (
-	"github.com/badgerodon/peg"
-
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/badgerodon/peg"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
