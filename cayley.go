@@ -33,6 +33,7 @@ import (
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
+	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/quad/cquads"
 	"github.com/google/cayley/quad/nquads"
@@ -286,7 +287,7 @@ func decompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 		r = res.Body
 	}
 
-	r, err = quad.Decompressor(r)
+	r, err = internal.Decompressor(r)
 	if err != nil {
 		if err == io.EOF {
 			return nil

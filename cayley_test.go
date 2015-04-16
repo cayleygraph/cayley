@@ -32,6 +32,7 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/query/gremlin"
 )
@@ -705,7 +706,7 @@ var testDecompressor = []struct {
 
 func TestDecompressor(t *testing.T) {
 	for _, test := range testDecompressor {
-		r, err := decompressor(test.input)
+		r, err := internal.Decompressor(test.input)
 		if err != test.err {
 			t.Fatalf("Unexpected error for %s, got:%v expect:%v", test.message, err, test.err)
 		}

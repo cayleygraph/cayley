@@ -25,6 +25,7 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/quad/cquads"
 )
@@ -82,7 +83,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		blockSize = int64(api.config.LoadSize)
 	}
 
-	quadReader, err := quad.Decompressor(formFile)
+	quadReader, err := internal.Decompressor(formFile)
 	// TODO(kortschak) Make this configurable from the web UI.
 	dec := cquads.NewDecoder(quadReader)
 
