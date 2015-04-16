@@ -24,6 +24,8 @@ import (
 
 	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
 	"github.com/google/cayley/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
+
+	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/quad/cquads"
 )
@@ -74,7 +76,6 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		glog.Errorln(err)
 		return jsonResponse(w, 500, "Couldn't read file: "+err.Error())
 	}
-
 	defer formFile.Close()
 
 	blockSize, blockErr := strconv.ParseInt(r.URL.Query().Get("block_size"), 10, 64)
@@ -82,8 +83,9 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		blockSize = int64(api.config.LoadSize)
 	}
 
+	quadReader, err := internal.Decompressor(formFile)
 	// TODO(kortschak) Make this configurable from the web UI.
-	dec := cquads.NewDecoder(formFile)
+	dec := cquads.NewDecoder(quadReader)
 
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
@@ -100,7 +102,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 			if err == io.EOF {
 				break
 			}
-			panic("what can do this here?") // FIXME(kortschak)
+			glog.Fatalln("what can do this here?", err) // FIXME(kortschak)
 		}
 		block = append(block, t)
 		n++

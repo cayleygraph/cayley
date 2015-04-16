@@ -17,10 +17,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"compress/bzip2"
-	"compress/gzip"
 	"flag"
 	"fmt"
 	"io"
@@ -36,6 +32,7 @@ import (
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
+	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/quad/cquads"
 	"github.com/google/cayley/quad/nquads"
@@ -289,8 +286,11 @@ func decompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 		r = res.Body
 	}
 
-	r, err = decompressor(r)
+	r, err = internal.Decompressor(r)
 	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
 		return err
 	}
 
@@ -309,25 +309,4 @@ func decompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 	}
 
 	return db.Load(qw, cfg, dec)
-}
-
-const (
-	gzipMagic  = "\x1f\x8b"
-	b2zipMagic = "BZh"
-)
-
-func decompressor(r io.Reader) (io.Reader, error) {
-	br := bufio.NewReader(r)
-	buf, err := br.Peek(3)
-	if err != nil {
-		return nil, err
-	}
-	switch {
-	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
-		return gzip.NewReader(br)
-	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
-		return bzip2.NewReader(br), nil
-	default:
-		return br, nil
-	}
 }
