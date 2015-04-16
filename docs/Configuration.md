@@ -25,6 +25,7 @@ All command line flags take precedence over the configuration file.
   * `leveldb`: A persistent on-disk store backed by [LevelDB](http://code.google.com/p/leveldb/).
   * `bolt`: Stores the graph data on-disk in a [Bolt](http://github.com/boltdb/bolt) file. Uses more disk space and memory than LevelDB for smaller stores, but is often faster to write to and comparable for large ones, with faster average query times.
   * `mongo`: Stores the graph data and indices in a [MongoDB](http://mongodb.org) instance. Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
+  * `cassandra`: Stores the graph data and indices in a [Cassandra](http://cassandra.apache.org) keyspace. A fairly fast, horizontally-scaleable store. Requires the keyspace be created before `cayley init` is run (so as to pick correct replication and sharding for your use case).
 
 #### **`db_path`**
 
@@ -123,6 +124,30 @@ Optionally disable syncing to disk per transaction. Nosync being true means much
   * Default: "cayley"
 
 The name of the database within MongoDB to connect to. Manages its own collections and indices therein.
+
+### Cassandra
+
+
+#### **`keyspace`**
+
+  * Type: String
+  * Default: "cayley"
+
+The name of the keyspace inside Cassandra Cayley will connect to and build tables in.
+
+#### **`consistency`**
+
+  * Type: String
+  * Default: "default"
+
+The level of consistency Cayley will expect per write transaction. Options include "default", "any", "one", "two", "three", "quorum", "all", "localquorum", "eachquorum", "serial", and "localserial", with the relevant semantics from Cassandra for each.
+
+#### **`address_list`**
+
+  * Type: String
+  * Default: null
+
+A comma-separated list of other addresses in the Cassandra cluster to connect to, beyond the `dbpath`, eg, "10.0.0.1,10.0.0.2".
 
 ## Per-Replication Options
 

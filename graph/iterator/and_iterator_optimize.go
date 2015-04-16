@@ -179,6 +179,9 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 		glog.V(3).Infoln("And:", it.UID(), "Choosing:", best.UID(), "Best:", bestCost)
 	}
 
+	if best == nil {
+		glog.Error("Apparently, there are no iterators that CanNext() in this And.")
+	}
 	// TODO(barakmich): Optimization of order need not stop here. Picking a smart
 	// Contains() order based on probability of getting a false Contains() first is
 	// useful (fail faster).
@@ -312,7 +315,7 @@ func materializeIts(its []graph.Iterator) []graph.Iterator {
 	for _, it := range its[1:] {
 		stats := it.Stats()
 		if stats.Size*stats.NextCost < (stats.ContainsCost * (1 + (stats.Size / (allStats.Size + 1)))) {
-			if graph.Height(it, graph.Materialize) > 10 {
+			if graph.Height(it, graph.Materialize) > 4 {
 				out = append(out, NewMaterialize(it))
 				continue
 			}

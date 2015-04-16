@@ -25,6 +25,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
+	"strings"
 	"time"
 
 	"github.com/barakmich/glog"
@@ -40,6 +42,7 @@ import (
 
 	// Load all supported backends.
 	_ "github.com/google/cayley/graph/bolt"
+	_ "github.com/google/cayley/graph/cassandra"
 	_ "github.com/google/cayley/graph/leveldb"
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/graph/mongo"
@@ -84,6 +87,13 @@ Commands:
 
 Flags:`)
 	flag.PrintDefaults()
+
+	fmt.Fprintln(os.Stderr, `
+
+Backends supported:
+ `,
+		strings.Join(graph.QuadStores(), "\n  "),
+	)
 }
 
 func init() {
@@ -158,6 +168,14 @@ func main() {
 	if Version != "" {
 		buildString = fmt.Sprint("Cayley ", Version, " built ", BuildDate)
 		glog.Infoln(buildString)
+	}
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			glog.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
 	}
 
 	cfg := configFrom(*configFile)
