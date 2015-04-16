@@ -17,8 +17,7 @@ package iterator
 // A simple iterator that, when first called Contains() or Next() upon, materializes the whole subiterator, stores it locally, and responds. Essentially a cache.
 
 import (
-	"github.com/barakmich/glog"
-
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
 )
 

@@ -22,9 +22,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/barakmich/glog"
-	"github.com/julienschmidt/httprouter"
-
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"

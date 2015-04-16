@@ -17,9 +17,8 @@ package gremlin
 import (
 	"strconv"
 
-	"github.com/barakmich/glog"
-	"github.com/robertkrimen/otto"
-
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/robertkrimen/otto"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"

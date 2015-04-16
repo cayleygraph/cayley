@@ -21,7 +21,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
 	"github.com/google/cayley/quad"
 )
 

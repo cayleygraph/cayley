@@ -27,8 +27,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/barakmich/glog"
-
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"

@@ -15,10 +15,10 @@
 package graph
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"encoding/json"
 	"errors"
-	"github.com/barakmich/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/code.google.com/p/go-uuid/uuid"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
 	"strconv"
 	"sync"
 )

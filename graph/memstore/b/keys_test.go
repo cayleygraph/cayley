@@ -9,7 +9,7 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"github.com/cznic/mathutil"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/cznic/mathutil"
 )
 
 func rng() *mathutil.FC32 {

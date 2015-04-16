@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/barakmich/glog"
-	"github.com/julienschmidt/httprouter"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/barakmich/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
 
 	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
