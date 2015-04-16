@@ -1,6 +1,7 @@
 package iterator
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -40,5 +41,21 @@ func TestNotIteratorBasics(t *testing.T) {
 		if not.Contains(v) {
 			t.Errorf("Failed to correctly check %d as false", v)
 		}
+	}
+}
+
+func TestNotIteratorErr(t *testing.T) {
+	wantErr := errors.New("unique")
+	allIt := newTestIterator(false, wantErr)
+
+	toComplementIt := NewFixed(Identity)
+
+	not := NewNot(toComplementIt, allIt)
+
+	if not.Next() != false {
+		t.Errorf("Not iterator did not pass through initial 'false'")
+	}
+	if not.Err() != wantErr {
+		t.Errorf("Not iterator did not pass through underlying Err")
 	}
 }

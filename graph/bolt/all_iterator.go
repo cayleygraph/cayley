@@ -33,6 +33,7 @@ type AllIterator struct {
 	dir    quad.Direction
 	qs     *QuadStore
 	result *Token
+	err    error
 	buffer [][]byte
 	offset int
 	done   bool
@@ -121,6 +122,7 @@ func (it *AllIterator) Next() bool {
 		})
 		if err != nil {
 			glog.Error("Error nexting in database: ", err)
+			it.err = err
 			it.done = true
 			return false
 		}
@@ -132,6 +134,10 @@ func (it *AllIterator) Next() bool {
 		return false
 	}
 	return true
+}
+
+func (it *AllIterator) Err() error {
+	return it.err
 }
 
 func (it *AllIterator) ResultTree() *graph.ResultTree {
@@ -168,10 +174,11 @@ func (it *AllIterator) Contains(v graph.Value) bool {
 	return true
 }
 
-func (it *AllIterator) Close() {
+func (it *AllIterator) Close() error {
 	it.result = nil
 	it.buffer = nil
 	it.done = true
+	return nil
 }
 
 func (it *AllIterator) Size() (int64, bool) {
@@ -204,3 +211,5 @@ func (it *AllIterator) Stats() graph.IteratorStats {
 		Size:         s,
 	}
 }
+
+var _ graph.Nexter = &AllIterator{}

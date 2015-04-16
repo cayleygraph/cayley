@@ -33,6 +33,7 @@ type Or struct {
 	itCount           int
 	currentIterator   int
 	result            graph.Value
+	err               error
 }
 
 func NewOr() *Or {
@@ -147,6 +148,11 @@ func (it *Or) Next() bool {
 			return graph.NextLogOut(it, it.result, true)
 		}
 
+		it.err = curIt.Err()
+		if it.err != nil {
+			return graph.NextLogOut(it, nil, false)
+		}
+
 		if it.isShortCircuiting && !first {
 			break
 		}
@@ -159,12 +165,16 @@ func (it *Or) Next() bool {
 	return graph.NextLogOut(it, nil, false)
 }
 
+func (it *Or) Err() error {
+	return it.err
+}
+
 func (it *Or) Result() graph.Value {
 	return it.result
 }
 
 // Checks a value against the iterators, in order.
-func (it *Or) subItsContain(val graph.Value) bool {
+func (it *Or) subItsContain(val graph.Value) (bool, error) {
 	var subIsGood = false
 	for i, sub := range it.internalIterators {
 		subIsGood = sub.Contains(val)
@@ -172,15 +182,23 @@ func (it *Or) subItsContain(val graph.Value) bool {
 			it.currentIterator = i
 			break
 		}
+
+		err := sub.Err()
+		if err != nil {
+			return false, err
+		}
 	}
-	return subIsGood
+	return subIsGood, nil
 }
 
 // Check a value against the entire graph.iterator, in order.
 func (it *Or) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
-	anyGood := it.subItsContain(val)
-	if !anyGood {
+	anyGood, err := it.subItsContain(val)
+	if err != nil {
+		it.err = err
+		return false
+	} else if !anyGood {
 		return graph.ContainsLogOut(it, val, false)
 	}
 	it.result = val
@@ -221,7 +239,12 @@ func (it *Or) Size() (int64, bool) {
 // shortcircuiting, only allow new results from the currently checked graph.iterator
 func (it *Or) NextPath() bool {
 	if it.currentIterator != -1 {
-		return it.internalIterators[it.currentIterator].NextPath()
+		currIt := it.internalIterators[it.currentIterator]
+		ok := currIt.NextPath()
+		if !ok {
+			it.err = currIt.Err()
+		}
+		return ok
 	}
 	return false
 }
@@ -231,12 +254,20 @@ func (it *Or) cleanUp() {}
 
 // Close this graph.iterator, and, by extension, close the subiterators.
 // Close should be idempotent, and it follows that if it's subiterators
-// follow this contract, the And follows the contract.
-func (it *Or) Close() {
+// follow this contract, the Or follows the contract.  It closes all
+// subiterators it can, but returns the first error it encounters.
+func (it *Or) Close() error {
 	it.cleanUp()
+
+	var err error
 	for _, sub := range it.internalIterators {
-		sub.Close()
+		_err := sub.Close()
+		if _err != nil && err == nil {
+			err = _err
+		}
 	}
+
+	return err
 }
 
 func (it *Or) Optimize() (graph.Iterator, bool) {
@@ -289,3 +320,5 @@ func (it *Or) Stats() graph.IteratorStats {
 
 // Register this as an "or" graph.iterator.
 func (it *Or) Type() graph.Type { return graph.Or }
+
+var _ graph.Nexter = &Or{}

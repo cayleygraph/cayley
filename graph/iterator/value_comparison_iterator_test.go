@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -116,5 +117,19 @@ func TestVCIContains(t *testing.T) {
 		if vc.Contains(test.check) != test.expect {
 			t.Errorf("Failed to show %s", test.message)
 		}
+	}
+}
+
+func TestComparisonIteratorErr(t *testing.T) {
+	wantErr := errors.New("unique")
+	errIt := newTestIterator(false, wantErr)
+
+	vc := NewComparison(errIt, compareLT, int64(2), simpleStore)
+
+	if vc.Next() != false {
+		t.Errorf("Comparison iterator did not pass through initial 'false'")
+	}
+	if vc.Err() != wantErr {
+		t.Errorf("Comparison iterator did not pass through underlying Err")
 	}
 }

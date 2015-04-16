@@ -49,6 +49,7 @@ type Materialize struct {
 	hasRun      bool
 	aborted     bool
 	runstats    graph.IteratorStats
+	err         error
 }
 
 func NewMaterialize(sub graph.Iterator) *Materialize {
@@ -69,11 +70,11 @@ func (it *Materialize) Reset() {
 	it.index = -1
 }
 
-func (it *Materialize) Close() {
-	it.subIt.Close()
+func (it *Materialize) Close() error {
 	it.containsMap = nil
 	it.values = nil
 	it.hasRun = false
+	return it.subIt.Close()
 }
 
 func (it *Materialize) Tagger() *graph.Tagger {
@@ -108,6 +109,7 @@ func (it *Materialize) Clone() graph.Iterator {
 	if it.hasRun {
 		out.hasRun = true
 		out.aborted = it.aborted
+		out.err = it.err
 		out.values = it.values
 		out.containsMap = it.containsMap
 		out.actualSize = it.actualSize
@@ -199,8 +201,13 @@ func (it *Materialize) Next() bool {
 	if !it.hasRun {
 		it.materializeSet()
 	}
+	if it.err != nil {
+		return false
+	}
 	if it.aborted {
-		return graph.Next(it.subIt)
+		n := graph.Next(it.subIt)
+		it.err = it.subIt.Err()
+		return n
 	}
 
 	it.index++
@@ -211,11 +218,18 @@ func (it *Materialize) Next() bool {
 	return graph.NextLogOut(it, it.Result(), true)
 }
 
+func (it *Materialize) Err() error {
+	return it.err
+}
+
 func (it *Materialize) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	it.runstats.Contains += 1
 	if !it.hasRun {
 		it.materializeSet()
+	}
+	if it.err != nil {
+		return false
 	}
 	if it.aborted {
 		return it.subIt.Contains(v)
@@ -235,6 +249,9 @@ func (it *Materialize) Contains(v graph.Value) bool {
 func (it *Materialize) NextPath() bool {
 	if !it.hasRun {
 		it.materializeSet()
+	}
+	if it.err != nil {
+		return false
 	}
 	if it.aborted {
 		return it.subIt.NextPath()
@@ -283,7 +300,8 @@ func (it *Materialize) materializeSet() {
 			it.actualSize += 1
 		}
 	}
-	if it.aborted {
+	it.err = it.subIt.Err()
+	if it.err == nil && it.aborted {
 		if glog.V(2) {
 			glog.V(2).Infoln("Aborting subiterator")
 		}
@@ -293,3 +311,5 @@ func (it *Materialize) materializeSet() {
 	}
 	it.hasRun = true
 }
+
+var _ graph.Nexter = &Materialize{}

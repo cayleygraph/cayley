@@ -88,6 +88,10 @@ func (it *Null) Next() bool {
 	return false
 }
 
+func (it *Null) Err() error {
+	return nil
+}
+
 func (it *Null) Result() graph.Value {
 	return nil
 }
@@ -110,9 +114,13 @@ func (it *Null) Size() (int64, bool) {
 
 func (it *Null) Reset() {}
 
-func (it *Null) Close() {}
+func (it *Null) Close() error {
+	return nil
+}
 
 // A null iterator costs nothing. Use it!
 func (it *Null) Stats() graph.IteratorStats {
 	return graph.IteratorStats{}
 }
+
+var _ graph.Nexter = &Null{}

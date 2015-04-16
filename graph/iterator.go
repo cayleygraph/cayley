@@ -100,6 +100,9 @@ type Iterator interface {
 	// Contains returns whether the value is within the set held by the iterator.
 	Contains(Value) bool
 
+	// Err returns any error that was encountered by the Iterator.
+	Err() error
+
 	// Start iteration from the beginning
 	Reset()
 
@@ -136,7 +139,7 @@ type Iterator interface {
 	Describe() Description
 
 	// Close the iterator and do internal cleanup.
-	Close()
+	Close() error
 
 	// UID returns the unique identifier of the iterator.
 	UID() uint64
@@ -155,7 +158,9 @@ type Description struct {
 
 type Nexter interface {
 	// Next advances the iterator to the next value, which will then be available through
-	// the Result method. It returns false if no further advancement is possible.
+	// the Result method. It returns false if no further advancement is possible, or if an
+	// error was encountered during iteration.  Err should be consulted to distinguish
+	// between the two cases.
 	Next() bool
 
 	Iterator

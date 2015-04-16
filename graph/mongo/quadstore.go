@@ -57,7 +57,10 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 	}
 	conn.SetSafe(&mgo.Safe{})
 	dbName := DefaultDBName
-	if val, ok := options.StringKey("database_name"); ok {
+	val, ok, err := options.StringKey("database_name")
+	if err != nil {
+		return err
+	} else if ok {
 		dbName = val
 	}
 	db := conn.DB(dbName)
@@ -94,7 +97,10 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	}
 	conn.SetSafe(&mgo.Safe{})
 	dbName := DefaultDBName
-	if val, ok := options.StringKey("database_name"); ok {
+	val, ok, err := options.StringKey("database_name")
+	if err != nil {
+		return nil, err
+	} else if ok {
 		dbName = val
 	}
 	qs.db = conn.DB(dbName)

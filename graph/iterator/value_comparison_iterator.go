@@ -27,7 +27,6 @@ package iterator
 // In MQL terms, this is the [{"age>=": 21}] concept.
 
 import (
-	"log"
 	"strconv"
 
 	"github.com/google/cayley/graph"
@@ -51,6 +50,7 @@ type Comparison struct {
 	val    interface{}
 	qs     graph.QuadStore
 	result graph.Value
+	err    error
 }
 
 func NewComparison(sub graph.Iterator, op Operator, val interface{}, qs graph.QuadStore) *Comparison {
@@ -91,8 +91,8 @@ func (it *Comparison) doComparison(val graph.Value) bool {
 	}
 }
 
-func (it *Comparison) Close() {
-	it.subIt.Close()
+func (it *Comparison) Close() error {
+	return it.subIt.Close()
 }
 
 func RunIntOp(a int64, op Operator, b int64) bool {
@@ -106,8 +106,7 @@ func RunIntOp(a int64, op Operator, b int64) bool {
 	case compareGTE:
 		return a >= b
 	default:
-		log.Fatal("Unknown operator type")
-		return false
+		panic("Unknown operator type")
 	}
 }
 
@@ -133,7 +132,12 @@ func (it *Comparison) Next() bool {
 			return true
 		}
 	}
+	it.err = it.subIt.Err()
 	return false
+}
+
+func (it *Comparison) Err() error {
+	return it.err
 }
 
 // DEPRECATED
@@ -149,6 +153,7 @@ func (it *Comparison) NextPath() bool {
 	for {
 		hasNext := it.subIt.NextPath()
 		if !hasNext {
+			it.err = it.subIt.Err()
 			return false
 		}
 		if it.doComparison(it.subIt.Result()) {
@@ -168,7 +173,11 @@ func (it *Comparison) Contains(val graph.Value) bool {
 	if !it.doComparison(val) {
 		return false
 	}
-	return it.subIt.Contains(val)
+	ok := it.subIt.Contains(val)
+	if !ok {
+		it.err = it.subIt.Err()
+	}
+	return ok
 }
 
 // If we failed the check, then the subiterator should not contribute to the result
@@ -218,3 +227,5 @@ func (it *Comparison) Stats() graph.IteratorStats {
 func (it *Comparison) Size() (int64, bool) {
 	return 0, true
 }
+
+var _ graph.Nexter = &Comparison{}

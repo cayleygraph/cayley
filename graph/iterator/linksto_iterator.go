@@ -46,6 +46,7 @@ type LinksTo struct {
 	nextIt    graph.Iterator
 	result    graph.Value
 	runstats  graph.IteratorStats
+	err       error
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
@@ -125,6 +126,7 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 		it.result = val
 		return graph.ContainsLogOut(it, val, true)
 	}
+	it.err = it.primaryIt.Err()
 	return graph.ContainsLogOut(it, val, false)
 }
 
@@ -164,8 +166,17 @@ func (it *LinksTo) Next() bool {
 		return graph.NextLogOut(it, it.nextIt, true)
 	}
 
+	// If there's an error in the 'next' iterator, we save it and we're done.
+	it.err = it.nextIt.Err()
+	if it.err != nil {
+		return false
+	}
+
 	// Subiterator is empty, get another one
 	if !graph.Next(it.primaryIt) {
+		// Possibly save error
+		it.err = it.primaryIt.Err()
+
 		// We're out of nodes in our subiterator, so we're done as well.
 		return graph.NextLogOut(it, 0, false)
 	}
@@ -176,19 +187,34 @@ func (it *LinksTo) Next() bool {
 	return it.Next()
 }
 
+func (it *LinksTo) Err() error {
+	return it.err
+}
+
 func (it *LinksTo) Result() graph.Value {
 	return it.result
 }
 
-// Close our subiterators.
-func (it *LinksTo) Close() {
-	it.nextIt.Close()
-	it.primaryIt.Close()
+// Close closes the iterator.  It closes all subiterators it can, but
+// returns the first error it encounters.
+func (it *LinksTo) Close() error {
+	err := it.nextIt.Close()
+
+	_err := it.primaryIt.Close()
+	if _err != nil && err == nil {
+		err = _err
+	}
+
+	return err
 }
 
 // We won't ever have a new result, but our subiterators might.
 func (it *LinksTo) NextPath() bool {
-	return it.primaryIt.NextPath()
+	ok := it.primaryIt.NextPath()
+	if !ok {
+		it.err = it.primaryIt.Err()
+	}
+	return ok
 }
 
 // Register the LinksTo.
@@ -214,3 +240,5 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 func (it *LinksTo) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
+
+var _ graph.Nexter = &LinksTo{}

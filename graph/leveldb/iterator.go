@@ -109,11 +109,12 @@ func (it *Iterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Iterator) Close() {
+func (it *Iterator) Close() error {
 	if it.open {
 		it.iter.Release()
 		it.open = false
 	}
+	return nil
 }
 
 func (it *Iterator) isLiveValue(val []byte) bool {
@@ -152,6 +153,10 @@ func (it *Iterator) Next() bool {
 	it.Close()
 	it.result = nil
 	return false
+}
+
+func (it *Iterator) Err() error {
+	return it.iter.Error()
 }
 
 func (it *Iterator) ResultTree() *graph.ResultTree {
@@ -283,3 +288,5 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		Size:         s,
 	}
 }
+
+var _ graph.Nexter = &Iterator{}

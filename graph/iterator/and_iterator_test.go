@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/google/cayley/graph"
@@ -138,5 +139,20 @@ func TestAllIterators(t *testing.T) {
 	if and.Next() {
 		t.Error("Too many values")
 	}
+}
 
+func TestAndIteratorErr(t *testing.T) {
+	wantErr := errors.New("unique")
+	allErr := newTestIterator(false, wantErr)
+
+	and := NewAnd()
+	and.AddSubIterator(allErr)
+	and.AddSubIterator(NewInt64(1, 5))
+
+	if and.Next() != false {
+		t.Errorf("And iterator did not pass through initial 'false'")
+	}
+	if and.Err() != wantErr {
+		t.Errorf("And iterator did not pass through underlying Err")
+	}
 }

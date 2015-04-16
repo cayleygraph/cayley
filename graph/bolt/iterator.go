@@ -50,6 +50,7 @@ type Iterator struct {
 	offset  int
 	done    bool
 	size    int64
+	err     error
 }
 
 func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
@@ -105,10 +106,11 @@ func (it *Iterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Iterator) Close() {
+func (it *Iterator) Close() error {
 	it.result = nil
 	it.buffer = nil
 	it.done = true
+	return nil
 }
 
 func (it *Iterator) isLiveValue(val []byte) bool {
@@ -170,6 +172,7 @@ func (it *Iterator) Next() bool {
 		if err != nil {
 			if err != errNotExist {
 				glog.Errorf("Error nexting in database: %v", err)
+				it.err = err
 			}
 			it.done = true
 			return false
@@ -182,6 +185,10 @@ func (it *Iterator) Next() bool {
 		return false
 	}
 	return true
+}
+
+func (it *Iterator) Err() error {
+	return it.err
 }
 
 func (it *Iterator) ResultTree() *graph.ResultTree {
@@ -316,3 +323,5 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		Size:         s,
 	}
 }
+
+var _ graph.Nexter = &Iterator{}

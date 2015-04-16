@@ -52,6 +52,10 @@ func (it *nodesAllIterator) Next() bool {
 	return true
 }
 
+func (it *nodesAllIterator) Err() error {
+	return nil
+}
+
 func newQuadsAllIterator(qs *QuadStore) *quadsAllIterator {
 	var out quadsAllIterator
 	out.Int64 = *iterator.NewInt64(1, qs.nextQuadID-1)
@@ -69,3 +73,6 @@ func (it *quadsAllIterator) Next() bool {
 	}
 	return out
 }
+
+var _ graph.Nexter = &nodesAllIterator{}
+var _ graph.Nexter = &quadsAllIterator{}

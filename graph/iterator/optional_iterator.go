@@ -38,6 +38,7 @@ type Optional struct {
 	subIt     graph.Iterator
 	lastCheck bool
 	result    graph.Value
+	err       error
 }
 
 // Creates a new optional iterator.
@@ -57,8 +58,8 @@ func (it *Optional) Reset() {
 	it.lastCheck = false
 }
 
-func (it *Optional) Close() {
-	it.subIt.Close()
+func (it *Optional) Close() error {
+	return it.subIt.Close()
 }
 
 func (it *Optional) Tagger() *graph.Tagger {
@@ -76,6 +77,10 @@ func (it *Optional) ResultTree() *graph.ResultTree {
 	return graph.NewResultTree(it.Result())
 }
 
+func (it *Optional) Err() error {
+	return it.err
+}
+
 func (it *Optional) Result() graph.Value {
 	return it.result
 }
@@ -85,7 +90,11 @@ func (it *Optional) Result() graph.Value {
 // optional subbranch.
 func (it *Optional) NextPath() bool {
 	if it.lastCheck {
-		return it.subIt.NextPath()
+		ok := it.subIt.NextPath()
+		if !ok {
+			it.err = it.subIt.Err()
+		}
+		return ok
 	}
 	return false
 }
@@ -101,6 +110,7 @@ func (it *Optional) SubIterators() []graph.Iterator {
 func (it *Optional) Contains(val graph.Value) bool {
 	checked := it.subIt.Contains(val)
 	it.lastCheck = checked
+	it.err = it.subIt.Err()
 	it.result = val
 	return true
 }
@@ -152,3 +162,5 @@ func (it *Optional) Stats() graph.IteratorStats {
 func (it *Optional) Size() (int64, bool) {
 	return 0, true
 }
+
+var _ graph.Iterator = &Optional{}

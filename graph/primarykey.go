@@ -84,8 +84,9 @@ func (p *PrimaryKey) Int() int64 {
 	case sequential:
 		return p.sequentialID
 	case unique:
-		glog.Fatal("UUID cannot be cast to an int64")
-		return -1
+		msg := "UUID cannot be converted to an int64"
+		glog.Errorln(msg)
+		panic(msg)
 	}
 	return -1
 }
