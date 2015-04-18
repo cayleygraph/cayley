@@ -213,7 +213,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 		return lto
 	case "RootConstraint":
 		constraintCount := 0
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		for _, c := range tree.Children {
 			switch c.Name {
 			case "NodeIdentifier":
@@ -232,7 +232,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 		var hasa *iterator.HasA
 		topLevelDir := quad.Subject
 		subItDir := quad.Object
-		subAnd := iterator.NewAnd()
+		subAnd := iterator.NewAnd(qs)
 		isOptional := false
 		for _, c := range tree.Children {
 			switch c.Name {

@@ -30,6 +30,11 @@ type Tagger struct {
 	fixedTags map[string]Value
 }
 
+type LinkageSet struct {
+	Dir    quad.Direction
+	Values []Value
+}
+
 // Add a tag to the iterator.
 func (t *Tagger) Add(tag string) {
 	t.tags = append(t.tags, tag)
