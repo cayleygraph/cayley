@@ -47,13 +47,6 @@ func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.V
 
 	constraint := bson.M{d.String(): name}
 
-	size, err := qs.db.C(collection).Find(constraint).Count()
-	if err != nil {
-		// FIXME(kortschak) This should be passed back rather than just logging.
-		glog.Errorln("Trouble getting size for iterator! ", err)
-		return nil
-	}
-
 	return &Iterator{
 		uid:        iterator.NextUID(),
 		name:       name,
@@ -61,29 +54,29 @@ func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.V
 		collection: collection,
 		qs:         qs,
 		dir:        d,
-		iter:       qs.db.C(collection).Find(constraint).Iter(),
-		size:       int64(size),
+		iter:       nil,
+		size:       -1,
 		hash:       val.(string),
 		isAll:      false,
 	}
 }
 
-func NewAllIterator(qs *QuadStore, collection string) *Iterator {
-	size, err := qs.db.C(collection).Count()
-	if err != nil {
-		// FIXME(kortschak) This should be passed back rather than just logging.
-		glog.Errorln("Trouble getting size for iterator! ", err)
-		return nil
+func (it *Iterator) makeMongoIterator() *mgo.Iter {
+	if it.isAll {
+		return it.qs.db.C(it.collection).Find(nil).Iter()
 	}
+	return it.qs.db.C(it.collection).Find(it.constraint).Iter()
+}
 
+func NewAllIterator(qs *QuadStore, collection string) *Iterator {
 	return &Iterator{
 		uid:        iterator.NextUID(),
 		qs:         qs,
 		dir:        quad.Any,
 		constraint: nil,
 		collection: collection,
-		iter:       qs.db.C(collection).Find(nil).Iter(),
-		size:       int64(size),
+		iter:       nil,
+		size:       -1,
 		hash:       "",
 		isAll:      true,
 	}
@@ -94,13 +87,16 @@ func (it *Iterator) UID() uint64 {
 }
 
 func (it *Iterator) Reset() {
-	it.iter.Close()
+	it.Close()
 	it.iter = it.qs.db.C(it.collection).Find(it.constraint).Iter()
 
 }
 
 func (it *Iterator) Close() error {
-	return it.iter.Close()
+	if it.iter != nil {
+		return it.iter.Close()
+	}
+	return nil
 }
 
 func (it *Iterator) Tagger() *graph.Tagger {
@@ -133,6 +129,9 @@ func (it *Iterator) Next() bool {
 		ID      string  `bson:"_id"`
 		Added   []int64 `bson:"Added"`
 		Deleted []int64 `bson:"Deleted"`
+	}
+	if it.iter == nil {
+		it.iter = it.makeMongoIterator()
 	}
 	found := it.iter.Next(&result)
 	if !found {
@@ -197,6 +196,13 @@ func (it *Iterator) Contains(v graph.Value) bool {
 }
 
 func (it *Iterator) Size() (int64, bool) {
+	if it.size == -1 {
+		var err error
+		it.size, err = it.qs.getSize(it.collection, &it.constraint)
+		if err != nil {
+			it.err = err
+		}
+	}
 	return it.size, true
 }
 

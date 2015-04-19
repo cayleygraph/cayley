@@ -48,6 +48,7 @@ type QuadStore struct {
 	session *mgo.Session
 	db      *mgo.Database
 	ids     *cache
+	sizes   *cache
 }
 
 func createNewMongoGraph(addr string, options graph.Options) error {
@@ -106,6 +107,7 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	qs.db = conn.DB(dbName)
 	qs.session = conn
 	qs.ids = newCache(1 << 16)
+	qs.sizes = newCache(1 << 16)
 	return &qs, nil
 }
 
@@ -313,7 +315,7 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 func (qs *QuadStore) NameOf(v graph.Value) string {
 	val, ok := qs.ids.Get(v.(string))
 	if ok {
-		return val
+		return val.(string)
 	}
 	var node MongoNode
 	err := qs.db.C("nodes").FindId(v.(string)).One(&node)
@@ -376,4 +378,29 @@ func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value
 
 func (qs *QuadStore) Type() string {
 	return QuadStoreType
+}
+
+func (qs *QuadStore) getSize(collection string, constraint *bson.M) (int64, error) {
+	var size int
+	var err error
+	bytes, err := bson.Marshal(constraint)
+	if err != nil {
+		glog.Errorf("Couldn't marshal internal constraint")
+		return -1, err
+	}
+	key := collection + string(bytes)
+	if val, ok := qs.sizes.Get(key); ok {
+		return val.(int64), nil
+	}
+	if constraint == nil {
+		size, err = qs.db.C(collection).Count()
+	} else {
+		size, err = qs.db.C(collection).Find(constraint).Count()
+	}
+	if err != nil {
+		glog.Errorln("Trouble getting size for iterator! ", err)
+		return -1, err
+	}
+	qs.sizes.Put(key, int64(size))
+	return int64(size), nil
 }
