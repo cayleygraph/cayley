@@ -63,6 +63,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 			newAnd.AddSubIterator(it)
 		}
 	}
+	mongostats := firstmongo.Stats()
 
 	lset := []graph.LinkageSet{
 		{
@@ -75,6 +76,11 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	for _, it := range it.SubIterators() {
 		if it.Type() == graph.LinksTo {
 			lto := it.(*iterator.LinksTo)
+			// Is it more effective to do the replacement, or let the mongo check the linksto?
+			ltostats := lto.Stats()
+			if (ltostats.ContainsCost+mongostats.NextCost)*mongostats.Size > (ltostats.NextCost+mongostats.ContainsCost)*ltostats.Size {
+				continue
+			}
 			newLto := NewLinksTo(qs, lto.SubIterators()[0], "quads", lto.Direction(), lset)
 			newAnd.AddSubIterator(newLto)
 			ltocount++
