@@ -108,12 +108,12 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 
 	all := qs.NodesAllIterator()
 
-	innerAnd := iterator.NewAnd()
+	innerAnd := iterator.NewAnd(qs)
 	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
 	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
-	outerAnd := iterator.NewAnd()
+	outerAnd := iterator.NewAnd(qs)
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
 
@@ -193,7 +193,7 @@ func TestRemoveQuad(t *testing.T) {
 	fixed2 := qs.FixedIterator()
 	fixed2.Add(qs.ValueOf("follows"))
 
-	innerAnd := iterator.NewAnd()
+	innerAnd := iterator.NewAnd(qs)
 	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed, quad.Subject))
 	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
 
