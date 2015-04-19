@@ -15,7 +15,6 @@
 package mongo
 
 import (
-	"github.com/barakmich/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -52,17 +51,25 @@ func NewLinksTo(qs *QuadStore, it graph.Iterator, collection string, d quad.Dire
 	}
 }
 
-func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *mgo.Iter {
-	name := it.qs.NameOf(val)
-	constraint := bson.M{d.String(): name}
+func (it *LinksTo) buildConstraint() bson.M {
+	constraint := bson.M{}
 	for _, set := range it.lset {
 		var s []string
 		for _, v := range set.Values {
 			s = append(s, it.qs.NameOf(v))
 		}
 		constraint[set.Dir.String()] = bson.M{"$in": s}
+		if len(s) == 1 {
+			constraint[set.Dir.String()] = s[0]
+		}
 	}
-	glog.V(4).Infof("%#v", constraint)
+	return constraint
+}
+
+func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *mgo.Iter {
+	name := it.qs.NameOf(val)
+	constraint := it.buildConstraint()
+	constraint[d.String()] = name
 	return it.qs.db.C(it.collection).Find(constraint).Iter()
 }
 
@@ -244,10 +251,17 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 	fanoutFactor := int64(20)
 	checkConstant := int64(1)
 	nextConstant := int64(2)
+
+	size := fanoutFactor * subitStats.Size
+	csize, _ := it.qs.getSize(it.collection, it.buildConstraint())
+	if size > csize {
+		size = csize
+	}
+
 	return graph.IteratorStats{
 		NextCost:     nextConstant + subitStats.NextCost,
 		ContainsCost: checkConstant + subitStats.ContainsCost,
-		Size:         fanoutFactor * subitStats.Size,
+		Size:         size,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 		ContainsNext: it.runstats.ContainsNext,

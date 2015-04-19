@@ -198,7 +198,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 func (it *Iterator) Size() (int64, bool) {
 	if it.size == -1 {
 		var err error
-		it.size, err = it.qs.getSize(it.collection, &it.constraint)
+		it.size, err = it.qs.getSize(it.collection, it.constraint)
 		if err != nil {
 			it.err = err
 		}
