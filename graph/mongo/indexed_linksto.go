@@ -23,6 +23,19 @@ import (
 	"github.com/google/cayley/quad"
 )
 
+var _ graph.Nexter = &LinksTo{}
+
+var linksToType graph.Type
+
+func init() {
+	linksToType = graph.RegisterIterator("mongo-linksto")
+}
+
+// LinksTo is a MongoDB-dependent version of a LinksTo iterator. Like the normal
+// LinksTo, it represents a set of links to a set of nodes, represented by its
+// subiterator. However, this iterator may often be faster than the generic
+// LinksTo, as it can use the secondary indices in Mongo as features within the
+// Mongo query, reducing the size of the result set and speeding up iteration.
 type LinksTo struct {
 	uid        uint64
 	collection string
@@ -33,13 +46,13 @@ type LinksTo struct {
 	nextIt     *mgo.Iter
 	result     graph.Value
 	runstats   graph.IteratorStats
+	lset       []graph.Linkage
 	err        error
-	lset       []graph.LinkageSet
 }
 
 // NewLinksTo constructs a new indexed LinksTo iterator for Mongo around a direction
 // and a subiterator of nodes.
-func NewLinksTo(qs *QuadStore, it graph.Iterator, collection string, d quad.Direction, lset []graph.LinkageSet) *LinksTo {
+func NewLinksTo(qs *QuadStore, it graph.Iterator, collection string, d quad.Direction, lset []graph.Linkage) *LinksTo {
 	return &LinksTo{
 		uid:        iterator.NextUID(),
 		qs:         qs,
@@ -181,17 +194,9 @@ func (it *LinksTo) NextPath() bool {
 	return ok
 }
 
-var mongoIndexedLinksToType graph.Type
-
-func init() {
-	mongoIndexedLinksToType = graph.RegisterIterator("mongo-indexed-linksto")
-}
-
 func (it *LinksTo) Type() graph.Type {
-	return mongoIndexedLinksToType
+	return linksToType
 }
-
-var _ graph.Nexter = &LinksTo{}
 
 func (it *LinksTo) Clone() graph.Iterator {
 	m := NewLinksTo(it.qs, it.primaryIt.Clone(), it.collection, it.dir, it.lset)

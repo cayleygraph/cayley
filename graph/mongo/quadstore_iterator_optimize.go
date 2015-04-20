@@ -65,7 +65,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	}
 	mongostats := firstmongo.Stats()
 
-	lset := []graph.LinkageSet{
+	lset := []graph.Linkage{
 		{
 			Dir:    firstmongo.dir,
 			Values: []graph.Value{qs.ValueOf(firstmongo.name)},

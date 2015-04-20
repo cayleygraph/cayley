@@ -99,10 +99,12 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// Ask the graph.QuadStore if we can be replaced. Often times, this is a great
 	// optimization opportunity (there's a fixed iterator underneath us, for
 	// example).
-	newReplacement, hasOne := it.qs.OptimizeIterator(newAnd)
-	if hasOne {
-		newAnd.Close()
-		return newReplacement, true
+	if it.qs != nil {
+		newReplacement, hasOne := it.qs.OptimizeIterator(newAnd)
+		if hasOne {
+			newAnd.Close()
+			return newReplacement, true
+		}
 	}
 
 	return newAnd, true

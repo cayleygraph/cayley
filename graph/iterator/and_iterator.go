@@ -34,7 +34,8 @@ type And struct {
 	qs                graph.QuadStore
 }
 
-// Creates a new And iterator.
+// NewAnd creates an And iterator. `qs` is only required when needing a handle
+// for QuadStore-specific optimizations, otherwise nil is acceptable.
 func NewAnd(qs graph.QuadStore) *And {
 	return &And{
 		uid:               NextUID(),
