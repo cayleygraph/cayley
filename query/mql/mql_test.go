@@ -165,6 +165,69 @@ var testQueries = []struct {
 			]
 		`,
 	},
+	{
+		message: "get correct or-equals id",
+		// ids of nodes that have id A or B
+		query:   `[{"id": null, "id|=": ["A", "B"]}]`,
+		expect: `
+			[
+				{"id": "A"},
+				{"id": "B"}
+			]
+		`,
+	},
+	{
+		message: "get correct or-equals follows",
+		// id of nodes that follow B or D
+		query:   `[{"id": null, "follows|=": ["B", "D"]}]`,
+		expect: `
+			[
+				{"id": "A"},
+				{"id": "C"},
+				{"id": "D"}
+			]
+		`,
+	},
+	{
+		message: "get correct or-equals object subquery",
+		// ids of nodes which follow someone that follows F or follows someone who is cool
+		query:   `[{"id": null, "follows|=": [{ "follows": "F" }, { "status": "cool" }]}]`,
+		expect: `
+			[
+				{"id": "B"},
+				{"id": "E"},
+				{"id": "A"},
+				{"id": "C"},
+				{"id": "F"},
+				{"id": "D"}
+			]
+		`,
+	},
+	{
+		message: "get correct or-equals reversal",
+		// ids of nodes which are followed by F or by someone cool
+		query:   `[{"id": null, "!follows|=": ["F", { "status": "cool" }]}]`,
+		expect: `
+			[
+				{"id": "F"},
+				{"id": "G"}
+			]
+		`,
+	},
+	{
+		message: "get correct nested or-equals",
+		// ids of nodes which have an id of someone who follows F or G or is cool
+		query:   `[{"id": null, "id|=": [{ "follows|=": ["F", "G"] }, { "status": "cool" }]}]`,
+		expect: `
+			[
+				{"id": "D"},
+				{"id": "B"},
+				{"id": "F"},
+				{"id": "E"},
+				{"id": "G"}
+			]
+		`,
+	},
 }
 
 func runQuery(g []quad.Quad, query string) interface{} {
