@@ -38,7 +38,7 @@ If you prefer to build from source, see the documentation on the wiki at [How to
 
 `cd` to the directory and give it a quick test with:
 ```
-./cayley repl --dbpath=testdata.nq
+./cayley repl --dbpath=data/testdata.nq
 ```
 
 You should see a `cayley>` REPL prompt. Go ahead and give it a try:
@@ -66,13 +66,13 @@ cayley> graph.Vertex("dani").Out("follows").All()
 For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout.
 
 ```
-./cayley repl --dbpath=30kmoviedata.nq.gz
+./cayley repl --dbpath=data/30kmoviedata.nq.gz
 ```
 
 To run the web frontend, replace the "repl" command with "http"
 
 ```
-./cayley http --dbpath=30kmoviedata.nq.gz
+./cayley http --dbpath=data/30kmoviedata.nq.gz
 ```
 
 And visit port 64210 on your machine, commonly [http://localhost:64210](http://localhost:64210)

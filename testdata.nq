@@ -1,9 +1,0 @@
-<alice> <follows> <bob> .
-<bob> <follows> <alice> .
-<charlie> <follows> <bob> .
-<dani> <follows> <charlie> .
-<dani> <follows> <alice> .
-<alice> <is> "cool" .
-<bob> <is> "not cool" .
-<charlie> <is> "cool" .
-<dani> <is> "not cool" .
