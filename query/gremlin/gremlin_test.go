@@ -15,18 +15,21 @@
 package gremlin
 
 import (
+	"io"
+	"os"
 	"reflect"
 	"sort"
 	"testing"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/quad"
+	"github.com/google/cayley/quad/cquads"
 
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/writer"
 )
 
-// This is a simple test graph.
+// This is a simple test graph used for testing the gremlin queries
 //
 //  +-------+                        +------+
 //  | alice |-----                 ->| fred |<--
@@ -39,20 +42,6 @@ import (
 //        \-->| #dani# |------------>+--------+
 //            +--------+
 //
-
-var simpleGraph = []quad.Quad{
-	{"alice", "follows", "bob", ""},
-	{"charlie", "follows", "bob", ""},
-	{"charlie", "follows", "dani", ""},
-	{"dani", "follows", "bob", ""},
-	{"bob", "follows", "fred", ""},
-	{"fred", "follows", "greg", ""},
-	{"dani", "follows", "greg", ""},
-	{"emily", "follows", "fred", ""},
-	{"bob", "status", "cool_person", "status_graph"},
-	{"dani", "status", "cool_person", "status_graph"},
-	{"greg", "status", "cool_person", "status_graph"},
-}
 
 func makeTestSession(data []quad.Quad) *Session {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
@@ -282,7 +271,29 @@ func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
 	return results
 }
 
+func loadGraph(path string, t testing.TB) []quad.Quad {
+	var r io.Reader
+	var simpleGraph []quad.Quad
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("Failed to open %q: %v", path, err)
+	}
+	defer f.Close()
+	r = f
+
+	dec := cquads.NewDecoder(r)
+	q1, err := dec.Unmarshal()
+	if err != nil {
+		t.Fatalf("Failed to Unmarshal: %v", err)
+	}
+	for ; err == nil; q1, err = dec.Unmarshal() {
+		simpleGraph = append(simpleGraph, q1)
+	}
+	return simpleGraph
+}
+
 func TestGremlin(t *testing.T) {
+	simpleGraph := loadGraph("../../data/testdata.nq", t)
 	for _, test := range testQueries {
 		if test.tag == "" {
 			test.tag = TopResultTag
