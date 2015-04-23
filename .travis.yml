@@ -8,23 +8,9 @@ go:
   - tip
 
 install:
-  - go get github.com/badgerodon/peg
-  - go get github.com/barakmich/glog
-  - go get github.com/cznic/mathutil
-  - go get github.com/julienschmidt/httprouter
-  - go get github.com/petar/GoLLRB/llrb
-  - go get github.com/peterh/liner
-  - go get github.com/robertkrimen/otto
-  - go get github.com/russross/blackfriday
-  - go get github.com/syndtr/goleveldb/leveldb
-  - go get github.com/syndtr/goleveldb/leveldb/cache
-  - go get github.com/syndtr/goleveldb/leveldb/iterator
-  - go get github.com/syndtr/goleveldb/leveldb/opt
-  - go get github.com/syndtr/goleveldb/leveldb/util
-  - go get github.com/boltdb/bolt
-  - go get gopkg.in/mgo.v2
-  - go get gopkg.in/mgo.v2/bson
-  - go get code.google.com/p/go-uuid/uuid
+  # Install our tracked dependencies
+  - go get github.com/tools/godep
+  - godep restore
 
   # Google App Engine dependencies
   - cd ..
@@ -33,7 +19,7 @@ install:
   - export PATH=$PATH:$PWD/go_appengine/
   - cd cayley
 
-script: 
+script:
   - go test -v ./...
   - goapp test -v ./graph/gaedatastore
 
