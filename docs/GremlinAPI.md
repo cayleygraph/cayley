@@ -170,7 +170,7 @@ Filter all paths to ones which, at this point, are on the given `node`.
 Example:
 ```javascript
 // Starting from all nodes in the graph, find the paths that follow bob.
-// Results in three paths for bob (from alic, charlie and dani)
+// Results in three paths for bob (from alice, charlie and dani)
 g.V().Out("follows").Is("bob")
 ```
 
