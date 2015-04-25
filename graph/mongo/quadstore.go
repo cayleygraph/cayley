@@ -382,7 +382,6 @@ func (qs *QuadStore) Type() string {
 
 func (qs *QuadStore) getSize(collection string, constraint bson.M) (int64, error) {
 	var size int
-	var err error
 	bytes, err := bson.Marshal(constraint)
 	if err != nil {
 		glog.Errorf("Couldn't marshal internal constraint")

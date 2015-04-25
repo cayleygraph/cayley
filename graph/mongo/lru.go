@@ -16,7 +16,6 @@ package mongo
 
 import (
 	"container/list"
-	"fmt"
 )
 
 // TODO(kortschak) Reimplement without container/list.
@@ -49,9 +48,6 @@ func (lru *cache) Put(key string, value interface{}) {
 		lru.removeOldest()
 	}
 	lru.priority.PushFront(kv{key: key, value: value})
-	if lru.priority == nil {
-		fmt.Println("wat")
-	}
 	lru.cache[key] = lru.priority.Front()
 }
 
@@ -60,7 +56,7 @@ func (lru *cache) Get(key string) (interface{}, bool) {
 		lru.priority.MoveToFront(element)
 		return element.Value.(kv).value, true
 	}
-	return "", false
+	return nil, false
 }
 
 func (lru *cache) removeOldest() {
