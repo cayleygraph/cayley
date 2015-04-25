@@ -415,7 +415,7 @@ func prepare(t testing.TB) {
 	cfg.DatabaseType = *backend
 	switch *backend {
 	case "memstore":
-		cfg.DatabasePath = "30kmoviedata.nq.gz"
+		cfg.DatabasePath = "data/30kmoviedata.nq.gz"
 	case "leveldb", "bolt":
 		cfg.DatabasePath = "/tmp/cayley_test_" + *backend
 		cfg.DatabaseOptions = map[string]interface{}{
@@ -450,7 +450,7 @@ func prepare(t testing.TB) {
 		}
 
 		if needsLoad {
-			err = load(handle.QuadWriter, cfg, "30kmoviedata.nq.gz", "cquad")
+			err = load(handle.QuadWriter, cfg, "data/30kmoviedata.nq.gz", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}

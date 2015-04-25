@@ -49,25 +49,31 @@ Both `.Morphism()` and `.Vertex()` create path objects, which provide the follow
 
 For these examples, suppose we have the following graph:
 ```
-  +---+                        +---+
-  | A |-------               ->| F |<--
-  +---+       \------>+---+-/  +---+   \--+---+
-               ------>|#B#|      |        | E |
-  +---+-------/      >+---+      |        +---+
-  | C |             /            v
-  +---+           -/           +---+
-    ----    +---+/             |#G#|
-        \-->|#D#|------------->+---+
-            +---+
+  +-------+                        +------+
+  | alice |-----                 ->| fred |<--
+  +-------+     \---->+-------+-/  +------+   \-+-------+
+                ----->| #bob# |       |         | emily |
+  +---------+--/  --->+-------+       |         +-------+
+  | charlie |    /                    v
+  +---------+   /                  +--------+
+    \---    +--------+             | #greg# |
+        \-->| #dani# |------------>+--------+
+            +--------+
 ```
 
 Where every link is a "follows" relationship, and the nodes with an extra `#` in the name have an extra `status` link. As in,
 
 ```
-D -- status --> cool_person
+dani -- status --> cool_person
 ```
-
 Perhaps these are the influencers in our community.
+
+
+To load above graph into cayley and reproduce the following examples:
+
+`./cayley repl --dbpath=data/testdata.nq` for a REPL prompt, or 
+
+`./cayley http --dbpath=data/testdata.nq` for the web frontend.
 
 ### Basic Traversals
 
@@ -89,18 +95,18 @@ Out is the work-a-day way to get between nodes, in the forward direction. Starti
 
 Example:
 ```javascript
-// The working set of this is B and D
-g.V("C").Out("follows")
-// The working set of this is F, as A follows B and B follows F.
-g.V("A").Out("follows").Out("follows")
-// Finds all things D points at. Result is B G and cool_person
-g.V("D").Out()
-// Finds all things D points at on the status linkage.
-// Result is B G and cool_person
-g.V("D").Out(["follows", "status"])
-// Finds all things D points at on the status linkage, given from a separate query path.
+// The working set of this is bob and dani
+g.V("charlie").Out("follows")
+// The working set of this is fred, as alice follows bob and bob follows fred.
+g.V("alice").Out("follows").Out("follows")
+// Finds all things dani points at. Result is bob, greg and cool_person
+g.V("dani").Out()
+// Finds all things dani points at on the status linkage.
+// Result is bob, greg and cool_person
+g.V("dani").Out(["follows", "status"])
+// Finds all things dani points at on the status linkage, given from a separate query path.
 // Result is {"id": cool_person, "pred": "status"}
-g.V("D").Out(g.V("status"), "pred")
+g.V("dani").Out(g.V("status"), "pred")
 ```
 
 ####**`path.In([predicatePath], [tags])`**
@@ -121,12 +127,12 @@ Same as Out, but in the other direction.  Starting with the nodes in `path` on t
 
 Example:
 ```javascript
-// Find the cool people, B G and D
+// Find the cool people, bob, greg and dani
 g.V("cool_person").In("status")
-// Find who follows B, in this case, A, C, and D
-g.V("B").In("follows")
-// Find who follows the people E follows, namely, E and B
-g.V("E").Out("follows").In("follows")
+// Find who follows bob, in this case, alice, charlie, and dani
+g.V("bob").In("follows")
+// Find who follows the people emily follows, namely, emily and bob
+g.V("emily").Out("follows").In("follows")
 ```
 
 ####**`path.Both([predicatePath], [tags])`**
@@ -148,8 +154,8 @@ Note: Less efficient, for the moment, as it's implemented with an Or, but useful
 
 Example:
 ```javascript
-// Find all followers/followees of F. Returns B E and G
-g.V("F").Both("follows")
+// Find all followers/followees of fred. Returns bob, emily and greg
+g.V("fred").Both("follows")
 ```
 
 
@@ -163,9 +169,9 @@ Filter all paths to ones which, at this point, are on the given `node`.
 
 Example:
 ```javascript
-// Starting from all nodes in the graph, find the paths that follow B.
-// Results in three paths for B (from A C and D)
-g.V().Out("follows").Is("B")
+// Starting from all nodes in the graph, find the paths that follow bob.
+// Results in three paths for bob (from alice, charlie and dani)
+g.V().Out("follows").Is("bob")
 ```
 
 ####**`path.Has(predicate, object)`**
@@ -181,10 +187,10 @@ Usually useful for starting with all nodes, or limiting to a subset depending on
 
 Example:
 ```javascript
-// Start from all nodes that follow B -- results in A C and D
-g.V().Has("follows", "B")
-// People C follows who then follow F. Results in B.
-g.V("C").Out("follows").Has("follows", "F")
+// Start from all nodes that follow bob -- results in alice, charlie and dani
+g.V().Has("follows", "bob")
+// People charlie follows who then follow fred. Results in bob.
+g.V("charlie").Out("follows").Has("follows", "fred")
 ```
 
 ### Tagging
@@ -203,7 +209,7 @@ In order to save your work or learn more about how a path got to the end, we hav
 Example:
 ```javascript
 // Start from all nodes, save them into start, follow any status links, and return the result.
-// Results are: {"id": "cool_person", "start": "B"}, {"id": "cool_person", "start": "G"}, {"id": "cool_person", "start": "D"}
+// Results are: {"id": "cool_person", "start": "bob"}, {"id": "cool_person", "start": "greg"}, {"id": "cool_person", "start": "dani"}
 g.V().Tag("start").Out("status")
 ```
 
@@ -220,11 +226,11 @@ Example:
 ```javascript
 // Start from all nodes, save them into start, follow any status links, jump back to the starting node, and find who follows them. Return the result.
 // Results are:
-//   {"id": "A", "start": "B"},
-//   {"id": "C", "start": "B"},
-//   {"id": "D", "start": "B"},
-//   {"id": "C", "start": "D"},
-//   {"id": "D", "start": "G"}
+//   {"id": "alice", "start": "bob"},
+//   {"id": "charlie", "start": "bob"},
+//   {"id": "dani", "start": "bob"},
+//   {"id": "charlie", "start": "dani"},
+//   {"id": "dani", "start": "greg"}
 g.V().Tag("start").Out("status").Back("start").In("follows")
 ```
 
@@ -239,12 +245,12 @@ From the current node as the subject, save the object of all quads with `predica
 
 Example:
 ```javascript
-// Start from D and B and save who they follow into "target"
+// Start from dani and bob and save who they follow into "target"
 // Returns:
-//   {"id" : "D", "target": "B" },
-//   {"id" : "D", "target": "G" },
-//   {"id" : "B", "target": "F" },
-g.V("D", "B").Save("follows", "target")
+//   {"id" : "dani", "target": "bob" },
+//   {"id" : "dani", "target": "greg" },
+//   {"id" : "bob", "target": "fred" },
+g.V("dani", "bob").Save("follows", "target")
 ```
 
 ### Joining
@@ -262,11 +268,11 @@ Filters all paths by the result of another query path (efficiently computed).
 This is essentially a join where, at the stage of each path, a node is shared.
 Example:
 ```javascript
-var cFollows = g.V("C").Out("follows")
-var dFollows = g.V("D").Out("follows")
-// People followed by both C (B and D) and D (B and G) -- returns B.
+var cFollows = g.V("charlie").Out("follows")
+var dFollows = g.V("dani").Out("follows")
+// People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob.
 cFollows.Intersect(dFollows)
-// Equivalently, g.V("C").Out("follows").And(g.V("D").Out("follows"))
+// Equivalently, g.V("charlie").Out("follows").And(g.V("dani").Out("follows"))
 ```
 
 ####**`path.Union(query)`**
@@ -284,9 +290,9 @@ See also: `path.Tag()`
 
 Example:
 ```javascript
-var cFollows = g.V("C").Out("follows")
-var dFollows = g.V("D").Out("follows")
-// People followed by both C (B and D) and D (B and G) -- returns B (from C), B (from D), D and G.
+var cFollows = g.V("charlie").Out("follows")
+var dFollows = g.V("dani").Out("follows")
+// People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob (from charlie), bob (from dani), dani and greg.
 cFollows.Union(dFollows)
 ```
 ####**`path.Except(query)`**
@@ -303,11 +309,11 @@ In a set-theoretic sense, this is (A - B). While `g.V().Except(path)` to achieve
 
 Example:
 ```javascript
-var cFollows = g.V("C").Out("follows")
-var dFollows = g.V("D").Out("follows")
-// People followed by both C (B and D) and D (B and G) -- returns B.
-cFollows.Except(dFollows)   // The set (D) -- what C follows that D does not also follow.
-// Equivalently, g.V("C").Out("follows").Except(g.V("D").Out("follows"))
+var cFollows = g.V("charlie").Out("follows")
+var dFollows = g.V("dani").Out("follows")
+// People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob.
+cFollows.Except(dFollows)   // The set (dani) -- what charlie follows that dani does not also follow.
+// Equivalently, g.V("charlie").Out("follows").Except(g.V("dani").Out("follows"))
 ```
 
 
@@ -327,10 +333,10 @@ Starts as if at the g.M() and follows through the morphism path.
 Example:
 ```javascript:
 friendOfFriend = g.Morphism().Out("follows").Out("follows")
-// Returns the followed people of who C follows -- a simplistic "friend of my friend"
+// Returns the followed people of who charlie follows -- a simplistic "friend of my friend"
 // and whether or not they have a "cool" status. Potential for recommending followers abounds.
-// Returns B and G
-g.V("C").Follow(friendOfFriend).Has("status", "cool_person")
+// Returns bob and greg
+g.V("charlie").Follow(friendOfFriend).Has("status", "cool_person")
 ```
 
 ####**`path.FollowR(morphism)`**
@@ -348,7 +354,7 @@ Example:
 ```javascript:
 friendOfFriend = g.Morphism().Out("follows").Out("follows")
 // Returns the third-tier of influencers -- people who follow people who follow the cool people.
-// Returns E B C (from B) and C (from G)
+// Returns emily, bob, charlie (from bob) and charlie (from greg)
 g.V().Has("status", "cool_person").FollowR(friendOfFriend)
 ```
 
@@ -384,8 +390,8 @@ Returns: Array
 Executes a query and returns the results at the end of the query path.
 Example:
 ```javascript
-// fooNames contains an Array of names for foo.
-var fooNames = g.V("foo").Out("name").ToArray()
+// bobFollowers contains an Array of followers of bob (alice, charlie, dani).
+var bobFollowers = g.V("bob").In("follows").ToArray()
 ```
 
 ####**`query.ToValue()`**
@@ -394,7 +400,7 @@ Arguments: None
 
 Returns: String
 
-As `.ToArray` above, but limited to one result node -- a string. Like `.Limit(1)` for the above case.
+As `.ToArray` above, but limited to one result node -- a string. Like `.Limit(1)` for the above case (alice).
 
 ####**`query.TagArray()`**
 
@@ -405,10 +411,10 @@ Returns: Array of string-to-string objects
 As `.ToArray` above, but instead of a list of top-level strings, returns an Array of tag-to-string dictionaries, much as `.All` would, except inside the Javascript environment.
 Example:
 ```javascript
-// fooNames contains an Array of names for foo.
-var fooTags = g.V("foo").Tag("foo_value").Out("name").ToArray()
-// fooValue should be the string "foo"
-var fooValue = fooTags[0]["foo_value"]
+// bobFollowers contains an Array of followers of bob (alice, charlie, dani).
+var bobFollowers = g.V("bob").Tag("name").In("follows").ToArray()
+// nameValue should be the string "bob"
+var nameValue = bobTags[0]["name"]
 ```
 
 ####**`query.TagValue()`**

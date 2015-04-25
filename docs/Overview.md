@@ -29,13 +29,13 @@ You can repeat the `--db` and `--dbpath` flags from here forward instead of the 
 First we load the data.
 
 ```bash
-./cayley load --config=cayley.cfg.overview --quads=30kmoviedata.nq.gz
+./cayley load --config=cayley.cfg.overview --quads=data/30kmoviedata.nq.gz
 ```
 
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load --config=cayley.cfg.overview --quads=30kmoviedata.nq.gz --alsologtostderr
+./cayley load --config=cayley.cfg.overview --quads=data/30kmoviedata.nq.gz --alsologtostderr
 ```
 
 And watch the log output go by.
