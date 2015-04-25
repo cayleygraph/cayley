@@ -15,6 +15,8 @@
 package mongo
 
 import (
+	"github.com/barakmich/glog"
+
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 )
@@ -23,9 +25,72 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 	switch it.Type() {
 	case graph.LinksTo:
 		return qs.optimizeLinksTo(it.(*iterator.LinksTo))
+	case graph.And:
+		return qs.optimizeAndIterator(it.(*iterator.And))
 
 	}
 	return it, false
+}
+
+func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool) {
+	// Fail fast if nothing can happen
+	glog.V(4).Infoln("Entering optimizeAndIterator", it.UID())
+	found := false
+	for _, it := range it.SubIterators() {
+		glog.V(4).Infoln(it.Type())
+		if it.Type() == mongoType {
+			found = true
+		}
+	}
+	if !found {
+		glog.V(4).Infoln("Aborting optimizeAndIterator")
+		return it, false
+	}
+
+	newAnd := iterator.NewAnd(qs)
+	var mongoIt *Iterator
+	for _, it := range it.SubIterators() {
+		switch it.Type() {
+		case mongoType:
+			if mongoIt == nil {
+				mongoIt = it.(*Iterator)
+			} else {
+				newAnd.AddSubIterator(it)
+			}
+		case graph.LinksTo:
+			continue
+		default:
+			newAnd.AddSubIterator(it)
+		}
+	}
+	stats := mongoIt.Stats()
+
+	lset := []graph.Linkage{
+		{
+			Dir:    mongoIt.dir,
+			Values: []graph.Value{qs.ValueOf(mongoIt.name)},
+		},
+	}
+
+	n := 0
+	for _, it := range it.SubIterators() {
+		if it.Type() == graph.LinksTo {
+			lto := it.(*iterator.LinksTo)
+			// Is it more effective to do the replacement, or let the mongo check the linksto?
+			ltostats := lto.Stats()
+			if (ltostats.ContainsCost+stats.NextCost)*stats.Size > (ltostats.NextCost+stats.ContainsCost)*ltostats.Size {
+				continue
+			}
+			newLto := NewLinksTo(qs, lto.SubIterators()[0], "quads", lto.Direction(), lset)
+			newAnd.AddSubIterator(newLto)
+			n++
+		}
+	}
+	if n == 0 {
+		return it, false
+	}
+
+	return newAnd.Optimize()
 }
 
 func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {

@@ -78,7 +78,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	// The easiest thing to do at this point is merely to create a new And iterator
 	// and replace ourselves with our (reordered, optimized) clone.
-	newAnd := NewAnd()
+	newAnd := NewAnd(it.qs)
 
 	// Add the subiterators in order.
 	for _, sub := range its {
@@ -95,6 +95,18 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// the new And (they were unchanged upon calling Optimize() on them, at the
 	// start).
 	it.cleanUp()
+
+	// Ask the graph.QuadStore if we can be replaced. Often times, this is a great
+	// optimization opportunity (there's a fixed iterator underneath us, for
+	// example).
+	if it.qs != nil {
+		newReplacement, hasOne := it.qs.OptimizeIterator(newAnd)
+		if hasOne {
+			newAnd.Close()
+			return newReplacement, true
+		}
+	}
+
 	return newAnd, true
 }
 

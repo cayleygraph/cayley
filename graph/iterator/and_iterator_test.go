@@ -23,10 +23,14 @@ import (
 
 // Make sure that tags work on the And.
 func TestTag(t *testing.T) {
+	qs := &store{
+		data: []string{},
+		iter: NewFixed(Identity),
+	}
 	fix1 := NewFixed(Identity)
 	fix1.Add(234)
 	fix1.Tagger().Add("foo")
-	and := NewAnd()
+	and := NewAnd(qs)
 	and.AddSubIterator(fix1)
 	and.Tagger().Add("bar")
 	out := fix1.Tagger().Tags()
@@ -56,6 +60,10 @@ func TestTag(t *testing.T) {
 
 // Do a simple itersection of fixed values.
 func TestAndAndFixedIterators(t *testing.T) {
+	qs := &store{
+		data: []string{},
+		iter: NewFixed(Identity),
+	}
 	fix1 := NewFixed(Identity)
 	fix1.Add(1)
 	fix1.Add(2)
@@ -65,7 +73,7 @@ func TestAndAndFixedIterators(t *testing.T) {
 	fix2.Add(3)
 	fix2.Add(4)
 	fix2.Add(5)
-	and := NewAnd()
+	and := NewAnd(qs)
 	and.AddSubIterator(fix1)
 	and.AddSubIterator(fix2)
 	// Should be as big as smallest subiterator
@@ -94,6 +102,10 @@ func TestAndAndFixedIterators(t *testing.T) {
 // If there's no intersection, the size should still report the same,
 // but there should be nothing to Next()
 func TestNonOverlappingFixedIterators(t *testing.T) {
+	qs := &store{
+		data: []string{},
+		iter: NewFixed(Identity),
+	}
 	fix1 := NewFixed(Identity)
 	fix1.Add(1)
 	fix1.Add(2)
@@ -103,7 +115,7 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 	fix2.Add(5)
 	fix2.Add(6)
 	fix2.Add(7)
-	and := NewAnd()
+	and := NewAnd(qs)
 	and.AddSubIterator(fix1)
 	and.AddSubIterator(fix2)
 	// Should be as big as smallest subiterator
@@ -122,9 +134,13 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 }
 
 func TestAllIterators(t *testing.T) {
+	qs := &store{
+		data: []string{},
+		iter: NewFixed(Identity),
+	}
 	all1 := NewInt64(1, 5)
 	all2 := NewInt64(4, 10)
-	and := NewAnd()
+	and := NewAnd(qs)
 	and.AddSubIterator(all2)
 	and.AddSubIterator(all1)
 
@@ -142,10 +158,14 @@ func TestAllIterators(t *testing.T) {
 }
 
 func TestAndIteratorErr(t *testing.T) {
+	qs := &store{
+		data: []string{},
+		iter: NewFixed(Identity),
+	}
 	wantErr := errors.New("unique")
 	allErr := newTestIterator(false, wantErr)
 
-	and := NewAnd()
+	and := NewAnd(qs)
 	and.AddSubIterator(allErr)
 	and.AddSubIterator(NewInt64(1, 5))
 

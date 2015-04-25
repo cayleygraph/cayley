@@ -333,7 +333,7 @@ func TestSetIterator(t *testing.T) {
 	}
 	it.Reset()
 
-	and := iterator.NewAnd()
+	and := iterator.NewAnd(qs)
 	and.AddSubIterator(qs.QuadsAllIterator())
 	and.AddSubIterator(it)
 
@@ -353,7 +353,7 @@ func TestSetIterator(t *testing.T) {
 		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
 	}
 
-	and = iterator.NewAnd()
+	and = iterator.NewAnd(qs)
 	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf("B")))
 	and.AddSubIterator(it)
 
@@ -392,7 +392,7 @@ func TestSetIterator(t *testing.T) {
 	it.Reset()
 
 	// Order is important
-	and = iterator.NewAnd()
+	and = iterator.NewAnd(qs)
 	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf("B")))
 	and.AddSubIterator(it)
 
@@ -405,7 +405,7 @@ func TestSetIterator(t *testing.T) {
 	it.Reset()
 
 	// Order is important
-	and = iterator.NewAnd()
+	and = iterator.NewAnd(qs)
 	and.AddSubIterator(it)
 	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf("B")))
 

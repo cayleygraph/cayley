@@ -30,6 +30,18 @@ type Tagger struct {
 	fixedTags map[string]Value
 }
 
+// TODO(barakmich): Linkage is general enough that there are places we take
+//the combined arguments `quad.Direction, graph.Value` that it may be worth
+//converting these into Linkages. If nothing else, future indexed iterators may
+//benefit from the shared representation
+
+// Linkage is a union type representing a set of values established for a given
+// quad direction.
+type Linkage struct {
+	Dir    quad.Direction
+	Values []Value
+}
+
 // Add a tag to the iterator.
 func (t *Tagger) Add(tag string) {
 	t.tags = append(t.tags, tag)

@@ -133,7 +133,7 @@ func buildInOutIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterato
 		in, out = out, in
 	}
 	lto := iterator.NewLinksTo(qs, base, in)
-	and := iterator.NewAnd()
+	and := iterator.NewAnd(qs)
 	and.AddSubIterator(iterator.NewLinksTo(qs, predicateNodeIterator, quad.Predicate))
 	and.AddSubIterator(lto)
 	return iterator.NewHasA(qs, and, out)
@@ -182,11 +182,11 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		}
 		predFixed := qs.FixedIterator()
 		predFixed.Add(qs.ValueOf(stringArgs[0]))
-		subAnd := iterator.NewAnd()
+		subAnd := iterator.NewAnd(qs)
 		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
 		subAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
 		hasa := iterator.NewHasA(qs, subAnd, quad.Subject)
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
 		it = and
@@ -202,11 +202,11 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		}
 		predFixed := qs.FixedIterator()
 		predFixed.Add(qs.ValueOf(stringArgs[0]))
-		subAnd := iterator.NewAnd()
+		subAnd := iterator.NewAnd(qs)
 		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
 		subAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Subject))
 		hasa := iterator.NewHasA(qs, subAnd, quad.Object)
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
 		it = and
@@ -220,11 +220,11 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		}
 		predFixed := qs.FixedIterator()
 		predFixed.Add(qs.ValueOf(stringArgs[0]))
-		subAnd := iterator.NewAnd()
+		subAnd := iterator.NewAnd(qs)
 		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
 		subAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed, quad.Object))
 		hasa := iterator.NewHasA(qs, subAnd, quad.Subject)
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		and.AddSubIterator(hasa)
 		and.AddSubIterator(subIt)
 		it = and
@@ -238,14 +238,14 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		}
 		argIt := buildIteratorTree(firstArg.Object(), qs)
 
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		and.AddSubIterator(subIt)
 		and.AddSubIterator(argIt)
 		it = and
 	case "back":
 		arg, _ := obj.Get("_gremlin_back_chain")
 		argIt := buildIteratorTree(arg.Object(), qs)
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		and.AddSubIterator(subIt)
 		and.AddSubIterator(argIt)
 		it = and
@@ -254,7 +254,7 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		for _, name := range stringArgs {
 			fixed.Add(qs.ValueOf(name))
 		}
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		and.AddSubIterator(fixed)
 		and.AddSubIterator(subIt)
 		it = and
@@ -311,7 +311,7 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		toComplementIt := buildIteratorTree(firstArg.Object(), qs)
 		notIt := iterator.NewNot(toComplementIt, allIt)
 
-		and := iterator.NewAnd()
+		and := iterator.NewAnd(qs)
 		and.AddSubIterator(subIt)
 		and.AddSubIterator(notIt)
 		it = and

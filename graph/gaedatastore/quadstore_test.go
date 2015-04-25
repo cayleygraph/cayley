@@ -282,12 +282,12 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 
 	all := qs.NodesAllIterator()
 
-	innerAnd := iterator.NewAnd()
+	innerAnd := iterator.NewAnd(qs)
 	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
 	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
-	outerAnd := iterator.NewAnd()
+	outerAnd := iterator.NewAnd(qs)
 	outerAnd.AddSubIterator(fixed)
 	outerAnd.AddSubIterator(hasa)
 

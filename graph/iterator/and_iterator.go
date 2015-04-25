@@ -31,13 +31,16 @@ type And struct {
 	result            graph.Value
 	runstats          graph.IteratorStats
 	err               error
+	qs                graph.QuadStore
 }
 
-// Creates a new And iterator.
-func NewAnd() *And {
+// NewAnd creates an And iterator. `qs` is only required when needing a handle
+// for QuadStore-specific optimizations, otherwise nil is acceptable.
+func NewAnd(qs graph.QuadStore) *And {
 	return &And{
 		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
+		qs:                qs,
 	}
 }
 
@@ -79,7 +82,7 @@ func (it *And) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *And) Clone() graph.Iterator {
-	and := NewAnd()
+	and := NewAnd(it.qs)
 	and.AddSubIterator(it.primaryIt.Clone())
 	and.tags.CopyFrom(it)
 	for _, sub := range it.internalIterators {

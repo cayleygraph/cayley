@@ -33,7 +33,7 @@ func TestSingleIterator(t *testing.T) {
 func TestAndIterator(t *testing.T) {
 	all1 := iterator.NewInt64(1, 3)
 	all2 := iterator.NewInt64(3, 5)
-	and := iterator.NewAnd()
+	and := iterator.NewAnd(nil)
 	and.AddSubIterator(all1)
 	and.AddSubIterator(all2)
 
