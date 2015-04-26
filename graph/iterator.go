@@ -237,6 +237,7 @@ const (
 	Not
 	Optional
 	Materialize
+	Unique
 )
 
 var (
@@ -258,6 +259,7 @@ var (
 		"not",
 		"optional",
 		"materialize",
+		"unique",
 	}
 )
 
