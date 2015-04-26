@@ -251,6 +251,13 @@ var testQueries = []struct {
 		expect: []string{"bob", "greg"},
 	},
 	{
+		message: "list all bob's incoming predicates",
+		query: `
+		  g.V("bob").InPredicates().All()
+		`,
+		expect: []string{"follows"},
+	},
+	{
 		message: "list all in predicates",
 		query: `
 		  g.V().InPredicates().All()

@@ -145,7 +145,8 @@ func buildInOutPredicateIterator(obj *otto.Object, qs graph.QuadStore, base grap
 		dir = quad.Object
 	}
 	lto := iterator.NewLinksTo(qs, base, dir)
-	return iterator.NewHasA(qs, lto, quad.Predicate)
+	hasa := iterator.NewHasA(qs, lto, quad.Predicate)
+	return iterator.NewUnique(hasa)
 }
 
 func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.Iterator) graph.Iterator {
