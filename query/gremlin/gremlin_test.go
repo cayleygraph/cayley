@@ -250,6 +250,20 @@ var testQueries = []struct {
 		`,
 		expect: []string{"bob", "greg"},
 	},
+	{
+		message: "list all in predicates",
+		query: `
+		  g.V().InPredicates().All()
+		`,
+		expect: []string{"follows", "status"},
+	},
+	{
+		message: "list all out predicates",
+		query: `
+		  g.V().OutPredicates().All()
+		`,
+		expect: []string{"follows", "status"},
+	},
 }
 
 func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
