@@ -41,6 +41,11 @@ If you prefer to build from source, see the documentation on the wiki at [How to
 ./cayley repl --dbpath=data/testdata.nq
 ```
 
+To run the web frontend, replace the "repl" command with "http"
+```
+./cayley http --dbpath=data/testdata.nq
+```
+
 You should see a `cayley>` REPL prompt. Go ahead and give it a try:
 
 ```
@@ -60,6 +65,18 @@ cayley> graph.Vertex("dani").All()
 // See who dani follows.
 cayley> graph.Vertex("dani").Out("follows").All()
 ```
+
+**Running the visualizer on the web frontend**
+
+To run the visualizer: click on visualize and enter:
+
+```
+// Visualize who dani follows.
+g.V("dani").Tag("source").Out("follows").Tag("target").All()
+```
+The visualizer expects to tag nodes as either "source" or "target."  Your source is represented as a blue node.
+While your target is represented as an orange node.
+The idea being that our node relationship goes from blue to orange (source to target).  
 
 **Sample Data**
 
