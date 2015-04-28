@@ -102,15 +102,6 @@ func (it *Or) TagResults(dst map[string]graph.Value) {
 	it.internalIterators[it.currentIterator].TagResults(dst)
 }
 
-// DEPRECATED Returns the ResultTree for this graph.iterator, recurses to it's subiterators.
-func (it *Or) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	for _, sub := range it.internalIterators {
-		tree.AddSubtree(sub.ResultTree())
-	}
-	return tree
-}
-
 func (it *Or) Describe() graph.Description {
 	var subIts []graph.Description
 	for i, sub := range it.internalIterators {

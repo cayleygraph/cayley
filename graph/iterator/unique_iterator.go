@@ -64,13 +64,6 @@ func (it *Unique) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.subIt}
 }
 
-// DEPRECATED
-func (it *Unique) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	tree.AddSubtree(it.subIt.ResultTree())
-	return tree
-}
-
 // Next advances the subiterator, continuing until it returns a value which it
 // has not previously seen.
 func (it *Unique) Next() bool {

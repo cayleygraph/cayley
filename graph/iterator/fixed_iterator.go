@@ -149,11 +149,6 @@ func (it *Fixed) Err() error {
 	return nil
 }
 
-// DEPRECATED
-func (it *Fixed) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *Fixed) Result() graph.Value {
 	return it.result
 }

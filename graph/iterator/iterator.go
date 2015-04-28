@@ -96,10 +96,6 @@ func (it *Null) Result() graph.Value {
 	return nil
 }
 
-func (it *Null) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *Null) SubIterators() []graph.Iterator {
 	return nil
 }

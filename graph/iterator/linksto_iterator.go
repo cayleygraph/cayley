@@ -99,13 +99,6 @@ func (it *LinksTo) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }
 
-// DEPRECATED
-func (it *LinksTo) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	tree.AddSubtree(it.primaryIt.ResultTree())
-	return tree
-}
-
 func (it *LinksTo) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{

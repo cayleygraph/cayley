@@ -102,16 +102,6 @@ func (it *And) SubIterators() []graph.Iterator {
 	return iters
 }
 
-// DEPRECATED Returns the ResultTree for this iterator, recurses to it's subiterators.
-func (it *And) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	tree.AddSubtree(it.primaryIt.ResultTree())
-	for _, sub := range it.internalIterators {
-		tree.AddSubtree(sub.ResultTree())
-	}
-	return tree
-}
-
 func (it *And) Describe() graph.Description {
 	subIts := make([]graph.Description, len(it.internalIterators))
 	for i, sub := range it.internalIterators {

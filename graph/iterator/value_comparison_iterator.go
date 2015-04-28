@@ -140,11 +140,6 @@ func (it *Comparison) Err() error {
 	return it.err
 }
 
-// DEPRECATED
-func (it *Comparison) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *Comparison) Result() graph.Value {
 	return it.result
 }
