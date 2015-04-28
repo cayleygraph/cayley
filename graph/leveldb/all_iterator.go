@@ -123,10 +123,6 @@ func (it *AllIterator) Err() error {
 	return it.iter.Error()
 }
 
-func (it *AllIterator) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *AllIterator) Result() graph.Value {
 	return it.result
 }

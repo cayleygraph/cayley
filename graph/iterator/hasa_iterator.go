@@ -121,13 +121,6 @@ func (it *HasA) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }
 
-// DEPRECATED Return results in a ResultTree.
-func (it *HasA) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	tree.AddSubtree(it.primaryIt.ResultTree())
-	return tree
-}
-
 func (it *HasA) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{

@@ -110,13 +110,6 @@ func (it *LinksTo) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }
 
-// DEPRECATED
-func (it *LinksTo) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	tree.AddSubtree(it.primaryIt.ResultTree())
-	return tree
-}
-
 // Optimize the LinksTo, by replacing it if it can be.
 func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 	return it, false

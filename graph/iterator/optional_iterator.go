@@ -72,11 +72,6 @@ func (it *Optional) Clone() graph.Iterator {
 	return out
 }
 
-// DEPRECATED
-func (it *Optional) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *Optional) Err() error {
 	return it.err
 }

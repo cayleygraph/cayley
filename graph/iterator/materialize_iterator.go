@@ -131,13 +131,6 @@ func (it *Materialize) Describe() graph.Description {
 // Register this iterator as a Materialize iterator.
 func (it *Materialize) Type() graph.Type { return graph.Materialize }
 
-// DEPRECATED
-func (it *Materialize) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	tree.AddSubtree(it.subIt.ResultTree())
-	return tree
-}
-
 func (it *Materialize) Result() graph.Value {
 	if it.aborted {
 		return it.subIt.Result()

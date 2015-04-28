@@ -191,10 +191,6 @@ func (it *Iterator) Err() error {
 	return it.err
 }
 
-func (it *Iterator) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *Iterator) Result() graph.Value {
 	if it.done {
 		return nil

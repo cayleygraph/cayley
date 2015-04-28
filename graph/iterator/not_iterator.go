@@ -66,14 +66,6 @@ func (it *Not) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.primaryIt, it.allIt}
 }
 
-// DEPRECATED
-func (it *Not) ResultTree() *graph.ResultTree {
-	tree := graph.NewResultTree(it.Result())
-	tree.AddSubtree(it.primaryIt.ResultTree())
-	tree.AddSubtree(it.allIt.ResultTree())
-	return tree
-}
-
 // Next advances the Not iterator. It returns whether there is another valid
 // new value. It fetches the next value of the all iterator which is not
 // contained by the primary iterator.

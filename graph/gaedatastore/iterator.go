@@ -209,10 +209,6 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *Iterator) Result() graph.Value {
 	return it.result
 }

@@ -109,11 +109,6 @@ func (it *Int64) Err() error {
 	return nil
 }
 
-// DEPRECATED
-func (it *Int64) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *Int64) Result() graph.Value {
 	return it.result
 }

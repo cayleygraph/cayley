@@ -86,9 +86,6 @@ type Iterator interface {
 	// Returns the current result.
 	Result() Value
 
-	// DEPRECATED -- Fills a ResultTree struct with Result().
-	ResultTree() *ResultTree
-
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
 	//

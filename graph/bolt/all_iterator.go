@@ -140,10 +140,6 @@ func (it *AllIterator) Err() error {
 	return it.err
 }
 
-func (it *AllIterator) ResultTree() *graph.ResultTree {
-	return graph.NewResultTree(it.Result())
-}
-
 func (it *AllIterator) Result() graph.Value {
 	if it.done {
 		return nil
