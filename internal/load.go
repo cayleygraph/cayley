@@ -1,4 +1,4 @@
-package util
+package internal
 
 import (
 	"fmt"
@@ -11,7 +11,6 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/quad/cquads"
 	"github.com/google/cayley/quad/nquads"
@@ -57,7 +56,7 @@ func DecompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 		r = res.Body
 	}
 
-	r, err = internal.Decompressor(r)
+	r, err = Decompressor(r)
 	if err != nil {
 		if err == io.EOF {
 			return nil

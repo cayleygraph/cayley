@@ -29,7 +29,7 @@ import (
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/http"
-	"github.com/google/cayley/util"
+	"github.com/google/cayley/internal"
 
 	// Load all supported backends.
 	_ "github.com/google/cayley/graph/bolt"
@@ -185,7 +185,7 @@ func main() {
 			if err != nil {
 				break
 			}
-			err = util.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
+			err = internal.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
 			if err != nil {
 				break
 			}
@@ -197,7 +197,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		err = util.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
+		err = internal.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
 		if err != nil {
 			break
 		}
@@ -210,7 +210,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = util.Load(handle.QuadWriter, cfg, "", *quadType)
+			err = internal.Load(handle.QuadWriter, cfg, "", *quadType)
 			if err != nil {
 				break
 			}
@@ -226,7 +226,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = util.Load(handle.QuadWriter, cfg, "", *quadType)
+			err = internal.Load(handle.QuadWriter, cfg, "", *quadType)
 			if err != nil {
 				break
 			}

@@ -28,9 +28,9 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/query/gremlin"
-	"github.com/google/cayley/util"
 
 	// Load all supported backends.
 	_ "github.com/google/cayley/graph/bolt"
@@ -460,7 +460,7 @@ func prepare(t testing.TB) {
 		}
 
 		if needsLoad {
-			err = util.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -477,7 +477,7 @@ func deletePrepare(t testing.TB) {
 			if err != nil {
 				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
 			}
-			err = util.Load(handle.QuadWriter, cfg, "", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -486,7 +486,7 @@ func deletePrepare(t testing.TB) {
 }
 
 func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
-	return util.DecompressAndLoad(qw, cfg, path, typ, remove)
+	return internal.DecompressAndLoad(qw, cfg, path, typ, remove)
 }
 
 func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
