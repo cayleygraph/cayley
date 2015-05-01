@@ -14,8 +14,6 @@ type QuadWriter graph.QuadWriter
 
 type Path path.Path
 
-type Quad quad.Quad
-
 var StartMorphism = path.StartMorphism
 var StartPath = path.StartPath
 
@@ -24,6 +22,10 @@ var RawNext = graph.Next
 type Handle struct {
 	graph.QuadStore
 	graph.QuadWriter
+}
+
+func Quad(subject, predicate, object, label string) quad.Quad {
+	return quad.Quad{subject, predicate, object, label}
 }
 
 func NewMemoryGraph() (*Handle, error) {
