@@ -135,13 +135,15 @@ func (it *Iterator) Next() bool {
 			b := tx.Bucket(it.bucket)
 			cur := b.Cursor()
 			if last == nil {
-				k, _ := cur.Seek(it.checkID)
+				k, v := cur.Seek(it.checkID)
 				if bytes.HasPrefix(k, it.checkID) {
-					var out []byte
-					out = make([]byte, len(k))
-					copy(out, k)
-					it.buffer = append(it.buffer, out)
-					i++
+					if it.isLiveValue(v) {
+						var out []byte
+						out = make([]byte, len(k))
+						copy(out, k)
+						it.buffer = append(it.buffer, out)
+						i++
+					}
 				} else {
 					it.buffer = append(it.buffer, nil)
 					return errNotExist
