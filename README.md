@@ -1,7 +1,7 @@
 <p align="center">
   <img src="static/branding/cayley_side.png?raw=true" alt="Cayley" />
 </p>
-Cayley is an open-source graph inspired by the graph database behind [Freebase](http://freebase.com) and Google's [Knowledge Graph](http://www.google.com/insidesearch/features/search/knowledge.html).
+Cayley is an open-source graph inspired by the graph database behind [Freebase](http://freebase.com) and Google's [Knowledge Graph](https://www.google.com/search/about/insidesearch/features/search/knowledge.html).
 
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
@@ -18,9 +18,9 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
   * JavaScript, with a [Gremlin](http://gremlindocs.com/)-inspired\* graph object.
   * (simplified) [MQL](https://developers.google.com/freebase/v1/mql-overview), for Freebase fans
 * Plays well with multiple backend stores:
-  * [LevelDB](http://code.google.com/p/leveldb/)
-  * [Bolt](http://github.com/boltdb/bolt)
-  * [MongoDB](http://mongodb.org) for distributed stores
+  * [LevelDB](https://github.com/google/leveldb)
+  * [Bolt](https://github.com/boltdb/bolt)
+  * [MongoDB](https://www.mongodb.org) for distributed stores
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
 * Good test coverage
@@ -32,7 +32,7 @@ Rough performance testing shows that, on consumer hardware and an average disk, 
 
 ## Getting Started
 
-Grab the latest [release binary](http://github.com/google/cayley/releases) and extract it wherever you like.
+Grab the latest [release binary](https://github.com/google/cayley/releases) and extract it wherever you like.
 
 If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/google/cayley/wiki/How-to-start-hacking-on-Cayley)
 
@@ -152,10 +152,10 @@ There's more in the JavaScript API Documentation, but that should give you a fee
 
 ## Disclaimer
 
-Not a Google project, but created and maintained [by a Googler](http://github.com/barakmich), with permission from and assignment to Google, under the [Apache License, version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+Not a Google project, but created and maintained [by a Googler](https://github.com/barakmich), with permission from and assignment to Google, under the [Apache License, version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 ## Contact
 
 * Email list: [cayley-users at Google Groups](https://groups.google.com/forum/?hl=en#!forum/cayley-users)
-* Twitter: [@cayleygraph](http://twitter.com/cayleygraph)
+* Twitter: [@cayleygraph](https://twitter.com/cayleygraph)
 * IRC: [#cayley on Freenode](http://webchat.freenode.net/?channels=%23cayley&uio=d4)
