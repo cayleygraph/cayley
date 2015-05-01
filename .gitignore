@@ -4,3 +4,6 @@ main
 *.peg.go
 cayley.cfg
 .cayley_history
+
+# The built binary
+/cayley

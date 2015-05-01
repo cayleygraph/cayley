@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package integration
 
 import (
 	"flag"
@@ -28,8 +28,18 @@ import (
 	"github.com/google/cayley/config"
 	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/internal"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/query/gremlin"
+
+	// Load all supported backends.
+	_ "github.com/google/cayley/graph/bolt"
+	_ "github.com/google/cayley/graph/leveldb"
+	_ "github.com/google/cayley/graph/memstore"
+	_ "github.com/google/cayley/graph/mongo"
+
+	// Load writer registry
+	_ "github.com/google/cayley/writer"
 )
 
 var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
@@ -415,7 +425,7 @@ func prepare(t testing.TB) {
 	cfg.DatabaseType = *backend
 	switch *backend {
 	case "memstore":
-		cfg.DatabasePath = "data/30kmoviedata.nq.gz"
+		cfg.DatabasePath = "../data/30kmoviedata.nq.gz"
 	case "leveldb", "bolt":
 		cfg.DatabasePath = "/tmp/cayley_test_" + *backend
 		cfg.DatabaseOptions = map[string]interface{}{
@@ -450,7 +460,7 @@ func prepare(t testing.TB) {
 		}
 
 		if needsLoad {
-			err = load(handle.QuadWriter, cfg, "data/30kmoviedata.nq.gz", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -467,7 +477,7 @@ func deletePrepare(t testing.TB) {
 			if err != nil {
 				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
 			}
-			err = load(handle.QuadWriter, cfg, "", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -476,7 +486,7 @@ func deletePrepare(t testing.TB) {
 }
 
 func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
-	return decompressAndLoad(qw, cfg, path, typ, remove)
+	return internal.DecompressAndLoad(qw, cfg, path, typ, remove)
 }
 
 func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
