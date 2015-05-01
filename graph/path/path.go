@@ -194,7 +194,7 @@ func isMorphism(nodes ...string) morphism {
 				}
 				sub = fixed
 			}
-			and := iterator.NewAnd()
+			and := iterator.NewAnd(qs)
 			and.AddSubIterator(sub)
 			and.AddSubIterator(it)
 			return and
@@ -240,8 +240,8 @@ func iteratorMorphism(it graph.Iterator) morphism {
 	return morphism{
 		"iterator",
 		func() morphism { return iteratorMorphism(it) },
-		func(_ graph.QuadStore, subIt graph.Iterator) graph.Iterator {
-			and := iterator.NewAnd()
+		func(qs graph.QuadStore, subIt graph.Iterator) graph.Iterator {
+			and := iterator.NewAnd(qs)
 			and.AddSubIterator(it)
 			and.AddSubIterator(subIt)
 			return and
@@ -255,7 +255,7 @@ func andMorphism(p *Path) morphism {
 		func() morphism { return andMorphism(p) },
 		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
 			subIt := p.BuildIteratorOn(qs)
-			and := iterator.NewAnd()
+			and := iterator.NewAnd(qs)
 			and.AddSubIterator(it)
 			and.AddSubIterator(subIt)
 			return and
@@ -294,7 +294,7 @@ func exceptMorphism(p *Path) morphism {
 		func(qs graph.QuadStore, base graph.Iterator) graph.Iterator {
 			subIt := p.BuildIteratorOn(qs)
 			notIt := iterator.NewNot(subIt, qs.NodesAllIterator())
-			and := iterator.NewAnd()
+			and := iterator.NewAnd(qs)
 			and.AddSubIterator(base)
 			and.AddSubIterator(notIt)
 			return and
@@ -308,7 +308,7 @@ func inOutIterator(viaPath *Path, it graph.Iterator, reverse bool) graph.Iterato
 		in, out = out, in
 	}
 	lto := iterator.NewLinksTo(viaPath.qs, it, in)
-	and := iterator.NewAnd()
+	and := iterator.NewAnd(viaPath.qs)
 	and.AddSubIterator(iterator.NewLinksTo(viaPath.qs, viaPath.BuildIterator(), quad.Predicate))
 	and.AddSubIterator(lto)
 	return iterator.NewHasA(viaPath.qs, and, out)

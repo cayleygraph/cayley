@@ -45,8 +45,8 @@ type Delta struct {
 }
 
 type Handle struct {
-	QuadStore  QuadStore
-	QuadWriter QuadWriter
+	QuadStore
+	QuadWriter
 }
 
 type IgnoreOpts struct {
