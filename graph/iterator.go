@@ -165,6 +165,9 @@ type Description struct {
 	Iterators []Description  `json:",omitempty"`
 }
 
+// ApplyMorphism is a curried function that can generates a new iterator based on some prior iterator.
+type ApplyMorphism func(QuadStore, Iterator) Iterator
+
 type Nexter interface {
 	// Next advances the iterator to the next value, which will then be available through
 	// the Result method. It returns false if no further advancement is possible, or if an
