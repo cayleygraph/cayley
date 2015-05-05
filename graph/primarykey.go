@@ -15,12 +15,13 @@
 package graph
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"encoding/json"
 	"errors"
-	"github.com/barakmich/glog"
 	"strconv"
 	"sync"
+
+	"code.google.com/p/go-uuid/uuid"
+	"github.com/barakmich/glog"
 )
 
 type primaryKeyType uint8
@@ -115,9 +116,6 @@ func (p PrimaryKey) MarshalJSON() ([]byte, error) {
 		return nil, errors.New("Unknown PrimaryKey type")
 	}
 }
-
-//To avoid recursion in the implmentation of the UnmarshalJSON interface below
-type primaryKey PrimaryKey
 
 func (p *PrimaryKey) UnmarshalJSON(bytes []byte) error {
 	if bytes[0] == '"' {
