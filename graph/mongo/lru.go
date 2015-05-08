@@ -14,10 +14,6 @@
 
 package mongo
 
-const (
-	DEAULT_SIZE = 1000
-)
-
 // cache implements an LRU cache.
 type cache struct {
 	cache   map[string]*kv
@@ -34,9 +30,6 @@ type kv struct {
 }
 
 func newCache(size int) *cache {
-	if size < 0 {
-		size = DEAULT_SIZE
-	}
 	return &cache{
 		maxSize: size,
 		cache:   make(map[string]*kv),
@@ -53,6 +46,7 @@ func (lru *cache) Put(key string, value interface{}) {
 		lru.removeOldest()
 	}
 	newItem := &kv{key: key, value: value}
+	lru.cache[key] = newItem
 	if lru.head == nil {
 		lru.head = newItem
 		lru.tail = newItem
@@ -61,7 +55,6 @@ func (lru *cache) Put(key string, value interface{}) {
 		lru.head.prev = newItem
 		lru.head = newItem
 	}
-	lru.cache[key] = newItem
 }
 
 func (lru *cache) Get(key string) (interface{}, bool) {
