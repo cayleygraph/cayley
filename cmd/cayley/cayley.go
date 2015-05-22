@@ -25,11 +25,11 @@ import (
 
 	"github.com/barakmich/glog"
 
-	"github.com/google/cayley/config"
-	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/http"
 	"github.com/google/cayley/internal"
+	"github.com/google/cayley/internal/config"
+	"github.com/google/cayley/internal/db"
+	"github.com/google/cayley/internal/http"
 
 	// Load all supported backends.
 	_ "github.com/google/cayley/graph/bolt"

@@ -18,13 +18,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/barakmich/glog"
 	"os"
 	"time"
 
-	"github.com/google/cayley/config"
-	"github.com/google/cayley/db"
-	"github.com/google/cayley/http"
+	"github.com/barakmich/glog"
+
+	"github.com/google/cayley/internal/config"
+	"github.com/google/cayley/internal/db"
+	"github.com/google/cayley/internal/http"
 
 	_ "github.com/google/cayley/graph/gaedatastore"
 	_ "github.com/google/cayley/writer"

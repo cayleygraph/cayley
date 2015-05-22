@@ -21,8 +21,8 @@ import (
 
 	"github.com/barakmich/glog"
 
-	"github.com/google/cayley/config"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/internal/config"
 	"github.com/google/cayley/quad"
 )
 
