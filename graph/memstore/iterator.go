@@ -34,10 +34,6 @@ type Iterator struct {
 	err    error
 }
 
-func cmp(a, b int64) int {
-	return int(a - b)
-}
-
 func NewIterator(tree *b.Tree, data string, qs *QuadStore) *Iterator {
 	iter, err := tree.SeekFirst()
 	if err != nil {

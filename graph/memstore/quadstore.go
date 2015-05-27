@@ -35,6 +35,10 @@ func init() {
 	}, nil, nil)
 }
 
+func cmp(a, b int64) int {
+	return int(a - b)
+}
+
 type QuadDirectionIndex struct {
 	index [4]map[int64]*b.Tree
 }
