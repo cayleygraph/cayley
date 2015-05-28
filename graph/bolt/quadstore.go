@@ -37,6 +37,10 @@ func init() {
 }
 
 var (
+	errNoBucket = errors.New("bolt: bucket is missing")
+)
+
+var (
 	hashPool = sync.Pool{
 		New: func() interface{} { return sha1.New() },
 	}
@@ -97,7 +101,9 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	err = qs.getMetadata()
-	if err != nil {
+	if err == errNoBucket {
+		panic("bolt: quadstore has not been initialised")
+	} else if err != nil {
 		return nil, err
 	}
 	return &qs, nil
@@ -451,6 +457,9 @@ func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 func (qs *QuadStore) getInt64ForKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
 	var out int64
 	b := tx.Bucket(metaBucket)
+	if b == nil {
+		return empty, errNoBucket
+	}
 	data := b.Get([]byte(key))
 	if data == nil {
 		return empty, nil
