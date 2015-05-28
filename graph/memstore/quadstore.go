@@ -187,13 +187,7 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 			qs.revIDMap[qs.nextID] = sid
 			qs.nextID++
 		}
-	}
-
-	for dir := quad.Subject; dir <= quad.Label; dir++ {
-		if dir == quad.Label && d.Quad.Get(dir) == "" {
-			continue
-		}
-		id := qs.idMap[d.Quad.Get(dir)]
+		id := qs.idMap[sid]
 		tree := qs.index.Tree(dir, id)
 		tree.Set(qid, struct{}{})
 	}
