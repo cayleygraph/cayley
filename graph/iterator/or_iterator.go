@@ -103,7 +103,7 @@ func (it *Or) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Or) Describe() graph.Description {
-	var subIts []graph.Description
+	subIts := make([]graph.Description, len(it.internalIterators))
 	for i, sub := range it.internalIterators {
 		subIts[i] = sub.Describe()
 	}
