@@ -130,7 +130,7 @@ func (it *Int64) Size() (int64, bool) {
 }
 
 // Contains() for an Int64 is merely seeing if the passed value is
-// withing the range, assuming the value is an int64.
+// within the range, assuming the value is an int64.
 func (it *Int64) Contains(tsv graph.Value) bool {
 	graph.ContainsLogIn(it, tsv)
 	it.runstats.Contains += 1

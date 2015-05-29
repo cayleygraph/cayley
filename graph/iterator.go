@@ -101,7 +101,7 @@ type Iterator interface {
 	//  	}
 	//  }
 	//
-	// All of them should set iterator.Last to be the last returned value, to
+	// All of them should set iterator.result to be the last returned value, to
 	// make results work.
 	//
 	// NextPath() advances iterators that may have more than one valid result,
