@@ -206,9 +206,9 @@ func (it *Materialize) Next() bool {
 	it.index++
 	it.subindex = 0
 	if it.index >= len(it.values) {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
-	return graph.NextLogOut(it, it.Result(), true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *Materialize) Err() error {

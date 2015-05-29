@@ -114,20 +114,20 @@ func (it *Iterator) Next() bool {
 	graph.NextLogIn(it)
 
 	if it.iter == nil {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	result, _, err := it.iter.Next()
 	if err != nil {
 		if err != io.EOF {
 			it.err = err
 		}
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	if !it.checkValid(result) {
 		return it.Next()
 	}
 	it.result = result
-	return graph.NextLogOut(it, it.result, true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *Iterator) Err() error {

@@ -94,7 +94,7 @@ func (it *Int64) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	if it.at == -1 {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	val := it.at
 	it.at = it.at + 1
@@ -102,7 +102,7 @@ func (it *Int64) Next() bool {
 		it.at = -1
 	}
 	it.result = val
-	return graph.NextLogOut(it, val, true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *Int64) Err() error {

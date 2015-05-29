@@ -123,7 +123,7 @@ func (it *LinksTo) Next() bool {
 			return it.Next()
 		}
 		it.result = result.ID
-		return graph.NextLogOut(it, it.result, true)
+		return graph.NextLogOut(it, true)
 	}
 
 	if it.nextIt != nil {
@@ -140,7 +140,7 @@ func (it *LinksTo) Next() bool {
 		it.err = it.primaryIt.Err()
 
 		// We're out of nodes in our subiterator, so we're done as well.
-		return graph.NextLogOut(it, 0, false)
+		return graph.NextLogOut(it, false)
 	}
 	if it.nextIt != nil {
 		it.nextIt.Close()
