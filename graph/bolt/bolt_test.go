@@ -465,3 +465,43 @@ func TestOptimize(t *testing.T) {
 		t.Errorf("Discordant tag results, new:%v old:%v", newResults, oldResults)
 	}
 }
+
+func TestDeletedFromIterator(t *testing.T) {
+
+	tmpFile, _ := ioutil.TempFile(os.TempDir(), "cayley_test")
+	t.Log(tmpFile.Name())
+	defer os.RemoveAll(tmpFile.Name())
+	err := createNewBolt(tmpFile.Name(), nil)
+	if err != nil {
+		t.Fatalf("Failed to create working directory")
+	}
+
+	qs, err := newQuadStore(tmpFile.Name(), nil)
+	if qs == nil || err != nil {
+		t.Error("Failed to create leveldb QuadStore.")
+	}
+	defer qs.Close()
+
+	w, _ := writer.NewSingleReplication(qs, nil)
+	w.AddQuadSet(makeQuadSet())
+
+	expect := []quad.Quad{
+		{"E", "follows", "F", ""},
+	}
+	sort.Sort(ordered(expect))
+
+	// Subject iterator.
+	it := qs.QuadIterator(quad.Subject, qs.ValueOf("E"))
+
+	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
+		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
+	}
+	it.Reset()
+
+	w.RemoveQuad(quad.Quad{"E", "follows", "F", ""})
+	expect = nil
+
+	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
+		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
+	}
+}
