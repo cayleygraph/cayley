@@ -139,6 +139,16 @@ func buildInOutIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterato
 	return iterator.NewHasA(qs, and, out)
 }
 
+func buildInOutPredicateIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterator, isReverse bool) graph.Iterator {
+	dir := quad.Subject
+	if isReverse {
+		dir = quad.Object
+	}
+	lto := iterator.NewLinksTo(qs, base, dir)
+	hasa := iterator.NewHasA(qs, lto, quad.Predicate)
+	return iterator.NewUnique(hasa)
+}
+
 func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.Iterator) graph.Iterator {
 	// TODO: Better error handling
 	var (
@@ -315,6 +325,10 @@ func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.It
 		and.AddSubIterator(subIt)
 		and.AddSubIterator(notIt)
 		it = and
+	case "in_predicates":
+		it = buildInOutPredicateIterator(obj, qs, subIt, true)
+	case "out_predicates":
+		it = buildInOutPredicateIterator(obj, qs, subIt, false)
 	}
 	if it == nil {
 		panic("Iterator building does not catch the output iterator in some case.")
