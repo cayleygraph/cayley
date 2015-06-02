@@ -28,8 +28,8 @@ func Quad(subject, predicate, object, label string) quad.Quad {
 	return quad.Quad{subject, predicate, object, label}
 }
 
-func NewMemoryGraph() (*Handle, error) {
-	qs, err := graph.NewQuadStore("memstore", "", nil)
+func NewGraph(name, dbpath string, opts graph.Options) (*Handle, error) {
+	qs, err := graph.NewQuadStore(name, dbpath, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +38,10 @@ func NewMemoryGraph() (*Handle, error) {
 		return nil, err
 	}
 	return &Handle{qs, qw}, nil
+}
+
+func NewMemoryGraph() (*Handle, error) {
+	return NewGraph("memstore", "", nil)
 }
 
 func (h *Handle) Close() {
