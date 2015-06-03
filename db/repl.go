@@ -160,6 +160,10 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 				h.QuadWriter.RemoveQuad(quad)
 				continue
 
+			case "exit":
+				term.Close()
+				os.Exit(0)
+
 			default:
 				if cmd[0] == ':' {
 					fmt.Printf("Unknown command: %q\n", cmd)
