@@ -60,7 +60,11 @@ func Run(query string, ses query.Session) {
 		nResults++
 	}
 	if nResults > 0 {
-		fmt.Printf("-----------\n%d Results\n", nResults)
+		results := "Result"
+		if nResults > 1 {
+			results += "s"
+		}
+		fmt.Printf("-----------\n%d %s\n", nResults, results)
 	}
 }
 
