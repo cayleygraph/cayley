@@ -160,6 +160,28 @@ func testSet(qs graph.QuadStore) []test {
 			path:    StartPath(qs, "A", "B", "C").Except(StartPath(qs, "B")).Except(StartPath(qs, "A")),
 			expect:  []string{"C"},
 		},
+		{
+			message: "show a simple save",
+			path:    StartPath(qs).Save("status", "somecool"),
+			tag:     "somecool",
+			expect:  []string{"cool", "cool", "cool"},
+		},
+		{
+			message: "show a simple saveR",
+			path:    StartPath(qs, "cool").SaveReverse("status", "who"),
+			tag:     "who",
+			expect:  []string{"G", "D", "B"},
+		},
+		{
+			message: "show a simple Has",
+			path:    StartPath(qs).Has("status", "cool"),
+			expect:  []string{"G", "D", "B"},
+		},
+		{
+			message: "show a double Has",
+			path:    StartPath(qs).Has("status", "cool").Has("follows", "F"),
+			expect:  []string{"B"},
+		},
 	}
 }
 
