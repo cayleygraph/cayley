@@ -102,6 +102,24 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
 
+// RemoveNode removes all quads with the given value
+func (s *Single) RemoveNode(v graph.Value) error {
+	var deltas []graph.Delta
+	for _, d := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
+		it := s.qs.QuadIterator(d, v)
+		for graph.Next(it) {
+			deltas = append(deltas, graph.Delta{
+				ID:        s.AcquireNextID(),
+				Quad:      s.qs.Quad(it.Result()),
+				Action:    graph.Delete,
+				Timestamp: time.Now(),
+			})
+		}
+		it.Close()
+	}
+	return s.qs.ApplyDeltas(deltas)
+}
+
 func (s *Single) Close() error {
 	// Nothing to clean up locally.
 	return nil
