@@ -14,10 +14,13 @@ type QuadWriter graph.QuadWriter
 
 type Path path.Path
 
-var StartMorphism = path.StartMorphism
-var StartPath = path.StartPath
+var (
+	StartMorphism = path.StartMorphism
+	StartPath     = path.StartPath
 
-var RawNext = graph.Next
+	RawNext        = graph.Next
+	NewTransaction = graph.NewTransaction
+)
 
 type Handle struct {
 	graph.QuadStore
