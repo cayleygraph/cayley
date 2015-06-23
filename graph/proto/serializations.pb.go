@@ -28,7 +28,7 @@ type LogDelta struct {
 	ID        uint64 `protobuf:"varint,1,opt,proto3" json:"ID,omitempty"`
 	Quad      *Quad  `protobuf:"bytes,2,opt" json:"Quad,omitempty"`
 	Action    int32  `protobuf:"varint,3,opt,proto3" json:"Action,omitempty"`
-	Timestamp uint64 `protobuf:"varint,4,opt,proto3" json:"Timestamp,omitempty"`
+	Timestamp int64  `protobuf:"varint,4,opt,proto3" json:"Timestamp,omitempty"`
 }
 
 func (m *LogDelta) Reset()         { *m = LogDelta{} }
@@ -158,7 +158,7 @@ func (m *LogDelta) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				m.Timestamp |= (uint64(b) & 0x7F) << shift
+				m.Timestamp |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}

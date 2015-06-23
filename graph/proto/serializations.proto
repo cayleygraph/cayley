@@ -20,7 +20,7 @@ message LogDelta {
   uint64 ID = 1;
   Quad Quad = 2;
   int32 Action = 3;
-  uint64 Timestamp = 4;
+  int64 Timestamp = 4;
 }
 
 message HistoryEntry {

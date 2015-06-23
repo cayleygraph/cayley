@@ -15,14 +15,16 @@
 package bolt
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/proto"
 )
 
-const latestDataVersion = 1
+const latestDataVersion = 2
 const nilDataVersion = 1
 
 type upgradeFunc func(*bolt.DB) error
@@ -65,6 +67,7 @@ func upgradeBolt(path string, opts graph.Options) error {
 		if err != nil {
 			return err
 		}
+		setVersion(db, i+1)
 	}
 
 	return nil
@@ -77,6 +80,64 @@ func upgrade1To2(db *bolt.DB) error {
 		return err
 	}
 	defer tx.Rollback()
+	fmt.Println("Upgrading bucket", string(logBucket))
+	lb := tx.Bucket(logBucket)
+	c := lb.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var delta graph.Delta
+		err := json.Unmarshal(v, &delta)
+		if err != nil {
+			return err
+		}
+		var newd proto.LogDelta
+		newd.ID = uint64(delta.ID.Int())
+		newd.Action = int32(delta.Action)
+		newd.Timestamp = delta.Timestamp.UnixNano()
+		newd.Quad = &proto.Quad{
+			Subject:   delta.Quad.Subject,
+			Predicate: delta.Quad.Predicate,
+			Object:    delta.Quad.Object,
+			Label:     delta.Quad.Label,
+		}
+		data, err := newd.Marshal()
+		if err != nil {
+			return err
+		}
+		lb.Put(k, data)
+	}
+	fmt.Println("Upgrading bucket", string(nodeBucket))
+	nb := tx.Bucket(nodeBucket)
+	c = nb.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var vd proto.NodeData
+		err := json.Unmarshal(v, &vd)
+		if err != nil {
+			return err
+		}
+		data, err := vd.Marshal()
+		if err != nil {
+			return err
+		}
+		nb.Put(k, data)
+	}
+
+	for _, bucket := range [4][]byte{spoBucket, ospBucket, posBucket, cpsBucket} {
+		fmt.Println("Upgrading bucket", string(bucket))
+		b := tx.Bucket(bucket)
+		cur := b.Cursor()
+		for k, v := cur.First(); k != nil; k, v = cur.Next() {
+			var h proto.HistoryEntry
+			err := json.Unmarshal(v, &h)
+			if err != nil {
+				return err
+			}
+			data, err := h.Marshal()
+			if err != nil {
+				return err
+			}
+			b.Put(k, data)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return err
 	}

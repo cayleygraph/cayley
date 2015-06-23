@@ -89,7 +89,7 @@ func createNewBolt(path string, _ graph.Options) error {
 	if err != nil {
 		return err
 	}
-	err = qs.setVersion(latestDataVersion)
+	err = setVersion(qs.db, latestDataVersion)
 	if err != nil {
 		return err
 	}
@@ -148,8 +148,8 @@ func (qs *QuadStore) createBuckets() error {
 	})
 }
 
-func (qs *QuadStore) setVersion(version int) error {
-	return qs.db.Update(func(tx *bolt.Tx) error {
+func setVersion(db *bolt.DB, version int64) error {
+	return db.Update(func(tx *bolt.Tx) error {
 		buf := new(bytes.Buffer)
 		err := binary.Write(buf, binary.LittleEndian, version)
 		if err != nil {
