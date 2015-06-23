@@ -62,9 +62,6 @@ The necessary component to make mid-query limit work. Acts as a limit on Next(),
 ### Value indexing
   Since I have value comparison. It works, it's just not fast today. That could be improved.
 
-### AppEngine (Datastore) Backend
-  Hopefully easy now that the AppEngine shim exists. Questionably fast.
-
 ### Postgres Backend
   It'd be nice to run on SQL as well. It's a big why not?
 #### Generalist layout
