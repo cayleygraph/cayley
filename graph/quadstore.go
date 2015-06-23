@@ -197,7 +197,11 @@ func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
 func UpgradeQuadStore(name, dbpath string, opts Options) error {
 	r, registered := storeRegistry[name]
 	if registered {
-		return r.UpgradeFunc(dbpath, opts)
+		if r.UpgradeFunc != nil {
+			return r.UpgradeFunc(dbpath, opts)
+		} else {
+			return nil
+		}
 	}
 	return errors.New("quadstore: name '" + name + "' is not registered")
 

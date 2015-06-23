@@ -36,7 +36,7 @@ func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
 		NewFunc:           newQuadStore,
 		NewForRequestFunc: nil,
-		UpgradeFunc:       nil,
+		UpgradeFunc:       upgradeBolt,
 		InitFunc:          createNewBolt,
 		IsPersistent:      true,
 	})
@@ -73,6 +73,7 @@ type QuadStore struct {
 	open    bool
 	size    int64
 	horizon int64
+	version int64
 }
 
 func createNewBolt(path string, _ graph.Options) error {
@@ -85,6 +86,10 @@ func createNewBolt(path string, _ graph.Options) error {
 	qs := &QuadStore{}
 	qs.db = db
 	err = qs.createBuckets()
+	if err != nil {
+		return err
+	}
+	err = qs.setVersion(latestDataVersion)
 	if err != nil {
 		return err
 	}
@@ -112,6 +117,9 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	} else if err != nil {
 		return nil, err
 	}
+	if qs.version != latestDataVersion {
+		return nil, errors.New("bolt: data version is out of date. Run cayleyupgrade for your config to update the data.")
+	}
 	return &qs, nil
 }
 
@@ -135,6 +143,24 @@ func (qs *QuadStore) createBuckets() error {
 		_, err = tx.CreateBucket(metaBucket)
 		if err != nil {
 			return fmt.Errorf("could not create bucket: %s", err)
+		}
+		return nil
+	})
+}
+
+func (qs *QuadStore) setVersion(version int) error {
+	return qs.db.Update(func(tx *bolt.Tx) error {
+		buf := new(bytes.Buffer)
+		err := binary.Write(buf, binary.LittleEndian, version)
+		if err != nil {
+			glog.Errorf("Couldn't convert version!")
+			return err
+		}
+		b := tx.Bucket(metaBucket)
+		werr := b.Put([]byte("version"), buf.Bytes())
+		if werr != nil {
+			glog.Error("Couldn't write version!")
+			return werr
 		}
 		return nil
 	})
@@ -460,7 +486,7 @@ func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 	return int64(qs.valueData(k.(*Token)).Size)
 }
 
-func (qs *QuadStore) getInt64ForKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
+func getInt64ForMetaKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
 	var out int64
 	b := tx.Bucket(metaBucket)
 	if b == nil {
@@ -481,11 +507,15 @@ func (qs *QuadStore) getInt64ForKey(tx *bolt.Tx, key string, empty int64) (int64
 func (qs *QuadStore) getMetadata() error {
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
-		qs.size, err = qs.getInt64ForKey(tx, "size", 0)
+		qs.size, err = getInt64ForMetaKey(tx, "size", 0)
 		if err != nil {
 			return err
 		}
-		qs.horizon, err = qs.getInt64ForKey(tx, "horizon", 0)
+		qs.version, err = getInt64ForMetaKey(tx, "version", nilDataVersion)
+		if err != nil {
+			return err
+		}
+		qs.horizon, err = getInt64ForMetaKey(tx, "horizon", 0)
 		return err
 	})
 	return err

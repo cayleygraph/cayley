@@ -17,19 +17,20 @@
 package main
 
 import (
-	"errors"
 	"flag"
+	"fmt"
+	"os"
 
+	"github.com/barakmich/glog"
 	"github.com/google/cayley/config"
-	_ "github.com/google/cayley/graph"
+	"github.com/google/cayley/graph"
 
 	// Load all supported backends.
-	"github.com/google/cayley/db"
+
 	_ "github.com/google/cayley/graph/bolt"
 	_ "github.com/google/cayley/graph/leveldb"
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/graph/mongo"
-	"github.com/google/cayley/internal"
 )
 
 var (
@@ -39,6 +40,23 @@ var (
 )
 
 func configFrom(file string) *config.Config {
+	// Find the file...
+	if file != "" {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			glog.Fatalln("Cannot find specified configuration file", file, ", aborting.")
+		}
+	} else if _, err := os.Stat(os.Getenv("CAYLEY_CFG")); err == nil {
+		file = os.Getenv("CAYLEY_CFG")
+	} else if _, err := os.Stat("/etc/cayley.cfg"); err == nil {
+		file = "/etc/cayley.cfg"
+	}
+	if file == "" {
+		glog.Infoln("Couldn't find a config file in either $CAYLEY_CFG or /etc/cayley.cfg. Going by flag defaults only.")
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		glog.Fatalln(err)
+	}
 	if cfg.DatabasePath == "" {
 		cfg.DatabasePath = *databasePath
 	}
@@ -53,23 +71,9 @@ func main() {
 	flag.Parse()
 	cfg := configFrom(*configFile)
 
-	r, registered := storeRegistry[*databaseBackend]
-	if registered {
-		return r.initFunc(dbpath, opts)
-	}
-	return errors.New("quadstore: name '" + name + "' is not registered")
+	err := graph.UpgradeQuadStore(cfg.DatabaseType, cfg.DatabasePath, nil)
 	if err != nil {
-		break
-	}
-	if *quadFile != "" {
-		handle, err = db.Open(cfg)
-		if err != nil {
-			break
-		}
-		err = internal.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
-		if err != nil {
-			break
-		}
-		handle.Close()
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
