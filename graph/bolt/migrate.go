@@ -73,6 +73,15 @@ func upgradeBolt(path string, opts graph.Options) error {
 	return nil
 }
 
+type v1ValueData struct {
+	Name string
+	Size int64
+}
+
+type v1IndexEntry struct {
+	History []int64
+}
+
 func upgrade1To2(db *bolt.DB) error {
 	fmt.Println("Upgrading v1 to v2...")
 	tx, err := db.Begin(true)
@@ -89,16 +98,7 @@ func upgrade1To2(db *bolt.DB) error {
 		if err != nil {
 			return err
 		}
-		var newd proto.LogDelta
-		newd.ID = uint64(delta.ID.Int())
-		newd.Action = int32(delta.Action)
-		newd.Timestamp = delta.Timestamp.UnixNano()
-		newd.Quad = &proto.Quad{
-			Subject:   delta.Quad.Subject,
-			Predicate: delta.Quad.Predicate,
-			Object:    delta.Quad.Object,
-			Label:     delta.Quad.Label,
-		}
+		newd := deltaToProto(delta)
 		data, err := newd.Marshal()
 		if err != nil {
 			return err
