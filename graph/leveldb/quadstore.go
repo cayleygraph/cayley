@@ -35,7 +35,13 @@ import (
 )
 
 func init() {
-	graph.RegisterQuadStore(QuadStoreType, true, newQuadStore, createNewLevelDB, nil)
+	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
+		NewFunc:           newQuadStore,
+		NewForRequestFunc: nil,
+		UpgradeFunc:       nil,
+		InitFunc:          createNewLevelDB,
+		IsPersistent:      true,
+	})
 }
 
 const (
