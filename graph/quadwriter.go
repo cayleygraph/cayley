@@ -72,12 +72,16 @@ type QuadWriter interface {
 	// Add a quad to the store.
 	AddQuad(quad.Quad) error
 
+	// TODO(barakmich): Deprecate in favor of transaction.
 	// Add a set of quads to the store, atomically if possible.
 	AddQuadSet([]quad.Quad) error
 
 	// Removes a quad matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
 	RemoveQuad(quad.Quad) error
+
+	// Apply a set of quad changes
+	ApplyTransaction(*Transaction) error
 
 	// Cleans up replication and closes the writing aspect of the database.
 	Close() error
