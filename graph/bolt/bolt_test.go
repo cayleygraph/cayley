@@ -104,7 +104,7 @@ func TestCreateDatabase(t *testing.T) {
 
 	qs, err := newQuadStore(tmpFile.Name(), nil)
 	if qs == nil || err != nil {
-		t.Error("Failed to create leveldb QuadStore.")
+		t.Error("Failed to create bolt QuadStore.")
 	}
 	if s := qs.Size(); s != 0 {
 		t.Errorf("Unexpected size, got:%d expected:0", s)
@@ -167,7 +167,7 @@ func TestLoadDatabase(t *testing.T) {
 
 	ts2, didConvert := qs.(*QuadStore)
 	if !didConvert {
-		t.Errorf("Could not convert from generic to LevelDB QuadStore")
+		t.Errorf("Could not convert from generic to Bolt QuadStore")
 	}
 
 	//Test horizon
@@ -219,7 +219,7 @@ func TestIterator(t *testing.T) {
 
 	qs, err := newQuadStore(tmpFile.Name(), nil)
 	if qs == nil || err != nil {
-		t.Error("Failed to create leveldb QuadStore.")
+		t.Error("Failed to create bolt QuadStore.")
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
@@ -313,7 +313,7 @@ func TestSetIterator(t *testing.T) {
 
 	qs, err := newQuadStore(tmpFile.Name(), nil)
 	if qs == nil || err != nil {
-		t.Error("Failed to create leveldb QuadStore.")
+		t.Error("Failed to create bolt QuadStore.")
 	}
 	defer qs.Close()
 
@@ -428,7 +428,7 @@ func TestOptimize(t *testing.T) {
 	}
 	qs, err := newQuadStore(tmpFile.Name(), nil)
 	if qs == nil || err != nil {
-		t.Error("Failed to create leveldb QuadStore.")
+		t.Error("Failed to create bolt QuadStore.")
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
@@ -478,7 +478,7 @@ func TestDeletedFromIterator(t *testing.T) {
 
 	qs, err := newQuadStore(tmpFile.Name(), nil)
 	if qs == nil || err != nil {
-		t.Error("Failed to create leveldb QuadStore.")
+		t.Error("Failed to create bolt QuadStore.")
 	}
 	defer qs.Close()
 

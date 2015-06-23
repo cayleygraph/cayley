@@ -360,12 +360,14 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, tx *bolt.Tx) er
 
 	if data != nil {
 		// Node exists in the database -- unmarshal and update.
-		err := value.Unmarshal(data)
+		var oldvalue proto.NodeData
+		err := oldvalue.Unmarshal(data)
 		if err != nil {
 			glog.Errorf("Error: couldn't reconstruct value: %v", err)
 			return err
 		}
-		value.Size_ += amount
+		oldvalue.Size_ += amount
+		value = oldvalue
 	}
 
 	// Are we deleting something?
@@ -495,7 +497,7 @@ func (qs *QuadStore) NameOf(k graph.Value) string {
 
 func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
-		return 0
+		return -1
 	}
 	return int64(qs.valueData(k.(*Token)).Size_)
 }
