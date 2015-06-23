@@ -37,6 +37,7 @@ var migrateFunctions = []upgradeFunc{
 func upgradeBolt(path string, opts graph.Options) error {
 	db, err := bolt.Open(path, 0600, nil)
 	defer db.Close()
+
 	if err != nil {
 		glog.Errorln("Error, couldn't open! ", err)
 		return err
@@ -105,6 +106,14 @@ func upgrade1To2(db *bolt.DB) error {
 		}
 		lb.Put(k, data)
 	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	tx, err = db.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	fmt.Println("Upgrading bucket", string(nodeBucket))
 	nb := tx.Bucket(nodeBucket)
 	c = nb.Cursor()
@@ -120,8 +129,16 @@ func upgrade1To2(db *bolt.DB) error {
 		}
 		nb.Put(k, data)
 	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 
 	for _, bucket := range [4][]byte{spoBucket, ospBucket, posBucket, cpsBucket} {
+		tx, err = db.Begin(true)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
 		fmt.Println("Upgrading bucket", string(bucket))
 		b := tx.Bucket(bucket)
 		cur := b.Cursor()
@@ -137,9 +154,9 @@ func upgrade1To2(db *bolt.DB) error {
 			}
 			b.Put(k, data)
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return err
+		if err := tx.Commit(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
