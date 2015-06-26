@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"sync"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/barakmich/glog"
+	"github.com/pborman/uuid"
 )
 
 type primaryKeyType uint8
