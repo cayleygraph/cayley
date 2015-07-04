@@ -139,6 +139,11 @@ func (it *Iterator) Next() bool {
 	}
 	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
 		if !it.isLiveValue(it.iter.Value()) {
+			ok := it.iter.Next()
+			if !ok {
+				it.Close()
+				return false
+			}
 			return it.Next()
 		}
 		out := make([]byte, len(it.iter.Key()))

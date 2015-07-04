@@ -1,5 +1,4 @@
-/*
-// Copyright 2014 The Cayley Authors. All rights reserved.
+// Copyright 2015 The Cayley Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,34 +11,33 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-*/
 
-.codecol {
-  /* background-color: rgba(0,0,0,.2); */
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border: 0 #f2f2f2 solid;
-  border-bottom-width: 1px;
-}
-.spacer {
-  margin-bottom: 2em;
+package graph
+
+import (
+	"github.com/google/cayley/quad"
+)
+
+type Transaction struct {
+	Deltas []Delta
 }
 
-line.link {
-  fill: none;
-  stroke-width: 1.5px;
-}
-      
-.active {
-  font-weight: bold;
+func NewTransaction() *Transaction {
+	return &Transaction{make([]Delta, 0, 5)}
 }
 
-.CodeMirror {
-  font-family: "Inconsolata", monospace;
-  font-size: 120%;
+func (t *Transaction) AddQuad(q quad.Quad) {
+	t.Deltas = append(t.Deltas,
+		Delta{
+			Quad:   q,
+			Action: Add,
+		})
 }
 
-#visualize {
-  width: 100%;
-  height: 700px;
+func (t *Transaction) RemoveQuad(q quad.Quad) {
+	t.Deltas = append(t.Deltas,
+		Delta{
+			Quad:   q,
+			Action: Delete,
+		})
 }

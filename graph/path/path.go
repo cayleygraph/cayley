@@ -14,16 +14,13 @@
 
 package path
 
-import (
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
-)
+import "github.com/google/cayley/graph"
 
 type morphism struct {
 	Name     string
 	Reversal func() morphism
 	Apply    graph.ApplyMorphism
+	tags     []string
 }
 
 // Path represents either a morphism (a pre-defined path stored for later use),
@@ -76,11 +73,15 @@ func (p *Path) Reverse() *Path {
 	return newPath
 }
 
+// Is declares that the current nodes in this path are only the nodes
+// passed as arguments.
 func (p *Path) Is(nodes ...string) *Path {
 	p.stack = append(p.stack, isMorphism(nodes...))
 	return p
 }
 
+// Tag adds tag strings to the nodes at this point in the path for each result
+// path in the set.
 func (p *Path) Tag(tags ...string) *Path {
 	p.stack = append(p.stack, tagMorphism(tags...))
 	return p
@@ -149,6 +150,32 @@ func (p *Path) FollowReverse(path *Path) *Path {
 	return p
 }
 
+// Save will, from the current nodes in the path, retrieve the node
+// one linkage away (given by either a path or a predicate), add the given
+// tag, and propagate that to the result set.
+//
+// For example:
+// // Will return []map[string]string{{"social_status: "cool"}}
+// StartPath(qs, "B").Save("status", "social_status"
+func (p *Path) Save(via interface{}, tag string) *Path {
+	p.stack = append(p.stack, saveMorphism(via, tag))
+	return p
+}
+
+// SaveReverse is the same as Save, only in the reverse direction
+// (the subject of the linkage should be tagged, instead of the object)
+func (p *Path) SaveReverse(via interface{}, tag string) *Path {
+	p.stack = append(p.stack, saveReverseMorphism(via, tag))
+	return p
+}
+
+// Has limits the paths to be ones where the current nodes have some linkage
+// to some known node.
+func (p *Path) Has(via interface{}, nodes ...string) *Path {
+	p.stack = append(p.stack, hasMorphism(via, nodes...))
+	return p
+}
+
 // BuildIterator returns an iterator from this given Path.  Note that you must
 // call this with a full path (not a morphism), since a morphism does not have
 // the ability to fetch the underlying quads.  This function will panic if
@@ -177,164 +204,4 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 		}
 		return i
 	}
-}
-
-func isMorphism(nodes ...string) morphism {
-	return morphism{
-		"is",
-		func() morphism { return isMorphism(nodes...) },
-		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			var sub graph.Iterator
-			if len(nodes) == 0 {
-				sub = qs.NodesAllIterator()
-			} else {
-				fixed := qs.FixedIterator()
-				for _, n := range nodes {
-					fixed.Add(qs.ValueOf(n))
-				}
-				sub = fixed
-			}
-			and := iterator.NewAnd(qs)
-			and.AddSubIterator(sub)
-			and.AddSubIterator(it)
-			return and
-		},
-	}
-}
-
-func tagMorphism(tags ...string) morphism {
-	return morphism{
-		"tag",
-		func() morphism { return tagMorphism(tags...) },
-		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			for _, t := range tags {
-				it.Tagger().Add(t)
-			}
-			return it
-		}}
-}
-
-func outMorphism(via ...interface{}) morphism {
-	return morphism{
-		"out",
-		func() morphism { return inMorphism(via...) },
-		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			path := buildViaPath(qs, via...)
-			return inOutIterator(path, it, false)
-		},
-	}
-}
-
-func inMorphism(via ...interface{}) morphism {
-	return morphism{
-		"in",
-		func() morphism { return outMorphism(via...) },
-		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			path := buildViaPath(qs, via...)
-			return inOutIterator(path, it, true)
-		},
-	}
-}
-
-func iteratorMorphism(it graph.Iterator) morphism {
-	return morphism{
-		"iterator",
-		func() morphism { return iteratorMorphism(it) },
-		func(qs graph.QuadStore, subIt graph.Iterator) graph.Iterator {
-			and := iterator.NewAnd(qs)
-			and.AddSubIterator(it)
-			and.AddSubIterator(subIt)
-			return and
-		},
-	}
-}
-
-func andMorphism(p *Path) morphism {
-	return morphism{
-		"and",
-		func() morphism { return andMorphism(p) },
-		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			subIt := p.BuildIteratorOn(qs)
-			and := iterator.NewAnd(qs)
-			and.AddSubIterator(it)
-			and.AddSubIterator(subIt)
-			return and
-		},
-	}
-}
-
-func orMorphism(p *Path) morphism {
-	return morphism{
-		"or",
-		func() morphism { return orMorphism(p) },
-		func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-			subIt := p.BuildIteratorOn(qs)
-			and := iterator.NewOr()
-			and.AddSubIterator(it)
-			and.AddSubIterator(subIt)
-			return and
-		},
-	}
-}
-
-func followMorphism(p *Path) morphism {
-	return morphism{
-		"follow",
-		func() morphism { return followMorphism(p.Reverse()) },
-		func(qs graph.QuadStore, base graph.Iterator) graph.Iterator {
-			return p.Morphism()(qs, base)
-		},
-	}
-}
-
-func exceptMorphism(p *Path) morphism {
-	return morphism{
-		"except",
-		func() morphism { return exceptMorphism(p) },
-		func(qs graph.QuadStore, base graph.Iterator) graph.Iterator {
-			subIt := p.BuildIteratorOn(qs)
-			notIt := iterator.NewNot(subIt, qs.NodesAllIterator())
-			and := iterator.NewAnd(qs)
-			and.AddSubIterator(base)
-			and.AddSubIterator(notIt)
-			return and
-		},
-	}
-}
-
-func inOutIterator(viaPath *Path, it graph.Iterator, reverse bool) graph.Iterator {
-	in, out := quad.Subject, quad.Object
-	if reverse {
-		in, out = out, in
-	}
-	lto := iterator.NewLinksTo(viaPath.qs, it, in)
-	and := iterator.NewAnd(viaPath.qs)
-	and.AddSubIterator(iterator.NewLinksTo(viaPath.qs, viaPath.BuildIterator(), quad.Predicate))
-	and.AddSubIterator(lto)
-	return iterator.NewHasA(viaPath.qs, and, out)
-}
-
-func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
-	if len(via) == 0 {
-		return PathFromIterator(qs, qs.NodesAllIterator())
-	} else if len(via) == 1 {
-		v := via[0]
-		switch v := v.(type) {
-		case *Path:
-			return v
-		case string:
-			return StartPath(qs, v)
-		default:
-			panic("Invalid type passed to buildViaPath.")
-		}
-	}
-	var strings []string
-	for _, s := range via {
-		if str, ok := s.(string); ok {
-			strings = append(strings, str)
-		} else {
-			panic("Non-string type passed to long Via path")
-		}
-	}
-	return StartPath(qs, strings...)
 }

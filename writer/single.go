@@ -106,3 +106,12 @@ func (s *Single) Close() error {
 	// Nothing to clean up locally.
 	return nil
 }
+
+func (s *Single) ApplyTransaction(t *graph.Transaction) error {
+	ts := time.Now()
+	for i := 0; i < len(t.Deltas); i++ {
+		t.Deltas[i].ID = s.currentID.Next()
+		t.Deltas[i].Timestamp = ts
+	}
+	return s.qs.ApplyDeltas(t.Deltas, s.ignoreOpts)
+}

@@ -66,15 +66,9 @@ func NewLinksTo(qs *QuadStore, it graph.Iterator, collection string, d quad.Dire
 
 func (it *LinksTo) buildConstraint() bson.M {
 	constraint := bson.M{}
-	for _, set := range it.lset {
-		var s []string
-		for _, v := range set.Values {
-			s = append(s, it.qs.NameOf(v))
-		}
-		constraint[set.Dir.String()] = bson.M{"$in": s}
-		if len(s) == 1 {
-			constraint[set.Dir.String()] = s[0]
-		}
+	// TODO(barakmich): Currently this only works for an individual linkage in any direction.
+	for _, link := range it.lset {
+		constraint[link.Dir.String()] = link.Value
 	}
 	return constraint
 }
@@ -201,16 +195,9 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 
-	for _, set := range it.lset {
-		dval := it.qs.QuadDirection(val, set.Dir)
-		good := false
-		for _, val := range set.Values {
-			if val == dval {
-				good = true
-				break
-			}
-		}
-		if !good {
+	for _, link := range it.lset {
+		dval := it.qs.QuadDirection(val, link.Dir)
+		if dval != link.Value {
 			return graph.ContainsLogOut(it, val, false)
 		}
 	}
