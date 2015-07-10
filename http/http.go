@@ -163,7 +163,7 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 func Serve(handle *graph.Handle, cfg *config.Config) {
 	SetupRoutes(handle, cfg)
 	glog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
-	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
+	fmt.Printf("Cayley now listening on http://%s:%s\n", cfg.ListenHost, cfg.ListenPort)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenHost, cfg.ListenPort), nil)
 	if err != nil {
 		glog.Fatal("ListenAndServe: ", err)
