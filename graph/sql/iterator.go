@@ -95,12 +95,11 @@ func NewIterator(qs *QuadStore, d quad.Direction, val graph.Value) *Iterator {
 }
 
 func NewAllIterator(qs *QuadStore, table string) *Iterator {
-	var size int64
 	it := &Iterator{
 		uid:   iterator.NextUID(),
 		qs:    qs,
 		dir:   quad.Any,
-		size:  size,
+		size:  qs.Size(),
 		table: table,
 		isAll: true,
 	}
@@ -255,7 +254,7 @@ func (it *Iterator) Describe() graph.Description {
 
 func (it *Iterator) Stats() graph.IteratorStats {
 	size, _ := it.Size()
-	if it.table == "nodes" {
+	if it.table == "nodes" || it.isAll {
 		return graph.IteratorStats{
 			ContainsCost: 1,
 			NextCost:     9999,

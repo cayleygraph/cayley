@@ -61,10 +61,31 @@ func createSQLTables(addr string, options graph.Options) error {
 		glog.Errorf("Cannot create quad table: %v", quadTable)
 		return err
 	}
-	index, err := tx.Exec(`
-	CREATE INDEX pos_index ON quads (predicate, object, subject) WITH (FILLFACTOR = 50);
-	CREATE INDEX osp_index ON quads (object, subject, predicate) WITH (FILLFACTOR = 50);
-	`)
+	idxStrat, _, err := options.StringKey("db_index_strategy")
+	factor, factorOk, err := options.IntKey("db_fill_factor")
+	if !factorOk {
+		factor = 50
+	}
+	var index sql.Result
+	if idxStrat == "brin" {
+		index, err = tx.Exec(`
+		CREATE INDEX spo_index ON quads USING brin(subject) WITH (pages_per_range = 32);
+		CREATE INDEX pos_index ON quads USING brin(predicate) WITH (pages_per_range = 32);
+		CREATE INDEX osp_index ON quads USING brin(object) WITH (pages_per_range = 32);
+		`)
+	} else if idxStrat == "prefix" {
+		index, err = tx.Exec(fmt.Sprintf(`
+	CREATE INDEX spo_index ON quads (substr(subject, 0, 8)) WITH (FILLFACTOR = %d);
+	CREATE INDEX pos_index ON quads (substr(predicate, 0, 8)) WITH (FILLFACTOR = %d);
+	CREATE INDEX osp_index ON quads (substr(object, 0, 8)) WITH (FILLFACTOR = %d);
+	`, factor, factor, factor))
+	} else {
+		index, err = tx.Exec(fmt.Sprintf(`
+	CREATE INDEX spo_index ON quads (subject, predicate, object) WITH (FILLFACTOR = %d);
+	CREATE INDEX pos_index ON quads (predicate, object, subject) WITH (FILLFACTOR = %d);
+	CREATE INDEX osp_index ON quads (object, subject, predicate) WITH (FILLFACTOR = %d);
+	`, factor, factor, factor))
+	}
 	if err != nil {
 		glog.Errorf("Cannot create indices: %v", index)
 		return err
