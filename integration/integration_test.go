@@ -37,12 +37,14 @@ import (
 	_ "github.com/google/cayley/graph/leveldb"
 	_ "github.com/google/cayley/graph/memstore"
 	_ "github.com/google/cayley/graph/mongo"
+	_ "github.com/google/cayley/graph/sql"
 
 	// Load writer registry
 	_ "github.com/google/cayley/writer"
 )
 
 var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
+var backendPath = flag.String("backend_path", "", "Path to the chosen backend. Will have sane testing defaults if not specified")
 
 var benchmarkQueries = []struct {
 	message string
@@ -422,6 +424,7 @@ var (
 )
 
 func prepare(t testing.TB) {
+	var remote bool
 	cfg.DatabaseType = *backend
 	switch *backend {
 	case "memstore":
@@ -436,14 +439,21 @@ func prepare(t testing.TB) {
 		cfg.DatabaseOptions = map[string]interface{}{
 			"database_name": "cayley_test", // provide a default test database
 		}
+		remote = true
+	case "sql":
+		cfg.DatabasePath = "postgres://localhost/cayley_test"
+		remote = true
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
+	}
+	if *backendPath != "" {
+		cfg.DatabasePath = *backendPath
 	}
 
 	var err error
 	create.Do(func() {
 		needsLoad := true
-		if graph.IsPersistent(cfg.DatabaseType) {
+		if graph.IsPersistent(cfg.DatabaseType) && !remote {
 			if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
 				err = db.Init(cfg)
 				if err != nil {
@@ -459,7 +469,7 @@ func prepare(t testing.TB) {
 			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
 		}
 
-		if needsLoad {
+		if needsLoad && !remote {
 			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", "cquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
@@ -524,6 +534,7 @@ func checkQueries(t *testing.T) {
 		if testing.Short() && test.long {
 			continue
 		}
+		fmt.Printf("Now testing %s\n", test.message)
 		ses := gremlin.NewSession(handle.QuadStore, cfg.Timeout, true)
 		_, err := ses.Parse(test.query)
 		if err != nil {

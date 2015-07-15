@@ -199,10 +199,12 @@ func (it *Iterator) Next() bool {
 func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if it.isAll {
+		it.result = v
 		return graph.ContainsLogOut(it, v, true)
 	}
 	q := v.(quad.Quad)
 	if q.Get(it.dir) == it.val.(string) {
+		it.result = v
 		return graph.ContainsLogOut(it, v, true)
 	}
 	return graph.ContainsLogOut(it, v, false)
@@ -217,6 +219,9 @@ func (it *Iterator) Size() (int64, bool) {
 }
 
 func (it *Iterator) Result() graph.Value {
+	if it.result == nil {
+		glog.Fatalln("result was nil", it)
+	}
 	return it.result
 }
 
@@ -239,7 +244,7 @@ func (it *Iterator) Type() graph.Type {
 	return sqlType
 }
 
-func (it *Iterator) Sorted() bool                     { return true }
+func (it *Iterator) Sorted() bool                     { return false }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 
 func (it *Iterator) Describe() graph.Description {
