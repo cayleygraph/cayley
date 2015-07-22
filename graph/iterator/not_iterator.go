@@ -140,6 +140,7 @@ func (it *Not) Optimize() (graph.Iterator, bool) {
 	if optimized {
 		it.primaryIt = optimizedPrimaryIt
 	}
+	it.primaryIt = NewMaterialize(it.primaryIt)
 	return it, false
 }
 
