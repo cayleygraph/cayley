@@ -51,11 +51,14 @@ var benchmarkQueries = []struct {
 	long    bool
 	query   string
 	tag     string
-	expect  []interface{}
+	// for testing
+	skip   bool
+	expect []interface{}
 }{
 	// Easy one to get us started. How quick is the most straightforward retrieval?
 	{
 		message: "name predicate",
+		skip:    true,
 		query: `
 		g.V("Humphrey Bogart").In("name").All()
 		`,
@@ -69,6 +72,7 @@ var benchmarkQueries = []struct {
 	// that's going to be measurably slower for every other backend.
 	{
 		message: "two large sets with no intersection",
+		skip:    true,
 		query: `
 		function getId(x) { return g.V(x).In("name") }
 		var actor_to_film = g.M().In("/film/performance/actor").In("/film/film/starring")
@@ -532,6 +536,9 @@ func TestDeletedAndRecreatedQueries(t *testing.T) {
 func checkQueries(t *testing.T) {
 	for _, test := range benchmarkQueries {
 		if testing.Short() && test.long {
+			continue
+		}
+		if test.skip {
 			continue
 		}
 		fmt.Printf("Now testing %s\n", test.message)
