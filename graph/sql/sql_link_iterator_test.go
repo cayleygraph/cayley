@@ -15,6 +15,7 @@
 package sql
 
 import (
+	"flag"
 	"fmt"
 	"testing"
 
@@ -22,6 +23,8 @@ import (
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
 )
+
+var dbpath = flag.String("dbpath", "", "Path to running DB")
 
 func TestSQLLink(t *testing.T) {
 	it := NewSQLLinkIterator(nil, quad.Object, "cool")

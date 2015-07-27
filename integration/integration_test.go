@@ -58,7 +58,6 @@ var benchmarkQueries = []struct {
 	// Easy one to get us started. How quick is the most straightforward retrieval?
 	{
 		message: "name predicate",
-		skip:    true,
 		query: `
 		g.V("Humphrey Bogart").In("name").All()
 		`,
@@ -72,7 +71,6 @@ var benchmarkQueries = []struct {
 	// that's going to be measurably slower for every other backend.
 	{
 		message: "two large sets with no intersection",
-		skip:    true,
 		query: `
 		function getId(x) { return g.V(x).In("name") }
 		var actor_to_film = g.M().In("/film/performance/actor").In("/film/film/starring")
@@ -526,6 +524,7 @@ func TestQueries(t *testing.T) {
 }
 
 func TestDeletedAndRecreatedQueries(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip()
 	}
@@ -541,7 +540,8 @@ func checkQueries(t *testing.T) {
 		if test.skip {
 			continue
 		}
-		fmt.Printf("Now testing %s\n", test.message)
+		tInit := time.Now()
+		fmt.Printf("Now testing %s ", test.message)
 		ses := gremlin.NewSession(handle.QuadStore, cfg.Timeout, true)
 		_, err := ses.Parse(test.query)
 		if err != nil {
@@ -570,6 +570,7 @@ func checkQueries(t *testing.T) {
 			t.Error("Query timed out: skipping validation.")
 			continue
 		}
+		fmt.Printf("(%v)\n", time.Since(tInit))
 
 		if len(got) != len(test.expect) {
 			t.Errorf("Unexpected number of results, got:%d expect:%d on %s.", len(got), len(test.expect), test.message)

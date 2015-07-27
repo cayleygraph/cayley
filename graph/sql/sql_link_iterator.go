@@ -45,11 +45,26 @@ type constraint struct {
 }
 
 type tagDir struct {
-	tag string
-	dir quad.Direction
+	tag       string
+	dir       quad.Direction
+	table     string
+	justLocal bool
+}
 
-	// Not to be stored in the iterator directly
-	table string
+func (t tagDir) String() string {
+	if t.dir == quad.Any {
+		if t.justLocal {
+			return fmt.Sprintf("%s.__execd as %s", t.table, t.tag)
+		}
+		return fmt.Sprintf("%s.%s as %s", t.table, t.tag, t.tag)
+	}
+	return fmt.Sprintf("%s.%s as %s", t.table, t.dir, t.tag)
+}
+
+type tableDef struct {
+	table  string
+	name   string
+	values []string
 }
 
 type sqlItDir struct {
@@ -58,8 +73,9 @@ type sqlItDir struct {
 }
 
 type sqlIterator interface {
+	buildSQL(next bool, val graph.Value) (string, []string)
 	sqlClone() sqlIterator
-	getTables() []string
+	getTables() []tableDef
 	getTags() []tagDir
 	buildWhere() (string, []string)
 	tableID() tagDir
@@ -76,6 +92,7 @@ type SQLLinkIterator struct {
 	constraints []constraint
 	tableName   string
 	size        int64
+	tagdirs     []tagDir
 
 	result      map[string]string
 	resultIndex int
@@ -111,7 +128,8 @@ func (l *SQLLinkIterator) Clone() graph.Iterator {
 		qs:          l.qs,
 		tableName:   l.tableName,
 		size:        l.size,
-		constraints: make([]constraint, 0, len(l.constraints)),
+		constraints: make([]constraint, len(l.constraints)),
+		tagdirs:     make([]tagDir, len(l.tagdirs)),
 	}
 	for _, i := range l.nodeIts {
 		m.nodeIts = append(m.nodeIts, sqlItDir{
@@ -120,6 +138,7 @@ func (l *SQLLinkIterator) Clone() graph.Iterator {
 		})
 	}
 	copy(m.constraints, l.constraints)
+	copy(m.tagdirs, l.tagdirs)
 	m.tagger.CopyFrom(l)
 	return m
 }
@@ -187,6 +206,9 @@ func (l *SQLLinkIterator) Size() (int64, bool) {
 	}
 	if len(l.constraints) > 0 {
 		l.size = l.qs.sizeForIterator(false, l.constraints[0].dir, l.constraints[0].vals[0])
+	} else if len(l.nodeIts) > 1 {
+		subsize, _ := l.nodeIts[0].it.(*SQLNodeIterator).Size()
+		return subsize * 20, false
 	} else {
 		return l.qs.Size(), false
 	}
@@ -216,11 +238,31 @@ func (l *SQLLinkIterator) Type() graph.Type {
 	return sqlLinkType
 }
 
+func (l *SQLLinkIterator) preFilter(v graph.Value) bool {
+	for _, c := range l.constraints {
+		none := true
+		desired := v.(quad.Quad).Get(c.dir)
+		for _, s := range c.vals {
+			if s == desired {
+				none = false
+				break
+			}
+		}
+		if none {
+			return true
+		}
+	}
+	return false
+}
+
 func (l *SQLLinkIterator) Contains(v graph.Value) bool {
 	var err error
-	//if it.preFilter(v) {
-	//return false
-	//}
+	if l.preFilter(v) {
+		return false
+	}
+	if len(l.nodeIts) == 0 {
+		return true
+	}
 	err = l.makeCursor(false, v)
 	if err != nil {
 		glog.Errorf("Couldn't make query: %v", err)
@@ -288,8 +330,8 @@ func (l *SQLLinkIterator) buildResult(i int) {
 	}
 }
 
-func (l *SQLLinkIterator) getTables() []string {
-	out := []string{l.tableName}
+func (l *SQLLinkIterator) getTables() []tableDef {
+	out := []tableDef{tableDef{table: "quads", name: l.tableName}}
 	for _, i := range l.nodeIts {
 		out = append(out, i.it.getTables()...)
 	}
@@ -304,6 +346,14 @@ func (l *SQLLinkIterator) getTags() []tagDir {
 			table: l.tableName,
 			tag:   tag,
 		})
+	}
+	for _, tag := range l.tagdirs {
+		out = append(out, tagDir{
+			dir:   tag.dir,
+			table: l.tableName,
+			tag:   tag.tag,
+		})
+
 	}
 	for _, i := range l.nodeIts {
 		out = append(out, i.it.getTags()...)
@@ -320,7 +370,11 @@ func (l *SQLLinkIterator) buildWhere() (string, []string) {
 	}
 	for _, i := range l.nodeIts {
 		t := i.it.tableID()
-		q = append(q, fmt.Sprintf("%s.%s = %s.%s", l.tableName, i.dir, t.table, t.dir))
+		dir := t.dir.String()
+		if t.dir == quad.Any {
+			dir = t.tag
+		}
+		q = append(q, fmt.Sprintf("%s.%s = %s.%s", l.tableName, i.dir, t.table, dir))
 	}
 	for _, i := range l.nodeIts {
 		s, v := i.it.buildWhere()
@@ -339,7 +393,7 @@ func (l *SQLLinkIterator) tableID() tagDir {
 }
 
 func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string) {
-	query := "SELECT "
+	query := "SELECT DISTINCT "
 	t := []string{
 		fmt.Sprintf("%s.subject", l.tableName),
 		fmt.Sprintf("%s.predicate", l.tableName),
@@ -347,18 +401,21 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 		fmt.Sprintf("%s.label", l.tableName),
 	}
 	for _, v := range l.getTags() {
-		t = append(t, fmt.Sprintf("%s.%s as %s", v.table, v.dir, v.tag))
+		t = append(t, v.String())
 	}
 	query += strings.Join(t, ", ")
 	query += " FROM "
 	t = []string{}
+	var values []string
 	for _, k := range l.getTables() {
-		t = append(t, fmt.Sprintf("quads as %s", k))
+		values = append(values, k.values...)
+		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
 	}
 	query += strings.Join(t, ", ")
 	query += " WHERE "
-	constraint, values := l.buildWhere()
+	constraint, wherevalues := l.buildWhere()
 
+	values = append(values, wherevalues...)
 	if !next {
 		v := val.(quad.Quad)
 		if constraint != "" {

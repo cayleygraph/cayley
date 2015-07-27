@@ -45,7 +45,6 @@ func intersectNode(a *SQLNodeIterator, b *SQLNodeIterator) (graph.Iterator, erro
 		qs:        a.qs,
 		tableName: newTableName(),
 		linkIts:   append(a.linkIts, b.linkIts...),
-		tagdirs:   append(a.tagdirs, b.tagdirs...),
 	}
 	m.Tagger().CopyFrom(a)
 	m.Tagger().CopyFrom(b)
@@ -59,6 +58,7 @@ func intersectLink(a *SQLLinkIterator, b *SQLLinkIterator) (graph.Iterator, erro
 		tableName:   newTableName(),
 		nodeIts:     append(a.nodeIts, b.nodeIts...),
 		constraints: append(a.constraints, b.constraints...),
+		tagdirs:     append(a.tagdirs, b.tagdirs...),
 	}
 	m.Tagger().CopyFrom(a)
 	m.Tagger().CopyFrom(b)
@@ -150,25 +150,24 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		}
 		newit.Tagger().CopyFrom(it)
 		return newit, true
-		//case graph.All:
-		//newit := &StatementIterator{
-		//uid:    iterator.NextUID(),
-		//qs:     qs,
-		//stType: link,
-		//size:   qs.Size(),
-		//}
-		//for _, t := range primary.Tagger().Tags() {
-		//newit.tags = append(newit.tags, tag{
-		//pair: tableDir{"", it.Direction()},
-		//t:    t,
-		//})
-		//}
-		//for k, v := range primary.Tagger().Fixed() {
-		//newit.tagger.AddFixed(k, v)
-		//}
-		//newit.tagger.CopyFrom(it)
+	case graph.All:
+		newit := &SQLLinkIterator{
+			uid:  iterator.NextUID(),
+			qs:   qs,
+			size: qs.Size(),
+		}
+		for _, t := range primary.Tagger().Tags() {
+			newit.tagdirs = append(newit.tagdirs, tagDir{
+				dir: it.Direction(),
+				tag: t,
+			})
+		}
+		for k, v := range primary.Tagger().Fixed() {
+			newit.tagger.AddFixed(k, v)
+		}
+		newit.tagger.CopyFrom(it)
 
-		//return newit, true
+		return newit, true
 	}
 	return it, false
 }
