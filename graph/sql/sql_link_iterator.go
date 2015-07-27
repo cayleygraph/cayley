@@ -31,7 +31,6 @@ var sqlTableID uint64
 
 func init() {
 	sqlLinkType = graph.RegisterIterator("sqllink")
-	sqlNodeType = graph.RegisterIterator("sqlnode")
 	atomic.StoreUint64(&sqlTableID, 0)
 }
 
@@ -64,7 +63,6 @@ type sqlIterator interface {
 	getTags() []tagDir
 	buildWhere() (string, []string)
 	tableID() tagDir
-	height() int
 }
 
 type SQLLinkIterator struct {
@@ -72,7 +70,6 @@ type SQLLinkIterator struct {
 	qs     *QuadStore
 	tagger graph.Tagger
 	err    error
-	next   bool
 
 	cursor      *sql.Rows
 	nodeIts     []sqlItDir
@@ -110,10 +107,11 @@ func (l *SQLLinkIterator) sqlClone() sqlIterator {
 
 func (l *SQLLinkIterator) Clone() graph.Iterator {
 	m := &SQLLinkIterator{
-		uid:       iterator.NextUID(),
-		qs:        l.qs,
-		tableName: l.tableName,
-		size:      l.size,
+		uid:         iterator.NextUID(),
+		qs:          l.qs,
+		tableName:   l.tableName,
+		size:        l.size,
+		constraints: make([]constraint, 0, len(l.constraints)),
 	}
 	for _, i := range l.nodeIts {
 		m.nodeIts = append(m.nodeIts, sqlItDir{
@@ -121,7 +119,7 @@ func (l *SQLLinkIterator) Clone() graph.Iterator {
 			it:  i.it.sqlClone(),
 		})
 	}
-	m.constraints = l.constraints[:]
+	copy(m.constraints, l.constraints)
 	m.tagger.CopyFrom(l)
 	return m
 }
@@ -292,20 +290,10 @@ func (l *SQLLinkIterator) buildResult(i int) {
 
 func (l *SQLLinkIterator) getTables() []string {
 	out := []string{l.tableName}
-	//for _, i := range l.nodeIts {
-	//out = append(out, i.it.getTables()...)
-	//}
-	return out
-}
-
-func (l *SQLLinkIterator) height() int {
-	v := 0
 	for _, i := range l.nodeIts {
-		if i.it.height() > v {
-			v = i.it.height()
-		}
+		out = append(out, i.it.getTables()...)
 	}
-	return v + 1
+	return out
 }
 
 func (l *SQLLinkIterator) getTags() []tagDir {
@@ -317,9 +305,9 @@ func (l *SQLLinkIterator) getTags() []tagDir {
 			tag:   tag,
 		})
 	}
-	//for _, i := range l.nodeIts {
-	//out = append(out, i.it.getTags()...)
-	//}
+	for _, i := range l.nodeIts {
+		out = append(out, i.it.getTags()...)
+	}
 	return out
 }
 
@@ -331,17 +319,14 @@ func (l *SQLLinkIterator) buildWhere() (string, []string) {
 		vals = append(vals, c.vals[0])
 	}
 	for _, i := range l.nodeIts {
-		sni := i.it.(*SQLNodeIterator)
-		sql, s := sni.buildSQL(true, nil)
-		q = append(q, fmt.Sprintf("%s.%s in (%s)", l.tableName, i.dir, sql[:len(sql)-1]))
-		vals = append(vals, s...)
-		//q = append(q, fmt.Sprintf("%s.%s = %s.%s", l.tableName, i.dir, t.table, t.dir))
+		t := i.it.tableID()
+		q = append(q, fmt.Sprintf("%s.%s = %s.%s", l.tableName, i.dir, t.table, t.dir))
 	}
-	//for _, i := range l.nodeIts {
-	//s, v := i.it.buildWhere()
-	//q = append(q, s)
-	//vals = append(vals, v...)
-	//}
+	for _, i := range l.nodeIts {
+		s, v := i.it.buildWhere()
+		q = append(q, s)
+		vals = append(vals, v...)
+	}
 	query := strings.Join(q, " AND ")
 	return query, vals
 }
@@ -372,7 +357,6 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 	}
 	query += strings.Join(t, ", ")
 	query += " WHERE "
-	l.next = next
 	constraint, values := l.buildWhere()
 
 	if !next {

@@ -221,16 +221,6 @@ func (n *SQLNodeIterator) getTags() []tagDir {
 	return out
 }
 
-func (n *SQLNodeIterator) height() int {
-	v := 0
-	for _, i := range n.linkIts {
-		if i.it.height() > v {
-			v = i.it.height()
-		}
-	}
-	return v + 1
-}
-
 func (n *SQLNodeIterator) buildWhere() (string, []string) {
 	var q []string
 	var vals []string
