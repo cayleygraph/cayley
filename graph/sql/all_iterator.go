@@ -16,7 +16,6 @@ package sql
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/barakmich/glog"
 
@@ -25,36 +24,33 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-type Iterator struct {
+type AllIterator struct {
 	uid    uint64
 	tags   graph.Tagger
 	qs     *QuadStore
 	dir    quad.Direction
 	val    graph.Value
-	size   int64
-	isAll  bool
 	table  string
 	cursor *sql.Rows
 	result graph.Value
 	err    error
 }
 
-func (it *Iterator) makeCursor() {
+func (it *AllIterator) makeCursor() {
 	var cursor *sql.Rows
 	var err error
 	if it.cursor != nil {
 		it.cursor.Close()
 	}
-	if it.isAll {
-		if it.table == "quads" {
-			cursor, err = it.qs.db.Query(`SELECT subject, predicate, object, label FROM quads;`)
-			if err != nil {
-				glog.Errorln("Couldn't get cursor from SQL database: %v", err)
-				cursor = nil
-			}
-		} else {
-			glog.V(4).Infoln("sql: getting node query")
-			cursor, err = it.qs.db.Query(`SELECT node FROM
+	if it.table == "quads" {
+		cursor, err = it.qs.db.Query(`SELECT subject, predicate, object, label FROM quads;`)
+		if err != nil {
+			glog.Errorln("Couldn't get cursor from SQL database: %v", err)
+			cursor = nil
+		}
+	} else {
+		glog.V(4).Infoln("sql: getting node query")
+		cursor, err = it.qs.db.Query(`SELECT node FROM
 			(
 				SELECT subject FROM quads
 				UNION
@@ -64,62 +60,38 @@ func (it *Iterator) makeCursor() {
 				UNION
 				SELECT label FROM quads
 			) AS DistinctNodes (node) WHERE node IS NOT NULL;`)
-			if err != nil {
-				glog.Errorln("Couldn't get cursor from SQL database: %v", err)
-				cursor = nil
-			}
-			glog.V(4).Infoln("sql: got node query")
-		}
-	} else {
-		cursor, err = it.qs.db.Query(
-			fmt.Sprintf("SELECT subject, predicate, object, label FROM quads WHERE %s = $1;", it.dir.String()), it.val.(string))
 		if err != nil {
 			glog.Errorln("Couldn't get cursor from SQL database: %v", err)
 			cursor = nil
 		}
+		glog.V(4).Infoln("sql: got node query")
 	}
 	it.cursor = cursor
 }
 
-func NewIterator(qs *QuadStore, d quad.Direction, val graph.Value) *Iterator {
-	it := &Iterator{
+func NewAllIterator(qs *QuadStore, table string) *AllIterator {
+	it := &AllIterator{
 		uid:   iterator.NextUID(),
 		qs:    qs,
-		dir:   d,
-		size:  -1,
-		val:   val,
-		table: "quads",
-		isAll: false,
-	}
-	return it
-}
-
-func NewAllIterator(qs *QuadStore, table string) *Iterator {
-	it := &Iterator{
-		uid:   iterator.NextUID(),
-		qs:    qs,
-		dir:   quad.Any,
-		size:  qs.Size(),
 		table: table,
-		isAll: true,
 	}
 	return it
 }
 
-func (it *Iterator) UID() uint64 {
+func (it *AllIterator) UID() uint64 {
 	return it.uid
 }
 
-func (it *Iterator) Reset() {
+func (it *AllIterator) Reset() {
 	it.err = nil
 	it.Close()
 }
 
-func (it *Iterator) Err() error {
+func (it *AllIterator) Err() error {
 	return it.err
 }
 
-func (it *Iterator) Close() error {
+func (it *AllIterator) Close() error {
 	if it.cursor != nil {
 		err := it.cursor.Close()
 		if err != nil {
@@ -130,11 +102,11 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Tagger() *graph.Tagger {
+func (it *AllIterator) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
-func (it *Iterator) TagResults(dst map[string]graph.Value) {
+func (it *AllIterator) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
 	}
@@ -144,22 +116,18 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Iterator) Clone() graph.Iterator {
-	var m *Iterator
-	if it.isAll {
-		m = NewAllIterator(it.qs, it.table)
-	} else {
-		m = NewIterator(it.qs, it.dir, it.val)
-	}
+func (it *AllIterator) Clone() graph.Iterator {
+	var m *AllIterator
+	m = NewAllIterator(it.qs, it.table)
 	m.tags.CopyFrom(it)
 	return m
 }
 
-func (it *Iterator) SubIterators() []graph.Iterator {
+func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) Next() bool {
+func (it *AllIterator) Next() bool {
 	graph.NextLogIn(it)
 	if it.cursor == nil {
 		it.makeCursor()
@@ -196,79 +164,49 @@ func (it *Iterator) Next() bool {
 	return graph.NextLogOut(it, it.result, true)
 }
 
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *AllIterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
-	if it.isAll {
-		it.result = v
-		return graph.ContainsLogOut(it, v, true)
-	}
-	q := v.(quad.Quad)
-	if q.Get(it.dir) == it.val.(string) {
-		it.result = v
-		return graph.ContainsLogOut(it, v, true)
-	}
-	return graph.ContainsLogOut(it, v, false)
+	it.result = v
+	return graph.ContainsLogOut(it, v, true)
 }
 
-func (it *Iterator) Size() (int64, bool) {
-	if it.size != -1 {
-		return it.size, true
-	}
-	it.size = it.qs.sizeForIterator(it.isAll, it.dir, it.val.(string))
-	return it.size, true
+func (it *AllIterator) Size() (int64, bool) {
+	return it.qs.Size(), true
 }
 
-func (it *Iterator) Result() graph.Value {
+func (it *AllIterator) Result() graph.Value {
 	if it.result == nil {
 		glog.Fatalln("result was nil", it)
 	}
 	return it.result
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *AllIterator) NextPath() bool {
 	return false
 }
 
-var sqlType graph.Type
-
-func init() {
-	sqlType = graph.RegisterIterator("sql")
+func (it *AllIterator) Type() graph.Type {
+	return graph.All
 }
 
-func Type() graph.Type { return sqlType }
+func (it *AllIterator) Sorted() bool                     { return false }
+func (it *AllIterator) Optimize() (graph.Iterator, bool) { return it, false }
 
-func (it *Iterator) Type() graph.Type {
-	if it.isAll {
-		return graph.All
-	}
-	return sqlType
-}
-
-func (it *Iterator) Sorted() bool                     { return false }
-func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
-
-func (it *Iterator) Describe() graph.Description {
+func (it *AllIterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
 		UID:  it.UID(),
-		Name: fmt.Sprintf("%s/%s", it.val, it.dir),
+		Name: "sql/all",
 		Type: it.Type(),
 		Size: size,
 	}
 }
 
-func (it *Iterator) Stats() graph.IteratorStats {
+func (it *AllIterator) Stats() graph.IteratorStats {
 	size, _ := it.Size()
-	if it.table == "nodes" || it.isAll {
-		return graph.IteratorStats{
-			ContainsCost: 1,
-			NextCost:     9999,
-			Size:         size,
-		}
-	}
 	return graph.IteratorStats{
 		ContainsCost: 1,
-		NextCost:     5,
+		NextCost:     9999,
 		Size:         size,
 	}
 }

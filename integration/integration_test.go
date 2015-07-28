@@ -524,7 +524,6 @@ func TestQueries(t *testing.T) {
 }
 
 func TestDeletedAndRecreatedQueries(t *testing.T) {
-	t.Skip()
 	if testing.Short() {
 		t.Skip()
 	}
@@ -541,7 +540,7 @@ func checkQueries(t *testing.T) {
 			continue
 		}
 		tInit := time.Now()
-		fmt.Printf("Now testing %s ", test.message)
+		t.Logf("Now testing %s ", test.message)
 		ses := gremlin.NewSession(handle.QuadStore, cfg.Timeout, true)
 		_, err := ses.Parse(test.query)
 		if err != nil {
@@ -570,7 +569,7 @@ func checkQueries(t *testing.T) {
 			t.Error("Query timed out: skipping validation.")
 			continue
 		}
-		fmt.Printf("(%v)\n", time.Since(tInit))
+		t.Logf("(%v)\n", time.Since(tInit))
 
 		if len(got) != len(test.expect) {
 			t.Errorf("Unexpected number of results, got:%d expect:%d on %s.", len(got), len(test.expect), test.message)

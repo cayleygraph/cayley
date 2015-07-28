@@ -331,7 +331,7 @@ func materializeIts(its []graph.Iterator) []graph.Iterator {
 	out = append(out, its[0])
 	for _, it := range its[1:] {
 		stats := it.Stats()
-		if false && stats.Size*stats.NextCost < (stats.ContainsCost*(1+(stats.Size/(allStats.Size+1)))) {
+		if stats.Size*stats.NextCost < (stats.ContainsCost * (1 + (stats.Size / (allStats.Size + 1)))) {
 			if graph.Height(it, graph.Materialize) > 10 {
 				out = append(out, NewMaterialize(it))
 				continue
