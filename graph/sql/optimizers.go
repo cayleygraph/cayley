@@ -23,14 +23,14 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-func intersect(a graph.Iterator, b graph.Iterator) (graph.Iterator, error) {
+func intersect(a sqlIterator, b sqlIterator, qs *QuadStore) (*SQLIterator, error) {
 	if anew, ok := a.(*SQLNodeIterator); ok {
 		if bnew, ok := b.(*SQLNodeIterator); ok {
-			return intersectNode(anew, bnew)
+			return intersectNode(anew, bnew, qs)
 		}
 	} else if anew, ok := a.(*SQLLinkIterator); ok {
 		if bnew, ok := b.(*SQLLinkIterator); ok {
-			return intersectLink(anew, bnew)
+			return intersectLink(anew, bnew, qs)
 		}
 
 	} else {
@@ -39,41 +39,37 @@ func intersect(a graph.Iterator, b graph.Iterator) (graph.Iterator, error) {
 	return nil, errors.New("Cannot combine SQL iterators of two different types")
 }
 
-func intersectNode(a *SQLNodeIterator, b *SQLNodeIterator) (graph.Iterator, error) {
+func intersectNode(a *SQLNodeIterator, b *SQLNodeIterator, qs *QuadStore) (*SQLIterator, error) {
 	m := &SQLNodeIterator{
-		uid:       iterator.NextUID(),
-		qs:        a.qs,
 		tableName: newTableName(),
 		linkIts:   append(a.linkIts, b.linkIts...),
 	}
-	m.Tagger().CopyFrom(a)
-	m.Tagger().CopyFrom(b)
-	return m, nil
+	m.Tagger().CopyFromTagger(a.Tagger())
+	m.Tagger().CopyFromTagger(b.Tagger())
+	it := NewSQLIterator(qs, m)
+	return it, nil
 }
 
-func intersectLink(a *SQLLinkIterator, b *SQLLinkIterator) (graph.Iterator, error) {
+func intersectLink(a *SQLLinkIterator, b *SQLLinkIterator, qs *QuadStore) (*SQLIterator, error) {
 	m := &SQLLinkIterator{
-		uid:         iterator.NextUID(),
-		qs:          a.qs,
 		tableName:   newTableName(),
 		nodeIts:     append(a.nodeIts, b.nodeIts...),
 		constraints: append(a.constraints, b.constraints...),
 		tagdirs:     append(a.tagdirs, b.tagdirs...),
 	}
-	m.Tagger().CopyFrom(a)
-	m.Tagger().CopyFrom(b)
-	return m, nil
+	m.Tagger().CopyFromTagger(a.Tagger())
+	m.Tagger().CopyFromTagger(b.Tagger())
+	it := NewSQLIterator(qs, m)
+	return it, nil
 }
 
-func hasa(aIn graph.Iterator, d quad.Direction) (graph.Iterator, error) {
+func hasa(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, error) {
 	a, ok := aIn.(*SQLLinkIterator)
 	if !ok {
 		return nil, errors.New("Can't take the HASA of a link SQL iterator")
 	}
 
 	out := &SQLNodeIterator{
-		uid:       iterator.NextUID(),
-		qs:        a.qs,
 		tableName: newTableName(),
 		linkIts: []sqlItDir{
 			sqlItDir{
@@ -82,18 +78,17 @@ func hasa(aIn graph.Iterator, d quad.Direction) (graph.Iterator, error) {
 			},
 		},
 	}
-	return out, nil
+	it := NewSQLIterator(qs, out)
+	return it, nil
 }
 
-func linksto(aIn graph.Iterator, d quad.Direction) (graph.Iterator, error) {
+func linksto(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, error) {
 	a, ok := aIn.(*SQLNodeIterator)
 	if !ok {
 		return nil, errors.New("Can't take the LINKSTO of a node SQL iterator")
 	}
 
 	out := &SQLLinkIterator{
-		uid:       iterator.NextUID(),
-		qs:        a.qs,
 		tableName: newTableName(),
 		nodeIts: []sqlItDir{
 			sqlItDir{
@@ -102,8 +97,8 @@ func linksto(aIn graph.Iterator, d quad.Direction) (graph.Iterator, error) {
 			},
 		},
 	}
-
-	return out, nil
+	it := NewSQLIterator(qs, out)
+	return it, nil
 }
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -141,9 +136,9 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			it.Close()
 			return newIt, true
 		}
-	case sqlNodeType:
-		//p := primary.(*SQLNodeIterator)
-		newit, err := linksto(primary, it.Direction())
+	case sqlType:
+		p := primary.(*SQLIterator)
+		newit, err := linksto(p.sql, it.Direction(), qs)
 		if err != nil {
 			glog.Errorln(err)
 			return it, false
@@ -151,22 +146,20 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		newit.Tagger().CopyFrom(it)
 		return newit, true
 	case graph.All:
-		newit := &SQLLinkIterator{
-			uid:  iterator.NextUID(),
-			qs:   qs,
+		linkit := &SQLLinkIterator{
 			size: qs.Size(),
 		}
 		for _, t := range primary.Tagger().Tags() {
-			newit.tagdirs = append(newit.tagdirs, tagDir{
+			linkit.tagdirs = append(linkit.tagdirs, tagDir{
 				dir: it.Direction(),
 				tag: t,
 			})
 		}
 		for k, v := range primary.Tagger().Fixed() {
-			newit.tagger.AddFixed(k, v)
+			linkit.tagger.AddFixed(k, v)
 		}
-		newit.tagger.CopyFrom(it)
-
+		linkit.tagger.CopyFrom(it)
+		newit := NewSQLIterator(qs, linkit)
 		return newit, true
 	}
 	return it, false
@@ -175,18 +168,18 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 	subs := it.SubIterators()
 	var unusedIts []graph.Iterator
-	var newit graph.Iterator
+	var newit *SQLIterator
 	newit = nil
 	changed := false
 	var err error
 
 	for _, it := range subs {
-		if it.Type() == sqlLinkType || it.Type() == sqlNodeType {
+		if it.Type() == sqlType {
 			if newit == nil {
-				newit = it
+				newit = it.(*SQLIterator)
 			} else {
 				changed = true
-				newit, err = intersect(newit, it)
+				newit, err = intersect(newit.sql, it.(*SQLIterator).sql, qs)
 				if err != nil {
 					glog.Error(err)
 					return it, false
@@ -219,8 +212,9 @@ func (qs *QuadStore) optimizeHasA(it *iterator.HasA) (graph.Iterator, bool) {
 		return it, false
 	}
 	primary := subs[0]
-	if primary.Type() == sqlLinkType {
-		newit, err := hasa(primary, it.Direction())
+	if primary.Type() == sqlType {
+		p := primary.(*SQLIterator)
+		newit, err := hasa(p.sql, it.Direction(), qs)
 		if err != nil {
 			glog.Errorln(err)
 			return it, false

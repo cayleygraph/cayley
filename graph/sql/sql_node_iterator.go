@@ -15,22 +15,25 @@
 package sql
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
 	"sync/atomic"
 
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
 )
 
-var sqlNodeType graph.Type
 var sqlNodeTableID uint64
 
+type sqlQueryType int
+
+const (
+	node sqlQueryType = iota
+	link
+)
+
 func init() {
-	sqlNodeType = graph.RegisterIterator("sqlnode")
 	atomic.StoreUint64(&sqlNodeTableID, 0)
 }
 
@@ -40,34 +43,20 @@ func newNodeTableName() string {
 }
 
 type SQLNodeIterator struct {
-	uid       uint64
-	qs        *QuadStore
-	tagger    graph.Tagger
 	tableName string
-	err       error
 
-	cursor     *sql.Rows
 	linkIts    []sqlItDir
 	nodetables []string
 	size       int64
+	tagger     graph.Tagger
 
-	result      map[string]string
-	resultIndex int
-	resultList  [][]string
-	resultNext  [][]string
-	cols        []string
+	result string
 }
 
 func (n *SQLNodeIterator) sqlClone() sqlIterator {
-	return n.Clone().(*SQLNodeIterator)
-}
-
-func (n *SQLNodeIterator) Clone() graph.Iterator {
 	m := &SQLNodeIterator{
-		uid:       iterator.NextUID(),
-		qs:        n.qs,
-		size:      n.size,
 		tableName: n.tableName,
+		size:      n.size,
 	}
 	for _, i := range n.linkIts {
 		m.linkIts = append(m.linkIts, sqlItDir{
@@ -75,32 +64,8 @@ func (n *SQLNodeIterator) Clone() graph.Iterator {
 			it:  i.it.sqlClone(),
 		})
 	}
-	m.tagger.CopyFrom(n)
+	m.tagger.CopyFromTagger(n.Tagger())
 	return m
-}
-
-func (n *SQLNodeIterator) UID() uint64 {
-	return n.uid
-}
-
-func (n *SQLNodeIterator) Reset() {
-	n.err = nil
-	n.Close()
-}
-
-func (n *SQLNodeIterator) Err() error {
-	return n.err
-}
-
-func (n *SQLNodeIterator) Close() error {
-	if n.cursor != nil {
-		err := n.cursor.Close()
-		if err != nil {
-			return err
-		}
-		n.cursor = nil
-	}
-	return nil
 }
 
 func (n *SQLNodeIterator) Tagger() *graph.Tagger {
@@ -108,76 +73,30 @@ func (n *SQLNodeIterator) Tagger() *graph.Tagger {
 }
 
 func (n *SQLNodeIterator) Result() graph.Value {
-	return n.result["__execd"]
+	return n.result
 }
 
-func (n *SQLNodeIterator) TagResults(dst map[string]graph.Value) {
-	for tag, value := range n.result {
-		if tag == "__execd" {
-			for _, tag := range n.tagger.Tags() {
-				dst[tag] = value
-			}
-			continue
+func (n *SQLNodeIterator) Type() sqlQueryType {
+	return node
+}
+
+func (n *SQLNodeIterator) Size(qs *QuadStore) (int64, bool) {
+	return qs.Size() / int64(len(n.linkIts)+1), true
+}
+
+func (n *SQLNodeIterator) Describe() string {
+	return fmt.Sprintf("SQL_NODE_QUERY: %#v", n)
+}
+
+func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string]string {
+	m := make(map[string]string)
+	for i, c := range cols {
+		if c == "__execd" {
+			n.result = result[i]
 		}
-		dst[tag] = value
+		m[c] = result[i]
 	}
-
-	for tag, value := range n.tagger.Fixed() {
-		dst[tag] = value
-	}
-}
-
-func (n *SQLNodeIterator) Type() graph.Type {
-	return sqlNodeType
-}
-
-func (n *SQLNodeIterator) SubIterators() []graph.Iterator {
-	// TODO(barakmich): SQL Subiterators shouldn't count? If it makes sense,
-	// there's no reason not to expose them though.
-	return nil
-}
-
-func (n *SQLNodeIterator) Sorted() bool                     { return false }
-func (n *SQLNodeIterator) Optimize() (graph.Iterator, bool) { return n, false }
-
-func (n *SQLNodeIterator) Size() (int64, bool) {
-	return n.qs.Size() / int64(len(n.linkIts)+1), true
-}
-
-func (n *SQLNodeIterator) Describe() graph.Description {
-	size, _ := n.Size()
-	return graph.Description{
-		UID:  n.UID(),
-		Name: fmt.Sprintf("SQL_NODE_QUERY: %#v", n),
-		Type: n.Type(),
-		Size: size,
-	}
-}
-
-func (n *SQLNodeIterator) Stats() graph.IteratorStats {
-	size, _ := n.Size()
-	return graph.IteratorStats{
-		ContainsCost: 1,
-		NextCost:     5,
-		Size:         size,
-	}
-}
-
-func (n *SQLNodeIterator) NextPath() bool {
-	n.resultIndex += 1
-	if n.resultIndex >= len(n.resultList) {
-		return false
-	}
-	n.buildResult(n.resultIndex)
-	return true
-}
-
-func (n *SQLNodeIterator) buildResult(i int) {
-	container := n.resultList[i]
-	n.result = make(map[string]string)
-	for i, c := range n.cols {
-		n.result[c] = container[i]
-	}
+	return m
 }
 
 func (n *SQLNodeIterator) makeNodeTableNames() {
@@ -215,7 +134,6 @@ func (n *SQLNodeIterator) buildSubqueries() []tableDef {
 		// separate SQL iterators to build a similar tree as we're doing here, and
 		// have a single graph.Iterator 'caddy' structure around it.
 		subNode := &SQLNodeIterator{
-			uid:       iterator.NextUID(),
 			tableName: newTableName(),
 			linkIts:   []sqlItDir{it},
 		}
@@ -351,144 +269,8 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string
 	return query, values
 }
 
-func (n *SQLNodeIterator) Next() bool {
-	var err error
-	graph.NextLogIn(n)
-	if n.cursor == nil {
-		err = n.makeCursor(true, nil)
-		n.cols, err = n.cursor.Columns()
-		if err != nil {
-			glog.Errorf("Couldn't get columns")
-			n.err = err
-			n.cursor.Close()
-			return false
-		}
-		// iterate the first one
-		if !n.cursor.Next() {
-			glog.V(4).Infoln("sql: No next")
-			err := n.cursor.Err()
-			if err != nil {
-				glog.Errorf("Cursor error in SQL: %v", err)
-				n.err = err
-			}
-			n.cursor.Close()
-			return false
-		}
-		s, err := scan(n.cursor, len(n.cols))
-		if err != nil {
-			n.err = err
-			n.cursor.Close()
-			return false
-		}
-		n.resultNext = append(n.resultNext, s)
-	}
-	if n.resultList != nil && n.resultNext == nil {
-		// We're on something and there's no next
-		return false
-	}
-	n.resultList = n.resultNext
-	n.resultNext = nil
-	n.resultIndex = 0
-	for {
-		if !n.cursor.Next() {
-			glog.V(4).Infoln("sql: No next")
-			err := n.cursor.Err()
-			if err != nil {
-				glog.Errorf("Cursor error in SQL: %v", err)
-				n.err = err
-			}
-			n.cursor.Close()
-			break
-		}
-		s, err := scan(n.cursor, len(n.cols))
-		if err != nil {
-			n.err = err
-			n.cursor.Close()
-			return false
-		}
-		if n.resultList[0][0] != s[0] {
-			n.resultNext = append(n.resultNext, s)
-			break
-		} else {
-			n.resultList = append(n.resultList, s)
-		}
-
-	}
-	if len(n.resultList) == 0 {
-		return graph.NextLogOut(n, nil, false)
-	}
-	n.buildResult(0)
-	return graph.NextLogOut(n, n.Result(), true)
+func (n *SQLNodeIterator) sameTopResult(target []string, test []string) bool {
+	return target[0] == test[0]
 }
 
-func (n *SQLNodeIterator) makeCursor(next bool, value graph.Value) error {
-	if n.cursor != nil {
-		n.cursor.Close()
-	}
-	var q string
-	var values []string
-	q, values = n.buildSQL(next, value)
-	q = convertToPostgres(q, values)
-	ivalues := make([]interface{}, 0, len(values))
-	for _, v := range values {
-		ivalues = append(ivalues, v)
-	}
-	cursor, err := n.qs.db.Query(q, ivalues...)
-	if err != nil {
-		glog.Errorf("Couldn't get cursor from SQL database: %v", err)
-		glog.Errorf("Query: %v", q)
-		cursor = nil
-		return err
-	}
-	n.cursor = cursor
-	return nil
-}
-
-func (n *SQLNodeIterator) Contains(v graph.Value) bool {
-	var err error
-	//if it.preFilter(v) {
-	//return false
-	//}
-	err = n.makeCursor(false, v)
-	if err != nil {
-		glog.Errorf("Couldn't make query: %v", err)
-		n.err = err
-		n.cursor.Close()
-		return false
-	}
-	n.cols, err = n.cursor.Columns()
-	if err != nil {
-		glog.Errorf("Couldn't get columns")
-		n.err = err
-		n.cursor.Close()
-		return false
-	}
-	n.resultList = nil
-	for {
-		if !n.cursor.Next() {
-			glog.V(4).Infoln("sql: No next")
-			err := n.cursor.Err()
-			if err != nil {
-				glog.Errorf("Cursor error in SQL: %v", err)
-				n.err = err
-			}
-			n.cursor.Close()
-			break
-		}
-		s, err := scan(n.cursor, len(n.cols))
-		if err != nil {
-			n.err = err
-			n.cursor.Close()
-			return false
-		}
-		n.resultList = append(n.resultList, s)
-	}
-	n.cursor.Close()
-	n.cursor = nil
-	if len(n.resultList) != 0 {
-		n.resultIndex = 0
-		n.buildResult(0)
-		return true
-	}
-	return false
-}
+func (n *SQLNodeIterator) quickContains(_ graph.Value) (bool, bool) { return false, false }
