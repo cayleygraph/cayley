@@ -28,6 +28,10 @@ func intersect(a sqlIterator, b sqlIterator, qs *QuadStore) (*SQLIterator, error
 		if bnew, ok := b.(*SQLNodeIterator); ok {
 			return intersectNode(anew, bnew, qs)
 		}
+	} else if anew, ok := a.(*SQLNodeIntersection); ok {
+		if bnew, ok := b.(*SQLNodeIterator); ok {
+			return appendNodeIntersection(anew, bnew, qs)
+		}
 	} else if anew, ok := a.(*SQLLinkIterator); ok {
 		if bnew, ok := b.(*SQLLinkIterator); ok {
 			return intersectLink(anew, bnew, qs)
@@ -40,9 +44,20 @@ func intersect(a sqlIterator, b sqlIterator, qs *QuadStore) (*SQLIterator, error
 }
 
 func intersectNode(a *SQLNodeIterator, b *SQLNodeIterator, qs *QuadStore) (*SQLIterator, error) {
-	m := &SQLNodeIterator{
+	m := &SQLNodeIntersection{
 		tableName: newTableName(),
-		linkIts:   append(a.linkIts, b.linkIts...),
+		nodeIts:   []sqlIterator{a, b},
+	}
+	m.Tagger().CopyFromTagger(a.Tagger())
+	m.Tagger().CopyFromTagger(b.Tagger())
+	it := NewSQLIterator(qs, m)
+	return it, nil
+}
+
+func appendNodeIntersection(a *SQLNodeIntersection, b *SQLNodeIterator, qs *QuadStore) (*SQLIterator, error) {
+	m := &SQLNodeIntersection{
+		tableName: newTableName(),
+		nodeIts:   append(a.nodeIts, b),
 	}
 	m.Tagger().CopyFromTagger(a.Tagger())
 	m.Tagger().CopyFromTagger(b.Tagger())
@@ -71,11 +86,9 @@ func hasa(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, err
 
 	out := &SQLNodeIterator{
 		tableName: newTableName(),
-		linkIts: []sqlItDir{
-			sqlItDir{
-				it:  a,
-				dir: d,
-			},
+		linkIt: sqlItDir{
+			it:  a,
+			dir: d,
 		},
 	}
 	it := NewSQLIterator(qs, out)
@@ -83,9 +96,13 @@ func hasa(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, err
 }
 
 func linksto(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, error) {
+	var a sqlIterator
 	a, ok := aIn.(*SQLNodeIterator)
 	if !ok {
-		return nil, errors.New("Can't take the LINKSTO of a node SQL iterator")
+		a, ok = aIn.(*SQLNodeIntersection)
+		if !ok {
+			return nil, errors.New("Can't take the LINKSTO of a node SQL iterator")
+		}
 	}
 
 	out := &SQLLinkIterator{

@@ -17,76 +17,56 @@ package sql
 import (
 	"fmt"
 	"strings"
-	"sync/atomic"
 
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/quad"
 )
 
-var sqlNodeTableID uint64
-
-type sqlQueryType int
-
-const (
-	node sqlQueryType = iota
-	link
-	nodeIntersect
-)
-
-func init() {
-	atomic.StoreUint64(&sqlNodeTableID, 0)
-}
-
-func newNodeTableName() string {
-	id := atomic.AddUint64(&sqlNodeTableID, 1)
-	return fmt.Sprintf("n_%d", id)
-}
-
-type SQLNodeIterator struct {
+type SQLNodeIntersection struct {
 	tableName string
 
-	linkIt sqlItDir
-	size   int64
-	tagger graph.Tagger
+	nodeIts    []sqlIterator
+	nodetables []string
+	size       int64
+	tagger     graph.Tagger
 
 	result string
 }
 
-func (n *SQLNodeIterator) sqlClone() sqlIterator {
-	m := &SQLNodeIterator{
+func (n *SQLNodeIntersection) sqlClone() sqlIterator {
+	m := &SQLNodeIntersection{
 		tableName: n.tableName,
 		size:      n.size,
-		linkIt: sqlItDir{
-			dir: n.linkIt.dir,
-			it:  n.linkIt.it.sqlClone(),
-		},
+	}
+	for _, i := range n.nodeIts {
+		m.nodeIts = append(m.nodeIts, i.sqlClone())
 	}
 	m.tagger.CopyFromTagger(n.Tagger())
 	return m
 }
 
-func (n *SQLNodeIterator) Tagger() *graph.Tagger {
+func (n *SQLNodeIntersection) Tagger() *graph.Tagger {
 	return &n.tagger
 }
 
-func (n *SQLNodeIterator) Result() graph.Value {
+func (n *SQLNodeIntersection) Result() graph.Value {
 	return n.result
 }
 
-func (n *SQLNodeIterator) Type() sqlQueryType {
-	return node
+func (n *SQLNodeIntersection) Type() sqlQueryType {
+	return nodeIntersect
 }
 
-func (n *SQLNodeIterator) Size(qs *QuadStore) (int64, bool) {
-	return qs.Size() / 2, true
+func (n *SQLNodeIntersection) Size(qs *QuadStore) (int64, bool) {
+	return qs.Size() / int64(len(n.nodeIts)+1), true
 }
 
-func (n *SQLNodeIterator) Describe() string {
-	return fmt.Sprintf("SQL_NODE_QUERY: %#v", n)
+func (n *SQLNodeIntersection) Describe() string {
+	return fmt.Sprintf("SQL_NODE_INTERSECTION: %#v", n)
 }
 
-func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string]string {
+func (n *SQLNodeIntersection) buildResult(result []string, cols []string) map[string]string {
 	m := make(map[string]string)
 	for i, c := range cols {
 		if c == "__execd" {
@@ -97,33 +77,47 @@ func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string
 	return m
 }
 
-func (n *SQLNodeIterator) getTables() []tableDef {
-	var out []tableDef
-	if n.linkIt.it != nil {
-		out = n.linkIt.it.getTables()
+func (n *SQLNodeIntersection) makeNodeTableNames() {
+	if n.nodetables != nil {
+		return
 	}
-	if len(out) == 0 {
-		out = append(out, tableDef{table: "quads", name: n.tableName})
+	n.nodetables = make([]string, len(n.nodeIts))
+	for i, _ := range n.nodetables {
+		n.nodetables[i] = newNodeTableName()
+	}
+}
+
+func (n *SQLNodeIntersection) getTables() []tableDef {
+	if len(n.nodeIts) == 0 {
+		panic("Combined no subnode queries")
+	}
+	return n.buildSubqueries()
+}
+
+func (n *SQLNodeIntersection) buildSubqueries() []tableDef {
+	var out []tableDef
+	n.makeNodeTableNames()
+	for i, it := range n.nodeIts {
+		var td tableDef
+		var table string
+		table, td.values = it.buildSQL(true, nil)
+		td.table = fmt.Sprintf("\n(%s)", table[:len(table)-1])
+		td.name = n.nodetables[i]
+		out = append(out, td)
 	}
 	return out
 }
 
-func (n *SQLNodeIterator) tableID() tagDir {
-	if n.linkIt.it != nil {
-		return tagDir{
-			table: n.linkIt.it.tableID().table,
-			dir:   n.linkIt.dir,
-			tag:   "__execd",
-		}
-	}
+func (n *SQLNodeIntersection) tableID() tagDir {
+	n.makeNodeTableNames()
 	return tagDir{
-		table: n.tableName,
+		table: n.nodetables[0],
 		dir:   quad.Any,
 		tag:   "__execd",
 	}
 }
 
-func (n *SQLNodeIterator) getLocalTags() []tagDir {
+func (n *SQLNodeIntersection) getLocalTags() []tagDir {
 	myTag := n.tableID()
 	var out []tagDir
 	for _, tag := range n.tagger.Tags() {
@@ -137,27 +131,32 @@ func (n *SQLNodeIterator) getLocalTags() []tagDir {
 	return out
 }
 
-func (n *SQLNodeIterator) getTags() []tagDir {
+func (n *SQLNodeIntersection) getTags() []tagDir {
 	out := n.getLocalTags()
-	if n.linkIt.it != nil {
-		out = append(out, n.linkIt.it.getTags()...)
+	n.makeNodeTableNames()
+	for i, it := range n.nodeIts {
+		for _, v := range it.getTags() {
+			out = append(out, tagDir{
+				tag:   v.tag,
+				dir:   quad.Any,
+				table: n.nodetables[i],
+			})
+		}
 	}
 	return out
 }
 
-func (n *SQLNodeIterator) buildWhere() (string, []string) {
+func (n *SQLNodeIntersection) buildWhere() (string, []string) {
 	var q []string
 	var vals []string
-	if n.linkIt.it != nil {
-		s, v := n.linkIt.it.buildWhere()
-		q = append(q, s)
-		vals = append(vals, v...)
+	for _, tb := range n.nodetables[1:] {
+		q = append(q, fmt.Sprintf("%s.__execd = %s.__execd", n.nodetables[0], tb))
 	}
 	query := strings.Join(q, " AND ")
 	return query, vals
 }
 
-func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string) {
+func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []string) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
@@ -203,8 +202,8 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string
 	return query, values
 }
 
-func (n *SQLNodeIterator) sameTopResult(target []string, test []string) bool {
+func (n *SQLNodeIntersection) sameTopResult(target []string, test []string) bool {
 	return target[0] == test[0]
 }
 
-func (n *SQLNodeIterator) quickContains(_ graph.Value) (bool, bool) { return false, false }
+func (n *SQLNodeIntersection) quickContains(_ graph.Value) (bool, bool) { return false, false }
