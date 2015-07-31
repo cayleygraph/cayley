@@ -199,7 +199,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *QuadStore) int {
 		case quad.Object:
 			return hashSize + 2
 		case quad.Label:
-			return hashSize + 2
+			return 3*hashSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("os")) {
