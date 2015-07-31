@@ -6,10 +6,6 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "github.com/pborman/uuid",
-			"Rev": "ca53cad383cad2479bbba7f7a1a05797ec1386e4"
-		},
-		{
 			"ImportPath": "github.com/badgerodon/peg",
 			"Rev": "9e5f7f4d07ca576562618c23e8abadda278b684f"
 		},
@@ -29,6 +25,15 @@
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Rev": "b59a38004596b696aca7aa2adccfa68760864d86"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-58-g0dad96c",
+			"Rev": "0dad96c0b94f8dee039aa40467f767467392a0af"
+		},
+		{
+			"ImportPath": "github.com/pborman/uuid",
+			"Rev": "ca53cad383cad2479bbba7f7a1a05797ec1386e4"
 		},
 		{
 			"ImportPath": "github.com/peterh/liner",

@@ -78,7 +78,7 @@ func intersectLink(a *SQLLinkIterator, b *SQLLinkIterator, qs *QuadStore) (*SQLI
 	return it, nil
 }
 
-func hasa(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, error) {
+func hasa(aIn sqlIterator, d quad.Direction, qs *QuadStore) (*SQLIterator, error) {
 	a, ok := aIn.(*SQLLinkIterator)
 	if !ok {
 		return nil, errors.New("Can't take the HASA of a link SQL iterator")
@@ -95,7 +95,7 @@ func hasa(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, err
 	return it, nil
 }
 
-func linksto(aIn sqlIterator, d quad.Direction, qs *QuadStore) (graph.Iterator, error) {
+func linksto(aIn sqlIterator, d quad.Direction, qs *QuadStore) (*SQLIterator, error) {
 	var a sqlIterator
 	a, ok := aIn.(*SQLNodeIterator)
 	if !ok {

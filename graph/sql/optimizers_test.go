@@ -15,7 +15,6 @@
 package sql
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/cayley/graph"
@@ -25,108 +24,105 @@ import (
 func TestBuildIntersect(t *testing.T) {
 	a := NewSQLLinkIterator(nil, quad.Subject, "Foo")
 	b := NewSQLLinkIterator(nil, quad.Predicate, "is_equivalent_to")
-	it, err := intersect(a, b)
-	i := it.(*SQLLinkIterator)
+	it, err := intersect(a.sql, b.sql, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := i.buildSQL(true, nil)
-	fmt.Println(s, v)
+	s, v := it.sql.buildSQL(true, nil)
+	t.Log(s, v)
 }
 
 func TestBuildHasa(t *testing.T) {
 	a := NewSQLLinkIterator(nil, quad.Subject, "Foo")
-	a.tagger.Add("foo")
+	a.Tagger().Add("foo")
 	b := NewSQLLinkIterator(nil, quad.Predicate, "is_equivalent_to")
-	it1, err := intersect(a, b)
+	it1, err := intersect(a.sql, b.sql, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	it2, err := hasa(it1, quad.Object)
-	i2 := it2.(*SQLNodeIterator)
+	it2, err := hasa(it1.sql, quad.Object, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := i2.buildSQL(true, nil)
-	fmt.Println(s, v)
+	s, v := it2.sql.buildSQL(true, nil)
+	t.Log(s, v)
 }
 
 func TestBuildLinksTo(t *testing.T) {
 	a := NewSQLLinkIterator(nil, quad.Subject, "Foo")
 	b := NewSQLLinkIterator(nil, quad.Predicate, "is_equivalent_to")
-	it1, err := intersect(a, b)
+	it1, err := intersect(a.sql, b.sql, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	it2, err := hasa(it1, quad.Object)
+	it2, err := hasa(it1.sql, quad.Object, nil)
 	it2.Tagger().Add("foo")
 	if err != nil {
 		t.Error(err)
 	}
-	it3, err := linksto(it2, quad.Subject)
+	it3, err := linksto(it2.sql, quad.Subject, nil)
 	if err != nil {
 		t.Error(err)
 	}
-	i3 := it3.(*SQLLinkIterator)
-	s, v := i3.buildSQL(true, nil)
-	fmt.Println(s, v)
+	s, v := it3.sql.buildSQL(true, nil)
+	t.Log(s, v)
 }
 
 func TestInterestingQuery(t *testing.T) {
-	if *dbpath == "" {
+	if *postgres_path == "" {
 		t.SkipNow()
 	}
-	db, err := newQuadStore(*dbpath, nil)
+	db, err := newQuadStore(*postgres_path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := NewSQLLinkIterator(db.(*QuadStore), quad.Object, "Humphrey Bogart")
-	b := NewSQLLinkIterator(db.(*QuadStore), quad.Predicate, "name")
-	it1, err := intersect(a, b)
+	qs := db.(*QuadStore)
+	a := NewSQLLinkIterator(qs, quad.Object, "Humphrey Bogart")
+	b := NewSQLLinkIterator(qs, quad.Predicate, "name")
+	it1, err := intersect(a.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	it2, err := hasa(it1, quad.Subject)
+	it2, err := hasa(it1.sql, quad.Subject, qs)
 	if err != nil {
 		t.Error(err)
 	}
 	it2.Tagger().Add("hb")
-	it3, err := linksto(it2, quad.Object)
+	it3, err := linksto(it2.sql, quad.Object, qs)
 	if err != nil {
 		t.Error(err)
 	}
 	b = NewSQLLinkIterator(db.(*QuadStore), quad.Predicate, "/film/performance/actor")
-	it4, err := intersect(it3, b)
+	it4, err := intersect(it3.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	it5, err := hasa(it4, quad.Subject)
+	it5, err := hasa(it4.sql, quad.Subject, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	it6, err := linksto(it5, quad.Object)
+	it6, err := linksto(it5.sql, quad.Object, qs)
 	if err != nil {
 		t.Error(err)
 	}
 	b = NewSQLLinkIterator(db.(*QuadStore), quad.Predicate, "/film/film/starring")
-	it7, err := intersect(it6, b)
+	it7, err := intersect(it6.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	it8, err := hasa(it7, quad.Subject)
+	it8, err := hasa(it7.sql, quad.Subject, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	finalIt := it8.(*SQLNodeIterator)
-	s, v := finalIt.buildSQL(true, nil)
-	finalIt.Tagger().Add("id")
-	fmt.Println(s, v)
-	for graph.Next(finalIt) {
-		fmt.Println(finalIt.Result())
+	s, v := it8.sql.buildSQL(true, nil)
+	it8.Tagger().Add("id")
+	t.Log(s, v)
+	for graph.Next(it8) {
+		t.Log(it8.Result())
 		out := make(map[string]graph.Value)
-		finalIt.TagResults(out)
+		it8.TagResults(out)
 		for k, v := range out {
-			fmt.Printf("%s: %v\n", k, v.(string))
+			t.Log("%s: %v\n", k, v.(string))
 		}
 	}
 }

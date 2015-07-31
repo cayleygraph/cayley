@@ -24,29 +24,30 @@ import (
 	"github.com/google/cayley/quad"
 )
 
-var dbpath = flag.String("dbpath", "", "Path to running DB")
+var postgres_path = flag.String("postgres_path", "", "Path to running DB")
 
 func TestSQLLink(t *testing.T) {
 	it := NewSQLLinkIterator(nil, quad.Object, "cool")
-	s, v := it.buildSQL(true, nil)
-	fmt.Println(s, v)
+	s, v := it.sql.buildSQL(true, nil)
+	t.Log(s, v)
 }
 
 func TestSQLLinkIteration(t *testing.T) {
-	if *dbpath == "" {
+	if *postgres_path == "" {
 		t.SkipNow()
 	}
-	db, err := newQuadStore(*dbpath, nil)
+	db, err := newQuadStore(*postgres_path, nil)
+	qs := db.(*QuadStore)
 	if err != nil {
 		t.Fatal(err)
 	}
-	it := NewSQLLinkIterator(db.(*QuadStore), quad.Object, "Humphrey Bogart")
+	it := NewSQLLinkIterator(qs, quad.Object, "Humphrey Bogart")
 	for graph.Next(it) {
 		fmt.Println(it.Result())
 	}
-	it = NewSQLLinkIterator(db.(*QuadStore), quad.Subject, "/en/casablanca_1942")
-	s, v := it.buildSQL(true, nil)
-	fmt.Println(s, v)
+	it = NewSQLLinkIterator(qs, quad.Subject, "/en/casablanca_1942")
+	s, v := it.sql.buildSQL(true, nil)
+	t.Log(s, v)
 	c := 0
 	for graph.Next(it) {
 		fmt.Println(it.Result())
@@ -58,29 +59,30 @@ func TestSQLLinkIteration(t *testing.T) {
 }
 
 func TestSQLNodeIteration(t *testing.T) {
-	if *dbpath == "" {
+	if *postgres_path == "" {
 		t.SkipNow()
 	}
-	db, err := newQuadStore(*dbpath, nil)
+	db, err := newQuadStore(*postgres_path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	link := NewSQLLinkIterator(db.(*QuadStore), quad.Object, "/en/humphrey_bogart")
-	it := &SQLNodeIterator{
-		uid:       iterator.NextUID(),
-		qs:        db.(*QuadStore),
-		tableName: newTableName(),
-		linkIts: []sqlItDir{
-			sqlItDir{it: link,
+	it := &SQLIterator{
+		uid: iterator.NextUID(),
+		qs:  db.(*QuadStore),
+		sql: &SQLNodeIterator{
+			tableName: newTableName(),
+			linkIt: sqlItDir{
+				it:  link.sql,
 				dir: quad.Subject,
 			},
 		},
 	}
-	s, v := it.buildSQL(true, nil)
-	fmt.Println(s, v)
+	s, v := it.sql.buildSQL(true, nil)
+	t.Log(s, v)
 	c := 0
 	for graph.Next(it) {
-		fmt.Println(it.Result())
+		t.Log(it.Result())
 		c += 1
 	}
 	if c != 56 {
