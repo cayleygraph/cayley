@@ -4,6 +4,7 @@ main
 *.peg.go
 cayley.cfg
 .cayley_history
+.DS_Store
 
 # The built binary
 /cayley
