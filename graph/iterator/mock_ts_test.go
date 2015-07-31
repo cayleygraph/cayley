@@ -47,11 +47,18 @@ func (qs *store) NodesAllIterator() graph.Iterator { return &Null{} }
 func (qs *store) QuadsAllIterator() graph.Iterator { return &Null{} }
 
 func (qs *store) NameOf(v graph.Value) string {
-	i := v.(int)
-	if i < 0 || i >= len(qs.data) {
+	switch v.(type) {
+	case int:
+		i := v.(int)
+		if i < 0 || i >= len(qs.data) {
+			return ""
+		}
+		return qs.data[i]
+	case string:
+		return v.(string)
+	default:
 		return ""
 	}
-	return qs.data[i]
 }
 
 func (qs *store) Size() int64 { return 0 }
