@@ -34,9 +34,21 @@ Rough performance testing shows that, on consumer hardware and an average disk, 
 
 Grab the latest [release binary](https://github.com/google/cayley/releases) and extract it wherever you like.
 
-If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/google/cayley/wiki/How-to-start-hacking-on-Cayley)
+If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/google/cayley/wiki/How-to-start-hacking-on-Cayley) or type
+```
+mkdir -p ~/cayley && cd ~/cayley
+export GOPATH=`pwd`
+export PATH=$PATH:~/cayley/bin
+mkdir -p bin pkg sr/github.com/google
+cd src/github.com/google
+git clone https://github.com/google/cayley
+cd cayley
+go get github.com/tools/godep
+godep restore
+go build ./cmd/cayley
+```
 
-`cd` to the directory and give it a quick test with:
+Then `cd` to the directory and give it a quick test with:
 ```
 ./cayley repl --dbpath=data/testdata.nq
 ```
