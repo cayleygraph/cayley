@@ -23,6 +23,7 @@ import (
 )
 
 var simpleStore = &store{data: []string{"0", "1", "2", "3", "4", "5"}}
+var stringStore = &store{data: []string{"foo", "bar", "baz", "echo"}}
 
 func simpleFixedIterator() *Fixed {
 	f := NewFixed(Identity)
@@ -32,42 +33,92 @@ func simpleFixedIterator() *Fixed {
 	return f
 }
 
+func stringFixedIterator() *Fixed {
+	f := NewFixed(Identity)
+	for _, value := range stringStore.data {
+		f.Add(value)
+	}
+	return f
+}
+
 var comparisonTests = []struct {
 	message  string
 	operand  graph.Value
 	operator Operator
 	expect   []string
+	qs       graph.QuadStore
+	iterator func() *Fixed
 }{
 	{
 		message:  "successful int64 less than comparison",
 		operand:  int64(3),
 		operator: compareLT,
 		expect:   []string{"0", "1", "2"},
+		qs:       simpleStore,
+		iterator: simpleFixedIterator,
 	},
 	{
 		message:  "empty int64 less than comparison",
 		operand:  int64(0),
 		operator: compareLT,
 		expect:   nil,
+		qs:       simpleStore,
+		iterator: simpleFixedIterator,
 	},
 	{
 		message:  "successful int64 greater than comparison",
 		operand:  int64(2),
 		operator: compareGT,
 		expect:   []string{"3", "4"},
+		qs:       simpleStore,
+		iterator: simpleFixedIterator,
 	},
 	{
 		message:  "successful int64 greater than or equal comparison",
 		operand:  int64(2),
 		operator: compareGTE,
 		expect:   []string{"2", "3", "4"},
+		qs:       simpleStore,
+		iterator: simpleFixedIterator,
+	},
+	{
+		message:  "successful string less than comparison",
+		operand:  "echo",
+		operator: compareLT,
+		expect:   []string{"bar", "baz"},
+		qs:       stringStore,
+		iterator: stringFixedIterator,
+	},
+	{
+		message:  "empty string less than comparison",
+		operand:  "",
+		operator: compareLT,
+		expect:   nil,
+		qs:       stringStore,
+		iterator: stringFixedIterator,
+	},
+	{
+		message:  "successful string greater than comparison",
+		operand:  "echo",
+		operator: compareGT,
+		expect:   []string{"foo"},
+		qs:       stringStore,
+		iterator: stringFixedIterator,
+	},
+	{
+		message:  "successful string greater than or equal comparison",
+		operand:  "echo",
+		operator: compareGTE,
+		expect:   []string{"foo", "echo"},
+		qs:       stringStore,
+		iterator: stringFixedIterator,
 	},
 }
 
 func TestValueComparison(t *testing.T) {
 	for _, test := range comparisonTests {
-		qs := simpleStore
-		vc := NewComparison(simpleFixedIterator(), test.operator, test.operand, qs)
+		qs := test.qs
+		vc := NewComparison(test.iterator(), test.operator, test.operand, qs)
 
 		var got []string
 		for vc.Next() {
@@ -84,52 +135,113 @@ var vciContainsTests = []struct {
 	operator Operator
 	check    graph.Value
 	expect   bool
+	qs       graph.QuadStore
+	val      graph.Value
+	iterator func() *Fixed
 }{
 	{
 		message:  "1 is less than 2",
 		operator: compareGTE,
 		check:    1,
 		expect:   false,
+		qs:       simpleStore,
+		val:      int64(2),
+		iterator: simpleFixedIterator,
 	},
 	{
 		message:  "2 is greater than or equal to 2",
 		operator: compareGTE,
 		check:    2,
 		expect:   true,
+		qs:       simpleStore,
+		val:      int64(2),
+		iterator: simpleFixedIterator,
 	},
 	{
 		message:  "3 is greater than or equal to 2",
 		operator: compareGTE,
 		check:    3,
 		expect:   true,
+		qs:       simpleStore,
+		val:      int64(2),
+		iterator: simpleFixedIterator,
 	},
 	{
 		message:  "5 is absent from iterator",
 		operator: compareGTE,
 		check:    5,
 		expect:   false,
+		qs:       simpleStore,
+		val:      int64(2),
+		iterator: simpleFixedIterator,
+	},
+	{
+		message:  "foo is greater than or equal to echo",
+		operator: compareGTE,
+		check:    "foo",
+		expect:   true,
+		qs:       stringStore,
+		val:      "echo",
+		iterator: stringFixedIterator,
+	},
+	{
+		message:  "echo is greater than or equal to echo",
+		operator: compareGTE,
+		check:    "echo",
+		expect:   true,
+		qs:       stringStore,
+		val:      "echo",
+		iterator: stringFixedIterator,
+	},
+	{
+		message:  "foo is missing from the iterator",
+		operator: compareLTE,
+		check:    "foo",
+		expect:   false,
+		qs:       stringStore,
+		val:      "echo",
+		iterator: stringFixedIterator,
 	},
 }
 
 func TestVCIContains(t *testing.T) {
 	for _, test := range vciContainsTests {
-		vc := NewComparison(simpleFixedIterator(), test.operator, int64(2), simpleStore)
+		vc := NewComparison(test.iterator(), test.operator, test.val, test.qs)
 		if vc.Contains(test.check) != test.expect {
 			t.Errorf("Failed to show %s", test.message)
 		}
 	}
 }
 
+var comparisonIteratorTests = []struct {
+	message string
+	qs      graph.QuadStore
+	val     graph.Value
+}{
+	{
+		message: "2 is absent from iterator",
+		qs:      simpleStore,
+		val:     int64(2),
+	},
+	{
+		message: "'missing' is absent from iterator",
+		qs:      stringStore,
+		val:     "missing",
+	},
+}
+
 func TestComparisonIteratorErr(t *testing.T) {
 	wantErr := errors.New("unique")
 	errIt := newTestIterator(false, wantErr)
 
-	vc := NewComparison(errIt, compareLT, int64(2), simpleStore)
+	for _, test := range comparisonIteratorTests {
+		vc := NewComparison(errIt, compareLT, test.val, test.qs)
 
-	if vc.Next() != false {
-		t.Errorf("Comparison iterator did not pass through initial 'false'")
-	}
-	if vc.Err() != wantErr {
-		t.Errorf("Comparison iterator did not pass through underlying Err")
+		if vc.Next() != false {
+			t.Errorf("Comparison iterator did not pass through initial 'false': %s", test.message)
+		}
+		if vc.Err() != wantErr {
+			t.Errorf("Comparison iterator did not pass through underlying Err: %s", test.message)
+		}
 	}
 }

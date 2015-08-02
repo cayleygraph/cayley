@@ -70,7 +70,6 @@ func (it *Comparison) UID() uint64 {
 // Here's the non-boilerplate part of the ValueComparison iterator. Given a value
 // and our operator, determine whether or not we meet the requirement.
 func (it *Comparison) doComparison(val graph.Value) bool {
-	//TODO(barakmich): Implement string comparison.
 	nodeStr := it.qs.NameOf(val)
 	switch cVal := it.val.(type) {
 	case int:
@@ -86,6 +85,8 @@ func (it *Comparison) doComparison(val graph.Value) bool {
 			return false
 		}
 		return RunIntOp(intVal, it.op, cVal)
+	case string:
+		return RunStrOp(nodeStr, it.op, cVal)
 	default:
 		return true
 	}
@@ -96,6 +97,21 @@ func (it *Comparison) Close() error {
 }
 
 func RunIntOp(a int64, op Operator, b int64) bool {
+	switch op {
+	case compareLT:
+		return a < b
+	case compareLTE:
+		return a <= b
+	case compareGT:
+		return a > b
+	case compareGTE:
+		return a >= b
+	default:
+		panic("Unknown operator type")
+	}
+}
+
+func RunStrOp(a string, op Operator, b string) bool {
 	switch op {
 	case compareLT:
 		return a < b
