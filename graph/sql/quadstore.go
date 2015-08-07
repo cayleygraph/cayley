@@ -1,8 +1,12 @@
 package sql
 
 import (
+	"crypto/sha1"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
+	"hash"
+	"sync"
 
 	"github.com/lib/pq"
 
@@ -17,6 +21,13 @@ const QuadStoreType = "sql"
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, true, newQuadStore, createSQLTables, nil)
 }
+
+var (
+	hashPool = sync.Pool{
+		New: func() interface{} { return sha1.New() },
+	}
+	hashSize = sha1.Size
+)
 
 type QuadStore struct {
 	db        *sql.DB
@@ -55,7 +66,11 @@ func createSQLTables(addr string, options graph.Options) error {
 		horizon BIGSERIAL PRIMARY KEY,
 		id BIGINT,
 		ts timestamp,
-		UNIQUE(subject, predicate, object, label)
+		subject_hash TEXT NOT NULL,
+		predicate_hash TEXT NOT NULL,
+		object_hash TEXT NOT NULL,
+		label_hash TEXT,
+		UNIQUE(subject_hash, predicate_hash, object_hash, label_hash)
 	);`)
 	if err != nil {
 		glog.Errorf("Cannot create quad table: %v", quadTable)
@@ -73,17 +88,11 @@ func createSQLTables(addr string, options graph.Options) error {
 		CREATE INDEX pos_index ON quads USING brin(predicate) WITH (pages_per_range = 32);
 		CREATE INDEX osp_index ON quads USING brin(object) WITH (pages_per_range = 32);
 		`)
-	} else if idxStrat == "prefix" {
-		index, err = tx.Exec(fmt.Sprintf(`
-	CREATE INDEX spo_index ON quads (substr(subject, 0, 8)) WITH (FILLFACTOR = %d);
-	CREATE INDEX pos_index ON quads (substr(predicate, 0, 8)) WITH (FILLFACTOR = %d);
-	CREATE INDEX osp_index ON quads (substr(object, 0, 8)) WITH (FILLFACTOR = %d);
-	`, factor, factor, factor))
 	} else {
 		index, err = tx.Exec(fmt.Sprintf(`
-	CREATE INDEX spo_index ON quads (subject, predicate, object) WITH (FILLFACTOR = %d);
-	CREATE INDEX pos_index ON quads (predicate, object, subject) WITH (FILLFACTOR = %d);
-	CREATE INDEX osp_index ON quads (object, subject, predicate) WITH (FILLFACTOR = %d);
+	CREATE INDEX spo_index ON quads (subject_hash) WITH (FILLFACTOR = %d);
+	CREATE INDEX pos_index ON quads (predicate_hash) WITH (FILLFACTOR = %d);
+	CREATE INDEX osp_index ON quads (object_hash) WITH (FILLFACTOR = %d);
 	`, factor, factor, factor))
 	}
 	if err != nil {
@@ -107,13 +116,34 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	return &qs, nil
 }
 
+func hashOf(s string) string {
+	h := hashPool.Get().(hash.Hash)
+	h.Reset()
+	defer hashPool.Put(h)
+	key := make([]byte, 0, hashSize)
+	h.Write([]byte(s))
+	key = h.Sum(key)
+	return hex.EncodeToString(key)
+}
+
 func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta) error {
-	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts"))
+	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts", "subject_hash", "predicate_hash", "object_hash", "label_hash"))
 	if err != nil {
 		return err
 	}
 	for _, d := range in {
-		_, err := stmt.Exec(d.Quad.Subject, d.Quad.Predicate, d.Quad.Object, d.Quad.Label, d.ID.Int(), d.Timestamp)
+		_, err := stmt.Exec(
+			d.Quad.Subject,
+			d.Quad.Predicate,
+			d.Quad.Object,
+			d.Quad.Label,
+			d.ID.Int(),
+			d.Timestamp,
+			hashOf(d.Quad.Subject),
+			hashOf(d.Quad.Predicate),
+			hashOf(d.Quad.Object),
+			hashOf(d.Quad.Label),
+		)
 		if err != nil {
 			glog.Errorf("couldn't prepare COPY statement: %v", err)
 			return err
@@ -137,7 +167,7 @@ func (qs *QuadStore) buildTxPostgres(tx *sql.Tx, in []graph.Delta) error {
 		return qs.copyFrom(tx, in)
 	}
 
-	insert, err := tx.Prepare(`INSERT INTO quads(subject, predicate, object, label, id, ts) VALUES ($1, $2, $3, $4, $5, $6)`)
+	insert, err := tx.Prepare(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`)
 	if err != nil {
 		glog.Errorf("Cannot prepare insert statement: %v", err)
 		return err
@@ -145,7 +175,18 @@ func (qs *QuadStore) buildTxPostgres(tx *sql.Tx, in []graph.Delta) error {
 	for _, d := range in {
 		switch d.Action {
 		case graph.Add:
-			_, err := insert.Exec(d.Quad.Subject, d.Quad.Predicate, d.Quad.Object, d.Quad.Label, d.ID.Int(), d.Timestamp)
+			_, err := insert.Exec(
+				d.Quad.Subject,
+				d.Quad.Predicate,
+				d.Quad.Object,
+				d.Quad.Label,
+				d.ID.Int(),
+				d.Timestamp,
+				hashOf(d.Quad.Subject),
+				hashOf(d.Quad.Predicate),
+				hashOf(d.Quad.Object),
+				hashOf(d.Quad.Label),
+			)
 			if err != nil {
 				glog.Errorf("couldn't prepare INSERT statement: %v", err)
 				return err
@@ -271,7 +312,7 @@ func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val string)
 	var size int64
 	glog.V(4).Infoln("sql: getting size for select %s, %s", dir.String(), val)
 	err = qs.db.QueryRow(
-		fmt.Sprintf("SELECT count(*) FROM quads WHERE %s = $1;", dir.String()), val).Scan(&size)
+		fmt.Sprintf("SELECT count(*) FROM quads WHERE %s_hash = $1;", dir.String()), hashOf(val)).Scan(&size)
 	if err != nil {
 		glog.Errorln("Error getting size from SQL database: %v", err)
 		return 0

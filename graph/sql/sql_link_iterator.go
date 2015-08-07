@@ -50,11 +50,11 @@ type tagDir struct {
 func (t tagDir) String() string {
 	if t.dir == quad.Any {
 		if t.justLocal {
-			return fmt.Sprintf("%s.__execd as %s", t.table, t.tag)
+			return fmt.Sprintf("%s.__execd as %s, %s.__execd_hash as %s_hash", t.table, t.tag, t.table, t.tag)
 		}
-		return fmt.Sprintf("%s.%s as %s", t.table, t.tag, t.tag)
+		return fmt.Sprintf("%s.%s as %s, %s.%s_hash as %s_hash", t.table, t.tag, t.tag, t.table, t.tag, t.tag)
 	}
-	return fmt.Sprintf("%s.%s as %s", t.table, t.dir, t.tag)
+	return fmt.Sprintf("%s.%s as %s, %s.%s_hash as %s_hash", t.table, t.dir, t.tag, t.table, t.dir, t.tag)
 }
 
 type tableDef struct {
@@ -71,7 +71,7 @@ type sqlItDir struct {
 type sqlIterator interface {
 	sqlClone() sqlIterator
 
-	buildSQL(next bool, val graph.Value) (string, []string)
+	buildSQL(next bool, val graph.Value, hash bool) (string, []string)
 	getTables() []tableDef
 	getTags() []tagDir
 	buildWhere() (string, []string)
@@ -219,8 +219,8 @@ func (l *SQLLinkIterator) buildWhere() (string, []string) {
 	var q []string
 	var vals []string
 	for _, c := range l.constraints {
-		q = append(q, fmt.Sprintf("%s.%s = ?", l.tableName, c.dir))
-		vals = append(vals, c.vals[0])
+		q = append(q, fmt.Sprintf("%s.%s_hash = ?", l.tableName, c.dir))
+		vals = append(vals, hashOf(c.vals[0]))
 	}
 	for _, i := range l.nodeIts {
 		t := i.it.tableID()
@@ -228,7 +228,7 @@ func (l *SQLLinkIterator) buildWhere() (string, []string) {
 		if t.dir == quad.Any {
 			dir = t.tag
 		}
-		q = append(q, fmt.Sprintf("%s.%s = %s.%s", l.tableName, i.dir, t.table, dir))
+		q = append(q, fmt.Sprintf("%s.%s_hash = %s.%s_hash", l.tableName, i.dir, t.table, dir))
 	}
 	for _, i := range l.nodeIts {
 		s, v := i.it.buildWhere()
@@ -246,13 +246,17 @@ func (l *SQLLinkIterator) tableID() tagDir {
 	}
 }
 
-func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string) {
+func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value, hash bool) (string, []string) {
 	query := "SELECT DISTINCT "
+	hashs := ""
+	if hash {
+		hashs = "_hash"
+	}
 	t := []string{
-		fmt.Sprintf("%s.subject", l.tableName),
-		fmt.Sprintf("%s.predicate", l.tableName),
-		fmt.Sprintf("%s.object", l.tableName),
-		fmt.Sprintf("%s.label", l.tableName),
+		fmt.Sprintf("%s.subject%s", l.tableName, hashs),
+		fmt.Sprintf("%s.predicate%s", l.tableName, hashs),
+		fmt.Sprintf("%s.object%s", l.tableName, hashs),
+		fmt.Sprintf("%s.label%s", l.tableName, hashs),
 	}
 	for _, v := range l.getTags() {
 		t = append(t, v.String())
@@ -276,16 +280,16 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 			constraint += " AND "
 		}
 		t = []string{
-			fmt.Sprintf("%s.subject = ?", l.tableName),
-			fmt.Sprintf("%s.predicate = ?", l.tableName),
-			fmt.Sprintf("%s.object = ?", l.tableName),
-			fmt.Sprintf("%s.label = ?", l.tableName),
+			fmt.Sprintf("%s.subject_hash = ?", l.tableName),
+			fmt.Sprintf("%s.predicate_hash = ?", l.tableName),
+			fmt.Sprintf("%s.object_hash = ?", l.tableName),
+			fmt.Sprintf("%s.label_hash = ?", l.tableName),
 		}
 		constraint += strings.Join(t, " AND ")
-		values = append(values, v.Subject)
-		values = append(values, v.Predicate)
-		values = append(values, v.Object)
-		values = append(values, v.Label)
+		values = append(values, hashOf(v.Subject))
+		values = append(values, hashOf(v.Predicate))
+		values = append(values, hashOf(v.Object))
+		values = append(values, hashOf(v.Label))
 	}
 	query += constraint
 	query += ";"

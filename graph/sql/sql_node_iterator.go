@@ -89,6 +89,9 @@ func (n *SQLNodeIterator) Describe() string {
 func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string]string {
 	m := make(map[string]string)
 	for i, c := range cols {
+		if strings.HasSuffix(c, "_hash") {
+			continue
+		}
 		if c == "__execd" {
 			n.result = result[i]
 		}
@@ -157,7 +160,7 @@ func (n *SQLNodeIterator) buildWhere() (string, []string) {
 	return query, vals
 }
 
-func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string) {
+func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value, _ bool) (string, []string) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
@@ -185,8 +188,8 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string
 		if constraint != "" {
 			constraint += " AND "
 		}
-		constraint += fmt.Sprintf("%s.%s = ?", topData.table, topData.dir)
-		values = append(values, v)
+		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
+		values = append(values, hashOf(v))
 	}
 	query += constraint
 	query += ";"

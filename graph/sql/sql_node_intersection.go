@@ -69,6 +69,9 @@ func (n *SQLNodeIntersection) Describe() string {
 func (n *SQLNodeIntersection) buildResult(result []string, cols []string) map[string]string {
 	m := make(map[string]string)
 	for i, c := range cols {
+		if strings.HasSuffix(c, "_hash") {
+			continue
+		}
 		if c == "__execd" {
 			n.result = result[i]
 		}
@@ -100,7 +103,7 @@ func (n *SQLNodeIntersection) buildSubqueries() []tableDef {
 	for i, it := range n.nodeIts {
 		var td tableDef
 		var table string
-		table, td.values = it.buildSQL(true, nil)
+		table, td.values = it.buildSQL(true, nil, true)
 		td.table = fmt.Sprintf("\n(%s)", table[:len(table)-1])
 		td.name = n.nodetables[i]
 		out = append(out, td)
@@ -150,13 +153,13 @@ func (n *SQLNodeIntersection) buildWhere() (string, []string) {
 	var q []string
 	var vals []string
 	for _, tb := range n.nodetables[1:] {
-		q = append(q, fmt.Sprintf("%s.__execd = %s.__execd", n.nodetables[0], tb))
+		q = append(q, fmt.Sprintf("%s.__execd_hash = %s.__execd_hash", n.nodetables[0], tb))
 	}
 	query := strings.Join(q, " AND ")
 	return query, vals
 }
 
-func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []string) {
+func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value, _ bool) (string, []string) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
@@ -184,8 +187,8 @@ func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []st
 		if constraint != "" {
 			constraint += " AND "
 		}
-		constraint += fmt.Sprintf("%s.%s = ?", topData.table, topData.dir)
-		values = append(values, v)
+		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
+		values = append(values, hashOf(v))
 	}
 	query += constraint
 	query += ";"
