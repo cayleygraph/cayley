@@ -39,7 +39,7 @@ If you prefer to build from source, see the documentation on the wiki at [How to
 mkdir -p ~/cayley && cd ~/cayley
 export GOPATH=`pwd`
 export PATH=$PATH:~/cayley/bin
-mkdir -p bin pkg sr/github.com/google
+mkdir -p bin pkg src/github.com/google
 cd src/github.com/google
 git clone https://github.com/google/cayley
 cd cayley
