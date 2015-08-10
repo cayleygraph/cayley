@@ -34,6 +34,7 @@ type QuadStore struct {
 	sqlFlavor string
 	size      int64
 	lru       *cache
+	noSizes   bool
 }
 
 func connectSQLTables(addr string, _ graph.Options) (*sql.DB, error) {
@@ -257,6 +258,10 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) string {
+	if v == nil {
+		glog.V(2).Info("NameOf was nil")
+		return ""
+	}
 	return v.(string)
 }
 
@@ -305,6 +310,12 @@ func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val string)
 	var err error
 	if isAll {
 		return qs.Size()
+	}
+	if qs.noSizes {
+		if dir == quad.Predicate {
+			return (qs.Size() / 100) + 1
+		}
+		return (qs.Size() / 1000) + 1
 	}
 	if val, ok := qs.lru.Get(val + string(dir.Prefix())); ok {
 		return val

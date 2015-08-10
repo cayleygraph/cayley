@@ -50,11 +50,11 @@ type tagDir struct {
 func (t tagDir) String() string {
 	if t.dir == quad.Any {
 		if t.justLocal {
-			return fmt.Sprintf("%s.__execd as %s, %s.__execd_hash as %s_hash", t.table, t.tag, t.table, t.tag)
+			return fmt.Sprintf("%s.__execd as \"%s\", %s.__execd_hash as %s_hash", t.table, t.tag, t.table, t.tag)
 		}
-		return fmt.Sprintf("%s.%s as %s, %s.%s_hash as %s_hash", t.table, t.tag, t.tag, t.table, t.tag, t.tag)
+		return fmt.Sprintf("%s.\"%s\" as \"%s\", %s.%s_hash as %s_hash", t.table, t.tag, t.tag, t.table, t.tag, t.tag)
 	}
-	return fmt.Sprintf("%s.%s as %s, %s.%s_hash as %s_hash", t.table, t.dir, t.tag, t.table, t.dir, t.tag)
+	return fmt.Sprintf("%s.%s as \"%s\", %s.%s_hash as %s_hash", t.table, t.dir, t.tag, t.table, t.dir, t.tag)
 }
 
 type tableDef struct {

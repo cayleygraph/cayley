@@ -28,9 +28,15 @@ func intersect(a sqlIterator, b sqlIterator, qs *QuadStore) (*SQLIterator, error
 		if bnew, ok := b.(*SQLNodeIterator); ok {
 			return intersectNode(anew, bnew, qs)
 		}
+		if bnew, ok := b.(*SQLNodeIntersection); ok {
+			return appendNodeIntersection(bnew, anew, qs)
+		}
 	} else if anew, ok := a.(*SQLNodeIntersection); ok {
 		if bnew, ok := b.(*SQLNodeIterator); ok {
 			return appendNodeIntersection(anew, bnew, qs)
+		}
+		if bnew, ok := b.(*SQLNodeIntersection); ok {
+			return combineNodeIntersection(anew, bnew, qs)
 		}
 	} else if anew, ok := a.(*SQLLinkIterator); ok {
 		if bnew, ok := b.(*SQLLinkIterator); ok {
@@ -58,6 +64,17 @@ func appendNodeIntersection(a *SQLNodeIntersection, b *SQLNodeIterator, qs *Quad
 	m := &SQLNodeIntersection{
 		tableName: newTableName(),
 		nodeIts:   append(a.nodeIts, b),
+	}
+	m.Tagger().CopyFromTagger(a.Tagger())
+	m.Tagger().CopyFromTagger(b.Tagger())
+	it := NewSQLIterator(qs, m)
+	return it, nil
+}
+
+func combineNodeIntersection(a *SQLNodeIntersection, b *SQLNodeIntersection, qs *QuadStore) (*SQLIterator, error) {
+	m := &SQLNodeIntersection{
+		tableName: newTableName(),
+		nodeIts:   append(a.nodeIts, b.nodeIts...),
 	}
 	m.Tagger().CopyFromTagger(a.Tagger())
 	m.Tagger().CopyFromTagger(b.Tagger())
