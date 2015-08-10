@@ -34,6 +34,11 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 		export.ExportNquad()
 	case "json":
 		export.ExportJson()
+	// gml/graphml experimental
+	case "gml":
+		export.ExportGml()
+	case "graphml":
+		export.ExportGraphml()
 	default:
 		return fmt.Errorf("unknown format %q", typ)
 	}

@@ -3,6 +3,7 @@ package exporter
 import (
 	"io"
 	"encoding/json"
+	"strconv"
 
 	"github.com/google/cayley/graph"
 )
@@ -59,6 +60,98 @@ func (exp *Exporter) ExportJson() {
 		exp.Write(string(jstr[:]))
 	}
 	exp.Write("]\n")
+}
+
+//experimental
+func (exp *Exporter) ExportGml() {
+	var seen map[string]int32 // todo eliminate this for large dbs
+	var id int32
+
+	exp.Write("Creator Cayley\ngraph\n[\n")
+
+	seen = make(map[string]int32)
+	it := exp.qstore.QuadsAllIterator()
+	for graph.Next(it) {
+		cur := exp.qstore.Quad(it.Result())
+		if _, ok := seen[cur.Subject]; !ok {
+			exp.Write("  node\n  [\n    id ")
+			seen[cur.Subject] = id
+			exp.Write(strconv.FormatInt(int64(id), 10))
+			exp.Write("\n    label ")
+			exp.WriteEscString(cur.Subject)
+			exp.Write("\n  ]\n")
+			id++
+		}
+		if _, ok := seen[cur.Object]; !ok {
+			exp.Write("  node\n  [\n    id ")
+			seen[cur.Object] = id
+			exp.Write(strconv.FormatInt(int64(id), 10))
+			exp.Write("\n    label ")
+			exp.WriteEscString(cur.Object)
+			exp.Write("\n  ]\n")
+			id++
+		}
+		exp.count++
+	}
+
+	it.Reset()
+	for graph.Next(it) {
+		cur := exp.qstore.Quad(it.Result())
+		exp.Write("  edge\n  [\n    source ")
+		exp.Write(strconv.FormatInt(int64(seen[cur.Subject]), 10))
+		exp.Write("\n    target ")
+		exp.Write(strconv.FormatInt(int64(seen[cur.Object]), 10))
+		exp.Write("\n    label ")
+		exp.WriteEscString(cur.Predicate)
+		exp.Write("\n  ]\n")
+		exp.count++
+	}
+	exp.Write("]\n")
+}
+
+//experimental
+func (exp *Exporter) ExportGraphml() {
+	var seen map[string]bool // eliminate this for large databases
+
+	exp.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+	exp.Write("<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"\n")
+	exp.Write("   xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n")
+	exp.Write("   xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n")
+	exp.Write("  <graph id=\"Caylay\" edgedefault=\"directed\">\n")
+
+	seen = make(map[string]bool)
+	it := exp.qstore.QuadsAllIterator()
+	for graph.Next(it) {
+		cur := exp.qstore.Quad(it.Result())
+		if found := seen[cur.Subject]; !found {
+			seen[cur.Subject] = true
+			exp.Write("    <node id=")
+			exp.WriteEscString(cur.Subject)
+			exp.Write(" />\n")
+		}
+		if found := seen[cur.Object]; !found {
+			seen[cur.Object] = true
+			exp.Write("    <node id=")
+			exp.WriteEscString(cur.Object)
+			exp.Write(" />\n")
+		}
+		exp.count++
+	}
+
+	it.Reset()
+	for graph.Next(it) {
+		cur := exp.qstore.Quad(it.Result())
+		exp.Write("    <edge source=")
+		exp.WriteEscString(cur.Subject)
+		exp.Write(" target=")
+                exp.WriteEscString(cur.Object)
+		exp.Write(">\n")
+		exp.Write("      <data key=\"predicate\">")
+		exp.Write(cur.Predicate)
+		exp.Write("</data>\n    </edge>\n")
+		exp.count++
+	}
+	exp.Write("  </graph>\n</graphml>\n");
 }
 
 //print out the string quoted, escaped
