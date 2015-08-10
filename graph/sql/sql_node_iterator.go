@@ -160,11 +160,14 @@ func (n *SQLNodeIterator) buildWhere() (string, []string) {
 	return query, vals
 }
 
-func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value, _ bool) (string, []string) {
+func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value, topLevel bool) (string, []string) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
-	query := "SELECT DISTINCT "
+	query := "SELECT "
+	if topLevel {
+		query += "DISTINCT "
+	}
 	var t []string
 	for _, v := range tags {
 		t = append(t, v.String())

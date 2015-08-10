@@ -103,7 +103,7 @@ func (n *SQLNodeIntersection) buildSubqueries() []tableDef {
 	for i, it := range n.nodeIts {
 		var td tableDef
 		var table string
-		table, td.values = it.buildSQL(true, nil, true)
+		table, td.values = it.buildSQL(true, nil, false)
 		td.table = fmt.Sprintf("\n(%s)", table[:len(table)-1])
 		td.name = n.nodetables[i]
 		out = append(out, td)
@@ -159,11 +159,14 @@ func (n *SQLNodeIntersection) buildWhere() (string, []string) {
 	return query, vals
 }
 
-func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value, _ bool) (string, []string) {
+func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value, topLevel bool) (string, []string) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
-	query := "SELECT DISTINCT "
+	query := "SELECT "
+	if topLevel {
+		query += "DISTINCT "
+	}
 	var t []string
 	for _, v := range tags {
 		t = append(t, v.String())

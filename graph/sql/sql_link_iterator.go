@@ -71,7 +71,7 @@ type sqlItDir struct {
 type sqlIterator interface {
 	sqlClone() sqlIterator
 
-	buildSQL(next bool, val graph.Value, hash bool) (string, []string)
+	buildSQL(next bool, val graph.Value, topLevel bool) (string, []string)
 	getTables() []tableDef
 	getTags() []tagDir
 	buildWhere() (string, []string)
@@ -246,10 +246,13 @@ func (l *SQLLinkIterator) tableID() tagDir {
 	}
 }
 
-func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value, hash bool) (string, []string) {
-	query := "SELECT DISTINCT "
+func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value, topLevel bool) (string, []string) {
+	query := "SELECT "
+	if topLevel {
+		query += "DISTINCT "
+	}
 	hashs := ""
-	if hash {
+	if !topLevel {
 		hashs = "_hash"
 	}
 	t := []string{
@@ -270,14 +273,18 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value, hash bool) (strin
 		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
 	}
 	query += strings.Join(t, ", ")
-	query += " WHERE "
 	constraint, wherevalues := l.buildWhere()
+	if constraint != "" {
+		query += " WHERE "
+	}
 
 	values = append(values, wherevalues...)
 	if !next {
 		v := val.(quad.Quad)
 		if constraint != "" {
 			constraint += " AND "
+		} else {
+			constraint += " WHERE "
 		}
 		t = []string{
 			fmt.Sprintf("%s.subject_hash = ?", l.tableName),

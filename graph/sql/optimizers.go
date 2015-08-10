@@ -164,7 +164,8 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		return newit, true
 	case graph.All:
 		linkit := &SQLLinkIterator{
-			size: qs.Size(),
+			tableName: newTableName(),
+			size:      qs.Size(),
 		}
 		for _, t := range primary.Tagger().Tags() {
 			linkit.tagdirs = append(linkit.tagdirs, tagDir{
