@@ -28,6 +28,7 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 	if export.Err() != nil {
 		return export.Err()
 	}
+	export.ExportJson()
 
         if outFile != "-" {
 		fmt.Printf("%d entries were written\n", export.Count())

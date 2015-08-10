@@ -23,6 +23,25 @@ func (exp *Exporter) Count() int32 {
 	return exp.count
 }
 
+func (exp *Exporter) ExportJson() {
+	var jstr []byte 
+	exp.Write("[")
+	it := exp.qstore.QuadsAllIterator()
+	for graph.Next(it) {
+		exp.count++
+		if exp.count > 1 {
+			exp.Write(",")
+		}
+
+		jstr, exp.err = json.Marshal(exp.qstore.Quad(it.Result()))
+		if exp.err != nil {
+			return
+		}
+		exp.Write(string(jstr[:]))
+	}
+	exp.Write("]\n")
+}
+
 //print out the string quoted, escaped
 func (exp *Exporter) WriteEscString(str string) {
 	var esc []byte
