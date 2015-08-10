@@ -219,7 +219,11 @@ func main() {
 			}
 		}
 
-		// internal.Dump()
+		err = internal.Dump(handle.QuadStore, *dumpFile, *dumpType)
+		if err != nil {
+			break
+		}
+
 		handle.Close()
 
 	case "repl":
