@@ -23,6 +23,25 @@ func (exp *Exporter) Count() int32 {
 	return exp.count
 }
 
+func (exp *Exporter) ExportNquad() {
+	it := exp.qstore.QuadsAllIterator()
+	for graph.Next(it) {
+		exp.count++
+		quad := exp.qstore.Quad(it.Result())
+		
+		exp.WriteEscString(quad.Subject)
+		exp.Write(" ")
+		exp.WriteEscString(quad.Predicate)
+		exp.Write(" ")
+		exp.WriteEscString(quad.Object)
+		if quad.Label != "" {
+			exp.Write(" ")
+			exp.WriteEscString(quad.Label)
+		}
+		exp.Write(" .\n")
+	} 
+}
+
 func (exp *Exporter) ExportJson() {
 	var jstr []byte 
 	exp.Write("[")

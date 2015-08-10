@@ -28,7 +28,19 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 	if export.Err() != nil {
 		return export.Err()
 	}
-	export.ExportJson()
+
+	switch typ {
+	case "nquad":
+		export.ExportNquad()
+	case "json":
+		export.ExportJson()
+	default:
+		return fmt.Errorf("unknown format %q", typ)
+	}
+	
+	if export.Err() != nil {
+		return export.Err()
+	}
 
         if outFile != "-" {
 		fmt.Printf("%d entries were written\n", export.Count())
