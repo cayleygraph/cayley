@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"os"
+	"compress/gzip"
+	"path/filepath"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/exporter"
@@ -24,11 +26,16 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 		fmt.Printf("dumping db to file %q\n", outFile)
 	}
 
-	export := exporter.NewExporter(f, qs)
-	if export.Err() != nil {
-		return export.Err()
+	var export *exporter.Exporter
+	if filepath.Ext(outFile) == ".gz" {
+		gzip := gzip.NewWriter(f)
+		defer gzip.Close()
+		export = exporter.NewExporter(gzip, qs)
+	} else {
+		export = exporter.NewExporter(f, qs)
 	}
 
+	//TODO: add possible support for exporting specific queries only
 	switch typ {
 	case "nquad":
 		export.ExportNquad()
