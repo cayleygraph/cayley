@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/cayley/config"
-	"github.com/google/cayley/db"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/internal/config"
+	"github.com/google/cayley/internal/db"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/quad/cquads"
 	"github.com/google/cayley/quad/nquads"
