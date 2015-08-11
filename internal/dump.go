@@ -38,7 +38,7 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 	//TODO: add possible support for exporting specific queries only
 	switch typ {
 	case "quad":
-		export.ExportNquad()
+		export.ExportQuad()
 	case "json":
 		export.ExportJson()
 	// gml/graphml experimental

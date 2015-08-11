@@ -11,12 +11,17 @@ import (
 type Exporter struct {
 	wr io.Writer
 	qstore graph.QuadStore
+	qi graph.Iterator
 	err error
 	count int32
 }
 
 func NewExporter(writer io.Writer, qstore graph.QuadStore) *Exporter {
-	return &Exporter{wr: writer, qstore: qstore}
+	return NewExporterForIterator(writer, qstore, qstore.QuadsAllIterator())
+}
+
+func NewExporterForIterator(writer io.Writer, qstore graph.QuadStore, qi graph.Iterator) *Exporter {
+	return &Exporter{wr: writer, qstore: qstore, qi: qi}
 }
 
 // number of records
@@ -24,9 +29,9 @@ func (exp *Exporter) Count() int32 {
 	return exp.count
 }
 
-func (exp *Exporter) ExportNquad() {
-	it := exp.qstore.QuadsAllIterator()
-	for graph.Next(it) {
+func (exp *Exporter) ExportQuad() {
+	exp.qi.Reset()
+	for it := exp.qi; graph.Next(it); {
 		exp.count++
 		quad := exp.qstore.Quad(it.Result())
 		
@@ -46,8 +51,8 @@ func (exp *Exporter) ExportNquad() {
 func (exp *Exporter) ExportJson() {
 	var jstr []byte 
 	exp.Write("[")
-	it := exp.qstore.QuadsAllIterator()
-	for graph.Next(it) {
+	exp.qi.Reset()
+	for it := exp.qi; graph.Next(it); {
 		exp.count++
 		if exp.count > 1 {
 			exp.Write(",")
@@ -70,8 +75,8 @@ func (exp *Exporter) ExportGml() {
 	exp.Write("Creator Cayley\ngraph\n[\n")
 
 	seen = make(map[string]int32)
-	it := exp.qstore.QuadsAllIterator()
-	for graph.Next(it) {
+	exp.qi.Reset()
+	for it := exp.qi; graph.Next(it); {
 		cur := exp.qstore.Quad(it.Result())
 		if _, ok := seen[cur.Subject]; !ok {
 			exp.Write("  node\n  [\n    id ")
@@ -94,8 +99,8 @@ func (exp *Exporter) ExportGml() {
 		exp.count++
 	}
 
-	it.Reset()
-	for graph.Next(it) {
+	exp.qi.Reset()
+	for it := exp.qi; graph.Next(it); {
 		cur := exp.qstore.Quad(it.Result())
 		exp.Write("  edge\n  [\n    source ")
 		exp.Write(strconv.FormatInt(int64(seen[cur.Subject]), 10))
@@ -120,8 +125,8 @@ func (exp *Exporter) ExportGraphml() {
 	exp.Write("  <graph id=\"Caylay\" edgedefault=\"directed\">\n")
 
 	seen = make(map[string]bool)
-	it := exp.qstore.QuadsAllIterator()
-	for graph.Next(it) {
+	exp.qi.Reset()
+	for it := exp.qi; graph.Next(it); {
 		cur := exp.qstore.Quad(it.Result())
 		if found := seen[cur.Subject]; !found {
 			seen[cur.Subject] = true
@@ -138,8 +143,8 @@ func (exp *Exporter) ExportGraphml() {
 		exp.count++
 	}
 
-	it.Reset()
-	for graph.Next(it) {
+	exp.qi.Reset()
+	for it := exp.qi; graph.Next(it); {
 		cur := exp.qstore.Quad(it.Result())
 		exp.Write("    <edge source=")
 		exp.WriteEscString(cur.Subject)
