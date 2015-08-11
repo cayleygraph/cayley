@@ -13,7 +13,7 @@ type Exporter struct {
 	qstore graph.QuadStore
 	qi graph.Iterator
 	err error
-	count int32
+	count int
 }
 
 func NewExporter(writer io.Writer, qstore graph.QuadStore) *Exporter {
@@ -25,7 +25,7 @@ func NewExporterForIterator(writer io.Writer, qstore graph.QuadStore, qi graph.I
 }
 
 // number of records
-func (exp *Exporter) Count() int32 {
+func (exp *Exporter) Count() int {
 	return exp.count
 }
 
