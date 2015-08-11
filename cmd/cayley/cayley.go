@@ -50,7 +50,7 @@ var (
 	databasePath       = flag.String("dbpath", "/tmp/testdb", "Path to the database.")
 	databaseBackend    = flag.String("db", "memstore", "Database Backend.")
 	dumpFile           = flag.String("dump", "dbdump.nq", `Quad file to dump the database to (".gz" supported, "-" for stdout).`)
-	dumpType           = flag.String("dump_type", "json", `Quad file format ("json", "nquad").`)
+	dumpType           = flag.String("dump_type", "quad", `Quad file format ("json", "quad", "gml", "graphml").`)
 	replicationBackend = flag.String("replication", "single", "Replication method.")
 	host               = flag.String("host", "127.0.0.1", "Host to listen on (defaults to all).")
 	loadSize           = flag.Int("load_size", 10000, "Size of quadsets to load")

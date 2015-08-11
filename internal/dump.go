@@ -37,7 +37,7 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 
 	//TODO: add possible support for exporting specific queries only
 	switch typ {
-	case "nquad":
+	case "quad":
 		export.ExportNquad()
 	case "json":
 		export.ExportJson()
