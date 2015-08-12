@@ -292,12 +292,15 @@ func hasAnyNullIterators(its []graph.Iterator) bool {
 // nothing, and graph.All which returns everything. Particularly, we want
 // to see if we're intersecting with a bunch of graph.All iterators, and,
 // if we are, then we have only one useful iterator.
+//
+// We already checked for hasAnyNullIteratators() -- so now we're considering
+// All iterators.
 func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 	usefulCount := 0
 	var usefulIt graph.Iterator
 	for _, it := range its {
 		switch it.Type() {
-		case graph.Null, graph.All:
+		case graph.All:
 			continue
 		case graph.Optional:
 			// Optional is weird -- it's not useful, but we can't optimize
@@ -312,6 +315,10 @@ func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
 
 	if usefulCount == 1 {
 		return usefulIt
+	}
+	if usefulCount == 0 {
+		// It's full of All iterators. We can safely return one of them.
+		return its[0]
 	}
 	return nil
 }
