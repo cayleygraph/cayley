@@ -71,7 +71,7 @@ type sqlItDir struct {
 type sqlIterator interface {
 	sqlClone() sqlIterator
 
-	buildSQL(next bool, val graph.Value, topLevel bool) (string, []string)
+	buildSQL(next bool, val graph.Value) (string, []string)
 	getTables() []tableDef
 	getTags() []tagDir
 	buildWhere() (string, []string)
@@ -143,7 +143,8 @@ func (l *SQLLinkIterator) Size(qs *QuadStore) (int64, bool) {
 }
 
 func (l *SQLLinkIterator) Describe() string {
-	return fmt.Sprintf("SQL_LINK_QUERY: %#v", l)
+	s, _ := l.buildSQL(true, nil)
+	return fmt.Sprintf("SQL_LINK_QUERY: %s", s)
 }
 
 func (l *SQLLinkIterator) Type() sqlQueryType {
@@ -246,20 +247,13 @@ func (l *SQLLinkIterator) tableID() tagDir {
 	}
 }
 
-func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value, topLevel bool) (string, []string) {
+func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string) {
 	query := "SELECT "
-	if topLevel {
-		query += "DISTINCT "
-	}
-	hashs := ""
-	if !topLevel {
-		hashs = "_hash"
-	}
 	t := []string{
-		fmt.Sprintf("%s.subject%s", l.tableName, hashs),
-		fmt.Sprintf("%s.predicate%s", l.tableName, hashs),
-		fmt.Sprintf("%s.object%s", l.tableName, hashs),
-		fmt.Sprintf("%s.label%s", l.tableName, hashs),
+		fmt.Sprintf("%s.subject", l.tableName),
+		fmt.Sprintf("%s.predicate", l.tableName),
+		fmt.Sprintf("%s.object", l.tableName),
+		fmt.Sprintf("%s.label", l.tableName),
 	}
 	for _, v := range l.getTags() {
 		t = append(t, v.String())
@@ -300,8 +294,6 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value, topLevel bool) (s
 	}
 	query += constraint
 	query += ";"
-
-	glog.V(2).Infoln(query)
 
 	if glog.V(4) {
 		dstr := query

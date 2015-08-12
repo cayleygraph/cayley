@@ -83,7 +83,8 @@ func (n *SQLNodeIterator) Size(qs *QuadStore) (int64, bool) {
 }
 
 func (n *SQLNodeIterator) Describe() string {
-	return fmt.Sprintf("SQL_NODE_QUERY: %#v", n)
+	s, _ := n.buildSQL(true, nil)
+	return fmt.Sprintf("SQL_NODE_QUERY: %s", s)
 }
 
 func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string]string {
@@ -160,14 +161,12 @@ func (n *SQLNodeIterator) buildWhere() (string, []string) {
 	return query, vals
 }
 
-func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value, topLevel bool) (string, []string) {
+func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
 	query := "SELECT "
-	if topLevel {
-		query += "DISTINCT "
-	}
+
 	var t []string
 	for _, v := range tags {
 		t = append(t, v.String())
@@ -196,8 +195,6 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value, topLevel bool) (s
 	}
 	query += constraint
 	query += ";"
-
-	glog.V(2).Infoln(query)
 
 	if glog.V(4) {
 		dstr := query

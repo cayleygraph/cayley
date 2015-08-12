@@ -63,7 +63,8 @@ func (n *SQLNodeIntersection) Size(qs *QuadStore) (int64, bool) {
 }
 
 func (n *SQLNodeIntersection) Describe() string {
-	return fmt.Sprintf("SQL_NODE_INTERSECTION: %#v", n)
+	s, _ := n.buildSQL(true, nil)
+	return fmt.Sprintf("SQL_NODE_INTERSECTION: %s", s)
 }
 
 func (n *SQLNodeIntersection) buildResult(result []string, cols []string) map[string]string {
@@ -103,7 +104,7 @@ func (n *SQLNodeIntersection) buildSubqueries() []tableDef {
 	for i, it := range n.nodeIts {
 		var td tableDef
 		var table string
-		table, td.values = it.buildSQL(true, nil, false)
+		table, td.values = it.buildSQL(true, nil)
 		td.table = fmt.Sprintf("\n(%s)", table[:len(table)-1])
 		td.name = n.nodetables[i]
 		out = append(out, td)
@@ -159,14 +160,11 @@ func (n *SQLNodeIntersection) buildWhere() (string, []string) {
 	return query, vals
 }
 
-func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value, topLevel bool) (string, []string) {
+func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []string) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
 	query := "SELECT "
-	if topLevel {
-		query += "DISTINCT "
-	}
 	var t []string
 	for _, v := range tags {
 		t = append(t, v.String())
@@ -195,8 +193,6 @@ func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value, topLevel bool
 	}
 	query += constraint
 	query += ";"
-
-	glog.V(2).Infoln(query)
 
 	if glog.V(4) {
 		dstr := query

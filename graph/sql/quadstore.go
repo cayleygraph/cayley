@@ -77,25 +77,17 @@ func createSQLTables(addr string, options graph.Options) error {
 		glog.Errorf("Cannot create quad table: %v", quadTable)
 		return err
 	}
-	idxStrat, _, err := options.StringKey("db_index_strategy")
 	factor, factorOk, err := options.IntKey("db_fill_factor")
 	if !factorOk {
 		factor = 50
 	}
 	var index sql.Result
-	if idxStrat == "brin" {
-		index, err = tx.Exec(`
-		CREATE INDEX spo_index ON quads USING brin(subject) WITH (pages_per_range = 32);
-		CREATE INDEX pos_index ON quads USING brin(predicate) WITH (pages_per_range = 32);
-		CREATE INDEX osp_index ON quads USING brin(object) WITH (pages_per_range = 32);
-		`)
-	} else {
-		index, err = tx.Exec(fmt.Sprintf(`
+
+	index, err = tx.Exec(fmt.Sprintf(`
 	CREATE INDEX spo_index ON quads (subject_hash) WITH (FILLFACTOR = %d);
 	CREATE INDEX pos_index ON quads (predicate_hash) WITH (FILLFACTOR = %d);
 	CREATE INDEX osp_index ON quads (object_hash) WITH (FILLFACTOR = %d);
 	`, factor, factor, factor))
-	}
 	if err != nil {
 		glog.Errorf("Cannot create indices: %v", index)
 		return err
@@ -110,10 +102,22 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	localOpt, localOptOk, err := options.BoolKey("local_optimize")
+	if err != nil {
+		return nil, err
+	}
 	qs.db = conn
 	qs.sqlFlavor = "postgres"
 	qs.size = -1
 	qs.lru = newCache(1024)
+
+	// Skip size checking by default.
+	qs.noSizes = true
+	if localOptOk {
+		if localOpt {
+			qs.noSizes = false
+		}
+	}
 	return &qs, nil
 }
 
@@ -192,25 +196,12 @@ func (qs *QuadStore) buildTxPostgres(tx *sql.Tx, in []graph.Delta) error {
 				glog.Errorf("couldn't prepare INSERT statement: %v", err)
 				return err
 			}
-			//for _, dir := range quad.Directions {
-			//_, err := tx.Exec(`
-			//WITH upsert AS (UPDATE nodes SET size=size+1 WHERE node=$1 RETURNING *)
-			//INSERT INTO nodes (node, size) SELECT $1, 1 WHERE NOT EXISTS (SELECT * FROM UPSERT);
-			//`, d.Quad.Get(dir))
-			//if err != nil {
-			//glog.Errorf("couldn't prepare upsert statement in direction %s: %v", dir, err)
-			//return err
-			//}
-			//}
 		case graph.Delete:
 			_, err := tx.Exec(`DELETE FROM quads WHERE subject=$1 and predicate=$2 and object=$3 and label=$4;`,
 				d.Quad.Subject, d.Quad.Predicate, d.Quad.Object, d.Quad.Label)
 			if err != nil {
 				glog.Errorf("couldn't prepare DELETE statement: %v", err)
 			}
-			//for _, dir := range quad.Directions {
-			//tx.Exec(`UPDATE nodes SET size=size-1 WHERE node=$1;`, d.Quad.Get(dir))
-			//}
 		default:
 			panic("unknown action")
 		}
