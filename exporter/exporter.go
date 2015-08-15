@@ -1,19 +1,19 @@
 package exporter
 
 import (
-	"io"
 	"encoding/json"
+	"io"
 	"strconv"
 
 	"github.com/google/cayley/graph"
 )
 
 type Exporter struct {
-	wr io.Writer
+	wr     io.Writer
 	qstore graph.QuadStore
-	qi graph.Iterator
-	err error
-	count int
+	qi     graph.Iterator
+	err    error
+	count  int
 }
 
 func NewExporter(writer io.Writer, qstore graph.QuadStore) *Exporter {
@@ -34,7 +34,7 @@ func (exp *Exporter) ExportQuad() {
 	for it := exp.qi; graph.Next(it); {
 		exp.count++
 		quad := exp.qstore.Quad(it.Result())
-		
+
 		exp.WriteEscString(quad.Subject)
 		exp.Write(" ")
 		exp.WriteEscString(quad.Predicate)
@@ -45,11 +45,11 @@ func (exp *Exporter) ExportQuad() {
 			exp.WriteEscString(quad.Label)
 		}
 		exp.Write(" .\n")
-	} 
+	}
 }
 
 func (exp *Exporter) ExportJson() {
-	var jstr []byte 
+	var jstr []byte
 	exp.Write("[")
 	exp.qi.Reset()
 	for it := exp.qi; graph.Next(it); {
@@ -149,28 +149,28 @@ func (exp *Exporter) ExportGraphml() {
 		exp.Write("    <edge source=")
 		exp.WriteEscString(cur.Subject)
 		exp.Write(" target=")
-                exp.WriteEscString(cur.Object)
+		exp.WriteEscString(cur.Object)
 		exp.Write(">\n")
 		exp.Write("      <data key=\"predicate\">")
 		exp.Write(cur.Predicate)
 		exp.Write("</data>\n    </edge>\n")
 		exp.count++
 	}
-	exp.Write("  </graph>\n</graphml>\n");
+	exp.Write("  </graph>\n</graphml>\n")
 }
 
 //print out the string quoted, escaped
 func (exp *Exporter) WriteEscString(str string) {
 	var esc []byte
-    
+
 	if exp.err != nil {
 		return
-	}   
+	}
 	esc, exp.err = json.Marshal(str)
 	if exp.err != nil {
 		return
-	}   
-	_, exp.err = exp.wr.Write(esc)	
+	}
+	_, exp.err = exp.wr.Write(esc)
 }
 
 func (exp *Exporter) Write(str string) {
