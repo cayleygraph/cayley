@@ -131,6 +131,9 @@ func (it *AllIterator) Next() bool {
 	graph.NextLogIn(it)
 	if it.cursor == nil {
 		it.makeCursor()
+		if it.cursor == nil {
+			return false
+		}
 	}
 	if !it.cursor.Next() {
 		glog.V(4).Infoln("sql: No next")
