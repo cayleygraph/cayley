@@ -44,6 +44,13 @@ func connectSQLTables(addr string, _ graph.Options) (*sql.DB, error) {
 		glog.Errorf("Couldn't open database at %s: %#v", addr, err)
 		return nil, err
 	}
+	// "Open may just validate its arguments without creating a connection to the database."
+	// "To verify that the data source name is valid, call Ping."
+	// Source: http://golang.org/pkg/database/sql/#Open
+	if err := conn.Ping(); err != nil {
+		glog.Errorf("Couldn't open database at %s: %#v", addr, err)
+		return nil, err
+	}
 	return conn, nil
 }
 
