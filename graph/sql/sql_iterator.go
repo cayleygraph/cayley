@@ -151,6 +151,11 @@ func (it *SQLIterator) Next() bool {
 	graph.NextLogIn(it)
 	if it.cursor == nil {
 		err = it.makeCursor(true, nil)
+		if err != nil {
+			glog.Errorf("Couldn't make query: %v", err)
+			it.err = err
+			return false
+		}
 		it.cols, err = it.cursor.Columns()
 		if err != nil {
 			glog.Errorf("Couldn't get columns")
@@ -226,7 +231,9 @@ func (it *SQLIterator) Contains(v graph.Value) bool {
 	if err != nil {
 		glog.Errorf("Couldn't make query: %v", err)
 		it.err = err
-		it.cursor.Close()
+		if it.cursor != nil {
+			it.cursor.Close()
+		}
 		return false
 	}
 	it.cols, err = it.cursor.Columns()
