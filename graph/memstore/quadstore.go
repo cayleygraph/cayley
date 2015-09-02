@@ -106,6 +106,26 @@ func newQuadStore() *QuadStore {
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	// Precheck the whole transaction
+	for _, d := range deltas {
+		switch d.Action {
+		case graph.Add:
+			if !ignoreOpts.IgnoreDup {
+				if _, exists := qs.indexOf(d.Quad); exists {
+					return graph.ErrQuadExists
+				}
+			}
+		case graph.Delete:
+			if !ignoreOpts.IgnoreMissing {
+				if _, exists := qs.indexOf(d.Quad); !exists {
+					return graph.ErrQuadNotExist
+				}
+			}
+		default:
+			return errors.New("memstore: invalid action")
+		}
+	}
+
 	for _, d := range deltas {
 		var err error
 		switch d.Action {
@@ -120,7 +140,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				err = nil
 			}
 		default:
-			err = errors.New("memstore: invalid action")
+			panic("memstore: unexpected invalid action")
 		}
 		if err != nil {
 			return err
