@@ -180,12 +180,16 @@ func TestLinksToOptimization(t *testing.T) {
 func TestRemoveQuad(t *testing.T) {
 	qs, w, _ := makeTestStore(simpleGraph)
 
-	w.RemoveQuad(quad.Quad{
+	err := w.RemoveQuad(quad.Quad{
 		Subject:   "E",
 		Predicate: "follows",
 		Object:    "F",
 		Label:     "",
 	})
+
+	if err != nil {
+		t.Error("Couldn't remove quad", err)
+	}
 
 	fixed := qs.FixedIterator()
 	fixed.Add(qs.ValueOf("E"))
@@ -202,5 +206,30 @@ func TestRemoveQuad(t *testing.T) {
 	newIt, _ := hasa.Optimize()
 	if graph.Next(newIt) {
 		t.Error("E should not have any followers.")
+	}
+}
+
+func TestTransaction(t *testing.T) {
+	qs, w, _ := makeTestStore(simpleGraph)
+	size := qs.Size()
+
+	tx := graph.NewTransaction()
+	tx.AddQuad(quad.Quad{
+		Subject:   "E",
+		Predicate: "follows",
+		Object:    "G",
+		Label:     ""})
+	tx.RemoveQuad(quad.Quad{
+		Subject:   "Non",
+		Predicate: "existent",
+		Object:    "quad",
+		Label:     ""})
+
+	err := w.ApplyTransaction(tx)
+	if err == nil {
+		t.Error("Able to remove a non-existent quad")
+	}
+	if size != qs.Size() {
+		t.Error("Appended a new quad in a failed transaction")
 	}
 }
