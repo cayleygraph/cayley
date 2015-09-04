@@ -53,13 +53,13 @@ Where you'll be given a `cayley>` prompt. It's expecting Gremlin/JS, but that ca
 New nodes and links can be added with the following command:
 
 ```bash
-cayley> :a object predicate subject label .
+cayley> :a subject predicate object label .
 ```
 
 Removing links works similarly:
 
 ```bash
-cayley> :d object predicate subject .
+cayley> :d subject predicate object .
 ```
 
 This is great for testing, and ultimately also for scripting, but the real workhorse is the next step.
