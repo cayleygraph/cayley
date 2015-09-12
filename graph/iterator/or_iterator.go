@@ -136,12 +136,12 @@ func (it *Or) Next() bool {
 
 		if graph.Next(curIt) {
 			it.result = curIt.Result()
-			return graph.NextLogOut(it, it.result, true)
+			return graph.NextLogOut(it, true)
 		}
 
 		it.err = curIt.Err()
 		if it.err != nil {
-			return graph.NextLogOut(it, nil, false)
+			return graph.NextLogOut(it, false)
 		}
 
 		if it.isShortCircuiting && !first {
@@ -153,7 +153,7 @@ func (it *Or) Next() bool {
 		}
 	}
 
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *Or) Err() error {

@@ -101,7 +101,7 @@ type Iterator interface {
 	//  	}
 	//  }
 	//
-	// All of them should set iterator.Last to be the last returned value, to
+	// All of them should set iterator.result to be the last returned value, to
 	// make results work.
 	//
 	// NextPath() advances iterators that may have more than one valid result,
@@ -352,10 +352,10 @@ func NextLogIn(it Iterator) {
 	}
 }
 
-func NextLogOut(it Iterator, val Value, ok bool) bool {
+func NextLogOut(it Iterator, ok bool) bool {
 	if glog.V(4) {
 		if ok {
-			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type().String()), it.UID(), val)
+			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type().String()), it.UID(), it.Result())
 		} else {
 			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
 		}
