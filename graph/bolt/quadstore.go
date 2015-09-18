@@ -102,7 +102,7 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	}
 	err = qs.getMetadata()
 	if err == errNoBucket {
-		panic("bolt: quadstore has not been initialised")
+		return nil, errors.New("bolt: quadstore has not been initialised")
 	} else if err != nil {
 		return nil, err
 	}
