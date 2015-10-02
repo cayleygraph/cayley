@@ -57,7 +57,8 @@ func isMorphism(nodes ...string) morphism {
 	}
 }
 
-// hasMorphism is
+// hasMorphism is the set of nodes that is reachable via either a *Path, a
+// single node.(string) or a list of nodes.([]string)
 func hasMorphism(via interface{}, nodes ...string) morphism {
 	return morphism{
 		Name:     "has",
