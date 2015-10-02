@@ -45,7 +45,7 @@ func isMorphism(nodes ...string) morphism {
 				return in
 			}
 
-			isNodes := ls.FixedIterator()
+			isNodes := qs.FixedIterator()
 			for _, n := range nodes {
 				isNodes.Add(qs.ValueOf(n))
 			}
@@ -78,7 +78,7 @@ func hasMorphism(via interface{}, nodes ...string) morphism {
 			}()
 
 			trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
-			dest := iterator.NewLinksTo(qs, ends, graph.Object)
+			dest := iterator.NewLinksTo(qs, ends, quad.Object)
 
 			// If we were given nodes, intersecting with them first will
 			// be extremely cheap-- otherwise, it will be the most expensive
@@ -86,13 +86,13 @@ func hasMorphism(via interface{}, nodes ...string) morphism {
 			// make this optimization now since intersections are commutative
 			if len(nodes) == 0 { // Where dest involves an All iterator
 				route := join(qs, trail, dest)
-				has := iterator.NewHasA(qs, route, graph.Subject)
+				has := iterator.NewHasA(qs, route, quad.Subject)
 				return join(qs, in, has)
 			}
 
 			// This looks backwards. That's OK-- see the note above
 			route := join(qs, dest, trail)
-			has := iterator.NewHasA(qs, route, graph.Subject)
+			has := iterator.NewHasA(qs, route, quad.Subject)
 			return join(qs, has, in)
 		},
 	}
@@ -229,9 +229,9 @@ func buildSave(
 ) graph.Iterator {
 
 	allNodes := qs.NodesAllIterator()
-	all.Tagger().Add(tag)
+	allNodes.Tagger().Add(tag)
 
-	start, goal := graph.Subject, graph.Object
+	start, goal := quad.Subject, quad.Object
 	if reverse {
 		start, goal = goal, start
 	}
@@ -239,7 +239,7 @@ func buildSave(
 		BuildIterator()
 
 	dest := iterator.NewLinksTo(qs, allNodes, goal)
-	trail := iterator.NewLinksTo(qs, viaIter, graph.Predicate)
+	trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
 
 	route := join(qs, trail, dest)
 	save := iterator.NewHasA(qs, route, start)
@@ -256,7 +256,7 @@ func inOutIterator(viaPath *Path, from graph.Iterator, inIterator bool) graph.It
 	viaIter := viaPath.BuildIterator()
 
 	source := iterator.NewLinksTo(viaPath.qs, from, start)
-	trail := iterator.NewLinksTo(viaPath.qs, viaIter, graph.Predicate)
+	trail := iterator.NewLinksTo(viaPath.qs, viaIter, quad.Predicate)
 
 	route := join(viaPath.qs, source, trail)
 
