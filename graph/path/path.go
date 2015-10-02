@@ -1,4 +1,4 @@
-// Copyright 2014 The Cayley Authors. All rights reserved.
+// Copyright 2015 The Cayley Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -140,11 +140,15 @@ func (p *Path) Except(path *Path) *Path {
 	return p
 }
 
+// Follow allows you to stitch two paths together. The resulting path will start
+// from where the first path left off and continue iterating down the path given
 func (p *Path) Follow(path *Path) *Path {
 	p.stack = append(p.stack, followMorphism(path))
 	return p
 }
 
+// FollowReverse is the same as follow, except it will iterate backwards up the
+// path given as argument
 func (p *Path) FollowReverse(path *Path) *Path {
 	p.stack = append(p.stack, followMorphism(path.Reverse()))
 	return p
