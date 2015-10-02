@@ -22,7 +22,7 @@ import (
 
 // join puts two iterators together by intersecting their result sets with an AND
 // Since we're using an and iterator, it's a good idea to put the smallest result
-// set first so that Next() produces fewer values to check Contains()
+// set first so that Next() produces fewer values to check Contains().
 func join(qs graph.QuadStore, itL, itR graph.Iterator) graph.Iterator {
 	and := iterator.NewAnd(qs)
 	and.AddSubIterator(itL)
@@ -32,7 +32,7 @@ func join(qs graph.QuadStore, itL, itR graph.Iterator) graph.Iterator {
 }
 
 // isMorphism represents all nodes passed in-- if there are none, this function
-// acts as a passthrough for the previous iterator
+// acts as a passthrough for the previous iterator.
 func isMorphism(nodes ...string) morphism {
 	return morphism{
 		Name:     "is",
@@ -41,7 +41,7 @@ func isMorphism(nodes ...string) morphism {
 			if len(nodes) == 0 {
 				// Acting as a passthrough here is equivalent to
 				// building a NodesAllIterator to Next() or Contains()
-				// from here as in previous versions
+				// from here as in previous versions.
 				return in
 			}
 
@@ -51,14 +51,14 @@ func isMorphism(nodes ...string) morphism {
 			}
 
 			// Anything with fixedIterators will usually have a much
-			// smaller result set, so join isNodes first here
+			// smaller result set, so join isNodes first here.
 			return join(qs, isNodes, in)
 		},
 	}
 }
 
 // hasMorphism is the set of nodes that is reachable via either a *Path, a
-// single node.(string) or a list of nodes.([]string)
+// single node.(string) or a list of nodes.([]string).
 func hasMorphism(via interface{}, nodes ...string) morphism {
 	return morphism{
 		Name:     "has",
@@ -85,13 +85,13 @@ func hasMorphism(via interface{}, nodes ...string) morphism {
 			// be extremely cheap-- otherwise, it will be the most expensive
 			// (requiring iteration over all nodes). We have enough info to
 			// make this optimization now since intersections are commutative
-			if len(nodes) == 0 { // Where dest involves an All iterator
+			if len(nodes) == 0 { // Where dest involves an All iterator.
 				route := join(qs, trail, dest)
 				has := iterator.NewHasA(qs, route, quad.Subject)
 				return join(qs, in, has)
 			}
 
-			// This looks backwards. That's OK-- see the note above
+			// This looks backwards. That's OK-- see the note above.
 			route := join(qs, dest, trail)
 			has := iterator.NewHasA(qs, route, quad.Subject)
 			return join(qs, has, in)
@@ -113,7 +113,7 @@ func tagMorphism(tags ...string) morphism {
 	}
 }
 
-// outMorphism iterates forward one RDF triple or via an entire path
+// outMorphism iterates forward one RDF triple or via an entire path.
 func outMorphism(via ...interface{}) morphism {
 	return morphism{
 		Name:     "out",
@@ -125,7 +125,7 @@ func outMorphism(via ...interface{}) morphism {
 	}
 }
 
-// inMorphism iterates backwards one RDF triple or via an entire path
+// inMorphism iterates backwards one RDF triple or via an entire path.
 func inMorphism(via ...interface{}) morphism {
 	return morphism{
 		Name:     "in",
@@ -137,7 +137,7 @@ func inMorphism(via ...interface{}) morphism {
 	}
 }
 
-// iteratorMorphism simply tacks the input iterator onto the chain
+// iteratorMorphism simply tacks the input iterator onto the chain.
 func iteratorMorphism(it graph.Iterator) morphism {
 	return morphism{
 		Name:     "iterator",
@@ -148,7 +148,7 @@ func iteratorMorphism(it graph.Iterator) morphism {
 	}
 }
 
-// andMorphism sticks a path onto the current iterator chain
+// andMorphism sticks a path onto the current iterator chain.
 func andMorphism(p *Path) morphism {
 	return morphism{
 		Name:     "and",
@@ -161,7 +161,7 @@ func andMorphism(p *Path) morphism {
 	}
 }
 
-// orMorphism is the union, vice intersection, of a path and the current iterator
+// orMorphism is the union, vice intersection, of a path and the current iterator.
 func orMorphism(p *Path) morphism {
 	return morphism{
 		Name:     "or",
@@ -187,7 +187,7 @@ func followMorphism(p *Path) morphism {
 	}
 }
 
-// exceptMorphism removes all results on p.(*Path) from the current iterators
+// exceptMorphism removes all results on p.(*Path) from the current iterators.
 func exceptMorphism(p *Path) morphism {
 	return morphism{
 		Name:     "except",
