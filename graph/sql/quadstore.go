@@ -20,7 +20,13 @@ import (
 const QuadStoreType = "sql"
 
 func init() {
-	graph.RegisterQuadStore(QuadStoreType, true, newQuadStore, createSQLTables, nil)
+	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
+		NewFunc:           newQuadStore,
+		NewForRequestFunc: nil,
+		UpgradeFunc:       nil,
+		InitFunc:          createSQLTables,
+		IsPersistent:      true,
+	})
 }
 
 var (
