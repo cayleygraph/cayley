@@ -140,11 +140,15 @@ func (p *Path) Except(path *Path) *Path {
 	return p
 }
 
+// Follow allows you to stitch two paths together. The resulting path will start
+// from where the first path left off and continue iterating down the path given.
 func (p *Path) Follow(path *Path) *Path {
 	p.stack = append(p.stack, followMorphism(path))
 	return p
 }
 
+// FollowReverse is the same as follow, except it will iterate backwards up the
+// path given as argument.
 func (p *Path) FollowReverse(path *Path) *Path {
 	p.stack = append(p.stack, followMorphism(path.Reverse()))
 	return p
@@ -163,7 +167,7 @@ func (p *Path) Save(via interface{}, tag string) *Path {
 }
 
 // SaveReverse is the same as Save, only in the reverse direction
-// (the subject of the linkage should be tagged, instead of the object)
+// (the subject of the linkage should be tagged, instead of the object).
 func (p *Path) SaveReverse(via interface{}, tag string) *Path {
 	p.stack = append(p.stack, saveReverseMorphism(via, tag))
 	return p
