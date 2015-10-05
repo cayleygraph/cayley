@@ -103,6 +103,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 		newReplacement, hasOne := it.qs.OptimizeIterator(newAnd)
 		if hasOne {
 			newAnd.Close()
+			glog.V(3).Infoln(it.UID(), "became", newReplacement.UID(), "from quadstore")
 			return newReplacement, true
 		}
 	}

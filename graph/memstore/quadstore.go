@@ -269,6 +269,9 @@ func (qs *QuadStore) ValueOf(name string) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(id graph.Value) string {
+	if id == nil {
+		return ""
+	}
 	return qs.revIDMap[id.(int64)]
 }
 

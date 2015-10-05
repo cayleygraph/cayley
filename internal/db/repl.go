@@ -161,7 +161,10 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue
 				}
-				h.QuadWriter.RemoveQuad(quad)
+				err = h.QuadWriter.RemoveQuad(quad)
+				if err != nil {
+					fmt.Printf("error deleting: %v\n", err)
+				}
 				continue
 
 			case "exit":

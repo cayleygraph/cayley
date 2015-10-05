@@ -105,6 +105,14 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 			return it.primaryIt, true
 		}
 	}
+	// Ask the graph.QuadStore if we can be replaced. Often times, this is a great
+	// optimization opportunity (there's a fixed iterator underneath us, for
+	// example).
+	newReplacement, hasOne := it.qs.OptimizeIterator(it)
+	if hasOne {
+		it.Close()
+		return newReplacement, true
+	}
 	return it, false
 }
 

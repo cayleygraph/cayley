@@ -67,8 +67,10 @@ func (t *Tagger) Fixed() map[string]Value {
 }
 
 func (t *Tagger) CopyFrom(src Iterator) {
-	st := src.Tagger()
+	t.CopyFromTagger(src.Tagger())
+}
 
+func (t *Tagger) CopyFromTagger(st *Tagger) {
 	t.tags = append(t.tags, st.tags...)
 
 	if t.fixedTags == nil {
@@ -331,16 +333,16 @@ func DumpStats(it Iterator) StatsContainer {
 
 func ContainsLogIn(it Iterator, val Value) {
 	if glog.V(4) {
-		glog.V(4).Infof("%s %d CHECK CONTAINS %d", strings.ToUpper(it.Type().String()), it.UID(), val)
+		glog.V(4).Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
 	}
 }
 
 func ContainsLogOut(it Iterator, val Value, good bool) bool {
 	if glog.V(4) {
 		if good {
-			glog.V(4).Infof("%s %d CHECK CONTAINS %d GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			glog.V(4).Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d CHECK CONTAINS %d BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			glog.V(4).Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		}
 	}
 	return good
@@ -355,7 +357,7 @@ func NextLogIn(it Iterator) {
 func NextLogOut(it Iterator, val Value, ok bool) bool {
 	if glog.V(4) {
 		if ok {
-			glog.V(4).Infof("%s %d NEXT IS %d", strings.ToUpper(it.Type().String()), it.UID(), val)
+			glog.V(4).Infof("%s %d NEXT IS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
 			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
 		}
