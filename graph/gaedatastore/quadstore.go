@@ -25,9 +25,10 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/barakmich/glog"
+
 	"appengine"
 	"appengine/datastore"
-	"github.com/barakmich/glog"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
@@ -86,7 +87,13 @@ type LogEntry struct {
 }
 
 func init() {
-	graph.RegisterQuadStore("gaedatastore", true, newQuadStore, initQuadStore, newQuadStoreForRequest)
+	graph.RegisterQuadStore("gaedatastore", graph.QuadStoreRegistration{
+		NewFunc:           newQuadStore,
+		NewForRequestFunc: newQuadStoreForRequest,
+		UpgradeFunc:       nil,
+		InitFunc:          initQuadStore,
+		IsPersistent:      true,
+	})
 }
 
 func initQuadStore(_ string, _ graph.Options) error {

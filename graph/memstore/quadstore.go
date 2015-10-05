@@ -30,9 +30,15 @@ import (
 const QuadStoreType = "memstore"
 
 func init() {
-	graph.RegisterQuadStore(QuadStoreType, false, func(string, graph.Options) (graph.QuadStore, error) {
-		return newQuadStore(), nil
-	}, nil, nil)
+	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
+		NewFunc: func(string, graph.Options) (graph.QuadStore, error) {
+			return newQuadStore(), nil
+		},
+		NewForRequestFunc: nil,
+		UpgradeFunc:       nil,
+		InitFunc:          nil,
+		IsPersistent:      false,
+	})
 }
 
 func cmp(a, b int64) int {

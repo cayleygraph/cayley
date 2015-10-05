@@ -150,27 +150,24 @@ type BulkLoader interface {
 
 type NewStoreFunc func(string, Options) (QuadStore, error)
 type InitStoreFunc func(string, Options) error
+type UpgradeStoreFunc func(string, Options) error
 type NewStoreForRequestFunc func(QuadStore, Options) (QuadStore, error)
 
-type register struct {
-	newFunc           NewStoreFunc
-	newForRequestFunc NewStoreForRequestFunc
-	initFunc          InitStoreFunc
-	isPersistent      bool
+type QuadStoreRegistration struct {
+	NewFunc           NewStoreFunc
+	NewForRequestFunc NewStoreForRequestFunc
+	UpgradeFunc       UpgradeStoreFunc
+	InitFunc          InitStoreFunc
+	IsPersistent      bool
 }
 
-var storeRegistry = make(map[string]register)
+var storeRegistry = make(map[string]QuadStoreRegistration)
 
-func RegisterQuadStore(name string, persists bool, newFunc NewStoreFunc, initFunc InitStoreFunc, newForRequestFunc NewStoreForRequestFunc) {
+func RegisterQuadStore(name string, register QuadStoreRegistration) {
 	if _, found := storeRegistry[name]; found {
 		panic("already registered QuadStore " + name)
 	}
-	storeRegistry[name] = register{
-		newFunc:           newFunc,
-		initFunc:          initFunc,
-		newForRequestFunc: newForRequestFunc,
-		isPersistent:      persists,
-	}
+	storeRegistry[name] = register
 }
 
 func NewQuadStore(name, dbpath string, opts Options) (QuadStore, error) {
@@ -178,13 +175,13 @@ func NewQuadStore(name, dbpath string, opts Options) (QuadStore, error) {
 	if !registered {
 		return nil, errors.New("quadstore: name '" + name + "' is not registered")
 	}
-	return r.newFunc(dbpath, opts)
+	return r.NewFunc(dbpath, opts)
 }
 
 func InitQuadStore(name, dbpath string, opts Options) error {
 	r, registered := storeRegistry[name]
 	if registered {
-		return r.initFunc(dbpath, opts)
+		return r.InitFunc(dbpath, opts)
 	}
 	return errors.New("quadstore: name '" + name + "' is not registered")
 }
@@ -192,13 +189,26 @@ func InitQuadStore(name, dbpath string, opts Options) error {
 func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
 	r, registered := storeRegistry[qs.Type()]
 	if registered {
-		return r.newForRequestFunc(qs, opts)
+		return r.NewForRequestFunc(qs, opts)
 	}
 	return nil, errors.New("QuadStore does not support Per Request construction, check config")
 }
 
+func UpgradeQuadStore(name, dbpath string, opts Options) error {
+	r, registered := storeRegistry[name]
+	if registered {
+		if r.UpgradeFunc != nil {
+			return r.UpgradeFunc(dbpath, opts)
+		} else {
+			return nil
+		}
+	}
+	return errors.New("quadstore: name '" + name + "' is not registered")
+
+}
+
 func IsPersistent(name string) bool {
-	return storeRegistry[name].isPersistent
+	return storeRegistry[name].IsPersistent
 }
 
 func QuadStores() []string {

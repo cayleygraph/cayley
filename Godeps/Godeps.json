@@ -15,12 +15,16 @@
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.0-65-g3b44955",
-			"Rev": "3b449559cf34cbcc74460b59041a4399d3226e5a"
+			"Comment": "v1.0-111-g04a3e85",
+			"Rev": "04a3e85793043e76d41164037d0d7f9d53eecae3"
 		},
 		{
 			"ImportPath": "github.com/cznic/mathutil",
 			"Rev": "f9551431b78e71ee24939a1e9d8f49f43898b5cd"
+		},
+		{
+			"ImportPath": "github.com/gogo/protobuf/proto",
+			"Rev": "58bbd41c1a2d1b7154f5d99a8d0d839b3093301a"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",

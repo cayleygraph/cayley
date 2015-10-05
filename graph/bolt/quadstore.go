@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
@@ -29,11 +28,18 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/proto"
 	"github.com/google/cayley/quad"
 )
 
 func init() {
-	graph.RegisterQuadStore("bolt", true, newQuadStore, createNewBolt, nil)
+	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
+		NewFunc:           newQuadStore,
+		NewForRequestFunc: nil,
+		UpgradeFunc:       upgradeBolt,
+		InitFunc:          createNewBolt,
+		IsPersistent:      true,
+	})
 }
 
 var (
@@ -67,6 +73,7 @@ type QuadStore struct {
 	open    bool
 	size    int64
 	horizon int64
+	version int64
 }
 
 func createNewBolt(path string, _ graph.Options) error {
@@ -79,6 +86,10 @@ func createNewBolt(path string, _ graph.Options) error {
 	qs := &QuadStore{}
 	qs.db = db
 	err = qs.createBuckets()
+	if err != nil {
+		return err
+	}
+	err = setVersion(qs.db, latestDataVersion)
 	if err != nil {
 		return err
 	}
@@ -106,6 +117,9 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	} else if err != nil {
 		return nil, err
 	}
+	if qs.version != latestDataVersion {
+		return nil, errors.New("bolt: data version is out of date. Run cayleyupgrade for your config to update the data.")
+	}
 	return &qs, nil
 }
 
@@ -129,6 +143,24 @@ func (qs *QuadStore) createBuckets() error {
 		_, err = tx.CreateBucket(metaBucket)
 		if err != nil {
 			return fmt.Errorf("could not create bucket: %s", err)
+		}
+		return nil
+	})
+}
+
+func setVersion(db *bolt.DB, version int64) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		buf := new(bytes.Buffer)
+		err := binary.Write(buf, binary.LittleEndian, version)
+		if err != nil {
+			glog.Errorf("Couldn't convert version!")
+			return err
+		}
+		b := tx.Bucket(metaBucket)
+		werr := b.Put([]byte("version"), buf.Bytes())
+		if werr != nil {
+			glog.Error("Couldn't write version!")
+			return werr
 		}
 		return nil
 	})
@@ -175,10 +207,6 @@ func (qs *QuadStore) createValueKeyFor(s string) []byte {
 	return key
 }
 
-type IndexEntry struct {
-	History []int64
-}
-
 var (
 	// Short hand for direction permutations.
 	spo = [4]quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label}
@@ -196,6 +224,20 @@ var (
 	metaBucket = []byte("meta")
 )
 
+func deltaToProto(delta graph.Delta) proto.LogDelta {
+	var newd proto.LogDelta
+	newd.ID = uint64(delta.ID.Int())
+	newd.Action = int32(delta.Action)
+	newd.Timestamp = delta.Timestamp.UnixNano()
+	newd.Quad = &proto.Quad{
+		Subject:   delta.Quad.Subject,
+		Predicate: delta.Quad.Predicate,
+		Object:    delta.Quad.Object,
+		Label:     delta.Quad.Label,
+	}
+	return newd
+}
+
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	oldSize := qs.size
 	oldHorizon := qs.horizon
@@ -208,7 +250,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			if d.Action != graph.Add && d.Action != graph.Delete {
 				return errors.New("bolt: invalid action")
 			}
-			bytes, err := json.Marshal(d)
+			p := deltaToProto(d)
+			bytes, err := p.Marshal()
 			if err != nil {
 				return err
 			}
@@ -263,13 +306,13 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 }
 
 func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bool) error {
-	var entry IndexEntry
+	var entry proto.HistoryEntry
 	b := tx.Bucket(spoBucket)
 	b.FillPercent = localFillPercent
 	data := b.Get(qs.createKeyFor(spo, q))
 	if data != nil {
 		// We got something.
-		err := json.Unmarshal(data, &entry)
+		err := entry.Unmarshal(data)
 		if err != nil {
 			return err
 		}
@@ -284,9 +327,9 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 		return graph.ErrQuadNotExist
 	}
 
-	entry.History = append(entry.History, id)
+	entry.History = append(entry.History, uint64(id))
 
-	jsonbytes, err := json.Marshal(entry)
+	bytes, err := entry.Marshal()
 	if err != nil {
 		glog.Errorf("Couldn't write to buffer for entry %#v: %s", entry, err)
 		return err
@@ -297,7 +340,7 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 		}
 		b := tx.Bucket(bucketFor(index))
 		b.FillPercent = localFillPercent
-		err = b.Put(qs.createKeyFor(index, q), jsonbytes)
+		err = b.Put(qs.createKeyFor(index, q), bytes)
 		if err != nil {
 			return err
 		}
@@ -305,13 +348,11 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 	return nil
 }
 
-type ValueData struct {
-	Name string
-	Size int64
-}
-
 func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, tx *bolt.Tx) error {
-	value := ValueData{name, amount}
+	value := proto.NodeData{
+		Name:  name,
+		Size_: amount,
+	}
 	b := tx.Bucket(nodeBucket)
 	b.FillPercent = localFillPercent
 	key := qs.createValueKeyFor(name)
@@ -319,21 +360,23 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, tx *bolt.Tx) er
 
 	if data != nil {
 		// Node exists in the database -- unmarshal and update.
-		err := json.Unmarshal(data, &value)
+		var oldvalue proto.NodeData
+		err := oldvalue.Unmarshal(data)
 		if err != nil {
 			glog.Errorf("Error: couldn't reconstruct value: %v", err)
 			return err
 		}
-		value.Size += amount
+		oldvalue.Size_ += amount
+		value = oldvalue
 	}
 
 	// Are we deleting something?
-	if value.Size <= 0 {
-		value.Size = 0
+	if value.Size_ <= 0 {
+		value.Size_ = 0
 	}
 
 	// Repackage and rewrite.
-	bytes, err := json.Marshal(&value)
+	bytes, err := value.Marshal()
 	if err != nil {
 		glog.Errorf("Couldn't write to buffer for value %s: %s", name, err)
 		return err
@@ -381,7 +424,7 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
-	var d graph.Delta
+	var d proto.LogDelta
 	tok := k.(*Token)
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(tok.bucket)
@@ -389,8 +432,8 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 		if data == nil {
 			return nil
 		}
-		var in IndexEntry
-		err := json.Unmarshal(data, &in)
+		var in proto.HistoryEntry
+		err := in.Unmarshal(data)
 		if err != nil {
 			return err
 		}
@@ -398,18 +441,23 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 			return nil
 		}
 		b = tx.Bucket(logBucket)
-		data = b.Get(qs.createDeltaKeyFor(in.History[len(in.History)-1]))
+		data = b.Get(qs.createDeltaKeyFor(int64(in.History[len(in.History)-1])))
 		if data == nil {
 			// No harm, no foul.
 			return nil
 		}
-		return json.Unmarshal(data, &d)
+		return d.Unmarshal(data)
 	})
 	if err != nil {
 		glog.Error("Error getting quad: ", err)
 		return quad.Quad{}
 	}
-	return d.Quad
+	return quad.Quad{
+		d.Quad.Subject,
+		d.Quad.Predicate,
+		d.Quad.Object,
+		d.Quad.Label,
+	}
 }
 
 func (qs *QuadStore) ValueOf(s string) graph.Value {
@@ -419,8 +467,8 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 	}
 }
 
-func (qs *QuadStore) valueData(t *Token) ValueData {
-	var out ValueData
+func (qs *QuadStore) valueData(t *Token) proto.NodeData {
+	var out proto.NodeData
 	if glog.V(3) {
 		glog.V(3).Infof("%s %v", string(t.bucket), t.key)
 	}
@@ -428,13 +476,13 @@ func (qs *QuadStore) valueData(t *Token) ValueData {
 		b := tx.Bucket(t.bucket)
 		data := b.Get(t.key)
 		if data != nil {
-			return json.Unmarshal(data, &out)
+			return out.Unmarshal(data)
 		}
 		return nil
 	})
 	if err != nil {
 		glog.Errorln("Error: couldn't get value")
-		return ValueData{}
+		return proto.NodeData{}
 	}
 	return out
 }
@@ -449,12 +497,12 @@ func (qs *QuadStore) NameOf(k graph.Value) string {
 
 func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
-		return 0
+		return -1
 	}
-	return int64(qs.valueData(k.(*Token)).Size)
+	return int64(qs.valueData(k.(*Token)).Size_)
 }
 
-func (qs *QuadStore) getInt64ForKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
+func getInt64ForMetaKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
 	var out int64
 	b := tx.Bucket(metaBucket)
 	if b == nil {
@@ -475,11 +523,15 @@ func (qs *QuadStore) getInt64ForKey(tx *bolt.Tx, key string, empty int64) (int64
 func (qs *QuadStore) getMetadata() error {
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
-		qs.size, err = qs.getInt64ForKey(tx, "size", 0)
+		qs.size, err = getInt64ForMetaKey(tx, "size", 0)
 		if err != nil {
 			return err
 		}
-		qs.horizon, err = qs.getInt64ForKey(tx, "horizon", 0)
+		qs.version, err = getInt64ForMetaKey(tx, "version", nilDataVersion)
+		if err != nil {
+			return err
+		}
+		qs.horizon, err = getInt64ForMetaKey(tx, "horizon", 0)
 		return err
 	})
 	return err
