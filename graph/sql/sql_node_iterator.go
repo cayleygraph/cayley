@@ -46,9 +46,10 @@ func newNodeTableName() string {
 type SQLNodeIterator struct {
 	tableName string
 
-	linkIt sqlItDir
-	size   int64
-	tagger graph.Tagger
+	linkIt   sqlItDir
+	size     int64
+	tagger   graph.Tagger
+	fixedSet []string
 
 	result string
 }
@@ -61,8 +62,10 @@ func (n *SQLNodeIterator) sqlClone() sqlIterator {
 			dir: n.linkIt.dir,
 			it:  n.linkIt.it.sqlClone(),
 		},
+		fixedSet: make([]string, len(n.fixedSet)),
 	}
 	m.tagger.CopyFromTagger(n.Tagger())
+	copy(m.fixedSet, n.fixedSet)
 	return m
 }
 
@@ -157,6 +160,15 @@ func (n *SQLNodeIterator) buildWhere() (string, []string) {
 		q = append(q, s)
 		vals = append(vals, v...)
 	}
+	if len(n.fixedSet) != 0 {
+		topData := n.tableID()
+		var valueChain []string
+		for _, v := range n.fixedSet {
+			vals = append(vals, hashOf(v))
+			valueChain = append(valueChain, "?")
+		}
+		q = append(q, fmt.Sprintf("%s.%s_hash IN (%s)", topData.table, topData.dir, strings.Join(valueChain, ", ")))
+	}
 	query := strings.Join(q, " AND ")
 	return query, vals
 }
@@ -193,6 +205,7 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
 		values = append(values, hashOf(v))
 	}
+
 	query += constraint
 	query += ";"
 

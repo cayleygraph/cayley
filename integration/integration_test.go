@@ -394,6 +394,19 @@ var benchmarkQueries = []struct {
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "In Love and War", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
 		},
 	},
+	{
+		message: "Save a number of predicates around a set of nodes",
+		query: `
+		g.V("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").Save("/film/performance/character", "char").Save("/film/performance/actor", "act").SaveR("/film/film/starring", "film").All()
+		`,
+		expect: []interface{}{
+			map[string]string{"act": "/en/humphrey_bogart", "char": "Rick Blaine", "film": "/en/casablanca_1942", "id": "_:9037"},
+			map[string]string{"act": "/en/humphrey_bogart", "char": "Sam Spade", "film": "/en/the_maltese_falcon_1941", "id": "_:49278"},
+			map[string]string{"act": "/en/humphrey_bogart", "char": "Philip Marlowe", "film": "/en/the_big_sleep_1946", "id": "_:44112"},
+			map[string]string{"act": "/en/humphrey_bogart", "char": "Captain Queeg", "film": "/en/the_caine_mutiny_1954", "id": "_:44709"},
+			map[string]string{"act": "/en/humphrey_bogart", "char": "Charlie Allnut", "film": "/en/the_african_queen", "id": "_:43382"},
+		},
+	},
 }
 
 const common = `
@@ -664,6 +677,10 @@ func BenchmarkKeanuOther(b *testing.B) {
 
 func BenchmarkKeanuBullockOther(b *testing.B) {
 	runBench(10, b)
+}
+
+func BenchmarkSaveBogartPerformances(b *testing.B) {
+	runBench(11, b)
 }
 
 // reader is a test helper to filter non-io.Reader methods from the contained io.Reader.
