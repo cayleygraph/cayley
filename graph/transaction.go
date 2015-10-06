@@ -14,30 +14,52 @@
 
 package graph
 
-import (
-	"github.com/google/cayley/quad"
-)
+import "github.com/google/cayley/quad"
 
+// Transaction stores a bunch of Deltas to apply atomatically on the database.
 type Transaction struct {
-	Deltas []Delta
+	Deltas map[Delta]struct{}
 }
 
+// NewTransaction initialize a new transaction.
 func NewTransaction() *Transaction {
-	return &Transaction{make([]Delta, 0, 5)}
+	return &Transaction{Deltas: make(map[Delta]struct{}, 100)}
 }
 
+// AddQuad adds a new quad to the transaction if it is not already present in it.
+// If there is a 'remove' delta for that quad, it will remove that delta from
+// the transaction instead of actually addind the quad.
 func (t *Transaction) AddQuad(q quad.Quad) {
-	t.Deltas = append(t.Deltas,
-		Delta{
-			Quad:   q,
-			Action: Add,
-		})
+	ad := Delta{
+		Quad:   q,
+		Action: Add,
+	}
+	rd := Delta{
+		Quad:   q,
+		Action: Delete,
+	}
+
+	if _, adExists := t.Deltas[ad]; !adExists {
+		if _, rdExists := t.Deltas[rd]; rdExists {
+			delete(t.Deltas, rd)
+		} else {
+			t.Deltas[ad] = struct{}{}
+		}
+	}
 }
 
+// RemoveQuad adds a quad to remove to the transaction.
+// The quad will be removed from the database if it is not present in the
+// transaction, otherwise it simply remove it from the transaction.
 func (t *Transaction) RemoveQuad(q quad.Quad) {
-	t.Deltas = append(t.Deltas,
-		Delta{
-			Quad:   q,
-			Action: Delete,
-		})
+	ad := Delta{
+		Quad:   q,
+		Action: Add,
+	}
+
+	if _, adExists := t.Deltas[ad]; adExists {
+		delete(t.Deltas, ad)
+	} else {
+		t.Deltas[Delta{Quad: q, Action: Delete}] = struct{}{}
+	}
 }
