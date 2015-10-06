@@ -29,8 +29,8 @@ func TestTransaction(t *testing.T) {
 
 	// remove, add -> nothing
 	tx = NewTransaction()
-	tx.AddQuad(quad.Quad{Subject: "E", Predicate: "follows", Object: "G", Label: ""})
 	tx.RemoveQuad(quad.Quad{Subject: "E", Predicate: "follows", Object: "G", Label: ""})
+	tx.AddQuad(quad.Quad{Subject: "E", Predicate: "follows", Object: "G", Label: ""})
 	if len(tx.Deltas) != 0 {
 		t.Errorf("Expected [add, remove]->[], have %d delta(s)", len(tx.Deltas))
 	}

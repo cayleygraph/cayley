@@ -16,19 +16,19 @@ package graph
 
 import "github.com/google/cayley/quad"
 
-// Transaction stores a bunch of Deltas to apply atomatically on the database
+// Transaction stores a bunch of Deltas to apply atomatically on the database.
 type Transaction struct {
 	Deltas map[Delta]struct{}
 }
 
-// NewTransaction initialize a new transaction
+// NewTransaction initialize a new transaction.
 func NewTransaction() *Transaction {
 	return &Transaction{Deltas: make(map[Delta]struct{}, 100)}
 }
 
-// AddQuad adds a new quad to the transaction if it is not already present in it
+// AddQuad adds a new quad to the transaction if it is not already present in it.
 // If there is a 'remove' delta for that quad, it will remove that delta from
-// the transaction instead of actually addind the quad
+// the transaction instead of actually addind the quad.
 func (t *Transaction) AddQuad(q quad.Quad) {
 	ad := Delta{
 		Quad:   q,
@@ -48,9 +48,9 @@ func (t *Transaction) AddQuad(q quad.Quad) {
 	}
 }
 
-// RemoveQuad adds a quad to remove to the transaction
+// RemoveQuad adds a quad to remove to the transaction.
 // The quad will be removed from the database if it is not present in the
-// transaction, otherwise it simply remove it from the transaction
+// transaction, otherwise it simply remove it from the transaction.
 func (t *Transaction) RemoveQuad(q quad.Quad) {
 	ad := Delta{
 		Quad:   q,
