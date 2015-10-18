@@ -216,10 +216,12 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				d.Quad.Subject, d.Quad.Predicate, d.Quad.Object, d.Quad.Label)
 			if err != nil {
 				glog.Errorf("couldn't exec DELETE statement: %v", err)
+				return err
 			}
 			affected, err := result.RowsAffected()
 			if err != nil {
 				glog.Errorf("couldn't get DELETE RowsAffected: %v", err)
+				return err
 			}
 			if affected != 1 && !opts.IgnoreMissing {
 				return errors.New("deleting non-existent triple; rolling back")
