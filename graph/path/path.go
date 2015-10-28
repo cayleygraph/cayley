@@ -16,18 +16,25 @@ package path
 
 import "github.com/google/cayley/graph"
 
+type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
+
 type morphism struct {
 	Name     string
 	Reversal func() morphism
-	Apply    graph.ApplyMorphism
+	Apply    applyMorphism
 	tags     []string
+}
+
+type context struct {
+	labelSet Path
 }
 
 // Path represents either a morphism (a pre-defined path stored for later use),
 // or a concrete path, consisting of a morphism and an underlying QuadStore.
 type Path struct {
-	stack []morphism
-	qs    graph.QuadStore // Optionally. A nil qs is equivalent to a morphism.
+	stack       []morphism
+	qs          graph.QuadStore // Optionally. A nil qs is equivalent to a morphism.
+	baseContext *context
 }
 
 // IsMorphism returns whether this Path is a morphism.
@@ -203,8 +210,9 @@ func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.Iterator {
 func (p *Path) Morphism() graph.ApplyMorphism {
 	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
 		i := it.Clone()
+		ctx := p.baseContext
 		for _, m := range p.stack {
-			i = m.Apply(qs, i)
+			i, ctx = m.Apply(qs, i, ctx)
 		}
 		return i
 	}
