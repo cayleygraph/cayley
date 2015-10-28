@@ -108,6 +108,12 @@ type test struct {
 	tag     string
 }
 
+// Define morphisms without a QuadStore
+
+var (
+	grandfollows = StartMorphism().Out("follows").Out("follows")
+)
+
 func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
@@ -197,9 +203,30 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "do multiple .Back()s",
-			path:    StartPath(qs, "emily").Out("follows").As("f").Out("follows").Out("status").Is("cool_person").Back("f").In("follows").In("follows").As("acd").Out("status").Is("cool_person").Back("f"),
+			path:    StartPath(qs, "emily").Out("follows").Tag("f").Out("follows").Out("status").Is("cool_person").Back("f").In("follows").In("follows").Tag("acd").Out("status").Is("cool_person").Back("f"),
 			tag:     "acd",
 			expect:  []string{"dani"},
+		},
+		{
+			message: "InPredicates()",
+			path:    StartPath(qs, "bob").InPredicates(),
+			expect:  []string{"follows"},
+		},
+		{
+			message: "OutPredicates()",
+			path:    StartPath(qs, "bob").OutPredicates(),
+			expect:  []string{"follows", "status"},
+		},
+		// Morphism tests
+		{
+			message: "show simple morphism",
+			path:    StartPath(qs, "charlie").Follow(grandfollows),
+			expect:  []string{"greg", "fred", "bob"},
+		},
+		{
+			message: "show reverse morphism",
+			path:    StartPath(qs, "fred").FollowReverse(grandfollows),
+			expect:  []string{"alice", "charlie", "dani"},
 		},
 	}
 }

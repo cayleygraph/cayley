@@ -98,11 +98,6 @@ func (p *Path) Tag(tags ...string) *Path {
 	return p
 }
 
-// As is a synonym for Tag.
-func (p *Path) As(tags ...string) *Path {
-	return p.Tag(tags...)
-}
-
 // Out updates this Path to represent the nodes that are adjacent to the
 // current nodes, via the given outbound predicate.
 //
@@ -128,6 +123,33 @@ func (p *Path) Out(via ...interface{}) *Path {
 //  StartPath(qs, "B").In("follows")
 func (p *Path) In(via ...interface{}) *Path {
 	p.stack = append(p.stack, inMorphism(via...))
+	return p
+}
+
+// InPredicates updates this path to represent the nodes of the valid inbound
+// predicates from the current nodes.
+//
+// For example:
+// // Returns a list of predicates valid from "bob"
+// //
+// // Will return []string{"follows"} if there are any things that "follow" Bob
+// StartPath(qs, "bob").InPredicates()
+func (p *Path) InPredicates() *Path {
+	p.stack = append(p.stack, predicatesMorphism(true))
+	return p
+}
+
+// OutPredicates updates this path to represent the nodes of the valid inbound
+// predicates from the current nodes.
+//
+// For example:
+// // Returns a list of predicates valid from "bob"
+// //
+// // Will return []string{"follows", "status"} if there are edges from "bob"
+// // labelled "follows", and edges from "bob" that describe his "status".
+// StartPath(qs, "bob").OutPredicates()
+func (p *Path) OutPredicates() *Path {
+	p.stack = append(p.stack, predicatesMorphism(false))
 	return p
 }
 
@@ -221,7 +243,6 @@ func (p *Path) Back(tag string) *Path {
 		newPath.stack = append(newPath.stack, p.stack[i].Reversal())
 		i--
 	}
-
 }
 
 // BuildIterator returns an iterator from this given Path.  Note that you must

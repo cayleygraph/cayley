@@ -137,6 +137,28 @@ func inMorphism(via ...interface{}) morphism {
 	}
 }
 
+// predicatesMorphism iterates to the uniqified set of predicates from
+// the given set of nodes in the path.
+func predicatesMorphism(isIn bool) morphism {
+	m := morphism{
+		Name:     "out_predicates",
+		Reversal: func() morphism { panic("not implemented: need a function from predicates to their associated edges") },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			dir := quad.Subject
+			if isIn {
+				dir = quad.Object
+			}
+			lto := iterator.NewLinksTo(qs, in, dir)
+			hasa := iterator.NewHasA(qs, lto, quad.Predicate)
+			return iterator.NewUnique(hasa), ctx
+		},
+	}
+	if isIn {
+		m.Name = "in_predicates"
+	}
+	return m
+}
+
 // iteratorMorphism simply tacks the input iterator onto the chain.
 func iteratorMorphism(it graph.Iterator) morphism {
 	return morphism{
