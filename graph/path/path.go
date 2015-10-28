@@ -14,7 +14,11 @@
 
 package path
 
-import "github.com/google/cayley/graph"
+import (
+	"fmt"
+
+	"github.com/google/cayley/graph"
+)
 
 type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
 
@@ -94,6 +98,11 @@ func (p *Path) Tag(tags ...string) *Path {
 	return p
 }
 
+// As is a synonym for Tag.
+func (p *Path) As(tags ...string) *Path {
+	return p.Tag(tags...)
+}
+
 // Out updates this Path to represent the nodes that are adjacent to the
 // current nodes, via the given outbound predicate.
 //
@@ -129,7 +138,7 @@ func (p *Path) And(path *Path) *Path {
 	return p
 }
 
-// And updates the current Path to represent the nodes that match either the
+// Or updates the current Path to represent the nodes that match either the
 // current Path so far, or the given Path.
 func (p *Path) Or(path *Path) *Path {
 	p.stack = append(p.stack, orMorphism(path))
@@ -187,6 +196,34 @@ func (p *Path) Has(via interface{}, nodes ...string) *Path {
 	return p
 }
 
+// Back returns to a previously tagged place in the path. Any constraints applied after the Tag will remain in effect, but traversal continues from the tagged point instead, not from the end of the chain.
+//
+// For example:
+// // Will return "bob" iff "bob" is cool
+// StartPath(qs, "bob").Tag("person_tag").Out("status").Is("cool").Back("person_tag")
+func (p *Path) Back(tag string) *Path {
+	newPath := NewPath(p.qs)
+	i := len(p.stack) - 1
+
+	for {
+		if i < 0 {
+			return p.Reverse()
+		}
+		if p.stack[i].Name == "tag" {
+			for _, x := range p.stack[i].tags {
+				if x == tag {
+					// Found what we're looking for.
+					p.stack = p.stack[:i+1]
+					return p.And(newPath)
+				}
+			}
+		}
+		newPath.stack = append(newPath.stack, p.stack[i].Reversal())
+		i--
+	}
+
+}
+
 // BuildIterator returns an iterator from this given Path.  Note that you must
 // call this with a full path (not a morphism), since a morphism does not have
 // the ability to fetch the underlying quads.  This function will panic if
@@ -216,4 +253,13 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 		}
 		return i
 	}
+}
+
+func (p *Path) debugPrint() {
+	var strs []string
+	for _, x := range p.stack {
+		strs = append(strs, x.Name)
+	}
+	fmt.Println("stack:", strs)
+	fmt.Println("ctx:", p.baseContext)
 }

@@ -262,14 +262,14 @@ var testQueries = []struct {
 		query: `
 		  g.V().InPredicates().All()
 		`,
-		expect: []string{"follows", "status"},
+		expect: []string{"are", "follows", "status"},
 	},
 	{
 		message: "list all out predicates",
 		query: `
 		  g.V().OutPredicates().All()
 		`,
-		expect: []string{"follows", "status"},
+		expect: []string{"are", "follows", "status"},
 	},
 }
 
