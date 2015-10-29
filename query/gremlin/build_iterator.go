@@ -15,6 +15,7 @@
 package gremlin
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/barakmich/glog"
@@ -22,7 +23,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
+	"github.com/google/cayley/graph/path"
 )
 
 func propertiesOf(obj *otto.Object, name string) []string {
@@ -38,7 +39,133 @@ func buildIteratorTree(obj *otto.Object, qs graph.QuadStore) graph.Iterator {
 	if !isVertexChain(obj) {
 		return iterator.NewNull()
 	}
-	return buildIteratorTreeHelper(obj, qs, iterator.NewNull())
+	path := buildPathFromObject(obj)
+	if path == nil {
+		return iterator.NewNull()
+	}
+	return path.BuildIteratorOn(qs)
+}
+
+func getFirstArgAsVertexChain(obj *otto.Object) *otto.Object {
+	arg, _ := obj.Get("_gremlin_values")
+	firstArg, _ := arg.Object().Get("0")
+	if !isVertexChain(firstArg.Object()) {
+		return nil
+	}
+	return firstArg.Object()
+}
+
+func getFirstArgAsMorphismChain(obj *otto.Object) *otto.Object {
+	arg, _ := obj.Get("_gremlin_values")
+	firstArg, _ := arg.Object().Get("0")
+	if isVertexChain(firstArg.Object()) {
+		return nil
+	}
+	return firstArg.Object()
+}
+
+func buildPathFromObject(obj *otto.Object) *path.Path {
+	var p *path.Path
+	val, _ := obj.Get("_gremlin_type")
+	stringArgs := propertiesOf(obj, "string_args")
+	gremlinType := val.String()
+	if prev, _ := obj.Get("_gremlin_prev"); !prev.IsObject() {
+		switch gremlinType {
+		case "vertex":
+			return path.StartMorphism(stringArgs...)
+		case "morphism":
+			return path.StartMorphism()
+		default:
+			panic("No base gremlin path other than 'vertex' or 'morphism'")
+		}
+	} else {
+		p = buildPathFromObject(prev.Object())
+	}
+	if p == nil {
+		return nil
+	}
+	switch gremlinType {
+	case "Is":
+		return p.Is(stringArgs...)
+	case "In":
+		preds, tags, ok := getViaData(obj)
+		if !ok {
+			return nil
+		}
+		return p.InWithTags(tags, preds...)
+	case "Out":
+		preds, tags, ok := getViaData(obj)
+		if !ok {
+			return nil
+		}
+		return p.OutWithTags(tags, preds...)
+	case "Both":
+		preds, _, ok := getViaData(obj)
+		if !ok {
+			return nil
+		}
+		return p.Both(preds...)
+	case "Follow":
+		subobj := getFirstArgAsMorphismChain(obj)
+		if subobj == nil {
+			return nil
+		}
+		return p.Follow(buildPathFromObject(subobj))
+	case "FollowR":
+		subobj := getFirstArgAsMorphismChain(obj)
+		if subobj == nil {
+			return nil
+		}
+		return p.FollowReverse(buildPathFromObject(subobj))
+	case "And", "Intersect":
+		subobj := getFirstArgAsVertexChain(obj)
+		if subobj == nil {
+			return nil
+		}
+		return p.And(buildPathFromObject(subobj))
+	case "Union", "Or":
+		subobj := getFirstArgAsVertexChain(obj)
+		if subobj == nil {
+			return nil
+		}
+		return p.And(buildPathFromObject(subobj))
+	case "Back":
+		if len(stringArgs) != 1 {
+			return nil
+		}
+		return p.Back(stringArgs[0])
+	case "Tag", "As":
+		return p.Tag(stringArgs...)
+	case "Has":
+		if len(stringArgs) < 2 {
+			return nil
+		}
+		return p.Has(stringArgs[0], stringArgs[1:]...)
+	case "Save", "SaveR":
+		if len(stringArgs) > 2 || len(stringArgs) == 0 {
+			return nil
+		}
+		tag := stringArgs[0]
+		if len(stringArgs) == 2 {
+			tag = stringArgs[1]
+		}
+		if gremlinType == "SaveR" {
+			return p.SaveReverse(stringArgs[0], tag)
+		}
+		return p.Save(stringArgs[0], tag)
+	case "Except", "Difference":
+		subobj := getFirstArgAsVertexChain(obj)
+		if subobj == nil {
+			return nil
+		}
+		return p.Except(buildPathFromObject(subobj))
+	case "InPredicates":
+		return p.InPredicates()
+	case "OutPredicates":
+		return p.OutPredicates()
+	default:
+		panic(fmt.Sprint("Unimplemented Gremlin function", gremlinType))
+	}
 }
 
 func stringsFrom(obj *otto.Object) []string {
@@ -57,32 +184,30 @@ func stringsFrom(obj *otto.Object) []string {
 	return output
 }
 
-func buildIteratorFromValue(val otto.Value, qs graph.QuadStore) graph.Iterator {
+func buildPathFromValue(val otto.Value) (out []interface{}) {
 	if val.IsNull() || val.IsUndefined() {
-		return qs.NodesAllIterator()
+		return nil
 	}
 	if val.IsPrimitive() {
 		thing, _ := val.Export()
 		switch v := thing.(type) {
 		case string:
-			it := qs.FixedIterator()
-			it.Add(qs.ValueOf(v))
-			return it
+			out = append(out, v)
+			return
 		default:
 			glog.Errorln("Trying to build unknown primitive value.")
 		}
 	}
 	switch val.Class() {
 	case "Object":
-		return buildIteratorTree(val.Object(), qs)
+		out = append(out, buildPathFromObject(val.Object()))
+		return
 	case "Array":
 		// Had better be an array of strings
-		strings := stringsFrom(val.Object())
-		it := qs.FixedIterator()
-		for _, x := range strings {
-			it.Add(qs.ValueOf(x))
+		for _, x := range stringsFrom(val.Object()) {
+			out = append(out, x)
 		}
-		return it
+		return
 	case "Number":
 		fallthrough
 	case "Boolean":
@@ -90,248 +215,37 @@ func buildIteratorFromValue(val otto.Value, qs graph.QuadStore) graph.Iterator {
 	case "Date":
 		fallthrough
 	case "String":
-		it := qs.FixedIterator()
-		it.Add(qs.ValueOf(val.String()))
-		return it
+		out = append(out, val.String())
+		return
 	default:
 		glog.Errorln("Trying to handle unsupported Javascript value.")
-		return iterator.NewNull()
+		return nil
 	}
 }
 
-func buildInOutIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterator, isReverse bool) graph.Iterator {
+func getViaData(obj *otto.Object) (predicates []interface{}, tags []string, ok bool) {
 	argList, _ := obj.Get("_gremlin_values")
 	if argList.Class() != "GoArray" {
 		glog.Errorln("How is arglist not an array? Return nothing.", argList.Class())
-		return iterator.NewNull()
+		return nil, nil, false
 	}
 	argArray := argList.Object()
 	lengthVal, _ := argArray.Get("length")
 	length, _ := lengthVal.ToInteger()
-	var predicateNodeIterator graph.Iterator
 	if length == 0 {
-		predicateNodeIterator = qs.NodesAllIterator()
+		predicates = []interface{}{}
 	} else {
 		zero, _ := argArray.Get("0")
-		predicateNodeIterator = buildIteratorFromValue(zero, qs)
+		predicates = buildPathFromValue(zero)
 	}
 	if length >= 2 {
-		var tags []string
 		one, _ := argArray.Get("1")
 		if one.IsString() {
 			tags = append(tags, one.String())
 		} else if one.Class() == "Array" {
 			tags = stringsFrom(one.Object())
 		}
-		for _, tag := range tags {
-			predicateNodeIterator.Tagger().Add(tag)
-		}
 	}
-
-	in, out := quad.Subject, quad.Object
-	if isReverse {
-		in, out = out, in
-	}
-	lto := iterator.NewLinksTo(qs, base, in)
-	and := iterator.NewAnd(qs)
-	and.AddSubIterator(iterator.NewLinksTo(qs, predicateNodeIterator, quad.Predicate))
-	and.AddSubIterator(lto)
-	return iterator.NewHasA(qs, and, out)
-}
-
-func buildInOutPredicateIterator(obj *otto.Object, qs graph.QuadStore, base graph.Iterator, isReverse bool) graph.Iterator {
-	dir := quad.Subject
-	if isReverse {
-		dir = quad.Object
-	}
-	lto := iterator.NewLinksTo(qs, base, dir)
-	hasa := iterator.NewHasA(qs, lto, quad.Predicate)
-	return iterator.NewUnique(hasa)
-}
-
-func buildIteratorTreeHelper(obj *otto.Object, qs graph.QuadStore, base graph.Iterator) graph.Iterator {
-	// TODO: Better error handling
-	var (
-		it    graph.Iterator
-		subIt graph.Iterator
-	)
-
-	if prev, _ := obj.Get("_gremlin_prev"); !prev.IsObject() {
-		subIt = base
-	} else {
-		subIt = buildIteratorTreeHelper(prev.Object(), qs, base)
-	}
-
-	stringArgs := propertiesOf(obj, "string_args")
-	val, _ := obj.Get("_gremlin_type")
-	switch val.String() {
-	case "vertex":
-		if len(stringArgs) == 0 {
-			it = qs.NodesAllIterator()
-		} else {
-			fixed := qs.FixedIterator()
-			for _, name := range stringArgs {
-				fixed.Add(qs.ValueOf(name))
-			}
-			it = fixed
-		}
-	case "tag":
-		it = subIt
-		for _, tag := range stringArgs {
-			it.Tagger().Add(tag)
-		}
-	case "save":
-		all := qs.NodesAllIterator()
-		if len(stringArgs) > 2 || len(stringArgs) == 0 {
-			return iterator.NewNull()
-		}
-		if len(stringArgs) == 2 {
-			all.Tagger().Add(stringArgs[1])
-		} else {
-			all.Tagger().Add(stringArgs[0])
-		}
-		predFixed := qs.FixedIterator()
-		predFixed.Add(qs.ValueOf(stringArgs[0]))
-		subAnd := iterator.NewAnd(qs)
-		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
-		hasa := iterator.NewHasA(qs, subAnd, quad.Subject)
-		and := iterator.NewAnd(qs)
-		and.AddSubIterator(hasa)
-		and.AddSubIterator(subIt)
-		it = and
-	case "saver":
-		all := qs.NodesAllIterator()
-		if len(stringArgs) > 2 || len(stringArgs) == 0 {
-			return iterator.NewNull()
-		}
-		if len(stringArgs) == 2 {
-			all.Tagger().Add(stringArgs[1])
-		} else {
-			all.Tagger().Add(stringArgs[0])
-		}
-		predFixed := qs.FixedIterator()
-		predFixed.Add(qs.ValueOf(stringArgs[0]))
-		subAnd := iterator.NewAnd(qs)
-		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Subject))
-		hasa := iterator.NewHasA(qs, subAnd, quad.Object)
-		and := iterator.NewAnd(qs)
-		and.AddSubIterator(hasa)
-		and.AddSubIterator(subIt)
-		it = and
-	case "has":
-		fixed := qs.FixedIterator()
-		if len(stringArgs) < 2 {
-			return iterator.NewNull()
-		}
-		for _, name := range stringArgs[1:] {
-			fixed.Add(qs.ValueOf(name))
-		}
-		predFixed := qs.FixedIterator()
-		predFixed.Add(qs.ValueOf(stringArgs[0]))
-		subAnd := iterator.NewAnd(qs)
-		subAnd.AddSubIterator(iterator.NewLinksTo(qs, predFixed, quad.Predicate))
-		subAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed, quad.Object))
-		hasa := iterator.NewHasA(qs, subAnd, quad.Subject)
-		and := iterator.NewAnd(qs)
-		and.AddSubIterator(hasa)
-		and.AddSubIterator(subIt)
-		it = and
-	case "morphism":
-		it = base
-	case "and":
-		arg, _ := obj.Get("_gremlin_values")
-		firstArg, _ := arg.Object().Get("0")
-		if !isVertexChain(firstArg.Object()) {
-			return iterator.NewNull()
-		}
-		argIt := buildIteratorTree(firstArg.Object(), qs)
-
-		and := iterator.NewAnd(qs)
-		and.AddSubIterator(subIt)
-		and.AddSubIterator(argIt)
-		it = and
-	case "back":
-		arg, _ := obj.Get("_gremlin_back_chain")
-		argIt := buildIteratorTree(arg.Object(), qs)
-		and := iterator.NewAnd(qs)
-		and.AddSubIterator(subIt)
-		and.AddSubIterator(argIt)
-		it = and
-	case "is":
-		fixed := qs.FixedIterator()
-		for _, name := range stringArgs {
-			fixed.Add(qs.ValueOf(name))
-		}
-		and := iterator.NewAnd(qs)
-		and.AddSubIterator(fixed)
-		and.AddSubIterator(subIt)
-		it = and
-	case "or":
-		arg, _ := obj.Get("_gremlin_values")
-		firstArg, _ := arg.Object().Get("0")
-		if !isVertexChain(firstArg.Object()) {
-			return iterator.NewNull()
-		}
-		argIt := buildIteratorTree(firstArg.Object(), qs)
-
-		or := iterator.NewOr()
-		or.AddSubIterator(subIt)
-		or.AddSubIterator(argIt)
-		it = or
-	case "both":
-		// Hardly the most efficient pattern, but the most general.
-		// Worth looking into an Optimize() optimization here.
-		clone := subIt.Clone()
-		it1 := buildInOutIterator(obj, qs, subIt, false)
-		it2 := buildInOutIterator(obj, qs, clone, true)
-
-		or := iterator.NewOr()
-		or.AddSubIterator(it1)
-		or.AddSubIterator(it2)
-		it = or
-	case "out":
-		it = buildInOutIterator(obj, qs, subIt, false)
-	case "follow":
-		// Follow a morphism
-		arg, _ := obj.Get("_gremlin_values")
-		firstArg, _ := arg.Object().Get("0")
-		if isVertexChain(firstArg.Object()) {
-			return iterator.NewNull()
-		}
-		it = buildIteratorTreeHelper(firstArg.Object(), qs, subIt)
-	case "followr":
-		// Follow a morphism
-		arg, _ := obj.Get("_gremlin_followr")
-		if isVertexChain(arg.Object()) {
-			return iterator.NewNull()
-		}
-		it = buildIteratorTreeHelper(arg.Object(), qs, subIt)
-	case "in":
-		it = buildInOutIterator(obj, qs, subIt, true)
-	case "except":
-		arg, _ := obj.Get("_gremlin_values")
-		firstArg, _ := arg.Object().Get("0")
-		if !isVertexChain(firstArg.Object()) {
-			return iterator.NewNull()
-		}
-
-		allIt := qs.NodesAllIterator()
-		toComplementIt := buildIteratorTree(firstArg.Object(), qs)
-		notIt := iterator.NewNot(toComplementIt, allIt)
-
-		and := iterator.NewAnd(qs)
-		and.AddSubIterator(subIt)
-		and.AddSubIterator(notIt)
-		it = and
-	case "in_predicates":
-		it = buildInOutPredicateIterator(obj, qs, subIt, true)
-	case "out_predicates":
-		it = buildInOutPredicateIterator(obj, qs, subIt, false)
-	}
-	if it == nil {
-		panic("Iterator building does not catch the output iterator in some case.")
-	}
-	return it
+	ok = true
+	return
 }

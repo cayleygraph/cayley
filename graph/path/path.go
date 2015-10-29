@@ -16,18 +16,47 @@ package path
 
 import "github.com/google/cayley/graph"
 
+type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
+
 type morphism struct {
 	Name     string
-	Reversal func() morphism
-	Apply    graph.ApplyMorphism
+	Reversal func(*context) (morphism, *context)
+	Apply    applyMorphism
 	tags     []string
+	context  context
+}
+
+// context allows a high-level change to the way paths are constructed. Some
+// functions may change the context, causing following chained calls to act
+// cdifferently.
+//
+// In a sense, this is a global state which can be changed as the path
+// continues. And as with dealing with any global state, care should be taken:
+//
+// When modifying the context in Apply(), please copy the passed struct,
+// modifying the relevant fields if need be (or pass the given context onward).
+//
+// Under Reversal(), any functions that wish to change the context should
+// appropriately change the passed context (that is, the context that came after
+// them will now be what the application of the function would have been) and
+// then yield a pointer to their own member context as the return value.
+//
+// For more examples, look at the morphisms which claim the individual fields.
+type context struct {
+	// Represents the path to the limiting set of labels that should be considered under traversal.
+	// inMorphism, outMorphism, et al should constrain edges by this set.
+	// A nil in this field represents all labels.
+	//
+	// Claimed by the withLabel morphism
+	labelSet *Path
 }
 
 // Path represents either a morphism (a pre-defined path stored for later use),
 // or a concrete path, consisting of a morphism and an underlying QuadStore.
 type Path struct {
-	stack []morphism
-	qs    graph.QuadStore // Optionally. A nil qs is equivalent to a morphism.
+	stack       []morphism
+	qs          graph.QuadStore // Optionally. A nil qs is equivalent to a morphism.
+	baseContext context
 }
 
 // IsMorphism returns whether this Path is a morphism.
@@ -67,8 +96,11 @@ func NewPath(qs graph.QuadStore) *Path {
 // Reverse returns a new Path that is the reverse of the current one.
 func (p *Path) Reverse() *Path {
 	newPath := NewPath(p.qs)
+	ctx := &newPath.baseContext
 	for i := len(p.stack) - 1; i >= 0; i-- {
-		newPath.stack = append(newPath.stack, p.stack[i].Reversal())
+		var revMorphism morphism
+		revMorphism, ctx = p.stack[i].Reversal(ctx)
+		newPath.stack = append(newPath.stack, revMorphism)
 	}
 	return newPath
 }
@@ -91,13 +123,13 @@ func (p *Path) Tag(tags ...string) *Path {
 // current nodes, via the given outbound predicate.
 //
 // For example:
-//  // Returns the list of nodes that "A" follows.
+//  // Returns the list of nodes that "B" follows.
 //  //
-//  // Will return []string{"B"} if there is a predicate (edge) from "A"
-//  // to "B" labelled "follows".
+//  // Will return []string{"F"} if there is a predicate (edge) from "B"
+//  // to "F" labelled "follows".
 //  StartPath(qs, "A").Out("follows")
 func (p *Path) Out(via ...interface{}) *Path {
-	p.stack = append(p.stack, outMorphism(via...))
+	p.stack = append(p.stack, outMorphism(nil, via...))
 	return p
 }
 
@@ -111,7 +143,61 @@ func (p *Path) Out(via ...interface{}) *Path {
 //  // edges from those nodes to "B" labelled "follows".
 //  StartPath(qs, "B").In("follows")
 func (p *Path) In(via ...interface{}) *Path {
-	p.stack = append(p.stack, inMorphism(via...))
+	p.stack = append(p.stack, inMorphism(nil, via...))
+	return p
+}
+
+// InWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) InWithTags(tags []string, via ...interface{}) *Path {
+	p.stack = append(p.stack, inMorphism(tags, via...))
+	return p
+}
+
+// OutWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) OutWithTags(tags []string, via ...interface{}) *Path {
+	p.stack = append(p.stack, outMorphism(tags, via...))
+	return p
+}
+
+// Both updates this path following both inbound and outbound predicates.
+//
+// For example:
+//  // Return the list of nodes that follow or are followed by "B".
+//  //
+//  // Will return []string{"A", "C", "D", "F} if there are the appropriate
+//  // edges from those nodes to "B" labelled "follows", in either direction.
+//  StartPath(qs, "B").Both("follows")
+func (p *Path) Both(via ...interface{}) *Path {
+	p.stack = append(p.stack, bothMorphism(nil, via...))
+	return p
+}
+
+// InPredicates updates this path to represent the nodes of the valid inbound
+// predicates from the current nodes.
+//
+// For example:
+//  // Returns a list of predicates valid from "bob"
+//  //
+//  // Will return []string{"follows"} if there are any things that "follow" Bob
+//  StartPath(qs, "bob").InPredicates()
+func (p *Path) InPredicates() *Path {
+	p.stack = append(p.stack, predicatesMorphism(true))
+	return p
+}
+
+// OutPredicates updates this path to represent the nodes of the valid inbound
+// predicates from the current nodes.
+//
+// For example:
+//  // Returns a list of predicates valid from "bob"
+//  //
+//  // Will return []string{"follows", "status"} if there are edges from "bob"
+//  // labelled "follows", and edges from "bob" that describe his "status".
+//  StartPath(qs, "bob").OutPredicates()
+func (p *Path) OutPredicates() *Path {
+	p.stack = append(p.stack, predicatesMorphism(false))
 	return p
 }
 
@@ -122,7 +208,7 @@ func (p *Path) And(path *Path) *Path {
 	return p
 }
 
-// And updates the current Path to represent the nodes that match either the
+// Or updates the current Path to represent the nodes that match either the
 // current Path so far, or the given Path.
 func (p *Path) Or(path *Path) *Path {
 	p.stack = append(p.stack, orMorphism(path))
@@ -159,8 +245,8 @@ func (p *Path) FollowReverse(path *Path) *Path {
 // tag, and propagate that to the result set.
 //
 // For example:
-// // Will return []map[string]string{{"social_status: "cool"}}
-// StartPath(qs, "B").Save("status", "social_status"
+//  // Will return []map[string]string{{"social_status: "cool"}}
+//  StartPath(qs, "B").Save("status", "social_status"
 func (p *Path) Save(via interface{}, tag string) *Path {
 	p.stack = append(p.stack, saveMorphism(via, tag))
 	return p
@@ -178,6 +264,35 @@ func (p *Path) SaveReverse(via interface{}, tag string) *Path {
 func (p *Path) Has(via interface{}, nodes ...string) *Path {
 	p.stack = append(p.stack, hasMorphism(via, nodes...))
 	return p
+}
+
+// Back returns to a previously tagged place in the path. Any constraints applied after the Tag will remain in effect, but traversal continues from the tagged point instead, not from the end of the chain.
+//
+// For example:
+//  // Will return "bob" iff "bob" is cool
+//  StartPath(qs, "bob").Tag("person_tag").Out("status").Is("cool").Back("person_tag")
+func (p *Path) Back(tag string) *Path {
+	newPath := NewPath(p.qs)
+	i := len(p.stack) - 1
+	ctx := &newPath.baseContext
+	for {
+		if i < 0 {
+			return p.Reverse()
+		}
+		if p.stack[i].Name == "tag" {
+			for _, x := range p.stack[i].tags {
+				if x == tag {
+					// Found what we're looking for.
+					p.stack = p.stack[:i+1]
+					return p.And(newPath)
+				}
+			}
+		}
+		var revMorphism morphism
+		revMorphism, ctx = p.stack[i].Reversal(ctx)
+		newPath.stack = append(newPath.stack, revMorphism)
+		i--
+	}
 }
 
 // BuildIterator returns an iterator from this given Path.  Note that you must
@@ -203,8 +318,9 @@ func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.Iterator {
 func (p *Path) Morphism() graph.ApplyMorphism {
 	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
 		i := it.Clone()
+		ctx := &p.baseContext
 		for _, m := range p.stack {
-			i = m.Apply(qs, i)
+			i, ctx = m.Apply(qs, i, ctx)
 		}
 		return i
 	}

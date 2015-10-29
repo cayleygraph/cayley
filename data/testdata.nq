@@ -9,3 +9,5 @@
 <emily> <follows> <fred> .
 <fred> <follows> <greg> .
 <greg> <status> "cool_person" .
+<predicates> <are> <follows> .
+<predicates> <are> <status> .
