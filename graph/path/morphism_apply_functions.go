@@ -38,7 +38,7 @@ func join(qs graph.QuadStore, itL, itR graph.Iterator) graph.Iterator {
 func isMorphism(nodes ...string) morphism {
 	return morphism{
 		Name:     "is",
-		Reversal: func() morphism { return isMorphism(nodes...) },
+		Reversal: func(ctx *context) (morphism, *context) { return isMorphism(nodes...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			if len(nodes) == 0 {
 				// Acting as a passthrough here is equivalent to
@@ -64,7 +64,7 @@ func isMorphism(nodes ...string) morphism {
 func hasMorphism(via interface{}, nodes ...string) morphism {
 	return morphism{
 		Name:     "has",
-		Reversal: func() morphism { return hasMorphism(via, nodes...) },
+		Reversal: func(ctx *context) (morphism, *context) { return hasMorphism(via, nodes...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			viaIter := buildViaPath(qs, via).
 				BuildIterator()
@@ -104,7 +104,7 @@ func hasMorphism(via interface{}, nodes ...string) morphism {
 func tagMorphism(tags ...string) morphism {
 	return morphism{
 		Name:     "tag",
-		Reversal: func() morphism { return tagMorphism(tags...) },
+		Reversal: func(ctx *context) (morphism, *context) { return tagMorphism(tags...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			for _, t := range tags {
 				in.Tagger().Add(t)
@@ -119,7 +119,7 @@ func tagMorphism(tags ...string) morphism {
 func outMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
 		Name:     "out",
-		Reversal: func() morphism { return inMorphism(tags, via...) },
+		Reversal: func(ctx *context) (morphism, *context) { return inMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
 			return inOutIterator(path, in, false, tags), ctx
@@ -131,7 +131,7 @@ func outMorphism(tags []string, via ...interface{}) morphism {
 func inMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
 		Name:     "in",
-		Reversal: func() morphism { return outMorphism(tags, via...) },
+		Reversal: func(ctx *context) (morphism, *context) { return outMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
 			return inOutIterator(path, in, true, tags), ctx
@@ -142,7 +142,7 @@ func inMorphism(tags []string, via ...interface{}) morphism {
 func bothMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
 		Name:     "in",
-		Reversal: func() morphism { return bothMorphism(tags, via...) },
+		Reversal: func(ctx *context) (morphism, *context) { return bothMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
 			inSide := inOutIterator(path, in, true, tags)
@@ -159,8 +159,10 @@ func bothMorphism(tags []string, via ...interface{}) morphism {
 // the given set of nodes in the path.
 func predicatesMorphism(isIn bool) morphism {
 	m := morphism{
-		Name:     "out_predicates",
-		Reversal: func() morphism { panic("not implemented: need a function from predicates to their associated edges") },
+		Name: "out_predicates",
+		Reversal: func(ctx *context) (morphism, *context) {
+			panic("not implemented: need a function from predicates to their associated edges")
+		},
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			dir := quad.Subject
 			if isIn {
@@ -181,7 +183,7 @@ func predicatesMorphism(isIn bool) morphism {
 func iteratorMorphism(it graph.Iterator) morphism {
 	return morphism{
 		Name:     "iterator",
-		Reversal: func() morphism { return iteratorMorphism(it) },
+		Reversal: func(ctx *context) (morphism, *context) { return iteratorMorphism(it), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			return join(qs, it, in), ctx
 		},
@@ -192,7 +194,7 @@ func iteratorMorphism(it graph.Iterator) morphism {
 func andMorphism(p *Path) morphism {
 	return morphism{
 		Name:     "and",
-		Reversal: func() morphism { return andMorphism(p) },
+		Reversal: func(ctx *context) (morphism, *context) { return andMorphism(p), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			itR := p.BuildIteratorOn(qs)
 
@@ -205,7 +207,7 @@ func andMorphism(p *Path) morphism {
 func orMorphism(p *Path) morphism {
 	return morphism{
 		Name:     "or",
-		Reversal: func() morphism { return orMorphism(p) },
+		Reversal: func(ctx *context) (morphism, *context) { return orMorphism(p), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			itR := p.BuildIteratorOn(qs)
 
@@ -220,7 +222,7 @@ func orMorphism(p *Path) morphism {
 func followMorphism(p *Path) morphism {
 	return morphism{
 		Name:     "follow",
-		Reversal: func() morphism { return followMorphism(p.Reverse()) },
+		Reversal: func(ctx *context) (morphism, *context) { return followMorphism(p.Reverse()), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			return p.Morphism()(qs, in), ctx
 		},
@@ -231,7 +233,7 @@ func followMorphism(p *Path) morphism {
 func exceptMorphism(p *Path) morphism {
 	return morphism{
 		Name:     "except",
-		Reversal: func() morphism { return exceptMorphism(p) },
+		Reversal: func(ctx *context) (morphism, *context) { return exceptMorphism(p), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			subIt := p.BuildIteratorOn(qs)
 			allNodes := qs.NodesAllIterator()
@@ -245,7 +247,7 @@ func exceptMorphism(p *Path) morphism {
 func saveMorphism(via interface{}, tag string) morphism {
 	return morphism{
 		Name:     "save",
-		Reversal: func() morphism { return saveMorphism(via, tag) },
+		Reversal: func(ctx *context) (morphism, *context) { return saveMorphism(via, tag), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			return buildSave(qs, via, tag, in, false), ctx
 		},
@@ -256,7 +258,7 @@ func saveMorphism(via interface{}, tag string) morphism {
 func saveReverseMorphism(via interface{}, tag string) morphism {
 	return morphism{
 		Name:     "saver",
-		Reversal: func() morphism { return saveReverseMorphism(via, tag) },
+		Reversal: func(ctx *context) (morphism, *context) { return saveReverseMorphism(via, tag), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			return buildSave(qs, via, tag, in, true), ctx
 		},
