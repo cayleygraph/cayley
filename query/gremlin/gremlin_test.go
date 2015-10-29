@@ -322,6 +322,7 @@ func TestGremlin(t *testing.T) {
 		got := runQueryGetTag(simpleGraph, test.query, test.tag)
 		sort.Strings(got)
 		sort.Strings(test.expect)
+		t.Log("testing", test.message)
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
 		}

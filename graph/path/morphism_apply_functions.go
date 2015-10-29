@@ -15,6 +15,8 @@
 package path
 
 import (
+	"fmt"
+
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
@@ -114,25 +116,41 @@ func tagMorphism(tags ...string) morphism {
 }
 
 // outMorphism iterates forward one RDF triple or via an entire path.
-func outMorphism(via ...interface{}) morphism {
+func outMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
 		Name:     "out",
-		Reversal: func() morphism { return inMorphism(via...) },
+		Reversal: func() morphism { return inMorphism(tags, via...) },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
-			return inOutIterator(path, in, false), ctx
+			return inOutIterator(path, in, false, tags), ctx
 		},
 	}
 }
 
 // inMorphism iterates backwards one RDF triple or via an entire path.
-func inMorphism(via ...interface{}) morphism {
+func inMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
 		Name:     "in",
-		Reversal: func() morphism { return outMorphism(via...) },
+		Reversal: func() morphism { return outMorphism(tags, via...) },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
-			return inOutIterator(path, in, true), ctx
+			return inOutIterator(path, in, true, tags), ctx
+		},
+	}
+}
+
+func bothMorphism(tags []string, via ...interface{}) morphism {
+	return morphism{
+		Name:     "in",
+		Reversal: func() morphism { return bothMorphism(tags, via...) },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			path := buildViaPath(qs, via...)
+			inSide := inOutIterator(path, in, true, tags)
+			outSide := inOutIterator(path, in.Clone(), false, tags)
+			or := iterator.NewOr()
+			or.AddSubIterator(inSide)
+			or.AddSubIterator(outSide)
+			return or, ctx
 		},
 	}
 }
@@ -270,13 +288,16 @@ func buildSave(
 	return join(qs, from, save)
 }
 
-func inOutIterator(viaPath *Path, from graph.Iterator, inIterator bool) graph.Iterator {
+func inOutIterator(viaPath *Path, from graph.Iterator, inIterator bool, tags []string) graph.Iterator {
 	start, goal := quad.Subject, quad.Object
 	if inIterator {
 		start, goal = goal, start
 	}
 
 	viaIter := viaPath.BuildIterator()
+	for _, tag := range tags {
+		viaIter.Tagger().Add(tag)
+	}
 
 	source := iterator.NewLinksTo(viaPath.qs, from, start)
 	trail := iterator.NewLinksTo(viaPath.qs, viaIter, quad.Predicate)
@@ -292,12 +313,22 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 	} else if len(via) == 1 {
 		v := via[0]
 		switch p := v.(type) {
+		case nil:
+			return PathFromIterator(qs, qs.NodesAllIterator())
 		case *Path:
+			if p.qs != qs {
+				newp := &Path{
+					qs:          qs,
+					baseContext: p.baseContext,
+					stack:       p.stack[:],
+				}
+				return newp
+			}
 			return p
 		case string:
 			return StartPath(qs, p)
 		default:
-			panic("Invalid type passed to buildViaPath.")
+			panic(fmt.Sprint("Invalid type passed to buildViaPath. ", p))
 		}
 	}
 	var strings []string

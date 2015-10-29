@@ -14,11 +14,7 @@
 
 package path
 
-import (
-	"fmt"
-
-	"github.com/google/cayley/graph"
-)
+import "github.com/google/cayley/graph"
 
 type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
 
@@ -102,13 +98,13 @@ func (p *Path) Tag(tags ...string) *Path {
 // current nodes, via the given outbound predicate.
 //
 // For example:
-//  // Returns the list of nodes that "A" follows.
+//  // Returns the list of nodes that "B" follows.
 //  //
-//  // Will return []string{"B"} if there is a predicate (edge) from "A"
-//  // to "B" labelled "follows".
+//  // Will return []string{"F"} if there is a predicate (edge) from "B"
+//  // to "F" labelled "follows".
 //  StartPath(qs, "A").Out("follows")
 func (p *Path) Out(via ...interface{}) *Path {
-	p.stack = append(p.stack, outMorphism(via...))
+	p.stack = append(p.stack, outMorphism(nil, via...))
 	return p
 }
 
@@ -122,7 +118,34 @@ func (p *Path) Out(via ...interface{}) *Path {
 //  // edges from those nodes to "B" labelled "follows".
 //  StartPath(qs, "B").In("follows")
 func (p *Path) In(via ...interface{}) *Path {
-	p.stack = append(p.stack, inMorphism(via...))
+	p.stack = append(p.stack, inMorphism(nil, via...))
+	return p
+}
+
+// InWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) InWithTags(tags []string, via ...interface{}) *Path {
+	p.stack = append(p.stack, inMorphism(tags, via...))
+	return p
+}
+
+// OutWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) OutWithTags(tags []string, via ...interface{}) *Path {
+	p.stack = append(p.stack, outMorphism(tags, via...))
+	return p
+}
+
+// Both updates this path following both inbound and outbound predicates.
+//
+// For example:
+//  // Return the list of nodes that follow or are followed by "B".
+//  //
+//  // Will return []string{"A", "C", "D", "F} if there are the appropriate
+//  // edges from those nodes to "B" labelled "follows", in either direction.
+//  StartPath(qs, "B").Both("follows")
+func (p *Path) Both(via ...interface{}) *Path {
+	p.stack = append(p.stack, bothMorphism(nil, via...))
 	return p
 }
 
@@ -274,13 +297,4 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 		}
 		return i
 	}
-}
-
-func (p *Path) debugPrint() {
-	var strs []string
-	for _, x := range p.stack {
-		strs = append(strs, x.Name)
-	}
-	fmt.Println("stack:", strs)
-	fmt.Println("ctx:", p.baseContext)
 }
