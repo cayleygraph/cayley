@@ -128,7 +128,7 @@ func buildPathFromObject(obj *otto.Object) *path.Path {
 		if subobj == nil {
 			return nil
 		}
-		return p.And(buildPathFromObject(subobj))
+		return p.Or(buildPathFromObject(subobj))
 	case "Back":
 		if len(stringArgs) != 1 {
 			return nil

@@ -186,6 +186,13 @@ var testQueries = []struct {
 		`,
 		expect: []string{"charlie"},
 	},
+	{
+		message: "test Or()",
+		query: `
+			g.V("bob").Out("follows").Or(g.V().Has("status", "cool_person")).All()
+		`,
+		expect: []string{"fred", "bob", "greg", "dani"},
+	},
 
 	// Gremlin Has tests.
 	{
