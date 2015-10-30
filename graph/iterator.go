@@ -240,6 +240,7 @@ const (
 	Unique
 	Limit
 	Skip
+	Recursive
 )
 
 var (
