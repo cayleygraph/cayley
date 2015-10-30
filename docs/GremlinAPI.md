@@ -52,11 +52,11 @@ For these examples, suppose we have the following graph:
   +-------+                        +------+
   | alice |-----                 ->| fred |<--
   +-------+     \---->+-------+-/  +------+   \-+-------+
-                ----->| #bob# |       |         | emily |
+                ----->| #bob# |       |         |*emily*|
   +---------+--/  --->+-------+       |         +-------+
   | charlie |    /                    v
   +---------+   /                  +--------+
-    \---    +--------+             | #greg# |
+    \---    +--------+             |*#greg#*|
         \-->| #dani# |------------>+--------+
             +--------+
 ```
@@ -66,7 +66,11 @@ Where every link is a "follows" relationship, and the nodes with an extra `#` in
 ```
 dani -- status --> cool_person
 ```
-Perhaps these are the influencers in our community.
+Perhaps these are the influencers in our community. So too are extra `*`s in the name -- these are our smart people, according to the `smart_graph` label, eg, the quad:
+```
+greg status smart_person smart_graph .
+```
+
 
 
 To load above graph into cayley and reproduce the following examples:
@@ -191,6 +195,31 @@ Example:
 g.V().Has("follows", "bob")
 // People charlie follows who then follow fred. Results in bob.
 g.V("charlie").Out("follows").Has("follows", "fred")
+```
+
+####**`path.LabelContext([labelPath], [tags])`**
+
+Arguments:
+
+  * `predicatePath` (Optional): One of:
+	* null or undefined: In future traversals, consider all edges, regardless of subgraph.
+	* a string: The name of the subgraph to restrict traversals to.
+	* a list of strings: A set of subgraphs to restrict traversals to.
+	* a query path object: The target of which is a set of subgraphs.
+  * `tags` (Optional): One of:
+	* null or undefined: No tags
+	* a string: A single tag to add the last traversed label to the output set.
+	* a list of strings: Multiple tags to use as keys to save the label used to the output set.
+
+Sets (or removes) the subgraph context to consider in the following traversals. Affects all In(), Out(), and Both() calls that follow it. The default LabelContext is null (all subgraphs)
+Example:
+```javascript
+// Find the status of people Dani follows 
+g.V("dani").Out("follows").Out("status")
+// Find only the statuses provided by the smart_graph
+g.V("dani").Out("follows").LabelContext("smart_graph").Out("status")
+// Find all people followed by people with statuses in the smart_graph.
+g.V().LabelContext("smart_graph").In("status").LabelContext(null).In("follows")
 ```
 
 ### Tagging

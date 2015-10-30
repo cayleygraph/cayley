@@ -285,6 +285,13 @@ var testQueries = []struct {
 		`,
 		expect: []string{"smart_person"},
 	},
+	{
+		message: "open and close a LabelContext",
+		query: `
+			g.V().LabelContext("smart_graph").In("status").LabelContext(null).In("follows").All()
+		`,
+		expect: []string{"dani", "fred"},
+	},
 }
 
 func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
