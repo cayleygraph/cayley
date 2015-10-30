@@ -217,7 +217,7 @@ var testQueries = []struct {
 			g.V().Save("status", "somecool").All()
 		`,
 		tag:    "somecool",
-		expect: []string{"cool_person", "cool_person", "cool_person"},
+		expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 	},
 	{
 		message: "show a simple saveR",
@@ -289,8 +289,8 @@ var testQueries = []struct {
 
 func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
 	js := makeTestSession(g)
-	c := make(chan interface{}, 5)
-	js.Execute(query, c, -1)
+	c := make(chan interface{}, 1)
+	go js.Execute(query, c, -1)
 
 	var results []string
 	for res := range c {

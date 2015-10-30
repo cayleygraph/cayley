@@ -239,6 +239,11 @@ func testSet(qs graph.QuadStore) []test {
 			path:    StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),
 			expect:  []string{"smart_person"},
 		},
+		{
+			message: "reverse context",
+			path:    StartPath(qs, "greg").Tag("base").LabelContext("smart_graph").Out("status").Tag("status").Back("base"),
+			expect:  []string{"greg"},
+		},
 	}
 }
 
