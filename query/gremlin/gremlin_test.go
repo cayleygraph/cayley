@@ -278,6 +278,13 @@ var testQueries = []struct {
 		`,
 		expect: []string{"are", "follows", "status"},
 	},
+	{
+		message: "traverse using LabelContext",
+		query: `
+			g.V("greg").LabelContext("smart_graph").Out("status").All()
+		`,
+		expect: []string{"smart_person"},
+	},
 }
 
 func runQueryGetTag(g []quad.Quad, query string, tag string) []string {

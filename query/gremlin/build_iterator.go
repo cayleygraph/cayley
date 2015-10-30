@@ -163,6 +163,12 @@ func buildPathFromObject(obj *otto.Object) *path.Path {
 		return p.InPredicates()
 	case "OutPredicates":
 		return p.OutPredicates()
+	case "LabelContext":
+		labels, tags, ok := getViaData(obj)
+		if !ok {
+			return nil
+		}
+		return p.LabelContextWithTags(tags, labels...)
 	default:
 		panic(fmt.Sprint("Unimplemented Gremlin function", gremlinType))
 	}

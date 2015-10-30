@@ -16,6 +16,7 @@ package path
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
@@ -161,25 +162,27 @@ func bothMorphism(tags []string, via ...interface{}) morphism {
 	}
 }
 
-func labelContextMorphism(via ...interface{}) morphism {
+func labelContextMorphism(tags []string, via ...interface{}) morphism {
 	var path *Path
 	if len(via) == 0 {
 		path = nil
 	} else {
 		path = buildViaPath(nil, via...)
+		path = path.Tag(tags...)
 	}
 	return morphism{
 		Name: "label_context",
 		Reversal: func(ctx *context) (morphism, *context) {
 			out := ctx.copy()
 			ctx.labelSet = path
-			return labelContextMorphism(via...), &out
+			return labelContextMorphism(tags, via...), &out
 		},
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			out := ctx.copy()
 			out.labelSet = path
 			return in, &out
 		},
+		tags: tags,
 	}
 }
 
@@ -364,7 +367,7 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 		case string:
 			return StartPath(qs, p)
 		default:
-			panic(fmt.Sprint("Invalid type passed to buildViaPath. ", p))
+			panic(fmt.Sprintln("Invalid type passed to buildViaPath.", reflect.TypeOf(v), p))
 		}
 	}
 	var strings []string
