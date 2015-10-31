@@ -21,7 +21,7 @@ import (
 )
 
 func TestLinksTo(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{1: "cool"},
 		iter: NewFixed(Identity),
 	}

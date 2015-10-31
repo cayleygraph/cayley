@@ -265,6 +265,7 @@ var (
 		"unique",
 		"limit",
 		"skip",
+		"recursive",
 	}
 )
 
