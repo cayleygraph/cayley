@@ -26,7 +26,7 @@ import (
 )
 
 func TestIteratorPromotion(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -52,7 +52,7 @@ func TestIteratorPromotion(t *testing.T) {
 }
 
 func TestNullIteratorAnd(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -69,7 +69,7 @@ func TestNullIteratorAnd(t *testing.T) {
 }
 
 func TestAllPromotion(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -101,7 +101,7 @@ func TestAllPromotion(t *testing.T) {
 }
 
 func TestReorderWithTag(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -140,7 +140,7 @@ func TestReorderWithTag(t *testing.T) {
 }
 
 func TestAndStatistics(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
