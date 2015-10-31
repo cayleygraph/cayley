@@ -23,7 +23,7 @@ import (
 
 // Make sure that tags work on the And.
 func TestTag(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -58,7 +58,7 @@ func TestTag(t *testing.T) {
 
 // Do a simple itersection of fixed values.
 func TestAndAndFixedIterators(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -100,7 +100,7 @@ func TestAndAndFixedIterators(t *testing.T) {
 // If there's no intersection, the size should still report the same,
 // but there should be nothing to Next()
 func TestNonOverlappingFixedIterators(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -132,7 +132,7 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 }
 
 func TestAllIterators(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -154,7 +154,7 @@ func TestAllIterators(t *testing.T) {
 }
 
 func TestAndIteratorErr(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}

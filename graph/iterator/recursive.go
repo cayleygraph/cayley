@@ -3,7 +3,8 @@ package iterator
 import (
 	"math"
 
-	"github.com/google/cayley/graph"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 // Recursive iterator takes a base iterator and a morphism to be applied recursively, for each result.
@@ -32,7 +33,6 @@ type seenAt struct {
 }
 
 var _ graph.Iterator = &Recursive{}
-var _ graph.Nexter = &Recursive{}
 
 var MaxRecursiveSteps = 50
 
@@ -74,7 +74,7 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 	}
 
 	for _, tag := range it.depthTags.Tags() {
-		dst[tag] = it.qs.ValueOf(string(it.result.depth))
+		dst[tag] = it.qs.ValueOf(quad.Int(it.result.depth))
 	}
 
 	for tag, value := range it.tags.Fixed() {
@@ -103,22 +103,24 @@ func (it *Recursive) SubIterators() []graph.Iterator {
 
 func (it *Recursive) Next() bool {
 	if it.depth == 0 {
-		for graph.Next(it.subIt) {
+		for it.subIt.Next() {
 			it.depthCache = append(it.depthCache, it.subIt.Result())
 		}
 	}
 	for {
-		ok := graph.Next(it.nextIt)
+		ok := it.nextIt.Next()
 		if !ok {
 			if len(it.depthCache) == 0 {
-				return graph.NextLogOut(it, it.Result(), false)
+				return graph.NextLogOut(it, false)
 			}
 			it.depth++
 			it.baseIt = it.qs.FixedIterator()
 			for _, x := range it.depthCache {
 				it.baseIt.Add(x)
 			}
+			it.depthCache = nil
 			it.nextIt = it.morphism(it.qs, it.baseIt)
+			continue
 		}
 		val := it.nextIt.Result()
 		if _, ok := it.seen[val]; ok {
@@ -133,7 +135,7 @@ func (it *Recursive) Next() bool {
 		it.depthCache = append(it.depthCache, val)
 		break
 	}
-	return graph.NextLogOut(it, it.Result(), true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *Recursive) Err() error {
@@ -155,10 +157,11 @@ func (it *Recursive) Contains(val graph.Value) bool {
 			subat = it.seen[subat.val]
 		}
 		it.containsSub.Contains(subat.val)
-		it.result = at
+		it.result.depth = at.depth
+		it.result.val = val
 		return graph.ContainsLogOut(it, val, true)
 	}
-	for graph.Next(it) {
+	for it.Next() {
 		if it.Result() == val {
 			it.containsSub.Contains(val)
 			return graph.ContainsLogOut(it, val, true)
@@ -204,7 +207,7 @@ func (it *Recursive) Size() (int64, bool) {
 
 func (it *Recursive) Stats() graph.IteratorStats {
 	base := it.qs.FixedIterator()
-	base.Add(it.qs.ValueOf("foo"))
+	base.Add(Int64Node(20))
 	fanoutit := it.morphism(it.qs, base)
 	fanoutStats := fanoutit.Stats()
 	subitStats := it.subIt.Stats()
@@ -222,7 +225,7 @@ func (it *Recursive) Stats() graph.IteratorStats {
 
 func (it *Recursive) Describe() graph.Description {
 	base := it.qs.FixedIterator()
-	base.Add(it.qs.ValueOf("foo"))
+	base.Add(Int64Node(20))
 	fanoutdesc := it.morphism(it.qs, base).Describe()
 	subIts := []graph.Description{
 		it.subIt.Describe(),
