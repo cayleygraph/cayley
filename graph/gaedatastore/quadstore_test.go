@@ -15,18 +15,19 @@
 package gaedatastore
 
 import (
+	"errors"
+	"reflect"
 	"sort"
+	"strconv"
 	"testing"
 
-	"errors"
 	"github.com/barakmich/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/writer"
-	"reflect"
 
-	"appengine/aetest"
+	"google.golang.org/appengine/aetest"
 )
 
 // This is a simple test graph.
@@ -137,18 +138,49 @@ func createInstance() (aetest.Instance, graph.Options, error) {
 	return inst, opts, nil
 }
 
-func TestAddRemove(t *testing.T) {
+func TestTransaction(t *testing.T) {
+	glog.Info("\n-----------\n")
 	inst, opts, err := createInstance()
-	defer inst.Close()
-
 	if err != nil {
 		t.Fatalf("failed to create instance: %v", err)
 	}
+	defer inst.Close()
+
+	qs, w, _ := makeTestStore(simpleGraph, opts)
+	size := qs.Size()
+
+	tx := graph.NewTransaction()
+	tx.AddQuad(quad.Quad{
+		Subject:   "E",
+		Predicate: "follows",
+		Object:    "G",
+		Label:     ""})
+	tx.RemoveQuad(quad.Quad{
+		Subject:   "Non",
+		Predicate: "existent",
+		Object:    "quad",
+		Label:     ""})
+
+	err = w.ApplyTransaction(tx)
+	if err == nil {
+		t.Error("Able to remove a non-existent quad")
+	}
+	if size != qs.Size() {
+		t.Error("Appended a new quad in a failed transaction")
+	}
+}
+
+func TestAddRemove(t *testing.T) {
+	inst, opts, err := createInstance()
+	if err != nil {
+		t.Fatalf("failed to create instance: %v", err)
+	}
+	defer inst.Close()
 
 	// Add quads
 	qs, writer, _ := makeTestStore(simpleGraph, opts)
 	if qs.Size() != 11 {
-		t.Fatal("Incorrect number of quads")
+		t.Fatalf("Incorrect number of quads: want %v have %v", 11, qs.Size())
 	}
 	all := qs.NodesAllIterator()
 	expect := []string{
@@ -173,7 +205,7 @@ func TestAddRemove(t *testing.T) {
 		t.Errorf("AddQuadSet failed, %v", err)
 	}
 	if qs.Size() != 13 {
-		t.Fatal("Incorrect number of quads")
+		t.Fatalf("Incorrect number of quads, want %v got %v", 13, qs.Size())
 	}
 	all = qs.NodesAllIterator()
 	expect = []string{
@@ -216,16 +248,49 @@ func TestAddRemove(t *testing.T) {
 	if got, ok := compareResults(qs, all, expect); !ok {
 		t.Errorf("Unexpected iterated result, got:%v expect:%v", got, expect)
 	}
+
+	addQuad := quad.Quad{"X", "follows", "B", ""}
+	err = writer.AddQuad(addQuad)
+	if err != nil {
+		t.Errorf("AddQuad failed: %v", err)
+	}
+	expect = []string{
+		"A",
+		"B",
+		"C",
+		"D",
+		"E",
+		"F",
+		"G",
+		"X",
+		"follows",
+		"status",
+		"cool",
+		"status_graph",
+	}
+	if got, ok := compareResults(qs, all, expect); !ok {
+		t.Errorf("Unexpected iterated result, got:%v expect:%v", got, expect)
+	}
+	set := []quad.Quad{}
+	for i := 0; i < 100; i++ {
+		set = append(set, quad.Quad{"X", "follows", "B" + strconv.Itoa(i), ""})
+	}
+	if err := writer.AddQuadSet(set); err != nil {
+		t.Errorf("AddQuadSet failed, %v", err)
+	}
+	if qs.Size() != 113 {
+		t.Fatalf("Incorrect number of quads, want %v got %v", 113, qs.Size())
+	}
 }
 
 func TestIterators(t *testing.T) {
 	glog.Info("\n-----------\n")
 	inst, opts, err := createInstance()
-	defer inst.Close()
-
 	if err != nil {
 		t.Fatalf("failed to create instance: %v", err)
 	}
+	defer inst.Close()
+
 	qs, _, _ := makeTestStore(simpleGraph, opts)
 	if qs.Size() != 11 {
 		t.Fatal("Incorrect number of quads")
@@ -264,11 +329,11 @@ func TestIterators(t *testing.T) {
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	glog.Info("\n-----------\n")
 	inst, opts, err := createInstance()
-	defer inst.Close()
-
 	if err != nil {
 		t.Fatalf("failed to create instance: %v", err)
 	}
+	defer inst.Close()
+
 	qs, _, _ := makeTestStore(simpleGraph, opts)
 	if qs.Size() != 11 {
 		t.Fatal("Incorrect number of quads")
@@ -318,4 +383,5 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	if outerAnd.Next() {
 		t.Error("More than one possible top level output?")
 	}
+
 }
