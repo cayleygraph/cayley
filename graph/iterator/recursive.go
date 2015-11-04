@@ -76,6 +76,10 @@ func (it *Recursive) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
+func (it *Recursive) AddDepthTag(s string) {
+	it.depthTags.Add(s)
+}
+
 func (it *Recursive) TagResults(dst map[string]graph.Value) {
 	for _, tag := range it.tags.Tags() {
 		dst[tag] = it.Result()
