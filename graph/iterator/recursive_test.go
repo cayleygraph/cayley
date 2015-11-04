@@ -100,6 +100,11 @@ func TestRecursiveNextPath(t *testing.T) {
 		res := make(map[string]graph.Value)
 		r.TagResults(res)
 		got = append(got, qs.NameOf(res["person"]))
+		for r.NextPath() {
+			res := make(map[string]graph.Value)
+			r.TagResults(res)
+			got = append(got, qs.NameOf(res["person"]))
+		}
 	}
 	sort.Strings(expected)
 	sort.Strings(got)

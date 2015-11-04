@@ -1,6 +1,7 @@
 package iterator
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -16,15 +17,17 @@ type Recursive struct {
 	runstats graph.IteratorStats
 	err      error
 
-	qs          graph.QuadStore
-	morphism    graph.ApplyMorphism
-	seen        map[graph.Value]seenAt
-	nextIt      graph.Iterator
-	depth       int
-	containsSub graph.Iterator
-	depthTags   graph.Tagger
-	depthCache  []graph.Value
-	baseIt      graph.FixedIterator
+	qs            graph.QuadStore
+	morphism      graph.ApplyMorphism
+	seen          map[graph.Value]seenAt
+	nextIt        graph.Iterator
+	depth         int
+	pathMap       map[graph.Value][]map[string]graph.Value
+	pathIndex     int
+	containsValue graph.Value
+	depthTags     graph.Tagger
+	depthCache    []graph.Value
+	baseIt        graph.FixedIterator
 }
 
 type seenAt struct {
@@ -41,11 +44,13 @@ func NewRecursive(qs graph.QuadStore, it graph.Iterator, morphism graph.ApplyMor
 		uid:   NextUID(),
 		subIt: it,
 
-		qs:       qs,
-		morphism: morphism,
-		seen:     make(map[graph.Value]seenAt),
-		nextIt:   &Null{},
-		baseIt:   qs.FixedIterator(),
+		qs:            qs,
+		morphism:      morphism,
+		seen:          make(map[graph.Value]seenAt),
+		nextIt:        &Null{},
+		baseIt:        qs.FixedIterator(),
+		pathMap:       make(map[graph.Value][]map[string]graph.Value),
+		containsValue: nil,
 	}
 }
 
@@ -59,6 +64,9 @@ func (it *Recursive) Reset() {
 	it.err = nil
 	it.subIt.Reset()
 	it.seen = make(map[graph.Value]seenAt)
+	it.pathMap = make(map[graph.Value][]map[string]graph.Value)
+	it.containsValue = nil
+	it.pathIndex = 0
 	it.nextIt = &Null{}
 	it.baseIt = it.qs.FixedIterator()
 	it.depth = 0
@@ -84,10 +92,13 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 	for tag, value := range it.depthTags.Fixed() {
 		dst[tag] = value
 	}
-
-	if it.subIt != nil {
-		it.subIt.TagResults(dst)
+	if it.containsValue != nil {
+		m := it.pathMap[it.containsValue][it.pathIndex]
+		for k, v := range m {
+			dst[k] = v
+		}
 	}
+
 }
 
 func (it *Recursive) Clone() graph.Iterator {
@@ -102,9 +113,20 @@ func (it *Recursive) SubIterators() []graph.Iterator {
 }
 
 func (it *Recursive) Next() bool {
+	it.pathIndex = 0
 	if it.depth == 0 {
 		for it.subIt.Next() {
+			res := it.subIt.Result()
 			it.depthCache = append(it.depthCache, it.subIt.Result())
+			tags := make(map[string]graph.Value)
+			it.subIt.TagResults(tags)
+			it.pathMap[res] = append(it.pathMap[res], tags)
+			for it.subIt.NextPath() {
+				tags := make(map[string]graph.Value)
+				it.subIt.TagResults(tags)
+				it.pathMap[res] = append(it.pathMap[res], tags)
+			}
+			fmt.Printf("A: %#v %#v\n", res, it.pathMap[res])
 		}
 	}
 	for {
@@ -118,20 +140,24 @@ func (it *Recursive) Next() bool {
 			for _, x := range it.depthCache {
 				it.baseIt.Add(x)
 			}
+			it.baseIt.Tagger().Add("__base_recursive")
 			it.depthCache = nil
 			it.nextIt = it.morphism(it.qs, it.baseIt)
 			continue
 		}
 		val := it.nextIt.Result()
+		results := make(map[string]graph.Value)
+		it.nextIt.TagResults(results)
 		if _, ok := it.seen[val]; ok {
 			continue
 		}
 		it.seen[val] = seenAt{
-			val:   it.baseIt.Result(),
+			val:   results["__base_recursive"],
 			depth: it.depth,
 		}
 		it.result.depth = it.depth
 		it.result.val = val
+		it.containsValue = it.getBaseValue(val)
 		it.depthCache = append(it.depthCache, val)
 		break
 	}
@@ -146,24 +172,32 @@ func (it *Recursive) Result() graph.Value {
 	return it.result.val
 }
 
-func (it *Recursive) Contains(val graph.Value) bool {
-	if it.containsSub == nil {
-		it.containsSub = it.subIt.Clone()
+func (it *Recursive) getBaseValue(val graph.Value) graph.Value {
+	var at seenAt
+	var ok bool
+	if at, ok = it.seen[val]; !ok {
+		panic("trying to getBaseValue of something unseen")
 	}
-	graph.ContainsLogIn(it, val)
-	if at, ok := it.seen[val]; ok {
-		subat := at
-		for subat.depth != 1 {
-			subat = it.seen[subat.val]
+	for at.depth != 1 {
+		if at.depth == 0 {
+			panic("seen chain is broken")
 		}
-		it.containsSub.Contains(subat.val)
+		at = it.seen[at.val]
+	}
+	return at.val
+}
+
+func (it *Recursive) Contains(val graph.Value) bool {
+	graph.ContainsLogIn(it, val)
+	it.pathIndex = 0
+	if at, ok := it.seen[val]; ok {
+		it.containsValue = it.getBaseValue(val)
 		it.result.depth = at.depth
 		it.result.val = val
 		return graph.ContainsLogOut(it, val, true)
 	}
 	for it.Next() {
 		if it.Result() == val {
-			it.containsSub.Contains(val)
 			return graph.ContainsLogOut(it, val, true)
 		}
 	}
@@ -171,15 +205,15 @@ func (it *Recursive) Contains(val graph.Value) bool {
 }
 
 func (it *Recursive) NextPath() bool {
-	return it.containsSub.NextPath()
+	if len(it.pathMap[it.containsValue]) <= it.pathIndex+1 {
+		return false
+	}
+	it.pathIndex++
+	return true
 }
 
 func (it *Recursive) Close() error {
 	err := it.subIt.Close()
-	if err != nil {
-		return err
-	}
-	err = it.containsSub.Close()
 	if err != nil {
 		return err
 	}
