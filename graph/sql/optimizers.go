@@ -169,6 +169,36 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			}
 			it.Close()
 			return newIt, true
+		} else if size > 1 {
+			var vals []string
+			for graph.Next(primary) {
+				vals = append(vals, qs.NameOf(primary.Result()))
+			}
+			lsql := &SQLLinkIterator{
+				constraints: []constraint{
+					constraint{
+						dir:  it.Direction(),
+						vals: vals,
+					},
+				},
+				tableName: newTableName(),
+				size:      0,
+			}
+			l := &SQLIterator{
+				uid: iterator.NextUID(),
+				qs:  qs,
+				sql: lsql,
+			}
+			nt := l.Tagger()
+			nt.CopyFrom(it)
+			for _, t := range primary.Tagger().Tags() {
+				lsql.tagdirs = append(lsql.tagdirs, tagDir{
+					dir: it.Direction(),
+					tag: t,
+				})
+			}
+			it.Close()
+			return l, true
 		}
 	case sqlType:
 		p := primary.(*SQLIterator)
