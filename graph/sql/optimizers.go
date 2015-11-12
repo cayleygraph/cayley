@@ -156,9 +156,12 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 	switch primary.Type() {
 	case graph.Fixed:
 		size, _ := primary.Size()
+		if size == 0 {
+			return iterator.NewNull(), true
+		}
 		if size == 1 {
 			if !graph.Next(primary) {
-				panic("unexpected size during optimize")
+				panic("sql: unexpected size during optimize")
 			}
 			val := primary.Result()
 			newIt := qs.QuadIterator(it.Direction(), val)
@@ -238,26 +241,57 @@ func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 	changed := false
 	var err error
 
-	for _, it := range subs {
-		if it.Type() == sqlType {
+	// Combine SQL iterators
+	glog.V(4).Infof("Combining SQL %#v", subs)
+	for _, subit := range subs {
+		if subit.Type() == sqlType {
 			if newit == nil {
-				newit = it.(*SQLIterator)
+				newit = subit.(*SQLIterator)
 			} else {
 				changed = true
-				newit, err = intersect(newit.sql, it.(*SQLIterator).sql, qs)
+				newit, err = intersect(newit.sql, subit.(*SQLIterator).sql, qs)
 				if err != nil {
 					glog.Error(err)
 					return it, false
 				}
 			}
 		} else {
-			unusedIts = append(unusedIts, it)
+			unusedIts = append(unusedIts, subit)
+		}
+	}
+
+	if newit == nil {
+		return it, false
+	}
+
+	// Combine fixed iterators into the SQL iterators.
+	glog.V(4).Infof("Combining fixed %#v", unusedIts)
+	var nodeit *SQLNodeIterator
+	if n, ok := newit.sql.(*SQLNodeIterator); ok {
+		nodeit = n
+	} else if n, ok := newit.sql.(*SQLNodeIntersection); ok {
+		nodeit = n.nodeIts[0].(*SQLNodeIterator)
+	}
+	if nodeit != nil {
+		passOneIts := unusedIts
+		unusedIts = nil
+		for _, subit := range passOneIts {
+			if subit.Type() != graph.Fixed {
+				unusedIts = append(unusedIts, subit)
+				continue
+			}
+			changed = true
+			for graph.Next(subit) {
+				nodeit.fixedSet = append(nodeit.fixedSet, qs.NameOf(subit.Result()))
+			}
 		}
 	}
 
 	if !changed {
 		return it, false
 	}
+
+	// Clean up if we're done.
 	if len(unusedIts) == 0 {
 		newit.Tagger().CopyFrom(it)
 		return newit, true

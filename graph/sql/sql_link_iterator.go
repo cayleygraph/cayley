@@ -224,9 +224,8 @@ func (l *SQLLinkIterator) buildWhere() (string, []string) {
 			q = append(q, fmt.Sprintf("%s.%s_hash = ?", l.tableName, c.dir))
 			vals = append(vals, hashOf(c.vals[0]))
 		} else if len(c.vals) > 1 {
-			subq := fmt.Sprintf("%s.%s_hash IN ", l.tableName, c.dir)
 			valslots := strings.Join(strings.Split(strings.Repeat("?", len(c.vals)), ""), ", ")
-			subq += fmt.Sprintf("(%s)", valslots)
+			subq := fmt.Sprintf("%s.%s_hash IN (%s)", l.tableName, c.dir, valslots)
 			q = append(q, subq)
 			for _, v := range c.vals {
 				vals = append(vals, hashOf(v))
