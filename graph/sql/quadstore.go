@@ -37,11 +37,12 @@ var (
 )
 
 type QuadStore struct {
-	db        *sql.DB
-	sqlFlavor string
-	size      int64
-	lru       *cache
-	noSizes   bool
+	db           *sql.DB
+	sqlFlavor    string
+	size         int64
+	lru          *cache
+	noSizes      bool
+	useEstimates bool
 }
 
 func connectSQLTables(addr string, _ graph.Options) (*sql.DB, error) {
@@ -132,6 +133,11 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 			qs.noSizes = false
 		}
 	}
+	qs.useEstimates, _, err = options.BoolKey("use_estimates")
+	if err != nil {
+		return nil, err
+	}
+
 	return &qs, nil
 }
 
@@ -286,7 +292,18 @@ func (qs *QuadStore) Size() int64 {
 	if qs.size != -1 {
 		return qs.size
 	}
-	c := qs.db.QueryRow("SELECT COUNT(*) FROM quads;")
+
+	query := "SELECT COUNT(*) FROM quads;"
+	if qs.useEstimates {
+		switch qs.sqlFlavor {
+		case "postgres":
+			query = "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='quads';"
+		default:
+			panic("no estimate support for flavor: " + qs.sqlFlavor)
+		}
+	}
+
+	c := qs.db.QueryRow(query)
 	err := c.Scan(&qs.size)
 	if err != nil {
 		glog.Errorf("Couldn't execute COUNT: %v", err)
