@@ -18,32 +18,28 @@ import "github.com/google/cayley/quad"
 
 // Transaction stores a bunch of Deltas to apply atomatically on the database.
 type Transaction struct {
-	Deltas map[Delta]struct{}
+	// Deltas stores the deltas in the right order
+	Deltas []Delta
+	// deltas stores the deltas in a map to avoid duplications
+	deltas map[Delta]struct{}
 }
 
 // NewTransaction initialize a new transaction.
 func NewTransaction() *Transaction {
-	return &Transaction{Deltas: make(map[Delta]struct{}, 100)}
+	return &Transaction{Deltas: make([]Delta, 0, 10), deltas: make(map[Delta]struct{}, 10)}
 }
 
 // AddQuad adds a new quad to the transaction if it is not already present in it.
 // If there is a 'remove' delta for that quad, it will remove that delta from
 // the transaction instead of actually addind the quad.
 func (t *Transaction) AddQuad(q quad.Quad) {
-	ad := Delta{
-		Quad:   q,
-		Action: Add,
-	}
-	rd := Delta{
-		Quad:   q,
-		Action: Delete,
-	}
+	ad, rd := createDeltas(q)
 
-	if _, adExists := t.Deltas[ad]; !adExists {
-		if _, rdExists := t.Deltas[rd]; rdExists {
-			delete(t.Deltas, rd)
+	if _, adExists := t.deltas[ad]; !adExists {
+		if _, rdExists := t.deltas[rd]; rdExists {
+			t.deleteDelta(rd)
 		} else {
-			t.Deltas[ad] = struct{}{}
+			t.addDelta(ad)
 		}
 	}
 }
@@ -52,14 +48,41 @@ func (t *Transaction) AddQuad(q quad.Quad) {
 // The quad will be removed from the database if it is not present in the
 // transaction, otherwise it simply remove it from the transaction.
 func (t *Transaction) RemoveQuad(q quad.Quad) {
-	ad := Delta{
+	ad, rd := createDeltas(q)
+
+	if _, adExists := t.deltas[ad]; adExists {
+		t.deleteDelta(ad)
+	} else {
+		if _, rdExists := t.deltas[rd]; !rdExists {
+			t.addDelta(rd)
+		}
+	}
+}
+
+func createDeltas(q quad.Quad) (ad, rd Delta) {
+	ad = Delta{
 		Quad:   q,
 		Action: Add,
 	}
+	rd = Delta{
+		Quad:   q,
+		Action: Delete,
+	}
+	return
+}
 
-	if _, adExists := t.Deltas[ad]; adExists {
-		delete(t.Deltas, ad)
-	} else {
-		t.Deltas[Delta{Quad: q, Action: Delete}] = struct{}{}
+func (t *Transaction) addDelta(d Delta) {
+	t.Deltas = append(t.Deltas, d)
+	t.deltas[d] = struct{}{}
+}
+
+func (t *Transaction) deleteDelta(d Delta) {
+	delete(t.deltas, d)
+
+	for i, id := range t.Deltas {
+		if id == d {
+			t.Deltas = append(t.Deltas[:i], t.Deltas[i+1:]...)
+			break
+		}
 	}
 }
