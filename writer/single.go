@@ -109,11 +109,9 @@ func (s *Single) Close() error {
 
 func (s *Single) ApplyTransaction(t *graph.Transaction) error {
 	ts := time.Now()
-	deltas := make([]graph.Delta, 0, len(t.Deltas))
-	for d := range t.Deltas {
-		d.ID = s.currentID.Next()
-		d.Timestamp = ts
-		deltas = append(deltas, d)
+	for i := 0; i < len(t.Deltas); i++ {
+		t.Deltas[i].ID = s.currentID.Next()
+		t.Deltas[i].Timestamp = ts
 	}
-	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
+	return s.qs.ApplyDeltas(t.Deltas, s.ignoreOpts)
 }
