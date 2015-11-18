@@ -212,8 +212,8 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				return err
 			}
 		case graph.Delete:
-			result, err := tx.Exec(`DELETE FROM quads WHERE subject=$1 and predicate=$2 and object=$3 and label=$4;`,
-				d.Quad.Subject, d.Quad.Predicate, d.Quad.Object, d.Quad.Label)
+			result, err := tx.Exec(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`,
+				hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object), hashOf(d.Quad.Label))
 			if err != nil {
 				glog.Errorf("couldn't exec DELETE statement: %v", err)
 				return err
