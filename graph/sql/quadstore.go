@@ -192,16 +192,10 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 		return qs.copyFrom(tx, in)
 	}
 
-	insert, err := tx.Prepare(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`)
-	defer insert.Close()
-	if err != nil {
-		glog.Errorf("Cannot prepare insert statement: %v", err)
-		return err
-	}
 	for _, d := range in {
 		switch d.Action {
 		case graph.Add:
-			_, err := insert.Exec(
+			_, err := tx.Exec(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
 				d.Quad.Subject,
 				d.Quad.Predicate,
 				d.Quad.Object,
@@ -214,7 +208,7 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				hashOf(d.Quad.Label),
 			)
 			if err != nil {
-				glog.Errorf("couldn't prepare INSERT statement: %v", err)
+				glog.Errorf("couldn't exec INSERT statement: %v", err)
 				return err
 			}
 		case graph.Delete:
