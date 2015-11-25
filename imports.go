@@ -27,6 +27,10 @@ type Handle struct {
 	graph.QuadWriter
 }
 
+func Triple(subject, predicate, object string) quad.Quad {
+	return quad.Quad{subject, predicate, object, ""}
+}
+
 func Quad(subject, predicate, object, label string) quad.Quad {
 	return quad.Quad{subject, predicate, object, label}
 }
