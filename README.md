@@ -5,7 +5,7 @@ Cayley is an open-source graph inspired by the graph database behind [Freebase](
 
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
-[![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley) [Trello Board](https://trello.com/b/KioFZb5O)
+[![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley) 
 
 ## Features
 
@@ -20,6 +20,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 * Plays well with multiple backend stores:
   * [LevelDB](https://github.com/google/leveldb)
   * [Bolt](https://github.com/boltdb/bolt)
+  * [PostgreSQL](http://www.postgresql.org)
   * [MongoDB](https://www.mongodb.org) for distributed stores
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
