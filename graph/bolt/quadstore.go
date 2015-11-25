@@ -85,6 +85,11 @@ func createNewBolt(path string, _ graph.Options) error {
 	defer db.Close()
 	qs := &QuadStore{}
 	qs.db = db
+	defer qs.Close()
+	err = qs.getMetadata()
+	if err != errNoBucket {
+		return graph.ErrDatabaseExists
+	}
 	err = qs.createBuckets()
 	if err != nil {
 		return err

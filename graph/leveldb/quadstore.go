@@ -48,6 +48,8 @@ const (
 	DefaultCacheSize       = 2
 	DefaultWriteBufferSize = 20
 	QuadStoreType          = "leveldb"
+	horizonKey             = "__horizon"
+	sizeKey                = "__size"
 )
 
 var (
@@ -87,6 +89,16 @@ func createNewLevelDB(path string, _ graph.Options) error {
 	qs.writeopts = &opt.WriteOptions{
 		Sync: true,
 	}
+	qs.readopts = &opt.ReadOptions{}
+	_, err = qs.db.Get([]byte(horizonKey), qs.readopts)
+	if err != nil && err != leveldb.ErrNotFound {
+		glog.Errorln("couldn't read from leveldb during init")
+		return err
+	}
+	if err != leveldb.ErrNotFound {
+		return graph.ErrDatabaseExists
+	}
+	// Write some metadata
 	qs.Close()
 	return nil
 }
@@ -343,7 +355,7 @@ func (qs *QuadStore) Close() {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, qs.size)
 	if err == nil {
-		werr := qs.db.Put([]byte("__size"), buf.Bytes(), qs.writeopts)
+		werr := qs.db.Put([]byte(sizeKey), buf.Bytes(), qs.writeopts)
 		if werr != nil {
 			glog.Error("could not write size before closing!")
 		}
@@ -353,7 +365,7 @@ func (qs *QuadStore) Close() {
 	buf.Reset()
 	err = binary.Write(buf, binary.LittleEndian, qs.horizon)
 	if err == nil {
-		werr := qs.db.Put([]byte("__horizon"), buf.Bytes(), qs.writeopts)
+		werr := qs.db.Put([]byte(horizonKey), buf.Bytes(), qs.writeopts)
 		if werr != nil {
 			glog.Error("could not write horizon before closing!")
 		}
@@ -444,11 +456,11 @@ func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {
 
 func (qs *QuadStore) getMetadata() error {
 	var err error
-	qs.size, err = qs.getInt64ForKey("__size", 0)
+	qs.size, err = qs.getInt64ForKey(sizeKey, 0)
 	if err != nil {
 		return err
 	}
-	qs.horizon, err = qs.getInt64ForKey("__horizon", 0)
+	qs.horizon, err = qs.getInt64ForKey(horizonKey, 0)
 	return err
 }
 

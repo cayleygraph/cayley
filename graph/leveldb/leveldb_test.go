@@ -154,7 +154,7 @@ func TestLoadDatabase(t *testing.T) {
 	qs.Close()
 
 	err = createNewLevelDB(tmpDir, nil)
-	if err != nil {
+	if err != graph.ErrDatabaseExists {
 		t.Fatal("Failed to create LevelDB database.")
 	}
 	qs, err = newQuadStore(tmpDir, nil)
@@ -170,20 +170,20 @@ func TestLoadDatabase(t *testing.T) {
 
 	//Test horizon
 	horizon := qs.Horizon()
-	if horizon.Int() != 0 {
-		t.Errorf("Unexpected horizon value, got:%d expect:0", horizon.Int())
+	if horizon.Int() != 1 {
+		t.Errorf("Unexpected horizon value, got:%d expect:1", horizon.Int())
 	}
 
 	w.AddQuadSet(makeQuadSet())
-	if s := qs.Size(); s != 11 {
-		t.Errorf("Unexpected quadstore size, got:%d expect:11", s)
+	if s := qs.Size(); s != 12 {
+		t.Errorf("Unexpected quadstore size, got:%d expect:12", s)
 	}
 	if s := ts2.SizeOf(qs.ValueOf("B")); s != 5 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
 	}
 	horizon = qs.Horizon()
-	if horizon.Int() != 11 {
-		t.Errorf("Unexpected horizon value, got:%d expect:11", horizon.Int())
+	if horizon.Int() != 12 {
+		t.Errorf("Unexpected horizon value, got:%d expect:12", horizon.Int())
 	}
 
 	w.RemoveQuad(quad.Quad{
@@ -192,8 +192,8 @@ func TestLoadDatabase(t *testing.T) {
 		Object:    "B",
 		Label:     "",
 	})
-	if s := qs.Size(); s != 10 {
-		t.Errorf("Unexpected quadstore size after RemoveQuad, got:%d expect:10", s)
+	if s := qs.Size(); s != 11 {
+		t.Errorf("Unexpected quadstore size after RemoveQuad, got:%d expect:11", s)
 	}
 	if s := ts2.SizeOf(qs.ValueOf("B")); s != 4 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:4", s)
