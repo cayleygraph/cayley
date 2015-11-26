@@ -5,7 +5,8 @@ Cayley is an open-source graph inspired by the graph database behind [Freebase](
 
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
-[![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley) 
+[![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley)
+[![Container Repository on Quay](https://quay.io/repository/barakmich/cayley/status "Container Repository on Quay")](https://quay.io/repository/barakmich/cayley)
 
 ## Features
 
@@ -89,7 +90,7 @@ g.V("dani").Tag("source").Out("follows").Tag("target").All()
 ```
 The visualizer expects to tag nodes as either "source" or "target."  Your source is represented as a blue node.
 While your target is represented as an orange node.
-The idea being that our node relationship goes from blue to orange (source to target).  
+The idea being that our node relationship goes from blue to orange (source to target).
 
 **Sample Data**
 
@@ -162,6 +163,17 @@ g.V().Has("name", "Casablanca").Follow(filmToActor).Out("name").All()
 ```
 
 There's more in the JavaScript API Documentation, but that should give you a feel for how to walk around the graph.
+
+## Running in a container
+
+A container exposing the HTTP API of cayley is available.
+To run the container one must first setup a data directory that contains the configuration file and optionally contains persistent files (i.e. a boltdb database file).
+
+```
+mkdir data
+cp my_config.cfg data/cayley.cfg
+docker run -v $PWD/data:/data -p 64321:64321 -d quay.io/barakmich/cayley
+```
 
 ## Disclaimer
 
