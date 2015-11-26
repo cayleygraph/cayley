@@ -45,6 +45,7 @@ import (
 
 var (
 	quadFile           = flag.String("quads", "", "Quad file to load before going to REPL.")
+	initOpt            = flag.Bool("init", false, "Initialize the database before using it. Equivalent to running `cayley init` followed by the given command.")
 	quadType           = flag.String("format", "cquad", `Quad format to use for loading ("cquad" or "nquad").`)
 	cpuprofile         = flag.String("prof", "", "Output profiling file.")
 	queryLanguage      = flag.String("query_lang", "gremlin", "Use this parser as the query language.")
@@ -238,6 +239,12 @@ func main() {
 		handle.Close()
 
 	case "repl":
+		if *initOpt {
+			err = db.Init(cfg)
+			if err != nil && err != graph.ErrDatabaseExists {
+				break
+			}
+		}
 		handle, err = db.Open(cfg)
 		if err != nil {
 			break
@@ -254,6 +261,12 @@ func main() {
 		handle.Close()
 
 	case "http":
+		if *initOpt {
+			err = db.Init(cfg)
+			if err != nil && err != graph.ErrDatabaseExists {
+				break
+			}
+		}
 		handle, err = db.Open(cfg)
 		if err != nil {
 			break
