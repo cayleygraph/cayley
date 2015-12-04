@@ -197,6 +197,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []string{"bob"},
 		},
 		{
+			message: "show a simple HasReverse",
+			path:    StartPath(qs).HasReverse("status", "bob"),
+			expect:  []string{"cool_person"},
+		},
+		{
 			message: "use .Tag()-.Is()-.Back()",
 			path:    StartPath(qs, "bob").In("follows").Tag("foo").Out("status").Is("cool_person").Back("foo"),
 			expect:  []string{"dani"},
