@@ -64,10 +64,10 @@ func connectSQLTables(addr string, _ graph.Options) (*sql.DB, error) {
 
 func createSQLTables(addr string, options graph.Options) error {
 	conn, err := connectSQLTables(addr, options)
-	defer conn.Close()
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	tx, err := conn.Begin()
 	if err != nil {
 		glog.Errorf("Couldn't begin creation transaction: %s", err)
