@@ -23,7 +23,7 @@ import (
 	"github.com/google/cayley/quad"
 
 	"appengine/datastore"
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 )
 
 type Iterator struct {

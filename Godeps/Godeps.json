@@ -10,7 +10,7 @@
 			"Rev": "9e5f7f4d07ca576562618c23e8abadda278b684f"
 		},
 		{
-			"ImportPath": "github.com/barakmich/glog",
+			"ImportPath": "github.com/golang/glog",
 			"Rev": "fafcb6128a8a2e6360ff034091434d547397d54a"
 		},
 		{

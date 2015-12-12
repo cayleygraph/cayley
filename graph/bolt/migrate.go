@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 	"github.com/boltdb/bolt"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/proto"

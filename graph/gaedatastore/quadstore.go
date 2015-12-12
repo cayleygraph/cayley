@@ -25,7 +25,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 
 	"appengine"
 	"appengine/datastore"
