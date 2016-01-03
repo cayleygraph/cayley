@@ -146,7 +146,7 @@ func testSet(qs graph.QuadStore) []test {
 		{
 			message: "implicit All",
 			path:    StartPath(qs),
-			expect:  []string{"alice", "bob", "charlie", "dani", "emily", "fred", "greg", "follows", "status", "cool_person", "predicates", "are"},
+			expect:  []string{"alice", "bob", "charlie", "dani", "emily", "fred", "greg", "follows", "status", "cool_person", "predicates", "are", "smart_graph", "smart_person"},
 		},
 		{
 			message: "follow",
@@ -178,7 +178,7 @@ func testSet(qs graph.QuadStore) []test {
 			message: "show a simple save",
 			path:    StartPath(qs).Save("status", "somecool"),
 			tag:     "somecool",
-			expect:  []string{"cool_person", "cool_person", "cool_person"},
+			expect:  []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 		},
 		{
 			message: "show a simple saveR",
@@ -227,6 +227,22 @@ func testSet(qs graph.QuadStore) []test {
 			message: "show reverse morphism",
 			path:    StartPath(qs, "fred").FollowReverse(grandfollows),
 			expect:  []string{"alice", "charlie", "dani"},
+		},
+		// Context tests
+		{
+			message: "query without label limitation",
+			path:    StartPath(qs, "greg").Out("status"),
+			expect:  []string{"smart_person", "cool_person"},
+		},
+		{
+			message: "query with label limitation",
+			path:    StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),
+			expect:  []string{"smart_person"},
+		},
+		{
+			message: "reverse context",
+			path:    StartPath(qs, "greg").Tag("base").LabelContext("smart_graph").Out("status").Tag("status").Back("base"),
+			expect:  []string{"greg"},
 		},
 	}
 }

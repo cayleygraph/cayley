@@ -23,7 +23,6 @@ type morphism struct {
 	Reversal func(*context) (morphism, *context)
 	Apply    applyMorphism
 	tags     []string
-	context  context
 }
 
 // context allows a high-level change to the way paths are constructed. Some
@@ -49,6 +48,12 @@ type context struct {
 	//
 	// Claimed by the withLabel morphism
 	labelSet *Path
+}
+
+func (c context) copy() context {
+	return context{
+		labelSet: c.labelSet,
+	}
 }
 
 // Path represents either a morphism (a pre-defined path stored for later use),
@@ -263,6 +268,20 @@ func (p *Path) SaveReverse(via interface{}, tag string) *Path {
 // to some known node.
 func (p *Path) Has(via interface{}, nodes ...string) *Path {
 	p.stack = append(p.stack, hasMorphism(via, nodes...))
+	return p
+}
+
+// LabelContext restricts the following operations (such as In, Out) to only
+// traverse edges that match the given set of labels.
+func (p *Path) LabelContext(via ...interface{}) *Path {
+	p.stack = append(p.stack, labelContextMorphism(nil, via...))
+	return p
+}
+
+// LabelContextWithTags is exactly like LabelContext, except it tags the value
+// of the label used in the traversal with the tags provided.
+func (p *Path) LabelContextWithTags(tags []string, via ...interface{}) *Path {
+	p.stack = append(p.stack, labelContextMorphism(tags, via...))
 	return p
 }
 

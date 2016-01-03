@@ -16,6 +16,7 @@ package path
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
@@ -25,11 +26,14 @@ import (
 // join puts two iterators together by intersecting their result sets with an AND
 // Since we're using an and iterator, it's a good idea to put the smallest result
 // set first so that Next() produces fewer values to check Contains().
-func join(qs graph.QuadStore, itL, itR graph.Iterator) graph.Iterator {
+func join(qs graph.QuadStore, its ...graph.Iterator) graph.Iterator {
 	and := iterator.NewAnd(qs)
-	and.AddSubIterator(itL)
-	and.AddSubIterator(itR)
-
+	for _, it := range its {
+		if it == nil {
+			continue
+		}
+		and.AddSubIterator(it)
+	}
 	return and
 }
 
@@ -122,8 +126,9 @@ func outMorphism(tags []string, via ...interface{}) morphism {
 		Reversal: func(ctx *context) (morphism, *context) { return inMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
-			return inOutIterator(path, in, false, tags), ctx
+			return inOutIterator(path, in, false, tags, ctx), ctx
 		},
+		tags: tags,
 	}
 }
 
@@ -134,8 +139,9 @@ func inMorphism(tags []string, via ...interface{}) morphism {
 		Reversal: func(ctx *context) (morphism, *context) { return outMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
-			return inOutIterator(path, in, true, tags), ctx
+			return inOutIterator(path, in, true, tags, ctx), ctx
 		},
+		tags: tags,
 	}
 }
 
@@ -145,13 +151,38 @@ func bothMorphism(tags []string, via ...interface{}) morphism {
 		Reversal: func(ctx *context) (morphism, *context) { return bothMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
 			path := buildViaPath(qs, via...)
-			inSide := inOutIterator(path, in, true, tags)
-			outSide := inOutIterator(path, in.Clone(), false, tags)
+			inSide := inOutIterator(path, in, true, tags, ctx)
+			outSide := inOutIterator(path, in.Clone(), false, tags, ctx)
 			or := iterator.NewOr()
 			or.AddSubIterator(inSide)
 			or.AddSubIterator(outSide)
 			return or, ctx
 		},
+		tags: tags,
+	}
+}
+
+func labelContextMorphism(tags []string, via ...interface{}) morphism {
+	var path *Path
+	if len(via) == 0 {
+		path = nil
+	} else {
+		path = buildViaPath(nil, via...)
+		path = path.Tag(tags...)
+	}
+	return morphism{
+		Name: "label_context",
+		Reversal: func(ctx *context) (morphism, *context) {
+			out := ctx.copy()
+			ctx.labelSet = path
+			return labelContextMorphism(tags, via...), &out
+		},
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			out := ctx.copy()
+			out.labelSet = path
+			return in, &out
+		},
+		tags: tags,
 	}
 }
 
@@ -290,7 +321,7 @@ func buildSave(
 	return join(qs, from, save)
 }
 
-func inOutIterator(viaPath *Path, from graph.Iterator, inIterator bool, tags []string) graph.Iterator {
+func inOutIterator(viaPath *Path, from graph.Iterator, inIterator bool, tags []string, ctx *context) graph.Iterator {
 	start, goal := quad.Subject, quad.Object
 	if inIterator {
 		start, goal = goal, start
@@ -303,8 +334,14 @@ func inOutIterator(viaPath *Path, from graph.Iterator, inIterator bool, tags []s
 
 	source := iterator.NewLinksTo(viaPath.qs, from, start)
 	trail := iterator.NewLinksTo(viaPath.qs, viaIter, quad.Predicate)
-
-	route := join(viaPath.qs, source, trail)
+	var label graph.Iterator
+	if ctx != nil {
+		if ctx.labelSet != nil {
+			labeliter := ctx.labelSet.BuildIteratorOn(viaPath.qs)
+			label = iterator.NewLinksTo(viaPath.qs, labeliter, quad.Label)
+		}
+	}
+	route := join(viaPath.qs, source, trail, label)
 
 	return iterator.NewHasA(viaPath.qs, route, goal)
 }
@@ -330,7 +367,7 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 		case string:
 			return StartPath(qs, p)
 		default:
-			panic(fmt.Sprint("Invalid type passed to buildViaPath. ", p))
+			panic(fmt.Sprintln("Invalid type passed to buildViaPath.", reflect.TypeOf(v), p))
 		}
 	}
 	var strings []string
