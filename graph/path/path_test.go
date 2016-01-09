@@ -181,6 +181,12 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 		},
 		{
+			message: "show a simple saveOpt",
+			path:    StartPath(qs).SaveOptional("status", "somecool"),
+			tag:     "somecool",
+			expect:  []string{"", "", "", "", "", "", "", "", "", "", "cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
+		},
+		{
 			message: "show a simple saveR",
 			path:    StartPath(qs, "cool_person").SaveReverse("status", "who"),
 			tag:     "who",
@@ -259,7 +265,7 @@ func TestMorphisms(t *testing.T) {
 		sort.Strings(got)
 		sort.Strings(test.expect)
 		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
+			t.Errorf("Failed to %s, got: %v(%d) expected: %v(%d)", test.message, got, len(got), test.expect, len(test.expect))
 		}
 	}
 }
