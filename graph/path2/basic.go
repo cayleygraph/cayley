@@ -266,3 +266,36 @@ func (p UnionLinks) Optimize() (Links, bool) {
 	// TODO: deduplicate FixedValues into a single one
 	return UnionLinks(nsets), optg
 }
+
+var _ Nodes = Unique{}
+
+type Unique struct {
+	Nodes Nodes
+}
+
+func (p Unique) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Unique{Nodes: nf(p.Nodes)}
+}
+func (p Unique) BuildIterator() graph.Iterator {
+	return iterator.NewUnique(p.Nodes.BuildIterator())
+}
+func (p Unique) Simplify() (Nodes, bool) { return p, false }
+func (p Unique) Optimize() (Nodes, bool) {
+	if p.Nodes == nil {
+		return nil, true
+	}
+	nodes, opt := p.Nodes.Optimize()
+	if p.Nodes == nil {
+		return nil, true
+	}
+	switch tp := nodes.(type) {
+	case AllNodes:
+		return AllNodes{}, true
+	case Fixed: // TODO: unique strings
+		return Unique{Fixed([]string(tp))}, true
+	}
+	return Unique{Nodes: nodes}, opt
+}

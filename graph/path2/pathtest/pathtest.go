@@ -250,16 +250,30 @@ func testSet(qs graph.QuadStore) []test {
 		//			tag:     "who",
 		//			expect:  []string{"greg", "dani", "bob"},
 		//		},
-		//		{
-		//			message: "show a simple Has",
-		//			path:    StartPath(qs).Has("status", "cool_person"),
-		//			expect:  []string{"greg", "dani", "bob"},
-		//		},
-		//		{
-		//			message: "show a double Has",
-		//			path:    StartPath(qs).Has("status", "cool_person").Has("follows", "fred"),
-		//			expect:  []string{"bob"},
-		//		},
+		{
+			message: "show a simple Has",
+			path: Has{
+				From:  AllNodes{},
+				Via:   Fixed{"status"},
+				Nodes: Fixed{"cool_person"},
+			},
+			//				path:    StartPath(qs).Has("status", "cool_person"),
+			expect: []string{"greg", "dani", "bob"},
+		},
+		{
+			message: "show a double Has",
+			path: Has{
+				From: Has{
+					From:  AllNodes{},
+					Via:   Fixed{"status"},
+					Nodes: Fixed{"cool_person"},
+				},
+				Via:   Fixed{"follows"},
+				Nodes: Fixed{"fred"},
+			},
+			//				path:    StartPath(qs).Has("status", "cool_person").Has("follows", "fred"),
+			expect: []string{"bob"},
+		},
 		//		{
 		//			message: "use .Tag()-.Is()-.Back()",
 		//			path:    StartPath(qs, "bob").In("follows").Tag("foo").Out("status").Is("cool_person").Back("foo"),
@@ -271,16 +285,23 @@ func testSet(qs graph.QuadStore) []test {
 		//			tag:     "acd",
 		//			expect:  []string{"dani"},
 		//		},
-		//		{
-		//			message: "InPredicates()",
-		//			path:    StartPath(qs, "bob").InPredicates(),
-		//			expect:  []string{"follows"},
-		//		},
-		//		{
-		//			message: "OutPredicates()",
-		//			path:    StartPath(qs, "bob").OutPredicates(),
-		//			expect:  []string{"follows", "status"},
-		//		},
+		{
+			message: "InPredicates()",
+			path: Predicates{
+				From: Fixed{"bob"},
+				Rev:  true,
+			},
+			//				path:    StartPath(qs, "bob").InPredicates(),
+			expect: []string{"follows"},
+		},
+		{
+			message: "OutPredicates()",
+			path: Predicates{
+				From: Fixed{"bob"},
+			},
+			//				path:    StartPath(qs, "bob").OutPredicates(),
+			expect: []string{"follows", "status"},
+		},
 		// Morphism tests
 		{
 			message: "show simple morphism",
@@ -294,11 +315,15 @@ func testSet(qs graph.QuadStore) []test {
 		//			expect:  []string{"alice", "charlie", "dani"},
 		//		},
 		//		// Context tests
-		//		{
-		//			message: "query without label limitation",
-		//			path:    StartPath(qs, "greg").Out("status"),
-		//			expect:  []string{"smart_person", "cool_person"},
-		//		},
+		{
+			message: "query without label limitation",
+			path: Out{
+				From: Fixed{"greg"},
+				Via:  Fixed{"status"},
+			},
+			//				path:    StartPath(qs, "greg").Out("status"),
+			expect: []string{"smart_person", "cool_person"},
+		},
 		//		{
 		//			message: "query with label limitation",
 		//			path:    StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),

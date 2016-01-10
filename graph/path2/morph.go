@@ -122,11 +122,11 @@ func (p Out) Optimize() (Nodes, bool) {
 		return nil, true
 	}
 	nf, fopt := p.From.Optimize()
-	if p.From == nil {
+	if nf == nil {
 		return nil, true
 	}
 	nv, vopt := p.Via.Optimize()
-	if p.Via == nil {
+	if nv == nil {
 		return nil, true
 	}
 	return Out{
@@ -134,4 +134,120 @@ func (p Out) Optimize() (Nodes, bool) {
 		Rev:  p.Rev,
 		Tags: p.Tags, // TODO: unique tags
 	}, fopt || vopt
+}
+
+var (
+	_ Nodes           = Has{}
+	_ NodesSimplifier = Has{}
+)
+
+type Has struct {
+	From  Nodes
+	Via   Nodes
+	Nodes Nodes
+}
+
+func (p Has) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Has{
+		From:  nf(p.From),
+		Via:   nf(p.Via),
+		Nodes: nf(p.Nodes),
+	}
+}
+func (p Has) BuildIterator() graph.Iterator {
+	return p.Simplify().BuildIterator()
+}
+func (p Has) Simplify() Nodes {
+	trail := LinksTo{
+		Nodes: p.Via,
+		Dir:   quad.Predicate,
+	}
+	dest := LinksTo{
+		Nodes: p.Nodes,
+		Dir:   quad.Object,
+	}
+	route := IntersectLinks{
+		dest,
+		trail,
+	}
+	has := HasA{
+		Links: route,
+		Dir:   quad.Subject,
+	}
+	return IntersectNodes{
+		has,
+		p.From,
+	}
+}
+func (p Has) Optimize() (Nodes, bool) {
+	if p.From == nil || p.Via == nil || p.Nodes == nil {
+		return nil, true
+	}
+	nf, fopt := p.From.Optimize()
+	if nf == nil {
+		return nil, true
+	}
+	nv, vopt := p.Via.Optimize()
+	if nv == nil {
+		return nil, true
+	}
+	nn, nopt := p.Nodes.Optimize()
+	if nn == nil {
+		return nil, true
+	}
+	// TODO: ordering optimizations from hasMorphism
+	return Has{
+		From: nf, Via: nv, Nodes: nn,
+	}, fopt || vopt || nopt
+}
+
+var (
+	_ Nodes           = Has{}
+	_ NodesSimplifier = Has{}
+)
+
+type Predicates struct {
+	From Nodes
+	Rev  bool
+}
+
+func (p Predicates) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Predicates{
+		From: nf(p.From),
+		Rev:  p.Rev,
+	}
+}
+func (p Predicates) BuildIterator() graph.Iterator {
+	return p.Simplify().BuildIterator()
+}
+func (p Predicates) Simplify() Nodes {
+	dir := quad.Subject
+	if p.Rev {
+		dir = quad.Object
+	}
+	return Unique{
+		Nodes: HasA{
+			Links: LinksTo{
+				Nodes: p.From,
+				Dir:   dir,
+			},
+			Dir: quad.Predicate,
+		},
+	}
+}
+func (p Predicates) Optimize() (Nodes, bool) {
+	if p.From == nil {
+		return nil, true
+	}
+	from, opt := p.From.Optimize()
+	if from == nil {
+		return nil, true
+	}
+	return Predicates{From: from, Rev: p.Rev}, opt
 }
