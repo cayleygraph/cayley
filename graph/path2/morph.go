@@ -145,6 +145,7 @@ type Has struct {
 	From  Nodes
 	Via   Nodes
 	Nodes Nodes
+	Rev   bool
 }
 
 func (p Has) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
@@ -155,19 +156,24 @@ func (p Has) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
 		From:  nf(p.From),
 		Via:   nf(p.Via),
 		Nodes: nf(p.Nodes),
+		Rev:   p.Rev,
 	}
 }
 func (p Has) BuildIterator() graph.Iterator {
 	return p.Simplify().BuildIterator()
 }
 func (p Has) Simplify() Nodes {
+	start, goal := quad.Subject, quad.Object
+	if p.Rev {
+		start, goal = goal, start
+	}
 	trail := LinksTo{
 		Nodes: p.Via,
 		Dir:   quad.Predicate,
 	}
 	dest := LinksTo{
 		Nodes: p.Nodes,
-		Dir:   quad.Object,
+		Dir:   goal,
 	}
 	route := IntersectLinks{
 		dest,
@@ -175,7 +181,7 @@ func (p Has) Simplify() Nodes {
 	}
 	has := HasA{
 		Links: route,
-		Dir:   quad.Subject,
+		Dir:   start,
 	}
 	return IntersectNodes{
 		has,
@@ -200,7 +206,7 @@ func (p Has) Optimize() (Nodes, bool) {
 	}
 	// TODO: ordering optimizations from hasMorphism
 	return Has{
-		From: nf, Via: nv, Nodes: nn,
+		From: nf, Via: nv, Nodes: nn, Rev: p.Rev,
 	}, fopt || vopt || nopt
 }
 
@@ -250,4 +256,79 @@ func (p Predicates) Optimize() (Nodes, bool) {
 		return nil, true
 	}
 	return Predicates{From: from, Rev: p.Rev}, opt
+}
+
+var (
+	_ Nodes           = Save{}
+	_ NodesSimplifier = Save{}
+)
+
+type Save struct {
+	From Nodes
+	Via  Nodes
+	Tags []string
+	Rev  bool
+	// TODO: optional
+}
+
+func (p Save) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Save{
+		From: nf(p.From),
+		Via:  nf(p.Via),
+		Tags: p.Tags,
+		Rev:  p.Rev,
+	}
+}
+func (p Save) BuildIterator() graph.Iterator {
+	return p.Simplify().BuildIterator()
+}
+func (p Save) Simplify() Nodes {
+	start, goal := quad.Subject, quad.Object
+	if p.Rev {
+		start, goal = goal, start
+	}
+	dest := LinksTo{
+		Nodes: Tag{
+			Nodes: AllNodes{},
+			Tags:  p.Tags,
+		},
+		Dir: goal,
+	}
+	trail := LinksTo{
+		Nodes: p.Via,
+		Dir:   quad.Predicate,
+	}
+	route := IntersectLinks{
+		trail,
+		dest,
+	}
+	save := HasA{
+		Links: route,
+		Dir:   start,
+	}
+	return IntersectNodes{
+		p.From,
+		save,
+	}
+}
+func (p Save) Optimize() (Nodes, bool) {
+	if p.From == nil || p.Via == nil {
+		return nil, true
+	} else if len(p.Tags) == 0 {
+		return Has{From: p.From, Via: p.Via, Rev: p.Rev}, true
+	}
+	nf, fopt := p.From.Optimize()
+	if nf == nil {
+		return nil, true
+	}
+	nv, vopt := p.Via.Optimize()
+	if nv == nil {
+		return nil, true
+	}
+	return Save{
+		From: nf, Via: nv, Tags: p.Tags, Rev: p.Rev,
+	}, fopt || vopt
 }

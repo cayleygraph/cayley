@@ -238,18 +238,29 @@ func testSet(qs graph.QuadStore) []test {
 			//			path:    StartPath(qs, "alice", "bob", "charlie").Except(StartPath(qs, "bob")).Except(StartPath(qs, "alice")),
 			expect: []string{"charlie"},
 		},
-		//		{
-		//			message: "show a simple save",
-		//			path:    StartPath(qs).Save("status", "somecool"),
-		//			tag:     "somecool",
-		//			expect:  []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
-		//		},
-		//		{
-		//			message: "show a simple saveR",
-		//			path:    StartPath(qs, "cool_person").SaveReverse("status", "who"),
-		//			tag:     "who",
-		//			expect:  []string{"greg", "dani", "bob"},
-		//		},
+		{
+			message: "show a simple save",
+			path: Save{
+				From: AllNodes{},
+				Via:  Fixed{"status"},
+				Tags: []string{"somecool"},
+			},
+			//				path:    StartPath(qs).Save("status", "somecool"),
+			tag:    "somecool",
+			expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
+		},
+		{
+			message: "show a simple saveR",
+			path: Save{
+				From: Fixed{"cool_person"},
+				Via:  Fixed{"status"},
+				Tags: []string{"who"},
+				Rev:  true,
+			},
+			//				path:    StartPath(qs, "cool_person").SaveReverse("status", "who"),
+			tag:    "who",
+			expect: []string{"greg", "dani", "bob"},
+		},
 		{
 			message: "show a simple Has",
 			path: Has{
