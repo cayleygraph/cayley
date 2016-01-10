@@ -1,21 +1,40 @@
 package path
 
-import "github.com/google/cayley/quad"
+import (
+	"github.com/google/cayley/graph"
+	"github.com/google/cayley/quad"
+)
+
+var (
+	_ Nodes           = Except{}
+	_ NodesSimplifier = Except{}
+)
 
 type Except struct {
-	Nodes NodePath
-	From  NodePath
+	Nodes Nodes
+	From  Nodes
 }
 
-func (p Except) Simplify() (NodePath, bool) {
+func (p Except) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Except{
+		Nodes: nf(p.Nodes), From: nf(p.From),
+	}
+}
+func (p Except) BuildIterator() graph.Iterator {
+	return p.Simplify().BuildIterator()
+}
+func (p Except) Simplify() Nodes {
 	return IntersectNodes{
 		p.From,
 		NotNodes{
 			Nodes: p.Nodes,
 		},
-	}, true
+	}
 }
-func (p Except) Optimize() (NodePath, bool) {
+func (p Except) Optimize() (Nodes, bool) {
 	if p.From == nil {
 		return nil, true
 	}
@@ -39,14 +58,33 @@ func (p Except) Optimize() (NodePath, bool) {
 	}, opt || optf
 }
 
+var (
+	_ Nodes           = Out{}
+	_ NodesSimplifier = Out{}
+)
+
 type Out struct {
-	From NodePath
-	Via  NodePath
+	From Nodes
+	Via  Nodes
 	Rev  bool
 	Tags []string
 }
 
-func (p Out) Simplify() (NodePath, bool) {
+func (p Out) Replace(nf WrapNodesFunc, nl WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Out{
+		From: nf(p.From),
+		Via:  nf(p.Via),
+		Rev:  p.Rev,
+		Tags: p.Tags,
+	}
+}
+func (p Out) BuildIterator() graph.Iterator {
+	return p.Simplify().BuildIterator()
+}
+func (p Out) Simplify() Nodes {
 	start, goal := quad.Subject, quad.Object
 	if p.Rev {
 		start, goal = goal, start
@@ -62,7 +100,7 @@ func (p Out) Simplify() (NodePath, bool) {
 		},
 		Dir: quad.Predicate,
 	}
-	var label LinkPath
+	var label Links
 	// TODO: labels
 	//	if ctx != nil {
 	//		if ctx.labelSet != nil {
@@ -77,9 +115,9 @@ func (p Out) Simplify() (NodePath, bool) {
 			label,
 		},
 		Dir: goal,
-	}, true
+	}
 }
-func (p Out) Optimize() (NodePath, bool) {
+func (p Out) Optimize() (Nodes, bool) {
 	if p.From == nil || p.Via == nil {
 		return nil, true
 	}

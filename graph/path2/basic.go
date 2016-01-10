@@ -1,114 +1,33 @@
 package path
 
-import "github.com/google/cayley/quad"
+import (
+	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
+)
 
-var _ NodePath = AllNodes{}
-
-type AllNodes struct{}
-
-func (p AllNodes) Simplify() (NodePath, bool) { return p, false }
-func (p AllNodes) Optimize() (NodePath, bool) { return p, false }
-
-var _ LinkPath = AllLinks{}
-
-type AllLinks struct{}
-
-func (p AllLinks) Simplify() (LinkPath, bool) { return p, false }
-func (p AllLinks) Optimize() (LinkPath, bool) { return p, false }
-
-var _ NodePath = FixedValues{}
-
-type FixedValues struct {
-	Values []string
-}
-
-func (p FixedValues) Simplify() (NodePath, bool) { return p, false }
-func (p FixedValues) Optimize() (NodePath, bool) {
-	if len(p.Values) == 0 {
-		return nil, true
-	}
-	return p, false
-}
-
-var _ NodePath = HasA{}
-
-type HasA struct {
-	Links LinkPath
-	Dir   quad.Direction
-}
-
-func (p HasA) Simplify() (NodePath, bool) { return p, false }
-func (p HasA) Optimize() (NodePath, bool) {
-	if p.Links == nil {
-		return nil, true
-	}
-	n, opt := p.Links.Optimize()
-	if !opt {
-		return p, false
-	} else if n == nil {
-		return nil, true
-	}
-	return HasA{
-		Links: n,
-		Dir:   p.Dir,
-	}, true
-}
-
-var _ LinkPath = LinksTo{}
-
-type LinksTo struct {
-	Nodes NodePath
-	Dir   quad.Direction
-}
-
-func (p LinksTo) Simplify() (LinkPath, bool) { return p, false }
-func (p LinksTo) Optimize() (LinkPath, bool) {
-	if p.Nodes == nil {
-		return nil, true
-	}
-	n, opt := p.Nodes.Optimize()
-	if !opt {
-		return p, false
-	} else if n == nil {
-		return nil, true
-	}
-	return LinksTo{
-		Nodes: n,
-		Dir:   p.Dir,
-	}, true
-}
-
-var _ NodePath = NotNodes{}
-
-type NotNodes struct {
-	Nodes NodePath
-}
-
-func (p NotNodes) Simplify() (NodePath, bool) { return p, false }
-func (p NotNodes) Optimize() (NodePath, bool) {
-	if p.Nodes == nil {
-		return AllNodes{}, true
-	}
-	n, opt := p.Nodes.Optimize()
-	switch t := n.(type) {
-	case AllNodes:
-		return nil, true
-	case NotNodes:
-		n, _ := t.Nodes.Optimize()
-		return n, true
-	}
-	return NotNodes{Nodes: n}, opt
-}
-
-var _ NodePath = Tag{}
+var _ Nodes = Tag{}
 
 type Tag struct {
-	Nodes NodePath
+	Nodes Nodes
 	Tags  []string
 }
 
-func (p Tag) Simplify() (NodePath, bool) { return p, false }
-func (p Tag) Optimize() (NodePath, bool) {
+func (p Tag) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Tag{Nodes: nf(p.Nodes), Tags: p.Tags}
+}
+func (p Tag) BuildIterator() graph.Iterator {
+	it := p.Nodes.BuildIterator()
+	tg := it.Tagger()
+	for _, tag := range p.Tags {
+		tg.Add(tag)
+	}
+	return it
+}
+func (p Tag) Simplify() (Nodes, bool) { return p, false }
+func (p Tag) Optimize() (Nodes, bool) {
 	if p.Nodes == nil {
 		return nil, true
 	}
@@ -126,21 +45,43 @@ func (p Tag) Optimize() (NodePath, bool) {
 	}, true
 }
 
-var _ NodePath = IntersectNodes{}
+var (
+	_ Nodes = IntersectNodes{}
+)
 
-type IntersectNodes []NodePath
+type IntersectNodes []Nodes
 
-func (p IntersectNodes) Simplify() (NodePath, bool) { return p, false }
-func (p IntersectNodes) Optimize() (NodePath, bool) {
+func (p IntersectNodes) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	nodes := make([]Nodes, len(p))
+	for i := range p {
+		nodes[i] = nf(p[i])
+	}
+	return IntersectNodes(nodes)
+}
+func (p IntersectNodes) BuildIterator() graph.Iterator {
+	it := iterator.NewAnd(nil)
+	for _, n := range p {
+		it.AddSubIterator(n.BuildIterator())
+	}
+	return it
+}
+func (p IntersectNodes) Simplify() (Nodes, bool) { return p, false }
+func (p IntersectNodes) Optimize() (Nodes, bool) {
 	if len(p) == 0 {
 		return nil, true
 	} else if len(p) == 1 {
 		n, _ := p[0].Optimize()
 		return n, true
 	}
-	nsets := make([]NodePath, 0, len(p))
+	nsets := make([]Nodes, 0, len(p))
 	var optg bool
 	for _, sp := range p {
+		if sp == nil {
+			continue
+		}
 		n, opt := sp.Optimize()
 		if n == nil { // intersect with zero = zero
 			return nil, true
@@ -157,24 +98,45 @@ func (p IntersectNodes) Optimize() (NodePath, bool) {
 		return nsets[0], true
 	}
 	// TODO: intersect FixedValues into a single one
+	// TODO: all optimizations from iterator/and_iterator_optimize.go
 	return IntersectNodes(nsets), optg
 }
 
-var _ NodePath = UnionNodes{}
+var _ Nodes = UnionNodes{}
 
-type UnionNodes []NodePath
+type UnionNodes []Nodes
 
-func (p UnionNodes) Simplify() (NodePath, bool) { return p, false }
-func (p UnionNodes) Optimize() (NodePath, bool) {
+func (p UnionNodes) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+	if nf == nil {
+		return p
+	}
+	nodes := make([]Nodes, len(p))
+	for i := range p {
+		nodes[i] = nf(p[i])
+	}
+	return UnionNodes(nodes)
+}
+func (p UnionNodes) BuildIterator() graph.Iterator {
+	it := iterator.NewOr()
+	for _, n := range p {
+		it.AddSubIterator(n.BuildIterator())
+	}
+	return it
+}
+func (p UnionNodes) Simplify() (Nodes, bool) { return p, false }
+func (p UnionNodes) Optimize() (Nodes, bool) {
 	if len(p) == 0 {
 		return nil, true
 	} else if len(p) == 1 {
 		n, _ := p[0].Optimize()
 		return n, true
 	}
-	nsets := make([]NodePath, 0, len(p))
+	nsets := make([]Nodes, 0, len(p))
 	var optg bool
 	for _, sp := range p {
+		if sp == nil {
+			continue
+		}
 		n, opt := sp.Optimize()
 		if _, ok := n.(AllNodes); ok { // intersect with all = all
 			return AllNodes{}, true
@@ -194,21 +156,43 @@ func (p UnionNodes) Optimize() (NodePath, bool) {
 	return UnionNodes(nsets), optg
 }
 
-var _ LinkPath = IntersectLinks{}
+var (
+	_ Links = IntersectLinks{}
+)
 
-type IntersectLinks []LinkPath
+type IntersectLinks []Links
 
-func (p IntersectLinks) Simplify() (LinkPath, bool) { return p, false }
-func (p IntersectLinks) Optimize() (LinkPath, bool) {
+func (p IntersectLinks) Replace(_ WrapNodesFunc, lf WrapLinksFunc) Links {
+	if lf == nil {
+		return p
+	}
+	nodes := make([]Links, len(p))
+	for i := range p {
+		nodes[i] = lf(p[i])
+	}
+	return IntersectLinks(nodes)
+}
+func (p IntersectLinks) BuildIterator() graph.Iterator {
+	it := iterator.NewAnd(nil)
+	for _, n := range p {
+		it.AddSubIterator(n.BuildIterator())
+	}
+	return it
+}
+func (p IntersectLinks) Simplify() (Links, bool) { return p, false }
+func (p IntersectLinks) Optimize() (Links, bool) {
 	if len(p) == 0 {
 		return nil, true
 	} else if len(p) == 1 {
 		n, _ := p[0].Optimize()
 		return n, true
 	}
-	nsets := make([]LinkPath, 0, len(p))
+	nsets := make([]Links, 0, len(p))
 	var optg bool
 	for _, sp := range p {
+		if sp == nil {
+			continue
+		}
 		n, opt := sp.Optimize()
 		if n == nil { // intersect with zero = zero
 			return nil, true
@@ -225,24 +209,45 @@ func (p IntersectLinks) Optimize() (LinkPath, bool) {
 		return nsets[0], true
 	}
 	// TODO: intersect FixedValues into a single one
+	// TODO: all optimizations from iterator/and_iterator_optimize.go
 	return IntersectLinks(nsets), optg
 }
 
-var _ LinkPath = UnionLinks{}
+var _ Links = UnionLinks{}
 
-type UnionLinks []LinkPath
+type UnionLinks []Links
 
-func (p UnionLinks) Simplify() (LinkPath, bool) { return p, false }
-func (p UnionLinks) Optimize() (LinkPath, bool) {
+func (p UnionLinks) Replace(_ WrapNodesFunc, lf WrapLinksFunc) Links {
+	if lf == nil {
+		return p
+	}
+	nodes := make([]Links, len(p))
+	for i := range p {
+		nodes[i] = lf(p[i])
+	}
+	return UnionLinks(nodes)
+}
+func (p UnionLinks) BuildIterator() graph.Iterator {
+	it := iterator.NewOr()
+	for _, n := range p {
+		it.AddSubIterator(n.BuildIterator())
+	}
+	return it
+}
+func (p UnionLinks) Simplify() (Links, bool) { return p, false }
+func (p UnionLinks) Optimize() (Links, bool) {
 	if len(p) == 0 {
 		return nil, true
 	} else if len(p) == 1 {
 		n, _ := p[0].Optimize()
 		return n, true
 	}
-	nsets := make([]LinkPath, 0, len(p))
+	nsets := make([]Links, 0, len(p))
 	var optg bool
 	for _, sp := range p {
+		if sp == nil {
+			continue
+		}
 		n, opt := sp.Optimize()
 		if _, ok := n.(AllLinks); ok { // intersect with all = all
 			return AllLinks{}, true

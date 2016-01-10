@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/path2/pathtest"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/writer"
 )
@@ -232,4 +233,8 @@ func TestTransaction(t *testing.T) {
 	if size != qs.Size() {
 		t.Error("Appended a new quad in a failed transaction")
 	}
+}
+
+func TestMorphisms(t *testing.T) {
+	pathtest.TestMorphisms(t, func() graph.QuadStore { return newQuadStore() })
 }
