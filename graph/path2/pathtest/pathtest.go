@@ -75,7 +75,9 @@ func makeTestStore(t testing.TB, fnc func() graph.QuadStore) graph.QuadStore {
 
 func runTopLevel(qs graph.QuadStore, p PathObj) []string {
 	var out []string
-	p = OptimizeOn(p, qs)
+	if _, ok := p.(*Path); !ok {
+		p = OptimizeOn(p, qs)
+	}
 	it := p.BuildIterator()
 	it, _ = it.Optimize()
 	for graph.Next(it) {
@@ -87,7 +89,9 @@ func runTopLevel(qs graph.QuadStore, p PathObj) []string {
 
 func runTag(qs graph.QuadStore, p PathObj, tag string) []string {
 	var out []string
-	p = OptimizeOn(p, qs)
+	if _, ok := p.(*Path); !ok {
+		p = OptimizeOn(p, qs)
+	}
 	it := p.BuildIterator()
 	it, _ = it.Optimize()
 	for graph.Next(it) {
@@ -105,6 +109,7 @@ func runTag(qs graph.QuadStore, p PathObj, tag string) []string {
 
 type test struct {
 	message string
+	pathc   *Path
 	path    Nodes
 	expect  []string
 	tag     string
@@ -113,7 +118,7 @@ type test struct {
 // Define morphisms without a QuadStore
 
 var (
-	//	grandfollows = StartMorphism().Out("follows").Out("follows")
+	grandfollows     = StartMorphism().Out("follows").Out("follows")
 	grandfollowsPath = Out{
 		From: Out{
 			From: Start{},
@@ -127,15 +132,15 @@ func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
 			message: "use out",
-			//			path: StartPath(qs, "alice").Out("follows"),
-			path:   Out{From: Fixed{"alice"}, Via: Fixed{"follows"}},
-			expect: []string{"bob"},
+			path:    Out{From: Fixed{"alice"}, Via: Fixed{"follows"}},
+			pathc:   StartPath(qs, "alice").Out("follows"),
+			expect:  []string{"bob"},
 		},
 		{
 			message: "use in",
 			path:    Out{From: Fixed{"bob"}, Via: Fixed{"follows"}, Rev: true},
-			//			path:    StartPath(qs, "bob").In("follows"),
-			expect: []string{"alice", "charlie", "dani"},
+			pathc:   StartPath(qs, "bob").In("follows"),
+			expect:  []string{"alice", "charlie", "dani"},
 		},
 		{
 			message: "use path Out",
@@ -146,7 +151,7 @@ func testSet(qs graph.QuadStore) []test {
 					Via:  Fixed{"are"},
 				},
 			},
-			//			path:    StartPath(qs, "bob").Out(StartPath(qs, "predicates").Out("are")),
+			pathc:  StartPath(qs, "bob").Out(StartPath(qs, "predicates").Out("are")),
 			expect: []string{"fred", "cool_person"},
 		},
 		{
@@ -155,8 +160,8 @@ func testSet(qs graph.QuadStore) []test {
 				Out{From: Fixed{"dani"}, Via: Fixed{"follows"}},
 				Out{From: Fixed{"charlie"}, Via: Fixed{"follows"}},
 			},
-			//			path: StartPath(qs, "dani").Out("follows").And(
-			//				StartPath(qs, "charlie").Out("follows")),
+			pathc: StartPath(qs, "dani").Out("follows").And(
+				StartPath(qs, "charlie").Out("follows")),
 			expect: []string{"bob"},
 		},
 		{
@@ -165,15 +170,15 @@ func testSet(qs graph.QuadStore) []test {
 				Out{From: Fixed{"fred"}, Via: Fixed{"follows"}},
 				Out{From: Fixed{"alice"}, Via: Fixed{"follows"}},
 			},
-			//			path: StartPath(qs, "fred").Out("follows").Or(
-			//				StartPath(qs, "alice").Out("follows")),
+			pathc: StartPath(qs, "fred").Out("follows").Or(
+				StartPath(qs, "alice").Out("follows")),
 			expect: []string{"bob", "greg"},
 		},
 		{
 			message: "implicit All",
 			path:    AllNodes{},
-			//			path:    StartPath(qs),
-			expect: []string{"alice", "bob", "charlie", "dani", "emily", "fred", "greg", "follows", "status", "cool_person", "predicates", "are", "smart_graph", "smart_person"},
+			pathc:   StartPath(qs),
+			expect:  []string{"alice", "bob", "charlie", "dani", "emily", "fred", "greg", "follows", "status", "cool_person", "predicates", "are", "smart_graph", "smart_person"},
 		},
 		{
 			message: "follow",
@@ -187,7 +192,7 @@ func testSet(qs graph.QuadStore) []test {
 					Via: Fixed{"follows"},
 				},
 			),
-			//			path:    StartPath(qs, "charlie").Follow(StartMorphism().Out("follows").Out("follows")),
+			pathc:  StartPath(qs, "charlie").Follow(StartMorphism().Out("follows").Out("follows")),
 			expect: []string{"bob", "fred", "greg"},
 		},
 		//		{ // TODO: reverse
@@ -213,7 +218,7 @@ func testSet(qs graph.QuadStore) []test {
 				),
 				Fixed{"fred"},
 			},
-			//			path:    StartPath(qs).Tag("first").Follow(StartMorphism().Out("follows").Out("follows")).Is("fred"),
+			pathc:  StartPath(qs).Tag("first").Follow(StartMorphism().Out("follows").Out("follows")).Is("fred"),
 			expect: []string{"alice", "charlie", "dani"},
 			tag:    "first",
 		},
@@ -223,7 +228,7 @@ func testSet(qs graph.QuadStore) []test {
 				From:  Fixed{"alice", "bob"},
 				Nodes: Fixed{"alice"},
 			},
-			//			path:    StartPath(qs, "alice", "bob").Except(StartPath(qs, "alice")),
+			pathc:  StartPath(qs, "alice", "bob").Except(StartPath(qs, "alice")),
 			expect: []string{"bob"},
 		},
 		{
@@ -235,7 +240,7 @@ func testSet(qs graph.QuadStore) []test {
 				},
 				Nodes: Fixed{"alice"},
 			},
-			//			path:    StartPath(qs, "alice", "bob", "charlie").Except(StartPath(qs, "bob")).Except(StartPath(qs, "alice")),
+			pathc:  StartPath(qs, "alice", "bob", "charlie").Except(StartPath(qs, "bob")).Except(StartPath(qs, "alice")),
 			expect: []string{"charlie"},
 		},
 		{
@@ -245,7 +250,7 @@ func testSet(qs graph.QuadStore) []test {
 				Via:  Fixed{"status"},
 				Tags: []string{"somecool"},
 			},
-			//				path:    StartPath(qs).Save("status", "somecool"),
+			pathc:  StartPath(qs).Save("status", "somecool"),
 			tag:    "somecool",
 			expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 		},
@@ -257,7 +262,7 @@ func testSet(qs graph.QuadStore) []test {
 				Tags: []string{"who"},
 				Rev:  true,
 			},
-			//				path:    StartPath(qs, "cool_person").SaveReverse("status", "who"),
+			pathc:  StartPath(qs, "cool_person").SaveReverse("status", "who"),
 			tag:    "who",
 			expect: []string{"greg", "dani", "bob"},
 		},
@@ -268,7 +273,7 @@ func testSet(qs graph.QuadStore) []test {
 				Via:   Fixed{"status"},
 				Nodes: Fixed{"cool_person"},
 			},
-			//				path:    StartPath(qs).Has("status", "cool_person"),
+			pathc:  StartPath(qs).Has("status", "cool_person"),
 			expect: []string{"greg", "dani", "bob"},
 		},
 		{
@@ -282,7 +287,7 @@ func testSet(qs graph.QuadStore) []test {
 				Via:   Fixed{"follows"},
 				Nodes: Fixed{"fred"},
 			},
-			//				path:    StartPath(qs).Has("status", "cool_person").Has("follows", "fred"),
+			pathc:  StartPath(qs).Has("status", "cool_person").Has("follows", "fred"),
 			expect: []string{"bob"},
 		},
 		//		{
@@ -302,7 +307,7 @@ func testSet(qs graph.QuadStore) []test {
 				From: Fixed{"bob"},
 				Rev:  true,
 			},
-			//				path:    StartPath(qs, "bob").InPredicates(),
+			pathc:  StartPath(qs, "bob").InPredicates(),
 			expect: []string{"follows"},
 		},
 		{
@@ -310,15 +315,15 @@ func testSet(qs graph.QuadStore) []test {
 			path: Predicates{
 				From: Fixed{"bob"},
 			},
-			//				path:    StartPath(qs, "bob").OutPredicates(),
+			pathc:  StartPath(qs, "bob").OutPredicates(),
 			expect: []string{"follows", "status"},
 		},
 		// Morphism tests
 		{
 			message: "show simple morphism",
 			path:    Follow(Fixed{"charlie"}, grandfollowsPath),
-			//			path:    StartPath(qs, "charlie").Follow(grandfollows),
-			expect: []string{"greg", "fred", "bob"},
+			pathc:   StartPath(qs, "charlie").Follow(grandfollows),
+			expect:  []string{"greg", "fred", "bob"},
 		},
 		//		{
 		//			message: "show reverse morphism",
@@ -332,7 +337,7 @@ func testSet(qs graph.QuadStore) []test {
 				From: Fixed{"greg"},
 				Via:  Fixed{"status"},
 			},
-			//				path:    StartPath(qs, "greg").Out("status"),
+			pathc:  StartPath(qs, "greg").Out("status"),
 			expect: []string{"smart_person", "cool_person"},
 		},
 		//		{
@@ -352,16 +357,22 @@ func TestMorphisms(t testing.TB, fnc func() graph.QuadStore) {
 	qs := makeTestStore(t, fnc)
 	for _, test := range testSet(qs) {
 		t.Log(test.message)
-		var got []string
+		var got, gotc []string
 		if test.tag == "" {
 			got = runTopLevel(qs, test.path)
+			gotc = runTopLevel(qs, test.pathc)
 		} else {
 			got = runTag(qs, test.path, test.tag)
+			gotc = runTag(qs, test.pathc, test.tag)
 		}
 		sort.Strings(got)
+		sort.Strings(gotc)
 		sort.Strings(test.expect)
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
+		}
+		if !reflect.DeepEqual(gotc, test.expect) {
+			t.Errorf("Failed to %s (compat), got: %v expected: %v", test.message, gotc, test.expect)
 		}
 	}
 }

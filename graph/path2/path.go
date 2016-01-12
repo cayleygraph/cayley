@@ -57,7 +57,7 @@ type LinksReplacer interface {
 }
 
 func replaceAny(p PathObj, nf ReplaceNodesFunc, lf ReplaceLinksFunc) PathObj {
-	// TODO: reflect-based replacer
+	// TODO: reflect-based replacer?
 	panic(fmt.Errorf("not implemented, type: %T", p))
 }
 func Replace(p PathObj, nf ReplaceNodesFunc, lf ReplaceLinksFunc) (out PathObj) {
