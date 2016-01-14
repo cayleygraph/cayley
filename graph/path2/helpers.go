@@ -47,3 +47,14 @@ func Follow(from Nodes, via Nodes) Nodes {
 		return p, true
 	}, nil).(Nodes)
 }
+
+func FollowReverse(from Nodes, via Nodes) Nodes {
+	return Replace(via, func(p Nodes) (Nodes, bool) {
+		if _, ok := p.(Start); ok {
+			return from, false
+		} else if rev, ok := p.(NodesReverser); ok {
+			return rev.Reverse(), true
+		}
+		return p, true
+	}, nil).(Nodes)
+}

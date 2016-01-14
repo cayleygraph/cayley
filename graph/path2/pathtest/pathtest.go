@@ -195,11 +195,21 @@ func testSet(qs graph.QuadStore) []test {
 			pathc:  StartPath(qs, "charlie").Follow(StartMorphism().Out("follows").Out("follows")),
 			expect: []string{"bob", "fred", "greg"},
 		},
-		//		{ // TODO: reverse
-		//			message: "followR",
-		//			path:    StartPath(qs, "fred").FollowReverse(StartMorphism().Out("follows").Out("follows")),
-		//			expect:  []string{"alice", "charlie", "dani"},
-		//		},
+		{
+			message: "followR",
+			path: FollowReverse(
+				Fixed{"fred"},
+				Out{
+					From: Out{
+						From: Start{},
+						Via:  Fixed{"follows"},
+					},
+					Via: Fixed{"follows"},
+				},
+			),
+			pathc:  StartPath(qs, "fred").FollowReverse(StartMorphism().Out("follows").Out("follows")),
+			expect: []string{"alice", "charlie", "dani"},
+		},
 		{
 			message: "is, tag, instead of FollowR",
 			path: IntersectNodes{
@@ -325,12 +335,13 @@ func testSet(qs graph.QuadStore) []test {
 			pathc:   StartPath(qs, "charlie").Follow(grandfollows),
 			expect:  []string{"greg", "fred", "bob"},
 		},
-		//		{
-		//			message: "show reverse morphism",
-		//			path:    StartPath(qs, "fred").FollowReverse(grandfollows),
-		//			expect:  []string{"alice", "charlie", "dani"},
-		//		},
-		//		// Context tests
+		{
+			message: "show reverse morphism",
+			path:    FollowReverse(Fixed{"fred"}, grandfollowsPath),
+			pathc:   StartPath(qs, "fred").FollowReverse(grandfollows),
+			expect:  []string{"alice", "charlie", "dani"},
+		},
+		// Context tests
 		{
 			message: "query without label limitation",
 			path: Out{
@@ -360,10 +371,14 @@ func TestMorphisms(t testing.TB, fnc func() graph.QuadStore) {
 		var got, gotc []string
 		if test.tag == "" {
 			got = runTopLevel(qs, test.path)
-			gotc = runTopLevel(qs, test.pathc)
+			if test.pathc != nil {
+				gotc = runTopLevel(qs, test.pathc)
+			}
 		} else {
 			got = runTag(qs, test.path, test.tag)
-			gotc = runTag(qs, test.pathc, test.tag)
+			if test.pathc != nil {
+				gotc = runTag(qs, test.pathc, test.tag)
+			}
 		}
 		sort.Strings(got)
 		sort.Strings(gotc)
@@ -371,7 +386,7 @@ func TestMorphisms(t testing.TB, fnc func() graph.QuadStore) {
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
 		}
-		if !reflect.DeepEqual(gotc, test.expect) {
+		if test.pathc != nil && !reflect.DeepEqual(gotc, test.expect) {
 			t.Errorf("Failed to %s (compat), got: %v expected: %v", test.message, gotc, test.expect)
 		}
 	}

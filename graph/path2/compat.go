@@ -300,8 +300,7 @@ func (p *Path) Follow(path *Path) *Path {
 // FollowReverse is the same as follow, except it will iterate backwards up the
 // path given as argument.
 func (p *Path) FollowReverse(path *Path) *Path {
-	panic("not implemented yet") // TODO
-	//	p.stack = append(p.stack, followMorphism(path.Reverse()))
+	p.nodes = FollowReverse(p.nodes, path.nodes)
 	return p
 }
 

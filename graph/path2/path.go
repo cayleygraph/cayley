@@ -42,6 +42,10 @@ type Links interface {
 	Optimize() (Links, bool)
 }
 
+type NodesReverser interface {
+	Reverse() Nodes
+}
+
 //
 
 type WrapNodesFunc func(Nodes) Nodes

@@ -61,6 +61,7 @@ func (p Except) Optimize() (Nodes, bool) {
 var (
 	_ Nodes           = Out{}
 	_ NodesSimplifier = Out{}
+	_ NodesReverser   = Out{}
 )
 
 type Out struct {
@@ -70,6 +71,14 @@ type Out struct {
 	Tags []string
 }
 
+func (p Out) Reverse() Nodes {
+	return Out{
+		From: p.From,
+		Via:  p.Via,
+		Rev:  !p.Rev,
+		Tags: p.Tags,
+	}
+}
 func (p Out) Replace(nf WrapNodesFunc, nl WrapLinksFunc) Nodes {
 	if nf == nil {
 		return p
@@ -211,8 +220,9 @@ func (p Has) Optimize() (Nodes, bool) {
 }
 
 var (
-	_ Nodes           = Has{}
-	_ NodesSimplifier = Has{}
+	_ Nodes           = Predicates{}
+	_ NodesSimplifier = Predicates{}
+	_ NodesReverser   = Predicates{}
 )
 
 type Predicates struct {
@@ -220,6 +230,9 @@ type Predicates struct {
 	Rev  bool
 }
 
+func (P Predicates) Reverse() Nodes {
+	panic("not implemented: need a function from predicates to their associated edges")
+}
 func (p Predicates) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
 	if nf == nil {
 		return p
