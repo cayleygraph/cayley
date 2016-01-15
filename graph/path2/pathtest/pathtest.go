@@ -78,6 +78,9 @@ func runTopLevel(qs graph.QuadStore, p PathObj) []string {
 	if _, ok := p.(*Path); !ok {
 		p = OptimizeOn(p, qs)
 	}
+	if p == nil {
+		return nil
+	}
 	it := p.BuildIterator()
 	it, _ = it.Optimize()
 	for graph.Next(it) {
@@ -91,6 +94,9 @@ func runTag(qs graph.QuadStore, p PathObj, tag string) []string {
 	var out []string
 	if _, ok := p.(*Path); !ok {
 		p = OptimizeOn(p, qs)
+	}
+	if p == nil {
+		return nil
 	}
 	it := p.BuildIterator()
 	it, _ = it.Optimize()
@@ -121,10 +127,12 @@ var (
 	grandfollows     = StartMorphism().Out("follows").Out("follows")
 	grandfollowsPath = Out{
 		From: Out{
-			From: Start{},
-			Via:  Fixed{"follows"},
+			From:   Start{},
+			Via:    Fixed{"follows"},
+			Labels: AllNodes{},
 		},
-		Via: Fixed{"follows"},
+		Via:    Fixed{"follows"},
+		Labels: AllNodes{},
 	}
 )
 
@@ -132,13 +140,13 @@ func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
 			message: "use out",
-			path:    Out{From: Fixed{"alice"}, Via: Fixed{"follows"}},
+			path:    Out{From: Fixed{"alice"}, Via: Fixed{"follows"}, Labels: AllNodes{}},
 			pathc:   StartPath(qs, "alice").Out("follows"),
 			expect:  []string{"bob"},
 		},
 		{
 			message: "use in",
-			path:    Out{From: Fixed{"bob"}, Via: Fixed{"follows"}, Rev: true},
+			path:    Out{From: Fixed{"bob"}, Via: Fixed{"follows"}, Rev: true, Labels: AllNodes{}},
 			pathc:   StartPath(qs, "bob").In("follows"),
 			expect:  []string{"alice", "charlie", "dani"},
 		},
@@ -147,9 +155,11 @@ func testSet(qs graph.QuadStore) []test {
 			path: Out{
 				From: Fixed{"bob"},
 				Via: Out{
-					From: Fixed{"predicates"},
-					Via:  Fixed{"are"},
+					From:   Fixed{"predicates"},
+					Via:    Fixed{"are"},
+					Labels: AllNodes{},
 				},
+				Labels: AllNodes{},
 			},
 			pathc:  StartPath(qs, "bob").Out(StartPath(qs, "predicates").Out("are")),
 			expect: []string{"fred", "cool_person"},
@@ -157,8 +167,8 @@ func testSet(qs graph.QuadStore) []test {
 		{
 			message: "use And",
 			path: IntersectNodes{
-				Out{From: Fixed{"dani"}, Via: Fixed{"follows"}},
-				Out{From: Fixed{"charlie"}, Via: Fixed{"follows"}},
+				Out{From: Fixed{"dani"}, Via: Fixed{"follows"}, Labels: AllNodes{}},
+				Out{From: Fixed{"charlie"}, Via: Fixed{"follows"}, Labels: AllNodes{}},
 			},
 			pathc: StartPath(qs, "dani").Out("follows").And(
 				StartPath(qs, "charlie").Out("follows")),
@@ -167,8 +177,8 @@ func testSet(qs graph.QuadStore) []test {
 		{
 			message: "use Or",
 			path: UnionNodes{
-				Out{From: Fixed{"fred"}, Via: Fixed{"follows"}},
-				Out{From: Fixed{"alice"}, Via: Fixed{"follows"}},
+				Out{From: Fixed{"fred"}, Via: Fixed{"follows"}, Labels: AllNodes{}},
+				Out{From: Fixed{"alice"}, Via: Fixed{"follows"}, Labels: AllNodes{}},
 			},
 			pathc: StartPath(qs, "fred").Out("follows").Or(
 				StartPath(qs, "alice").Out("follows")),
@@ -186,10 +196,12 @@ func testSet(qs graph.QuadStore) []test {
 				Fixed{"charlie"},
 				Out{
 					From: Out{
-						From: Start{},
-						Via:  Fixed{"follows"},
+						From:   Start{},
+						Via:    Fixed{"follows"},
+						Labels: AllNodes{},
 					},
-					Via: Fixed{"follows"},
+					Via:    Fixed{"follows"},
+					Labels: AllNodes{},
 				},
 			),
 			pathc:  StartPath(qs, "charlie").Follow(StartMorphism().Out("follows").Out("follows")),
@@ -201,10 +213,12 @@ func testSet(qs graph.QuadStore) []test {
 				Fixed{"fred"},
 				Out{
 					From: Out{
-						From: Start{},
-						Via:  Fixed{"follows"},
+						From:   Start{},
+						Via:    Fixed{"follows"},
+						Labels: AllNodes{},
 					},
-					Via: Fixed{"follows"},
+					Via:    Fixed{"follows"},
+					Labels: AllNodes{},
 				},
 			),
 			pathc:  StartPath(qs, "fred").FollowReverse(StartMorphism().Out("follows").Out("follows")),
@@ -220,10 +234,12 @@ func testSet(qs graph.QuadStore) []test {
 					},
 					Out{
 						From: Out{
-							From: Start{},
-							Via:  Fixed{"follows"},
+							From:   Start{},
+							Via:    Fixed{"follows"},
+							Labels: AllNodes{},
 						},
-						Via: Fixed{"follows"},
+						Via:    Fixed{"follows"},
+						Labels: AllNodes{},
 					},
 				),
 				Fixed{"fred"},
@@ -345,17 +361,23 @@ func testSet(qs graph.QuadStore) []test {
 		{
 			message: "query without label limitation",
 			path: Out{
-				From: Fixed{"greg"},
-				Via:  Fixed{"status"},
+				From:   Fixed{"greg"},
+				Via:    Fixed{"status"},
+				Labels: AllNodes{},
 			},
 			pathc:  StartPath(qs, "greg").Out("status"),
 			expect: []string{"smart_person", "cool_person"},
 		},
-		//		{
-		//			message: "query with label limitation",
-		//			path:    StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),
-		//			expect:  []string{"smart_person"},
-		//		},
+		{
+			message: "query with label limitation",
+			path: Out{
+				From:   Fixed{"greg"},
+				Via:    Fixed{"status"},
+				Labels: Fixed{"smart_graph"},
+			},
+			//		pathc:    StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),
+			expect: []string{"smart_person"},
+		},
 		//		{
 		//			message: "reverse context",
 		//			path:    StartPath(qs, "greg").Tag("base").LabelContext("smart_graph").Out("status").Tag("status").Back("base"),

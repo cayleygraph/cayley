@@ -34,15 +34,13 @@ func (p Tag) Optimize() (Nodes, bool) {
 	n, opt := p.Nodes.Optimize()
 	if len(p.Tags) == 0 {
 		return n, true
-	} else if !opt {
-		return p, false
 	} else if n == nil {
 		return nil, true
 	}
 	return Tag{
 		Nodes: n,
-		Tags:  p.Tags, // TODO: unique tags
-	}, true
+		Tags:  uniqueStrings(p.Tags),
+	}, opt
 }
 
 var (
@@ -76,11 +74,14 @@ func (p IntersectNodes) Optimize() (Nodes, bool) {
 		n, _ := p[0].Optimize()
 		return n, true
 	}
-	nsets := make([]Nodes, 0, len(p))
-	var optg bool
-	for _, sp := range p {
+	pset := make([]Nodes, 0, len(p))
+	var (
+		optg  bool
+		fixed Fixed
+	)
+	for _, sp := range p { // optimize and append other intersects
 		if sp == nil {
-			continue
+			return nil, true
 		}
 		n, opt := sp.Optimize()
 		if n == nil { // intersect with zero = zero
@@ -88,16 +89,39 @@ func (p IntersectNodes) Optimize() (Nodes, bool) {
 		} else if _, ok := n.(AllNodes); ok { // remove 'all' sets
 			optg = true
 			continue
+		} else if x, ok := n.(IntersectNodes); ok {
+			optg = true
+			pset = append(pset, x...)
+			continue
 		}
 		optg = optg || opt
+		pset = append(pset, n)
+	}
+	nsets := make([]Nodes, 0, len(pset))
+	first := true
+	for _, n := range pset {
+		if x, ok := n.(Fixed); ok { // collect all fixed
+			if first {
+				first = false
+				fixed = x
+			} else {
+				fixed = fixed.Intersect(x)
+				if len(fixed) == 0 {
+					return nil, true
+				}
+			}
+			continue
+		}
 		nsets = append(nsets, n)
+	}
+	if !first {
+		nsets = append(nsets, fixed.Unique())
 	}
 	if len(nsets) == 0 {
 		return nil, true
 	} else if len(nsets) == 1 {
 		return nsets[0], true
 	}
-	// TODO: intersect FixedValues into a single one
 	// TODO: all optimizations from iterator/and_iterator_optimize.go
 	return IntersectNodes(nsets), optg
 }
@@ -132,7 +156,10 @@ func (p UnionNodes) Optimize() (Nodes, bool) {
 		return n, true
 	}
 	nsets := make([]Nodes, 0, len(p))
-	var optg bool
+	var (
+		optg  bool
+		fixed Fixed
+	)
 	for _, sp := range p {
 		if sp == nil {
 			continue
@@ -140,6 +167,10 @@ func (p UnionNodes) Optimize() (Nodes, bool) {
 		n, opt := sp.Optimize()
 		if _, ok := n.(AllNodes); ok { // intersect with all = all
 			return AllNodes{}, true
+		} else if fi, ok := n.(Fixed); ok { // collect all fixed
+			optg = len(fixed) != 0
+			fixed = append(fixed, fi...)
+			continue
 		} else if n == nil { // remove empty sets
 			optg = true
 			continue
@@ -147,12 +178,15 @@ func (p UnionNodes) Optimize() (Nodes, bool) {
 		optg = optg || opt
 		nsets = append(nsets, n)
 	}
+	if len(fixed) != 0 {
+		nsets = append(nsets, fixed)
+	}
+	// TODO: unique Fixed in union?
 	if len(nsets) == 0 {
 		return nil, true
 	} else if len(nsets) == 1 {
 		return nsets[0], true
 	}
-	// TODO: deduplicate FixedValues into a single one
 	return UnionNodes(nsets), optg
 }
 
@@ -191,7 +225,7 @@ func (p IntersectLinks) Optimize() (Links, bool) {
 	var optg bool
 	for _, sp := range p {
 		if sp == nil {
-			continue
+			return nil, true
 		}
 		n, opt := sp.Optimize()
 		if n == nil { // intersect with zero = zero
@@ -208,7 +242,6 @@ func (p IntersectLinks) Optimize() (Links, bool) {
 	} else if len(nsets) == 1 {
 		return nsets[0], true
 	}
-	// TODO: intersect FixedValues into a single one
 	// TODO: all optimizations from iterator/and_iterator_optimize.go
 	return IntersectLinks(nsets), optg
 }
@@ -263,7 +296,6 @@ func (p UnionLinks) Optimize() (Links, bool) {
 	} else if len(nsets) == 1 {
 		return nsets[0], true
 	}
-	// TODO: deduplicate FixedValues into a single one
 	return UnionLinks(nsets), optg
 }
 
@@ -294,8 +326,8 @@ func (p Unique) Optimize() (Nodes, bool) {
 	switch tp := nodes.(type) {
 	case AllNodes:
 		return AllNodes{}, true
-	case Fixed: // TODO: unique strings
-		return Unique{Fixed([]string(tp))}, true
+	case Fixed:
+		return tp.Unique(), true
 	}
 	return Unique{Nodes: nodes}, opt
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
+	"sort"
 )
 
 var (
@@ -49,8 +50,56 @@ var (
 	_ NodesAbstract = Fixed{}
 )
 
+func uniqueStrings(s []string) []string {
+	if len(s) < 2 {
+		return s
+	}
+	np := make([]string, len(s))
+	copy(np, s)
+	sort.Strings([]string(np))
+	off := 0
+	for i := 1; i < len(np); i++ {
+		if np[i-1] == np[i] {
+			off++
+		} else if off > 0 {
+			np[i-off] = np[i]
+		}
+	}
+	return np[:len(s)-off]
+}
+
 type Fixed []string
 
+func (p Fixed) Unique() Fixed {
+	return Fixed(uniqueStrings([]string(p)))
+}
+func (p Fixed) Intersect(n Fixed) Fixed {
+	p, n = p.Unique(), n.Unique()
+	if len(n) == 0 {
+		return nil
+	}
+	if len(p) < len(n) {
+		return n.Intersect(p)
+	} else if len(n) == 1 {
+		for _, v := range p {
+			if v == n[0] {
+				return n
+			}
+		}
+		return nil
+	}
+	m := make(map[string]struct{}, len(n))
+	for _, v := range n {
+		m[v] = struct{}{}
+	}
+	out := make(Fixed, 0, len(m))
+	for _, v := range p {
+		if _, ok := m[v]; ok {
+			out = append(out, v)
+		}
+	}
+	return out
+}
 func (p Fixed) BuildIterator() graph.Iterator                  { panic("build on abstract path: FixedValues") }
 func (p Fixed) Replace(_ WrapNodesFunc, _ WrapLinksFunc) Nodes { return p }
 func (p Fixed) BindTo(qs graph.QuadStore) Nodes {
@@ -93,6 +142,12 @@ func (p HasA) Replace(_ WrapNodesFunc, lf WrapLinksFunc) Nodes {
 }
 func (p HasA) BindTo(qs graph.QuadStore) Nodes {
 	np := OptimizeOn(p.Links, qs)
+	if np == nil {
+		return NodeIteratorBuilder{
+			Path:    p,
+			Builder: func() graph.Iterator { return iterator.NewNull() },
+		}
+	}
 	return NodeIteratorBuilder{
 		Path: p,
 		Builder: func() graph.Iterator {
@@ -105,15 +160,17 @@ func (p HasA) Optimize() (Nodes, bool) {
 		return nil, true
 	}
 	n, opt := p.Links.Optimize()
-	if !opt {
-		return p, false
-	} else if n == nil {
+	if n == nil {
 		return nil, true
+	} else if _, ok := n.(AllLinks); ok {
+		return AllNodes{}, true
+	} else if x, ok := n.(LinksTo); ok && x.Dir == p.Dir {
+		return x.Nodes, true
 	}
 	return HasA{
 		Links: n,
 		Dir:   p.Dir,
-	}, true
+	}, opt
 }
 
 var (
@@ -135,6 +192,12 @@ func (p LinksTo) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Links {
 }
 func (p LinksTo) BindTo(qs graph.QuadStore) Links {
 	np := OptimizeOn(p.Nodes, qs)
+	if np == nil {
+		return LinkIteratorBuilder{
+			Path:    p,
+			Builder: func() graph.Iterator { return iterator.NewNull() },
+		}
+	}
 	return LinkIteratorBuilder{
 		Path: p,
 		Builder: func() graph.Iterator {
@@ -147,15 +210,17 @@ func (p LinksTo) Optimize() (Links, bool) {
 		return nil, true
 	}
 	n, opt := p.Nodes.Optimize()
-	if !opt {
-		return p, false
-	} else if n == nil {
+	if n == nil {
 		return nil, true
+	} else if _, ok := n.(AllNodes); ok {
+		return AllLinks{}, true
+	} else if x, ok := n.(HasA); ok && x.Dir == p.Dir {
+		return x.Links, true
 	}
 	return LinksTo{
 		Nodes: n,
 		Dir:   p.Dir,
-	}, true
+	}, opt
 }
 
 var (
@@ -176,6 +241,12 @@ func (p NotNodes) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
 }
 func (p NotNodes) BindTo(qs graph.QuadStore) Nodes {
 	np := OptimizeOn(p.Nodes, qs)
+	if np == nil {
+		return NodeIteratorBuilder{
+			Path:    p,
+			Builder: func() graph.Iterator { return qs.NodesAllIterator() },
+		}
+	}
 	return NodeIteratorBuilder{
 		Path: p,
 		Builder: func() graph.Iterator {
@@ -188,6 +259,9 @@ func (p NotNodes) Optimize() (Nodes, bool) {
 		return AllNodes{}, true
 	}
 	n, opt := p.Nodes.Optimize()
+	if n == nil {
+		return AllNodes{}, true
+	}
 	switch t := n.(type) {
 	case AllNodes:
 		return nil, true

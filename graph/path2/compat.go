@@ -17,6 +17,7 @@ package path
 import (
 	"fmt"
 	"github.com/google/cayley/graph"
+	"github.com/google/cayley/graph/iterator"
 	"reflect"
 )
 
@@ -163,8 +164,9 @@ func (p *Path) Tag(tags ...string) *Path {
 //  StartPath(qs, "A").Out("follows")
 func (p *Path) Out(via ...interface{}) *Path {
 	p.nodes = Out{
-		From: p.nodes,
-		Via:  buildViaPath(via...),
+		From:   p.nodes,
+		Via:    buildViaPath(via...),
+		Labels: AllNodes{}, // TODO: from context
 	}
 	return p
 }
@@ -180,9 +182,10 @@ func (p *Path) Out(via ...interface{}) *Path {
 //  StartPath(qs, "B").In("follows")
 func (p *Path) In(via ...interface{}) *Path {
 	p.nodes = Out{
-		From: p.nodes,
-		Via:  buildViaPath(via...),
-		Rev:  true,
+		From:   p.nodes,
+		Via:    buildViaPath(via...),
+		Labels: AllNodes{}, // TODO: from context
+		Rev:    true,
 	}
 	return p
 }
@@ -191,10 +194,11 @@ func (p *Path) In(via ...interface{}) *Path {
 // traversed with the tags provided.
 func (p *Path) InWithTags(tags []string, via ...interface{}) *Path {
 	p.nodes = Out{
-		From: p.nodes,
-		Via:  buildViaPath(via...),
-		Tags: tags,
-		Rev:  true,
+		From:   p.nodes,
+		Via:    buildViaPath(via...),
+		Tags:   tags,
+		Labels: AllNodes{}, // TODO: from context
+		Rev:    true,
 	}
 	return p
 }
@@ -203,9 +207,10 @@ func (p *Path) InWithTags(tags []string, via ...interface{}) *Path {
 // traversed with the tags provided.
 func (p *Path) OutWithTags(tags []string, via ...interface{}) *Path {
 	p.nodes = Out{
-		From: p.nodes,
-		Via:  buildViaPath(via...),
-		Tags: tags,
+		From:   p.nodes,
+		Via:    buildViaPath(via...),
+		Labels: AllNodes{}, // TODO: from context
+		Tags:   tags,
 	}
 	return p
 }
@@ -408,7 +413,11 @@ func (p *Path) BuildIterator() graph.Iterator {
 
 // BuildIteratorOn will return an iterator for this path on the given QuadStore.
 func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.Iterator {
-	return OptimizeOn(p.nodes, qs).BuildIterator()
+	np := OptimizeOn(p.nodes, qs)
+	if np == nil {
+		return iterator.NewNull()
+	}
+	return np.BuildIterator()
 }
 
 // Morphism returns the morphism of this path.  The returned value is a
@@ -424,6 +433,9 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 			NodeIteratorBuilder{Builder: func() graph.Iterator { return it.Clone() }},
 		}
 		path = OptimizeOn(path, qs)
+		if path == nil {
+			return iterator.NewNull()
+		}
 		return path.BuildIterator()
 	}
 }

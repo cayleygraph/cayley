@@ -93,10 +93,16 @@ func Replace(p PathObj, nf ReplaceNodesFunc, lf ReplaceLinksFunc) (out PathObj) 
 		panic("unknown type")
 	}
 	nfw := func(p Nodes) Nodes {
-		return Replace(p, nf, lf).(Nodes)
+		if np := Replace(p, nf, lf); np != nil {
+			return np.(Nodes)
+		}
+		return nil
 	}
 	lfw := func(p Links) Links {
-		return Replace(p, nf, lf).(Links)
+		if np := Replace(p, nf, lf); np != nil {
+			return np.(Links)
+		}
+		return nil
 	}
 	if nr, ok := p.(NodesReplacer); ok {
 		return nr.Replace(nfw, lfw)
@@ -151,39 +157,36 @@ func OptimizeOn(p PathObj, qs graph.QuadStore) PathObj {
 				return np, false
 			}
 			if sm, ok := sp.(NodesSimplifier); ok {
-				np = sm.Simplify()
+				np, _ = sm.Simplify().Optimize()
 			} else { // can't simplify, indirect further
 				return sp, true
 			}
+			// give a second chance - optimize a simplified variant
 			np, opt = po.OptimizeNodesPath(np)
-			if !opt { // can't optimize simplified variant
-				return sp, true
-			}
-			return np, false
+			return np, !opt
 		}, func(sp Links) (Links, bool) {
-			np, ok := po.OptimizeLinksPath(sp)
-			if ok { // replaced, no need to indirect
+			np, opt := po.OptimizeLinksPath(sp)
+			if opt { // replaced, no need to indirect
 				return np, false
 			}
 			if sm, ok := sp.(LinksSimplifier); ok {
-				np = sm.Simplify()
+				np, _ = sm.Simplify().Optimize()
 			} else { // can't simplify, indirect further
 				return sp, true
 			}
-			np, ok = po.OptimizeLinksPath(np)
-			if !ok { // can't optimize simplified variant
-				return sp, true
-			}
-			return np, false
+			// give a second chance - optimize a simplified variant
+			np, opt = po.OptimizeLinksPath(np)
+			return np, !opt
 		})
 	}
 	// Step 3: replace all abstract paths
+	// TODO: remove, when all stores will support optimizations
 	p = Replace(p, func(sp Nodes) (Nodes, bool) {
 		if a, ok := sp.(NodesAbstract); ok {
 			return a.BindTo(qs), false
 		}
 		if si, ok := sp.(NodesSimplifier); ok {
-			sp = si.Simplify()
+			sp, _ = si.Simplify().Optimize()
 		}
 		if a, ok := sp.(NodesAbstract); ok {
 			return a.BindTo(qs), false
@@ -194,7 +197,7 @@ func OptimizeOn(p PathObj, qs graph.QuadStore) PathObj {
 			return a.BindTo(qs), false
 		}
 		if si, ok := sp.(LinksSimplifier); ok {
-			sp = si.Simplify()
+			sp, _ = si.Simplify().Optimize()
 		}
 		if a, ok := sp.(LinksAbstract); ok {
 			return a.BindTo(qs), false

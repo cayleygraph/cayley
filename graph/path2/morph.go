@@ -65,18 +65,20 @@ var (
 )
 
 type Out struct {
-	From Nodes
-	Via  Nodes
-	Rev  bool
-	Tags []string
+	From   Nodes
+	Via    Nodes
+	Labels Nodes
+	Rev    bool
+	Tags   []string
 }
 
 func (p Out) Reverse() Nodes {
 	return Out{
-		From: p.From,
-		Via:  p.Via,
-		Rev:  !p.Rev,
-		Tags: p.Tags,
+		From:   p.From,
+		Via:    p.Via,
+		Labels: p.Labels,
+		Rev:    !p.Rev,
+		Tags:   p.Tags,
 	}
 }
 func (p Out) Replace(nf WrapNodesFunc, nl WrapLinksFunc) Nodes {
@@ -84,10 +86,11 @@ func (p Out) Replace(nf WrapNodesFunc, nl WrapLinksFunc) Nodes {
 		return p
 	}
 	return Out{
-		From: nf(p.From),
-		Via:  nf(p.Via),
-		Rev:  p.Rev,
-		Tags: p.Tags,
+		From:   nf(p.From),
+		Via:    nf(p.Via),
+		Labels: nf(p.Labels),
+		Rev:    p.Rev,
+		Tags:   p.Tags,
 	}
 }
 func (p Out) BuildIterator() graph.Iterator {
@@ -109,14 +112,10 @@ func (p Out) Simplify() Nodes {
 		},
 		Dir: quad.Predicate,
 	}
-	var label Links
-	// TODO: labels
-	//	if ctx != nil {
-	//		if ctx.labelSet != nil {
-	//			labeliter := ctx.labelSet.BuildIteratorOn(viaPath.qs)
-	//			label = iterator.NewLinksTo(viaPath.qs, labeliter, quad.Label)
-	//		}
-	//	}
+	label := LinksTo{
+		Nodes: p.Labels,
+		Dir:   quad.Label,
+	}
 	return HasA{
 		Links: IntersectLinks{
 			source,
@@ -127,7 +126,7 @@ func (p Out) Simplify() Nodes {
 	}
 }
 func (p Out) Optimize() (Nodes, bool) {
-	if p.From == nil || p.Via == nil {
+	if p.From == nil || p.Via == nil || p.Labels == nil {
 		return nil, true
 	}
 	nf, fopt := p.From.Optimize()
@@ -138,11 +137,16 @@ func (p Out) Optimize() (Nodes, bool) {
 	if nv == nil {
 		return nil, true
 	}
+	nl, lopt := p.Labels.Optimize()
+	if nl == nil {
+		return nil, true
+	}
 	return Out{
 		From: nf, Via: nv,
-		Rev:  p.Rev,
-		Tags: p.Tags, // TODO: unique tags
-	}, fopt || vopt
+		Labels: nl,
+		Rev:    p.Rev,
+		Tags:   uniqueStrings(p.Tags),
+	}, fopt || vopt || lopt
 }
 
 var (
