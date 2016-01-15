@@ -115,7 +115,7 @@ func (p IntersectNodes) Optimize() (Nodes, bool) {
 		nsets = append(nsets, n)
 	}
 	if !first {
-		nsets = append(nsets, fixed.Unique())
+		nsets = append([]Nodes{fixed.Unique()}, nsets...)
 	}
 	if len(nsets) == 0 {
 		return nil, true

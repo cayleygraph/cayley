@@ -214,8 +214,6 @@ func (p LinksTo) Optimize() (Links, bool) {
 		return nil, true
 	} else if _, ok := n.(AllNodes); ok {
 		return AllLinks{}, true
-	} else if x, ok := n.(HasA); ok && x.Dir == p.Dir {
-		return x.Links, true
 	}
 	return LinksTo{
 		Nodes: n,

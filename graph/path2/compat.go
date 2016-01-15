@@ -75,6 +75,10 @@ type Path struct {
 	baseContext context
 }
 
+func (p *Path) PathObj() Nodes {
+	return p.nodes
+}
+
 // IsMorphism returns whether this Path is a morphism.
 func (p *Path) IsMorphism() bool { return p.qs == nil }
 
@@ -112,7 +116,8 @@ func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 // NewPath creates a new, empty Path.
 func NewPath(qs graph.QuadStore) *Path {
 	return &Path{
-		qs: qs,
+		nodes: AllNodes{},
+		qs:    qs,
 	}
 }
 

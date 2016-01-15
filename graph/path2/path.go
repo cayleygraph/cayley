@@ -181,12 +181,24 @@ func OptimizeOn(p PathObj, qs graph.QuadStore) PathObj {
 	}
 	// Step 3: replace all abstract paths
 	// TODO: remove, when all stores will support optimizations
-	p = Replace(p, func(sp Nodes) (Nodes, bool) {
+	p = bindTo(p, qs, true)
+	return p
+}
+
+func BindTo(p PathObj, qs graph.QuadStore) PathObj {
+	return bindTo(p, qs, false)
+}
+
+func bindTo(p PathObj, qs graph.QuadStore, optimize bool) PathObj {
+	return Replace(p, func(sp Nodes) (Nodes, bool) {
 		if a, ok := sp.(NodesAbstract); ok {
 			return a.BindTo(qs), false
 		}
 		if si, ok := sp.(NodesSimplifier); ok {
-			sp, _ = si.Simplify().Optimize()
+			sp = si.Simplify()
+			if optimize {
+				sp, _ = sp.Optimize()
+			}
 		}
 		if a, ok := sp.(NodesAbstract); ok {
 			return a.BindTo(qs), false
@@ -197,12 +209,14 @@ func OptimizeOn(p PathObj, qs graph.QuadStore) PathObj {
 			return a.BindTo(qs), false
 		}
 		if si, ok := sp.(LinksSimplifier); ok {
-			sp, _ = si.Simplify().Optimize()
+			sp = si.Simplify()
+			if optimize {
+				sp, _ = sp.Optimize()
+			}
 		}
 		if a, ok := sp.(LinksAbstract); ok {
 			return a.BindTo(qs), false
 		}
 		return sp, true
 	})
-	return p
 }
