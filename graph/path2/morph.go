@@ -15,7 +15,7 @@ type Except struct {
 	From  Nodes
 }
 
-func (p Except) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p Except) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}
@@ -81,7 +81,7 @@ func (p Out) Reverse() Nodes {
 		Tags:   p.Tags,
 	}
 }
-func (p Out) Replace(nf WrapNodesFunc, nl WrapLinksFunc) Nodes {
+func (p Out) Replace(nf NodesWrapper, nl LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}
@@ -161,7 +161,7 @@ type Has struct {
 	Rev   bool
 }
 
-func (p Has) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p Has) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}
@@ -237,7 +237,7 @@ type Predicates struct {
 func (P Predicates) Reverse() Nodes {
 	panic("not implemented: need a function from predicates to their associated edges")
 }
-func (p Predicates) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p Predicates) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}
@@ -288,7 +288,7 @@ type Save struct {
 	// TODO: optional
 }
 
-func (p Save) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p Save) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}

@@ -12,7 +12,7 @@ type Tag struct {
 	Tags  []string
 }
 
-func (p Tag) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p Tag) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}
@@ -49,7 +49,7 @@ var (
 
 type IntersectNodes []Nodes
 
-func (p IntersectNodes) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p IntersectNodes) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}
@@ -130,7 +130,7 @@ var _ Nodes = UnionNodes{}
 
 type UnionNodes []Nodes
 
-func (p UnionNodes) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p UnionNodes) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}
@@ -196,7 +196,7 @@ var (
 
 type IntersectLinks []Links
 
-func (p IntersectLinks) Replace(_ WrapNodesFunc, lf WrapLinksFunc) Links {
+func (p IntersectLinks) Replace(_ NodesWrapper, lf LinksWrapper) Links {
 	if lf == nil {
 		return p
 	}
@@ -250,7 +250,7 @@ var _ Links = UnionLinks{}
 
 type UnionLinks []Links
 
-func (p UnionLinks) Replace(_ WrapNodesFunc, lf WrapLinksFunc) Links {
+func (p UnionLinks) Replace(_ NodesWrapper, lf LinksWrapper) Links {
 	if lf == nil {
 		return p
 	}
@@ -305,7 +305,7 @@ type Unique struct {
 	Nodes Nodes
 }
 
-func (p Unique) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p Unique) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}

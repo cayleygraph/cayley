@@ -14,8 +14,8 @@ var (
 
 type AllNodes struct{}
 
-func (p AllNodes) BuildIterator() graph.Iterator                  { panic("build on abstract path: AllNodes") }
-func (p AllNodes) Replace(_ WrapNodesFunc, _ WrapLinksFunc) Nodes { return p }
+func (p AllNodes) BuildIterator() graph.Iterator                { panic("build on abstract path: AllNodes") }
+func (p AllNodes) Replace(_ NodesWrapper, _ LinksWrapper) Nodes { return p }
 func (p AllNodes) BindTo(qs graph.QuadStore) Nodes {
 	return NodeIteratorBuilder{
 		Path: p,
@@ -33,8 +33,8 @@ var (
 
 type AllLinks struct{}
 
-func (p AllLinks) BuildIterator() graph.Iterator                  { panic("build on abstract path: AllLinks") }
-func (p AllLinks) Replace(_ WrapNodesFunc, _ WrapLinksFunc) Links { return p }
+func (p AllLinks) BuildIterator() graph.Iterator                { panic("build on abstract path: AllLinks") }
+func (p AllLinks) Replace(_ NodesWrapper, _ LinksWrapper) Links { return p }
 func (p AllLinks) BindTo(qs graph.QuadStore) Links {
 	return LinkIteratorBuilder{
 		Path: p,
@@ -100,8 +100,8 @@ func (p Fixed) Intersect(n Fixed) Fixed {
 	}
 	return out
 }
-func (p Fixed) BuildIterator() graph.Iterator                  { panic("build on abstract path: FixedValues") }
-func (p Fixed) Replace(_ WrapNodesFunc, _ WrapLinksFunc) Nodes { return p }
+func (p Fixed) BuildIterator() graph.Iterator                { panic("build on abstract path: FixedValues") }
+func (p Fixed) Replace(_ NodesWrapper, _ LinksWrapper) Nodes { return p }
 func (p Fixed) BindTo(qs graph.QuadStore) Nodes {
 	return NodeIteratorBuilder{
 		Path: p,
@@ -134,7 +134,7 @@ type HasA struct {
 }
 
 func (p HasA) BuildIterator() graph.Iterator { panic("build on abstract path: HasA") }
-func (p HasA) Replace(_ WrapNodesFunc, lf WrapLinksFunc) Nodes {
+func (p HasA) Replace(_ NodesWrapper, lf LinksWrapper) Nodes {
 	if lf == nil {
 		return p
 	}
@@ -184,7 +184,7 @@ type LinksTo struct {
 }
 
 func (p LinksTo) BuildIterator() graph.Iterator { panic("build on abstract path: LinksTo") }
-func (p LinksTo) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Links {
+func (p LinksTo) Replace(nf NodesWrapper, _ LinksWrapper) Links {
 	if nf == nil {
 		return p
 	}
@@ -231,7 +231,7 @@ type NotNodes struct {
 }
 
 func (p NotNodes) BuildIterator() graph.Iterator { panic("build on abstract path: NotNodes") }
-func (p NotNodes) Replace(nf WrapNodesFunc, _ WrapLinksFunc) Nodes {
+func (p NotNodes) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 	if nf == nil {
 		return p
 	}

@@ -75,9 +75,9 @@ type pathLinksTo struct {
 	data  string
 }
 
-func (p pathLinksTo) Optimize() (path.Links, bool)                                  { return p, false }
-func (p pathLinksTo) Replace(_ path.WrapNodesFunc, _ path.WrapLinksFunc) path.Links { return p }
-func (p pathLinksTo) BuildIterator() graph.Iterator                                 { return NewIterator(p.index, p.data, p.qs) }
+func (p pathLinksTo) Optimize() (path.Links, bool)                                { return p, false }
+func (p pathLinksTo) Replace(_ path.NodesWrapper, _ path.LinksWrapper) path.Links { return p }
+func (p pathLinksTo) BuildIterator() graph.Iterator                               { return NewIterator(p.index, p.data, p.qs) }
 func (qs *QuadStore) optimizePathLinksTo(p path.LinksTo) (path.Links, bool) {
 	switch t := p.Nodes.(type) {
 	case path.Fixed:
