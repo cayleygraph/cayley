@@ -75,8 +75,8 @@ var casesOptimize = []struct {
 			},
 		},
 		IntersectNodes{ // TODO: fixed-intersects-not optimization
-			NotNodes{Fixed{"dani"}},
 			Fixed{"bob"},
+			NotNodes{Fixed{"dani"}},
 		},
 	},
 	{
