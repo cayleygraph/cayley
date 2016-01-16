@@ -375,7 +375,7 @@ func testSet(qs graph.QuadStore) []test {
 				Via:    Fixed{"status"},
 				Labels: Fixed{"smart_graph"},
 			},
-			//		pathc:    StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),
+			pathc:  StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),
 			expect: []string{"smart_person"},
 		},
 		//		{

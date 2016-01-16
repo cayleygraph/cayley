@@ -52,7 +52,7 @@ type context struct {
 	// A nil in this field represents all labels.
 	//
 	// Claimed by the withLabel morphism
-	labelSet *Path
+	labelSet Nodes
 }
 
 func (c context) copy() context {
@@ -168,10 +168,14 @@ func (p *Path) Tag(tags ...string) *Path {
 //  // to "F" labelled "follows".
 //  StartPath(qs, "A").Out("follows")
 func (p *Path) Out(via ...interface{}) *Path {
+	labels := p.baseContext.labelSet
+	if labels == nil {
+		labels = AllNodes{}
+	}
 	p.nodes = Out{
 		From:   p.nodes,
 		Via:    buildViaPath(via...),
-		Labels: AllNodes{}, // TODO: from context
+		Labels: labels,
 	}
 	return p
 }
@@ -186,10 +190,14 @@ func (p *Path) Out(via ...interface{}) *Path {
 //  // edges from those nodes to "B" labelled "follows".
 //  StartPath(qs, "B").In("follows")
 func (p *Path) In(via ...interface{}) *Path {
+	labels := p.baseContext.labelSet
+	if labels == nil {
+		labels = AllNodes{}
+	}
 	p.nodes = Out{
 		From:   p.nodes,
 		Via:    buildViaPath(via...),
-		Labels: AllNodes{}, // TODO: from context
+		Labels: labels,
 		Rev:    true,
 	}
 	return p
@@ -198,11 +206,15 @@ func (p *Path) In(via ...interface{}) *Path {
 // InWithTags is exactly like In, except it tags the value of the predicate
 // traversed with the tags provided.
 func (p *Path) InWithTags(tags []string, via ...interface{}) *Path {
+	labels := p.baseContext.labelSet
+	if labels == nil {
+		labels = AllNodes{}
+	}
 	p.nodes = Out{
 		From:   p.nodes,
 		Via:    buildViaPath(via...),
 		Tags:   tags,
-		Labels: AllNodes{}, // TODO: from context
+		Labels: labels,
 		Rev:    true,
 	}
 	return p
@@ -211,10 +223,14 @@ func (p *Path) InWithTags(tags []string, via ...interface{}) *Path {
 // OutWithTags is exactly like In, except it tags the value of the predicate
 // traversed with the tags provided.
 func (p *Path) OutWithTags(tags []string, via ...interface{}) *Path {
+	labels := p.baseContext.labelSet
+	if labels == nil {
+		labels = AllNodes{}
+	}
 	p.nodes = Out{
 		From:   p.nodes,
 		Via:    buildViaPath(via...),
-		Labels: AllNodes{}, // TODO: from context
+		Labels: labels,
 		Tags:   tags,
 	}
 	return p
@@ -362,16 +378,14 @@ func (p *Path) Has(via interface{}, nodes ...string) *Path {
 // LabelContext restricts the following operations (such as In, Out) to only
 // traverse edges that match the given set of labels.
 func (p *Path) LabelContext(via ...interface{}) *Path {
-	panic("not implemented yet") // TODO
-	//	p.stack = append(p.stack, labelContextMorphism(nil, via...))
+	p.baseContext.labelSet = buildViaPath(via...)
 	return p
 }
 
 // LabelContextWithTags is exactly like LabelContext, except it tags the value
 // of the label used in the traversal with the tags provided.
 func (p *Path) LabelContextWithTags(tags []string, via ...interface{}) *Path {
-	panic("not implemented yet") // TODO
-	//	p.stack = append(p.stack, labelContextMorphism(tags, via...))
+	p.baseContext.labelSet = Tag{Nodes: buildViaPath(via...), Tags: tags}
 	return p
 }
 
