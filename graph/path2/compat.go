@@ -358,6 +358,29 @@ func (p *Path) SaveReverse(via interface{}, tag string) *Path {
 	return p
 }
 
+// SaveOptional is the same as Save, but does not require linkage to exist.
+func (p *Path) SaveOptional(via interface{}, tag string) *Path {
+	p.nodes = Save{
+		From: p.nodes,
+		Via:  buildViaPath(via),
+		Tags: []string{tag},
+		Opt:  true,
+	}
+	return p
+}
+
+// SaveOptionalReverse is the same as SaveReverse, but does not require linkage to exist.
+func (p *Path) SaveOptionalReverse(via interface{}, tag string) *Path {
+	p.nodes = Save{
+		From: p.nodes,
+		Via:  buildViaPath(via),
+		Tags: []string{tag},
+		Rev:  true,
+		Opt:  true,
+	}
+	return p
+}
+
 // Has limits the paths to be ones where the current nodes have some linkage
 // to some known node.
 func (p *Path) Has(via interface{}, nodes ...string) *Path {

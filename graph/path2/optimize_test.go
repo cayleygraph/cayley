@@ -80,6 +80,18 @@ var casesOptimize = []struct {
 		},
 	},
 	{
+		"intersect all and optional",
+		false,
+		IntersectNodes{
+			AllNodes{},
+			Optional{Fixed{"b", "a", "d"}},
+		},
+		IntersectNodes{
+			Optional{Fixed{"b", "a", "d"}},
+			AllNodes{},
+		},
+	},
+	{
 		"out with no labels",
 		false,
 		Out{

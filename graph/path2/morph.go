@@ -285,7 +285,7 @@ type Save struct {
 	Via  Nodes
 	Tags []string
 	Rev  bool
-	// TODO: optional
+	Opt  bool
 }
 
 func (p Save) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
@@ -297,6 +297,7 @@ func (p Save) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
 		Via:  nf(p.Via),
 		Tags: p.Tags,
 		Rev:  p.Rev,
+		Opt:  p.Opt,
 	}
 }
 func (p Save) BuildIterator() graph.Iterator {
@@ -322,9 +323,12 @@ func (p Save) Simplify() Nodes {
 		trail,
 		dest,
 	}
-	save := HasA{
+	save := Nodes(HasA{
 		Links: route,
 		Dir:   start,
+	})
+	if p.Opt {
+		save = Optional{Nodes: save}
 	}
 	return IntersectNodes{
 		p.From,
@@ -346,6 +350,6 @@ func (p Save) Optimize() (Nodes, bool) {
 		return nil, true
 	}
 	return Save{
-		From: nf, Via: nv, Tags: p.Tags, Rev: p.Rev,
+		From: nf, Via: nv, Tags: p.Tags, Rev: p.Rev, Opt: p.Opt,
 	}, fopt || vopt
 }

@@ -281,6 +281,18 @@ func testSet(qs graph.QuadStore) []test {
 			expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 		},
 		{
+			message: "show a simple saveOpt",
+			path: Save{
+				From: AllNodes{},
+				Via:  Fixed{"status"},
+				Tags: []string{"somecool"},
+				Opt:  true,
+			},
+			pathc:  StartPath(qs).SaveOptional("status", "somecool"),
+			tag:    "somecool",
+			expect: []string{"", "", "", "", "", "", "", "", "", "", "cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
+		},
+		{
 			message: "show a simple saveR",
 			path: Save{
 				From: Fixed{"cool_person"},
@@ -406,10 +418,10 @@ func TestMorphisms(t testing.TB, fnc func() graph.QuadStore) {
 		sort.Strings(gotc)
 		sort.Strings(test.expect)
 		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
+			t.Errorf("Failed to %s, got: %v (%d) expected: %v (%d)", test.message, got, len(got), test.expect, len(test.expect))
 		}
 		if test.pathc != nil && !reflect.DeepEqual(gotc, test.expect) {
-			t.Errorf("Failed to %s (compat), got: %v expected: %v", test.message, gotc, test.expect)
+			t.Errorf("Failed to %s (compat), got: %v (%d) expected: %v (%d)", test.message, gotc, len(gotc), test.expect, len(test.expect))
 		}
 	}
 }

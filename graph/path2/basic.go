@@ -76,8 +76,9 @@ func (p IntersectNodes) Optimize() (Nodes, bool) {
 	}
 	pset := make([]Nodes, 0, len(p))
 	var (
-		optg  bool
-		fixed Fixed
+		optg          bool
+		all, optional bool
+		fixed         Fixed
 	)
 	for _, sp := range p { // optimize and append other intersects
 		if sp == nil {
@@ -88,11 +89,14 @@ func (p IntersectNodes) Optimize() (Nodes, bool) {
 			return nil, true
 		} else if _, ok := n.(AllNodes); ok { // remove 'all' sets
 			optg = true
+			all = true
 			continue
 		} else if x, ok := n.(IntersectNodes); ok {
 			optg = true
 			pset = append(pset, x...)
 			continue
+		} else if _, ok := n.(Optional); ok {
+			optional = true
 		}
 		optg = optg || opt
 		pset = append(pset, n)
@@ -116,6 +120,9 @@ func (p IntersectNodes) Optimize() (Nodes, bool) {
 	}
 	if !first {
 		nsets = append([]Nodes{fixed.Unique()}, nsets...)
+	}
+	if all && optional {
+		nsets = append(nsets, AllNodes{})
 	}
 	if len(nsets) == 0 {
 		return nil, true
@@ -165,7 +172,7 @@ func (p UnionNodes) Optimize() (Nodes, bool) {
 			continue
 		}
 		n, opt := sp.Optimize()
-		if _, ok := n.(AllNodes); ok { // intersect with all = all
+		if _, ok := n.(AllNodes); ok { // union with all = all
 			return AllNodes{}, true
 		} else if fi, ok := n.(Fixed); ok { // collect all fixed
 			optg = len(fixed) != 0
@@ -330,4 +337,31 @@ func (p Unique) Optimize() (Nodes, bool) {
 		return tp.Unique(), true
 	}
 	return Unique{Nodes: nodes}, opt
+}
+
+var _ Nodes = Optional{}
+
+type Optional struct {
+	Nodes Nodes
+}
+
+func (p Optional) Replace(nf NodesWrapper, _ LinksWrapper) Nodes {
+	if nf == nil {
+		return p
+	}
+	return Optional{Nodes: nf(p.Nodes)}
+}
+func (p Optional) BuildIterator() graph.Iterator {
+	return iterator.NewOptional(p.Nodes.BuildIterator())
+}
+func (p Optional) Simplify() (Nodes, bool) { return p, false }
+func (p Optional) Optimize() (Nodes, bool) {
+	if p.Nodes == nil {
+		return nil, true
+	}
+	nodes, opt := p.Nodes.Optimize()
+	if p.Nodes == nil {
+		return nil, true
+	}
+	return Optional{Nodes: nodes}, opt
 }
