@@ -23,9 +23,36 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/path2/pathtest"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/writer"
 )
+
+func makeStore(t testing.TB) (graph.QuadStore, func()) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "cayley_test")
+	if err != nil {
+		t.Fatalf("Could not create working directory: %v", err)
+	}
+	t.Log(tmpDir)
+
+	closer := func() {
+		os.RemoveAll(tmpDir)
+	}
+
+	err = createNewLevelDB(tmpDir, nil)
+	if err != nil {
+		closer()
+		t.Fatal("Failed to create LevelDB database.")
+	}
+
+	qs, err := newQuadStore(tmpDir, nil)
+	if qs == nil || err != nil {
+		closer()
+		t.Fatal("Failed to create LevelDB QuadStore.")
+	}
+
+	return qs, closer
+}
 
 func makeQuadSet() []quad.Quad {
 	quadSet := []quad.Quad{
@@ -463,4 +490,8 @@ func TestOptimize(t *testing.T) {
 	if !reflect.DeepEqual(newResults, oldResults) {
 		t.Errorf("Discordant tag results, new:%v old:%v", newResults, oldResults)
 	}
+}
+
+func TestMorphisms(t *testing.T) {
+	pathtest.TestMorphisms(t, makeStore)
 }

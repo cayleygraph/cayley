@@ -28,6 +28,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/path2"
 	"github.com/google/cayley/graph/proto"
 	"github.com/google/cayley/quad"
 )
@@ -557,6 +558,28 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Itera
 		panic("unreachable " + d.String())
 	}
 	return NewIterator(bucket, d, val, qs)
+}
+
+func (qs *QuadStore) LinksToValuePath(d quad.Direction, value string) path.Links {
+	var bucket []byte
+	switch d {
+	case quad.Subject:
+		bucket = spoBucket
+	case quad.Predicate:
+		bucket = posBucket
+	case quad.Object:
+		bucket = ospBucket
+	case quad.Label:
+		bucket = cpsBucket
+	default:
+		panic("unreachable " + d.String())
+	}
+	return pathLinksTo{
+		qs:     qs,
+		bucket: bucket,
+		d:      d,
+		val:    qs.ValueOf(value).(*Token),
+	}
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {

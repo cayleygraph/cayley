@@ -26,6 +26,10 @@ import (
 	"github.com/google/cayley/writer"
 )
 
+func makeStore(t testing.TB) (graph.QuadStore, func()) {
+	return newQuadStore(), func() {}
+}
+
 // This is a simple test graph.
 //
 //    +---+                        +---+
@@ -236,5 +240,5 @@ func TestTransaction(t *testing.T) {
 }
 
 func TestMorphisms(t *testing.T) {
-	pathtest.TestMorphisms(t, func() graph.QuadStore { return newQuadStore() })
+	pathtest.TestMorphisms(t, makeStore)
 }

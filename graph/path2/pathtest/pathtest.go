@@ -63,14 +63,12 @@ func loadGraph(path string, t testing.TB) []quad.Quad {
 	return simpleGraph
 }
 
-func makeTestStore(t testing.TB, fnc func() graph.QuadStore) graph.QuadStore {
+func loadTestStore(t testing.TB, qs graph.QuadStore) {
 	simpleGraph := loadGraph("../../data/testdata.nq", t)
-	qs := fnc()
 	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, t := range simpleGraph {
 		w.AddQuad(t)
 	}
-	return qs
 }
 
 func runTopLevel(qs graph.QuadStore, p PathObj) []string {
@@ -398,8 +396,13 @@ func testSet(qs graph.QuadStore) []test {
 	}
 }
 
-func TestMorphisms(t testing.TB, fnc func() graph.QuadStore) {
-	qs := makeTestStore(t, fnc)
+type QuadStoreConstructor func(t testing.TB) (graph.QuadStore, func())
+
+func TestMorphisms(t testing.TB, fnc QuadStoreConstructor) {
+	qs, closer := fnc(t)
+	defer qs.Close()
+	defer closer()
+	loadTestStore(t, qs)
 	for _, test := range testSet(qs) {
 		t.Log(test.message)
 		var got, gotc []string
