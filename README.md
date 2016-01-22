@@ -172,7 +172,7 @@ To run the container one must first setup a data directory that contains the con
 ```
 mkdir data
 cp my_config.cfg data/cayley.cfg
-docker run -v $PWD/data:/data -p 64321:64321 -d quay.io/barakmich/cayley
+docker run -v $PWD/data:/data -p 127.0.0.1:64210:64210 -d quay.io/barakmich/cayley
 ```
 
 ## Disclaimer

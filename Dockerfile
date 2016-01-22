@@ -16,6 +16,6 @@ RUN go install -v github.com/google/cayley/cmd/cayley
 # Expose the port and volume for configuration and data persistence. If you're
 # using a backend like bolt, make sure the file is saved to this directory.
 VOLUME ["/data"]
-EXPOSE 64321
+EXPOSE 64210
 
-CMD ["cayley", "http", "-config", "/data/cayley.cfg", "-init"]
+CMD ["cayley", "http", "-config", "/data/cayley.cfg", "--host","0.0.0.0", "-init"]
