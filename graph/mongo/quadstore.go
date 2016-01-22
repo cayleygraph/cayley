@@ -319,6 +319,9 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) string {
+	if v == nil {
+		return ""
+	}
 	val, ok := qs.ids.Get(v.(string))
 	if ok {
 		return val.(string)
