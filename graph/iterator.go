@@ -21,7 +21,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 	"github.com/google/cayley/quad"
 )
 

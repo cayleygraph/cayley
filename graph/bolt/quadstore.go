@@ -23,7 +23,7 @@ import (
 	"hash"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 	"github.com/boltdb/bolt"
 
 	"github.com/google/cayley/graph"
