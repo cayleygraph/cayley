@@ -22,8 +22,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
-	"github.com/julienschmidt/httprouter"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/internal/config"

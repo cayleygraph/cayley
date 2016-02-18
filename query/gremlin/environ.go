@@ -19,8 +19,8 @@ package gremlin
 import (
 	"sync"
 
-	"github.com/golang/glog"
-	"github.com/robertkrimen/otto"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/robertkrimen/otto"
 
 	"github.com/google/cayley/graph"
 )

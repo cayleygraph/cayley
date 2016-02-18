@@ -16,7 +16,7 @@
 */
 package proto
 
-import proto1 "github.com/gogo/protobuf/proto"
+import proto1 "github.com/google/cayley/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
 
 import io "io"
 import fmt "fmt"

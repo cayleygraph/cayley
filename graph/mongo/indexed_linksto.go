@@ -15,8 +15,8 @@
 package mongo
 
 import (
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/google/cayley/Godeps/_workspace/src/gopkg.in/mgo.v2"
+	"github.com/google/cayley/Godeps/_workspace/src/gopkg.in/mgo.v2/bson"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"

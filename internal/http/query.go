@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
 
 	"github.com/google/cayley/query"
 	"github.com/google/cayley/query/gremlin"

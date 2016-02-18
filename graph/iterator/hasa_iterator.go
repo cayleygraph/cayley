@@ -34,7 +34,7 @@ package iterator
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
 import (
-	"github.com/golang/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/quad"

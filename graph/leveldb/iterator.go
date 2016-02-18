@@ -18,9 +18,9 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/golang/glog"
-	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
+	ldbit "github.com/google/cayley/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"

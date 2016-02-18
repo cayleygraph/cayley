@@ -21,10 +21,10 @@ import (
 	"hash"
 	"sync"
 
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/google/cayley/Godeps/_workspace/src/gopkg.in/mgo.v2"
+	"github.com/google/cayley/Godeps/_workspace/src/gopkg.in/mgo.v2/bson"
 
-	"github.com/golang/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"

@@ -17,7 +17,7 @@ package sql
 import (
 	"database/sql"
 
-	"github.com/golang/glog"
+	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
