@@ -9,9 +9,9 @@ import (
 	"hash"
 	"sync"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/lib/pq"
+	"github.com/lib/pq"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
+	"github.com/golang/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"

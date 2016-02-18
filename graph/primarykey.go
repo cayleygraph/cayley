@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/pborman/uuid"
+	"github.com/golang/glog"
+	"github.com/pborman/uuid"
 )
 
 type primaryKeyType uint8

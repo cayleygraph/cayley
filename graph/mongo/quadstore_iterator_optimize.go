@@ -15,7 +15,7 @@
 package mongo
 
 import (
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
+	"github.com/golang/glog"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"

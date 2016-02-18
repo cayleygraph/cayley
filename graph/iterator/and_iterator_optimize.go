@@ -17,7 +17,7 @@ package iterator
 import (
 	"sort"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
+	"github.com/golang/glog"
 
 	"github.com/google/cayley/graph"
 )

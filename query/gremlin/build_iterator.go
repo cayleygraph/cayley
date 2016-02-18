@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/robertkrimen/otto"
+	"github.com/golang/glog"
+	"github.com/robertkrimen/otto"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"

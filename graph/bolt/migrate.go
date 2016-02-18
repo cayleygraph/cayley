@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/boltdb/bolt"
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
+	"github.com/boltdb/bolt"
+	"github.com/golang/glog"
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/proto"
 )

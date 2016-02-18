@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/peterh/liner"
+	"github.com/peterh/liner"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/internal/config"

@@ -24,10 +24,10 @@ import (
 	"hash"
 	"sync"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/golang/glog"
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb"
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/opt"
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/golang/glog"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"

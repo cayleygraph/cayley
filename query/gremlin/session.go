@@ -20,9 +20,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/robertkrimen/otto"
+	"github.com/robertkrimen/otto"
 	// Provide underscore JS library.
-	_ "github.com/google/cayley/Godeps/_workspace/src/github.com/robertkrimen/otto/underscore"
+	_ "github.com/robertkrimen/otto/underscore"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/query"

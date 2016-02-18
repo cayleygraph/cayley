@@ -20,8 +20,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
-	"github.com/google/cayley/Godeps/_workspace/src/github.com/russross/blackfriday"
+	"github.com/julienschmidt/httprouter"
+	"github.com/russross/blackfriday"
 )
 
 type DocRequestHandler struct {
