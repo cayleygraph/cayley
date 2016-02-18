@@ -1,0 +1,76 @@
+{
+	"ImportPath": "github.com/google/cayley",
+	"GoVersion": "go1.5.3",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/badgerodon/peg",
+			"Rev": "9e5f7f4d07ca576562618c23e8abadda278b684f"
+		},
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.1.0-67-g2f846c3",
+			"Rev": "2f846c3551b76d7710f159be840d66c3d064abbe"
+		},
+		{
+			"ImportPath": "github.com/cznic/mathutil",
+			"Rev": "38a5fe05cd94d69433fd1c928417834c604f281d"
+		},
+		{
+			"ImportPath": "github.com/gogo/protobuf/proto",
+			"Comment": "v0.1-125-g82d16f7",
+			"Rev": "82d16f734d6d871204a3feb1a73cb220cc92574c"
+		},
+		{
+			"ImportPath": "github.com/golang/glog",
+			"Rev": "fca8c8854093a154ff1eb580aae10276ad6b1b5f"
+		},
+		{
+			"ImportPath": "github.com/golang/snappy",
+			"Rev": "d1d908a252c22fd7afd36190d5cffb144aa8f777"
+		},
+		{
+			"ImportPath": "github.com/julienschmidt/httprouter",
+			"Comment": "v1.1-28-g153d9c9",
+			"Rev": "153d9c9fa8b6a5995c6a300cca099e1f3408733f"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-81-g69552e5",
+			"Rev": "69552e54d2a9d4c6a2438926a774930f7bc398ec"
+		},
+		{
+			"ImportPath": "github.com/pborman/uuid",
+			"Comment": "v1.0-11-gc55201b",
+			"Rev": "c55201b036063326c5b1b89ccfe45a184973d073"
+		},
+		{
+			"ImportPath": "github.com/peterh/liner",
+			"Rev": "ad1edfd30321d8f006ccf05f1e0524adeb943060"
+		},
+		{
+			"ImportPath": "github.com/robertkrimen/otto",
+			"Rev": "9c8301a8b3069bd1b0243b0b4a95f67af740eed7"
+		},
+		{
+			"ImportPath": "github.com/russross/blackfriday",
+			"Comment": "v1.4-21-g006144a",
+			"Rev": "006144af03eeeff1037240a71865a9fd61f1c25f"
+		},
+		{
+			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
+			"Rev": "10ef21a441db47d8b13ebcc5fd2310f636973c77"
+		},
+		{
+			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
+			"Rev": "e7e6f5b5ef25adb580feac515f9ccec514d0bda8"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2",
+			"Comment": "r2016.02.04",
+			"Rev": "d90005c5262a3463800497ea5a89aed5fe22c886"
+		}
+	]
+}
