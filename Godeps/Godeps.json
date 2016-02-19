@@ -1,8 +1,8 @@
 {
 	"ImportPath": "github.com/google/cayley",
-	"GoVersion": "go1.5.3",
+	"GoVersion": "go1.5",
 	"Packages": [
-		"./..."
+		"./.../"
 	],
 	"Deps": [
 		{
@@ -66,6 +66,10 @@
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
 			"Rev": "e7e6f5b5ef25adb580feac515f9ccec514d0bda8"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e"
 		},
 		{
 			"ImportPath": "gopkg.in/mgo.v2",
