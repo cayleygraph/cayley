@@ -61,10 +61,10 @@ type QuadStore interface {
 
 	// Given a node ID, return the opaque token used by the QuadStore
 	// to represent that id.
-	ValueOf(string) Value
+	ValueOf(quad.Value) Value
 
 	// Given an opaque token, return the node that it represents.
-	NameOf(Value) string
+	NameOf(Value) quad.Value
 
 	// Returns the number of quads currently stored.
 	Size() int64

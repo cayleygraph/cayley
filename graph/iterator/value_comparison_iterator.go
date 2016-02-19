@@ -74,19 +74,19 @@ func (it *Comparison) doComparison(val graph.Value) bool {
 	switch cVal := it.val.(type) {
 	case int:
 		cInt := int64(cVal)
-		intVal, err := strconv.ParseInt(nodeStr, 10, 64)
+		intVal, err := strconv.ParseInt(nodeStr.String(), 10, 64)
 		if err != nil {
 			return false
 		}
 		return RunIntOp(intVal, it.op, cInt)
 	case int64:
-		intVal, err := strconv.ParseInt(nodeStr, 10, 64)
+		intVal, err := strconv.ParseInt(nodeStr.String(), 10, 64)
 		if err != nil {
 			return false
 		}
 		return RunIntOp(intVal, it.op, cVal)
 	case string:
-		return RunStrOp(nodeStr, it.op, cVal)
+		return RunStrOp(nodeStr.String(), it.op, cVal)
 	default:
 		return true
 	}
