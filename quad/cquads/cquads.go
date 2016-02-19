@@ -75,15 +75,21 @@ func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 	return q, nil
 }
 
-func unEscape(r []rune, isQuoted, isEscaped bool) string {
+func unEscape(r []rune, isQuoted, isEscaped bool) quad.Value {
 	if isQuoted {
 		r = r[1 : len(r)-1]
 	}
 	if len(r) >= 2 && r[0] == '<' && r[len(r)-1] == '>' {
-		return string(r[1 : len(r)-1])
+		return quad.IRI(r[1 : len(r)-1])
 	}
 	if !isEscaped {
-		return string(r)
+		if len(r) >= 2 && r[0] == '_' && r[1] == ':' {
+			return quad.BNode(string(r[2:]))
+		}
+		if isQuoted {
+			return quad.String(string(r))
+		}
+		return quad.Raw(string(r))
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, len(r)))
@@ -134,5 +140,8 @@ func unEscape(r []rune, isQuoted, isEscaped bool) string {
 		i++
 	}
 
-	return buf.String()
+	if isQuoted {
+		return quad.String(buf.String())
+	}
+	return quad.Raw(buf.String())
 }

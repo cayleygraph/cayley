@@ -75,9 +75,9 @@ func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 	return q, nil
 }
 
-func unEscape(r []rune, isEscaped bool) string {
+func unEscape(r []rune, isEscaped bool) quad.Value {
 	if !isEscaped {
-		return string(r)
+		return quad.Raw(string(r))
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, len(r)))
@@ -128,5 +128,5 @@ func unEscape(r []rune, isEscaped bool) string {
 		i++
 	}
 
-	return buf.String()
+	return quad.Raw(buf.String())
 }
