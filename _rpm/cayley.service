@@ -1,0 +1,17 @@
+[Unit]
+Description=Cayley open-source graph database
+After=syslog.target network.target
+RequiresMountsFor=/var/lib/cayley/ /usr/share/cayley/assets/
+Wants=postgresql.service
+
+[Service]
+User=cayley
+EnvironmentFile=/etc/systemd/system/cayley.service.d/custom.env.conf
+Environment="LOGOPTS=-logtostderr=true"
+Environment="ASSETS=/usr/share/cayley/assets/"
+Type=simple
+ExecStart=/usr/bin/cayley ${MODE} ${LOGOPTS} -host=${HOST} -port=${PORT} -assets=${ASSETS} -dbpath=${DBPATH} -db=${DB} ${FLAGS}
+SuccessExitStatus=2
+
+[Install]
+WantedBy=default.target
