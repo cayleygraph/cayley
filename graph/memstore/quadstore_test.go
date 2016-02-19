@@ -39,17 +39,17 @@ import (
 //              +---+
 //
 var simpleGraph = []quad.Quad{
-	{"A", "follows", "B", ""},
-	{"C", "follows", "B", ""},
-	{"C", "follows", "D", ""},
-	{"D", "follows", "B", ""},
-	{"B", "follows", "F", ""},
-	{"F", "follows", "G", ""},
-	{"D", "follows", "G", ""},
-	{"E", "follows", "F", ""},
-	{"B", "status", "cool", "status_graph"},
-	{"D", "status", "cool", "status_graph"},
-	{"G", "status", "cool", "status_graph"},
+	quad.Make("A", "follows", "B", ""),
+	quad.Make("C", "follows", "B", ""),
+	quad.Make("C", "follows", "D", ""),
+	quad.Make("D", "follows", "B", ""),
+	quad.Make("B", "follows", "F", ""),
+	quad.Make("F", "follows", "G", ""),
+	quad.Make("D", "follows", "G", ""),
+	quad.Make("E", "follows", "F", ""),
+	quad.Make("B", "status", "cool", "status_graph"),
+	quad.Make("D", "status", "cool", "status_graph"),
+	quad.Make("G", "status", "cool", "status_graph"),
 }
 
 func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
@@ -61,7 +61,8 @@ func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 	)
 	writer, _ := writer.NewSingleReplication(qs, nil)
 	for _, t := range data {
-		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Label} {
+		for _, dir := range quad.Directions {
+			qp := t.GetString(dir)
 			if _, ok := seen[qp]; !ok && qp != "" {
 				val++
 				ind = append(ind, pair{qp, val})
@@ -85,7 +86,7 @@ func TestMemstore(t *testing.T) {
 		t.Errorf("Quad store has unexpected size, got:%d expected %d", size, len(simpleGraph))
 	}
 	for _, test := range index {
-		v := qs.ValueOf(test.query)
+		v := qs.ValueOf(quad.Raw(test.query))
 		switch v := v.(type) {
 		default:
 			t.Errorf("ValueOf(%q) returned unexpected type, got:%T expected int64", test.query, v)
@@ -101,10 +102,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	qs, _, _ := makeTestStore(simpleGraph)
 
 	fixed := qs.FixedIterator()
-	fixed.Add(qs.ValueOf("C"))
+	fixed.Add(qs.ValueOf(quad.Raw("C")))
 
 	fixed2 := qs.FixedIterator()
-	fixed2.Add(qs.ValueOf("follows"))
+	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
 
 	all := qs.NodesAllIterator()
 
@@ -121,7 +122,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		t.Error("Expected one matching subtree")
 	}
 	val := outerAnd.Result()
-	if qs.NameOf(val) != "C" {
+	if qs.NameOf(val) != quad.Raw("C") {
 		t.Errorf("Matching subtree should be %s, got %s", "barak", qs.NameOf(val))
 	}
 
@@ -130,7 +131,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, qs.NameOf(all.Result()))
+		got = append(got, qs.NameOf(all.Result()).String())
 		if !outerAnd.NextPath() {
 			break
 		}
@@ -150,7 +151,7 @@ func TestLinksToOptimization(t *testing.T) {
 	qs, _, _ := makeTestStore(simpleGraph)
 
 	fixed := qs.FixedIterator()
-	fixed.Add(qs.ValueOf("cool"))
+	fixed.Add(qs.ValueOf(quad.Raw("cool")))
 
 	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
 	lto.Tagger().Add("foo")
@@ -180,22 +181,22 @@ func TestLinksToOptimization(t *testing.T) {
 func TestRemoveQuad(t *testing.T) {
 	qs, w, _ := makeTestStore(simpleGraph)
 
-	err := w.RemoveQuad(quad.Quad{
-		Subject:   "E",
-		Predicate: "follows",
-		Object:    "F",
-		Label:     "",
-	})
+	err := w.RemoveQuad(quad.Make(
+		"E",
+		"follows",
+		"F",
+		"",
+	))
 
 	if err != nil {
 		t.Error("Couldn't remove quad", err)
 	}
 
 	fixed := qs.FixedIterator()
-	fixed.Add(qs.ValueOf("E"))
+	fixed.Add(qs.ValueOf(quad.Raw("E")))
 
 	fixed2 := qs.FixedIterator()
-	fixed2.Add(qs.ValueOf("follows"))
+	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
 
 	innerAnd := iterator.NewAnd(qs)
 	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed, quad.Subject))
@@ -214,16 +215,16 @@ func TestTransaction(t *testing.T) {
 	size := qs.Size()
 
 	tx := graph.NewTransaction()
-	tx.AddQuad(quad.Quad{
-		Subject:   "E",
-		Predicate: "follows",
-		Object:    "G",
-		Label:     ""})
-	tx.RemoveQuad(quad.Quad{
-		Subject:   "Non",
-		Predicate: "existent",
-		Object:    "quad",
-		Label:     ""})
+	tx.AddQuad(quad.Make(
+		"E",
+		"follows",
+		"G",
+		""))
+	tx.RemoveQuad(quad.Make(
+		"Non",
+		"existent",
+		"quad",
+		""))
 
 	err := w.ApplyTransaction(tx)
 	if err == nil {
