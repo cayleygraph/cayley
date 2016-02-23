@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/google/cayley",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.6",
 	"Packages": [
 		"./.../"
 	],
