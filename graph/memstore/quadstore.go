@@ -16,7 +16,6 @@ package memstore
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/barakmich/glog"
@@ -179,8 +178,8 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 			min, tree = l, index
 		}
 	}
-	it := NewIterator(tree, "", qs)
 
+	it := NewIterator(tree, qs, 0, 0)
 	for it.Next() {
 		val := it.Result()
 		if t == qs.log[val.(int64)].Quad {
@@ -246,9 +245,8 @@ func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Iterator {
 	index, ok := qs.index.Get(d, value.(int64))
-	data := fmt.Sprintf("dir:%s val:%d", d, value.(int64))
 	if ok {
-		return NewIterator(index, data, qs)
+		return NewIterator(index, qs, d, value)
 	}
 	return &iterator.Null{}
 }
