@@ -15,12 +15,14 @@
 package memstore
 
 import (
+	"fmt"
 	"io"
 	"math"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/graph/memstore/b"
+	"github.com/google/cayley/quad"
 )
 
 type Iterator struct {
@@ -29,22 +31,25 @@ type Iterator struct {
 	tags   graph.Tagger
 	tree   *b.Tree
 	iter   *b.Enumerator
-	data   string
 	result graph.Value
 	err    error
+
+	d     quad.Direction
+	value graph.Value
 }
 
-func NewIterator(tree *b.Tree, data string, qs *QuadStore) *Iterator {
+func NewIterator(tree *b.Tree, qs *QuadStore, d quad.Direction, value graph.Value) *Iterator {
 	iter, err := tree.SeekFirst()
 	if err != nil {
 		iter = nil
 	}
 	return &Iterator{
-		uid:  iterator.NextUID(),
-		qs:   qs,
-		tree: tree,
-		iter: iter,
-		data: data,
+		uid:   iterator.NextUID(),
+		qs:    qs,
+		tree:  tree,
+		iter:  iter,
+		d:     d,
+		value: value,
 	}
 }
 
@@ -91,11 +96,12 @@ func (it *Iterator) Clone() graph.Iterator {
 	}
 
 	m := &Iterator{
-		uid:  iterator.NextUID(),
-		qs:   it.qs,
-		tree: it.tree,
-		iter: iter,
-		data: it.data,
+		uid:   iterator.NextUID(),
+		qs:    it.qs,
+		tree:  it.tree,
+		iter:  iter,
+		d:     it.d,
+		value: it.value,
 	}
 	m.tags.CopyFrom(it)
 
@@ -164,7 +170,7 @@ func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
 		UID:  it.UID(),
-		Name: it.data,
+		Name: fmt.Sprintf("dir:%s val:%d", it.d, it.value),
 		Type: it.Type(),
 		Tags: it.tags.Tags(),
 		Size: size,

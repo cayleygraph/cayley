@@ -99,8 +99,8 @@ func argsOf(call otto.FunctionCall) []string {
 		}
 		if arg.IsObject() && arg.Class() == "Array" {
 			obj, _ := arg.Export()
-			for _, x := range obj.([]interface{}) {
-				out = append(out, x.(string))
+			for _, x := range obj.([]string) {
+				out = append(out, x)
 			}
 		}
 	}
