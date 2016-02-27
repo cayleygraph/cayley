@@ -30,17 +30,17 @@ import (
 
 func makeQuadSet() []quad.Quad {
 	quadSet := []quad.Quad{
-		{"A", "follows", "B", ""},
-		{"C", "follows", "B", ""},
-		{"C", "follows", "D", ""},
-		{"D", "follows", "B", ""},
-		{"B", "follows", "F", ""},
-		{"F", "follows", "G", ""},
-		{"D", "follows", "G", ""},
-		{"E", "follows", "F", ""},
-		{"B", "status", "cool", "status_graph"},
-		{"D", "status", "cool", "status_graph"},
-		{"G", "status", "cool", "status_graph"},
+		quad.Make("A", "follows", "B", ""),
+		quad.Make("C", "follows", "B", ""),
+		quad.Make("C", "follows", "D", ""),
+		quad.Make("D", "follows", "B", ""),
+		quad.Make("B", "follows", "F", ""),
+		quad.Make("F", "follows", "G", ""),
+		quad.Make("D", "follows", "G", ""),
+		quad.Make("E", "follows", "F", ""),
+		quad.Make("B", "status", "cool", "status_graph"),
+		quad.Make("D", "status", "cool", "status_graph"),
+		quad.Make("G", "status", "cool", "status_graph"),
 	}
 	return quadSet
 }
@@ -59,19 +59,19 @@ type ordered []quad.Quad
 func (o ordered) Len() int { return len(o) }
 func (o ordered) Less(i, j int) bool {
 	switch {
-	case o[i].Subject < o[j].Subject,
+	case o[i].Subject.String() < o[j].Subject.String(),
 
 		o[i].Subject == o[j].Subject &&
-			o[i].Predicate < o[j].Predicate,
+			o[i].Predicate.String() < o[j].Predicate.String(),
 
 		o[i].Subject == o[j].Subject &&
 			o[i].Predicate == o[j].Predicate &&
-			o[i].Object < o[j].Object,
+			o[i].Object.String() < o[j].Object.String(),
 
 		o[i].Subject == o[j].Subject &&
 			o[i].Predicate == o[j].Predicate &&
 			o[i].Object == o[j].Object &&
-			o[i].Label < o[j].Label:
+			(o[i].Label == nil || (o[j].Label != nil && o[i].Label.String() < o[j].Label.String())):
 
 		return true
 
@@ -84,7 +84,7 @@ func (o ordered) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 func iteratedNames(qs graph.QuadStore, it graph.Iterator) []string {
 	var res []string
 	for graph.Next(it) {
-		res = append(res, qs.NameOf(it.Result()))
+		res = append(res, qs.NameOf(it.Result()).String())
 	}
 	sort.Strings(res)
 	return res
@@ -133,14 +133,14 @@ func TestLoadDatabase(t *testing.T) {
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuad(quad.Quad{
-		Subject:   "Something",
-		Predicate: "points_to",
-		Object:    "Something Else",
-		Label:     "context",
-	})
+	w.AddQuad(quad.Make(
+		"Something",
+		"points_to",
+		"Something Else",
+		"context",
+	))
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
-		if got := qs.NameOf(qs.ValueOf(pq)); got != pq {
+		if got := qs.NameOf(qs.ValueOf(quad.Raw(pq))).String(); got != pq {
 			t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)
 		}
 	}
@@ -174,7 +174,7 @@ func TestLoadDatabase(t *testing.T) {
 	if s := qs.Size(); s != 12 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:12", s)
 	}
-	if s := ts2.SizeOf(qs.ValueOf("B")); s != 5 {
+	if s := ts2.SizeOf(qs.ValueOf(quad.Raw("B"))); s != 5 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
 	}
 	horizon = qs.Horizon()
@@ -182,16 +182,16 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected horizon value, got:%d expect:12", horizon.Int())
 	}
 
-	w.RemoveQuad(quad.Quad{
-		Subject:   "A",
-		Predicate: "follows",
-		Object:    "B",
-		Label:     "",
-	})
+	w.RemoveQuad(quad.Make(
+		"A",
+		"follows",
+		"B",
+		"",
+	))
 	if s := qs.Size(); s != 11 {
 		t.Errorf("Unexpected quadstore size after RemoveQuad, got:%d expect:11", s)
 	}
-	if s := ts2.SizeOf(qs.ValueOf("B")); s != 4 {
+	if s := ts2.SizeOf(qs.ValueOf(quad.Raw("B"))); s != 4 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:4", s)
 	}
 
@@ -261,7 +261,7 @@ func TestIterator(t *testing.T) {
 	}
 
 	for _, pq := range expect {
-		if !it.Contains(qs.ValueOf(pq)) {
+		if !it.Contains(qs.ValueOf(quad.Raw(pq))) {
 			t.Errorf("Failed to find and check %q correctly", pq)
 		}
 	}
@@ -315,13 +315,13 @@ func TestSetIterator(t *testing.T) {
 	w.AddQuadSet(makeQuadSet())
 
 	expect := []quad.Quad{
-		{"C", "follows", "B", ""},
-		{"C", "follows", "D", ""},
+		quad.Make("C", "follows", "B", ""),
+		quad.Make("C", "follows", "D", ""),
 	}
 	sort.Sort(ordered(expect))
 
 	// Subject iterator.
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf("C"))
+	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
 
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
@@ -337,11 +337,11 @@ func TestSetIterator(t *testing.T) {
 	}
 
 	// Object iterator.
-	it = qs.QuadIterator(quad.Object, qs.ValueOf("F"))
+	it = qs.QuadIterator(quad.Object, qs.ValueOf(quad.Raw("F")))
 
 	expect = []quad.Quad{
-		{"B", "follows", "F", ""},
-		{"E", "follows", "F", ""},
+		quad.Make("B", "follows", "F", ""),
+		quad.Make("E", "follows", "F", ""),
 	}
 	sort.Sort(ordered(expect))
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
@@ -349,23 +349,23 @@ func TestSetIterator(t *testing.T) {
 	}
 
 	and = iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf("B")))
+	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
 	and.AddSubIterator(it)
 
 	expect = []quad.Quad{
-		{"B", "follows", "F", ""},
+		quad.Make("B", "follows", "F", ""),
 	}
 	if got := iteratedQuads(qs, and); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get confirm expected results, got:%v expect:%v", got, expect)
 	}
 
 	// Predicate iterator.
-	it = qs.QuadIterator(quad.Predicate, qs.ValueOf("status"))
+	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.Raw("status")))
 
 	expect = []quad.Quad{
-		{"B", "status", "cool", "status_graph"},
-		{"D", "status", "cool", "status_graph"},
-		{"G", "status", "cool", "status_graph"},
+		quad.Make("B", "status", "cool", "status_graph"),
+		quad.Make("D", "status", "cool", "status_graph"),
+		quad.Make("G", "status", "cool", "status_graph"),
 	}
 	sort.Sort(ordered(expect))
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
@@ -373,12 +373,12 @@ func TestSetIterator(t *testing.T) {
 	}
 
 	// Label iterator.
-	it = qs.QuadIterator(quad.Label, qs.ValueOf("status_graph"))
+	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))
 
 	expect = []quad.Quad{
-		{"B", "status", "cool", "status_graph"},
-		{"D", "status", "cool", "status_graph"},
-		{"G", "status", "cool", "status_graph"},
+		quad.Make("B", "status", "cool", "status_graph"),
+		quad.Make("D", "status", "cool", "status_graph"),
+		quad.Make("G", "status", "cool", "status_graph"),
 	}
 	sort.Sort(ordered(expect))
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
@@ -388,11 +388,11 @@ func TestSetIterator(t *testing.T) {
 
 	// Order is important
 	and = iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf("B")))
+	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
 	and.AddSubIterator(it)
 
 	expect = []quad.Quad{
-		{"B", "status", "cool", "status_graph"},
+		quad.Make("B", "status", "cool", "status_graph"),
 	}
 	if got := iteratedQuads(qs, and); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get confirm expected results, got:%v expect:%v", got, expect)
@@ -402,10 +402,10 @@ func TestSetIterator(t *testing.T) {
 	// Order is important
 	and = iterator.NewAnd(qs)
 	and.AddSubIterator(it)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf("B")))
+	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
 
 	expect = []quad.Quad{
-		{"B", "status", "cool", "status_graph"},
+		quad.Make("B", "status", "cool", "status_graph"),
 	}
 	if got := iteratedQuads(qs, and); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get confirm expected results, got:%v expect:%v", got, expect)
@@ -430,7 +430,7 @@ func TestOptimize(t *testing.T) {
 
 	// With an linksto-fixed pair
 	fixed := qs.FixedIterator()
-	fixed.Add(qs.ValueOf("F"))
+	fixed.Add(qs.ValueOf(quad.Raw("F")))
 	fixed.Tagger().Add("internal")
 	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
 
@@ -480,19 +480,19 @@ func TestDeletedFromIterator(t *testing.T) {
 	w.AddQuadSet(makeQuadSet())
 
 	expect := []quad.Quad{
-		{"E", "follows", "F", ""},
+		quad.Make("E", "follows", "F", ""),
 	}
 	sort.Sort(ordered(expect))
 
 	// Subject iterator.
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf("E"))
+	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
 
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
 	}
 	it.Reset()
 
-	w.RemoveQuad(quad.Quad{"E", "follows", "F", ""})
+	w.RemoveQuad(quad.Make("E", "follows", "F", ""))
 	expect = nil
 
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
