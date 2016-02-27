@@ -43,23 +43,23 @@ import (
 //              +---+
 //
 var simpleGraph = []quad.Quad{
-	{"A", "follows", "B", ""},
-	{"C", "follows", "B", ""},
-	{"C", "follows", "D", ""},
-	{"D", "follows", "B", ""},
-	{"B", "follows", "F", ""},
-	{"F", "follows", "G", ""},
-	{"D", "follows", "G", ""},
-	{"E", "follows", "F", ""},
-	{"B", "status", "cool", "status_graph"},
-	{"D", "status", "cool", "status_graph"},
-	{"G", "status", "cool", "status_graph"},
+	quad.Make("A", "follows", "B", ""),
+	quad.Make("C", "follows", "B", ""),
+	quad.Make("C", "follows", "D", ""),
+	quad.Make("D", "follows", "B", ""),
+	quad.Make("B", "follows", "F", ""),
+	quad.Make("F", "follows", "G", ""),
+	quad.Make("D", "follows", "G", ""),
+	quad.Make("E", "follows", "F", ""),
+	quad.Make("B", "status", "cool", "status_graph"),
+	quad.Make("D", "status", "cool", "status_graph"),
+	quad.Make("G", "status", "cool", "status_graph"),
 }
 var simpleGraphUpdate = []quad.Quad{
-	{"A", "follows", "B", ""},
-	{"F", "follows", "B", ""},
-	{"C", "follows", "D", ""},
-	{"X", "follows", "B", ""},
+	quad.Make("A", "follows", "B", ""),
+	quad.Make("F", "follows", "B", ""),
+	quad.Make("C", "follows", "D", ""),
+	quad.Make("X", "follows", "B", ""),
 }
 
 type pair struct {
@@ -68,7 +68,7 @@ type pair struct {
 }
 
 func makeTestStore(data []quad.Quad, opts graph.Options) (graph.QuadStore, graph.QuadWriter, []pair) {
-	seen := make(map[string]struct{})
+	seen := make(map[quad.Value]struct{})
 
 	qs, _ := newQuadStore("", opts)
 	qs, _ = newQuadStoreForRequest(qs, opts)
@@ -78,10 +78,10 @@ func makeTestStore(data []quad.Quad, opts graph.Options) (graph.QuadStore, graph
 	)
 	writer, _ := writer.NewSingleReplication(qs, nil)
 	for _, t := range data {
-		for _, qp := range []string{t.Subject, t.Predicate, t.Object, t.Label} {
-			if _, ok := seen[qp]; !ok && qp != "" {
+		for _, qp := range []quad.Value{t.Subject, t.Predicate, t.Object, t.Label} {
+			if _, ok := seen[qp]; !ok && qp != nil {
 				val++
-				ind = append(ind, pair{qp, val})
+				ind = append(ind, pair{qp.String(), val})
 				seen[qp] = struct{}{}
 			}
 		}
@@ -95,7 +95,7 @@ func iterateResults(qs graph.QuadStore, it graph.Iterator) []string {
 	for graph.Next(it) {
 		v := it.Result()
 		if t, ok := v.(*Token); ok && t.Kind == nodeKind {
-			res = append(res, qs.NameOf(it.Result()))
+			res = append(res, qs.NameOf(it.Result()).String())
 		} else {
 			res = append(res, qs.Quad(it.Result()).String())
 		}
@@ -195,7 +195,7 @@ func TestAddRemove(t *testing.T) {
 	}
 
 	// Remove quad
-	toRemove := quad.Quad{"X", "follows", "B", ""}
+	toRemove := quad.Make("X", "follows", "B", "")
 	err = writer.RemoveQuad(toRemove)
 	if err != nil {
 		t.Errorf("RemoveQuad failed: %v", err)
@@ -232,19 +232,19 @@ func TestIterators(t *testing.T) {
 	}
 
 	var expected = []string{
-		quad.Quad{"C", "follows", "B", ""}.String(),
-		quad.Quad{"C", "follows", "D", ""}.String(),
+		quad.Make("C", "follows", "B", "").String(),
+		quad.Make("C", "follows", "D", "").String(),
 	}
 
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf("C"))
+	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
 	if got, ok := compareResults(qs, it, expected); !ok {
 		t.Errorf("Unexpected iterated result, got:%v expect:%v", got, expected)
 	}
 
 	// Test contains
-	it = qs.QuadIterator(quad.Label, qs.ValueOf("status_graph"))
+	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))
 	gqs := qs.(*QuadStore)
-	key := gqs.createKeyForQuad(quad.Quad{"G", "status", "cool", "status_graph"})
+	key := gqs.createKeyForQuad(quad.Make("G", "status", "cool", "status_graph"))
 	token := &Token{quadKind, key.StringID()}
 	if !it.Contains(token) {
 		t.Error("Contains failed")
@@ -275,10 +275,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	}
 
 	fixed := qs.FixedIterator()
-	fixed.Add(qs.ValueOf("C"))
+	fixed.Add(qs.ValueOf(quad.Raw("C")))
 
 	fixed2 := qs.FixedIterator()
-	fixed2.Add(qs.ValueOf("follows"))
+	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
 
 	all := qs.NodesAllIterator()
 
@@ -295,7 +295,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		t.Error("Expected one matching subtree")
 	}
 	val := outerAnd.Result()
-	if qs.NameOf(val) != "C" {
+	if qs.NameOf(val) != quad.Raw("C") {
 		t.Errorf("Matching subtree should be %s, got %s", "barak", qs.NameOf(val))
 	}
 
@@ -304,7 +304,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, qs.NameOf(all.Result()))
+		got = append(got, qs.NameOf(all.Result()).String())
 		if !outerAnd.NextPath() {
 			break
 		}

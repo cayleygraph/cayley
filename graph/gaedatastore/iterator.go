@@ -65,7 +65,7 @@ func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Value) *It
 		clog.Errorf("Cannot create iterator without a valid context")
 		return &Iterator{done: true}
 	}
-	name := qs.NameOf(t)
+	name := quad.StringOf(qs.NameOf(t))
 
 	// The number of references to this node is held in the nodes entity
 	key := qs.createKeyFromToken(t)
@@ -164,13 +164,13 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (hashSize * 2)
+		offset = (quad.HashSize * 2)
 	case quad.Object:
-		offset = (hashSize * 2) * 2
+		offset = (quad.HashSize * 2) * 2
 	case quad.Label:
-		offset = (hashSize * 2) * 3
+		offset = (quad.HashSize * 2) * 3
 	}
-	val := t.Hash[offset : offset+(hashSize*2)]
+	val := t.Hash[offset : offset+(quad.HashSize*2)]
 	if val == it.hash {
 		return graph.ContainsLogOut(it, v, true)
 	}
