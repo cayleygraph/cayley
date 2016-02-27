@@ -11,5 +11,5 @@
 <greg> <status> "cool_person" .
 <predicates> <are> <follows> .
 <predicates> <are> <status> .
-<emily> <status> "smart_person" "smart_graph" .
-<greg> <status> "smart_person" "smart_graph" .
+<emily> <status> "smart_person" <smart_graph> .
+<greg> <status> "smart_person" <smart_graph> .

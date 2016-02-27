@@ -23,7 +23,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/cquads"
+	"github.com/cayleygraph/cayley/quad/nquads"
 
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/writer"
@@ -52,13 +52,12 @@ func loadGraph(path string, t testing.TB) []quad.Quad {
 	defer f.Close()
 	r = f
 
-	dec := cquads.NewDecoder(r)
-	q1, err := dec.Unmarshal()
+	dec := nquads.NewDecoder(r)
+	for q1, err := dec.Unmarshal(); err == nil; q1, err = dec.Unmarshal() {
+		simpleGraph = append(simpleGraph, q1)
+	}
 	if err != nil {
 		t.Fatalf("Failed to Unmarshal: %v", err)
-	}
-	for ; err == nil; q1, err = dec.Unmarshal() {
-		simpleGraph = append(simpleGraph, q1)
 	}
 	return simpleGraph
 }
@@ -79,7 +78,7 @@ func runTopLevel(path *Path) []string {
 	it, _ = it.Optimize()
 	for graph.Next(it) {
 		v := path.qs.NameOf(it.Result())
-		out = append(out, v)
+		out = append(out, v.String())
 	}
 	return out
 }
@@ -92,13 +91,13 @@ func runTag(path *Path, tag string) []string {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		if t, ok := tags[tag]; ok {
-			out = append(out, path.qs.NameOf(t))
+			out = append(out, path.qs.NameOf(tags[tag]).String())
 		}
 		for it.NextPath() {
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			if t, ok := tags[tag]; ok {
-				out = append(out, path.qs.NameOf(t))
+				out = append(out, path.qs.NameOf(tags[tag]).String())
 			}
 		}
 	}
@@ -115,158 +114,158 @@ type test struct {
 // Define morphisms without a QuadStore
 
 var (
-	grandfollows = StartMorphism().Out("follows").Out("follows")
+	grandfollows = StartMorphism().Out("<follows>").Out("<follows>")
 )
 
 func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
 			message: "use out",
-			path:    StartPath(qs, "alice").Out("follows"),
-			expect:  []string{"bob"},
+			path:    StartPath(qs, "<alice>").Out("<follows>"),
+			expect:  []string{"<bob>"},
 		},
 		{
 			message: "use in",
-			path:    StartPath(qs, "bob").In("follows"),
-			expect:  []string{"alice", "charlie", "dani"},
+			path:    StartPath(qs, "<bob>").In("<follows>"),
+			expect:  []string{"<alice>", "<charlie>", "<dani>"},
 		},
 		{
 			message: "use path Out",
-			path:    StartPath(qs, "bob").Out(StartPath(qs, "predicates").Out("are")),
-			expect:  []string{"fred", "cool_person"},
+			path:    StartPath(qs, "<bob>").Out(StartPath(qs, "<predicates>").Out("<are>")),
+			expect:  []string{"<fred>", `"cool_person"`},
 		},
 		{
 			message: "use And",
-			path: StartPath(qs, "dani").Out("follows").And(
-				StartPath(qs, "charlie").Out("follows")),
-			expect: []string{"bob"},
+			path: StartPath(qs, "<dani>").Out("<follows>").And(
+				StartPath(qs, "<charlie>").Out("<follows>")),
+			expect: []string{"<bob>"},
 		},
 		{
 			message: "use Or",
-			path: StartPath(qs, "fred").Out("follows").Or(
-				StartPath(qs, "alice").Out("follows")),
-			expect: []string{"bob", "greg"},
+			path: StartPath(qs, "<fred>").Out("<follows>").Or(
+				StartPath(qs, "<alice>").Out("<follows>")),
+			expect: []string{"<bob>", "<greg>"},
 		},
 		{
 			message: "implicit All",
 			path:    StartPath(qs),
-			expect:  []string{"alice", "bob", "charlie", "dani", "emily", "fred", "greg", "follows", "status", "cool_person", "predicates", "are", "smart_graph", "smart_person"},
+			expect:  []string{"<alice>", "<bob>", "<charlie>", "<dani>", "<emily>", "<fred>", "<greg>", "<follows>", "<status>", `"cool_person"`, "<predicates>", "<are>", "<smart_graph>", `"smart_person"`},
 		},
 		{
 			message: "follow",
-			path:    StartPath(qs, "charlie").Follow(StartMorphism().Out("follows").Out("follows")),
-			expect:  []string{"bob", "fred", "greg"},
+			path:    StartPath(qs, "<charlie>").Follow(StartMorphism().Out("<follows>").Out("<follows>")),
+			expect:  []string{"<bob>", "<fred>", "<greg>"},
 		},
 		{
 			message: "followR",
-			path:    StartPath(qs, "fred").FollowReverse(StartMorphism().Out("follows").Out("follows")),
-			expect:  []string{"alice", "charlie", "dani"},
+			path:    StartPath(qs, "<fred>").FollowReverse(StartMorphism().Out("<follows>").Out("<follows>")),
+			expect:  []string{"<alice>", "<charlie>", "<dani>"},
 		},
 		{
 			message: "is, tag, instead of FollowR",
-			path:    StartPath(qs).Tag("first").Follow(StartMorphism().Out("follows").Out("follows")).Is("fred"),
-			expect:  []string{"alice", "charlie", "dani"},
+			path:    StartPath(qs).Tag("first").Follow(StartMorphism().Out("<follows>").Out("<follows>")).Is("<fred>"),
+			expect:  []string{"<alice>", "<charlie>", "<dani>"},
 			tag:     "first",
 		},
 		{
 			message: "use Except to filter out a single vertex",
-			path:    StartPath(qs, "alice", "bob").Except(StartPath(qs, "alice")),
-			expect:  []string{"bob"},
+			path:    StartPath(qs, "<alice>", "<bob>").Except(StartPath(qs, "<alice>")),
+			expect:  []string{"<bob>"},
 		},
 		{
 			message: "use chained Except",
-			path:    StartPath(qs, "alice", "bob", "charlie").Except(StartPath(qs, "bob")).Except(StartPath(qs, "alice")),
-			expect:  []string{"charlie"},
+			path:    StartPath(qs, "<alice>", "<bob>", "<charlie>").Except(StartPath(qs, "<bob>")).Except(StartPath(qs, "<alice>")),
+			expect:  []string{"<charlie>"},
 		},
 		{
 			message: "show a simple save",
-			path:    StartPath(qs).Save("status", "somecool"),
+			path:    StartPath(qs).Save("<status>", "somecool"),
 			tag:     "somecool",
-			expect:  []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
+			expect:  []string{`"cool_person"`, `"cool_person"`, `"cool_person"`, `"smart_person"`, `"smart_person"`},
 		},
 		{
 			message: "show a simple saveR",
-			path:    StartPath(qs, "cool_person").SaveReverse("status", "who"),
+			path:    StartPath(qs, `"cool_person"`).SaveReverse("<status>", "who"),
 			tag:     "who",
-			expect:  []string{"greg", "dani", "bob"},
+			expect:  []string{"<greg>", "<dani>", "<bob>"},
 		},
 		{
 			message: "show a simple Has",
-			path:    StartPath(qs).Has("status", "cool_person"),
-			expect:  []string{"greg", "dani", "bob"},
+			path:    StartPath(qs).Has("<status>", `"cool_person"`),
+			expect:  []string{"<greg>", "<dani>", "<bob>"},
 		},
 		{
 			message: "use Limit",
-			path:    StartPath(qs).Has("status", "cool_person").Limit(2),
-			expect:  []string{"bob", "dani"},
+			path:    StartPath(qs).Has("<status>", `"cool_person"`).Limit(2),
+			expect:  []string{"<bob>", "<dani>"},
 		},
 		{
 			message: "use Skip",
-			path:    StartPath(qs).Has("status", "cool_person").Skip(2),
-			expect:  []string{"greg"},
+			path:    StartPath(qs).Has("<status>", `"cool_person"`).Skip(2),
+			expect:  []string{"<greg>"},
 		},
 		{
 			message: "use Skip and Limit",
-			path:    StartPath(qs).Has("status", "cool_person").Skip(1).Limit(1),
-			expect:  []string{"dani"},
+			path:    StartPath(qs).Has("<status>", `"cool_person"`).Skip(1).Limit(1),
+			expect:  []string{"<dani>"},
 		},
 		{
 			message: "show a double Has",
-			path:    StartPath(qs).Has("status", "cool_person").Has("follows", "fred"),
-			expect:  []string{"bob"},
+			path:    StartPath(qs).Has("<status>", `"cool_person"`).Has("<follows>", "<fred>"),
+			expect:  []string{"<bob>"},
 		},
 		{
 			message: "show a simple HasReverse",
-			path:    StartPath(qs).HasReverse("status", "bob"),
-			expect:  []string{"cool_person"},
+			path:    StartPath(qs).HasReverse("<status>", "<bob>"),
+			expect:  []string{`"cool_person"`},
 		},
 		{
 			message: "use .Tag()-.Is()-.Back()",
-			path:    StartPath(qs, "bob").In("follows").Tag("foo").Out("status").Is("cool_person").Back("foo"),
-			expect:  []string{"dani"},
+			path:    StartPath(qs, "<bob>").In("<follows>").Tag("foo").Out("<status>").Is(`"cool_person"`).Back("foo"),
+			expect:  []string{"<dani>"},
 		},
 		{
 			message: "do multiple .Back()s",
-			path:    StartPath(qs, "emily").Out("follows").Tag("f").Out("follows").Out("status").Is("cool_person").Back("f").In("follows").In("follows").Tag("acd").Out("status").Is("cool_person").Back("f"),
+			path:    StartPath(qs, "<emily>").Out("<follows>").Tag("f").Out("<follows>").Out("<status>").Is(`"cool_person"`).Back("f").In("<follows>").In("<follows>").Tag("acd").Out("<status>").Is(`"cool_person"`).Back("f"),
 			tag:     "acd",
-			expect:  []string{"dani"},
+			expect:  []string{"<dani>"},
 		},
 		{
 			message: "InPredicates()",
-			path:    StartPath(qs, "bob").InPredicates(),
-			expect:  []string{"follows"},
+			path:    StartPath(qs, "<bob>").InPredicates(),
+			expect:  []string{"<follows>"},
 		},
 		{
 			message: "OutPredicates()",
-			path:    StartPath(qs, "bob").OutPredicates(),
-			expect:  []string{"follows", "status"},
+			path:    StartPath(qs, "<bob>").OutPredicates(),
+			expect:  []string{"<follows>", "<status>"},
 		},
 		// Morphism tests
 		{
 			message: "show simple morphism",
-			path:    StartPath(qs, "charlie").Follow(grandfollows),
-			expect:  []string{"greg", "fred", "bob"},
+			path:    StartPath(qs, "<charlie>").Follow(grandfollows),
+			expect:  []string{"<greg>", "<fred>", "<bob>"},
 		},
 		{
 			message: "show reverse morphism",
-			path:    StartPath(qs, "fred").FollowReverse(grandfollows),
-			expect:  []string{"alice", "charlie", "dani"},
+			path:    StartPath(qs, "<fred>").FollowReverse(grandfollows),
+			expect:  []string{"<alice>", "<charlie>", "<dani>"},
 		},
 		// Context tests
 		{
 			message: "query without label limitation",
-			path:    StartPath(qs, "greg").Out("status"),
-			expect:  []string{"smart_person", "cool_person"},
+			path:    StartPath(qs, "<greg>").Out("<status>"),
+			expect:  []string{`"smart_person"`, `"cool_person"`},
 		},
 		{
 			message: "query with label limitation",
-			path:    StartPath(qs, "greg").LabelContext("smart_graph").Out("status"),
-			expect:  []string{"smart_person"},
+			path:    StartPath(qs, "<greg>").LabelContext(`<smart_graph>`).Out("<status>"),
+			expect:  []string{`"smart_person"`},
 		},
 		{
 			message: "reverse context",
-			path:    StartPath(qs, "greg").Tag("base").LabelContext("smart_graph").Out("status").Tag("status").Back("base"),
-			expect:  []string{"greg"},
+			path:    StartPath(qs, "<greg>").Tag("base").LabelContext(`<smart_graph>`).Out("<status>").Tag("<status>").Back("base"),
+			expect:  []string{"<greg>"},
 		},
 		// Optional tests
 		{

@@ -22,6 +22,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 const TopResultTag = "id"
@@ -138,7 +139,7 @@ func (wk *worker) mapFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCa
 func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]string {
 	outputMap := make(map[string]string)
 	for k, v := range m {
-		outputMap[k] = wk.qs.NameOf(v)
+		outputMap[k] = quad.StringOf(wk.qs.NameOf(v))
 	}
 	return outputMap
 }
@@ -195,7 +196,7 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []strin
 		if !graph.Next(it) {
 			break
 		}
-		output = append(output, wk.qs.NameOf(it.Result()))
+		output = append(output, quad.StringOf(wk.qs.NameOf(it.Result())))
 		n++
 		if limit >= 0 && n >= limit {
 			break

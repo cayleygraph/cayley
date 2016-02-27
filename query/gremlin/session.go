@@ -226,9 +226,8 @@ func (s *Session) Collate(result interface{}) {
 			}
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
-				name := s.qs.NameOf(tags[k])
-				if name != "" {
-					obj[k] = name
+				if name := s.qs.NameOf(tags[k]); name != nil {
+					obj[k] = name.String()
 				} else {
 					delete(obj, k)
 				}

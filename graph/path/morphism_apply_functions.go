@@ -53,7 +53,7 @@ func isMorphism(nodes ...string) morphism {
 
 			isNodes := qs.FixedIterator()
 			for _, n := range nodes {
-				isNodes.Add(qs.ValueOf(n))
+				isNodes.Add(qs.ValueOf(quad.Raw(n)))
 			}
 
 			// Anything with fixedIterators will usually have a much
@@ -309,7 +309,7 @@ func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bo
 
 		fixed := qs.FixedIterator()
 		for _, n := range nodes {
-			fixed.Add(qs.ValueOf(n))
+			fixed.Add(qs.ValueOf(quad.Raw(n)))
 		}
 		return fixed
 	}()
