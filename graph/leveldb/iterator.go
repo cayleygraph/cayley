@@ -43,7 +43,7 @@ type Iterator struct {
 
 func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
 	vb := value.(Token)
-	p := make([]byte, 0, 2+hashSize)
+	p := make([]byte, 0, 2+quad.HashSize)
 	p = append(p, []byte(prefix)...)
 	p = append(p, []byte(vb[1:])...)
 
@@ -183,45 +183,45 @@ func PositionOf(prefix []byte, d quad.Direction, qs *QuadStore) int {
 		case quad.Subject:
 			return 2
 		case quad.Predicate:
-			return hashSize + 2
+			return quad.HashSize + 2
 		case quad.Object:
-			return 2*hashSize + 2
+			return 2*quad.HashSize + 2
 		case quad.Label:
-			return 3*hashSize + 2
+			return 3*quad.HashSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("po")) {
 		switch d {
 		case quad.Subject:
-			return 2*hashSize + 2
+			return 2*quad.HashSize + 2
 		case quad.Predicate:
 			return 2
 		case quad.Object:
-			return hashSize + 2
+			return quad.HashSize + 2
 		case quad.Label:
-			return 3*hashSize + 2
+			return 3*quad.HashSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("os")) {
 		switch d {
 		case quad.Subject:
-			return hashSize + 2
+			return quad.HashSize + 2
 		case quad.Predicate:
-			return 2*hashSize + 2
+			return 2*quad.HashSize + 2
 		case quad.Object:
 			return 2
 		case quad.Label:
-			return 3*hashSize + 2
+			return 3*quad.HashSize + 2
 		}
 	}
 	if bytes.Equal(prefix, []byte("cp")) {
 		switch d {
 		case quad.Subject:
-			return 2*hashSize + 2
+			return 2*quad.HashSize + 2
 		case quad.Predicate:
-			return hashSize + 2
+			return quad.HashSize + 2
 		case quad.Object:
-			return 3*hashSize + 2
+			return 3*quad.HashSize + 2
 		case quad.Label:
 			return 2
 		}
@@ -258,7 +258,7 @@ func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
 		UID:       it.UID(),
-		Name:      it.qs.NameOf(Token(it.checkID)),
+		Name:      it.qs.NameOf(Token(it.checkID)).String(),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      size,
