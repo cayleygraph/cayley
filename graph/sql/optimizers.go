@@ -173,7 +173,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			it.Close()
 			return newIt, true
 		} else if size > 1 {
-			var vals []string
+			var vals []quad.Value
 			for graph.Next(primary) {
 				vals = append(vals, qs.NameOf(primary.Result()))
 			}

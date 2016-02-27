@@ -148,12 +148,14 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	return &qs, nil
 }
 
-func hashOf(s string) string {
+func hashOf(s quad.Value) string {
 	h := hashPool.Get().(hash.Hash)
 	h.Reset()
 	defer hashPool.Put(h)
 	key := make([]byte, 0, hashSize)
-	h.Write([]byte(s))
+	if s != nil {
+		h.Write([]byte(s.String()))
+	}
 	key = h.Sum(key)
 	return hex.EncodeToString(key)
 }
@@ -266,7 +268,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return NewSQLLinkIterator(qs, d, val.(string))
+	return NewSQLLinkIterator(qs, d, val.(quad.Value))
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
@@ -277,18 +279,18 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return NewAllIterator(qs, "quads")
 }
 
-func (qs *QuadStore) ValueOf(s string) graph.Value {
+func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	return s
 }
 
-func (qs *QuadStore) NameOf(v graph.Value) string {
+func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	if v == nil {
 		if clog.V(2) {
 			clog.Infof("NameOf was nil")
 		}
-		return ""
+		return nil
 	}
-	return v.(string)
+	return v.(quad.Value)
 }
 
 func (qs *QuadStore) Size() int64 {
@@ -345,7 +347,7 @@ func (qs *QuadStore) Type() string {
 	return QuadStoreType
 }
 
-func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val string) int64 {
+func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val quad.Value) int64 {
 	var err error
 	if isAll {
 		return qs.Size()
@@ -356,7 +358,7 @@ func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val string)
 		}
 		return (qs.Size() / 1000) + 1
 	}
-	if val, ok := qs.lru.Get(val + string(dir.Prefix())); ok {
+	if val, ok := qs.lru.Get(val.String() + string(dir.Prefix())); ok {
 		return val
 	}
 	var size int64
@@ -369,6 +371,6 @@ func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val string)
 		clog.Errorf("Error getting size from SQL database: %v", err)
 		return 0
 	}
-	qs.lru.Put(val+string(dir.Prefix()), size)
+	qs.lru.Put(val.String()+string(dir.Prefix()), size)
 	return size
 }

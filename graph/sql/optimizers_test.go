@@ -22,8 +22,8 @@ import (
 )
 
 func TestBuildIntersect(t *testing.T) {
-	a := NewSQLLinkIterator(nil, quad.Subject, "Foo")
-	b := NewSQLLinkIterator(nil, quad.Predicate, "is_equivalent_to")
+	a := NewSQLLinkIterator(nil, quad.Subject, quad.Raw("Foo"))
+	b := NewSQLLinkIterator(nil, quad.Predicate, quad.Raw("is_equivalent_to"))
 	it, err := intersect(a.sql, b.sql, nil)
 	if err != nil {
 		t.Error(err)
@@ -33,9 +33,9 @@ func TestBuildIntersect(t *testing.T) {
 }
 
 func TestBuildHasa(t *testing.T) {
-	a := NewSQLLinkIterator(nil, quad.Subject, "Foo")
+	a := NewSQLLinkIterator(nil, quad.Subject, quad.Raw("Foo"))
 	a.Tagger().Add("foo")
-	b := NewSQLLinkIterator(nil, quad.Predicate, "is_equivalent_to")
+	b := NewSQLLinkIterator(nil, quad.Predicate, quad.Raw("is_equivalent_to"))
 	it1, err := intersect(a.sql, b.sql, nil)
 	if err != nil {
 		t.Error(err)
@@ -49,8 +49,8 @@ func TestBuildHasa(t *testing.T) {
 }
 
 func TestBuildLinksTo(t *testing.T) {
-	a := NewSQLLinkIterator(nil, quad.Subject, "Foo")
-	b := NewSQLLinkIterator(nil, quad.Predicate, "is_equivalent_to")
+	a := NewSQLLinkIterator(nil, quad.Subject, quad.Raw("Foo"))
+	b := NewSQLLinkIterator(nil, quad.Predicate, quad.Raw("is_equivalent_to"))
 	it1, err := intersect(a.sql, b.sql, nil)
 	if err != nil {
 		t.Error(err)
@@ -77,8 +77,8 @@ func TestInterestingQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 	qs := db.(*QuadStore)
-	a := NewSQLLinkIterator(qs, quad.Object, "Humphrey Bogart")
-	b := NewSQLLinkIterator(qs, quad.Predicate, "name")
+	a := NewSQLLinkIterator(qs, quad.Object, quad.Raw("Humphrey Bogart"))
+	b := NewSQLLinkIterator(qs, quad.Predicate, quad.Raw("name"))
 	it1, err := intersect(a.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)
@@ -92,7 +92,7 @@ func TestInterestingQuery(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	b = NewSQLLinkIterator(db.(*QuadStore), quad.Predicate, "/film/performance/actor")
+	b = NewSQLLinkIterator(db.(*QuadStore), quad.Predicate, quad.Raw("/film/performance/actor"))
 	it4, err := intersect(it3.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)
@@ -105,7 +105,7 @@ func TestInterestingQuery(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	b = NewSQLLinkIterator(db.(*QuadStore), quad.Predicate, "/film/film/starring")
+	b = NewSQLLinkIterator(db.(*QuadStore), quad.Predicate, quad.Raw("/film/film/starring"))
 	it7, err := intersect(it6.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)

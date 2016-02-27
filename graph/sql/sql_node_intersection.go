@@ -184,7 +184,7 @@ func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []st
 	values = append(values, wherevalues...)
 
 	if !next {
-		v := val.(string)
+		v := val.(quad.Value)
 		if constraint != "" {
 			constraint += " AND "
 		}
