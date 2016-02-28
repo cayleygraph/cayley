@@ -72,12 +72,11 @@ func (qs *QuadStore) OptimizeNodesPath(p path.Nodes) (path.Nodes, bool) {
 type pathLinksTo struct {
 	qs    *QuadStore
 	index *b.Tree
-	data  string
 }
 
 func (p pathLinksTo) Optimize() (path.Links, bool)                                { return p, false }
 func (p pathLinksTo) Replace(_ path.NodesWrapper, _ path.LinksWrapper) path.Links { return p }
-func (p pathLinksTo) BuildIterator() graph.Iterator                               { return NewIterator(p.index, p.data, p.qs) }
+func (p pathLinksTo) BuildIterator() graph.Iterator                               { return NewIterator(p.index, p.qs, 0, nil) }
 func (qs *QuadStore) optimizePathLinksTo(p path.LinksTo) (path.Links, bool) {
 	switch t := p.Nodes.(type) {
 	case path.Fixed:

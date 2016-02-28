@@ -262,7 +262,7 @@ func (qs *QuadStore) LinksToValuePath(d quad.Direction, value string) path.Links
 		return nil
 	}
 	return pathLinksTo{
-		qs: qs, index: index, data: fmt.Sprintf("dir:%s val:%d", d, id),
+		qs: qs, index: index,
 	}
 }
 
