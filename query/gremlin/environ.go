@@ -17,6 +17,7 @@ package gremlin
 // Builds a new Gremlin environment pointing at a session.
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/barakmich/glog"
@@ -99,8 +100,17 @@ func argsOf(call otto.FunctionCall) []string {
 		}
 		if arg.IsObject() && arg.Class() == "Array" {
 			obj, _ := arg.Export()
-			for _, x := range obj.([]string) {
-				out = append(out, x)
+			switch o := obj.(type) {
+			case []interface{}:
+				for _, x := range o {
+					out = append(out, x.(string))
+				}
+			case []string:
+				for _, x := range o {
+					out = append(out, x)
+				}
+			default:
+				panic(fmt.Errorf("unexpected type: %T", obj))
 			}
 		}
 	}
