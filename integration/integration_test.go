@@ -59,10 +59,10 @@ var benchmarkQueries = []struct {
 	{
 		message: "name predicate",
 		query: `
-		g.V("Humphrey Bogart").In("name").All()
+		g.V('"Humphrey Bogart"').In("<name>").All()
 		`,
 		expect: []interface{}{
-			map[string]string{"id": "/en/humphrey_bogart"},
+			map[string]string{"id": "</en/humphrey_bogart>"},
 		},
 	},
 
@@ -72,11 +72,11 @@ var benchmarkQueries = []struct {
 	{
 		message: "two large sets with no intersection",
 		query: `
-		function getId(x) { return g.V(x).In("name") }
-		var actor_to_film = g.M().In("/film/performance/actor").In("/film/film/starring")
+		function getId(x) { return g.V(x).In("<name>") }
+		var actor_to_film = g.M().In("</film/performance/actor>").In("</film/film/starring>")
 
-		getId("Oliver Hardy").Follow(actor_to_film).Out("name").Intersect(
-			getId("Mel Blanc").Follow(actor_to_film).Out("name")).All()
+		getId('"Oliver Hardy"').Follow(actor_to_film).Out("<name>").Intersect(
+			getId('"Mel Blanc"').Follow(actor_to_film).Out("<name>")).All()
 			`,
 		expect: nil,
 	},
@@ -86,12 +86,12 @@ var benchmarkQueries = []struct {
 		message: "three huge sets with small intersection",
 		long:    true,
 		query: `
-			function getId(x) { return g.V(x).In("name") }
-			var actor_to_film = g.M().In("/film/performance/actor").In("/film/film/starring")
+			function getId(x) { return g.V(x).In("<name>") }
+			var actor_to_film = g.M().In("</film/performance/actor>").In("</film/film/starring>")
 
-			var a = getId("Oliver Hardy").Follow(actor_to_film).FollowR(actor_to_film)
-			var b = getId("Mel Blanc").Follow(actor_to_film).FollowR(actor_to_film)
-			var c = getId("Billy Gilbert").Follow(actor_to_film).FollowR(actor_to_film)
+			var a = getId('"Oliver Hardy"').Follow(actor_to_film).FollowR(actor_to_film)
+			var b = getId('"Mel Blanc"').Follow(actor_to_film).FollowR(actor_to_film)
+			var c = getId('"Billy Gilbert"').Follow(actor_to_film).FollowR(actor_to_film)
 
 			seen = {}
 
@@ -103,8 +103,8 @@ var benchmarkQueries = []struct {
 			})
 			`,
 		expect: []interface{}{
-			map[string]string{"id": "/en/sterling_holloway"},
-			map[string]string{"id": "/en/billy_gilbert"},
+			map[string]string{"id": "</en/sterling_holloway>"},
+			map[string]string{"id": "</en/billy_gilbert>"},
 		},
 	},
 
@@ -115,25 +115,25 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker",
 		long:    true,
 		query: `
-			g.V().As("person").In("name").In().In().Out("name").Is("Casablanca").All()
+			g.V().As("person").In("<name>").In().In().Out("<name>").Is('"Casablanca"').All()
 			`,
 		tag: "person",
 		expect: []interface{}{
-			map[string]string{"id": "Casablanca", "person": "Ingrid Bergman"},
-			map[string]string{"id": "Casablanca", "person": "Madeleine LeBeau"},
-			map[string]string{"id": "Casablanca", "person": "Joy Page"},
-			map[string]string{"id": "Casablanca", "person": "Claude Rains"},
-			map[string]string{"id": "Casablanca", "person": "S.Z. Sakall"},
-			map[string]string{"id": "Casablanca", "person": "Helmut Dantine"},
-			map[string]string{"id": "Casablanca", "person": "Conrad Veidt"},
-			map[string]string{"id": "Casablanca", "person": "Paul Henreid"},
-			map[string]string{"id": "Casablanca", "person": "Peter Lorre"},
-			map[string]string{"id": "Casablanca", "person": "Sydney Greenstreet"},
-			map[string]string{"id": "Casablanca", "person": "Leonid Kinskey"},
-			map[string]string{"id": "Casablanca", "person": "Lou Marcelle"},
-			map[string]string{"id": "Casablanca", "person": "Dooley Wilson"},
-			map[string]string{"id": "Casablanca", "person": "John Qualen"},
-			map[string]string{"id": "Casablanca", "person": "Humphrey Bogart"},
+			map[string]string{"id": `"Casablanca"`, "person": `"Ingrid Bergman"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Madeleine LeBeau"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Joy Page"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Claude Rains"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"S.Z. Sakall"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Helmut Dantine"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Conrad Veidt"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Paul Henreid"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Peter Lorre"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Sydney Greenstreet"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Leonid Kinskey"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Lou Marcelle"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Dooley Wilson"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"John Qualen"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Humphrey Bogart"`},
 		},
 	},
 
@@ -142,7 +142,7 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker, negated (films without Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.V().As("person").In("name").In().In().Out("name").Except(g.V("Ingrid Bergman").In("name").In().In().Out("name")).Is("Casablanca").All()
+			g.V().As("person").In("<name>").In().In().Out("<name>").Except(g.V('"Ingrid Bergman"').In("<name>").In().In().Out("<name>")).Is('"Casablanca"').All()
 			`,
 		tag:    "person",
 		expect: nil,
@@ -151,24 +151,24 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker, negated (without actors Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.V().As("person").In("name").Except(g.V("Ingrid Bergman").In("name")).In().In().Out("name").Is("Casablanca").All()
+			g.V().As("person").In("<name>").Except(g.V('"Ingrid Bergman"').In("<name>")).In().In().Out("<name>").Is('"Casablanca"').All()
 			`,
 		tag: "person",
 		expect: []interface{}{
-			map[string]string{"id": "Casablanca", "person": "Madeleine LeBeau"},
-			map[string]string{"id": "Casablanca", "person": "Joy Page"},
-			map[string]string{"id": "Casablanca", "person": "Claude Rains"},
-			map[string]string{"id": "Casablanca", "person": "S.Z. Sakall"},
-			map[string]string{"id": "Casablanca", "person": "Helmut Dantine"},
-			map[string]string{"id": "Casablanca", "person": "Conrad Veidt"},
-			map[string]string{"id": "Casablanca", "person": "Paul Henreid"},
-			map[string]string{"id": "Casablanca", "person": "Peter Lorre"},
-			map[string]string{"id": "Casablanca", "person": "Sydney Greenstreet"},
-			map[string]string{"id": "Casablanca", "person": "Leonid Kinskey"},
-			map[string]string{"id": "Casablanca", "person": "Lou Marcelle"},
-			map[string]string{"id": "Casablanca", "person": "Dooley Wilson"},
-			map[string]string{"id": "Casablanca", "person": "John Qualen"},
-			map[string]string{"id": "Casablanca", "person": "Humphrey Bogart"},
+			map[string]string{"id": `"Casablanca"`, "person": `"Madeleine LeBeau"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Joy Page"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Claude Rains"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"S.Z. Sakall"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Helmut Dantine"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Conrad Veidt"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Paul Henreid"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Peter Lorre"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Sydney Greenstreet"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Leonid Kinskey"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Lou Marcelle"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Dooley Wilson"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"John Qualen"`},
+			map[string]string{"id": `"Casablanca"`, "person": `"Humphrey Bogart"`},
 		},
 	},
 
@@ -176,10 +176,10 @@ var benchmarkQueries = []struct {
 	//A: "Sandra Bullock"
 	{
 		message: "Net and Speed",
-		query: common + `m1_actors.Intersect(m2_actors).Out("name").All()
+		query: common + `m1_actors.Intersect(m2_actors).Out("<name>").All()
 `,
 		expect: []interface{}{
-			map[string]string{"id": "Sandra Bullock", "movie1": "The Net", "movie2": "Speed"},
+			map[string]string{"id": `"Sandra Bullock"`, "movie1": `"The Net"`, "movie2": `"Speed"`},
 		},
 	},
 
@@ -187,7 +187,7 @@ var benchmarkQueries = []struct {
 	//A: No
 	{
 		message: "Keanu in The Net",
-		query: common + `actor2.Intersect(m1_actors).Out("name").All()
+		query: common + `actor2.Intersect(m1_actors).Out("<name>").All()
 `,
 		expect: nil,
 	},
@@ -196,10 +196,10 @@ var benchmarkQueries = []struct {
 	//A: Yes
 	{
 		message: "Keanu in Speed",
-		query: common + `actor2.Intersect(m2_actors).Out("name").All()
+		query: common + `actor2.Intersect(m2_actors).Out("<name>").All()
 `,
 		expect: []interface{}{
-			map[string]string{"id": "Keanu Reeves", "movie2": "Speed"},
+			map[string]string{"id": `"Keanu Reeves"`, "movie2": `"Speed"`},
 		},
 	},
 
@@ -209,11 +209,11 @@ var benchmarkQueries = []struct {
 	{
 		message: "Keanu with other in The Net",
 		long:    true,
-		query: common + `actor2.Follow(coStars1).Intersect(m1_actors).Out("name").All()
+		query: common + `actor2.Follow(coStars1).Intersect(m1_actors).Out("<name>").All()
 `,
 		expect: []interface{}{
-			map[string]string{"id": "Sandra Bullock", "movie1": "The Net", "costar1_movie": "Speed"},
-			map[string]string{"movie1": "The Net", "costar1_movie": "The Lake House", "id": "Sandra Bullock"},
+			map[string]string{"id": `"Sandra Bullock"`, "movie1": `"The Net"`, "costar1_movie": `"Speed"`},
+			map[string]string{"movie1": `"The Net"`, "costar1_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
 		},
 	},
 
@@ -223,208 +223,208 @@ var benchmarkQueries = []struct {
 	{
 		message: "Keanu and Bullock with other",
 		long:    true,
-		query: common + `actor1.Save("name","costar1_actor").Follow(coStars1).Intersect(actor2.Save("name","costar2_actor").Follow(coStars2)).Out("name").All()
+		query: common + `actor1.Save("<name>","costar1_actor").Follow(coStars1).Intersect(actor2.Save("<name>","costar2_actor").Follow(coStars2)).Out("<name>").All()
 `,
 		expect: []interface{}{
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Proposal", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Proposal", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Proposal", "costar2_actor": "Keanu Reeves", "costar2_movie": "Parenthood", "id": "Mary Steenburgen"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Proposal", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Devil's Advocate", "id": "Craig T. Nelson"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Crash", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Crash", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Gun Shy", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Gun Shy", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Demolition Man", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Demolition Man", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Demolition Man", "costar2_actor": "Keanu Reeves", "costar2_movie": "Thumbsucker", "id": "Benjamin Bratt"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Divine Secrets of the Ya-Ya Sisterhood", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Divine Secrets of the Ya-Ya Sisterhood", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Divine Secrets of the Ya-Ya Sisterhood", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Private Lives of Pippa Lee", "id": "Shirley Knight"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "A Time to Kill", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "A Time to Kill", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Forces of Nature", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Forces of Nature", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Hope Floats", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Hope Floats", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Infamous", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Infamous", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Infamous", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Jeff Daniels"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Love Potion No. 9", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Love Potion No. 9", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Miss Congeniality", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Miss Congeniality", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Miss Congeniality", "costar2_actor": "Keanu Reeves", "costar2_movie": "Thumbsucker", "id": "Benjamin Bratt"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Miss Congeniality 2: Armed and Fabulous", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Miss Congeniality 2: Armed and Fabulous", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Murder by Numbers", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Murder by Numbers", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Practical Magic", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Practical Magic", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Practical Magic", "costar2_actor": "Keanu Reeves", "costar2_movie": "Parenthood", "id": "Dianne Wiest"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Flying", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Animatrix", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Tune in Tomorrow", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Last Time I Committed Suicide", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Constantine", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Permanent Record", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Dangerous Liaisons", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Private Lives of Pippa Lee", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "A Scanner Darkly", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "A Walk in the Clouds", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Hardball", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Life Under Water", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Much Ado About Nothing", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "My Own Private Idaho", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Parenthood", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Point Break", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Providence", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "River's Edge", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Something's Gotta Give", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Sweet November", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Matrix Reloaded", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Matrix Revisited", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Prince of Pennsylvania", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Replacements", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Even Cowgirls Get the Blues", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Youngblood", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Bogus Journey", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Excellent Adventure", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Johnny Mnemonic", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Devil's Advocate", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Thumbsucker", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "I Love You to Death", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bram Stoker's Dracula", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Gift", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Little Buddha", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Night Watchman", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Chain Reaction", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Babes in Toyland", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Day the Earth Stood Still", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "River's Edge", "id": "Dennis Hopper"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Dennis Hopper"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Jeff Daniels"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Joe Morton"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Alan Ruck"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Glenn Plummer"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Carlos Carrasco"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Beth Grant"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Richard Lineback"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Hawthorne James"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Jordan Lund"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Thomas Rosales, Jr."},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed 2: Cruise Control", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed 2: Cruise Control", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed 2: Cruise Control", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Glenn Plummer"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Flying", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Animatrix", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Tune in Tomorrow", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Last Time I Committed Suicide", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Constantine", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Permanent Record", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Dangerous Liaisons", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Private Lives of Pippa Lee", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "A Scanner Darkly", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "A Walk in the Clouds", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Hardball", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Life Under Water", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Much Ado About Nothing", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "My Own Private Idaho", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Parenthood", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Point Break", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Providence", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "River's Edge", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Something's Gotta Give", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Sweet November", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Matrix Reloaded", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Matrix Revisited", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Prince of Pennsylvania", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Replacements", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Even Cowgirls Get the Blues", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Youngblood", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Bogus Journey", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Excellent Adventure", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Johnny Mnemonic", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Devil's Advocate", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Thumbsucker", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "I Love You to Death", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bram Stoker's Dracula", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Gift", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Little Buddha", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Night Watchman", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Chain Reaction", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Babes in Toyland", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Day the Earth Stood Still", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Christopher Plummer"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Dylan Walsh"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Shohreh Aghdashloo"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Lynn Collins"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Net", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Net", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Prince of Egypt", "costar2_actor": "Keanu Reeves", "costar2_movie": "Dangerous Liaisons", "id": "Michelle Pfeiffer"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Prince of Egypt", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Prince of Egypt", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Prince of Egypt", "costar2_actor": "Keanu Reeves", "costar2_movie": "Parenthood", "id": "Steve Martin"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Two Weeks Notice", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Two Weeks Notice", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "While You Were Sleeping", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "While You Were Sleeping", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "While You Were Sleeping", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Replacements", "id": "Jack Warden"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "28 Days", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "28 Days", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Premonition", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Premonition", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Premonition", "costar2_actor": "Keanu Reeves", "costar2_movie": "Constantine", "id": "Peter Stormare"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Wrestling Ernest Hemingway", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Wrestling Ernest Hemingway", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Fire on the Amazon", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Fire on the Amazon", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Thing Called Love", "costar2_actor": "Keanu Reeves", "costar2_movie": "My Own Private Idaho", "id": "River Phoenix"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Thing Called Love", "costar2_actor": "Keanu Reeves", "costar2_movie": "I Love You to Death", "id": "River Phoenix"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Thing Called Love", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Thing Called Love", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "In Love and War", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "In Love and War", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Lake House", "id": "Sandra Bullock"},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Proposal"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Proposal"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Proposal"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Parenthood"`, "id": `"Mary Steenburgen"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Proposal"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Devil's Advocate"`, "id": `"Craig T. Nelson"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Crash"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Crash"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Gun Shy"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Gun Shy"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Demolition Man"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Demolition Man"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Demolition Man"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Thumbsucker"`, "id": `"Benjamin Bratt"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Divine Secrets of the Ya-Ya Sisterhood"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Divine Secrets of the Ya-Ya Sisterhood"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Divine Secrets of the Ya-Ya Sisterhood"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Private Lives of Pippa Lee"`, "id": `"Shirley Knight"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"A Time to Kill"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"A Time to Kill"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Forces of Nature"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Forces of Nature"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Hope Floats"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Hope Floats"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Infamous"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Infamous"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Infamous"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Jeff Daniels"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Love Potion No. 9"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Love Potion No. 9"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Miss Congeniality"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Miss Congeniality"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Miss Congeniality"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Thumbsucker"`, "id": `"Benjamin Bratt"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Miss Congeniality 2: Armed and Fabulous"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Miss Congeniality 2: Armed and Fabulous"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Murder by Numbers"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Murder by Numbers"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Practical Magic"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Practical Magic"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Practical Magic"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Parenthood"`, "id": `"Dianne Wiest"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Flying"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Animatrix"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Tune in Tomorrow"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Last Time I Committed Suicide"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Constantine"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Permanent Record"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Dangerous Liaisons"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Private Lives of Pippa Lee"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"A Scanner Darkly"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"A Walk in the Clouds"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Hardball"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Life Under Water"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Much Ado About Nothing"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"My Own Private Idaho"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Parenthood"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Point Break"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Providence"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"River's Edge"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Something's Gotta Give"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Sweet November"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Matrix Reloaded"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Matrix Revisited"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Prince of Pennsylvania"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Replacements"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Even Cowgirls Get the Blues"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Youngblood"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Bill & Ted's Bogus Journey"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Bill & Ted's Excellent Adventure"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Johnny Mnemonic"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Devil's Advocate"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Thumbsucker"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"I Love You to Death"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Bram Stoker's Dracula"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Gift"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Little Buddha"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Night Watchman"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Chain Reaction"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Babes in Toyland"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Day the Earth Stood Still"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"River's Edge"`, "id": `"Dennis Hopper"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Dennis Hopper"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Jeff Daniels"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Joe Morton"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Alan Ruck"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Glenn Plummer"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Carlos Carrasco"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Beth Grant"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Richard Lineback"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Hawthorne James"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Jordan Lund"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Thomas Rosales, Jr."`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed 2: Cruise Control"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed 2: Cruise Control"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Speed 2: Cruise Control"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Glenn Plummer"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Flying"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Animatrix"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Tune in Tomorrow"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Last Time I Committed Suicide"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Constantine"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Permanent Record"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Dangerous Liaisons"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Private Lives of Pippa Lee"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"A Scanner Darkly"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"A Walk in the Clouds"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Hardball"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Life Under Water"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Much Ado About Nothing"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"My Own Private Idaho"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Parenthood"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Point Break"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Providence"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"River's Edge"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Something's Gotta Give"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Sweet November"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Matrix Reloaded"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Matrix Revisited"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Prince of Pennsylvania"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Replacements"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Even Cowgirls Get the Blues"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Youngblood"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Bill & Ted's Bogus Journey"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Bill & Ted's Excellent Adventure"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Johnny Mnemonic"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Devil's Advocate"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Thumbsucker"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"I Love You to Death"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Bram Stoker's Dracula"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Gift"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Little Buddha"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Night Watchman"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Chain Reaction"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Babes in Toyland"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Day the Earth Stood Still"`, "id": `"Keanu Reeves"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Christopher Plummer"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Dylan Walsh"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Shohreh Aghdashloo"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Lake House"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Lynn Collins"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Net"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Net"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Prince of Egypt"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Dangerous Liaisons"`, "id": `"Michelle Pfeiffer"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Prince of Egypt"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Prince of Egypt"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Prince of Egypt"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Parenthood"`, "id": `"Steve Martin"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Two Weeks Notice"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Two Weeks Notice"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"While You Were Sleeping"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"While You Were Sleeping"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"While You Were Sleeping"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Replacements"`, "id": `"Jack Warden"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"28 Days"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"28 Days"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Premonition"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Premonition"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Premonition"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Constantine"`, "id": `"Peter Stormare"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Wrestling Ernest Hemingway"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Wrestling Ernest Hemingway"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Fire on the Amazon"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"Fire on the Amazon"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Thing Called Love"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"My Own Private Idaho"`, "id": `"River Phoenix"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Thing Called Love"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"I Love You to Death"`, "id": `"River Phoenix"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Thing Called Love"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"The Thing Called Love"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"In Love and War"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"Speed"`, "id": `"Sandra Bullock"`},
+			map[string]string{"costar1_actor": `"Sandra Bullock"`, "costar1_movie": `"In Love and War"`, "costar2_actor": `"Keanu Reeves"`, "costar2_movie": `"The Lake House"`, "id": `"Sandra Bullock"`},
 		},
 	},
 	{
 		message: "Save a number of predicates around a set of nodes",
 		query: `
-		g.V("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").Save("/film/performance/character", "char").Save("/film/performance/actor", "act").SaveR("/film/film/starring", "film").All()
+		g.V("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").Save("</film/performance/character>", "char").Save("</film/performance/actor>", "act").SaveR("</film/film/starring>", "film").All()
 		`,
 		expect: []interface{}{
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Rick Blaine", "film": "/en/casablanca_1942", "id": "_:9037"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Sam Spade", "film": "/en/the_maltese_falcon_1941", "id": "_:49278"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Philip Marlowe", "film": "/en/the_big_sleep_1946", "id": "_:44112"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Captain Queeg", "film": "/en/the_caine_mutiny_1954", "id": "_:44709"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Charlie Allnut", "film": "/en/the_african_queen", "id": "_:43382"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": `"Rick Blaine"`, "film": "</en/casablanca_1942>", "id": "_:9037"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": `"Sam Spade"`, "film": "</en/the_maltese_falcon_1941>", "id": "_:49278"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": `"Philip Marlowe"`, "film": "</en/the_big_sleep_1946>", "id": "_:44112"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": `"Captain Queeg"`, "film": "</en/the_caine_mutiny_1954>", "id": "_:44709"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": `"Charlie Allnut"`, "film": "</en/the_african_queen>", "id": "_:43382"},
 		},
 	},
 }
 
 const common = `
-var movie1 = g.V().Has("name", "The Net")
-var movie2 = g.V().Has("name", "Speed")
-var actor1 = g.V().Has("name", "Sandra Bullock")
-var actor2 = g.V().Has("name", "Keanu Reeves")
+var movie1 = g.V().Has("<name>", '"The Net"')
+var movie2 = g.V().Has("<name>", '"Speed"')
+var actor1 = g.V().Has("<name>", '"Sandra Bullock"')
+var actor2 = g.V().Has("<name>", '"Keanu Reeves"')
 
 // (film) -> starring -> (actor)
-var filmToActor = g.Morphism().Out("/film/film/starring").Out("/film/performance/actor")
+var filmToActor = g.Morphism().Out("</film/film/starring>").Out("</film/performance/actor>")
 
 // (actor) -> starring -> [film -> starring -> (actor)]
-var coStars1 = g.Morphism().In("/film/performance/actor").In("/film/film/starring").Save("name","costar1_movie").Follow(filmToActor)
-var coStars2 = g.Morphism().In("/film/performance/actor").In("/film/film/starring").Save("name","costar2_movie").Follow(filmToActor)
+var coStars1 = g.Morphism().In("</film/performance/actor>").In("</film/film/starring>").Save("<name>","costar1_movie").Follow(filmToActor)
+var coStars2 = g.Morphism().In("</film/performance/actor>").In("</film/film/starring>").Save("<name>","costar2_movie").Follow(filmToActor)
 
 // Stars for the movies "The Net" and "Speed"
-var m1_actors = movie1.Save("name","movie1").Follow(filmToActor)
-var m2_actors = movie2.Save("name","movie2").Follow(filmToActor)
+var m1_actors = movie1.Save("<name>","movie1").Follow(filmToActor)
+var m2_actors = movie2.Save("<name>","movie2").Follow(filmToActor)
 `
 
 var (
@@ -485,7 +485,7 @@ func prepare(t testing.TB) {
 		}
 
 		if needsLoad && !remote {
-			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", "nquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -498,11 +498,11 @@ func deletePrepare(t testing.TB) {
 	deleteAndRecreate.Do(func() {
 		prepare(t)
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = removeAll(handle.QuadWriter, cfg, "", "cquad")
+			err = removeAll(handle.QuadWriter, cfg, "", "nquad")
 			if err != nil {
 				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
 			}
-			err = internal.Load(handle.QuadWriter, cfg, "", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "", "nquad")
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}

@@ -25,9 +25,12 @@ type store struct {
 	iter graph.Iterator
 }
 
-func (qs *store) ValueOf(s string) graph.Value {
+func (qs *store) ValueOf(s quad.Value) graph.Value {
+	if s == nil {
+		return nil
+	}
 	for i, v := range qs.data {
-		if s == v {
+		if s.String() == v {
 			return i
 		}
 	}
@@ -46,18 +49,18 @@ func (qs *store) NodesAllIterator() graph.Iterator { return &Null{} }
 
 func (qs *store) QuadsAllIterator() graph.Iterator { return &Null{} }
 
-func (qs *store) NameOf(v graph.Value) string {
+func (qs *store) NameOf(v graph.Value) quad.Value {
 	switch v.(type) {
 	case int:
 		i := v.(int)
 		if i < 0 || i >= len(qs.data) {
-			return ""
+			return nil
 		}
-		return qs.data[i]
+		return quad.Raw(qs.data[i])
 	case string:
-		return v.(string)
+		return quad.Raw(v.(string))
 	default:
-		return ""
+		return nil
 	}
 }
 

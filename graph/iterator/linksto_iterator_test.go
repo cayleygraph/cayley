@@ -27,7 +27,7 @@ func TestLinksTo(t *testing.T) {
 	}
 	qs.iter.(*Fixed).Add(2)
 	fixed := NewFixed(Identity)
-	val := qs.ValueOf("cool")
+	val := qs.ValueOf(quad.Raw("cool"))
 	if val != 1 {
 		t.Fatalf("Failed to return correct value, got:%v expect:1", val)
 	}
