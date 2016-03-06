@@ -331,7 +331,7 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leveldb.Batch) error {
 	value := proto.NodeData{
 		Value: proto.MakeValue(name),
-		Size_: amount,
+		Size:  amount,
 	}
 	key := qs.createValueKeyFor(name)
 	b, err := qs.db.Get(key, qs.readopts)
@@ -350,13 +350,13 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leve
 			clog.Errorf("Error: could not reconstruct value: %v", err)
 			return err
 		}
-		oldvalue.Size_ += amount
+		oldvalue.Size += amount
 		value = oldvalue
 	}
 
 	// Are we deleting something?
-	if value.Size_ <= 0 {
-		value.Size_ = 0
+	if value.Size <= 0 {
+		value.Size = 0
 	}
 
 	// Repackage and rewrite.
@@ -469,7 +469,7 @@ func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
 		return 0
 	}
-	return int64(qs.valueData(k.(Token)).Size_)
+	return int64(qs.valueData(k.(Token)).Size)
 }
 
 func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {

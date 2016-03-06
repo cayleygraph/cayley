@@ -24,7 +24,7 @@
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
-			"Rev": "58bbd41c1a2d1b7154f5d99a8d0d839b3093301a"
+			"Rev": "ff05bbbb0ff143cc11fc3f8b700fc3a2864b884d"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",

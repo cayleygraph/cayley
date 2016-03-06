@@ -57,7 +57,7 @@ func (*HistoryEntry) ProtoMessage()    {}
 
 type NodeData struct {
 	Name  string `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
-	Size_ int64  `protobuf:"varint,2,opt,name=Size,proto3" json:"Size,omitempty"`
+	Size  int64  `protobuf:"varint,2,opt,name=Size,proto3" json:"Size,omitempty"`
 	Value *Value `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
 }
 
@@ -133,7 +133,7 @@ func (*Value) ProtoMessage()    {}
 type isValue_Value interface {
 	isValue_Value()
 	MarshalTo([]byte) (int, error)
-	Size() int
+	ProtoSize() int
 }
 
 type Value_Raw struct {
@@ -336,7 +336,7 @@ func init() {
 	proto1.RegisterType((*Value_LangString)(nil), "proto.Value.LangString")
 }
 func (m *LogDelta) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -358,7 +358,7 @@ func (m *LogDelta) MarshalTo(data []byte) (int, error) {
 	if m.Quad != nil {
 		data[i] = 0x12
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.Quad.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.Quad.ProtoSize()))
 		n1, err := m.Quad.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -379,7 +379,7 @@ func (m *LogDelta) MarshalTo(data []byte) (int, error) {
 }
 
 func (m *HistoryEntry) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -404,7 +404,7 @@ func (m *HistoryEntry) MarshalTo(data []byte) (int, error) {
 }
 
 func (m *NodeData) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -424,15 +424,15 @@ func (m *NodeData) MarshalTo(data []byte) (int, error) {
 		i = encodeVarintSerializations(data, i, uint64(len(m.Name)))
 		i += copy(data[i:], m.Name)
 	}
-	if m.Size_ != 0 {
+	if m.Size != 0 {
 		data[i] = 0x10
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.Size_))
+		i = encodeVarintSerializations(data, i, uint64(m.Size))
 	}
 	if m.Value != nil {
 		data[i] = 0x1a
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.Value.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.Value.ProtoSize()))
 		n2, err := m.Value.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -443,7 +443,7 @@ func (m *NodeData) MarshalTo(data []byte) (int, error) {
 }
 
 func (m *Quad) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -484,7 +484,7 @@ func (m *Quad) MarshalTo(data []byte) (int, error) {
 	if m.SubjectValue != nil {
 		data[i] = 0x2a
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.SubjectValue.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.SubjectValue.ProtoSize()))
 		n3, err := m.SubjectValue.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -494,7 +494,7 @@ func (m *Quad) MarshalTo(data []byte) (int, error) {
 	if m.PredicateValue != nil {
 		data[i] = 0x32
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.PredicateValue.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.PredicateValue.ProtoSize()))
 		n4, err := m.PredicateValue.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -504,7 +504,7 @@ func (m *Quad) MarshalTo(data []byte) (int, error) {
 	if m.ObjectValue != nil {
 		data[i] = 0x3a
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.ObjectValue.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.ObjectValue.ProtoSize()))
 		n5, err := m.ObjectValue.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -514,7 +514,7 @@ func (m *Quad) MarshalTo(data []byte) (int, error) {
 	if m.LabelValue != nil {
 		data[i] = 0x42
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.LabelValue.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.LabelValue.ProtoSize()))
 		n6, err := m.LabelValue.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -525,7 +525,7 @@ func (m *Quad) MarshalTo(data []byte) (int, error) {
 }
 
 func (m *Value) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -588,7 +588,7 @@ func (m *Value_TypedStr) MarshalTo(data []byte) (int, error) {
 	if m.TypedStr != nil {
 		data[i] = 0x2a
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.TypedStr.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.TypedStr.ProtoSize()))
 		n8, err := m.TypedStr.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -602,7 +602,7 @@ func (m *Value_LangStr) MarshalTo(data []byte) (int, error) {
 	if m.LangStr != nil {
 		data[i] = 0x32
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.LangStr.Size()))
+		i = encodeVarintSerializations(data, i, uint64(m.LangStr.ProtoSize()))
 		n9, err := m.LangStr.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -612,7 +612,7 @@ func (m *Value_LangStr) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 func (m *Value_TypedString) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -642,7 +642,7 @@ func (m *Value_TypedString) MarshalTo(data []byte) (int, error) {
 }
 
 func (m *Value_LangString) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -698,14 +698,14 @@ func encodeVarintSerializations(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	return offset + 1
 }
-func (m *LogDelta) Size() (n int) {
+func (m *LogDelta) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if m.ID != 0 {
 		n += 1 + sovSerializations(uint64(m.ID))
 	}
 	if m.Quad != nil {
-		l = m.Quad.Size()
+		l = m.Quad.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	if m.Action != 0 {
@@ -717,7 +717,7 @@ func (m *LogDelta) Size() (n int) {
 	return n
 }
 
-func (m *HistoryEntry) Size() (n int) {
+func (m *HistoryEntry) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if len(m.History) > 0 {
@@ -728,24 +728,24 @@ func (m *HistoryEntry) Size() (n int) {
 	return n
 }
 
-func (m *NodeData) Size() (n int) {
+func (m *NodeData) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovSerializations(uint64(l))
 	}
-	if m.Size_ != 0 {
-		n += 1 + sovSerializations(uint64(m.Size_))
+	if m.Size != 0 {
+		n += 1 + sovSerializations(uint64(m.Size))
 	}
 	if m.Value != nil {
-		l = m.Value.Size()
+		l = m.Value.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	return n
 }
 
-func (m *Quad) Size() (n int) {
+func (m *Quad) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Subject)
@@ -765,34 +765,34 @@ func (m *Quad) Size() (n int) {
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	if m.SubjectValue != nil {
-		l = m.SubjectValue.Size()
+		l = m.SubjectValue.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	if m.PredicateValue != nil {
-		l = m.PredicateValue.Size()
+		l = m.PredicateValue.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	if m.ObjectValue != nil {
-		l = m.ObjectValue.Size()
+		l = m.ObjectValue.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	if m.LabelValue != nil {
-		l = m.LabelValue.Size()
+		l = m.LabelValue.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	return n
 }
 
-func (m *Value) Size() (n int) {
+func (m *Value) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if m.Value != nil {
-		n += m.Value.Size()
+		n += m.Value.ProtoSize()
 	}
 	return n
 }
 
-func (m *Value_Raw) Size() (n int) {
+func (m *Value_Raw) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if m.Raw != nil {
@@ -801,46 +801,46 @@ func (m *Value_Raw) Size() (n int) {
 	}
 	return n
 }
-func (m *Value_Str) Size() (n int) {
+func (m *Value_Str) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Str)
 	n += 1 + l + sovSerializations(uint64(l))
 	return n
 }
-func (m *Value_Iri) Size() (n int) {
+func (m *Value_Iri) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Iri)
 	n += 1 + l + sovSerializations(uint64(l))
 	return n
 }
-func (m *Value_Bnode) Size() (n int) {
+func (m *Value_Bnode) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Bnode)
 	n += 1 + l + sovSerializations(uint64(l))
 	return n
 }
-func (m *Value_TypedStr) Size() (n int) {
+func (m *Value_TypedStr) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if m.TypedStr != nil {
-		l = m.TypedStr.Size()
+		l = m.TypedStr.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	return n
 }
-func (m *Value_LangStr) Size() (n int) {
+func (m *Value_LangStr) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if m.LangStr != nil {
-		l = m.LangStr.Size()
+		l = m.LangStr.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	return n
 }
-func (m *Value_TypedString) Size() (n int) {
+func (m *Value_TypedString) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Value)
@@ -854,7 +854,7 @@ func (m *Value_TypedString) Size() (n int) {
 	return n
 }
 
-func (m *Value_LangString) Size() (n int) {
+func (m *Value_LangString) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Value)
@@ -1151,9 +1151,9 @@ func (m *NodeData) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Size_", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
 			}
-			m.Size_ = 0
+			m.Size = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSerializations
@@ -1163,7 +1163,7 @@ func (m *NodeData) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				m.Size_ |= (int64(b) & 0x7F) << shift
+				m.Size |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}

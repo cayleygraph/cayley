@@ -331,7 +331,7 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, tx *bolt.Tx) error {
 	value := proto.NodeData{
 		Value: proto.MakeValue(name),
-		Size_: amount,
+		Size:  amount,
 	}
 	b := tx.Bucket(nodeBucket)
 	b.FillPercent = localFillPercent
@@ -346,13 +346,13 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, tx *bolt.Tx
 			clog.Errorf("Error: couldn't reconstruct value: %v", err)
 			return err
 		}
-		oldvalue.Size_ += amount
+		oldvalue.Size += amount
 		value = oldvalue
 	}
 
 	// Are we deleting something?
-	if value.Size_ <= 0 {
-		value.Size_ = 0
+	if value.Size <= 0 {
+		value.Size = 0
 	}
 
 	// Repackage and rewrite.
@@ -477,7 +477,7 @@ func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
 		return -1
 	}
-	return int64(qs.valueData(k.(*Token)).Size_)
+	return int64(qs.valueData(k.(*Token)).Size)
 }
 
 func getInt64ForMetaKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
