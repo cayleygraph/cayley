@@ -192,9 +192,8 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	return graph.NewSequentialKey(qs.horizon)
 }
 
-func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
+func createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
 	key := make([]byte, 0, 2+(quad.HashSize*4))
-	// TODO(kortschak) Remove dependence on String() method.
 	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
 	key = append(key, quad.HashOf(q.Get(d[0]))...)
 	key = append(key, quad.HashOf(q.Get(d[1]))...)
@@ -203,7 +202,7 @@ func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
 	return key
 }
 
-func (qs *QuadStore) createValueKeyFor(s quad.Value) []byte {
+func createValueKeyFor(s quad.Value) []byte {
 	key := make([]byte, 0, 1+quad.HashSize)
 	key = append(key, []byte("z")...)
 	key = append(key, quad.HashOf(s)...)
@@ -290,7 +289,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 
 func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64, isAdd bool) error {
 	var entry proto.HistoryEntry
-	data, err := qs.db.Get(qs.createKeyFor(spo, q), qs.readopts)
+	data, err := qs.db.Get(createKeyFor(spo, q), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		clog.Errorf("could not access DB to prepare index: %v", err)
 		return err
@@ -319,11 +318,11 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 		clog.Errorf("could not write to buffer for entry %#v: %s", entry, err)
 		return err
 	}
-	batch.Put(qs.createKeyFor(spo, q), bytes)
-	batch.Put(qs.createKeyFor(osp, q), bytes)
-	batch.Put(qs.createKeyFor(pos, q), bytes)
+	batch.Put(createKeyFor(spo, q), bytes)
+	batch.Put(createKeyFor(osp, q), bytes)
+	batch.Put(createKeyFor(pos, q), bytes)
 	if q.Get(quad.Label) != nil {
-		batch.Put(qs.createKeyFor(cps, q), bytes)
+		batch.Put(createKeyFor(cps, q), bytes)
 	}
 	return nil
 }
@@ -333,7 +332,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leve
 		Value: proto.MakeValue(name),
 		Size:  amount,
 	}
-	key := qs.createValueKeyFor(name)
+	key := createValueKeyFor(name)
 	b, err := qs.db.Get(key, qs.readopts)
 
 	// Error getting the node from the database.
@@ -431,7 +430,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return Token(qs.createValueKeyFor(s))
+	return Token(createValueKeyFor(s))
 }
 
 func (qs *QuadStore) valueData(key []byte) proto.NodeData {
