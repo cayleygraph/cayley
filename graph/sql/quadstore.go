@@ -1,13 +1,10 @@
 package sql
 
 import (
-	"crypto/sha1"
 	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
-	"sync"
 
 	"github.com/lib/pq"
 
@@ -28,13 +25,6 @@ func init() {
 		IsPersistent:      true,
 	})
 }
-
-var (
-	hashPool = sync.Pool{
-		New: func() interface{} { return sha1.New() },
-	}
-	hashSize = sha1.Size
-)
 
 type QuadStore struct {
 	db           *sql.DB
@@ -149,28 +139,21 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 }
 
 func hashOf(s quad.Value) string {
-	h := hashPool.Get().(hash.Hash)
-	h.Reset()
-	defer hashPool.Put(h)
-	key := make([]byte, 0, hashSize)
-	if s != nil {
-		h.Write([]byte(s.String()))
-	}
-	key = h.Sum(key)
-	return hex.EncodeToString(key)
+	return hex.EncodeToString(quad.HashOf(s))
 }
 
 func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta) error {
 	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts", "subject_hash", "predicate_hash", "object_hash", "label_hash"))
 	if err != nil {
+		clog.Errorf("couldn't prepare COPY statement: %v", err)
 		return err
 	}
 	for _, d := range in {
 		_, err := stmt.Exec(
-			d.Quad.Subject,
-			d.Quad.Predicate,
-			d.Quad.Object,
-			d.Quad.Label,
+			quad.StringOf(d.Quad.Subject),
+			quad.StringOf(d.Quad.Predicate),
+			quad.StringOf(d.Quad.Object),
+			quad.StringOf(d.Quad.Label),
 			d.ID.Int(),
 			d.Timestamp,
 			hashOf(d.Quad.Subject),
@@ -179,7 +162,7 @@ func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta) error {
 			hashOf(d.Quad.Label),
 		)
 		if err != nil {
-			clog.Errorf("couldn't prepare COPY statement: %v", err)
+			clog.Errorf("couldn't execute COPY statement: %v", err)
 			return err
 		}
 	}
@@ -206,10 +189,10 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 		switch d.Action {
 		case graph.Add:
 			_, err := tx.Exec(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
-				d.Quad.Subject,
-				d.Quad.Predicate,
-				d.Quad.Object,
-				d.Quad.Label,
+				quad.StringOf(d.Quad.Subject),
+				quad.StringOf(d.Quad.Predicate),
+				quad.StringOf(d.Quad.Object),
+				quad.StringOf(d.Quad.Label),
 				d.ID.Int(),
 				d.Timestamp,
 				hashOf(d.Quad.Subject),

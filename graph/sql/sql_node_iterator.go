@@ -51,7 +51,7 @@ type SQLNodeIterator struct {
 	tagger   graph.Tagger
 	fixedSet []quad.Value
 
-	result string
+	result quad.Value
 }
 
 func (n *SQLNodeIterator) sqlClone() sqlIterator {
@@ -97,7 +97,7 @@ func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string
 			continue
 		}
 		if c == "__execd" {
-			n.result = result[i]
+			n.result = quad.Raw(result[i])
 		}
 		m[c] = result[i]
 	}

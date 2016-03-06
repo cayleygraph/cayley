@@ -74,5 +74,10 @@ func (it *quadsAllIterator) Next() bool {
 	return out
 }
 
+// Override Optimize from it.Int64 - it will hide our Next implementation in other cases.
+
+func (it *nodesAllIterator) Optimize() (graph.Iterator, bool) { return it, false }
+func (it *quadsAllIterator) Optimize() (graph.Iterator, bool) { return it, false }
+
 var _ graph.Nexter = &nodesAllIterator{}
 var _ graph.Nexter = &quadsAllIterator{}

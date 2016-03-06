@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/writer"
@@ -73,6 +74,12 @@ func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 		writer.AddQuad(t)
 	}
 	return qs, writer, ind
+}
+
+func TestMemstoreAll(t *testing.T) {
+	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, func()) {
+		return newQuadStore(), func() {}
+	}, nil)
 }
 
 type pair struct {

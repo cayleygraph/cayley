@@ -135,7 +135,7 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) error {
 	node := qs.ValueOf(name)
 	doc := bson.M{
 		"_id":  node.(string),
-		"Name": name,
+		"Name": quad.StringOf(name),
 	}
 	upsert := bson.M{
 		"$setOnInsert": doc,
@@ -159,7 +159,12 @@ func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) err
 		setname = "Deleted"
 	}
 	upsert := bson.M{
-		"$setOnInsert": q,
+		"$setOnInsert": rawQuad{
+			Subject:   quad.StringOf(q.Subject),
+			Predicate: quad.StringOf(q.Predicate),
+			Object:    quad.StringOf(q.Object),
+			Label:     quad.StringOf(q.Label),
+		},
 		"$push": bson.M{
 			setname: id,
 		},
@@ -275,13 +280,20 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
+type rawQuad struct {
+	Subject   string `json:"subject"`
+	Predicate string `json:"predicate"`
+	Object    string `json:"object"`
+	Label     string `json:"label,omitempty"`
+}
+
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
-	var q quad.Quad
+	var q rawQuad
 	err := qs.db.C("quads").FindId(val.(string)).One(&q)
 	if err != nil {
 		clog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
 	}
-	return q
+	return quad.Make(q.Subject, q.Predicate, q.Object, q.Label)
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {

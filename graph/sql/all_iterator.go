@@ -60,7 +60,7 @@ func (it *AllIterator) makeCursor() {
 				UNION
 				SELECT object FROM quads
 				UNION
-				SELECT label FROM quads
+				SELECT label FROM quads WHERE label <> ''
 			) AS DistinctNodes (node) WHERE node IS NOT NULL;`)
 		if err != nil {
 			clog.Errorf("Couldn't get cursor from SQL database: %v", err)
@@ -157,17 +157,17 @@ func (it *AllIterator) Next() bool {
 			it.err = err
 			return false
 		}
-		it.result = node
+		it.result = quad.Raw(node)
 		return true
 	}
-	var q quad.Quad
-	err := it.cursor.Scan(&q.Subject, &q.Predicate, &q.Object, &q.Label)
+	var s, p, o, l string
+	err := it.cursor.Scan(&s, &p, &o, &l)
 	if err != nil {
 		clog.Errorf("Error scanning sql iterator: %v", err)
 		it.err = err
 		return false
 	}
-	it.result = q
+	it.result = quad.Make(s, p, o, l)
 	return graph.NextLogOut(it, it.result, true)
 }
 

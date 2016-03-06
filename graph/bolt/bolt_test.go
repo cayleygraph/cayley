@@ -15,80 +15,19 @@
 package bolt
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/writer"
 )
 
-func makeQuadSet() []quad.Quad {
-	quadSet := []quad.Quad{
-		quad.Make("A", "follows", "B", ""),
-		quad.Make("C", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""),
-		quad.Make("D", "follows", "B", ""),
-		quad.Make("B", "follows", "F", ""),
-		quad.Make("F", "follows", "G", ""),
-		quad.Make("D", "follows", "G", ""),
-		quad.Make("E", "follows", "F", ""),
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
-	}
-	return quadSet
-}
-
-func iteratedQuads(qs graph.QuadStore, it graph.Iterator) []quad.Quad {
-	var res ordered
-	for graph.Next(it) {
-		res = append(res, qs.Quad(it.Result()))
-	}
-	sort.Sort(res)
-	return res
-}
-
-type ordered []quad.Quad
-
-func (o ordered) Len() int { return len(o) }
-func (o ordered) Less(i, j int) bool {
-	switch {
-	case o[i].Subject.String() < o[j].Subject.String(),
-
-		o[i].Subject == o[j].Subject &&
-			o[i].Predicate.String() < o[j].Predicate.String(),
-
-		o[i].Subject == o[j].Subject &&
-			o[i].Predicate == o[j].Predicate &&
-			o[i].Object.String() < o[j].Object.String(),
-
-		o[i].Subject == o[j].Subject &&
-			o[i].Predicate == o[j].Predicate &&
-			o[i].Object == o[j].Object &&
-			(o[i].Label == nil || (o[j].Label != nil && o[i].Label.String() < o[j].Label.String())):
-
-		return true
-
-	default:
-		return false
-	}
-}
-func (o ordered) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-
-func iteratedNames(qs graph.QuadStore, it graph.Iterator) []string {
-	var res []string
-	for graph.Next(it) {
-		res = append(res, qs.NameOf(it.Result()).String())
-	}
-	sort.Strings(res)
-	return res
-}
+var _ graphtest.ValueSizer = (*QuadStore)(nil)
 
 func TestCreateDatabase(t *testing.T) {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "cayley_test")
@@ -112,6 +51,31 @@ func TestCreateDatabase(t *testing.T) {
 	qs.Close()
 
 	os.RemoveAll(tmpFile.Name())
+}
+
+func makeBolt(t testing.TB) (graph.QuadStore, func()) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "cayley_test")
+	if err != nil {
+		t.Fatalf("Could not create working directory: %v", err)
+	}
+	err = createNewBolt(tmpFile.Name(), nil)
+	if err != nil {
+		os.RemoveAll(tmpFile.Name())
+		t.Fatal("Failed to create Bolt database.", err)
+	}
+	qs, err := newQuadStore(tmpFile.Name(), nil)
+	if qs == nil || err != nil {
+		os.RemoveAll(tmpFile.Name())
+		t.Fatal("Failed to create Bolt QuadStore.")
+	}
+	return qs, func() {
+		qs.Close()
+		os.RemoveAll(tmpFile.Name())
+	}
+}
+
+func TestBoltAll(t *testing.T) {
+	graphtest.TestAll(t, makeBolt, nil)
 }
 
 func TestLoadDatabase(t *testing.T) {
@@ -170,7 +134,7 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected horizon value, got:%d expect:1", horizon.Int())
 	}
 
-	w.AddQuadSet(makeQuadSet())
+	w.AddQuadSet(graphtest.MakeQuadSet())
 	if s := qs.Size(); s != 12 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:12", s)
 	}
@@ -198,235 +162,11 @@ func TestLoadDatabase(t *testing.T) {
 	qs.Close()
 }
 
-func TestIterator(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "cayley_test")
-	if err != nil {
-		t.Fatalf("Could not create working directory: %v", err)
-	}
-	defer os.RemoveAll(tmpFile.Name())
-	t.Log(tmpFile.Name())
-
-	err = createNewBolt(tmpFile.Name(), nil)
-	if err != nil {
-		t.Fatal("Failed to create LevelDB database.")
-	}
-
-	qs, err := newQuadStore(tmpFile.Name(), nil)
-	if qs == nil || err != nil {
-		t.Error("Failed to create bolt QuadStore.")
-	}
-
-	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuadSet(makeQuadSet())
-	var it graph.Iterator
-
-	it = qs.NodesAllIterator()
-	if it == nil {
-		t.Fatal("Got nil iterator.")
-	}
-
-	size, _ := it.Size()
-	if size <= 0 || size >= 20 {
-		t.Errorf("Unexpected size, got:%d expect:(0, 20)", size)
-	}
-	if typ := it.Type(); typ != graph.All {
-		t.Errorf("Unexpected iterator type, got:%v expect:%v", typ, graph.All)
-	}
-	optIt, changed := it.Optimize()
-	if changed || optIt != it {
-		t.Errorf("Optimize unexpectedly changed iterator.")
-	}
-
-	expect := []string{
-		"A",
-		"B",
-		"C",
-		"D",
-		"E",
-		"F",
-		"G",
-		"follows",
-		"status",
-		"cool",
-		"status_graph",
-	}
-	sort.Strings(expect)
-	for i := 0; i < 2; i++ {
-		got := iteratedNames(qs, it)
-		sort.Strings(got)
-		if !reflect.DeepEqual(got, expect) {
-			t.Errorf("Unexpected iterated result on repeat %d, got:%v expect:%v", i, got, expect)
-		}
-		it.Reset()
-	}
-
-	for _, pq := range expect {
-		if !it.Contains(qs.ValueOf(quad.Raw(pq))) {
-			t.Errorf("Failed to find and check %q correctly", pq)
-		}
-	}
-	// FIXME(kortschak) Why does this fail?
-	/*
-		for _, pq := range []string{"baller"} {
-			if it.Contains(qs.ValueOf(pq)) {
-				t.Errorf("Failed to check %q correctly", pq)
-			}
-		}
-	*/
-	it.Reset()
-
-	it = qs.QuadsAllIterator()
-	graph.Next(it)
-	fmt.Printf("%#v\n", it.Result())
-	q := qs.Quad(it.Result())
-	fmt.Println(q)
-	set := makeQuadSet()
-	var ok bool
-	for _, e := range set {
-		if e.String() == q.String() {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		t.Errorf("Failed to find %q during iteration, got:%q", q, set)
-	}
-
-	qs.Close()
-}
-
-func TestSetIterator(t *testing.T) {
-
-	tmpFile, _ := ioutil.TempFile(os.TempDir(), "cayley_test")
-	t.Log(tmpFile.Name())
-	defer os.RemoveAll(tmpFile.Name())
-	err := createNewBolt(tmpFile.Name(), nil)
-	if err != nil {
-		t.Fatalf("Failed to create working directory")
-	}
-
-	qs, err := newQuadStore(tmpFile.Name(), nil)
-	if qs == nil || err != nil {
-		t.Error("Failed to create bolt QuadStore.")
-	}
-	defer qs.Close()
-
-	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuadSet(makeQuadSet())
-
-	expect := []quad.Quad{
-		quad.Make("C", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""),
-	}
-	sort.Sort(ordered(expect))
-
-	// Subject iterator.
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
-
-	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
-	}
-	it.Reset()
-
-	and := iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadsAllIterator())
-	and.AddSubIterator(it)
-
-	if got := iteratedQuads(qs, and); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get confirm expected results, got:%v expect:%v", got, expect)
-	}
-
-	// Object iterator.
-	it = qs.QuadIterator(quad.Object, qs.ValueOf(quad.Raw("F")))
-
-	expect = []quad.Quad{
-		quad.Make("B", "follows", "F", ""),
-		quad.Make("E", "follows", "F", ""),
-	}
-	sort.Sort(ordered(expect))
-	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
-	}
-
-	and = iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
-	and.AddSubIterator(it)
-
-	expect = []quad.Quad{
-		quad.Make("B", "follows", "F", ""),
-	}
-	if got := iteratedQuads(qs, and); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get confirm expected results, got:%v expect:%v", got, expect)
-	}
-
-	// Predicate iterator.
-	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.Raw("status")))
-
-	expect = []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
-	}
-	sort.Sort(ordered(expect))
-	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get expected results from predicate iterator, got:%v expect:%v", got, expect)
-	}
-
-	// Label iterator.
-	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))
-
-	expect = []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
-	}
-	sort.Sort(ordered(expect))
-	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get expected results from predicate iterator, got:%v expect:%v", got, expect)
-	}
-	it.Reset()
-
-	// Order is important
-	and = iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
-	and.AddSubIterator(it)
-
-	expect = []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
-	}
-	if got := iteratedQuads(qs, and); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get confirm expected results, got:%v expect:%v", got, expect)
-	}
-	it.Reset()
-
-	// Order is important
-	and = iterator.NewAnd(qs)
-	and.AddSubIterator(it)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
-
-	expect = []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
-	}
-	if got := iteratedQuads(qs, and); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get confirm expected results, got:%v expect:%v", got, expect)
-	}
-}
-
 func TestOptimize(t *testing.T) {
-	tmpFile, _ := ioutil.TempFile(os.TempDir(), "cayley_test")
-	t.Log(tmpFile.Name())
-	defer os.RemoveAll(tmpFile.Name())
-	err := createNewBolt(tmpFile.Name(), nil)
-	if err != nil {
-		t.Fatalf("Failed to create working directory")
-	}
-	qs, err := newQuadStore(tmpFile.Name(), nil)
-	if qs == nil || err != nil {
-		t.Error("Failed to create bolt QuadStore.")
-	}
+	qs, closer := makeBolt(t)
+	defer closer()
 
-	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuadSet(makeQuadSet())
+	graphtest.MakeWriter(t, qs, graphtest.MakeQuadSet()...)
 
 	// With an linksto-fixed pair
 	fixed := qs.FixedIterator()
@@ -443,8 +183,8 @@ func TestOptimize(t *testing.T) {
 		t.Errorf("Optimized iterator type does not match original, got:%v expect:%v", newIt.Type(), Type())
 	}
 
-	newQuads := iteratedQuads(qs, newIt)
-	oldQuads := iteratedQuads(qs, oldIt)
+	newQuads := graphtest.IteratedQuads(t, qs, newIt)
+	oldQuads := graphtest.IteratedQuads(t, qs, oldIt)
 	if !reflect.DeepEqual(newQuads, oldQuads) {
 		t.Errorf("Optimized iteration does not match original")
 	}
@@ -457,45 +197,5 @@ func TestOptimize(t *testing.T) {
 	newIt.TagResults(newResults)
 	if !reflect.DeepEqual(newResults, oldResults) {
 		t.Errorf("Discordant tag results, new:%v old:%v", newResults, oldResults)
-	}
-}
-
-func TestDeletedFromIterator(t *testing.T) {
-
-	tmpFile, _ := ioutil.TempFile(os.TempDir(), "cayley_test")
-	t.Log(tmpFile.Name())
-	defer os.RemoveAll(tmpFile.Name())
-	err := createNewBolt(tmpFile.Name(), nil)
-	if err != nil {
-		t.Fatalf("Failed to create working directory")
-	}
-
-	qs, err := newQuadStore(tmpFile.Name(), nil)
-	if qs == nil || err != nil {
-		t.Error("Failed to create bolt QuadStore.")
-	}
-	defer qs.Close()
-
-	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuadSet(makeQuadSet())
-
-	expect := []quad.Quad{
-		quad.Make("E", "follows", "F", ""),
-	}
-	sort.Sort(ordered(expect))
-
-	// Subject iterator.
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
-
-	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
-	}
-	it.Reset()
-
-	w.RemoveQuad(quad.Make("E", "follows", "F", ""))
-	expect = nil
-
-	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
 	}
 }
