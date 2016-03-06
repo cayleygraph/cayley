@@ -45,7 +45,7 @@ func makeQuadSet() []quad.Quad {
 }
 
 func iteratedQuads(qs graph.QuadStore, it graph.Iterator) []quad.Quad {
-	var res ordered
+	var res quad.ByQuadString
 	for graph.Next(it) {
 		res = append(res, qs.Quad(it.Result()))
 	}
@@ -53,37 +53,10 @@ func iteratedQuads(qs graph.QuadStore, it graph.Iterator) []quad.Quad {
 	return res
 }
 
-type ordered []quad.Quad
-
-func (o ordered) Len() int { return len(o) }
-func (o ordered) Less(i, j int) bool {
-	switch {
-	case o[i].Subject.String() < o[j].Subject.String(),
-
-		o[i].Subject == o[j].Subject &&
-			o[i].Predicate.String() < o[j].Predicate.String(),
-
-		o[i].Subject == o[j].Subject &&
-			o[i].Predicate == o[j].Predicate &&
-			o[i].Object.String() < o[j].Object.String(),
-
-		o[i].Subject == o[j].Subject &&
-			o[i].Predicate == o[j].Predicate &&
-			o[i].Object == o[j].Object &&
-			(o[i].Label == nil || (o[j].Label != nil && o[i].Label.String() < o[j].Label.String())):
-
-		return true
-
-	default:
-		return false
-	}
-}
-func (o ordered) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-
 func iteratedNames(qs graph.QuadStore, it graph.Iterator) []string {
 	var res []string
 	for graph.Next(it) {
-		res = append(res, qs.NameOf(it.Result()).String())
+		res = append(res, quad.StringOf(qs.NameOf(it.Result())))
 	}
 	sort.Strings(res)
 	return res
@@ -132,14 +105,17 @@ func TestLoadDatabase(t *testing.T) {
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuad(quad.Make(
+	err = w.AddQuad(quad.Make(
 		"Something",
 		"points_to",
 		"Something Else",
 		"context",
 	))
+	if err != nil {
+		t.Fatal("Failed to add quad:", err)
+	}
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
-		if got := qs.NameOf(qs.ValueOf(quad.Raw(pq))).String(); got != pq {
+		if got := quad.StringOf(qs.NameOf(qs.ValueOf(quad.Raw(pq)))); got != pq {
 			t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)
 		}
 	}
@@ -318,7 +294,7 @@ func TestSetIterator(t *testing.T) {
 		quad.Make("C", "follows", "B", ""),
 		quad.Make("C", "follows", "D", ""),
 	}
-	sort.Sort(ordered(expect))
+	sort.Sort(quad.ByQuadString(expect))
 
 	// Subject iterator.
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
@@ -343,7 +319,7 @@ func TestSetIterator(t *testing.T) {
 		quad.Make("B", "follows", "F", ""),
 		quad.Make("E", "follows", "F", ""),
 	}
-	sort.Sort(ordered(expect))
+	sort.Sort(quad.ByQuadString(expect))
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
 	}
@@ -367,7 +343,7 @@ func TestSetIterator(t *testing.T) {
 		quad.Make("D", "status", "cool", "status_graph"),
 		quad.Make("G", "status", "cool", "status_graph"),
 	}
-	sort.Sort(ordered(expect))
+	sort.Sort(quad.ByQuadString(expect))
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get expected results from predicate iterator, got:%v expect:%v", got, expect)
 	}
@@ -380,7 +356,7 @@ func TestSetIterator(t *testing.T) {
 		quad.Make("D", "status", "cool", "status_graph"),
 		quad.Make("G", "status", "cool", "status_graph"),
 	}
-	sort.Sort(ordered(expect))
+	sort.Sort(quad.ByQuadString(expect))
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get expected results from predicate iterator, got:%v expect:%v", got, expect)
 	}

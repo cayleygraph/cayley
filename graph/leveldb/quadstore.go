@@ -17,7 +17,6 @@ package leveldb
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -34,7 +34,7 @@ func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
 		NewFunc:           newQuadStore,
 		NewForRequestFunc: nil,
-		UpgradeFunc:       nil,
+		UpgradeFunc:       upgradeLevelDB,
 		InitFunc:          createNewLevelDB,
 		IsPersistent:      true,
 	})
@@ -46,7 +46,10 @@ const (
 	QuadStoreType          = "leveldb"
 	horizonKey             = "__horizon"
 	sizeKey                = "__size"
+	versionKey             = "__version"
 )
+
+var order = binary.LittleEndian
 
 type Token []byte
 
@@ -88,6 +91,10 @@ func createNewLevelDB(path string, _ graph.Options) error {
 		return graph.ErrDatabaseExists
 	}
 	// Write some metadata
+	if err = setVersion(qs.db, latestDataVersion, qs.writeopts); err != nil {
+		clog.Errorf("couldn't write leveldb version during init")
+		return err
+	}
 	qs.Close()
 	return nil
 }
@@ -126,12 +133,45 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	qs.db = db
-	clog.Infof("%v", qs.GetStats())
+	if clog.V(1) {
+		clog.Infof("%v", qs.GetStats())
+	}
+	vers, err := getVersion(qs.db)
+	if err != nil {
+		clog.Errorf("Error, could not read version info! %v", err)
+		db.Close()
+		return nil, err
+	} else if vers != latestDataVersion {
+		db.Close()
+		return nil, fmt.Errorf("leveldb: data version is out of date (%d vs %d). Run cayleyupgrade for your config to update the data.", vers, latestDataVersion)
+	}
 	err = qs.getMetadata()
 	if err != nil {
+		db.Close()
 		return nil, err
 	}
 	return &qs, nil
+}
+
+func setVersion(db *leveldb.DB, version int64, wo *opt.WriteOptions) error {
+	buf := make([]byte, 8)
+	order.PutUint64(buf, uint64(version))
+	err := db.Put([]byte(versionKey), buf, wo)
+	if err != nil {
+		clog.Errorf("Couldn't write version!")
+		return err
+	}
+	return nil
+}
+
+func getVersion(db *leveldb.DB) (int64, error) {
+	data, err := db.Get([]byte(versionKey), nil)
+	if err == leveldb.ErrNotFound {
+		return nilDataVersion, nil
+	} else if len(data) != 8 {
+		return 0, fmt.Errorf("version value format is unknown")
+	}
+	return int64(order.Uint64(data)), nil
 }
 
 func (qs *QuadStore) GetStats() string {
@@ -170,12 +210,11 @@ func (qs *QuadStore) createValueKeyFor(s quad.Value) []byte {
 	return key
 }
 
-type IndexEntry struct {
-	Subject   string `json:"subject"`
-	Predicate string `json:"predicate"`
-	Object    string `json:"object"`
-	Label     string `json:"label,omitempty"`
-	History   []int64
+func createDeltaKeyFor(id int64) []byte {
+	key := make([]byte, 9)
+	key[0] = 'd'
+	order.PutUint64(key[1:], uint64(id))
+	return key
 }
 
 // Short hand for direction permutations.
@@ -186,6 +225,15 @@ var (
 	cps = [4]quad.Direction{quad.Label, quad.Predicate, quad.Subject, quad.Object}
 )
 
+func deltaToProto(delta graph.Delta) proto.LogDelta {
+	var newd proto.LogDelta
+	newd.ID = uint64(delta.ID.Int())
+	newd.Action = int32(delta.Action)
+	newd.Timestamp = delta.Timestamp.UnixNano()
+	newd.Quad = proto.MakeQuad(delta.Quad)
+	return newd
+}
+
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	batch := &leveldb.Batch{}
 	resizeMap := make(map[quad.Value]int64)
@@ -194,11 +242,12 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		if d.Action != graph.Add && d.Action != graph.Delete {
 			return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
-		bytes, err := json.Marshal(d)
+		p := deltaToProto(d)
+		bytes, err := p.Marshal()
 		if err != nil {
 			return &graph.DeltaError{Delta: d, Err: err}
 		}
-		batch.Put(keyFor(d), bytes)
+		batch.Put(createDeltaKeyFor(d.ID.Int()), bytes)
 		err = qs.buildQuadWrite(batch, d.Quad, d.ID.Int(), d.Action == graph.Add)
 		if err != nil {
 			if err == graph.ErrQuadExists && ignoreOpts.IgnoreDup {
@@ -239,32 +288,18 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
-func keyFor(d graph.Delta) []byte {
-	key := make([]byte, 0, 19)
-	key = append(key, 'd')
-	key = append(key, []byte(fmt.Sprintf("%018x", d.ID.Int()))...)
-	return key
-}
-
 func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64, isAdd bool) error {
-	var entry IndexEntry
+	var entry proto.HistoryEntry
 	data, err := qs.db.Get(qs.createKeyFor(spo, q), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
 		clog.Errorf("could not access DB to prepare index: %v", err)
 		return err
 	}
-	if err == nil {
+	if data != nil {
 		// We got something.
-		err = json.Unmarshal(data, &entry)
+		err = entry.Unmarshal(data)
 		if err != nil {
 			return err
-		}
-	} else {
-		entry.Subject = q.Subject.String()
-		entry.Predicate = q.Predicate.String()
-		entry.Object = q.Object.String()
-		if q.Label != nil {
-			entry.Label = q.Label.String()
 		}
 	}
 
@@ -277,9 +312,9 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 		return graph.ErrQuadNotExist
 	}
 
-	entry.History = append(entry.History, id)
+	entry.History = append(entry.History, uint64(id))
 
-	bytes, err := json.Marshal(entry)
+	bytes, err := entry.Marshal()
 	if err != nil {
 		clog.Errorf("could not write to buffer for entry %#v: %s", entry, err)
 		return err
@@ -293,13 +328,11 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 	return nil
 }
 
-type ValueData struct {
-	Name string
-	Size int64
-}
-
 func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leveldb.Batch) error {
-	value := &ValueData{name.String(), amount}
+	value := proto.NodeData{
+		Value: proto.MakeValue(name),
+		Size_: amount,
+	}
 	key := qs.createValueKeyFor(name)
 	b, err := qs.db.Get(key, qs.readopts)
 
@@ -311,21 +344,23 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leve
 
 	// Node exists in the database -- unmarshal and update.
 	if b != nil && err != leveldb.ErrNotFound {
-		err = json.Unmarshal(b, value)
+		var oldvalue proto.NodeData
+		err = oldvalue.Unmarshal(b)
 		if err != nil {
 			clog.Errorf("Error: could not reconstruct value: %v", err)
 			return err
 		}
-		value.Size += amount
+		oldvalue.Size_ += amount
+		value = oldvalue
 	}
 
 	// Are we deleting something?
-	if value.Size <= 0 {
-		value.Size = 0
+	if value.Size_ <= 0 {
+		value.Size_ = 0
 	}
 
 	// Repackage and rewrite.
-	bytes, err := json.Marshal(&value)
+	bytes, err := value.Marshal()
 	if err != nil {
 		clog.Errorf("could not write to buffer for value %s: %s", name, err)
 		return err
@@ -340,7 +375,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leve
 
 func (qs *QuadStore) Close() {
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, qs.size)
+	err := binary.Write(buf, order, qs.size)
 	if err == nil {
 		werr := qs.db.Put([]byte(sizeKey), buf.Bytes(), qs.writeopts)
 		if werr != nil {
@@ -350,7 +385,7 @@ func (qs *QuadStore) Close() {
 		clog.Errorf("could not convert size before closing!")
 	}
 	buf.Reset()
-	err = binary.Write(buf, binary.LittleEndian, qs.horizon)
+	err = binary.Write(buf, order, qs.horizon)
 	if err == nil {
 		werr := qs.db.Put([]byte(horizonKey), buf.Bytes(), qs.writeopts)
 		if werr != nil {
@@ -364,30 +399,43 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
-	var q quad.Quad
+	var in proto.HistoryEntry
 	b, err := qs.db.Get(k.(Token), qs.readopts)
-	if err != nil && err != leveldb.ErrNotFound {
-		clog.Errorf("Error: could not get quad from DB.")
-		return quad.Quad{}
-	}
 	if err == leveldb.ErrNotFound {
 		// No harm, no foul.
 		return quad.Quad{}
-	}
-	err = json.Unmarshal(b, &q)
-	if err != nil {
-		clog.Errorf("Error: could not reconstruct quad.")
+	} else if err != nil {
+		clog.Errorf("Error: could not get quad from DB. %v", err)
 		return quad.Quad{}
 	}
-	return q
+	err = in.Unmarshal(b)
+	if err != nil {
+		clog.Errorf("Error: could not reconstruct history. %v", err)
+		return quad.Quad{}
+	}
+	b, err = qs.db.Get(createDeltaKeyFor(int64(in.History[len(in.History)-1])), qs.readopts)
+	if err == leveldb.ErrNotFound {
+		// No harm, no foul.
+		return quad.Quad{}
+	} else if err != nil {
+		clog.Errorf("Error: could not get quad from DB. %v", err)
+		return quad.Quad{}
+	}
+	var d proto.LogDelta
+	err = d.Unmarshal(b)
+	if err != nil {
+		clog.Errorf("Error: could not reconstruct quad. %v", err)
+		return quad.Quad{}
+	}
+	return d.Quad.ToNative()
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	return Token(qs.createValueKeyFor(s))
 }
 
-func (qs *QuadStore) valueData(key []byte) ValueData {
-	var out ValueData
+func (qs *QuadStore) valueData(key []byte) proto.NodeData {
+	var out proto.NodeData
 	if clog.V(3) {
 		clog.Infof("%c %v", key[0], key)
 	}
@@ -397,10 +445,10 @@ func (qs *QuadStore) valueData(key []byte) ValueData {
 		return out
 	}
 	if b != nil && err != leveldb.ErrNotFound {
-		err = json.Unmarshal(b, &out)
+		err = out.Unmarshal(b)
 		if err != nil {
-			clog.Errorf("Error: could not reconstruct value")
-			return ValueData{}
+			clog.Errorf("Error: could not reconstruct value: %v", err)
+			return proto.NodeData{}
 		}
 	}
 	return out
@@ -414,20 +462,14 @@ func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
 		return nil
 	}
 	v := qs.valueData(k.(Token))
-	if v.Name == "" {
-		if clog.V(2) {
-			clog.Infof("k was empty")
-		}
-		return nil
-	}
-	return quad.Raw(v.Name)
+	return v.GetNativeValue()
 }
 
 func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
 		return 0
 	}
-	return int64(qs.valueData(k.(Token)).Size)
+	return int64(qs.valueData(k.(Token)).Size_)
 }
 
 func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {
@@ -442,7 +484,7 @@ func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {
 		return empty, nil
 	}
 	buf := bytes.NewBuffer(b)
-	err = binary.Read(buf, binary.LittleEndian, &out)
+	err = binary.Read(buf, order, &out)
 	if err != nil {
 		clog.Errorf("Error: could not parse %v", key)
 		return 0, err
@@ -503,10 +545,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
 	v := val.(Token)
 	offset := PositionOf(v[0:2], d, qs)
-	if offset != -1 {
-		return Token(append([]byte("z"), v[offset:offset+quad.HashSize]...))
-	}
-	return Token(qs.Quad(val).Get(d).String())
+	return Token(append([]byte("z"), v[offset:offset+quad.HashSize]...))
 }
 
 func compareBytes(a, b graph.Value) bool {
