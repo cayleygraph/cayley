@@ -2,6 +2,8 @@ package proto
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/google/cayley/quad"
 )
 
@@ -28,6 +30,20 @@ func MakeValue(qv quad.Value) *Value {
 		return &Value{&Value_LangStr{&Value_LangString{
 			Value: string(v.Value),
 			Lang:  v.Lang,
+		}}}
+	case quad.Int:
+		return &Value{&Value_Int{int64(v)}}
+	case quad.Float:
+		return &Value{&Value_Float_{float64(v)}}
+	case quad.Bool:
+		return &Value{&Value_Boolean{bool(v)}}
+	case quad.Time:
+		t := time.Time(v)
+		seconds := t.Unix()
+		nanos := int32(t.Sub(time.Unix(seconds, 0)))
+		return &Value{&Value_Time{&Value_Timestamp{
+			Seconds: seconds,
+			Nanos:   nanos,
 		}}}
 	default:
 		panic(fmt.Errorf("unsupported type: %T", qv))
@@ -58,6 +74,20 @@ func (m *Value) ToNative() (qv quad.Value) {
 			Value: quad.String(v.LangStr.Value),
 			Lang:  v.LangStr.Lang,
 		}
+	case *Value_Int:
+		return quad.Int(v.Int)
+	case *Value_Float_:
+		return quad.Float(v.Float_)
+	case *Value_Boolean:
+		return quad.Bool(v.Boolean)
+	case *Value_Time:
+		var t time.Time
+		if v.Time == nil {
+			t = time.Unix(0, 0).UTC()
+		} else {
+			t = time.Unix(v.Time.Seconds, int64(v.Time.Nanos)).UTC()
+		}
+		return quad.Time(t)
 	default:
 		panic(fmt.Errorf("unsupported type: %T", m.Value))
 	}

@@ -58,13 +58,22 @@ message Value {
     string value = 1;
     string lang = 2;
   }
+  // From https://github.com/golang/protobuf/blob/master/ptypes/timestamp/timestamp.proto
+  message Timestamp {
+    int64 seconds = 1;
+    int32 nanos = 2;
+  }
   oneof value {
-    bytes raw = 1;
+    bytes  raw = 1;
     string str = 2;
     string iri = 3;
     string bnode = 4;
     TypedString typed_str = 5;
-    LangString lang_str = 6;
+    LangString  lang_str = 6;
+    int64  int = 7;
+    double float_ = 8;
+    bool boolean = 9;
+    Timestamp time = 10;
   }
 }
 

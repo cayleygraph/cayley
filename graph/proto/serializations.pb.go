@@ -123,6 +123,10 @@ type Value struct {
 	//	*Value_Bnode
 	//	*Value_TypedStr
 	//	*Value_LangStr
+	//	*Value_Int
+	//	*Value_Float_
+	//	*Value_Boolean
+	//	*Value_Time
 	Value isValue_Value `protobuf_oneof:"value"`
 }
 
@@ -154,6 +158,18 @@ type Value_TypedStr struct {
 type Value_LangStr struct {
 	LangStr *Value_LangString `protobuf:"bytes,6,opt,name=lang_str,oneof"`
 }
+type Value_Int struct {
+	Int int64 `protobuf:"varint,7,opt,name=int,proto3,oneof"`
+}
+type Value_Float_ struct {
+	Float_ float64 `protobuf:"fixed64,8,opt,name=float_,proto3,oneof"`
+}
+type Value_Boolean struct {
+	Boolean bool `protobuf:"varint,9,opt,name=boolean,proto3,oneof"`
+}
+type Value_Time struct {
+	Time *Value_Timestamp `protobuf:"bytes,10,opt,name=time,oneof"`
+}
 
 func (*Value_Raw) isValue_Value()      {}
 func (*Value_Str) isValue_Value()      {}
@@ -161,6 +177,10 @@ func (*Value_Iri) isValue_Value()      {}
 func (*Value_Bnode) isValue_Value()    {}
 func (*Value_TypedStr) isValue_Value() {}
 func (*Value_LangStr) isValue_Value()  {}
+func (*Value_Int) isValue_Value()      {}
+func (*Value_Float_) isValue_Value()   {}
+func (*Value_Boolean) isValue_Value()  {}
+func (*Value_Time) isValue_Value()     {}
 
 func (m *Value) GetValue() isValue_Value {
 	if m != nil {
@@ -211,6 +231,34 @@ func (m *Value) GetLangStr() *Value_LangString {
 	return nil
 }
 
+func (m *Value) GetInt() int64 {
+	if x, ok := m.GetValue().(*Value_Int); ok {
+		return x.Int
+	}
+	return 0
+}
+
+func (m *Value) GetFloat_() float64 {
+	if x, ok := m.GetValue().(*Value_Float_); ok {
+		return x.Float_
+	}
+	return 0
+}
+
+func (m *Value) GetBoolean() bool {
+	if x, ok := m.GetValue().(*Value_Boolean); ok {
+		return x.Boolean
+	}
+	return false
+}
+
+func (m *Value) GetTime() *Value_Timestamp {
+	if x, ok := m.GetValue().(*Value_Time); ok {
+		return x.Time
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*Value) XXX_OneofFuncs() (func(msg proto1.Message, b *proto1.Buffer) error, func(msg proto1.Message, tag, wire int, b *proto1.Buffer) (bool, error), []interface{}) {
 	return _Value_OneofMarshaler, _Value_OneofUnmarshaler, []interface{}{
@@ -220,6 +268,10 @@ func (*Value) XXX_OneofFuncs() (func(msg proto1.Message, b *proto1.Buffer) error
 		(*Value_Bnode)(nil),
 		(*Value_TypedStr)(nil),
 		(*Value_LangStr)(nil),
+		(*Value_Int)(nil),
+		(*Value_Float_)(nil),
+		(*Value_Boolean)(nil),
+		(*Value_Time)(nil),
 	}
 }
 
@@ -247,6 +299,24 @@ func _Value_OneofMarshaler(msg proto1.Message, b *proto1.Buffer) error {
 	case *Value_LangStr:
 		_ = b.EncodeVarint(6<<3 | proto1.WireBytes)
 		if err := b.EncodeMessage(x.LangStr); err != nil {
+			return err
+		}
+	case *Value_Int:
+		_ = b.EncodeVarint(7<<3 | proto1.WireVarint)
+		_ = b.EncodeVarint(uint64(x.Int))
+	case *Value_Float_:
+		_ = b.EncodeVarint(8<<3 | proto1.WireFixed64)
+		_ = b.EncodeFixed64(math.Float64bits(x.Float_))
+	case *Value_Boolean:
+		t := uint64(0)
+		if x.Boolean {
+			t = 1
+		}
+		_ = b.EncodeVarint(9<<3 | proto1.WireVarint)
+		_ = b.EncodeVarint(t)
+	case *Value_Time:
+		_ = b.EncodeVarint(10<<3 | proto1.WireBytes)
+		if err := b.EncodeMessage(x.Time); err != nil {
 			return err
 		}
 	case nil:
@@ -303,6 +373,35 @@ func _Value_OneofUnmarshaler(msg proto1.Message, tag, wire int, b *proto1.Buffer
 		err := b.DecodeMessage(msg)
 		m.Value = &Value_LangStr{msg}
 		return true, err
+	case 7: // value.int
+		if wire != proto1.WireVarint {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Value = &Value_Int{int64(x)}
+		return true, err
+	case 8: // value.float_
+		if wire != proto1.WireFixed64 {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeFixed64()
+		m.Value = &Value_Float_{math.Float64frombits(x)}
+		return true, err
+	case 9: // value.boolean
+		if wire != proto1.WireVarint {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Value = &Value_Boolean{x != 0}
+		return true, err
+	case 10: // value.time
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		msg := new(Value_Timestamp)
+		err := b.DecodeMessage(msg)
+		m.Value = &Value_Time{msg}
+		return true, err
 	default:
 		return false, nil
 	}
@@ -326,6 +425,16 @@ func (m *Value_LangString) Reset()         { *m = Value_LangString{} }
 func (m *Value_LangString) String() string { return proto1.CompactTextString(m) }
 func (*Value_LangString) ProtoMessage()    {}
 
+// From https://github.com/golang/protobuf/blob/master/ptypes/timestamp/timestamp.proto
+type Value_Timestamp struct {
+	Seconds int64 `protobuf:"varint,1,opt,name=seconds,proto3" json:"seconds,omitempty"`
+	Nanos   int32 `protobuf:"varint,2,opt,name=nanos,proto3" json:"nanos,omitempty"`
+}
+
+func (m *Value_Timestamp) Reset()         { *m = Value_Timestamp{} }
+func (m *Value_Timestamp) String() string { return proto1.CompactTextString(m) }
+func (*Value_Timestamp) ProtoMessage()    {}
+
 func init() {
 	proto1.RegisterType((*LogDelta)(nil), "proto.LogDelta")
 	proto1.RegisterType((*HistoryEntry)(nil), "proto.HistoryEntry")
@@ -334,6 +443,7 @@ func init() {
 	proto1.RegisterType((*Value)(nil), "proto.Value")
 	proto1.RegisterType((*Value_TypedString)(nil), "proto.Value.TypedString")
 	proto1.RegisterType((*Value_LangString)(nil), "proto.Value.LangString")
+	proto1.RegisterType((*Value_Timestamp)(nil), "proto.Value.Timestamp")
 }
 func (m *LogDelta) Marshal() (data []byte, err error) {
 	size := m.ProtoSize()
@@ -611,6 +721,46 @@ func (m *Value_LangStr) MarshalTo(data []byte) (int, error) {
 	}
 	return i, nil
 }
+func (m *Value_Int) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x38
+	i++
+	i = encodeVarintSerializations(data, i, uint64(m.Int))
+	return i, nil
+}
+func (m *Value_Float_) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x41
+	i++
+	i = encodeFixed64Serializations(data, i, uint64(math.Float64bits(float64(m.Float_))))
+	return i, nil
+}
+func (m *Value_Boolean) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x48
+	i++
+	if m.Boolean {
+		data[i] = 1
+	} else {
+		data[i] = 0
+	}
+	i++
+	return i, nil
+}
+func (m *Value_Time) MarshalTo(data []byte) (int, error) {
+	i := 0
+	if m.Time != nil {
+		data[i] = 0x52
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Time.ProtoSize()))
+		n10, err := m.Time.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n10
+	}
+	return i, nil
+}
 func (m *Value_TypedString) Marshal() (data []byte, err error) {
 	size := m.ProtoSize()
 	data = make([]byte, size)
@@ -667,6 +817,34 @@ func (m *Value_LangString) MarshalTo(data []byte) (int, error) {
 		i++
 		i = encodeVarintSerializations(data, i, uint64(len(m.Lang)))
 		i += copy(data[i:], m.Lang)
+	}
+	return i, nil
+}
+
+func (m *Value_Timestamp) Marshal() (data []byte, err error) {
+	size := m.ProtoSize()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Value_Timestamp) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Seconds != 0 {
+		data[i] = 0x8
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Seconds))
+	}
+	if m.Nanos != 0 {
+		data[i] = 0x10
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Nanos))
 	}
 	return i, nil
 }
@@ -840,6 +1018,33 @@ func (m *Value_LangStr) ProtoSize() (n int) {
 	}
 	return n
 }
+func (m *Value_Int) ProtoSize() (n int) {
+	var l int
+	_ = l
+	n += 1 + sovSerializations(uint64(m.Int))
+	return n
+}
+func (m *Value_Float_) ProtoSize() (n int) {
+	var l int
+	_ = l
+	n += 9
+	return n
+}
+func (m *Value_Boolean) ProtoSize() (n int) {
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *Value_Time) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.Time != nil {
+		l = m.Time.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
 func (m *Value_TypedString) ProtoSize() (n int) {
 	var l int
 	_ = l
@@ -864,6 +1069,18 @@ func (m *Value_LangString) ProtoSize() (n int) {
 	l = len(m.Lang)
 	if l > 0 {
 		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+
+func (m *Value_Timestamp) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.Seconds != 0 {
+		n += 1 + sovSerializations(uint64(m.Seconds))
+	}
+	if m.Nanos != 0 {
+		n += 1 + sovSerializations(uint64(m.Nanos))
 	}
 	return n
 }
@@ -1730,6 +1947,97 @@ func (m *Value) Unmarshal(data []byte) error {
 			}
 			m.Value = &Value_LangStr{v}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Int", wireType)
+			}
+			var v int64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Value = &Value_Int{v}
+		case 8:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Float_", wireType)
+			}
+			var v uint64
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += 8
+			v = uint64(data[iNdEx-8])
+			v |= uint64(data[iNdEx-7]) << 8
+			v |= uint64(data[iNdEx-6]) << 16
+			v |= uint64(data[iNdEx-5]) << 24
+			v |= uint64(data[iNdEx-4]) << 32
+			v |= uint64(data[iNdEx-3]) << 40
+			v |= uint64(data[iNdEx-2]) << 48
+			v |= uint64(data[iNdEx-1]) << 56
+			m.Value = &Value_Float_{float64(math.Float64frombits(v))}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Boolean", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Value = &Value_Boolean{b}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &Value_Timestamp{}
+			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Value = &Value_Time{v}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipSerializations(data[iNdEx:])
@@ -1946,6 +2254,94 @@ func (m *Value_LangString) Unmarshal(data []byte) error {
 			}
 			m.Lang = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Value_Timestamp) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Timestamp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Timestamp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seconds", wireType)
+			}
+			m.Seconds = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Seconds |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nanos", wireType)
+			}
+			m.Nanos = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Nanos |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipSerializations(data[iNdEx:])

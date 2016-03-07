@@ -3,6 +3,7 @@ package graphtest
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -28,9 +29,7 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 	if conf == nil || !conf.SkipDeletedFromIterator {
 		TestDeletedFromIterator(t, gen)
 	}
-	if conf == nil || !conf.UnTyped {
-		TestLoadTypedQuads(t, gen)
-	}
+	TestLoadTypedQuads(t, gen, conf == nil || !conf.UnTyped)
 }
 
 func MakeWriter(t testing.TB, qs graph.QuadStore, data ...quad.Quad) graph.QuadWriter {
@@ -326,7 +325,7 @@ func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc) {
 	ExpectIteratedQuads(t, qs, it, nil)
 }
 
-func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc) {
+func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, typed bool) {
 	qs, closer := gen(t)
 	defer closer()
 
@@ -337,17 +336,33 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc) {
 		quad.IRI("B"), quad.Raw("<type>"),
 		quad.TypedString{Value: "10", Type: "int"},
 		quad.LangString{Value: "value", Lang: "en"},
+		quad.Int(-123456789),
+		quad.Float(-12345e-6),
+		quad.Bool(true),
+		quad.Time(time.Now()),
 	}
 
 	err := w.AddQuadSet([]quad.Quad{
 		{values[0], values[1], values[2], values[3]},
 		{values[4], values[5], values[6], nil},
 		{values[4], values[5], values[7], nil},
+		{values[0], values[1], values[8], nil},
+		{values[0], values[1], values[9], nil},
+		{values[0], values[1], values[10], nil},
+		{values[0], values[1], values[11], nil},
 	})
 	require.Nil(t, err)
 	for _, pq := range values {
 		got := qs.NameOf(qs.ValueOf(pq))
-		assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
+		if typed {
+			if eq, ok := pq.(quad.Equaler); ok {
+				assert.True(t, eq.Equal(got), "Failed to roundtrip %q (%T)", pq, pq)
+			} else {
+				assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
+			}
+		} else {
+			assert.Equal(t, quad.StringOf(pq), quad.StringOf(got), "Failed to roundtrip raw %q (%T)", pq, pq)
+		}
 	}
-	require.Equal(t, int64(3), qs.Size(), "Unexpected quadstore size")
+	require.Equal(t, int64(7), qs.Size(), "Unexpected quadstore size")
 }
