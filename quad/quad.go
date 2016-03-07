@@ -37,65 +37,15 @@ package quad
 // the consequences are not to be taken lightly. But do suggest cool features!
 
 import (
-	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hash"
-	"sync"
 )
 
 var (
 	ErrInvalid    = errors.New("invalid N-Quad")
 	ErrIncomplete = errors.New("incomplete N-Quad")
 )
-
-type Value interface {
-	String() string
-}
-
-// Raw is a Turtle/NQuads-encoded value.
-type Raw string
-
-func (s Raw) String() string { return string(s) }
-
-// String is an RDF string value (ex: "name").
-type String string
-
-func (s String) String() string {
-	//TODO(barakmich): Proper escaping.
-	return `"` + string(s) + `"`
-}
-
-// TypedString is an RDF value with type (ex: "name"^^<type>).
-type TypedString struct {
-	Value String
-	Type  IRI
-}
-
-func (s TypedString) String() string {
-	return s.Value.String() + `^^` + s.Type.String()
-}
-
-// LangString is an RDF string with language (ex: "name"@lang).
-type LangString struct {
-	Value String
-	Lang  string
-}
-
-func (s LangString) String() string {
-	return s.Value.String() + `@` + s.Lang
-}
-
-// IRI is an RDF Internationalized Resource Identifier (ex: <name>).
-type IRI string
-
-func (s IRI) String() string { return `<` + string(s) + `>` }
-
-// BNode is an RDF Blank Node (ex: _:name).
-type BNode string
-
-func (s BNode) String() string { return `_:` + string(s) }
 
 // Make creates a quad with provided raw values.
 func Make(subject, predicate, object, label string) (q Quad) {
@@ -222,25 +172,13 @@ func (q Quad) Get(d Direction) Value {
 func (q Quad) GetString(d Direction) string {
 	switch d {
 	case Subject:
-		if q.Subject == nil {
-			return ""
-		}
-		return q.Subject.String()
+		return StringOf(q.Subject)
 	case Predicate:
-		if q.Predicate == nil {
-			return ""
-		}
-		return q.Predicate.String()
-	case Label:
-		if q.Label == nil {
-			return ""
-		}
-		return q.Label.String()
+		return StringOf(q.Predicate)
 	case Object:
-		if q.Object == nil {
-			return ""
-		}
-		return q.Object.String()
+		return StringOf(q.Object)
+	case Label:
+		return StringOf(q.Label)
 	default:
 		panic(d.String())
 	}
@@ -266,34 +204,6 @@ func (q Quad) NQuad() string {
 
 type Unmarshaler interface {
 	Unmarshal() (Quad, error)
-}
-
-const HashSize = sha1.Size
-
-var hashPool = sync.Pool{
-	New: func() interface{} { return sha1.New() },
-}
-
-// HashOf calculates a hash of value v
-func HashOf(v Value) []byte {
-	h := hashPool.Get().(hash.Hash)
-	h.Reset()
-	defer hashPool.Put(h)
-	key := make([]byte, 0, HashSize)
-	if v != nil {
-		// TODO(kortschak,dennwc) Remove dependence on String() method.
-		h.Write([]byte(v.String()))
-	}
-	key = h.Sum(key)
-	return key
-}
-
-// StringOf safely call v.String, returning empty string in case of nil Value.
-func StringOf(v Value) string {
-	if v == nil {
-		return ""
-	}
-	return v.String()
 }
 
 type ByQuadString []Quad
