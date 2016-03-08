@@ -16,12 +16,14 @@ package mongo
 
 import (
 	"container/list"
+	"sync"
 )
 
 // TODO(kortschak) Reimplement without container/list.
 
 // cache implements an LRU cache.
 type cache struct {
+	sync.RWMutex
 	cache    map[string]*list.Element
 	priority *list.List
 	maxSize  int
@@ -47,19 +49,28 @@ func (lru *cache) Put(key string, value interface{}) {
 	if len(lru.cache) == lru.maxSize {
 		lru.removeOldest()
 	}
+
 	lru.priority.PushFront(kv{key: key, value: value})
+	lru.Lock()
 	lru.cache[key] = lru.priority.Front()
+	lru.Unlock()
 }
 
 func (lru *cache) Get(key string) (interface{}, bool) {
+	lru.RLock()
+	defer lru.RUnlock()
 	if element, ok := lru.cache[key]; ok {
 		lru.priority.MoveToFront(element)
 		return element.Value.(kv).value, true
 	}
+
 	return nil, false
 }
 
 func (lru *cache) removeOldest() {
+	lru.Lock()
+	defer lru.Unlock()
 	last := lru.priority.Remove(lru.priority.Back())
 	delete(lru.cache, last.(kv).key)
+
 }
