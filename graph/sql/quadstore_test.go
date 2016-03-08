@@ -8,10 +8,10 @@ import (
 	"testing"
 )
 
-func makePostgres(t testing.TB) (graph.QuadStore, func()) {
+func makePostgres(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config
 
-	conf.Image = "postgres:9"
+	conf.Image = "postgres:9.5"
 	conf.OpenStdin = true
 	conf.Tty = true
 	conf.Env = []string{`POSTGRES_PASSWORD=postgres`}
@@ -34,7 +34,7 @@ func makePostgres(t testing.TB) (graph.QuadStore, func()) {
 		closer()
 		t.Fatal(err)
 	}
-	return qs, func() {
+	return qs, nil, func() {
 		qs.Close()
 		closer()
 	}
@@ -42,7 +42,6 @@ func makePostgres(t testing.TB) (graph.QuadStore, func()) {
 
 func TestPostgresAll(t *testing.T) {
 	graphtest.TestAll(t, makePostgres, &graphtest.Config{
-		SkipSizeCheckAfterDelete: true,
-		UnTyped:                  true,
+		UnTyped: true,
 	})
 }

@@ -51,7 +51,7 @@ func TestCreateDatabase(t *testing.T) {
 	os.RemoveAll(tmpDir)
 }
 
-func makeLevelDB(t testing.TB) (graph.QuadStore, func()) {
+func makeLevelDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cayley_test")
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)
@@ -66,7 +66,7 @@ func makeLevelDB(t testing.TB) (graph.QuadStore, func()) {
 		os.RemoveAll(tmpDir)
 		t.Fatal("Failed to create Bolt QuadStore.")
 	}
-	return qs, func() {
+	return qs, nil, func() {
 		qs.Close()
 		os.RemoveAll(tmpDir)
 	}
@@ -75,6 +75,7 @@ func makeLevelDB(t testing.TB) (graph.QuadStore, func()) {
 func TestLevelDBAll(t *testing.T) {
 	graphtest.TestAll(t, makeLevelDB, &graphtest.Config{
 		SkipDeletedFromIterator: true,
+		SkipNodeDelAfterQuadDel: true,
 	})
 }
 
@@ -166,10 +167,10 @@ func TestLoadDatabase(t *testing.T) {
 }
 
 func TestOptimize(t *testing.T) {
-	qs, closer := makeLevelDB(t)
+	qs, opts, closer := makeLevelDB(t)
 	defer closer()
 
-	graphtest.MakeWriter(t, qs, graphtest.MakeQuadSet()...)
+	graphtest.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
 
 	// With an linksto-fixed pair
 	fixed := qs.FixedIterator()

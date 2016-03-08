@@ -182,10 +182,12 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			if err != nil {
 				return err
 			}
-			if !found || ignoreOpts.IgnoreDup {
-				keep = true
+			if found {
+				if !ignoreOpts.IgnoreDup {
+					return graph.ErrQuadExists
+				}
 			} else {
-				clog.Warningf("Quad exists already: %v", d)
+				keep = true
 			}
 		case graph.Delete:
 			found, err := qs.checkValid(key)
@@ -195,7 +197,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			if found || ignoreOpts.IgnoreMissing {
 				keep = true
 			} else {
-				clog.Warningf("Quad does not exist and so cannot be deleted: %v", d)
+				return graph.ErrQuadNotExist
 			}
 		default:
 			keep = false

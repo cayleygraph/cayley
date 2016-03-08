@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func makeMongo(t testing.TB) (graph.QuadStore, func()) {
+func makeMongo(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config
 
 	conf.Image = "mongo:3"
@@ -25,7 +25,7 @@ func makeMongo(t testing.TB) (graph.QuadStore, func()) {
 		closer()
 		t.Fatal(err)
 	}
-	return qs, func() {
+	return qs, nil, func() {
 		qs.Close()
 		closer()
 	}
@@ -35,6 +35,7 @@ func TestMongoAll(t *testing.T) {
 	graphtest.TestAll(t, makeMongo, &graphtest.Config{
 		SkipDeletedFromIterator:  true,
 		SkipSizeCheckAfterDelete: true,
+		SkipNodeDelAfterQuadDel:  true,
 		UnTyped:                  true,
 	})
 }

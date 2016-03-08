@@ -13,27 +13,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type DatabaseFunc func(t testing.TB) (graph.QuadStore, func())
+type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 
 type Config struct {
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool
 	UnTyped                  bool
+	SkipIntHorizon           bool
+	// TODO(dennwc): these stores are not garbage-collecting nodes after quad removal
+	SkipNodeDelAfterQuadDel bool
 }
 
 func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 	TestLoadOneQuad(t, gen)
-	TestHorizonInt(t, gen, conf)
+	if conf == nil || !conf.SkipIntHorizon {
+		TestHorizonInt(t, gen, conf)
+	}
 	TestIterator(t, gen)
 	TestSetIterator(t, gen)
 	if conf == nil || !conf.SkipDeletedFromIterator {
 		TestDeletedFromIterator(t, gen)
 	}
 	TestLoadTypedQuads(t, gen, conf == nil || !conf.UnTyped)
+	TestAddRemove(t, gen, conf)
+	TestIteratorsAndNextResultOrderA(t, gen)
 }
 
-func MakeWriter(t testing.TB, qs graph.QuadStore, data ...quad.Quad) graph.QuadWriter {
-	w, err := writer.NewSingleReplication(qs, nil)
+func MakeWriter(t testing.TB, qs graph.QuadStore, opts graph.Options, data ...quad.Quad) graph.QuadWriter {
+	w, err := writer.NewSingleReplication(qs, opts)
 	require.Nil(t, err)
 	if len(data) > 0 {
 		err = w.AddQuadSet(data)
@@ -42,6 +49,19 @@ func MakeWriter(t testing.TB, qs graph.QuadStore, data ...quad.Quad) graph.QuadW
 	return w
 }
 
+// This is a simple test graph.
+//
+//    +---+                        +---+
+//    | A |-------               ->| F |<--
+//    +---+       \------>+---+-/  +---+   \--+---+
+//                 ------>|#B#|      |        | E |
+//    +---+-------/      >+---+      |        +---+
+//    | C |             /            v
+//    +---+           -/           +---+
+//      ----    +---+/             |#G#|
+//          \-->|#D#|------------->+---+
+//              +---+
+//
 func MakeQuadSet() []quad.Quad {
 	return []quad.Quad{
 		quad.Make("A", "follows", "B", ""),
@@ -69,8 +89,16 @@ func IteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Q
 }
 
 func ExpectIteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator, exp []quad.Quad) {
-	sort.Sort(quad.ByQuadString(exp))
+	//sort.Sort(quad.ByQuadString(exp))
 	got := IteratedQuads(t, qs, it)
+	//sort.Sort(quad.ByQuadString(got))
+	require.Equal(t, exp, got)
+}
+
+func ExpectIteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator, exp []string) {
+	//sort.Strings(exp)
+	got := IteratedRawStrings(t, qs, it)
+	//sort.Strings(got)
 	require.Equal(t, exp, got)
 }
 
@@ -85,10 +113,10 @@ func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []s
 }
 
 func TestLoadOneQuad(t testing.TB, gen DatabaseFunc) {
-	qs, closer := gen(t)
+	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs)
+	w := MakeWriter(t, qs, opts)
 
 	err := w.AddQuad(quad.Make(
 		"Something",
@@ -109,10 +137,10 @@ type ValueSizer interface {
 }
 
 func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
-	qs, closer := gen(t)
+	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs)
+	w := MakeWriter(t, qs, opts)
 
 	horizon := qs.Horizon()
 	require.Equal(t, int64(0), horizon.Int(), "Unexpected horizon value")
@@ -149,10 +177,10 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 }
 
 func TestIterator(t testing.TB, gen DatabaseFunc) {
-	qs, closer := gen(t)
+	qs, opts, closer := gen(t)
 	defer closer()
 
-	MakeWriter(t, qs, MakeQuadSet()...)
+	MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	var it graph.Iterator
 
@@ -223,10 +251,10 @@ func TestIterator(t testing.TB, gen DatabaseFunc) {
 }
 
 func TestSetIterator(t testing.TB, gen DatabaseFunc) {
-	qs, closer := gen(t)
+	qs, opts, closer := gen(t)
 	defer closer()
 
-	MakeWriter(t, qs, MakeQuadSet()...)
+	MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	expectIteratedQuads := func(it graph.Iterator, exp []quad.Quad) {
 		ExpectIteratedQuads(t, qs, it, exp)
@@ -306,10 +334,10 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 }
 
 func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc) {
-	qs, closer := gen(t)
+	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, MakeQuadSet()...)
+	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	// Subject iterator.
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
@@ -326,10 +354,10 @@ func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc) {
 }
 
 func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, typed bool) {
-	qs, closer := gen(t)
+	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs)
+	w := MakeWriter(t, qs, opts)
 
 	values := []quad.Value{
 		quad.BNode("A"), quad.IRI("name"), quad.String("B"), quad.IRI("graph"),
@@ -365,4 +393,150 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, typed bool) {
 		}
 	}
 	require.Equal(t, int64(7), qs.Size(), "Unexpected quadstore size")
+}
+
+// TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
+// returns ErrQuadExists, ErrQuadNotExists is doing rollback.
+func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	if opts == nil {
+		opts = make(graph.Options)
+	}
+	opts["ignore_duplicate"] = true
+
+	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
+
+	all := qs.NodesAllIterator()
+	expect := []string{
+		"A",
+		"B",
+		"C",
+		"D",
+		"E",
+		"F",
+		"G",
+		"cool",
+		"follows",
+		"status",
+		"status_graph",
+	}
+	ExpectIteratedRawStrings(t, qs, all, expect)
+
+	// Add more quads, some conflicts
+	err := w.AddQuadSet([]quad.Quad{
+		quad.Make("A", "follows", "B", ""),
+		quad.Make("F", "follows", "B", ""),
+		quad.Make("C", "follows", "D", ""),
+		quad.Make("X", "follows", "B", ""),
+	})
+	assert.Nil(t, err, "AddQuadSet failed")
+
+	assert.Equal(t, int64(13), qs.Size(), "Incorrect number of quads")
+
+	all = qs.NodesAllIterator()
+	expect = []string{
+		"A",
+		"B",
+		"C",
+		"D",
+		"E",
+		"F",
+		"G",
+		"X",
+		"cool",
+		"follows",
+		"status",
+		"status_graph",
+	}
+	ExpectIteratedRawStrings(t, qs, all, expect)
+
+	// Remove quad
+	toRemove := quad.Make("X", "follows", "B", "")
+	err = w.RemoveQuad(toRemove)
+	require.Nil(t, err, "RemoveQuad failed")
+
+	if conf == nil || !conf.SkipNodeDelAfterQuadDel {
+		expect = []string{
+			"A",
+			"B",
+			"C",
+			"D",
+			"E",
+			"F",
+			"G",
+			"cool",
+			"follows",
+			"status",
+			"status_graph",
+		}
+	} else {
+		expect = []string{
+			"A",
+			"B",
+			"C",
+			"D",
+			"E",
+			"F",
+			"G",
+			"X",
+			"cool",
+			"follows",
+			"status",
+			"status_graph",
+		}
+	}
+	ExpectIteratedRawStrings(t, qs, all, nil)
+	all = qs.NodesAllIterator()
+	ExpectIteratedRawStrings(t, qs, all, expect)
+}
+
+func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
+
+	fixed := qs.FixedIterator()
+	fixed.Add(qs.ValueOf(quad.Raw("C")))
+
+	fixed2 := qs.FixedIterator()
+	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
+
+	all := qs.NodesAllIterator()
+
+	innerAnd := iterator.NewAnd(qs)
+	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
+	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
+
+	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
+	outerAnd := iterator.NewAnd(qs)
+	outerAnd.AddSubIterator(fixed)
+	outerAnd.AddSubIterator(hasa)
+
+	require.True(t, outerAnd.Next(), "Expected one matching subtree")
+
+	val := outerAnd.Result()
+	require.Equal(t, quad.Raw("C"), qs.NameOf(val))
+
+	var (
+		got    []string
+		expect = []string{"B", "D"}
+	)
+	for {
+		got = append(got, qs.NameOf(all.Result()).String())
+		if !outerAnd.NextPath() {
+			break
+		}
+	}
+	sort.Strings(got)
+
+	require.Equal(t, expect, got)
+
+	require.True(t, !outerAnd.Next(), "More than one possible top level output?")
 }

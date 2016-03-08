@@ -301,8 +301,13 @@ func init() {
 	gaedatastoreType = graph.RegisterIterator("gaedatastore")
 }
 
-func Type() graph.Type                                { return gaedatastoreType }
-func (it *Iterator) Type() graph.Type                 { return gaedatastoreType }
+func Type() graph.Type { return gaedatastoreType }
+func (it *Iterator) Type() graph.Type {
+	if it.isAll {
+		return graph.All
+	}
+	return gaedatastoreType
+}
 func (it *Iterator) Sorted() bool                     { return false }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) Describe() graph.Description {

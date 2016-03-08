@@ -77,9 +77,11 @@ func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 }
 
 func TestMemstoreAll(t *testing.T) {
-	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, func()) {
-		return newQuadStore(), func() {}
-	}, nil)
+	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+		return newQuadStore(), nil, func() {}
+	}, &graphtest.Config{
+		SkipNodeDelAfterQuadDel: true,
+	})
 }
 
 type pair struct {
