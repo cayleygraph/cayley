@@ -46,14 +46,14 @@ func (lru *cache) Put(key string, value interface{}) {
 	if _, ok := lru.Get(key); ok {
 		return
 	}
+
+	lru.Lock()
+	defer lru.Unlock()
 	if len(lru.cache) == lru.maxSize {
 		lru.removeOldest()
 	}
-
 	lru.priority.PushFront(kv{key: key, value: value})
-	lru.Lock()
 	lru.cache[key] = lru.priority.Front()
-	lru.Unlock()
 }
 
 func (lru *cache) Get(key string) (interface{}, bool) {
@@ -68,8 +68,6 @@ func (lru *cache) Get(key string) (interface{}, bool) {
 }
 
 func (lru *cache) removeOldest() {
-	lru.Lock()
-	defer lru.Unlock()
 	last := lru.priority.Remove(lru.priority.Back())
 	delete(lru.cache, last.(kv).key)
 
