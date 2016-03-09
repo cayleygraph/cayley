@@ -33,6 +33,7 @@ func makeMongo(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestMongoAll(t *testing.T) {
 	graphtest.TestAll(t, makeMongo, &graphtest.Config{
+		TimeInMs:                 true,
 		SkipDeletedFromIterator:  true,
 		SkipSizeCheckAfterDelete: true,
 		SkipNodeDelAfterQuadDel:  true,

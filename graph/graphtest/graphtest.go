@@ -16,25 +16,30 @@ import (
 type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 
 type Config struct {
+	UnTyped  bool
+	TimeInMs bool
+
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool
-	UnTyped                  bool
 	SkipIntHorizon           bool
 	// TODO(dennwc): these stores are not garbage-collecting nodes after quad removal
 	SkipNodeDelAfterQuadDel bool
 }
 
 func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
+	if conf == nil {
+		conf = &Config{}
+	}
 	TestLoadOneQuad(t, gen)
-	if conf == nil || !conf.SkipIntHorizon {
+	if !conf.SkipIntHorizon {
 		TestHorizonInt(t, gen, conf)
 	}
 	TestIterator(t, gen)
 	TestSetIterator(t, gen)
-	if conf == nil || !conf.SkipDeletedFromIterator {
+	if !conf.SkipDeletedFromIterator {
 		TestDeletedFromIterator(t, gen)
 	}
-	TestLoadTypedQuads(t, gen, conf == nil || !conf.UnTyped)
+	TestLoadTypedQuads(t, gen, conf)
 	TestAddRemove(t, gen, conf)
 	TestIteratorsAndNextResultOrderA(t, gen)
 }
@@ -164,7 +169,7 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 		"",
 	))
 	require.Nil(t, err)
-	if conf == nil || !conf.SkipSizeCheckAfterDelete {
+	if !conf.SkipSizeCheckAfterDelete {
 		require.Equal(t, int64(10), qs.Size(), "Unexpected quadstore size after RemoveQuad")
 	} else {
 		require.Equal(t, int64(11), qs.Size(), "Unexpected quadstore size")
@@ -353,7 +358,7 @@ func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc) {
 	ExpectIteratedQuads(t, qs, it, nil)
 }
 
-func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, typed bool) {
+func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
@@ -382,9 +387,18 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, typed bool) {
 	require.Nil(t, err)
 	for _, pq := range values {
 		got := qs.NameOf(qs.ValueOf(pq))
-		if typed {
+		if !conf.UnTyped {
+			if pt, ok := pq.(quad.Time); ok {
+				if conf.TimeInMs {
+					tm := time.Time(pt)
+					seconds := tm.Unix()
+					nanos := int64(tm.Sub(time.Unix(seconds, 0)))
+					nanos = (nanos / 1000000) * 1000000
+					pq = quad.Time(time.Unix(seconds, nanos).UTC())
+				}
+			}
 			if eq, ok := pq.(quad.Equaler); ok {
-				assert.True(t, eq.Equal(got), "Failed to roundtrip %q (%T)", pq, pq)
+				assert.True(t, eq.Equal(got), "Failed to roundtrip %q (%T), got %q (%T)", pq, pq, got, got)
 			} else {
 				assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
 			}
@@ -459,7 +473,7 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 	err = w.RemoveQuad(toRemove)
 	require.Nil(t, err, "RemoveQuad failed")
 
-	if conf == nil || !conf.SkipNodeDelAfterQuadDel {
+	if !conf.SkipNodeDelAfterQuadDel {
 		expect = []string{
 			"A",
 			"B",

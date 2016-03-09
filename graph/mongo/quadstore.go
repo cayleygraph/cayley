@@ -17,6 +17,7 @@ package mongo
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -291,16 +292,50 @@ type mongoQuad struct {
 	Label     value `json:"label,omitempty"`
 }
 
+type mongoString struct {
+	Value   string `bson:"val"`
+	IsIRI   bool   `bson:"iri,omitempty"`
+	IsBNode bool   `bson:"bnode,omitempty"`
+	Type    string `bson:"type,omitempty"`
+	Lang    string `bson:"lang,omitempty"`
+}
+
 func toMongoValue(v quad.Value) value {
 	if v == nil {
 		return nil
 	}
-	qv := proto.MakeValue(v)
-	data, err := qv.Marshal()
-	if err != nil {
-		panic(err)
+	switch d := v.(type) {
+	case quad.Raw:
+		return string(d) // compatibility
+	case quad.String:
+		return mongoString{Value: string(d)}
+	case quad.IRI:
+		return mongoString{Value: string(d), IsIRI: true}
+	case quad.BNode:
+		return mongoString{Value: string(d), IsBNode: true}
+	case quad.TypedString:
+		return mongoString{Value: string(d.Value), Type: string(d.Type)}
+	case quad.LangString:
+		return mongoString{Value: string(d.Value), Lang: string(d.Lang)}
+	case quad.Int:
+		return int64(d)
+	case quad.Float:
+		return float64(d)
+	case quad.Bool:
+		return bool(d)
+	case quad.Time:
+		// TODO(dennwc): mongo supports only ms precision
+		// we can alternatively switch to protobuf serialization instead
+		// (maybe add an option for this)
+		return time.Time(d)
+	default:
+		qv := proto.MakeValue(v)
+		data, err := qv.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		return data
 	}
-	return data
 }
 
 func toQuadValue(v value) quad.Value {
@@ -308,6 +343,42 @@ func toQuadValue(v value) quad.Value {
 		return nil
 	}
 	switch d := v.(type) {
+	case string:
+		return quad.Raw(d) // compatibility
+	case int64:
+		return quad.Int(d)
+	case float64:
+		return quad.Float(d)
+	case bool:
+		return quad.Bool(d)
+	case time.Time:
+		return quad.Time(d)
+	case bson.M: // TODO(dennwc): use raw document instead?
+		so, ok := d["val"]
+		if !ok {
+			clog.Errorf("Error: Empty value in map: %v", v)
+			return nil
+		}
+		s := so.(string)
+		if len(d) == 1 {
+			return quad.String(s)
+		}
+		if o, ok := d["iri"]; ok && o.(bool) {
+			return quad.IRI(s)
+		} else if o, ok := d["bnode"]; ok && o.(bool) {
+			return quad.BNode(s)
+		} else if o, ok := d["lang"]; ok && o.(string) != "" {
+			return quad.LangString{
+				Value: quad.String(s),
+				Lang:  o.(string),
+			}
+		} else if o, ok := d["type"]; ok && o.(string) != "" {
+			return quad.TypedString{
+				Value: quad.String(s),
+				Type:  quad.IRI(o.(string)),
+			}
+		}
+		return quad.String(s)
 	case []byte:
 		var p proto.Value
 		if err := p.Unmarshal(d); err != nil {
