@@ -16,6 +16,7 @@ package mongo
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -23,6 +24,7 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -120,7 +122,7 @@ func hashOf(s quad.Value) string {
 
 type MongoNode struct {
 	ID   string `bson:"_id"`
-	Name string `bson:"Name"`
+	Name value  `bson:"Name"`
 	Size int    `bson:"Size"`
 }
 
@@ -135,7 +137,7 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) error {
 	node := qs.ValueOf(name)
 	doc := bson.M{
 		"_id":  node.(string),
-		"Name": quad.StringOf(name),
+		"Name": toMongoValue(name),
 	}
 	upsert := bson.M{
 		"$setOnInsert": doc,
@@ -159,11 +161,11 @@ func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) err
 		setname = "Deleted"
 	}
 	upsert := bson.M{
-		"$setOnInsert": rawQuad{
-			Subject:   quad.StringOf(q.Subject),
-			Predicate: quad.StringOf(q.Predicate),
-			Object:    quad.StringOf(q.Object),
-			Label:     quad.StringOf(q.Label),
+		"$setOnInsert": mongoQuad{
+			Subject:   toMongoValue(q.Subject),
+			Predicate: toMongoValue(q.Predicate),
+			Object:    toMongoValue(q.Object),
+			Label:     toMongoValue(q.Label),
 		},
 		"$push": bson.M{
 			setname: id,
@@ -280,20 +282,56 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
-type rawQuad struct {
-	Subject   string `json:"subject"`
-	Predicate string `json:"predicate"`
-	Object    string `json:"object"`
-	Label     string `json:"label,omitempty"`
+type value interface{}
+
+type mongoQuad struct {
+	Subject   value `json:"subject"`
+	Predicate value `json:"predicate"`
+	Object    value `json:"object"`
+	Label     value `json:"label,omitempty"`
+}
+
+func toMongoValue(v quad.Value) value {
+	if v == nil {
+		return nil
+	}
+	qv := proto.MakeValue(v)
+	data, err := qv.Marshal()
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func toQuadValue(v value) quad.Value {
+	if v == nil {
+		return nil
+	}
+	switch d := v.(type) {
+	case []byte:
+		var p proto.Value
+		if err := p.Unmarshal(d); err != nil {
+			clog.Errorf("Error: Couldn't decode value: %v", err)
+			return nil
+		}
+		return p.ToNative()
+	default:
+		panic(fmt.Errorf("unsupported type: %T", v))
+	}
 }
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
-	var q rawQuad
+	var q mongoQuad
 	err := qs.db.C("quads").FindId(val.(string)).One(&q)
 	if err != nil {
 		clog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
 	}
-	return quad.Make(q.Subject, q.Predicate, q.Object, q.Label)
+	return quad.Quad{
+		Subject:   toQuadValue(q.Subject),
+		Predicate: toQuadValue(q.Predicate),
+		Object:    toQuadValue(q.Object),
+		Label:     toQuadValue(q.Label),
+	}
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
@@ -315,16 +353,18 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	val, ok := qs.ids.Get(v.(string))
 	if ok {
-		return quad.Raw(val.(string))
+		return val.(quad.Value)
 	}
 	var node MongoNode
 	err := qs.db.C("nodes").FindId(v.(string)).One(&node)
 	if err != nil {
 		clog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
-	} else if node.ID != "" && node.Name != "" {
-		qs.ids.Put(v.(string), node.Name)
 	}
-	return quad.Raw(node.Name)
+	qv := toQuadValue(node.Name)
+	if node.ID != "" && qv != nil {
+		qs.ids.Put(v.(string), qv)
+	}
+	return qv
 }
 
 func (qs *QuadStore) Size() int64 {

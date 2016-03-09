@@ -76,7 +76,7 @@ func (it *LinksTo) buildConstraint() bson.M {
 func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *mgo.Iter {
 	name := it.qs.NameOf(val)
 	constraint := it.buildConstraint()
-	constraint[d.String()] = name
+	constraint[d.String()] = toMongoValue(name)
 	return it.qs.db.C(it.collection).Find(constraint).Iter()
 }
 

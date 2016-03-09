@@ -45,7 +45,7 @@ type Iterator struct {
 func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.Value) *Iterator {
 	name := qs.NameOf(val)
 
-	constraint := bson.M{d.String(): name}
+	constraint := bson.M{d.String(): toMongoValue(name)}
 
 	return &Iterator{
 		uid:        iterator.NextUID(),
