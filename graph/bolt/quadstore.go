@@ -179,18 +179,16 @@ func bucketFor(d [4]quad.Direction) []byte {
 }
 
 func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
-	key := make([]byte, 0, (quad.HashSize * 4))
-	key = append(key, quad.HashOf(q.Get(d[0]))...)
-	key = append(key, quad.HashOf(q.Get(d[1]))...)
-	key = append(key, quad.HashOf(q.Get(d[2]))...)
-	key = append(key, quad.HashOf(q.Get(d[3]))...)
+	key := make([]byte, quad.HashSize*4)
+	quad.HashTo(q.Get(d[0]), key[quad.HashSize*0:quad.HashSize*1])
+	quad.HashTo(q.Get(d[1]), key[quad.HashSize*1:quad.HashSize*2])
+	quad.HashTo(q.Get(d[2]), key[quad.HashSize*2:quad.HashSize*3])
+	quad.HashTo(q.Get(d[3]), key[quad.HashSize*3:quad.HashSize*4])
 	return key
 }
 
 func (qs *QuadStore) createValueKeyFor(s quad.Value) []byte {
-	key := make([]byte, 0, quad.HashSize)
-	key = append(key, quad.HashOf(s)...)
-	return key
+	return quad.HashOf(s)
 }
 
 var (

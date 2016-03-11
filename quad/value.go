@@ -27,16 +27,24 @@ var hashPool = sync.Pool{
 
 // HashOf calculates a hash of value v.
 func HashOf(v Value) []byte {
+	key := make([]byte, HashSize)
+	HashTo(v, key)
+	return key
+}
+
+// HashTo calculates a hash of value v, storing it in a slice p.
+func HashTo(v Value, p []byte) {
 	h := hashPool.Get().(hash.Hash)
 	h.Reset()
 	defer hashPool.Put(h)
-	key := make([]byte, 0, HashSize)
+	if len(p) < HashSize {
+		panic("buffer too small to fit the hash")
+	}
 	if v != nil {
 		// TODO(kortschak,dennwc) Remove dependence on String() method.
 		h.Write([]byte(v.String()))
 	}
-	key = h.Sum(key)
-	return key
+	h.Sum(p[:0])
 }
 
 // StringOf safely call v.String, returning empty string in case of nil Value.

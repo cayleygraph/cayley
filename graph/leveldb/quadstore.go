@@ -193,19 +193,20 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 }
 
 func createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
-	key := make([]byte, 0, 2+(quad.HashSize*4))
-	key = append(key, []byte{d[0].Prefix(), d[1].Prefix()}...)
-	key = append(key, quad.HashOf(q.Get(d[0]))...)
-	key = append(key, quad.HashOf(q.Get(d[1]))...)
-	key = append(key, quad.HashOf(q.Get(d[2]))...)
-	key = append(key, quad.HashOf(q.Get(d[3]))...)
+	key := make([]byte, 2+(quad.HashSize*4))
+	key[0] = d[0].Prefix()
+	key[1] = d[1].Prefix()
+	quad.HashTo(q.Get(d[0]), key[2+quad.HashSize*0:2+quad.HashSize*1])
+	quad.HashTo(q.Get(d[1]), key[2+quad.HashSize*1:2+quad.HashSize*2])
+	quad.HashTo(q.Get(d[2]), key[2+quad.HashSize*2:2+quad.HashSize*3])
+	quad.HashTo(q.Get(d[3]), key[2+quad.HashSize*3:2+quad.HashSize*4])
 	return key
 }
 
 func createValueKeyFor(s quad.Value) []byte {
-	key := make([]byte, 0, 1+quad.HashSize)
-	key = append(key, []byte("z")...)
-	key = append(key, quad.HashOf(s)...)
+	key := make([]byte, 1+quad.HashSize)
+	key[0] = 'z'
+	quad.HashTo(s, key[1:])
 	return key
 }
 
