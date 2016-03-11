@@ -158,3 +158,9 @@ func (s Time) Equal(v Value) bool {
 	}
 	return time.Time(s).Equal(time.Time(t))
 }
+
+type ByValueString []Value
+
+func (o ByValueString) Len() int           { return len(o) }
+func (o ByValueString) Less(i, j int) bool { return StringOf(o[i]) < StringOf(o[j]) }
+func (o ByValueString) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
