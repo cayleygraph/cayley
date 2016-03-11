@@ -87,7 +87,7 @@ type LogEntry struct {
 type QuadStore struct {
 	nextID     int64
 	nextQuadID int64
-	idMap      map[quad.Value]int64
+	idMap      map[string]int64
 	revIDMap   map[int64]quad.Value
 	log        []LogEntry
 	size       int64
@@ -97,7 +97,7 @@ type QuadStore struct {
 
 func newQuadStore() *QuadStore {
 	return &QuadStore{
-		idMap:    make(map[quad.Value]int64),
+		idMap:    make(map[string]int64),
 		revIDMap: make(map[int64]quad.Value),
 
 		// Sentinel null entry so indices start at 1
@@ -165,7 +165,7 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 		if d == quad.Label && sid == nil {
 			continue
 		}
-		id, ok := qs.idMap[sid]
+		id, ok := qs.idMap[quad.StringOf(sid)]
 		// If we've never heard about a node, it must not exist
 		if !ok {
 			return 0, false
@@ -208,12 +208,13 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 		if dir == quad.Label && sid == nil {
 			continue
 		}
-		if _, ok := qs.idMap[sid]; !ok {
-			qs.idMap[sid] = qs.nextID
+		ssid := quad.StringOf(sid)
+		if _, ok := qs.idMap[ssid]; !ok {
+			qs.idMap[ssid] = qs.nextID
 			qs.revIDMap[qs.nextID] = sid
 			qs.nextID++
 		}
-		id := qs.idMap[sid]
+		id := qs.idMap[ssid]
 		tree := qs.index.Tree(dir, id)
 		tree.Set(qid, struct{}{})
 	}
@@ -272,7 +273,7 @@ func (qs *QuadStore) DebugPrint() {
 }
 
 func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
-	return qs.idMap[name]
+	return qs.idMap[quad.StringOf(name)]
 }
 
 func (qs *QuadStore) NameOf(id graph.Value) quad.Value {

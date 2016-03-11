@@ -16,7 +16,8 @@ import (
 type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 
 type Config struct {
-	UnTyped  bool
+	UnTyped  bool // converts all values to Raw representation
+	NoHashes bool // cannot exchange raw values into typed ones
 	TimeInMs bool
 
 	SkipDeletedFromIterator  bool
@@ -401,6 +402,9 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 				assert.True(t, eq.Equal(got), "Failed to roundtrip %q (%T), got %q (%T)", pq, pq, got, got)
 			} else {
 				assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
+				if !conf.NoHashes {
+					assert.Equal(t, pq, qs.NameOf(qs.ValueOf(quad.Raw(pq.String()))), "Failed to exchange raw value %q (%T)", pq, pq)
+				}
 			}
 		} else {
 			assert.Equal(t, quad.StringOf(pq), quad.StringOf(got), "Failed to roundtrip raw %q (%T)", pq, pq)
