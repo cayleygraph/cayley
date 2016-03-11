@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/cayley/quad"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 // MakeValue converts quad.Value to its protobuf representation.
@@ -48,6 +48,26 @@ func MakeValue(qv quad.Value) *Value {
 	default:
 		panic(fmt.Errorf("unsupported type: %T", qv))
 	}
+}
+
+// MarshalValue is a helper for serialization of quad.Value.
+func MarshalValue(v quad.Value) ([]byte, error) {
+	if v == nil {
+		return nil, nil
+	}
+	return MakeValue(v).Marshal()
+}
+
+// UnmarshalValue is a helper for deserialization of quad.Value.
+func UnmarshalValue(data []byte) (quad.Value, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+	var v Value
+	if err := v.Unmarshal(data); err != nil {
+		return nil, err
+	}
+	return v.ToNative(), nil
 }
 
 // ToNative converts protobuf Value to quad.Value.

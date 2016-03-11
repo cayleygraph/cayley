@@ -97,7 +97,7 @@ func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string
 			continue
 		}
 		if c == "__execd" {
-			n.result = quad.Raw(result[i])
+			n.result = unmarshalValue([]byte(result[i]))
 		}
 		m[c] = result[i]
 	}

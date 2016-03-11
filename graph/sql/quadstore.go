@@ -10,6 +10,7 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -65,10 +66,10 @@ func createSQLTables(addr string, options graph.Options) error {
 
 	quadTable, err := tx.Exec(`
 	CREATE TABLE quads (
-		subject TEXT NOT NULL,
-		predicate TEXT NOT NULL,
-		object TEXT NOT NULL,
-		label TEXT,
+		subject BYTEA NOT NULL,
+		predicate BYTEA NOT NULL,
+		object BYTEA NOT NULL,
+		label BYTEA,
 		horizon BIGSERIAL PRIMARY KEY,
 		id BIGINT,
 		ts timestamp,
@@ -153,6 +154,55 @@ func convInsertError(err error) error {
 	return err
 }
 
+func marshalQuadDirections(q quad.Quad) (s, p, o, l []byte, err error) {
+	s, err = proto.MarshalValue(q.Subject)
+	if err != nil {
+		return
+	}
+	p, err = proto.MarshalValue(q.Predicate)
+	if err != nil {
+		return
+	}
+	o, err = proto.MarshalValue(q.Object)
+	if err != nil {
+		return
+	}
+	l, err = proto.MarshalValue(q.Label)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func unmarshalQuadDirections(s, p, o, l []byte) (q quad.Quad, err error) {
+	q.Subject, err = proto.UnmarshalValue(s)
+	if err != nil {
+		return
+	}
+	q.Predicate, err = proto.UnmarshalValue(p)
+	if err != nil {
+		return
+	}
+	q.Object, err = proto.UnmarshalValue(o)
+	if err != nil {
+		return
+	}
+	q.Label, err = proto.UnmarshalValue(l)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func unmarshalValue(data []byte) quad.Value {
+	v, err := proto.UnmarshalValue(data)
+	if err != nil {
+		clog.Errorf("couldn't unmarshal value: %v", err)
+		return nil
+	}
+	return v
+}
+
 func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts", "subject_hash", "predicate_hash", "object_hash", "label_hash"))
 	if err != nil {
@@ -160,11 +210,16 @@ func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpt
 		return err
 	}
 	for _, d := range in {
-		_, err := stmt.Exec(
-			quad.StringOf(d.Quad.Subject),
-			quad.StringOf(d.Quad.Predicate),
-			quad.StringOf(d.Quad.Object),
-			quad.StringOf(d.Quad.Label),
+		s, p, o, l, err := marshalQuadDirections(d.Quad)
+		if err != nil {
+			clog.Errorf("couldn't marshal quads: %v", err)
+			return err
+		}
+		_, err = stmt.Exec(
+			s,
+			p,
+			o,
+			l,
 			d.ID.Int(),
 			d.Timestamp,
 			hashOf(d.Quad.Subject),
@@ -205,11 +260,16 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 			if opts.IgnoreDup {
 				end = " ON CONFLICT DO NOTHING;"
 			}
-			_, err := tx.Exec(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`+end,
-				quad.StringOf(d.Quad.Subject),
-				quad.StringOf(d.Quad.Predicate),
-				quad.StringOf(d.Quad.Object),
-				quad.StringOf(d.Quad.Label),
+			s, p, o, l, err := marshalQuadDirections(d.Quad)
+			if err != nil {
+				clog.Errorf("couldn't marshal quads: %v", err)
+				return err
+			}
+			_, err = tx.Exec(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`+end,
+				s,
+				p,
+				o,
+				l,
 				d.ID.Int(),
 				d.Timestamp,
 				hashOf(d.Quad.Subject),

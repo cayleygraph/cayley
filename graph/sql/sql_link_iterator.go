@@ -172,14 +172,12 @@ func (l *SQLLinkIterator) quickContains(v graph.Value) (bool, bool) {
 }
 
 func (l *SQLLinkIterator) buildResult(result []string, cols []string) map[string]string {
-	var q quad.Quad
-	q.Subject = quad.Raw(result[0])
-	q.Predicate = quad.Raw(result[1])
-	q.Object = quad.Raw(result[2])
-	if result[3] != "" {
-		q.Label = quad.Raw(result[3])
+	l.resultQuad = quad.Quad{
+		Subject:   unmarshalValue([]byte(result[0])),
+		Predicate: unmarshalValue([]byte(result[1])),
+		Object:    unmarshalValue([]byte(result[2])),
+		Label:     unmarshalValue([]byte(result[3])),
 	}
-	l.resultQuad = q
 	m := make(map[string]string)
 	for i, c := range cols[4:] {
 		m[c] = result[i+4]
