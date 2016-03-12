@@ -49,6 +49,8 @@ func Parse(statement string) (quad.Quad, error) {
 		object    = -1
 		label     = -1
 
+		spec = -1
+
 		isEscaped bool
 		isQuoted  bool
 

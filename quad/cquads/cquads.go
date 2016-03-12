@@ -75,73 +75,92 @@ func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 	return q, nil
 }
 
-func unEscape(r []rune, isQuoted, isEscaped bool) quad.Value {
+func unEscape(r []rune, spec int, isQuoted, isEscaped bool) quad.Value {
+	raw := r
+	var sp []rune
+	if spec > 0 {
+		r, sp = r[:spec], r[spec:]
+		isQuoted = true
+	}
 	if isQuoted {
 		r = r[1 : len(r)-1]
-	}
-	if len(r) >= 2 && r[0] == '<' && r[len(r)-1] == '>' {
-		return quad.IRI(r[1 : len(r)-1])
-	}
-	if !isEscaped {
+	} else {
+		if len(r) >= 2 && r[0] == '<' && r[len(r)-1] == '>' {
+			return quad.IRI(r[1 : len(r)-1])
+		}
 		if len(r) >= 2 && r[0] == '_' && r[1] == ':' {
 			return quad.BNode(string(r[2:]))
 		}
-		if isQuoted {
-			return quad.String(string(r))
-		}
-		return quad.Raw(string(r))
 	}
+	var val string
+	if isEscaped {
+		buf := bytes.NewBuffer(make([]byte, 0, len(r)))
 
-	buf := bytes.NewBuffer(make([]byte, 0, len(r)))
-
-	for i := 0; i < len(r); {
-		switch r[i] {
-		case '\\':
-			i++
-			var c byte
+		for i := 0; i < len(r); {
 			switch r[i] {
-			case 't':
-				c = '\t'
-			case 'b':
-				c = '\b'
-			case 'n':
-				c = '\n'
-			case 'r':
-				c = '\r'
-			case 'f':
-				c = '\f'
-			case '"':
-				c = '"'
-			case '\'':
-				c = '\''
 			case '\\':
-				c = '\\'
-			case 'u':
-				rc, err := strconv.ParseInt(string(r[i+1:i+5]), 16, 32)
-				if err != nil {
-					panic(fmt.Errorf("internal parser error: %v", err))
+				i++
+				var c byte
+				switch r[i] {
+				case 't':
+					c = '\t'
+				case 'b':
+					c = '\b'
+				case 'n':
+					c = '\n'
+				case 'r':
+					c = '\r'
+				case 'f':
+					c = '\f'
+				case '"':
+					c = '"'
+				case '\'':
+					c = '\''
+				case '\\':
+					c = '\\'
+				case 'u':
+					rc, err := strconv.ParseInt(string(r[i+1:i+5]), 16, 32)
+					if err != nil {
+						panic(fmt.Errorf("internal parser error: %v", err))
+					}
+					buf.WriteRune(rune(rc))
+					i += 5
+					continue
+				case 'U':
+					rc, err := strconv.ParseInt(string(r[i+1:i+9]), 16, 32)
+					if err != nil {
+						panic(fmt.Errorf("internal parser error: %v", err))
+					}
+					buf.WriteRune(rune(rc))
+					i += 9
+					continue
 				}
-				buf.WriteRune(rune(rc))
-				i += 5
-				continue
-			case 'U':
-				rc, err := strconv.ParseInt(string(r[i+1:i+9]), 16, 32)
-				if err != nil {
-					panic(fmt.Errorf("internal parser error: %v", err))
-				}
-				buf.WriteRune(rune(rc))
-				i += 9
-				continue
+				buf.WriteByte(c)
+			default:
+				buf.WriteRune(r[i])
 			}
-			buf.WriteByte(c)
-		default:
-			buf.WriteRune(r[i])
+			i++
 		}
-		i++
+		val = buf.String()
+	} else {
+		val = string(r)
 	}
-
-	if isQuoted {
-		return quad.String(buf.String())
+	if len(sp) == 0 {
+		if isQuoted {
+			return quad.String(val)
+		}
+		return quad.Raw(val)
 	}
-	return quad.Raw(buf.String())
+	if sp[0] == '@' {
+		return quad.LangString{
+			Value: quad.String(val),
+			Lang:  string(sp[1:]),
+		}
+	} else if len(sp) >= 4 && sp[0] == '^' && sp[1] == '^' && sp[2] == '<' && sp[len(sp)-1] == '>' {
+		return quad.TypedString{
+			Value: quad.String(val),
+			Type:  quad.IRI(sp[3 : len(sp)-1]),
+		}
+	}
+	return quad.Raw(raw)
 }

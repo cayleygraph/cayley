@@ -157,7 +157,17 @@ var testNQuads = []struct {
 		expect: quad.Quad{
 			Subject:   quad.IRI("http://example/s"),
 			Predicate: quad.IRI("http://example/p"),
-			Object:    quad.Raw(`"o"^^<http://example/dt>`), // TODO: TypedString
+			Object:    quad.TypedString{Value: "o", Type: "http://example/dt"},
+			Label:     nil,
+		},
+	},
+	{
+		message: "handle simple case with typed string",
+		input:   `<http://example/s> <http://example/p> "\U000000b7\n\\\u00b7"^^<http://example/dt> . # comment`,
+		expect: quad.Quad{
+			Subject:   quad.IRI("http://example/s"),
+			Predicate: quad.IRI("http://example/p"),
+			Object:    quad.TypedString{Value: "·\n\\·", Type: "http://example/dt"},
 			Label:     nil,
 		},
 	},
@@ -167,7 +177,16 @@ var testNQuads = []struct {
 		expect: quad.Quad{
 			Subject:   quad.IRI("http://example/s"),
 			Predicate: quad.IRI("http://example/p"),
-			Object:    quad.Raw(`"o"@en`), // TODO: LangString
+			Object:    quad.LangString{Value: "o", Lang: "en"},
+			Label:     nil},
+	},
+	{
+		message: "handle simple case with lang string",
+		input:   "<http://example/s> <http://example/p> \"Tomás de Torquemada\"@es . # comment",
+		expect: quad.Quad{
+			Subject:   quad.IRI("http://example/s"),
+			Predicate: quad.IRI("http://example/p"),
+			Object:    quad.LangString{Value: "Tomás de Torquemada", Lang: "es"},
 			Label:     nil},
 	},
 
@@ -371,7 +390,7 @@ var testNQuads = []struct {
 		expect: quad.Quad{
 			Subject:   quad.IRI("http://example.org/bob#me"),
 			Predicate: quad.IRI("http://schema.org/birthDate"),
-			Object:    quad.Raw(`"1990-07-04"^^<http://www.w3.org/2001/XMLSchema#date>`), // TODO: TypedString
+			Object:    quad.TypedString{Value: "1990-07-04", Type: "http://www.w3.org/2001/XMLSchema#date"},
 			Label:     nil,
 		},
 		err: nil,
@@ -450,7 +469,7 @@ var testNQuads = []struct {
 		expect: quad.Quad{
 			Subject:   quad.IRI("http://example.org/bob#me"),
 			Predicate: quad.IRI("http://schema.org/birthDate"),
-			Object:    quad.Raw(`"1990-07-04"^^<http://www.w3.org/2001/XMLSchema#date>`), // TODO: TypedString
+			Object:    quad.TypedString{Value: "1990-07-04", Type: "http://www.w3.org/2001/XMLSchema#date"},
 			Label:     quad.IRI("http://example.org/bob"),
 		},
 		err: nil,
@@ -599,11 +618,11 @@ func TestParse(t *testing.T) {
 	for _, test := range testNQuads {
 		got, err := Parse(test.input)
 		_ = err
-		if err != test.err && (err != nil && err.Error() != test.err.Error()) {
+		if err != test.err && (err != nil && test.err == nil || err.Error() != test.err.Error()) {
 			t.Errorf("Unexpected error when %s: got:%v expect:%v", test.message, err, test.err)
 		}
 		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("Failed to %s, %q, got:%#v(%s) expect:%#v(%s)", test.message, test.input, got, got, test.expect, test.expect)
+			t.Errorf("Failed to %s, %q,\ngot:%#v(%s)\nexpect:%#v(%s)", test.message, test.input, got, got, test.expect, test.expect)
 		}
 	}
 }
@@ -790,7 +809,7 @@ var escapeSequenceTests = []struct {
 
 func TestUnescape(t *testing.T) {
 	for _, test := range escapeSequenceTests {
-		got := unEscape([]rune(test.input), false, true)
+		got := unEscape([]rune(test.input), -1, false, true)
 		if got == nil || got.String() != test.expect {
 			t.Errorf("Failed to properly unescape %q, got:%q expect:%q", test.input, got, test.expect)
 		}
