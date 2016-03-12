@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"hash"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -63,9 +64,17 @@ func (s Raw) String() string { return string(s) }
 // String is an RDF string value (ex: "name").
 type String string
 
+var escaper = strings.NewReplacer(
+	"\\", "\\\\",
+	"\"", "\\\"",
+	"\n", "\\n",
+	"\r", "\\r",
+	"\t", "\\t",
+)
+
 func (s String) String() string {
 	//TODO(barakmich): Proper escaping.
-	return `"` + string(s) + `"`
+	return `"` + escaper.Replace(string(s)) + `"`
 }
 
 // TypedString is an RDF value with type (ex: "name"^^<type>).
