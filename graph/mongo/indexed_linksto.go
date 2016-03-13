@@ -74,9 +74,8 @@ func (it *LinksTo) buildConstraint() bson.M {
 }
 
 func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *mgo.Iter {
-	name := it.qs.NameOf(val)
 	constraint := it.buildConstraint()
-	constraint[d.String()] = toMongoValue(name)
+	constraint[d.String()] = string(val.(NodeHash))
 	return it.qs.db.C(it.collection).Find(constraint).Iter()
 }
 
@@ -116,39 +115,41 @@ func (it *LinksTo) Next() bool {
 		Deleted []int64 `bson:"Deleted"`
 	}
 	graph.NextLogIn(it)
-	it.runstats.Next += 1
-	if it.nextIt != nil && it.nextIt.Next(&result) {
-		it.runstats.ContainsNext += 1
-		if it.collection == "quads" && len(result.Added) <= len(result.Deleted) {
-			return it.Next()
-		}
-		it.result = QuadHash(result.ID)
-		return graph.NextLogOut(it, it.result, true)
-	}
-
-	if it.nextIt != nil {
-		// If there's an error in the 'next' iterator, we save it and we're done.
-		it.err = it.nextIt.Err()
-		if it.err != nil {
-			return false
+next:
+	for {
+		it.runstats.Next += 1
+		if it.nextIt != nil && it.nextIt.Next(&result) {
+			it.runstats.ContainsNext += 1
+			if it.collection == "quads" && len(result.Added) <= len(result.Deleted) {
+				continue next
+			}
+			it.result = QuadHash(result.ID)
+			return graph.NextLogOut(it, it.result, true)
 		}
 
-	}
-	// Subiterator is empty, get another one
-	if !graph.Next(it.primaryIt) {
-		// Possibly save error
-		it.err = it.primaryIt.Err()
+		if it.nextIt != nil {
+			// If there's an error in the 'next' iterator, we save it and we're done.
+			it.err = it.nextIt.Err()
+			if it.err != nil {
+				return false
+			}
 
-		// We're out of nodes in our subiterator, so we're done as well.
-		return graph.NextLogOut(it, nil, false)
-	}
-	if it.nextIt != nil {
-		it.nextIt.Close()
-	}
-	it.nextIt = it.buildIteratorFor(it.dir, it.primaryIt.Result())
+		}
+		// Subiterator is empty, get another one
+		if !graph.Next(it.primaryIt) {
+			// Possibly save error
+			it.err = it.primaryIt.Err()
 
-	// Recurse -- return the first in the next set.
-	return it.Next()
+			// We're out of nodes in our subiterator, so we're done as well.
+			return graph.NextLogOut(it, nil, false)
+		}
+		if it.nextIt != nil {
+			it.nextIt.Close()
+		}
+		it.nextIt = it.buildIteratorFor(it.dir, it.primaryIt.Result())
+
+		// Recurse -- return the first in the next set.
+	}
 }
 
 func (it *LinksTo) Err() error {

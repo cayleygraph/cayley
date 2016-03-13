@@ -50,6 +50,24 @@ type QuadHash string
 
 func (QuadHash) IsNode() bool { return false }
 
+func (h QuadHash) Get(d quad.Direction) string {
+	var offset int
+	switch d {
+	case quad.Subject:
+		offset = 0
+	case quad.Predicate:
+		offset = (quad.HashSize * 2)
+	case quad.Object:
+		offset = (quad.HashSize * 2) * 2
+	case quad.Label:
+		offset = (quad.HashSize * 2) * 3
+		if len(h) == offset { // no label
+			return ""
+		}
+	}
+	return string(h[offset : quad.HashSize*2+offset])
+}
+
 type QuadStore struct {
 	session *mgo.Session
 	db      *mgo.Database
@@ -57,11 +75,48 @@ type QuadStore struct {
 	sizes   *cache
 }
 
+func ensureIndexes(db *mgo.Database) error {
+	indexOpts := mgo.Index{
+		Key:        []string{"subject"},
+		Unique:     false,
+		DropDups:   false,
+		Background: true,
+		Sparse:     true,
+	}
+	if err := db.C("quads").EnsureIndex(indexOpts); err != nil {
+		return err
+	}
+	indexOpts.Key = []string{"predicate"}
+	if err := db.C("quads").EnsureIndex(indexOpts); err != nil {
+		return err
+	}
+	indexOpts.Key = []string{"object"}
+	if err := db.C("quads").EnsureIndex(indexOpts); err != nil {
+		return err
+	}
+	indexOpts.Key = []string{"label"}
+	if err := db.C("quads").EnsureIndex(indexOpts); err != nil {
+		return err
+	}
+	logOpts := mgo.Index{
+		Key:        []string{"LogID"},
+		Unique:     true,
+		DropDups:   false,
+		Background: true,
+		Sparse:     true,
+	}
+	if err := db.C("log").EnsureIndex(logOpts); err != nil {
+		return err
+	}
+	return nil
+}
+
 func createNewMongoGraph(addr string, options graph.Options) error {
 	conn, err := mgo.Dial(addr)
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	conn.SetSafe(&mgo.Safe{})
 	dbName := DefaultDBName
 	val, ok, err := options.StringKey("database_name")
@@ -71,29 +126,7 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 		dbName = val
 	}
 	db := conn.DB(dbName)
-	indexOpts := mgo.Index{
-		Key:        []string{"subject"},
-		Unique:     false,
-		DropDups:   false,
-		Background: true,
-		Sparse:     true,
-	}
-	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"predicate"}
-	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"object"}
-	db.C("quads").EnsureIndex(indexOpts)
-	indexOpts.Key = []string{"label"}
-	db.C("quads").EnsureIndex(indexOpts)
-	logOpts := mgo.Index{
-		Key:        []string{"LogID"},
-		Unique:     true,
-		DropDups:   false,
-		Background: true,
-		Sparse:     true,
-	}
-	db.C("log").EnsureIndex(logOpts)
-	return nil
+	return ensureIndexes(db)
 }
 
 func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
@@ -111,6 +144,10 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 		dbName = val
 	}
 	qs.db = conn.DB(dbName)
+	if err := ensureIndexes(qs.db); err != nil {
+		conn.Close()
+		return nil, err
+	}
 	qs.session = conn
 	qs.ids = newCache(1 << 16)
 	qs.sizes = newCache(1 << 16)
@@ -126,6 +163,9 @@ func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 }
 
 func hashOf(s quad.Value) string {
+	if s == nil {
+		return ""
+	}
 	return hex.EncodeToString(quad.HashOf(s))
 }
 
@@ -171,10 +211,10 @@ func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) err
 	}
 	upsert := bson.M{
 		"$setOnInsert": mongoQuad{
-			Subject:   toMongoValue(q.Subject),
-			Predicate: toMongoValue(q.Predicate),
-			Object:    toMongoValue(q.Object),
-			Label:     toMongoValue(q.Label),
+			Subject:   hashOf(q.Subject),
+			Predicate: hashOf(q.Predicate),
+			Object:    hashOf(q.Object),
+			Label:     hashOf(q.Label),
 		},
 		"$push": bson.M{
 			setname: id,
@@ -294,10 +334,10 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 type value interface{}
 
 type mongoQuad struct {
-	Subject   value `json:"subject"`
-	Predicate value `json:"predicate"`
-	Object    value `json:"object"`
-	Label     value `json:"label,omitempty"`
+	Subject   string `json:"subject"`
+	Predicate string `json:"predicate"`
+	Object    string `json:"object"`
+	Label     string `json:"label,omitempty"`
 }
 
 type mongoString struct {
@@ -400,16 +440,12 @@ func toQuadValue(v value) quad.Value {
 }
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
-	var q mongoQuad
-	err := qs.db.C("quads").FindId(string(val.(QuadHash))).One(&q)
-	if err != nil {
-		clog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
-	}
+	h := val.(QuadHash)
 	return quad.Quad{
-		Subject:   toQuadValue(q.Subject),
-		Predicate: toQuadValue(q.Predicate),
-		Object:    toQuadValue(q.Object),
-		Label:     toQuadValue(q.Label),
+		Subject:   qs.NameOf(NodeHash(h.Get(quad.Subject))),
+		Predicate: qs.NameOf(NodeHash(h.Get(quad.Predicate))),
+		Object:    qs.NameOf(NodeHash(h.Get(quad.Object))),
+		Label:     qs.NameOf(NodeHash(h.Get(quad.Label))),
 	}
 }
 
@@ -431,6 +467,9 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	hash := v.(NodeHash)
+	if hash == "" {
+		return nil
+	}
 	val, ok := qs.ids.Get(string(hash))
 	if ok {
 		return val.(quad.Value)
@@ -478,20 +517,7 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
-	// Maybe do the trick here
-	var offset int
-	switch d {
-	case quad.Subject:
-		offset = 0
-	case quad.Predicate:
-		offset = (quad.HashSize * 2)
-	case quad.Object:
-		offset = (quad.HashSize * 2) * 2
-	case quad.Label:
-		offset = (quad.HashSize * 2) * 3
-	}
-	val := NodeHash(in.(QuadHash)[offset : quad.HashSize*2+offset])
-	return val
+	return NodeHash(in.(QuadHash).Get(d))
 }
 
 // TODO(barakmich): Rewrite bulk loader. For now, iterating around blocks is the way we'll go about it.
