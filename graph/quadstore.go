@@ -37,9 +37,37 @@ import (
 // pointers to structs, or merely quads, or whatever works best for the
 // backing store.
 //
-// These must be comparable, or implement a `Key() interface{}` function
+// These must be comparable, or implement a Keyer interface
 // so that they may be stored in maps.
-type Value interface{}
+type Value interface {
+	IsNode() bool
+}
+
+// Keyer provides a method for comparing types that are not otherwise comparable.
+// The Key method must return a dynamic type that is comparable according to the
+// Go language specification. The returned value must be unique for each receiver
+// value.
+type Keyer interface {
+	Key() interface{}
+}
+
+type key struct {
+	Val  interface{}
+	Node bool
+}
+
+func (k key) IsNode() bool { return k.Node }
+
+// ToKey prepares Value to be stored inside maps, calling Key() if necessary.
+func ToKey(v Value) Value {
+	if k, ok := v.(Keyer); ok {
+		return key{
+			Val:  k.Key(),
+			Node: v.IsNode(),
+		}
+	}
+	return v
+}
 
 type QuadStore interface {
 	// The only way in is through building a transaction, which

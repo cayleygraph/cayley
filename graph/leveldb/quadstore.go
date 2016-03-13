@@ -51,7 +51,11 @@ const (
 
 var order = binary.LittleEndian
 
+var _ graph.Keyer = (Token)(nil)
+
 type Token []byte
+
+func (t Token) IsNode() bool { return len(t) > 0 && t[0] == 'z' }
 
 func (t Token) Key() interface{} {
 	return string(t)

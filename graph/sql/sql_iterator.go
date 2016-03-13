@@ -91,11 +91,11 @@ func (it *SQLIterator) TagResults(dst map[string]graph.Value) {
 	for tag, value := range it.result {
 		if tag == "__execd" {
 			for _, tag := range it.Tagger().Tags() {
-				dst[tag] = value
+				dst[tag] = RawNode(value)
 			}
 			continue
 		}
-		dst[tag] = value
+		dst[tag] = RawNode(value)
 	}
 
 	for tag, value := range it.Tagger().Fixed() {

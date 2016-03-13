@@ -27,9 +27,9 @@ package iterator
 // In MQL terms, this is the [{"age>=": 21}] concept.
 
 import (
-	"strconv"
-
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
+	"time"
 )
 
 type Operator int
@@ -47,13 +47,13 @@ type Comparison struct {
 	tags   graph.Tagger
 	subIt  graph.Iterator
 	op     Operator
-	val    interface{}
+	val    quad.Value
 	qs     graph.QuadStore
 	result graph.Value
 	err    error
 }
 
-func NewComparison(sub graph.Iterator, op Operator, val interface{}, qs graph.QuadStore) *Comparison {
+func NewComparison(sub graph.Iterator, op Operator, val quad.Value, qs graph.QuadStore) *Comparison {
 	return &Comparison{
 		uid:   NextUID(),
 		subIt: sub,
@@ -70,23 +70,30 @@ func (it *Comparison) UID() uint64 {
 // Here's the non-boilerplate part of the ValueComparison iterator. Given a value
 // and our operator, determine whether or not we meet the requirement.
 func (it *Comparison) doComparison(val graph.Value) bool {
-	nodeStr := it.qs.NameOf(val)
+	qval := it.qs.NameOf(val)
 	switch cVal := it.val.(type) {
-	case int:
-		cInt := int64(cVal)
-		intVal, err := strconv.ParseInt(nodeStr.String(), 10, 64)
-		if err != nil {
-			return false
+	case quad.Raw:
+		return RunStrOp(quad.StringOf(qval), it.op, string(cVal))
+	case quad.Int:
+		if cVal2, ok := qval.(quad.Int); ok {
+			return RunIntOp(cVal2, it.op, cVal)
 		}
-		return RunIntOp(intVal, it.op, cInt)
-	case int64:
-		intVal, err := strconv.ParseInt(nodeStr.String(), 10, 64)
-		if err != nil {
-			return false
+		return true
+	case quad.Float:
+		if cVal2, ok := qval.(quad.Float); ok {
+			return RunFloatOp(cVal2, it.op, cVal)
 		}
-		return RunIntOp(intVal, it.op, cVal)
-	case string:
-		return RunStrOp(nodeStr.String(), it.op, cVal)
+		return true
+	case quad.String:
+		if cVal2, ok := qval.(quad.String); ok {
+			return RunStrOp(string(cVal2), it.op, string(cVal))
+		}
+		return true
+	case quad.Time:
+		if cVal2, ok := qval.(quad.Time); ok {
+			return RunTimeOp(time.Time(cVal2), it.op, time.Time(cVal))
+		}
+		return true
 	default:
 		return true
 	}
@@ -96,7 +103,22 @@ func (it *Comparison) Close() error {
 	return it.subIt.Close()
 }
 
-func RunIntOp(a int64, op Operator, b int64) bool {
+func RunIntOp(a quad.Int, op Operator, b quad.Int) bool {
+	switch op {
+	case compareLT:
+		return a < b
+	case compareLTE:
+		return a <= b
+	case compareGT:
+		return a > b
+	case compareGTE:
+		return a >= b
+	default:
+		panic("Unknown operator type")
+	}
+}
+
+func RunFloatOp(a quad.Float, op Operator, b quad.Float) bool {
 	switch op {
 	case compareLT:
 		return a < b
@@ -121,6 +143,21 @@ func RunStrOp(a string, op Operator, b string) bool {
 		return a > b
 	case compareGTE:
 		return a >= b
+	default:
+		panic("Unknown operator type")
+	}
+}
+
+func RunTimeOp(a time.Time, op Operator, b time.Time) bool {
+	switch op {
+	case compareLT:
+		return a.Before(b)
+	case compareLTE:
+		return !a.After(b)
+	case compareGT:
+		return a.After(b)
+	case compareGTE:
+		return !a.Before(b)
 	default:
 		panic("Unknown operator type")
 	}

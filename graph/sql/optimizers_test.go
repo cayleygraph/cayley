@@ -122,7 +122,7 @@ func TestInterestingQuery(t *testing.T) {
 		out := make(map[string]graph.Value)
 		it8.TagResults(out)
 		for k, v := range out {
-			t.Log("%s: %v\n", k, v.(string))
+			t.Log("%s: %v\n", k, v)
 		}
 	}
 }

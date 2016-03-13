@@ -31,7 +31,7 @@ type (
 
 func newNodesAllIterator(qs *QuadStore) *nodesAllIterator {
 	var out nodesAllIterator
-	out.Int64 = *iterator.NewInt64(1, qs.nextID-1)
+	out.Int64 = *iterator.NewInt64(1, qs.nextID-1, true)
 	out.qs = qs
 	return &out
 }
@@ -45,7 +45,7 @@ func (it *nodesAllIterator) Next() bool {
 	if !it.Int64.Next() {
 		return false
 	}
-	_, ok := it.qs.revIDMap[it.Int64.Result().(int64)]
+	_, ok := it.qs.revIDMap[int64(it.Int64.Result().(iterator.Int64Node))]
 	if !ok {
 		return it.Next()
 	}
@@ -58,7 +58,7 @@ func (it *nodesAllIterator) Err() error {
 
 func newQuadsAllIterator(qs *QuadStore) *quadsAllIterator {
 	var out quadsAllIterator
-	out.Int64 = *iterator.NewInt64(1, qs.nextQuadID-1)
+	out.Int64 = *iterator.NewInt64(1, qs.nextQuadID-1, false)
 	out.qs = qs
 	return &out
 }
@@ -66,7 +66,7 @@ func newQuadsAllIterator(qs *QuadStore) *quadsAllIterator {
 func (it *quadsAllIterator) Next() bool {
 	out := it.Int64.Next()
 	if out {
-		i64 := it.Int64.Result().(int64)
+		i64 := int64(it.Int64.Result().(iterator.Int64Quad))
 		if it.qs.log[i64].DeletedBy != 0 || it.qs.log[i64].Action == graph.Delete {
 			return it.Next()
 		}

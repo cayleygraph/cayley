@@ -164,7 +164,7 @@ func (it *AllIterator) Next() bool {
 			it.err = err
 			return false
 		}
-		it.result = v
+		it.result = Node{v}
 		return true
 	}
 	var s, p, o, l []byte
@@ -180,7 +180,7 @@ func (it *AllIterator) Next() bool {
 		it.err = err
 		return false
 	}
-	it.result = q
+	it.result = Quad{q}
 	return graph.NextLogOut(it, it.result, true)
 }
 

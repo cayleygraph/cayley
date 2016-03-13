@@ -32,7 +32,7 @@ type Iterator struct {
 	qs         *QuadStore
 	dir        quad.Direction
 	iter       *mgo.Iter
-	hash       string
+	hash       NodeHash
 	name       quad.Value
 	size       int64
 	isAll      bool
@@ -56,7 +56,7 @@ func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.V
 		dir:        d,
 		iter:       nil,
 		size:       -1,
-		hash:       val.(string),
+		hash:       val.(NodeHash),
 		isAll:      false,
 	}
 }
@@ -118,7 +118,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	if it.isAll {
 		m = NewAllIterator(it.qs, it.collection)
 	} else {
-		m = NewIterator(it.qs, it.collection, it.dir, it.hash)
+		m = NewIterator(it.qs, it.collection, it.dir, NodeHash(it.hash))
 	}
 	m.tags.CopyFrom(it)
 	return m
@@ -145,7 +145,11 @@ func (it *Iterator) Next() bool {
 	if it.collection == "quads" && len(result.Added) <= len(result.Deleted) {
 		return it.Next()
 	}
-	it.result = result.ID
+	if it.collection == "quads" {
+		it.result = QuadHash(result.ID)
+	} else {
+		it.result = NodeHash(result.ID)
+	}
 	return true
 }
 
@@ -183,7 +187,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	case quad.Label:
 		offset = (quad.HashSize * 2) * 3
 	}
-	val := v.(string)[offset : quad.HashSize*2+offset]
+	val := NodeHash(v.(QuadHash)[offset : quad.HashSize*2+offset])
 	if val == it.hash {
 		it.result = v
 		return graph.ContainsLogOut(it, v, true)

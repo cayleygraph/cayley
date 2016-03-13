@@ -101,7 +101,7 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	out := NewIterator(it.bucket, it.dir, &Token{nodeBucket, it.checkID}, it.qs)
+	out := NewIterator(it.bucket, it.dir, &Token{true, nodeBucket, it.checkID}, it.qs)
 	out.Tagger().CopyFrom(it)
 	return out
 }
@@ -298,7 +298,7 @@ func (it *Iterator) Size() (int64, bool) {
 func (it *Iterator) Describe() graph.Description {
 	return graph.Description{
 		UID:       it.UID(),
-		Name:      it.qs.NameOf(&Token{it.bucket, it.checkID}).String(),
+		Name:      it.qs.NameOf(&Token{true, it.bucket, it.checkID}).String(),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      it.size,

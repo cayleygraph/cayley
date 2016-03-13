@@ -74,7 +74,7 @@ func (n *SQLNodeIterator) Tagger() *graph.Tagger {
 }
 
 func (n *SQLNodeIterator) Result() graph.Value {
-	return n.result
+	return Node{n.result}
 }
 
 func (n *SQLNodeIterator) Type() sqlQueryType {

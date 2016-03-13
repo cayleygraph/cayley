@@ -180,11 +180,10 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 		}
 	}
 
-	it := NewIterator(tree, qs, 0, 0)
+	it := NewIterator(tree, qs, 0, nil)
 	for it.Next() {
-		val := it.Result()
-		if t == qs.log[val.(int64)].Quad {
-			return val.(int64), true
+		if t == qs.log[it.result].Quad {
+			return it.result, true
 		}
 	}
 	return 0, false
@@ -242,11 +241,11 @@ func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 }
 
 func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
-	return qs.log[index.(int64)].Quad
+	return qs.log[index.(iterator.Int64Quad)].Quad
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Iterator {
-	index, ok := qs.index.Get(d, value.(int64))
+	index, ok := qs.index.Get(d, int64(value.(iterator.Int64Node)))
 	if ok {
 		return NewIterator(index, qs, d, value)
 	}
@@ -273,14 +272,14 @@ func (qs *QuadStore) DebugPrint() {
 }
 
 func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
-	return qs.idMap[quad.StringOf(name)]
+	return iterator.Int64Node(qs.idMap[quad.StringOf(name)])
 }
 
 func (qs *QuadStore) NameOf(id graph.Value) quad.Value {
 	if id == nil {
 		return nil
 	}
-	return qs.revIDMap[id.(int64)]
+	return qs.revIDMap[int64(id.(iterator.Int64Node))]
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {

@@ -231,7 +231,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *QuadStore) int {
 
 func (it *Iterator) Contains(v graph.Value) bool {
 	val := v.(Token)
-	if val[0] == 'z' {
+	if val.IsNode() {
 		return false
 	}
 	offset := PositionOf(val[0:2], it.dir, it.qs)

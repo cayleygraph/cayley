@@ -25,10 +25,10 @@ func TestLinksTo(t *testing.T) {
 		data: []string{1: "cool"},
 		iter: NewFixed(Identity),
 	}
-	qs.iter.(*Fixed).Add(2)
+	qs.iter.(*Fixed).Add(Int64Quad(2))
 	fixed := NewFixed(Identity)
 	val := qs.ValueOf(quad.Raw("cool"))
-	if val != 1 {
+	if val.(Int64Node) != 1 {
 		t.Fatalf("Failed to return correct value, got:%v expect:1", val)
 	}
 	fixed.Add(val)
@@ -37,7 +37,7 @@ func TestLinksTo(t *testing.T) {
 		t.Error("At least one quad matches the fixed object")
 	}
 	val = lto.Result()
-	if val != 2 {
-		t.Errorf("Quad index 2, such as %s, should match %s", qs.Quad(2), qs.Quad(val))
+	if val.(Int64Quad) != 2 {
+		t.Errorf("Quad index 2, such as %s, should match %s", qs.Quad(Int64Quad(2)), qs.Quad(val))
 	}
 }

@@ -27,6 +27,7 @@ import (
 )
 
 type AllIterator struct {
+	nodes  bool
 	uid    uint64
 	tags   graph.Tagger
 	bucket []byte
@@ -41,6 +42,7 @@ type AllIterator struct {
 
 func NewAllIterator(bucket []byte, d quad.Direction, qs *QuadStore) *AllIterator {
 	return &AllIterator{
+		nodes:  d == 0,
 		uid:    iterator.NextUID(),
 		bucket: bucket,
 		dir:    d,
@@ -153,7 +155,7 @@ func (it *AllIterator) Result() graph.Value {
 	if it.buffer[it.offset] == nil {
 		return nil
 	}
-	return &Token{bucket: it.bucket, key: it.buffer[it.offset]}
+	return &Token{nodes: it.nodes, bucket: it.bucket, key: it.buffer[it.offset]}
 }
 
 func (it *AllIterator) NextPath() bool {

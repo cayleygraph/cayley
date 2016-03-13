@@ -124,7 +124,7 @@ func (l *SQLLinkIterator) Tagger() *graph.Tagger {
 }
 
 func (l *SQLLinkIterator) Result() graph.Value {
-	return l.resultQuad
+	return Quad{l.resultQuad}
 }
 
 func (l *SQLLinkIterator) Size(qs *QuadStore) (int64, bool) {
@@ -154,7 +154,7 @@ func (l *SQLLinkIterator) Type() sqlQueryType {
 func (l *SQLLinkIterator) quickContains(v graph.Value) (bool, bool) {
 	for _, c := range l.constraints {
 		none := true
-		desired := v.(quad.Quad).Get(c.dir)
+		desired := v.(Quad).Value.Get(c.dir)
 		for _, s := range c.vals {
 			if s == desired {
 				none = false
@@ -283,7 +283,7 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 
 	values = append(values, wherevalues...)
 	if !next {
-		v := val.(quad.Quad)
+		v := val.(Quad).Value
 		if constraint != "" {
 			constraint += " AND "
 		} else {

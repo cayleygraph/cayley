@@ -99,8 +99,8 @@ func TestMemstore(t *testing.T) {
 		switch v := v.(type) {
 		default:
 			t.Errorf("ValueOf(%q) returned unexpected type, got:%T expected int64", test.query, v)
-		case int64:
-			if v != test.value {
+		case iterator.Int64Node:
+			if int64(v) != test.value {
 				t.Errorf("ValueOf(%q) returned unexpected value, got:%d expected:%d", test.query, v, test.value)
 			}
 		}

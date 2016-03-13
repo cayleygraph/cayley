@@ -51,7 +51,7 @@ func (n *SQLNodeIntersection) Tagger() *graph.Tagger {
 }
 
 func (n *SQLNodeIntersection) Result() graph.Value {
-	return n.result
+	return RawNode(n.result)
 }
 
 func (n *SQLNodeIntersection) Type() sqlQueryType {

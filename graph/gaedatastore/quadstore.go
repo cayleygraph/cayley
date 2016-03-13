@@ -57,6 +57,8 @@ type Token struct {
 	Hash string
 }
 
+func (t Token) IsNode() bool { return t.Kind == nodeKind }
+
 type QuadEntry struct {
 	Hash      string
 	Added     []string `datastore:",noindex"`

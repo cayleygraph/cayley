@@ -49,10 +49,15 @@ const (
 	QuadStoreType = "bolt"
 )
 
+var _ graph.Keyer = (*Token)(nil)
+
 type Token struct {
+	nodes  bool
 	bucket []byte
 	key    []byte
 }
+
+func (t *Token) IsNode() bool { return t.nodes }
 
 func (t *Token) Key() interface{} {
 	return fmt.Sprint(t.bucket, t.key)

@@ -26,6 +26,22 @@ func init() {
 	})
 }
 
+type Node struct {
+	Value quad.Value
+}
+
+func (Node) IsNode() bool { return true }
+
+type RawNode string
+
+func (RawNode) IsNode() bool { return true }
+
+type Quad struct {
+	Value quad.Quad
+}
+
+func (Quad) IsNode() bool { return false }
+
 type QuadStore struct {
 	db           *sql.DB
 	sqlFlavor    string
@@ -325,11 +341,11 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 }
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
-	return val.(quad.Quad)
+	return val.(Quad).Value
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return NewSQLLinkIterator(qs, d, val.(quad.Value))
+	return NewSQLLinkIterator(qs, d, qs.NameOf(val)) // FIXME: potential roundtrip
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
@@ -341,7 +357,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return s
+	return Node{s}
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
@@ -351,7 +367,14 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		}
 		return nil
 	}
-	return v.(quad.Value)
+	switch v := v.(type) {
+	case Node:
+		return v.Value
+	case RawNode:
+		return unmarshalValue([]byte(v))
+	default:
+		panic(fmt.Errorf("unexpected value: %T", v))
+	}
 }
 
 func (qs *QuadStore) Size() int64 {
@@ -399,8 +422,8 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
-	q := in.(quad.Quad)
-	return q.Get(d)
+	q := in.(Quad)
+	return Node{q.Value.Get(d)}
 }
 
 func (qs *QuadStore) Type() string {

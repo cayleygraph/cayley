@@ -42,6 +42,14 @@ func init() {
 	})
 }
 
+type NodeHash string
+
+func (NodeHash) IsNode() bool { return false }
+
+type QuadHash string
+
+func (QuadHash) IsNode() bool { return false }
+
 type QuadStore struct {
 	session *mgo.Session
 	db      *mgo.Database
@@ -137,7 +145,7 @@ type MongoLogEntry struct {
 func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) error {
 	node := qs.ValueOf(name)
 	doc := bson.M{
-		"_id":  node.(string),
+		"_id":  string(node.(NodeHash)),
 		"Name": toMongoValue(name),
 	}
 	upsert := bson.M{
@@ -393,7 +401,7 @@ func toQuadValue(v value) quad.Value {
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	var q mongoQuad
-	err := qs.db.C("quads").FindId(val.(string)).One(&q)
+	err := qs.db.C("quads").FindId(string(val.(QuadHash))).One(&q)
 	if err != nil {
 		clog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
 	}
@@ -418,22 +426,23 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return hashOf(s)
+	return NodeHash(hashOf(s))
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
-	val, ok := qs.ids.Get(v.(string))
+	hash := v.(NodeHash)
+	val, ok := qs.ids.Get(string(hash))
 	if ok {
 		return val.(quad.Value)
 	}
 	var node MongoNode
-	err := qs.db.C("nodes").FindId(v.(string)).One(&node)
+	err := qs.db.C("nodes").FindId(string(hash)).One(&node)
 	if err != nil {
 		clog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
 	}
 	qv := toQuadValue(node.Name)
 	if node.ID != "" && qv != nil {
-		qs.ids.Put(v.(string), qv)
+		qs.ids.Put(string(hash), qv)
 	}
 	return qv
 }
@@ -481,7 +490,7 @@ func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value
 	case quad.Label:
 		offset = (quad.HashSize * 2) * 3
 	}
-	val := in.(string)[offset : quad.HashSize*2+offset]
+	val := NodeHash(in.(QuadHash)[offset : quad.HashSize*2+offset])
 	return val
 }
 
