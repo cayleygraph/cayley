@@ -47,7 +47,7 @@ func (t tagDir) String() string {
 		}
 		return fmt.Sprintf("%s.\"%s\" as \"%s\"", t.table, t.tag, t.tag)
 	}
-	return fmt.Sprintf("%s.%s as \"%s\"", t.table, t.dir, t.tag)
+	return fmt.Sprintf("%s.%s_hash as \"%s\"", t.table, t.dir, t.tag)
 }
 
 type tableDef struct {

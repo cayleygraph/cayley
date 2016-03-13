@@ -199,12 +199,12 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs)
 	values = append(values, wherevalues...)
 
 	if !next {
-		v := val.(quad.Value)
+		v := val.(NodeHash)
 		if constraint != "" {
 			constraint += " AND "
 		}
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, hashOf(v))
+		values = append(values, sql.NullString(v))
 	}
 
 	query += constraint

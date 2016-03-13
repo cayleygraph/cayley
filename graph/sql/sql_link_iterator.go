@@ -197,8 +197,10 @@ func (l *SQLLinkIterator) buildWhere() (string, sqlArgs) {
 		dir := t.dir.String()
 		if t.dir == quad.Any {
 			dir = t.tag
+		} else {
+			dir += "_hash"
 		}
-		q = append(q, fmt.Sprintf("%s.%s_hash = %s.%s_hash", l.tableName, i.dir, t.table, dir))
+		q = append(q, fmt.Sprintf("%s.%s_hash = %s.%s", l.tableName, i.dir, t.table, dir))
 	}
 	for _, i := range l.nodeIts {
 		s, v := i.it.buildWhere()

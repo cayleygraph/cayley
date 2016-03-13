@@ -157,7 +157,7 @@ func (n *SQLNodeIntersection) buildWhere() (string, sqlArgs) {
 	var q []string
 	var vals sqlArgs
 	for _, tb := range n.nodetables[1:] {
-		q = append(q, fmt.Sprintf("%s.__execd_hash = %s.__execd_hash", n.nodetables[0], tb))
+		q = append(q, fmt.Sprintf("%s.__execd = %s.__execd", n.nodetables[0], tb))
 	}
 	query := strings.Join(q, " AND ")
 	return query, vals
