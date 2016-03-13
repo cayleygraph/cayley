@@ -21,7 +21,6 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -44,7 +43,12 @@ func (it *AllIterator) makeCursor() {
 		it.cursor.Close()
 	}
 	if it.table == "quads" {
-		cursor, err = it.qs.db.Query(`SELECT subject, predicate, object, label FROM quads;`)
+		cursor, err = it.qs.db.Query(`SELECT
+			subject_hash,
+			predicate_hash,
+			object_hash,
+			label_hash
+			FROM quads;`)
 		if err != nil {
 			clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 			cursor = nil
@@ -53,16 +57,7 @@ func (it *AllIterator) makeCursor() {
 		if clog.V(4) {
 			clog.Infof("sql: getting node query")
 		}
-		cursor, err = it.qs.db.Query(`SELECT node FROM
-			(
-				SELECT subject FROM quads
-				UNION
-				SELECT predicate FROM quads
-				UNION
-				SELECT object FROM quads
-				UNION
-				SELECT label FROM quads WHERE label <> ''
-			) AS DistinctNodes (node) WHERE node IS NOT NULL;`)
+		cursor, err = it.qs.db.Query(`SELECT hash FROM nodes;`)
 		if err != nil {
 			clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 			cursor = nil
@@ -151,36 +146,24 @@ func (it *AllIterator) Next() bool {
 		return false
 	}
 	if it.table == "nodes" {
-		var node []byte
-		err := it.cursor.Scan(&node)
+		var hash sql.NullString
+		err := it.cursor.Scan(&hash)
 		if err != nil {
 			clog.Errorf("Error nexting node iterator: %v", err)
 			it.err = err
 			return false
 		}
-		v, err := proto.UnmarshalValue(node)
-		if err != nil {
-			clog.Errorf("Error nexting node iterator: %v", err)
-			it.err = err
-			return false
-		}
-		it.result = Node{v}
+		it.result = NodeHash(hash)
 		return true
 	}
-	var s, p, o, l []byte
-	err := it.cursor.Scan(&s, &p, &o, &l)
+	var q QuadHashes
+	err := it.cursor.Scan(&q[0], &q[1], &q[2], &q[3])
 	if err != nil {
 		clog.Errorf("Error scanning sql iterator: %v", err)
 		it.err = err
 		return false
 	}
-	q, err := unmarshalQuadDirections(s, p, o, l)
-	if err != nil {
-		clog.Errorf("Error scanning sql iterator: %v", err)
-		it.err = err
-		return false
-	}
-	it.result = Quad{q}
+	it.result = q
 	return graph.NextLogOut(it, it.result, true)
 }
 

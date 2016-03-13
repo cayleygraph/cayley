@@ -31,6 +31,51 @@ func init() {
 	sqlType = graph.RegisterIterator("sql")
 }
 
+type sqlArgs []sql.NullString
+
+type tagDir struct {
+	tag       string
+	dir       quad.Direction
+	table     string
+	justLocal bool
+}
+
+func (t tagDir) String() string {
+	if t.dir == quad.Any {
+		if t.justLocal {
+			return fmt.Sprintf("%s.__execd as \"%s\"", t.table, t.tag)
+		}
+		return fmt.Sprintf("%s.\"%s\" as \"%s\"", t.table, t.tag, t.tag)
+	}
+	return fmt.Sprintf("%s.%s as \"%s\"", t.table, t.dir, t.tag)
+}
+
+type tableDef struct {
+	table  string
+	name   string
+	values sqlArgs
+}
+
+type sqlIterator interface {
+	sqlClone() sqlIterator
+
+	buildSQL(next bool, val graph.Value) (string, sqlArgs)
+	getTables() []tableDef
+	getTags() []tagDir
+	buildWhere() (string, sqlArgs)
+	tableID() tagDir
+
+	quickContains(graph.Value) (ok bool, result bool)
+	buildResult(result []sql.NullString, cols []string) map[string]graph.Value
+	sameTopResult(target []sql.NullString, test []sql.NullString) bool
+
+	Result() graph.Value
+	Size(*QuadStore) (int64, bool)
+	Describe() string
+	Type() sqlQueryType
+	Tagger() *graph.Tagger
+}
+
 type SQLIterator struct {
 	uid    uint64
 	qs     *QuadStore
@@ -39,10 +84,10 @@ type SQLIterator struct {
 
 	sql sqlIterator
 
-	result      map[string]string
+	result      map[string]graph.Value
 	resultIndex int
-	resultList  [][]string
-	resultNext  [][]string
+	resultList  [][]sql.NullString
+	resultNext  [][]sql.NullString
 	cols        []string
 }
 
@@ -91,11 +136,11 @@ func (it *SQLIterator) TagResults(dst map[string]graph.Value) {
 	for tag, value := range it.result {
 		if tag == "__execd" {
 			for _, tag := range it.Tagger().Tags() {
-				dst[tag] = RawNode(value)
+				dst[tag] = value
 			}
 			continue
 		}
-		dst[tag] = RawNode(value)
+		dst[tag] = value
 	}
 
 	for tag, value := range it.Tagger().Fixed() {
@@ -279,9 +324,9 @@ func (it *SQLIterator) Contains(v graph.Value) bool {
 	return false
 }
 
-func scan(cursor *sql.Rows, nCols int) ([]string, error) {
+func scan(cursor *sql.Rows, nCols int) ([]sql.NullString, error) {
 	pointers := make([]interface{}, nCols)
-	container := make([]string, nCols)
+	container := make([]sql.NullString, nCols)
 	for i, _ := range pointers {
 		pointers[i] = &container[i]
 	}
@@ -302,7 +347,7 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 		it.cursor.Close()
 	}
 	var q string
-	var values []string
+	var values sqlArgs
 	q, values = it.sql.buildSQL(next, value)
 	q = convertToPostgres(q, values)
 	ivalues := make([]interface{}, 0, len(values))
@@ -319,22 +364,26 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 	return nil
 }
 
-func convertToPostgres(query string, values []string) string {
+func convertToPostgres(query string, values sqlArgs) string {
 	for i := 1; i <= len(values); i++ {
 		query = strings.Replace(query, "?", fmt.Sprintf("$%d", i), 1)
 	}
 	return query
 }
 
-func NewSQLLinkIterator(qs *QuadStore, d quad.Direction, val quad.Value) *SQLIterator {
+func NewSQLLinkIterator(qs *QuadStore, d quad.Direction, v quad.Value) *SQLIterator {
+	return newSQLLinkIterator(qs, d, NodeHash(hashOf(v)))
+}
+
+func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIterator {
 	l := &SQLIterator{
 		uid: iterator.NextUID(),
 		qs:  qs,
 		sql: &SQLLinkIterator{
 			constraints: []constraint{
 				constraint{
-					dir:  d,
-					vals: []quad.Value{val},
+					dir:    d,
+					hashes: []sql.NullString{sql.NullString(hash)},
 				},
 			},
 			tableName: newTableName(),

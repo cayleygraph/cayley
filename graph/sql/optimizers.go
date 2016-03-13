@@ -17,6 +17,7 @@ package sql
 import (
 	"errors"
 
+	"database/sql"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -173,15 +174,15 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			it.Close()
 			return newIt, true
 		} else if size > 1 {
-			var vals []quad.Value
+			var vals sqlArgs
 			for graph.Next(primary) {
-				vals = append(vals, qs.NameOf(primary.Result()))
+				vals = append(vals, sql.NullString(primary.Result().(NodeHash)))
 			}
 			lsql := &SQLLinkIterator{
 				constraints: []constraint{
 					constraint{
-						dir:  it.Direction(),
-						vals: vals,
+						dir:    it.Direction(),
+						hashes: vals,
 					},
 				},
 				tableName: newTableName(),

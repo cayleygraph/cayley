@@ -132,7 +132,7 @@ func TestLoadOneQuad(t testing.TB, gen DatabaseFunc) {
 	))
 	require.Nil(t, err)
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
-		got := qs.NameOf(qs.ValueOf(quad.Raw(pq))).String()
+		got := quad.StringOf(qs.NameOf(qs.ValueOf(quad.Raw(pq))))
 		require.Equal(t, pq, got, "Failed to roundtrip %q", pq)
 	}
 	require.Equal(t, int64(1), qs.Size(), "Unexpected quadstore size")
@@ -243,8 +243,11 @@ func TestIterator(t testing.TB, gen DatabaseFunc) {
 	optIt, changed = it.Optimize()
 	require.True(t, !changed && optIt == it, "Optimize unexpectedly changed iterator: %v, %T", changed, optIt)
 
-	graph.Next(it)
+	require.True(t, graph.Next(it))
+
 	q := qs.Quad(it.Result())
+	require.Nil(t, it.Err())
+	require.True(t, q.IsValid(), "Invalid quad returned: %q", q)
 	set := MakeQuadSet()
 	var ok bool
 	for _, e := range set {
@@ -446,9 +449,9 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 
 	// Add more quads, some conflicts
 	err := w.AddQuadSet([]quad.Quad{
-		quad.Make("A", "follows", "B", ""),
+		quad.Make("A", "follows", "B", ""), // duplicate
 		quad.Make("F", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""),
+		quad.Make("C", "follows", "D", ""), // duplicate
 		quad.Make("X", "follows", "B", ""),
 	})
 	assert.Nil(t, err, "AddQuadSet failed")

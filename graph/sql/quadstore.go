@@ -26,21 +26,26 @@ func init() {
 	})
 }
 
-type Node struct {
-	Value quad.Value
+type NodeHash sql.NullString
+
+func (NodeHash) IsNode() bool { return true }
+
+type QuadHashes [4]sql.NullString
+
+func (QuadHashes) IsNode() bool { return false }
+func (q QuadHashes) Get(d quad.Direction) sql.NullString {
+	switch d {
+	case quad.Subject:
+		return q[0]
+	case quad.Predicate:
+		return q[1]
+	case quad.Object:
+		return q[2]
+	case quad.Label:
+		return q[3]
+	}
+	panic(fmt.Errorf("unknown direction: %v", d))
 }
-
-func (Node) IsNode() bool { return true }
-
-type RawNode string
-
-func (RawNode) IsNode() bool { return true }
-
-type Quad struct {
-	Value quad.Quad
-}
-
-func (Quad) IsNode() bool { return false }
 
 type QuadStore struct {
 	db           *sql.DB
@@ -80,20 +85,10 @@ func createSQLTables(addr string, options graph.Options) error {
 		return err
 	}
 
-	quadTable, err := tx.Exec(`
-	CREATE TABLE quads (
-		subject BYTEA NOT NULL,
-		predicate BYTEA NOT NULL,
-		object BYTEA NOT NULL,
-		label BYTEA,
-		horizon BIGSERIAL PRIMARY KEY,
-		id BIGINT,
-		ts timestamp,
-		subject_hash TEXT NOT NULL,
-		predicate_hash TEXT NOT NULL,
-		object_hash TEXT NOT NULL,
-		label_hash TEXT,
-		UNIQUE(subject_hash, predicate_hash, object_hash, label_hash)
+	table, err := tx.Exec(`
+	CREATE TABLE nodes (
+		hash TEXT PRIMARY KEY,
+		value BYTEA
 	);`)
 	if err != nil {
 		tx.Rollback()
@@ -101,7 +96,26 @@ func createSQLTables(addr string, options graph.Options) error {
 		if errd.Code == "42P07" {
 			return graph.ErrDatabaseExists
 		}
-		clog.Errorf("Cannot create quad table: %v", quadTable)
+		clog.Errorf("Cannot create nodes table: %v", table)
+		return err
+	}
+	table, err = tx.Exec(`
+	CREATE TABLE quads (
+		horizon BIGSERIAL PRIMARY KEY,
+		subject_hash TEXT NOT NULL REFERENCES nodes (hash),
+		predicate_hash TEXT NOT NULL REFERENCES nodes (hash),
+		object_hash TEXT NOT NULL REFERENCES nodes (hash),
+		label_hash TEXT REFERENCES nodes (hash),
+		id BIGINT,
+		ts timestamp
+	);`)
+	if err != nil {
+		tx.Rollback()
+		errd := err.(*pq.Error)
+		if errd.Code == "42P07" {
+			return graph.ErrDatabaseExists
+		}
+		clog.Errorf("Cannot create quad table: %v", table)
 		return err
 	}
 	factor, factorOk, err := options.IntKey("db_fill_factor")
@@ -111,6 +125,8 @@ func createSQLTables(addr string, options graph.Options) error {
 	var index sql.Result
 
 	index, err = tx.Exec(fmt.Sprintf(`
+	CREATE UNIQUE INDEX spol_unique ON quads (subject_hash, predicate_hash, object_hash, label_hash) WHERE label_hash IS NOT NULL;
+	CREATE UNIQUE INDEX spo_unique ON quads (subject_hash, predicate_hash, object_hash) WHERE label_hash IS NULL;
 	CREATE INDEX spo_index ON quads (subject_hash) WITH (FILLFACTOR = %d);
 	CREATE INDEX pos_index ON quads (predicate_hash) WITH (FILLFACTOR = %d);
 	CREATE INDEX osp_index ON quads (object_hash) WITH (FILLFACTOR = %d);
@@ -154,8 +170,11 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	return &qs, nil
 }
 
-func hashOf(s quad.Value) string {
-	return hex.EncodeToString(quad.HashOf(s))
+func hashOf(s quad.Value) sql.NullString {
+	if s == nil {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{Valid: true, String: hex.EncodeToString(quad.HashOf(s))}
 }
 
 func convInsertError(err error) error {
@@ -210,8 +229,11 @@ func unmarshalQuadDirections(s, p, o, l []byte) (q quad.Quad, err error) {
 	return
 }
 
-func unmarshalValue(data []byte) quad.Value {
-	v, err := proto.UnmarshalValue(data)
+func unmarshalValue(data sql.NullString) quad.Value {
+	if !data.Valid {
+		return nil
+	}
+	v, err := proto.UnmarshalValue([]byte(data.String))
 	if err != nil {
 		clog.Errorf("couldn't unmarshal value: %v", err)
 		return nil
@@ -220,6 +242,7 @@ func unmarshalValue(data []byte) quad.Value {
 }
 
 func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
+	panic("broken")
 	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts", "subject_hash", "predicate_hash", "object_hash", "label_hash"))
 	if err != nil {
 		clog.Errorf("couldn't prepare COPY statement: %v", err)
@@ -259,15 +282,15 @@ func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpt
 }
 
 func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
-	allAdds := true
-	for _, d := range in {
-		if d.Action != graph.Add {
-			allAdds = false
-		}
-	}
-	if allAdds && !opts.IgnoreDup {
-		return qs.copyFrom(tx, in, opts)
-	}
+	//allAdds := true
+	//for _, d := range in {
+	//	if d.Action != graph.Add {
+	//		allAdds = false
+	//	}
+	//}
+	//if allAdds && !opts.IgnoreDup {
+	//	return qs.copyFrom(tx, in, opts)
+	//}
 
 	for _, d := range in {
 		switch d.Action {
@@ -276,22 +299,41 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 			if opts.IgnoreDup {
 				end = " ON CONFLICT DO NOTHING;"
 			}
-			s, p, o, l, err := marshalQuadDirections(d.Quad)
-			if err != nil {
-				clog.Errorf("couldn't marshal quads: %v", err)
-				return err
+			var hs, hp, ho, hl sql.NullString
+			for _, dir := range quad.Directions {
+				v := d.Quad.Get(dir)
+				if v == nil {
+					continue
+				}
+				h := hashOf(v)
+				switch dir {
+				case quad.Subject:
+					hs = h
+				case quad.Predicate:
+					hp = h
+				case quad.Object:
+					ho = h
+				case quad.Label:
+					hl = h
+				}
+				p, err := proto.MarshalValue(v)
+				if err != nil {
+					clog.Errorf("couldn't marshal value: %v", err)
+					return err
+				}
+				_, err = tx.Exec(`INSERT INTO nodes(hash, value) VALUES ($1, $2) ON CONFLICT DO NOTHING;`,
+					h, p,
+				)
+				err = convInsertError(err)
+				if err != nil {
+					clog.Errorf("couldn't exec INSERT statement: %v", err)
+					return err
+				}
 			}
-			_, err = tx.Exec(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`+end,
-				s,
-				p,
-				o,
-				l,
+			_, err := tx.Exec(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)`+end,
+				hs, hp, ho, hl,
 				d.ID.Int(),
 				d.Timestamp,
-				hashOf(d.Quad.Subject),
-				hashOf(d.Quad.Predicate),
-				hashOf(d.Quad.Object),
-				hashOf(d.Quad.Label),
 			)
 			err = convInsertError(err)
 			if err != nil {
@@ -299,8 +341,17 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				return err
 			}
 		case graph.Delete:
-			result, err := tx.Exec(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`,
-				hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object), hashOf(d.Quad.Label))
+			var (
+				result sql.Result
+				err    error
+			)
+			if d.Quad.Label == nil {
+				result, err = tx.Exec(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash is null;`,
+					hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object))
+			} else {
+				result, err = tx.Exec(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`,
+					hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object), hashOf(d.Quad.Label))
+			}
 			if err != nil {
 				clog.Errorf("couldn't exec DELETE statement: %v", err)
 				return err
@@ -341,11 +392,29 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 }
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
-	return val.(Quad).Value
+	h := val.(QuadHashes)
+	query := `SELECT
+		(SELECT value FROM nodes WHERE hash = $1 LIMIT 1) AS subject,
+		(SELECT value FROM nodes WHERE hash = $2 LIMIT 1) AS predicate,
+		(SELECT value FROM nodes WHERE hash = $3 LIMIT 1) AS object,
+		(SELECT value FROM nodes WHERE hash = $4 LIMIT 1) AS label
+		;`
+	c := qs.db.QueryRow(query, h[0], h[1], h[2], h[3])
+	var s, p, o, l []byte
+	if err := c.Scan(&s, &p, &o, &l); err != nil {
+		clog.Errorf("Couldn't execute quad values lookup: %v", err)
+		return quad.Quad{}
+	}
+	q, err := unmarshalQuadDirections(s, p, o, l)
+	if err != nil {
+		clog.Errorf("Couldn't unmarshal quad: %v", err)
+		return quad.Quad{}
+	}
+	return q
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return NewSQLLinkIterator(qs, d, qs.NameOf(val)) // FIXME: potential roundtrip
+	return newSQLLinkIterator(qs, d, val.(NodeHash))
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
@@ -357,7 +426,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return Node{s}
+	return NodeHash(hashOf(s))
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
@@ -367,14 +436,20 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		}
 		return nil
 	}
-	switch v := v.(type) {
-	case Node:
-		return v.Value
-	case RawNode:
-		return unmarshalValue([]byte(v))
-	default:
-		panic(fmt.Errorf("unexpected value: %T", v))
+	hash := v.(NodeHash)
+	query := "SELECT value FROM nodes WHERE hash = $1 LIMIT 1;"
+	c := qs.db.QueryRow(query, sql.NullString(hash))
+	var data []byte
+	if err := c.Scan(&data); err != nil {
+		clog.Errorf("Couldn't execute value lookup: %v", err)
+		return nil
 	}
+	qv, err := proto.UnmarshalValue(data)
+	if err != nil {
+		clog.Errorf("Couldn't unmarshal value: %v", err)
+		return nil
+	}
+	return qv
 }
 
 func (qs *QuadStore) Size() int64 {
@@ -422,15 +497,14 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
-	q := in.(Quad)
-	return Node{q.Value.Get(d)}
+	return NodeHash(in.(QuadHashes).Get(d))
 }
 
 func (qs *QuadStore) Type() string {
 	return QuadStoreType
 }
 
-func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val quad.Value) int64 {
+func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, hash sql.NullString) int64 {
 	var err error
 	if isAll {
 		return qs.Size()
@@ -441,19 +515,19 @@ func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val quad.Va
 		}
 		return (qs.Size() / 1000) + 1
 	}
-	if val, ok := qs.lru.Get(val.String() + string(dir.Prefix())); ok {
+	if val, ok := qs.lru.Get(hash.String + string(dir.Prefix())); ok {
 		return val
 	}
 	var size int64
 	if clog.V(4) {
-		clog.Infof("sql: getting size for select %s, %s", dir.String(), val)
+		clog.Infof("sql: getting size for select %s, %v", dir.String(), val)
 	}
 	err = qs.db.QueryRow(
-		fmt.Sprintf("SELECT count(*) FROM quads WHERE %s_hash = $1;", dir.String()), hashOf(val)).Scan(&size)
+		fmt.Sprintf("SELECT count(*) FROM quads WHERE %s_hash = $1;", dir.String()), hash).Scan(&size)
 	if err != nil {
 		clog.Errorf("Error getting size from SQL database: %v", err)
 		return 0
 	}
-	qs.lru.Put(val.String()+string(dir.Prefix()), size)
+	qs.lru.Put(hash.String+string(dir.Prefix()), size)
 	return size
 }
