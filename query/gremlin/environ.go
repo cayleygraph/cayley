@@ -69,9 +69,46 @@ func (g *graphObject) Morphism(call otto.FunctionCall) otto.Value {
 func (g *graphObject) Emit(call otto.FunctionCall) otto.Value {
 	value := call.Argument(0)
 	if value.IsDefined() {
-		g.wk.send(&Result{val: &value})
+		val := exportArgs([]otto.Value{value})[0]
+		if val != nil {
+			g.wk.send(&Result{val: val})
+		}
 	}
 	return otto.NullValue()
+}
+
+func oneStringType(fnc func(s string) quad.Value) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
+		args := toStrings(exportArgs(call.ArgumentList))
+		if len(args) != 1 {
+			return otto.NullValue()
+		}
+		return outObj(call, quadValue{fnc(args[0])})
+	}
+}
+
+func twoStringType(fnc func(s1, s2 string) quad.Value) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
+		args := toStrings(exportArgs(call.ArgumentList))
+		if len(args) != 2 {
+			return otto.NullValue()
+		}
+		return outObj(call, quadValue{fnc(args[0], args[1])})
+	}
+}
+
+var defaultEnv = map[string]func(call otto.FunctionCall) otto.Value{
+	"iri":   oneStringType(func(s string) quad.Value { return quad.IRI(s) }),
+	"bnode": oneStringType(func(s string) quad.Value { return quad.BNode(s) }),
+	"raw":   oneStringType(func(s string) quad.Value { return quad.Raw(s) }),
+	"str":   oneStringType(func(s string) quad.Value { return quad.String(s) }),
+
+	"lang": twoStringType(func(s, lang string) quad.Value {
+		return quad.LangString{Value: quad.String(s), Lang: lang}
+	}),
+	"typed": twoStringType(func(s, typ string) quad.Value {
+		return quad.TypedString{Value: quad.String(s), Type: quad.IRI(typ)}
+	}),
 }
 
 func newWorker(qs graph.QuadStore) *worker {
@@ -83,6 +120,9 @@ func newWorker(qs graph.QuadStore) *worker {
 	}
 	env.Set("graph", &graphObject{wk: wk})
 	env.Run("g = graph")
+	for name, val := range defaultEnv {
+		env.Set(name, val)
+	}
 	return wk
 }
 
@@ -98,6 +138,24 @@ func exportAsPath(args []otto.Value) *pathObject {
 	return o.(*pathObject)
 }
 
+func unwrap(o interface{}) interface{} {
+	switch v := o.(type) {
+	case quadValue:
+		o = v.v
+	case *pathObject:
+		o = v.path
+	case []interface{}:
+		for i := range v {
+			v[i] = unwrap(v[i])
+		}
+	case map[string]interface{}:
+		for k := range v {
+			v[k] = unwrap(v[k])
+		}
+	}
+	return o
+}
+
 func exportArgs(args []otto.Value) []interface{} {
 	if len(args) == 0 {
 		return nil
@@ -111,7 +169,7 @@ func exportArgs(args []otto.Value) []interface{} {
 			out = append(out, t)
 		} else {
 			o, _ := a.Export()
-			out = append(out, o)
+			out = append(out, unwrap(o))
 		}
 	}
 	return out
@@ -130,9 +188,16 @@ func toInt(o interface{}) int {
 	}
 }
 
+// quadValue is a wrapper to prevent otto from converting value to native JS type.
+type quadValue struct {
+	v quad.Value
+}
+
 func toQuadValue(o interface{}) (quad.Value, bool) {
 	var qv quad.Value
 	switch v := o.(type) {
+	case quadValue:
+		qv = v.v
 	case quad.Value:
 		qv = v
 	case string:
@@ -205,7 +270,9 @@ func toVia(via []interface{}) []interface{} {
 		}
 	}
 	for i := range via {
-		if vp, ok := via[i].(*pathObject); ok {
+		if _, ok := via[i].(*path.Path); ok {
+			// bypass
+		} else if vp, ok := via[i].(*pathObject); ok {
 			via[i] = vp.path
 		} else if qv, ok := toQuadValue(via[i]); ok {
 			via[i] = qv

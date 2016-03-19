@@ -61,7 +61,7 @@ func NewSession(qs graph.QuadStore, timeout time.Duration, persist bool) *Sessio
 type Result struct {
 	metaresult    bool
 	err           error
-	val           *otto.Value
+	val           interface{}
 	actualResults map[string]graph.Value
 }
 
@@ -146,7 +146,7 @@ func (s *Session) Execute(input string, out chan interface{}, _ int) {
 	out <- &Result{
 		metaresult: true,
 		err:        err,
-		val:        &value,
+		val:        exportArgs([]otto.Value{value})[0],
 	}
 	s.wk.results = nil
 	s.script = nil
@@ -162,16 +162,14 @@ func (s *Session) Format(result interface{}) string {
 			return fmt.Sprintf("Error: %v\n", data.err)
 		}
 		if data.val != nil {
-			s, _ := data.val.Export()
-			if data.val.IsObject() {
-				typeVal, _ := data.val.Object().Get("_gremlin_type")
-				if !typeVal.IsUndefined() {
-					s = "[internal Iterator]"
-				}
+			s := data.val
+			switch s.(type) {
+			case *pathObject, *graphObject:
+				s = "[internal Iterator]"
 			}
 			return fmt.Sprintln("=>", s)
 		}
-		return ""
+		return fmt.Sprintln("=>", nil)
 	}
 	var out string
 	out = fmt.Sprintln("****")
@@ -191,23 +189,17 @@ func (s *Session) Format(result interface{}) string {
 			out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
 		}
 	} else {
-		if data.val.IsObject() {
-			export, _ := data.val.Export()
-			switch export := export.(type) {
-			case map[string]string:
-				for k, v := range export {
-					out += fmt.Sprintf("%s : %s\n", k, v)
-				}
-			case map[string]interface{}:
-				for k, v := range export {
-					out += fmt.Sprintf("%s : %v\n", k, v)
-				}
-			default:
-				panic(fmt.Sprintf("unexpected type: %T", export))
+		switch export := data.val.(type) {
+		case map[string]string:
+			for k, v := range export {
+				out += fmt.Sprintf("%s : %s\n", k, v)
 			}
-		} else {
-			strVersion, _ := data.val.ToString()
-			out += fmt.Sprintf("%s\n", strVersion)
+		case map[string]interface{}:
+			for k, v := range export {
+				out += fmt.Sprintf("%s : %v\n", k, v)
+			}
+		default:
+			out += fmt.Sprintf("%s\n", data.val)
 		}
 	}
 	return out
@@ -236,13 +228,7 @@ func (s *Session) Collate(result interface{}) {
 				s.dataOutput = append(s.dataOutput, obj)
 			}
 		} else {
-			if data.val.IsObject() {
-				export, _ := data.val.Export()
-				s.dataOutput = append(s.dataOutput, export)
-			} else {
-				strVersion, _ := data.val.ToString()
-				s.dataOutput = append(s.dataOutput, strVersion)
-			}
+			s.dataOutput = append(s.dataOutput, data.val)
 		}
 	}
 }
