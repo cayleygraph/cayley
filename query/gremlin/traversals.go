@@ -187,3 +187,15 @@ func (p *pathObject) LabelContext(call otto.FunctionCall) otto.Value {
 	np := p.path.LabelContextWithTags(tags, labels...)
 	return outObj(call, p.clone(np))
 }
+func (p *pathObject) Filter(call otto.FunctionCall) otto.Value {
+	args := exportArgs(call.ArgumentList)
+	if len(args) != 1 {
+		return otto.NullValue()
+	}
+	op, ok := args[0].(cmpOperator)
+	if !ok {
+		return otto.NullValue()
+	}
+	np := p.path.Filter(op.op, op.val)
+	return outObj(call, p.clone(np))
+}

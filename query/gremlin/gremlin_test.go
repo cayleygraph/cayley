@@ -23,7 +23,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/nquads"
+	"github.com/cayleygraph/cayley/quad/cquads"
 
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/writer"
@@ -93,6 +93,13 @@ var testQueries = []struct {
 			g.V("<bob>").In("<follows>").All()
 		`,
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
+	},
+	{
+		message: "use .In() with .Filter()",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(gt(iri("c"))).Filter(lt("<d")).All()
+		`,
+		expect: []string{"<charlie>"},
 	},
 	{
 		message: "use .Both()",
@@ -363,7 +370,7 @@ func loadGraph(path string, t testing.TB) []quad.Quad {
 	defer f.Close()
 	r = f
 
-	dec := nquads.NewDecoder(r)
+	dec := cquads.NewDecoder(r)
 	q1, err := dec.Unmarshal()
 	if err != nil {
 		t.Fatalf("Failed to Unmarshal: %v", err)

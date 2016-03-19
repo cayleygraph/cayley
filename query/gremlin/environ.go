@@ -24,6 +24,7 @@ import (
 	"github.com/robertkrimen/otto"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -97,6 +98,25 @@ func twoStringType(fnc func(s1, s2 string) quad.Value) func(call otto.FunctionCa
 	}
 }
 
+func cmpOpType(op iterator.Operator) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
+		args := exportArgs(call.ArgumentList)
+		if len(args) != 1 {
+			return otto.NullValue()
+		}
+		qv, ok := toQuadValue(args[0])
+		if !ok {
+			return otto.NullValue()
+		}
+		return outObj(call, cmpOperator{op: op, val: qv})
+	}
+}
+
+type cmpOperator struct {
+	op  iterator.Operator
+	val quad.Value
+}
+
 var defaultEnv = map[string]func(call otto.FunctionCall) otto.Value{
 	"iri":   oneStringType(func(s string) quad.Value { return quad.IRI(s) }),
 	"bnode": oneStringType(func(s string) quad.Value { return quad.BNode(s) }),
@@ -109,6 +129,11 @@ var defaultEnv = map[string]func(call otto.FunctionCall) otto.Value{
 	"typed": twoStringType(func(s, typ string) quad.Value {
 		return quad.TypedString{Value: quad.String(s), Type: quad.IRI(typ)}
 	}),
+
+	"lt":  cmpOpType(iterator.CompareLT),
+	"lte": cmpOpType(iterator.CompareLTE),
+	"gt":  cmpOpType(iterator.CompareGT),
+	"gte": cmpOpType(iterator.CompareGTE),
 }
 
 func newWorker(qs graph.QuadStore) *worker {

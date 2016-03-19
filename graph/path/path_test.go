@@ -25,6 +25,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/cquads"
 
+	"github.com/cayleygraph/cayley/graph/iterator"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/writer"
 )
@@ -91,13 +92,13 @@ func runTag(path *Path, tag string) []quad.Value {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		if t, ok := tags[tag]; ok {
-			out = append(out, path.qs.NameOf(tags[tag]))
+			out = append(out, path.qs.NameOf(t))
 		}
 		for it.NextPath() {
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
 			if t, ok := tags[tag]; ok {
-				out = append(out, path.qs.NameOf(tags[tag]))
+				out = append(out, path.qs.NameOf(t))
 			}
 		}
 	}
@@ -152,6 +153,11 @@ func testSet(qs graph.QuadStore) []test {
 			message: "use in",
 			path:    StartPath(qs, vBob).In(vFollows),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
+		},
+		{
+			message: "use in with filter",
+			path:    StartPath(qs, vBob).In(vFollows).Filter(iterator.CompareGT, quad.IRI("c")),
+			expect:  []quad.Value{vCharlie, vDani},
 		},
 		{
 			message: "use path Out",
@@ -299,19 +305,19 @@ func testSet(qs graph.QuadStore) []test {
 		// Optional tests
 		{
 			message: "save limits top level",
-			path:    StartPath(qs, "bob", "charlie").Out("follows").Save("status", "statustag"),
-			expect:  []string{"bob", "dani"},
+			path:    StartPath(qs, vBob, vCharlie).Out(vFollows).Save(vStatus, "statustag"),
+			expect:  []quad.Value{vBob, vDani},
 		},
 		{
 			message: "optional still returns top level",
-			path:    StartPath(qs, "bob", "charlie").Out("follows").SaveOptional("status", "statustag"),
-			expect:  []string{"bob", "fred", "dani"},
+			path:    StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
+			expect:  []quad.Value{vBob, vFred, vDani},
 		},
 		{
 			message: "optional has the appropriate tags",
-			path:    StartPath(qs, "bob", "charlie").Out("follows").SaveOptional("status", "statustag"),
+			path:    StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
 			tag:     "statustag",
-			expect:  []string{"cool_person", "cool_person"},
+			expect:  []quad.Value{vCool, vCool},
 		},
 	}
 }

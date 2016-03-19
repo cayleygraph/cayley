@@ -16,6 +16,7 @@ package path
 
 import (
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -117,6 +118,12 @@ func (p *Path) Reverse() *Path {
 // passed as arguments.
 func (p *Path) Is(nodes ...quad.Value) *Path {
 	p.stack = append(p.stack, isMorphism(nodes...))
+	return p
+}
+
+// Filter represents the nodes that are passing comparison with provided value.
+func (p *Path) Filter(op iterator.Operator, node quad.Value) *Path {
+	p.stack = append(p.stack, cmpMorphism(op, node))
 	return p
 }
 

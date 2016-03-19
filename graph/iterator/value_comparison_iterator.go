@@ -35,10 +35,10 @@ import (
 type Operator int
 
 const (
-	compareLT Operator = iota
-	compareLTE
-	compareGT
-	compareGTE
+	CompareLT Operator = iota
+	CompareLTE
+	CompareGT
+	CompareGTE
 	// Why no Equals? Because that's usually an AndIterator.
 )
 
@@ -89,13 +89,23 @@ func (it *Comparison) doComparison(val graph.Value) bool {
 			return RunStrOp(string(cVal2), it.op, string(cVal))
 		}
 		return false
+	case quad.BNode:
+		if cVal2, ok := qval.(quad.BNode); ok {
+			return RunStrOp(string(cVal2), it.op, string(cVal))
+		}
+		return false
+	case quad.IRI:
+		if cVal2, ok := qval.(quad.IRI); ok {
+			return RunStrOp(string(cVal2), it.op, string(cVal))
+		}
+		return false
 	case quad.Time:
 		if cVal2, ok := qval.(quad.Time); ok {
 			return RunTimeOp(time.Time(cVal2), it.op, time.Time(cVal))
 		}
 		return false
 	default:
-		return true
+		return RunStrOp(quad.StringOf(qval), it.op, quad.StringOf(it.val))
 	}
 }
 
@@ -105,13 +115,13 @@ func (it *Comparison) Close() error {
 
 func RunIntOp(a quad.Int, op Operator, b quad.Int) bool {
 	switch op {
-	case compareLT:
+	case CompareLT:
 		return a < b
-	case compareLTE:
+	case CompareLTE:
 		return a <= b
-	case compareGT:
+	case CompareGT:
 		return a > b
-	case compareGTE:
+	case CompareGTE:
 		return a >= b
 	default:
 		panic("Unknown operator type")
@@ -120,13 +130,13 @@ func RunIntOp(a quad.Int, op Operator, b quad.Int) bool {
 
 func RunFloatOp(a quad.Float, op Operator, b quad.Float) bool {
 	switch op {
-	case compareLT:
+	case CompareLT:
 		return a < b
-	case compareLTE:
+	case CompareLTE:
 		return a <= b
-	case compareGT:
+	case CompareGT:
 		return a > b
-	case compareGTE:
+	case CompareGTE:
 		return a >= b
 	default:
 		panic("Unknown operator type")
@@ -135,13 +145,13 @@ func RunFloatOp(a quad.Float, op Operator, b quad.Float) bool {
 
 func RunStrOp(a string, op Operator, b string) bool {
 	switch op {
-	case compareLT:
+	case CompareLT:
 		return a < b
-	case compareLTE:
+	case CompareLTE:
 		return a <= b
-	case compareGT:
+	case CompareGT:
 		return a > b
-	case compareGTE:
+	case CompareGTE:
 		return a >= b
 	default:
 		panic("Unknown operator type")
@@ -150,13 +160,13 @@ func RunStrOp(a string, op Operator, b string) bool {
 
 func RunTimeOp(a time.Time, op Operator, b time.Time) bool {
 	switch op {
-	case compareLT:
+	case CompareLT:
 		return a.Before(b)
-	case compareLTE:
+	case CompareLTE:
 		return !a.After(b)
-	case compareGT:
+	case CompareGT:
 		return a.After(b)
-	case compareGTE:
+	case CompareGTE:
 		return !a.Before(b)
 	default:
 		panic("Unknown operator type")

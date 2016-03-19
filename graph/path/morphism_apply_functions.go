@@ -63,6 +63,17 @@ func isMorphism(nodes ...quad.Value) morphism {
 	}
 }
 
+// cmpMorphism is the set of nodes that passes comparison iterator with the same parameters.
+func cmpMorphism(op iterator.Operator, node quad.Value) morphism {
+	return morphism{
+		Name:     "cmp",
+		Reversal: func(ctx *context) (morphism, *context) { return cmpMorphism(op, node), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			return iterator.NewComparison(in, op, node, qs), ctx
+		},
+	}
+}
+
 // hasMorphism is the set of nodes that is reachable via either a *Path, a
 // single node.(string) or a list of nodes.([]string).
 func hasMorphism(via interface{}, nodes ...quad.Value) morphism {
