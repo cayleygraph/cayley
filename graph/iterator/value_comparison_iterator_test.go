@@ -23,8 +23,11 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var simpleStore = &store{data: []string{"0", "1", "2", "3", "4", "5"}, parse: true}
-var stringStore = &store{data: []string{"foo", "bar", "baz", "echo"}, parse: true}
+var (
+	simpleStore = &store{data: []string{"0", "1", "2", "3", "4", "5"}, parse: true}
+	stringStore = &store{data: []string{"foo", "bar", "baz", "echo"}, parse: true}
+	mixedStore  = &store{data: []string{"0", "1", "2", "3", "4", "5", "foo", "bar", "baz", "echo"}, parse: true}
+)
 
 func simpleFixedIterator() *Fixed {
 	f := NewFixed(Identity)
@@ -38,6 +41,14 @@ func stringFixedIterator() *Fixed {
 	f := NewFixed(Identity)
 	for _, value := range stringStore.data {
 		f.Add(stringNode(value))
+	}
+	return f
+}
+
+func mixedFixedIterator() *Fixed {
+	f := NewFixed(Identity)
+	for i := 0; i < len(mixedStore.data); i++ {
+		f.Add(Int64Node(i))
 	}
 	return f
 }
@@ -85,6 +96,14 @@ var comparisonTests = []struct {
 		expect:   []quad.Value{quad.Int(2), quad.Int(3), quad.Int(4)},
 		qs:       simpleStore,
 		iterator: simpleFixedIterator,
+	},
+	{
+		message:  "successful int64 greater than or equal comparison (mixed)",
+		operand:  quad.Int(2),
+		operator: compareGTE,
+		expect:   []quad.Value{quad.Int(2), quad.Int(3), quad.Int(4), quad.Int(5)},
+		qs:       mixedStore,
+		iterator: mixedFixedIterator,
 	},
 	{
 		message:  "successful string less than comparison",

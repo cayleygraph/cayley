@@ -78,22 +78,22 @@ func (it *Comparison) doComparison(val graph.Value) bool {
 		if cVal2, ok := qval.(quad.Int); ok {
 			return RunIntOp(cVal2, it.op, cVal)
 		}
-		return true
+		return false
 	case quad.Float:
 		if cVal2, ok := qval.(quad.Float); ok {
 			return RunFloatOp(cVal2, it.op, cVal)
 		}
-		return true
+		return false
 	case quad.String:
 		if cVal2, ok := qval.(quad.String); ok {
 			return RunStrOp(string(cVal2), it.op, string(cVal))
 		}
-		return true
+		return false
 	case quad.Time:
 		if cVal2, ok := qval.(quad.Time); ok {
 			return RunTimeOp(time.Time(cVal2), it.op, time.Time(cVal))
 		}
-		return true
+		return false
 	default:
 		return true
 	}
