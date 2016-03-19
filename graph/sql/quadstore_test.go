@@ -42,6 +42,8 @@ func makePostgres(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestPostgresAll(t *testing.T) {
 	graphtest.TestAll(t, makePostgres, &graphtest.Config{
+		TimeInMcs:               true,
+		TimeRound:               true,
 		SkipNodeDelAfterQuadDel: true,
 	})
 }

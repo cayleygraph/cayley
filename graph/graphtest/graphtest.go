@@ -16,9 +16,11 @@ import (
 type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 
 type Config struct {
-	UnTyped  bool // converts all values to Raw representation
-	NoHashes bool // cannot exchange raw values into typed ones
-	TimeInMs bool
+	UnTyped   bool // converts all values to Raw representation
+	NoHashes  bool // cannot exchange raw values into typed ones
+	TimeInMs  bool
+	TimeInMcs bool
+	TimeRound bool
 
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool
@@ -393,11 +395,21 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 		got := qs.NameOf(qs.ValueOf(pq))
 		if !conf.UnTyped {
 			if pt, ok := pq.(quad.Time); ok {
-				if conf.TimeInMs {
+				var trim int64
+				if conf.TimeInMcs {
+					trim = 1000
+				} else if conf.TimeInMs {
+					trim = 1000000
+				}
+				if trim > 0 {
 					tm := time.Time(pt)
 					seconds := tm.Unix()
 					nanos := int64(tm.Sub(time.Unix(seconds, 0)))
-					nanos = (nanos / 1000000) * 1000000
+					if conf.TimeRound {
+						nanos = (nanos/trim + ((nanos/(trim/10))%10)/5) * trim
+					} else {
+						nanos = (nanos / trim) * trim
+					}
 					pq = quad.Time(time.Unix(seconds, nanos).UTC())
 				}
 			}

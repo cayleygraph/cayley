@@ -26,6 +26,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -71,8 +72,8 @@ func (h QuadHash) Get(d quad.Direction) string {
 type QuadStore struct {
 	session *mgo.Session
 	db      *mgo.Database
-	ids     *cache
-	sizes   *cache
+	ids     *lru.Cache
+	sizes   *lru.Cache
 }
 
 func ensureIndexes(db *mgo.Database) error {
@@ -149,8 +150,8 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	qs.session = conn
-	qs.ids = newCache(1 << 16)
-	qs.sizes = newCache(1 << 16)
+	qs.ids = lru.New(1 << 16)
+	qs.sizes = lru.New(1 << 16)
 	return &qs, nil
 }
 
@@ -470,8 +471,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	if hash == "" {
 		return nil
 	}
-	val, ok := qs.ids.Get(string(hash))
-	if ok {
+	if val, ok := qs.ids.Get(string(hash)); ok {
 		return val.(quad.Value)
 	}
 	var node MongoNode
