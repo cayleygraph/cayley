@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/robertkrimen/otto"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 )
 
@@ -40,6 +40,47 @@ type worker struct {
 	kill <-chan struct{}
 }
 
+type graphObject struct {
+	wk *worker
+}
+
+func (g *graphObject) V(call otto.FunctionCall) otto.Value {
+	return g.Vertex(call)
+}
+func (g *graphObject) Vertex(call otto.FunctionCall) otto.Value {
+	call.Otto.Run("var out = {}")
+	out, err := call.Otto.Object("out")
+	if err != nil {
+		clog.Errorf("%v",err)
+		return otto.TrueValue()
+	}
+	out.Set("_gremlin_type", "vertex")
+	args := argsOf(call)
+	if len(args) > 0 {
+		out.Set("string_args", args)
+	}
+	g.wk.embedTraversals(g.wk.env, out)
+	g.wk.embedFinals(g.wk.env, out)
+	return out.Value()
+}
+func (g *graphObject) M(call otto.FunctionCall) otto.Value {
+	return g.Morphism(call)
+}
+func (g *graphObject) Morphism(call otto.FunctionCall) otto.Value {
+	call.Otto.Run("var out = {}")
+	out, _ := call.Otto.Object("out")
+	out.Set("_gremlin_type", "morphism")
+	g.wk.embedTraversals(g.wk.env, out)
+	return out.Value()
+}
+func (g *graphObject) Emit(call otto.FunctionCall) otto.Value {
+	value := call.Argument(0)
+	if value.IsDefined() {
+		g.wk.send(&Result{val: &value})
+	}
+	return otto.NullValue()
+}
+
 func newWorker(qs graph.QuadStore) *worker {
 	env := otto.New()
 	wk := &worker{
@@ -47,44 +88,8 @@ func newWorker(qs graph.QuadStore) *worker {
 		env:   env,
 		limit: -1,
 	}
-	graph, _ := env.Object("graph = {}")
+	env.Set("graph", &graphObject{wk: wk})
 	env.Run("g = graph")
-
-	graph.Set("Vertex", func(call otto.FunctionCall) otto.Value {
-		call.Otto.Run("var out = {}")
-		out, err := call.Otto.Object("out")
-		if err != nil {
-			clog.Errorf("%v", err.Error())
-			return otto.TrueValue()
-		}
-		out.Set("_gremlin_type", "vertex")
-		args := argsOf(call)
-		if len(args) > 0 {
-			out.Set("string_args", args)
-		}
-		wk.embedTraversals(env, out)
-		wk.embedFinals(env, out)
-		return out.Value()
-	})
-	env.Run("graph.V = graph.Vertex")
-
-	graph.Set("Morphism", func(call otto.FunctionCall) otto.Value {
-		call.Otto.Run("var out = {}")
-		out, _ := call.Otto.Object("out")
-		out.Set("_gremlin_type", "morphism")
-		wk.embedTraversals(env, out)
-		return out.Value()
-	})
-	env.Run("graph.M = graph.Morphism")
-
-	graph.Set("Emit", func(call otto.FunctionCall) otto.Value {
-		value := call.Argument(0)
-		if value.IsDefined() {
-			wk.send(&Result{val: &value})
-		}
-		return otto.NullValue()
-	})
-
 	return wk
 }
 
