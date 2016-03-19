@@ -317,10 +317,13 @@ var testQueries = []struct {
 	},
 }
 
-func runQueryGetTag(g []quad.Quad, query string, tag string) []string {
+func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []string {
 	js := makeTestSession(g)
 	c := make(chan interface{}, 1)
-	go js.Execute(query, c, -1)
+	go func() {
+		defer rec()
+		js.Execute(query, c, -1)
+	}()
 
 	var results []string
 	for res := range c {
@@ -360,16 +363,24 @@ func loadGraph(path string, t testing.TB) []quad.Quad {
 func TestGremlin(t *testing.T) {
 	simpleGraph := loadGraph("../../data/testdata.nq", t)
 	for _, test := range testQueries {
-		if test.tag == "" {
-			test.tag = TopResultTag
-		}
-		got := runQueryGetTag(simpleGraph, test.query, test.tag)
-		sort.Strings(got)
-		sort.Strings(test.expect)
-		t.Log("testing", test.message)
-		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
-		}
+		func() {
+			rec := func() {
+				if r := recover(); r != nil {
+					t.Errorf("Unexpected panic on %s: %v", test.message, r)
+				}
+			}
+			defer rec()
+			if test.tag == "" {
+				test.tag = TopResultTag
+			}
+			got := runQueryGetTag(rec, simpleGraph, test.query, test.tag)
+			sort.Strings(got)
+			sort.Strings(test.expect)
+			t.Log("testing", test.message)
+			if !reflect.DeepEqual(got, test.expect) {
+				t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
+			}
+		}()
 	}
 }
 

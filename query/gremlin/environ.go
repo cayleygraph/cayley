@@ -19,11 +19,13 @@ package gremlin
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/robertkrimen/otto"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/path"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 type worker struct {
@@ -48,30 +50,21 @@ func (g *graphObject) V(call otto.FunctionCall) otto.Value {
 	return g.Vertex(call)
 }
 func (g *graphObject) Vertex(call otto.FunctionCall) otto.Value {
-	call.Otto.Run("var out = {}")
-	out, err := call.Otto.Object("out")
-	if err != nil {
-		clog.Errorf("%v",err)
-		return otto.TrueValue()
-	}
-	out.Set("_gremlin_type", "vertex")
-	args := argsOf(call)
-	if len(args) > 0 {
-		out.Set("string_args", args)
-	}
-	g.wk.embedTraversals(g.wk.env, out)
-	g.wk.embedFinals(g.wk.env, out)
-	return out.Value()
+	qv := toQuadValues(exportArgs(call.ArgumentList))
+	return outObj(call, &pathObject{
+		wk:     g.wk,
+		finals: true,
+		path:   path.StartMorphism(qv...),
+	})
 }
 func (g *graphObject) M(call otto.FunctionCall) otto.Value {
 	return g.Morphism(call)
 }
 func (g *graphObject) Morphism(call otto.FunctionCall) otto.Value {
-	call.Otto.Run("var out = {}")
-	out, _ := call.Otto.Object("out")
-	out.Set("_gremlin_type", "morphism")
-	g.wk.embedTraversals(g.wk.env, out)
-	return out.Value()
+	return outObj(call, &pathObject{
+		wk:   g.wk,
+		path: path.StartMorphism(),
+	})
 }
 func (g *graphObject) Emit(call otto.FunctionCall) otto.Value {
 	value := call.Argument(0)
@@ -97,39 +90,145 @@ func (wk *worker) wantShape() bool {
 	return wk.shape != nil
 }
 
-func argsOf(call otto.FunctionCall) []string {
-	var out []string
-	for _, arg := range call.ArgumentList {
-		if arg.IsString() {
-			out = append(out, arg.String())
-		}
-		if arg.IsObject() && arg.Class() == "Array" {
-			obj, _ := arg.Export()
-			switch o := obj.(type) {
-			case []interface{}:
-				for _, x := range o {
-					out = append(out, x.(string))
-				}
-			case []string:
-				for _, x := range o {
-					out = append(out, x)
-				}
-			default:
-				panic(fmt.Errorf("unexpected type: %T", obj))
-			}
+func exportAsPath(args []otto.Value) *pathObject {
+	if len(args) == 0 {
+		return nil
+	}
+	o, _ := args[0].Export()
+	return o.(*pathObject)
+}
+
+func exportArgs(args []otto.Value) []interface{} {
+	if len(args) == 0 {
+		return nil
+	}
+	out := make([]interface{}, 0, len(args))
+	for _, a := range args {
+		if a.IsObject() && a.Class() == "Date" {
+			ms, _ := a.Object().Call("getTime")
+			msi, _ := ms.ToInteger()
+			t := time.Unix(msi/1000, (msi%1000)*1e6)
+			out = append(out, t)
+		} else {
+			o, _ := a.Export()
+			out = append(out, o)
 		}
 	}
 	return out
 }
 
-func isVertexChain(obj *otto.Object) bool {
-	val, _ := obj.Get("_gremlin_type")
-	if val.String() == "vertex" {
-		return true
+func toInt(o interface{}) int {
+	switch v := o.(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	default:
+		return 0
 	}
-	val, _ = obj.Get("_gremlin_prev")
-	if val.IsObject() {
-		return isVertexChain(val.Object())
+}
+
+func toQuadValue(o interface{}) (quad.Value, bool) {
+	var qv quad.Value
+	switch v := o.(type) {
+	case quad.Value:
+		qv = v
+	case string:
+		qv = quad.Raw(v)
+	case bool:
+		qv = quad.Bool(v)
+	case int:
+		qv = quad.Int(v)
+	case int64:
+		qv = quad.Int(v)
+	case float64:
+		if float64(int(v)) == v {
+			qv = quad.Int(int64(v))
+		} else {
+			qv = quad.Float(v)
+		}
+	case time.Time:
+		qv = quad.Time(v)
+	default:
+		return nil, false
 	}
-	return false
+	return qv, true
+}
+
+func toQuadValues(objs []interface{}) []quad.Value {
+	if len(objs) == 0 {
+		return nil
+	}
+	vals := make([]quad.Value, 0, len(objs))
+	for _, o := range objs {
+		qv, ok := toQuadValue(o)
+		if !ok {
+			panic(fmt.Errorf("unsupported type: %T", o))
+		}
+		vals = append(vals, qv)
+	}
+	return vals
+}
+
+func toStrings(objs []interface{}) []string {
+	if len(objs) == 0 {
+		return nil
+	}
+	var out = make([]string, 0, len(objs))
+	for _, o := range objs {
+		switch v := o.(type) {
+		case string:
+			out = append(out, v)
+		case quad.Value:
+			out = append(out, quad.StringOf(v))
+		case []string:
+			out = append(out, v...)
+		case []interface{}:
+			out = append(out, toStrings(v)...)
+		default:
+			panic(fmt.Errorf("expected string, got: %T", o))
+		}
+	}
+	return out
+}
+
+func toVia(via []interface{}) []interface{} {
+	if len(via) == 0 {
+		return nil
+	} else if len(via) == 1 {
+		if via[0] == nil {
+			return nil
+		} else if v, ok := via[0].([]interface{}); ok {
+			return toVia(v)
+		}
+	}
+	for i := range via {
+		if vp, ok := via[i].(*pathObject); ok {
+			via[i] = vp.path
+		} else if qv, ok := toQuadValue(via[i]); ok {
+			via[i] = qv
+		} else {
+			panic(fmt.Errorf("unsupported type: %T", via[i]))
+		}
+	}
+	return via
+}
+
+func toViaData(objs []interface{}) (predicates []interface{}, tags []string, ok bool) {
+	if len(objs) != 0 {
+		predicates = toVia([]interface{}{objs[0]})
+	}
+	if len(objs) >= 2 {
+		tags = toStrings(objs[1:])
+	}
+	ok = true
+	return
+}
+
+func outObj(call otto.FunctionCall, o interface{}) otto.Value {
+	call.Otto.Set("out", o)
+	v, _ := call.Otto.Get("out")
+	return v
 }
