@@ -97,7 +97,7 @@ var testQueries = []struct {
 	{
 		message: "use .In() with .Filter()",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(gt(iri("c"))).Filter(lt("<d")).All()
+			g.V("<bob>").In("<follows>").Filter(gt(iri("c")),lt("<d")).All()
 		`,
 		expect: []string{"<charlie>"},
 	},
