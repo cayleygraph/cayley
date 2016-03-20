@@ -33,6 +33,12 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+// AutoConvertTypedString allows to convert TypedString values to native
+// equivalents directly while parsing. It will call ToNative on all TypedString values.
+//
+// If conversion error occurs, it will preserve original TypedString value.
+var AutoConvertTypedString = true
+
 // Decoder implements simplified N-Quad document parsing.
 type Decoder struct {
 	r    *bufio.Reader
@@ -157,10 +163,17 @@ func unEscape(r []rune, spec int, isQuoted, isEscaped bool) quad.Value {
 			Lang:  string(sp[1:]),
 		}
 	} else if len(sp) >= 4 && sp[0] == '^' && sp[1] == '^' && sp[2] == '<' && sp[len(sp)-1] == '>' {
-		return quad.TypedString{
+		v := quad.TypedString{
 			Value: quad.String(val),
 			Type:  quad.IRI(sp[3 : len(sp)-1]),
 		}
+		if AutoConvertTypedString {
+			nv, err := v.ToNative()
+			if err == nil {
+				return nv
+			}
+		}
+		return v
 	}
 	return quad.Raw(raw)
 }

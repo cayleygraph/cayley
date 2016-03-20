@@ -87,6 +87,20 @@ func (s TypedString) String() string {
 	return s.Value.String() + `^^` + s.Type.String()
 }
 
+// ToNative will try to convert string value to its native representation
+// using registered conversion functions.
+//
+// It will return unchanged value if none conversion are available.
+//
+// Error will be returned if the type was recognizes, but conversion (parsing) was failed.
+func (s TypedString) ToNative() (Value, error) {
+	fnc := knownConversions[s.Type]
+	if fnc == nil {
+		return s, nil
+	}
+	return fnc(string(s.Value))
+}
+
 // LangString is an RDF string with language (ex: "name"@lang).
 type LangString struct {
 	Value String
@@ -108,11 +122,78 @@ type BNode string
 func (s BNode) String() string { return `_:` + string(s) }
 
 // Native support for basic types
-// TODO(dennwc): add method to TypedString to convert it to known native Value
+
+// StringConversion is a function to convert string values with a
+// specific IRI type to their native equivalents.
+type StringConversion func(string) (Value, error)
+
+const (
+	nsXSD    = `http://www.w3.org/2001/XMLSchema#`
+	nsSchema = `http://schema.org/`
+)
+
+var knownConversions = map[IRI]StringConversion{
+	defaultIntType:    stringToInt,
+	nsXSD + `integer`: stringToInt,
+	nsXSD + `long`:    stringToInt,
+
+	defaultBoolType:   stringToBool,
+	nsXSD + `boolean`: stringToBool,
+
+	defaultFloatType: stringToFloat,
+	nsXSD + `double`: stringToFloat,
+
+	defaultTimeType:    stringToTime,
+	nsXSD + `dateTime`: stringToTime,
+}
+
+// RegisterStringConversion will register an automatic conversion of
+// TypedString values with provided type to a native equivalent such as Int, Time, etc.
+//
+// If fnc is nil, automatic conversion from selected type will be removed.
+func RegisterStringConversion(dataType IRI, fnc StringConversion) {
+	if fnc == nil {
+		delete(knownConversions, dataType)
+	} else {
+		knownConversions[dataType] = fnc
+	}
+}
+
+func stringToInt(s string) (Value, error) {
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return Int(v), nil
+}
+
+func stringToBool(s string) (Value, error) {
+	v, err := strconv.ParseBool(s)
+	if err != nil {
+		return nil, err
+	}
+	return Bool(v), nil
+}
+
+func stringToFloat(s string) (Value, error) {
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return nil, err
+	}
+	return Float(v), nil
+}
+
+func stringToTime(s string) (Value, error) {
+	v, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return nil, err
+	}
+	return Time(v), nil
+}
 
 // TODO(dennwc): make these configurable
 const (
-	defaultNamespace     = `http://schema.org/`
+	defaultNamespace     = nsSchema
 	defaultIntType   IRI = defaultNamespace + `Integer`
 	defaultFloatType IRI = defaultNamespace + `Float`
 	defaultBoolType  IRI = defaultNamespace + `Boolean`

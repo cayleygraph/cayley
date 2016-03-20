@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -392,6 +393,23 @@ var testNQuads = []struct {
 			Predicate: quad.IRI("http://schema.org/birthDate"),
 			Object:    quad.TypedString{Value: "1990-07-04", Type: "http://www.w3.org/2001/XMLSchema#date"},
 			Label:     nil,
+		},
+		err: nil,
+	},
+	{
+		message: "parse triple with IRIREF schema on literal object and dateTime",
+		input:   `<http://example.org/bob#me> <http://schema.org/birthDate> "1990-07-04T17:25:41Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .`,
+		expect: quad.Quad{
+			Subject:   quad.IRI("http://example.org/bob#me"),
+			Predicate: quad.IRI("http://schema.org/birthDate"),
+			Object: func() quad.Time {
+				t, err := time.Parse(time.RFC3339, "1990-07-04T17:25:41Z")
+				if err != nil {
+					panic(err)
+				}
+				return quad.Time(t)
+			}(),
+			Label: nil,
 		},
 		err: nil,
 	},
