@@ -67,6 +67,9 @@ func (it *Comparison) UID() uint64 {
 	return it.uid
 }
 
+func (it *Comparison) Value() quad.Value  { return it.val }
+func (it *Comparison) Operator() Operator { return it.op }
+
 // Here's the non-boilerplate part of the ValueComparison iterator. Given a value
 // and our operator, determine whether or not we meet the requirement.
 func (it *Comparison) doComparison(val graph.Value) bool {
@@ -222,9 +225,8 @@ func (it *Comparison) NextPath() bool {
 	return true
 }
 
-// No subiterators.
 func (it *Comparison) SubIterators() []graph.Iterator {
-	return nil
+	return []graph.Iterator{it.subIt}
 }
 
 func (it *Comparison) Contains(val graph.Value) bool {

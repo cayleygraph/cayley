@@ -78,6 +78,20 @@ func NewAllIterator(qs *QuadStore, collection string) *Iterator {
 	}
 }
 
+func NewIteratorWithConstraints(qs *QuadStore, collection string, constraint bson.M) *Iterator {
+	return &Iterator{
+		uid:        iterator.NextUID(),
+		qs:         qs,
+		dir:        quad.Any,
+		constraint: constraint,
+		collection: collection,
+		iter:       nil,
+		size:       -1,
+		hash:       "",
+		isAll:      false,
+	}
+}
+
 func (it *Iterator) UID() uint64 {
 	return it.uid
 }
