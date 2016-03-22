@@ -294,6 +294,7 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 	//if allAdds && !opts.IgnoreDup {
 	//	return qs.copyFrom(tx, in, opts)
 	//}
+	inserted := make(map[string]struct{})
 
 	for _, d := range in {
 		switch d.Action {
@@ -318,6 +319,9 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 					ho = h
 				case quad.Label:
 					hl = h
+				}
+				if _, ok := inserted[h.String]; ok {
+					continue
 				}
 				var (
 					names  = []string{"hash", ""}[:1]
@@ -376,6 +380,7 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 					clog.Errorf("couldn't exec INSERT statement: %v", err)
 					return err
 				}
+				inserted[h.String] = struct{}{}
 			}
 			_, err := tx.Exec(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)`+end,
 				hs, hp, ho, hl,
