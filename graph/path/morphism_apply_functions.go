@@ -280,7 +280,7 @@ func saveMorphism(via interface{}, tag string) morphism {
 		Name:     "save",
 		Reversal: func(ctx *context) (morphism, *context) { return saveMorphism(via, tag), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
-			return buildSave(qs, via, tag, in, false), ctx
+			return buildSave(qs, via, tag, in, false, false), ctx
 		},
 		tags: []string{tag},
 	}
@@ -291,7 +291,29 @@ func saveReverseMorphism(via interface{}, tag string) morphism {
 		Name:     "saver",
 		Reversal: func(ctx *context) (morphism, *context) { return saveReverseMorphism(via, tag), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
-			return buildSave(qs, via, tag, in, true), ctx
+			return buildSave(qs, via, tag, in, true, false), ctx
+		},
+		tags: []string{tag},
+	}
+}
+
+func saveOptionalMorphism(via interface{}, tag string) morphism {
+	return morphism{
+		Name:     "saveo",
+		Reversal: func(ctx *context) (morphism, *context) { return saveOptionalMorphism(via, tag), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			return buildSave(qs, via, tag, in, false, true), ctx
+		},
+		tags: []string{tag},
+	}
+}
+
+func saveOptionalReverseMorphism(via interface{}, tag string) morphism {
+	return morphism{
+		Name:     "saveor",
+		Reversal: func(ctx *context) (morphism, *context) { return saveOptionalReverseMorphism(via, tag), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			return buildSave(qs, via, tag, in, true, true), ctx
 		},
 		tags: []string{tag},
 	}
@@ -299,7 +321,7 @@ func saveReverseMorphism(via interface{}, tag string) morphism {
 
 func buildSave(
 	qs graph.QuadStore, via interface{},
-	tag string, from graph.Iterator, reverse bool,
+	tag string, from graph.Iterator, reverse bool, optional bool,
 ) graph.Iterator {
 
 	allNodes := qs.NodesAllIterator()
@@ -316,8 +338,11 @@ func buildSave(
 	trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
 
 	route := join(qs, trail, dest)
-	save := iterator.NewHasA(qs, route, start)
+	save := graph.Iterator(iterator.NewHasA(qs, route, start))
 
+	if optional {
+		save = iterator.NewOptional(save)
+	}
 	return join(qs, from, save)
 }
 
