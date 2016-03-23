@@ -91,11 +91,15 @@ func runTag(path *Path, tag string) []string {
 	for graph.Next(it) {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		out = append(out, path.qs.NameOf(tags[tag]))
+		if t, ok := tags[tag]; ok {
+			out = append(out, path.qs.NameOf(t))
+		}
 		for it.NextPath() {
 			tags := make(map[string]graph.Value)
 			it.TagResults(tags)
-			out = append(out, path.qs.NameOf(tags[tag]))
+			if t, ok := tags[tag]; ok {
+				out = append(out, path.qs.NameOf(t))
+			}
 		}
 	}
 	return out
@@ -181,12 +185,6 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 		},
 		{
-			message: "show a simple saveOpt",
-			path:    StartPath(qs).SaveOptional("status", "somecool"),
-			tag:     "somecool",
-			expect:  []string{"", "", "", "", "", "", "", "", "", "", "cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
-		},
-		{
 			message: "show a simple saveR",
 			path:    StartPath(qs, "cool_person").SaveReverse("status", "who"),
 			tag:     "who",
@@ -249,6 +247,23 @@ func testSet(qs graph.QuadStore) []test {
 			message: "reverse context",
 			path:    StartPath(qs, "greg").Tag("base").LabelContext("smart_graph").Out("status").Tag("status").Back("base"),
 			expect:  []string{"greg"},
+		},
+		// Optional tests
+		{
+			message: "save limits top level",
+			path:    StartPath(qs, "bob", "charlie").Out("follows").Save("status", "statustag"),
+			expect:  []string{"bob", "dani"},
+		},
+		{
+			message: "optional still returns top level",
+			path:    StartPath(qs, "bob", "charlie").Out("follows").SaveOptional("status", "statustag"),
+			expect:  []string{"bob", "fred", "dani"},
+		},
+		{
+			message: "optional has the appropriate tags",
+			path:    StartPath(qs, "bob", "charlie").Out("follows").SaveOptional("status", "statustag"),
+			tag:     "statustag",
+			expect:  []string{"cool_person", "cool_person"},
 		},
 	}
 }
