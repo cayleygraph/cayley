@@ -284,6 +284,19 @@ func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpt
 	return nil
 }
 
+var nodeInsertColumns = [][]string{
+	{"value"},
+	{"value_string", "iri"},
+	{"value_string", "bnode"},
+	{"value_string"},
+	{"value_string", "datatype"},
+	{"value_string", "language"},
+	{"value_int"},
+	{"value_bool"},
+	{"value_float"},
+	{"value_time"},
+}
+
 func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 	//allAdds := true
 	//for _, d := range in {
@@ -294,14 +307,32 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 	//if allAdds && !opts.IgnoreDup {
 	//	return qs.copyFrom(tx, in, opts)
 	//}
-	inserted := make(map[string]struct{})
 
+	end := ";"
+	if opts.IgnoreDup {
+		end = " ON CONFLICT DO NOTHING;"
+	}
+
+	var (
+		insertQuad  *sql.Stmt
+		insertValue map[int]*sql.Stmt   // prepared statements for each value type
+		inserted    map[string]struct{} // tracks already inserted values
+
+		deleteQuad   *sql.Stmt
+		deleteTriple *sql.Stmt
+	)
+
+	var err error
 	for _, d := range in {
 		switch d.Action {
 		case graph.Add:
-			end := ";"
-			if opts.IgnoreDup {
-				end = " ON CONFLICT DO NOTHING;"
+			if insertQuad == nil {
+				insertQuad, err = tx.Prepare(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)` + end)
+				if err != nil {
+					return err
+				}
+				insertValue = make(map[int]*sql.Stmt)
+				inserted = make(map[string]struct{}, len(in))
 			}
 			var hs, hp, ho, hl sql.NullString
 			for _, dir := range quad.Directions {
@@ -320,61 +351,69 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				case quad.Label:
 					hl = h
 				}
-				if _, ok := inserted[h.String]; ok {
+				if !h.Valid {
+					continue
+				} else if _, ok := inserted[h.String]; ok {
 					continue
 				}
 				var (
-					names  = []string{"hash", ""}[:1]
-					values = []interface{}{h, nil}[:1]
+					nodeKey int
+					values  = []interface{}{h, nil, nil}[:1]
 				)
 				switch v := v.(type) {
 				case quad.IRI:
-					names = append(names, "value_string", "iri")
+					nodeKey = 1
 					values = append(values, string(v), true)
 				case quad.BNode:
-					names = append(names, "value_string", "bnode")
+					nodeKey = 2
 					values = append(values, string(v), true)
 				case quad.String:
-					names = append(names, "value_string")
+					nodeKey = 3
 					values = append(values, string(v))
 				case quad.TypedString:
-					names = append(names, "value_string", "datatype")
+					nodeKey = 4
 					values = append(values, string(v.Value), string(v.Type))
 				case quad.LangString:
-					names = append(names, "value_string", "language")
+					nodeKey = 5
 					values = append(values, string(v.Value), v.Lang)
 				case quad.Int:
-					names = append(names, "value_int")
+					nodeKey = 6
 					values = append(values, int64(v))
 				case quad.Bool:
-					names = append(names, "value_bool")
+					nodeKey = 7
 					values = append(values, bool(v))
 				case quad.Float:
-					names = append(names, "value_float")
+					nodeKey = 8
 					values = append(values, float64(v))
 				case quad.Time:
-					names = append(names, "value_time")
+					nodeKey = 9
 					values = append(values, time.Time(v))
 				default:
+					nodeKey = 0
 					p, err := proto.MarshalValue(v)
 					if err != nil {
 						clog.Errorf("couldn't marshal value: %v", err)
 						return err
 					}
-					names = append(names, "value")
 					values = append(values, p)
 				}
-				var ph = make([]string, len(values))
-				for i := range ph {
-					ph[i] = "$" + strconv.FormatInt(int64(i)+1, 10)
+				stmt, ok := insertValue[nodeKey]
+				if !ok {
+					var ph = make([]string, len(values)-1)
+					for i := range ph {
+						ph[i] = "$" + strconv.FormatInt(int64(i)+2, 10)
+					}
+					stmt, err = tx.Prepare(`INSERT INTO nodes(hash, ` +
+						strings.Join(nodeInsertColumns[nodeKey], ", ") +
+						`) VALUES ($1, ` +
+						strings.Join(ph, ", ") +
+						`) ON CONFLICT DO NOTHING;`)
+					if err != nil {
+						return err
+					}
+					insertValue[nodeKey] = stmt
 				}
-				_, err := tx.Exec(`INSERT INTO nodes(`+
-					strings.Join(names, ", ")+
-					`) VALUES (`+
-					strings.Join(ph, ", ")+
-					`) ON CONFLICT DO NOTHING;`,
-					values...,
-				)
+				_, err := stmt.Exec(values...)
 				err = convInsertError(err)
 				if err != nil {
 					clog.Errorf("couldn't exec INSERT statement: %v", err)
@@ -382,7 +421,7 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				}
 				inserted[h.String] = struct{}{}
 			}
-			_, err := tx.Exec(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)`+end,
+			_, err := insertQuad.Exec(
 				hs, hp, ho, hl,
 				d.ID.Int(),
 				d.Timestamp,
@@ -393,16 +432,21 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				return err
 			}
 		case graph.Delete:
-			var (
-				result sql.Result
-				err    error
-			)
+			if deleteQuad == nil {
+				deleteQuad, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`)
+				if err != nil {
+					return err
+				}
+				deleteTriple, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash is null;`)
+				if err != nil {
+					return err
+				}
+			}
+			var result sql.Result
 			if d.Quad.Label == nil {
-				result, err = tx.Exec(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash is null;`,
-					hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object))
+				result, err = deleteTriple.Exec(hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object))
 			} else {
-				result, err = tx.Exec(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`,
-					hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object), hashOf(d.Quad.Label))
+				result, err = deleteQuad.Exec(hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object), hashOf(d.Quad.Label))
 			}
 			if err != nil {
 				clog.Errorf("couldn't exec DELETE statement: %v", err)
