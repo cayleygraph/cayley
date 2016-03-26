@@ -19,10 +19,9 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"database/sql"
 	"github.com/cayleygraph/cayley/clog"
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/quad"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 var sqlNodeTableID uint64
@@ -91,7 +90,7 @@ func (n *SQLNodeIterator) Describe() string {
 	return fmt.Sprintf("SQL_NODE_QUERY: %s", s)
 }
 
-func (n *SQLNodeIterator) buildResult(result []sql.NullString, cols []string) map[string]graph.Value {
+func (n *SQLNodeIterator) buildResult(result []NodeHash, cols []string) map[string]graph.Value {
 	m := make(map[string]graph.Value)
 	for i, c := range cols {
 		if strings.HasSuffix(c, "_hash") {
@@ -165,7 +164,7 @@ func (n *SQLNodeIterator) buildWhere() (string, sqlArgs) {
 		topData := n.tableID()
 		var valueChain []string
 		for _, v := range n.fixedSet {
-			vals = append(vals, hashOf(v))
+			vals = append(vals, hashOf(v).toSQL())
 			valueChain = append(valueChain, "?")
 		}
 		q = append(q, fmt.Sprintf("%s.%s_hash IN (%s)", topData.table, topData.dir, strings.Join(valueChain, ", ")))
@@ -204,7 +203,7 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs)
 			constraint += " AND "
 		}
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, sql.NullString(v))
+		values = append(values, v.toSQL())
 	}
 
 	query += constraint
@@ -220,7 +219,7 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs)
 	return query, values
 }
 
-func (n *SQLNodeIterator) sameTopResult(target []sql.NullString, test []sql.NullString) bool {
+func (n *SQLNodeIterator) sameTopResult(target []NodeHash, test []NodeHash) bool {
 	return target[0] == test[0]
 }
 

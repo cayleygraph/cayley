@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"strings"
 
-	"database/sql"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
@@ -70,7 +69,7 @@ func (n *SQLNodeIntersection) Describe() string {
 	return fmt.Sprintf("SQL_NODE_INTERSECTION: %s", s)
 }
 
-func (n *SQLNodeIntersection) buildResult(result []sql.NullString, cols []string) map[string]graph.Value {
+func (n *SQLNodeIntersection) buildResult(result []NodeHash, cols []string) map[string]graph.Value {
 	m := make(map[string]graph.Value)
 	for i, c := range cols {
 		if strings.HasSuffix(c, "_hash") {
@@ -192,7 +191,7 @@ func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, sqlA
 			constraint += " AND "
 		}
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, sql.NullString(v))
+		values = append(values, v.toSQL())
 	}
 	query += constraint
 	query += ";"
@@ -207,7 +206,7 @@ func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, sqlA
 	return query, values
 }
 
-func (n *SQLNodeIntersection) sameTopResult(target []sql.NullString, test []sql.NullString) bool {
+func (n *SQLNodeIntersection) sameTopResult(target []NodeHash, test []NodeHash) bool {
 	return target[0] == test[0]
 }
 

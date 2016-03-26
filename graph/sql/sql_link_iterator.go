@@ -19,7 +19,6 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"database/sql"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
@@ -38,7 +37,7 @@ func newTableName() string {
 
 type constraint struct {
 	dir    quad.Direction
-	hashes []sql.NullString
+	hashes []NodeHash
 }
 
 type sqlItDir struct {
@@ -131,7 +130,7 @@ func (l *SQLLinkIterator) quickContains(v graph.Value) (bool, bool) {
 	return false, false
 }
 
-func (l *SQLLinkIterator) buildResult(result []sql.NullString, cols []string) map[string]graph.Value {
+func (l *SQLLinkIterator) buildResult(result []NodeHash, cols []string) map[string]graph.Value {
 	l.resultQuad = QuadHashes{
 		result[0],
 		result[1],
@@ -182,13 +181,13 @@ func (l *SQLLinkIterator) buildWhere() (string, sqlArgs) {
 	for _, c := range l.constraints {
 		if len(c.hashes) == 1 {
 			q = append(q, fmt.Sprintf("%s.%s_hash = ?", l.tableName, c.dir))
-			vals = append(vals, c.hashes[0])
+			vals = append(vals, c.hashes[0].toSQL())
 		} else if len(c.hashes) > 1 {
 			valslots := strings.Join(strings.Split(strings.Repeat("?", len(c.hashes)), ""), ", ")
 			subq := fmt.Sprintf("%s.%s_hash IN (%s)", l.tableName, c.dir, valslots)
 			q = append(q, subq)
 			for _, v := range c.hashes {
-				vals = append(vals, v)
+				vals = append(vals, v.toSQL())
 			}
 		}
 	}
@@ -258,10 +257,10 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs)
 			fmt.Sprintf("%s.label_hash = ?", l.tableName),
 		}
 		constraint += strings.Join(t, " AND ")
-		values = append(values, h[0])
-		values = append(values, h[1])
-		values = append(values, h[2])
-		values = append(values, h[3])
+		values = append(values, h[0].toSQL())
+		values = append(values, h[1].toSQL())
+		values = append(values, h[2].toSQL())
+		values = append(values, h[3].toSQL())
 	}
 	query += constraint
 	query += ";"
@@ -276,6 +275,6 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs)
 	return query, values
 }
 
-func (l *SQLLinkIterator) sameTopResult(target []sql.NullString, test []sql.NullString) bool {
+func (l *SQLLinkIterator) sameTopResult(target []NodeHash, test []NodeHash) bool {
 	return target[0] == test[0] && target[1] == test[1] && target[2] == test[2] && target[3] == test[3]
 }

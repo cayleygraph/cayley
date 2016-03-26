@@ -31,7 +31,7 @@ func init() {
 	sqlType = graph.RegisterIterator("sql")
 }
 
-type sqlArgs []sql.NullString
+type sqlArgs []interface{}
 
 type tagDir struct {
 	tag       string
@@ -66,8 +66,8 @@ type sqlIterator interface {
 	tableID() tagDir
 
 	quickContains(graph.Value) (ok bool, result bool)
-	buildResult(result []sql.NullString, cols []string) map[string]graph.Value
-	sameTopResult(target []sql.NullString, test []sql.NullString) bool
+	buildResult(result []NodeHash, cols []string) map[string]graph.Value
+	sameTopResult(target []NodeHash, test []NodeHash) bool
 
 	Result() graph.Value
 	Size(*QuadStore) (int64, bool)
@@ -86,8 +86,8 @@ type SQLIterator struct {
 
 	result      map[string]graph.Value
 	resultIndex int
-	resultList  [][]sql.NullString
-	resultNext  [][]sql.NullString
+	resultList  [][]NodeHash
+	resultNext  [][]NodeHash
 	cols        []string
 }
 
@@ -324,9 +324,9 @@ func (it *SQLIterator) Contains(v graph.Value) bool {
 	return false
 }
 
-func scan(cursor *sql.Rows, nCols int) ([]sql.NullString, error) {
+func scan(cursor *sql.Rows, nCols int) ([]NodeHash, error) {
 	pointers := make([]interface{}, nCols)
-	container := make([]sql.NullString, nCols)
+	container := make([]NodeHash, nCols)
 	for i, _ := range pointers {
 		pointers[i] = &container[i]
 	}
@@ -350,11 +350,7 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 	var values sqlArgs
 	q, values = it.sql.buildSQL(next, value)
 	q = convertToPostgres(q, values)
-	ivalues := make([]interface{}, 0, len(values))
-	for _, v := range values {
-		ivalues = append(ivalues, v)
-	}
-	cursor, err := it.qs.db.Query(q, ivalues...)
+	cursor, err := it.qs.db.Query(q, values...)
 	if err != nil {
 		clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 		cursor = nil
@@ -383,7 +379,7 @@ func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIter
 			constraints: []constraint{
 				constraint{
 					dir:    d,
-					hashes: []sql.NullString{sql.NullString(hash)},
+					hashes: []NodeHash{hash},
 				},
 			},
 			tableName: newTableName(),

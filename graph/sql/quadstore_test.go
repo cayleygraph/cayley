@@ -4,8 +4,11 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/internal/dock"
+	"github.com/cayleygraph/cayley/quad"
 	"github.com/lib/pq"
+	"github.com/stretchr/testify/require"
 	"testing"
+	"unicode/utf8"
 )
 
 func makePostgres(t testing.TB) (graph.QuadStore, graph.Options, func()) {
@@ -46,4 +49,24 @@ func TestPostgresAll(t *testing.T) {
 		TimeRound:               true,
 		SkipNodeDelAfterQuadDel: true,
 	})
+}
+
+func TestZeroRune(t *testing.T) {
+	qs, opts, closer := makePostgres(t)
+	defer closer()
+
+	w := graphtest.MakeWriter(t, qs, opts)
+
+	obj := quad.String("AB\u0000CD")
+	if !utf8.ValidString(string(obj)) {
+		t.Fatal("invalid utf8")
+	}
+
+	err := w.AddQuad(quad.Quad{
+		Subject:   quad.IRI("bob"),
+		Predicate: quad.IRI("pred"),
+		Object:    obj,
+	})
+	require.Nil(t, err)
+	require.Equal(t, obj, qs.NameOf(qs.ValueOf(quad.Raw(obj.String()))))
 }
