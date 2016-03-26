@@ -17,6 +17,8 @@ package leveldb
 import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/path2"
+	"github.com/google/cayley/quad"
 )
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -52,4 +54,37 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		}
 	}
 	return it, false
+}
+
+var _ path.PathOptimizer = (*QuadStore)(nil)
+
+func (qs *QuadStore) OptimizeLinksPath(p path.Links) (path.Links, bool) {
+	switch tp := p.(type) {
+	case path.LinksTo:
+		return qs.optimizePathLinksTo(tp)
+	}
+	return p, false
+}
+func (qs *QuadStore) OptimizeNodesPath(p path.Nodes) (path.Nodes, bool) {
+	return p, false
+}
+
+type pathLinksTo struct {
+	qs     *QuadStore
+	prefix string
+	d      quad.Direction
+	val    Token
+}
+
+func (p pathLinksTo) Optimize() (path.Links, bool)                                { return p, false }
+func (p pathLinksTo) Replace(_ path.NodesWrapper, _ path.LinksWrapper) path.Links { return p }
+func (p pathLinksTo) BuildIterator() graph.Iterator                               { return NewIterator(p.prefix, p.d, p.val, p.qs) }
+func (qs *QuadStore) optimizePathLinksTo(p path.LinksTo) (path.Links, bool) {
+	switch t := p.Nodes.(type) {
+	case path.Fixed:
+		if len(t) == 1 {
+			return qs.LinksToValuePath(p.Dir, t[0]), true
+		}
+	}
+	return p, false
 }

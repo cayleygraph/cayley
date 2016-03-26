@@ -31,6 +31,7 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/path2"
 	"github.com/google/cayley/quad"
 )
 
@@ -494,6 +495,28 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Itera
 		panic("unreachable " + d.String())
 	}
 	return NewIterator(prefix, d, val, qs)
+}
+
+func (qs *QuadStore) LinksToValuePath(d quad.Direction, value string) path.Links {
+	var prefix string
+	switch d {
+	case quad.Subject:
+		prefix = "sp"
+	case quad.Predicate:
+		prefix = "po"
+	case quad.Object:
+		prefix = "os"
+	case quad.Label:
+		prefix = "cp"
+	default:
+		panic("unreachable " + d.String())
+	}
+	return pathLinksTo{
+		qs:     qs,
+		prefix: prefix,
+		d:      d,
+		val:    qs.ValueOf(value).(Token),
+	}
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {

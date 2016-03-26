@@ -24,9 +24,36 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/path2/pathtest"
 	"github.com/google/cayley/quad"
 	"github.com/google/cayley/writer"
 )
+
+func makeStore(t testing.TB) (graph.QuadStore, func()) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "cayley_test")
+	if err != nil {
+		t.Fatalf("Could not create working directory: %v", err)
+	}
+	t.Log(tmpFile.Name())
+
+	closer := func() {
+		os.RemoveAll(tmpFile.Name())
+	}
+
+	err = createNewBolt(tmpFile.Name(), nil)
+	if err != nil {
+		closer()
+		t.Fatalf("Failed to create Bolt database.")
+	}
+
+	qs, err := newQuadStore(tmpFile.Name(), nil)
+	if qs == nil || err != nil {
+		closer()
+		t.Fatal("Failed to create Bolt QuadStore.")
+	}
+
+	return qs, closer
+}
 
 func makeQuadSet() []quad.Quad {
 	quadSet := []quad.Quad{
@@ -503,4 +530,8 @@ func TestDeletedFromIterator(t *testing.T) {
 	if got := iteratedQuads(qs, it); !reflect.DeepEqual(got, expect) {
 		t.Errorf("Failed to get expected results, got:%v expect:%v", got, expect)
 	}
+}
+
+func TestMorphisms(t *testing.T) {
+	pathtest.TestMorphisms(t, makeStore)
 }

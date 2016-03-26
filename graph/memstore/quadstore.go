@@ -23,6 +23,7 @@ import (
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/graph/memstore/b"
+	"github.com/google/cayley/graph/path2"
 	"github.com/google/cayley/quad"
 )
 
@@ -249,6 +250,20 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 		return NewIterator(index, qs, d, value)
 	}
 	return &iterator.Null{}
+}
+
+func (qs *QuadStore) LinksToValuePath(d quad.Direction, value string) path.Links {
+	id, ok := qs.idMap[value]
+	if !ok {
+		return nil
+	}
+	index, ok := qs.index.Get(d, id)
+	if !ok {
+		return nil
+	}
+	return pathLinksTo{
+		qs: qs, index: index,
+	}
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {

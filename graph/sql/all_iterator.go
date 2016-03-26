@@ -58,7 +58,7 @@ func (it *AllIterator) makeCursor() {
 				UNION
 				SELECT object FROM quads
 				UNION
-				SELECT label FROM quads
+				SELECT label FROM quads WHERE label <> ''
 			) AS DistinctNodes (node) WHERE node IS NOT NULL;`)
 		if err != nil {
 			glog.Errorln("Couldn't get cursor from SQL database: %v", err)

@@ -19,6 +19,8 @@ import (
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
+	"github.com/google/cayley/graph/path2"
+	"github.com/google/cayley/quad"
 )
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -27,7 +29,6 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 		return qs.optimizeLinksTo(it.(*iterator.LinksTo))
 	case graph.And:
 		return qs.optimizeAndIterator(it.(*iterator.And))
-
 	}
 	return it, false
 }
@@ -67,7 +68,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 
 	lset := []graph.Linkage{
 		{
-			Dir:    mongoIt.dir,
+			Dir:   mongoIt.dir,
 			Value: qs.ValueOf(mongoIt.name),
 		},
 	}
@@ -117,4 +118,54 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		}
 	}
 	return it, false
+}
+
+var _ path.PathOptimizer = (*QuadStore)(nil)
+
+func (qs *QuadStore) OptimizeLinksPath(p path.Links) (path.Links, bool) {
+	switch tp := p.(type) {
+	case path.LinksTo:
+		return qs.optimizePathLinksTo(tp)
+	case path.IntersectLinks:
+		return qs.optimizePathIntersectLinks(tp)
+	}
+	return p, false
+}
+func (qs *QuadStore) OptimizeNodesPath(p path.Nodes) (path.Nodes, bool) {
+	return p, false
+}
+
+type pathLinksTo struct {
+	qs   *QuadStore
+	d    quad.Direction
+	hash string
+}
+
+func (p pathLinksTo) Optimize() (path.Links, bool)                                { return p, false }
+func (p pathLinksTo) Replace(_ path.NodesWrapper, _ path.LinksWrapper) path.Links { return p }
+func (p pathLinksTo) BuildIterator() graph.Iterator                               { return NewIterator(p.qs, "quads", p.d, p.hash) }
+
+func (qs *QuadStore) optimizePathLinksTo(p path.LinksTo) (path.Links, bool) {
+	switch t := p.Nodes.(type) {
+	case path.Fixed:
+		if len(t) == 1 {
+			return pathLinksTo{qs: qs, d: p.Dir, hash: hashOf(t[0])}, true
+		}
+	}
+	return p, false
+}
+
+func (qs *QuadStore) optimizePathIntersectLinks(p path.IntersectLinks) (path.Links, bool) {
+	//	found := false
+	//	for _, sp := range p {
+	//		if _, ok := sp.(pathLinksTo); ok {
+	//			found = true
+	//			break
+	//		}
+	//	}
+	//	if !found {
+	//		return p, false
+	//	}
+	// TODO: optimize Intersect-with-LinksTo when costs mechanism for paths will be defined
+	return p, false
 }
