@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
+	"github.com/golang/glog"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"

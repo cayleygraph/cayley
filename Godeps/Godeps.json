@@ -1,8 +1,8 @@
 {
 	"ImportPath": "github.com/google/cayley",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.6",
 	"Packages": [
-		"./..."
+		"./.../"
 	],
 	"Deps": [
 		{
@@ -10,64 +10,71 @@
 			"Rev": "9e5f7f4d07ca576562618c23e8abadda278b684f"
 		},
 		{
-			"ImportPath": "github.com/barakmich/glog",
-			"Rev": "fafcb6128a8a2e6360ff034091434d547397d54a"
-		},
-		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.0-111-g04a3e85",
-			"Rev": "04a3e85793043e76d41164037d0d7f9d53eecae3"
+			"Comment": "v1.1.0-67-g2f846c3",
+			"Rev": "2f846c3551b76d7710f159be840d66c3d064abbe"
 		},
 		{
 			"ImportPath": "github.com/cznic/mathutil",
-			"Rev": "f9551431b78e71ee24939a1e9d8f49f43898b5cd"
+			"Rev": "38a5fe05cd94d69433fd1c928417834c604f281d"
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
-			"Rev": "58bbd41c1a2d1b7154f5d99a8d0d839b3093301a"
+			"Comment": "v0.1-125-g82d16f7",
+			"Rev": "82d16f734d6d871204a3feb1a73cb220cc92574c"
+		},
+		{
+			"ImportPath": "github.com/golang/glog",
+			"Rev": "fca8c8854093a154ff1eb580aae10276ad6b1b5f"
+		},
+		{
+			"ImportPath": "github.com/golang/snappy",
+			"Rev": "d1d908a252c22fd7afd36190d5cffb144aa8f777"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Rev": "b59a38004596b696aca7aa2adccfa68760864d86"
+			"Comment": "v1.1-28-g153d9c9",
+			"Rev": "153d9c9fa8b6a5995c6a300cca099e1f3408733f"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
-			"Comment": "go1.0-cutoff-58-g0dad96c",
-			"Rev": "0dad96c0b94f8dee039aa40467f767467392a0af"
+			"Comment": "go1.0-cutoff-81-g69552e5",
+			"Rev": "69552e54d2a9d4c6a2438926a774930f7bc398ec"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",
-			"Rev": "ca53cad383cad2479bbba7f7a1a05797ec1386e4"
+			"Comment": "v1.0-11-gc55201b",
+			"Rev": "c55201b036063326c5b1b89ccfe45a184973d073"
 		},
 		{
 			"ImportPath": "github.com/peterh/liner",
-			"Rev": "1bb0d1c1a25ed393d8feb09bab039b2b1b1fbced"
+			"Rev": "ad1edfd30321d8f006ccf05f1e0524adeb943060"
 		},
 		{
 			"ImportPath": "github.com/robertkrimen/otto",
-			"Rev": "d1b4d8ef0e0e4b088c8328c95ca63ab9ebd8fc9d"
+			"Rev": "9c8301a8b3069bd1b0243b0b4a95f67af740eed7"
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.2-54-g17bb799",
-			"Rev": "17bb7999de6cfb791d4f8986cc00b3309b370cdb"
+			"Comment": "v1.4-21-g006144a",
+			"Rev": "006144af03eeeff1037240a71865a9fd61f1c25f"
 		},
 		{
 			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
-			"Rev": "8e87604bec3c645a4eeaee97dfec9f25811ff20d"
+			"Rev": "10ef21a441db47d8b13ebcc5fd2310f636973c77"
 		},
 		{
 			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
-			"Rev": "4875955338b0a434238a31165cb87255ab6e9e4a"
+			"Rev": "e7e6f5b5ef25adb580feac515f9ccec514d0bda8"
 		},
 		{
-			"ImportPath": "github.com/syndtr/gosnappy/snappy",
-			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e"
 		},
 		{
 			"ImportPath": "gopkg.in/mgo.v2",
-			"Comment": "r2015.01.24",
-			"Rev": "c6a7dce14133ccac2dcac3793f1d6e2ef048503a"
+			"Comment": "r2016.02.04",
+			"Rev": "d90005c5262a3463800497ea5a89aed5fe22c886"
 		}
 	]
 }

@@ -8,3 +8,6 @@ cayley.cfg
 
 # The built binary
 /cayley
+
+#Godeps Vendor direcorty
+vendor/
