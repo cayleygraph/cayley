@@ -45,8 +45,6 @@ mkdir -p bin pkg src/github.com/google
 cd src/github.com/google
 git clone https://github.com/google/cayley
 cd cayley
-go get github.com/tools/godep
-godep restore
 go build ./cmd/cayley
 ```
 
