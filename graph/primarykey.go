@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 	"github.com/pborman/uuid"
 )
 

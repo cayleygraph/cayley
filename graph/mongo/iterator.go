@@ -17,7 +17,7 @@ package mongo
 import (
 	"fmt"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
