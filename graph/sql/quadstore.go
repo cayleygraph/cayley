@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"database/sql"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"hash"
 	"sync"
@@ -231,7 +230,7 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				return err
 			}
 			if affected != 1 && !opts.IgnoreMissing {
-				return errors.New("deleting non-existent triple; rolling back")
+				return graph.ErrTransactionFailed
 			}
 		default:
 			panic("unknown action")
@@ -257,7 +256,11 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 	default:
 		panic("no support for flavor: " + qs.sqlFlavor)
 	}
-	return tx.Commit()
+	err = tx.Commit()
+	if err == pq.ErrInFailedTransaction {
+		return graph.ErrTransactionFailed
+	}
+	return err
 }
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {

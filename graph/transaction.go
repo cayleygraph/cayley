@@ -14,7 +14,13 @@
 
 package graph
 
-import "github.com/google/cayley/quad"
+import (
+	"errors"
+
+	"github.com/google/cayley/quad"
+)
+
+var ErrTransactionFailed = errors.New("graph: transaction failed")
 
 // Transaction stores a bunch of Deltas to apply atomatically on the database.
 type Transaction struct {
