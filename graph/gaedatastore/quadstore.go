@@ -25,20 +25,27 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/barakmich/glog"
-
-	"appengine"
-	"appengine/datastore"
+	"golang.org/x/net/context"
 
 	"github.com/google/cayley/graph"
 	"github.com/google/cayley/graph/iterator"
 	"github.com/google/cayley/quad"
+
+	"github.com/barakmich/glog"
+	"github.com/mjibson/goon"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 )
 
 const (
 	QuadStoreType = "gaedatastore"
 	quadKind      = "quad"
 	nodeKind      = "node"
+	// useSingleInstanceCache improves query perfomance,
+	// but is not safe to use on multiple instances at the same time
+	// TODO (bashtian) synchronize multiple instances
+	useSingleInstanceCache = false
 )
 
 var (
@@ -48,13 +55,26 @@ var (
 		New: func() interface{} { return sha1.New() },
 	}
 	hashSize = sha1.Size
+	// instance cache for datastore query results
+	queryCache = map[string]Cache{}
 )
 
 type QuadStore struct {
-	context appengine.Context
+	hashSize   int
+	makeHasher func() hash.Hash
+	context    context.Context
+	db         *goon.Goon
+}
+
+type Cache struct {
+	buffer []string
+	last   string
+	done   bool
 }
 
 type MetadataEntry struct {
+	Id        string `datastore:"-" goon:"id"`
+	_kind     string `goon:"kind,metadata"`
 	NodeCount int64
 	QuadCount int64
 }
@@ -65,6 +85,8 @@ type Token struct {
 }
 
 type QuadEntry struct {
+	Id        string `datastore:"-" goon:"id"`
+	Kind      string `datastore:"-" goon:"kind,quad"`
 	Hash      string
 	Added     []string `datastore:",noindex"`
 	Deleted   []string `datastore:",noindex"`
@@ -75,11 +97,15 @@ type QuadEntry struct {
 }
 
 type NodeEntry struct {
-	Name string
-	Size int64
+	Id    string `datastore:"-" goon:"id"`
+	_kind string `goon:"kind,node"`
+	Name  string
+	Size  int64
 }
 
 type LogEntry struct {
+	Id        string `datastore:"-" goon:"id"`
+	_kind     string `goon:"kind,logentry"`
 	LogID     string
 	Action    string
 	Key       string
@@ -113,6 +139,7 @@ func newQuadStoreForRequest(qs graph.QuadStore, options graph.Options) (graph.Qu
 	}
 	t := newQs.(*QuadStore)
 	t.context, err = getContext(options)
+	t.db = goon.FromContext(t.context)
 	return newQs, err
 }
 
@@ -133,7 +160,7 @@ func (qs *QuadStore) createKeyForMetadata() *datastore.Key {
 	return qs.createKeyFromToken(&Token{"metadata", "metadataentry"})
 }
 
-func (qs *QuadStore) createKeyForLog(deltaID graph.PrimaryKey) *datastore.Key {
+func (qs *QuadStore) createKeyForLog(deltaID *graph.PrimaryKey) *datastore.Key {
 	return datastore.NewKey(qs.context, "logentry", deltaID.String(), 0, nil)
 }
 
@@ -142,9 +169,9 @@ func (qs *QuadStore) createKeyFromToken(t *Token) *datastore.Key {
 }
 
 func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
-	var q quad.Quad
-	err := datastore.Get(qs.context, k, &q)
-	if err == datastore.ErrNoSuchEntity {
+	q := QuadEntry{Id: k.StringID(), Kind: k.Kind()}
+	err := qs.db.Get(&q)
+	if err == datastore.ErrNoSuchEntity || len(q.Added) <= len(q.Deleted) {
 		return false, nil
 	}
 	if _, ok := err.(*datastore.ErrFieldMismatch); ok {
@@ -157,7 +184,11 @@ func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
 	return true, nil
 }
 
-func getContext(opts graph.Options) (appengine.Context, error) {
+func (qs *QuadStore) resetCache() {
+	queryCache = make(map[string]Cache)
+}
+
+func getContext(opts graph.Options) (context.Context, error) {
 	req := opts["HTTPRequest"].(*http.Request)
 	if req == nil {
 		err := errors.New("HTTP Request needed")
@@ -167,16 +198,17 @@ func getContext(opts graph.Options) (appengine.Context, error) {
 	return appengine.NewContext(req), nil
 }
 
-func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	if qs.context == nil {
 		return errors.New("No context, graph not correctly initialised")
 	}
 	toKeep := make([]graph.Delta, 0)
-	for _, d := range in {
+	for _, d := range deltas {
 		if d.Action != graph.Add && d.Action != graph.Delete {
 			//Defensive shortcut
 			return errors.New("Datastore: invalid action")
 		}
+
 		key := qs.createKeyForQuad(d.Quad)
 		keep := false
 		switch d.Action {
@@ -199,6 +231,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 				keep = true
 			} else {
 				glog.Warningf("Quad does not exist and so cannot be deleted: %v", d)
+				return errors.New("quad not found")
 			}
 		default:
 			keep = false
@@ -210,6 +243,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	if len(toKeep) == 0 {
 		return nil
 	}
+	qs.resetCache()
 	err := qs.updateLog(toKeep)
 	if err != nil {
 		glog.Errorf("Updating log failed %v", err)
@@ -258,19 +292,22 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 		nodesAdded += countDelta
 	}
 	// Create keys and new nodes
-	keys := make([]*datastore.Key, 0, len(nodeDeltas))
 	tempNodes := make([]NodeEntry, 0, len(nodeDeltas))
 	for k, v := range nodeDeltas {
-		keys = append(keys, qs.createKeyForNode(k))
-		tempNodes = append(tempNodes, NodeEntry{k, v})
+		key := qs.createKeyForNode(k)
+		n := NodeEntry{Id: key.StringID(), _kind: key.Kind(), Name: k, Size: v}
+		tempNodes = append(tempNodes, n)
 	}
 	// In accordance with the appengine datastore spec, cross group transactions
 	// like these can only be done in batches of 5
 	for i := 0; i < len(nodeDeltas); i += 5 {
 		j := int(math.Min(float64(len(nodeDeltas)-i), 5))
 		foundNodes := make([]NodeEntry, j)
-		err := datastore.RunInTransaction(qs.context, func(c appengine.Context) error {
-			err := datastore.GetMulti(c, keys[i:i+j], foundNodes)
+		for k := range foundNodes {
+			foundNodes[k].Id = tempNodes[i+k].Id
+		}
+		err := qs.db.RunInTransaction(func(tg *goon.Goon) error {
+			err := tg.GetMulti(foundNodes)
 			// Sift through for errors
 			if me, ok := err.(appengine.MultiError); ok {
 				for _, merr := range me {
@@ -286,7 +323,7 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 					tempNodes[i+k].Size += foundNodes[k].Size
 				}
 			}
-			_, err = datastore.PutMulti(c, keys[i:i+j], tempNodes[i:i+j])
+			_, err = tg.PutMulti(tempNodes[i : i+j])
 			return err
 		}, &datastore.TransactionOptions{XG: true})
 		if err != nil {
@@ -299,37 +336,40 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 }
 
 func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
-	keys := make([]*datastore.Key, 0, len(in))
-	for _, d := range in {
-		keys = append(keys, qs.createKeyForQuad(d.Quad))
+	foundQuads := make([]QuadEntry, len(in))
+	for i, d := range in {
+		key := qs.createKeyForQuad(d.Quad)
+		foundQuads[i].Id = key.StringID()
+		foundQuads[i].Kind = key.Kind()
 	}
+	//log.Println("updateQuads", foundQuads)
 	var quadCount int64
 	for i := 0; i < len(in); i += 5 {
 		// Find the closest batch of 5
 		j := int(math.Min(float64(len(in)-i), 5))
-		err := datastore.RunInTransaction(qs.context, func(c appengine.Context) error {
-			foundQuads := make([]QuadEntry, j)
+		err := qs.db.RunInTransaction(func(tg *goon.Goon) error {
 			// We don't process errors from GetMulti as they don't mean anything,
 			// we've handled existing quad conflicts above and we overwrite everything again anyways
-			datastore.GetMulti(c, keys, foundQuads)
-			for k, _ := range foundQuads {
+
+			tg.GetMulti(foundQuads[i : i+j])
+			for k, _ := range foundQuads[i : i+j] {
 				x := i + k
-				foundQuads[k].Hash = keys[x].StringID()
-				foundQuads[k].Subject = in[x].Quad.Subject
-				foundQuads[k].Predicate = in[x].Quad.Predicate
-				foundQuads[k].Object = in[x].Quad.Object
-				foundQuads[k].Label = in[x].Quad.Label
+				foundQuads[x].Hash = foundQuads[x].Id
+				foundQuads[x].Subject = in[x].Quad.Subject
+				foundQuads[x].Predicate = in[x].Quad.Predicate
+				foundQuads[x].Object = in[x].Quad.Object
+				foundQuads[x].Label = in[x].Quad.Label
 
 				// If the quad exists the Added[] will be non-empty
 				if in[x].Action == graph.Add {
-					foundQuads[k].Added = append(foundQuads[k].Added, in[x].ID.String())
+					foundQuads[x].Added = append(foundQuads[x].Added, in[x].ID.String())
 					quadCount += 1
 				} else {
-					foundQuads[k].Deleted = append(foundQuads[k].Deleted, in[x].ID.String())
+					foundQuads[x].Deleted = append(foundQuads[x].Deleted, in[x].ID.String())
 					quadCount -= 1
 				}
 			}
-			_, err := datastore.PutMulti(c, keys[i:i+j], foundQuads)
+			_, err := tg.PutMulti(foundQuads[i : i+j])
 			return err
 		}, &datastore.TransactionOptions{XG: true})
 		if err != nil {
@@ -341,16 +381,16 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 
 func (qs *QuadStore) updateMetadata(quadsAdded int64, nodesAdded int64) error {
 	key := qs.createKeyForMetadata()
-	foundMetadata := new(MetadataEntry)
-	err := datastore.RunInTransaction(qs.context, func(c appengine.Context) error {
-		err := datastore.Get(c, key, foundMetadata)
+	foundMetadata := &MetadataEntry{Id: key.StringID(), _kind: key.Kind()}
+	err := qs.db.RunInTransaction(func(tg *goon.Goon) error {
+		err := tg.Get(foundMetadata)
 		if err != nil && err != datastore.ErrNoSuchEntity {
 			glog.Errorf("Error: %v", err)
 			return err
 		}
 		foundMetadata.QuadCount += quadsAdded
 		foundMetadata.NodeCount += nodesAdded
-		_, err = datastore.Put(c, key, foundMetadata)
+		_, err = tg.Put(foundMetadata)
 		if err != nil {
 			glog.Errorf("Error: %v", err)
 		}
@@ -368,7 +408,6 @@ func (qs *QuadStore) updateLog(in []graph.Delta) error {
 		return errors.New("Nothing to log")
 	}
 	logEntries := make([]LogEntry, 0, len(in))
-	logKeys := make([]*datastore.Key, 0, len(in))
 	for _, d := range in {
 		var action string
 		if d.Action == graph.Add {
@@ -378,16 +417,15 @@ func (qs *QuadStore) updateLog(in []graph.Delta) error {
 		}
 
 		entry := LogEntry{
+			Id:        d.ID.String(),
 			LogID:     d.ID.String(),
 			Action:    action,
 			Key:       qs.createKeyForQuad(d.Quad).String(),
 			Timestamp: d.Timestamp.UnixNano(),
 		}
 		logEntries = append(logEntries, entry)
-		logKeys = append(logKeys, qs.createKeyForLog(d.ID))
 	}
-
-	_, err := datastore.PutMulti(qs.context, logKeys, logEntries)
+	_, err := qs.db.PutMulti(logEntries)
 	if err != nil {
 		glog.Errorf("Error updating log: %v", err)
 	}
@@ -424,10 +462,8 @@ func (qs *QuadStore) NameOf(val graph.Value) string {
 		return ""
 	}
 
-	// TODO (panamafrancis) implement a cache
-
-	node := new(NodeEntry)
-	err := datastore.Get(qs.context, key, node)
+	node := NodeEntry{Id: key.StringID()}
+	err := qs.db.Get(&node)
 	if err != nil {
 		glog.Errorf("Error: %v", err)
 		return ""
@@ -448,8 +484,11 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 		return quad.Quad{}
 	}
 
-	q := new(QuadEntry)
-	err := datastore.Get(qs.context, key, q)
+	q := &QuadEntry{
+		Id:   key.StringID(),
+		Kind: key.Kind(),
+	}
+	err := qs.db.Get(q)
 	if err != nil {
 		// Red herring error : ErrFieldMismatch can happen when a quad exists but a field is empty
 		if _, ok := err.(*datastore.ErrFieldMismatch); !ok {
@@ -468,9 +507,13 @@ func (qs *QuadStore) Size() int64 {
 		glog.Error("Error fetching size, context is nil, graph not correctly initialised")
 		return 0
 	}
+
 	key := qs.createKeyForMetadata()
+
 	foundMetadata := new(MetadataEntry)
-	err := datastore.Get(qs.context, key, foundMetadata)
+	foundMetadata.Id = key.StringID()
+	foundMetadata._kind = key.Kind()
+	err := qs.db.Get(foundMetadata)
 	if err != nil {
 		glog.Warningf("Error: %v", err)
 		return 0
@@ -483,9 +526,12 @@ func (qs *QuadStore) NodeSize() int64 {
 		glog.Error("Error fetching node size, context is nil, graph not correctly initialised")
 		return 0
 	}
+
 	key := qs.createKeyForMetadata()
 	foundMetadata := new(MetadataEntry)
-	err := datastore.Get(qs.context, key, foundMetadata)
+	foundMetadata.Id = key.StringID()
+	foundMetadata._kind = key.Kind()
+	err := qs.db.Get(foundMetadata)
 	if err != nil {
 		glog.Warningf("Error: %v", err)
 		return 0
@@ -501,7 +547,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	// Query log for last entry...
 	q := datastore.NewQuery("logentry").Order("-Timestamp").Limit(1)
 	var logEntries []LogEntry
-	_, err := q.GetAll(qs.context, &logEntries)
+	_, err := qs.db.GetAll(q, &logEntries)
 	if err != nil || len(logEntries) == 0 {
 		// Error fetching horizon, probably graph is empty
 		return graph.NewUniqueKey("")
