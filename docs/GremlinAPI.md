@@ -243,7 +243,7 @@ Example:
 // returns "follows", "status"
 g.V("bob").OutPredicates()
 ```
-
+ 
 ### Tagging
 
 ####**`path.Tag(tag)`**
