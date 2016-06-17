@@ -36,9 +36,18 @@ var (
 	hashSize = sha1.Size
 )
 
+type sqlFlavor string
+
+const (
+	postgres  sqlFlavor = "postgres"
+	cockroach sqlFlavor = "cockroach"
+)
+
+var sqlFlavors = []sqlFlavor{postgres, cockroach}
+
 type QuadStore struct {
 	db           *sql.DB
-	sqlFlavor    string
+	sqlFlavor    sqlFlavor
 	size         int64
 	lru          *cache
 	noSizes      bool
@@ -74,6 +83,11 @@ func createSQLTables(addr string, options graph.Options) error {
 		return err
 	}
 
+	sqlFlavor, err := getSQLFlavor(options)
+	if err != nil {
+		return err
+	}
+
 	quadTable, err := tx.Exec(`
 	CREATE TABLE quads (
 		subject TEXT NOT NULL,
@@ -104,11 +118,18 @@ func createSQLTables(addr string, options graph.Options) error {
 	}
 	var index sql.Result
 
+	var indexOptions string
+	if sqlFlavor != cockroach {
+		indexOptions = fmt.Sprintf("WITH (FILLFACTOR = %d)", factor)
+	} else {
+		glog.Infof("Index FILLFACTOR disabled.")
+	}
+
 	index, err = tx.Exec(fmt.Sprintf(`
-	CREATE INDEX spo_index ON quads (subject_hash) WITH (FILLFACTOR = %d);
-	CREATE INDEX pos_index ON quads (predicate_hash) WITH (FILLFACTOR = %d);
-	CREATE INDEX osp_index ON quads (object_hash) WITH (FILLFACTOR = %d);
-	`, factor, factor, factor))
+	CREATE INDEX spo_index ON quads (subject_hash) %s;
+	CREATE INDEX pos_index ON quads (predicate_hash) %s;
+	CREATE INDEX osp_index ON quads (object_hash) %s;
+	`, indexOptions, indexOptions, indexOptions))
 	if err != nil {
 		glog.Errorf("Cannot create indices: %v", index)
 		tx.Rollback()
@@ -116,6 +137,22 @@ func createSQLTables(addr string, options graph.Options) error {
 	}
 	tx.Commit()
 	return nil
+}
+
+func getSQLFlavor(options graph.Options) (sqlFlavor, error) {
+	flavor, found, err := options.StringKey("db_sql_flavor")
+	if err != nil {
+		return "", err
+	}
+	if !found {
+		return postgres, nil
+	}
+	for _, valid := range sqlFlavors {
+		if flavor == string(valid) {
+			return valid, nil
+		}
+	}
+	return "", fmt.Errorf("invalid sql flavor: %q", flavor)
 }
 
 func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
@@ -129,9 +166,14 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	qs.db = conn
-	qs.sqlFlavor = "postgres"
 	qs.size = -1
 	qs.lru = newCache(1024)
+
+	qs.sqlFlavor, err = getSQLFlavor(options)
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("sql flavor: %s", qs.sqlFlavor)
 
 	// Skip size checking by default.
 	qs.noSizes = true
@@ -195,14 +237,20 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 			allAdds = false
 		}
 	}
-	if allAdds {
+	if allAdds && qs.sqlFlavor != cockroach {
 		return qs.copyFrom(tx, in)
 	}
+
+	var insertQueryOptions string
+	if opts.IgnoreDup {
+		insertQueryOptions = `ON CONFLICT (subject_hash, predicate_hash, object_hash, label_hash) DO NOTHING`
+	}
+	insertQuery := fmt.Sprintf(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) %s;`, insertQueryOptions)
 
 	for _, d := range in {
 		switch d.Action {
 		case graph.Add:
-			_, err := tx.Exec(`INSERT INTO quads(subject, predicate, object, label, id, ts, subject_hash, predicate_hash, object_hash, label_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
+			_, err := tx.Exec(insertQuery,
 				d.Quad.Subject,
 				d.Quad.Predicate,
 				d.Quad.Object,
@@ -248,11 +296,24 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 		return err
 	}
 	switch qs.sqlFlavor {
-	case "postgres":
+	case postgres:
 		err = qs.runTxPostgres(tx, in, opts)
 		if err != nil {
 			tx.Rollback()
 			return err
+		}
+	case cockroach:
+		for try := 0; try < 10; try++ {
+			err = qs.runTxPostgres(tx, in, opts)
+			if err != nil {
+				tx.Rollback()
+				// Retry on `40001 - restart transaction` errors from cockroach.
+				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pq.ErrorCode("40001") {
+					continue
+				}
+				return err
+			}
+			break
 		}
 	default:
 		panic("no support for flavor: " + qs.sqlFlavor)
