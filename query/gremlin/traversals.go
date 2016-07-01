@@ -17,7 +17,7 @@ package gremlin
 // Adds special traversal functions to JS Gremlin objects. Most of these just build the chain of objects, and won't often need the session.
 
 import (
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 	"github.com/robertkrimen/otto"
 )
 
