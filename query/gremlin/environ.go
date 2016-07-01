@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 	"github.com/robertkrimen/otto"
 
 	"github.com/google/cayley/graph"

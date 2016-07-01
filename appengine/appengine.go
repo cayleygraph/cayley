@@ -21,7 +21,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/barakmich/glog"
+	"github.com/golang/glog"
 
 	"github.com/google/cayley/internal/config"
 	"github.com/google/cayley/internal/db"
