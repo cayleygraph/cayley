@@ -14,7 +14,7 @@
 
 package path
 
-import "github.com/google/cayley/graph"
+import "github.com/codelingo/cayley/graph"
 
 type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
 

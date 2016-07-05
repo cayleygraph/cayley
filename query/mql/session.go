@@ -21,9 +21,9 @@ import (
 
 	"github.com/barakmich/glog"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/query"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/query"
 )
 
 type Session struct {

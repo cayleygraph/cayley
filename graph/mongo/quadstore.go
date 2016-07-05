@@ -25,9 +25,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/barakmich/glog"
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 const DefaultDBName = "cayley"

@@ -22,15 +22,15 @@ import (
 	"os"
 
 	"github.com/barakmich/glog"
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/internal/config"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/internal/config"
 
 	// Load all supported backends.
 
-	_ "github.com/google/cayley/graph/bolt"
-	_ "github.com/google/cayley/graph/leveldb"
-	_ "github.com/google/cayley/graph/memstore"
-	_ "github.com/google/cayley/graph/mongo"
+	_ "github.com/codelingo/cayley/graph/bolt"
+	_ "github.com/codelingo/cayley/graph/leveldb"
+	_ "github.com/codelingo/cayley/graph/memstore"
+	_ "github.com/codelingo/cayley/graph/mongo"
 )
 
 var (

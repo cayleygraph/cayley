@@ -14,7 +14,7 @@
 
 package graph
 
-import "github.com/google/cayley/quad"
+import "github.com/codelingo/cayley/quad"
 
 // Transaction stores a bunch of Deltas to apply atomatically on the database.
 type Transaction struct {

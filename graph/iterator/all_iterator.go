@@ -23,7 +23,7 @@ package iterator
 // the base iterators, and it helps just to see it here.
 
 import (
-	"github.com/google/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 // An All iterator across a range of int64 values, from `max` to `min`.

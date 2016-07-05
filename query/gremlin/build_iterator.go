@@ -21,9 +21,9 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/robertkrimen/otto"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/graph/path"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph/path"
 )
 
 func propertiesOf(obj *otto.Object, name string) []string {

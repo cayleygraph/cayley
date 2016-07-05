@@ -19,7 +19,7 @@ package iterator
 import (
 	"github.com/barakmich/glog"
 
-	"github.com/google/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 var abortMaterializeAt = 1000

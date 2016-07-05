@@ -20,8 +20,8 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/robertkrimen/otto"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
 )
 
 const TopResultTag = "id"

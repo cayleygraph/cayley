@@ -19,10 +19,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
-	"github.com/google/cayley/writer"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/writer"
 )
 
 // This is a simple test graph.

@@ -22,9 +22,9 @@ import (
 	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 type Iterator struct {

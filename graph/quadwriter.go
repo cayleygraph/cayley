@@ -26,7 +26,7 @@ import (
 	"flag"
 	"time"
 
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 type Procedure int8

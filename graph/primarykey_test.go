@@ -17,7 +17,7 @@ package graph_test
 import (
 	"testing"
 
-	. "github.com/google/cayley/graph"
+	. "github.com/codelingo/cayley/graph"
 	"github.com/pborman/uuid"
 )
 

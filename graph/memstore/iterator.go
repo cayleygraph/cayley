@@ -19,10 +19,10 @@ import (
 	"io"
 	"math"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/graph/memstore/b"
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph/memstore/b"
+	"github.com/codelingo/cayley/quad"
 )
 
 type Iterator struct {

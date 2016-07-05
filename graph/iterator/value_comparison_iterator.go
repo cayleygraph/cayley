@@ -29,7 +29,7 @@ package iterator
 import (
 	"strconv"
 
-	"github.com/google/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 type Operator int

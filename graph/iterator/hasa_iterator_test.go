@@ -18,7 +18,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 func TestHasAIteratorErr(t *testing.T) {

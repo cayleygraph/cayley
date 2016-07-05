@@ -22,10 +22,10 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/graph/proto"
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph/proto"
+	"github.com/codelingo/cayley/quad"
 )
 
 var (

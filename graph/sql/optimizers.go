@@ -18,9 +18,9 @@ import (
 	"errors"
 
 	"github.com/barakmich/glog"
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 func intersect(a sqlIterator, b sqlIterator, qs *QuadStore) (*SQLIterator, error) {

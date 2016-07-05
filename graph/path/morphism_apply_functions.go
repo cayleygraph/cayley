@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 // join puts two iterators together by intersecting their result sets with an AND

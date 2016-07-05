@@ -25,9 +25,9 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/internal/config"
-	"github.com/google/cayley/internal/db"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/internal/config"
+	"github.com/codelingo/cayley/internal/db"
 )
 
 type ResponseHandler func(http.ResponseWriter, *http.Request, httprouter.Params) int

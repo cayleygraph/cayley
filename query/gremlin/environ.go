@@ -23,7 +23,7 @@ import (
 	"github.com/barakmich/glog"
 	"github.com/robertkrimen/otto"
 
-	"github.com/google/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 type worker struct {

@@ -20,8 +20,8 @@ import (
 
 	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/proto"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/proto"
 )
 
 const latestDataVersion = 2
