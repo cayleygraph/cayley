@@ -11,7 +11,7 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -49,14 +49,14 @@ func connectSQLTables(addr string, _ graph.Options) (*sql.DB, error) {
 	// TODO(barakmich): Parse options for more friendly addr, other SQLs.
 	conn, err := sql.Open("postgres", addr)
 	if err != nil {
-		glog.Errorf("Couldn't open database at %s: %#v", addr, err)
+		clog.Errorf("Couldn't open database at %s: %#v", addr, err)
 		return nil, err
 	}
 	// "Open may just validate its arguments without creating a connection to the database."
 	// "To verify that the data source name is valid, call Ping."
 	// Source: http://golang.org/pkg/database/sql/#Open
 	if err := conn.Ping(); err != nil {
-		glog.Errorf("Couldn't open database at %s: %#v", addr, err)
+		clog.Errorf("Couldn't open database at %s: %#v", addr, err)
 		return nil, err
 	}
 	return conn, nil
@@ -70,7 +70,7 @@ func createSQLTables(addr string, options graph.Options) error {
 	defer conn.Close()
 	tx, err := conn.Begin()
 	if err != nil {
-		glog.Errorf("Couldn't begin creation transaction: %s", err)
+		clog.Errorf("Couldn't begin creation transaction: %s", err)
 		return err
 	}
 
@@ -95,7 +95,7 @@ func createSQLTables(addr string, options graph.Options) error {
 		if errd.Code == "42P07" {
 			return graph.ErrDatabaseExists
 		}
-		glog.Errorf("Cannot create quad table: %v", quadTable)
+		clog.Errorf("Cannot create quad table: %v", quadTable)
 		return err
 	}
 	factor, factorOk, err := options.IntKey("db_fill_factor")
@@ -110,7 +110,7 @@ func createSQLTables(addr string, options graph.Options) error {
 	CREATE INDEX osp_index ON quads (object_hash) WITH (FILLFACTOR = %d);
 	`, factor, factor, factor))
 	if err != nil {
-		glog.Errorf("Cannot create indices: %v", index)
+		clog.Errorf("Cannot create indices: %v", index)
 		tx.Rollback()
 		return err
 	}
@@ -177,7 +177,7 @@ func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta) error {
 			hashOf(d.Quad.Label),
 		)
 		if err != nil {
-			glog.Errorf("couldn't prepare COPY statement: %v", err)
+			clog.Errorf("couldn't prepare COPY statement: %v", err)
 			return err
 		}
 	}
@@ -215,19 +215,19 @@ func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.Igno
 				hashOf(d.Quad.Label),
 			)
 			if err != nil {
-				glog.Errorf("couldn't exec INSERT statement: %v", err)
+				clog.Errorf("couldn't exec INSERT statement: %v", err)
 				return err
 			}
 		case graph.Delete:
 			result, err := tx.Exec(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`,
 				hashOf(d.Quad.Subject), hashOf(d.Quad.Predicate), hashOf(d.Quad.Object), hashOf(d.Quad.Label))
 			if err != nil {
-				glog.Errorf("couldn't exec DELETE statement: %v", err)
+				clog.Errorf("couldn't exec DELETE statement: %v", err)
 				return err
 			}
 			affected, err := result.RowsAffected()
 			if err != nil {
-				glog.Errorf("couldn't get DELETE RowsAffected: %v", err)
+				clog.Errorf("couldn't get DELETE RowsAffected: %v", err)
 				return err
 			}
 			if affected != 1 && !opts.IgnoreMissing {
@@ -244,7 +244,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 	// TODO(barakmich): Support more ignoreOpts? "ON CONFLICT IGNORE"
 	tx, err := qs.db.Begin()
 	if err != nil {
-		glog.Errorf("couldn't begin write transaction: %v", err)
+		clog.Errorf("couldn't begin write transaction: %v", err)
 		return err
 	}
 	switch qs.sqlFlavor {
@@ -282,7 +282,9 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 
 func (qs *QuadStore) NameOf(v graph.Value) string {
 	if v == nil {
-		glog.V(2).Info("NameOf was nil")
+		if clog.V(2) {
+			clog.Infof("NameOf was nil")
+		}
 		return ""
 	}
 	return v.(string)
@@ -307,7 +309,7 @@ func (qs *QuadStore) Size() int64 {
 	c := qs.db.QueryRow(query)
 	err := c.Scan(&qs.size)
 	if err != nil {
-		glog.Errorf("Couldn't execute COUNT: %v", err)
+		clog.Errorf("Couldn't execute COUNT: %v", err)
 		return 0
 	}
 	return qs.size
@@ -318,7 +320,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	err := qs.db.QueryRow("SELECT horizon FROM quads ORDER BY horizon DESC LIMIT 1;").Scan(&horizon)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			glog.Errorf("Couldn't execute horizon: %v", err)
+			clog.Errorf("Couldn't execute horizon: %v", err)
 		}
 		return graph.NewSequentialKey(0)
 	}
@@ -357,11 +359,13 @@ func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, val string)
 		return val
 	}
 	var size int64
-	glog.V(4).Infoln("sql: getting size for select %s, %s", dir.String(), val)
+	if clog.V(4) {
+		clog.Infof("sql: getting size for select %s, %s", dir.String(), val)
+	}
 	err = qs.db.QueryRow(
 		fmt.Sprintf("SELECT count(*) FROM quads WHERE %s_hash = $1;", dir.String()), hashOf(val)).Scan(&size)
 	if err != nil {
-		glog.Errorln("Error getting size from SQL database: %v", err)
+		clog.Errorf("Error getting size from SQL database: %v", err)
 		return 0
 	}
 	qs.lru.Put(val+string(dir.Prefix()), size)

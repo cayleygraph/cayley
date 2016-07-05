@@ -25,7 +25,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"appengine"
 	"appengine/datastore"
@@ -151,7 +151,7 @@ func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
 		return true, nil
 	}
 	if err != nil {
-		glog.Warningf("Error occured when getting quad/node %s %v", k, err)
+		clog.Warningf("Error occured when getting quad/node %s %v", k, err)
 		return false, err
 	}
 	return true, nil
@@ -161,7 +161,7 @@ func getContext(opts graph.Options) (appengine.Context, error) {
 	req := opts["HTTPRequest"].(*http.Request)
 	if req == nil {
 		err := errors.New("HTTP Request needed")
-		glog.Errorln(err)
+		clog.Errorf("%v", err)
 		return nil, err
 	}
 	return appengine.NewContext(req), nil
@@ -188,7 +188,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			if !found || ignoreOpts.IgnoreDup {
 				keep = true
 			} else {
-				glog.Warningf("Quad exists already: %v", d)
+				clog.Warningf("Quad exists already: %v", d)
 			}
 		case graph.Delete:
 			found, err := qs.checkValid(key)
@@ -198,7 +198,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			if found || ignoreOpts.IgnoreMissing {
 				keep = true
 			} else {
-				glog.Warningf("Quad does not exist and so cannot be deleted: %v", d)
+				clog.Warningf("Quad does not exist and so cannot be deleted: %v", d)
 			}
 		default:
 			keep = false
@@ -212,27 +212,27 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	}
 	err := qs.updateLog(toKeep)
 	if err != nil {
-		glog.Errorf("Updating log failed %v", err)
+		clog.Errorf("Updating log failed %v", err)
 		return err
 	}
 
-	if glog.V(2) {
-		glog.Infoln("Existence verified. Proceeding.")
+	if clog.V(2) {
+		clog.Infof("Existence verified. Proceeding.")
 	}
 
 	quadsAdded, err := qs.updateQuads(toKeep)
 	if err != nil {
-		glog.Errorf("UpdateQuads failed %v", err)
+		clog.Errorf("UpdateQuads failed %v", err)
 		return err
 	}
 	nodesAdded, err := qs.updateNodes(toKeep)
 	if err != nil {
-		glog.Warningf("UpdateNodes failed %v", err)
+		clog.Warningf("UpdateNodes failed %v", err)
 		return err
 	}
 	err = qs.updateMetadata(quadsAdded, nodesAdded)
 	if err != nil {
-		glog.Warningf("UpdateMetadata failed %v", err)
+		clog.Warningf("UpdateMetadata failed %v", err)
 		return err
 	}
 	return nil
@@ -275,7 +275,7 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 			if me, ok := err.(appengine.MultiError); ok {
 				for _, merr := range me {
 					if merr != nil && merr != datastore.ErrNoSuchEntity {
-						glog.Errorf("Error: %v", merr)
+						clog.Errorf("Error: %v", merr)
 						return merr
 					}
 				}
@@ -290,7 +290,7 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 			return err
 		}, &datastore.TransactionOptions{XG: true})
 		if err != nil {
-			glog.Errorf("Error: %v", err)
+			clog.Errorf("Error: %v", err)
 			return 0, err
 		}
 	}
@@ -345,14 +345,14 @@ func (qs *QuadStore) updateMetadata(quadsAdded int64, nodesAdded int64) error {
 	err := datastore.RunInTransaction(qs.context, func(c appengine.Context) error {
 		err := datastore.Get(c, key, foundMetadata)
 		if err != nil && err != datastore.ErrNoSuchEntity {
-			glog.Errorf("Error: %v", err)
+			clog.Errorf("Error: %v", err)
 			return err
 		}
 		foundMetadata.QuadCount += quadsAdded
 		foundMetadata.NodeCount += nodesAdded
 		_, err = datastore.Put(c, key, foundMetadata)
 		if err != nil {
-			glog.Errorf("Error: %v", err)
+			clog.Errorf("Error: %v", err)
 		}
 		return err
 	}, nil)
@@ -389,7 +389,7 @@ func (qs *QuadStore) updateLog(in []graph.Delta) error {
 
 	_, err := datastore.PutMulti(qs.context, logKeys, logEntries)
 	if err != nil {
-		glog.Errorf("Error updating log: %v", err)
+		clog.Errorf("Error updating log: %v", err)
 	}
 	return err
 }
@@ -413,14 +413,14 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 
 func (qs *QuadStore) NameOf(val graph.Value) string {
 	if qs.context == nil {
-		glog.Error("Error in NameOf, context is nil, graph not correctly initialised")
+		clog.Errorf("Error in NameOf, context is nil, graph not correctly initialised")
 		return ""
 	}
 	var key *datastore.Key
 	if t, ok := val.(*Token); ok && t.Kind == nodeKind {
 		key = qs.createKeyFromToken(t)
 	} else {
-		glog.Error("Token not valid")
+		clog.Errorf("Token not valid")
 		return ""
 	}
 
@@ -429,7 +429,7 @@ func (qs *QuadStore) NameOf(val graph.Value) string {
 	node := new(NodeEntry)
 	err := datastore.Get(qs.context, key, node)
 	if err != nil {
-		glog.Errorf("Error: %v", err)
+		clog.Errorf("Error: %v", err)
 		return ""
 	}
 	return node.Name
@@ -437,14 +437,14 @@ func (qs *QuadStore) NameOf(val graph.Value) string {
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	if qs.context == nil {
-		glog.Error("Error fetching quad, context is nil, graph not correctly initialised")
+		clog.Errorf("Error fetching quad, context is nil, graph not correctly initialised")
 		return quad.Quad{}
 	}
 	var key *datastore.Key
 	if t, ok := val.(*Token); ok && t.Kind == quadKind {
 		key = qs.createKeyFromToken(t)
 	} else {
-		glog.Error("Token not valid")
+		clog.Errorf("Token not valid")
 		return quad.Quad{}
 	}
 
@@ -453,7 +453,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	if err != nil {
 		// Red herring error : ErrFieldMismatch can happen when a quad exists but a field is empty
 		if _, ok := err.(*datastore.ErrFieldMismatch); !ok {
-			glog.Errorf("Error: %v", err)
+			clog.Errorf("Error: %v", err)
 		}
 	}
 	return quad.Quad{
@@ -465,14 +465,14 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 
 func (qs *QuadStore) Size() int64 {
 	if qs.context == nil {
-		glog.Error("Error fetching size, context is nil, graph not correctly initialised")
+		clog.Errorf("Error fetching size, context is nil, graph not correctly initialised")
 		return 0
 	}
 	key := qs.createKeyForMetadata()
 	foundMetadata := new(MetadataEntry)
 	err := datastore.Get(qs.context, key, foundMetadata)
 	if err != nil {
-		glog.Warningf("Error: %v", err)
+		clog.Warningf("Error: %v", err)
 		return 0
 	}
 	return foundMetadata.QuadCount
@@ -480,14 +480,14 @@ func (qs *QuadStore) Size() int64 {
 
 func (qs *QuadStore) NodeSize() int64 {
 	if qs.context == nil {
-		glog.Error("Error fetching node size, context is nil, graph not correctly initialised")
+		clog.Errorf("Error fetching node size, context is nil, graph not correctly initialised")
 		return 0
 	}
 	key := qs.createKeyForMetadata()
 	foundMetadata := new(MetadataEntry)
 	err := datastore.Get(qs.context, key, foundMetadata)
 	if err != nil {
-		glog.Warningf("Error: %v", err)
+		clog.Warningf("Error: %v", err)
 		return 0
 	}
 	return foundMetadata.NodeCount
@@ -495,7 +495,7 @@ func (qs *QuadStore) NodeSize() int64 {
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	if qs.context == nil {
-		glog.Warning("Warning: HTTP Request context is nil, cannot get horizon from datastore.")
+		clog.Warningf("Warning: HTTP Request context is nil, cannot get horizon from datastore.")
 		return graph.NewUniqueKey("")
 	}
 	// Query log for last entry...
@@ -530,11 +530,11 @@ func (qs *QuadStore) Close() {
 func (qs *QuadStore) QuadDirection(val graph.Value, dir quad.Direction) graph.Value {
 	t, ok := val.(*Token)
 	if !ok {
-		glog.Error("Token not valid")
+		clog.Errorf("Token not valid")
 		return nil
 	}
 	if t.Kind == nodeKind {
-		glog.Error("Node tokens not valid")
+		clog.Errorf("Node tokens not valid")
 		return nil
 	}
 	var offset int

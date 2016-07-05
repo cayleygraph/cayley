@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/robertkrimen/otto"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -201,7 +201,7 @@ func buildPathFromValue(val otto.Value) (out []interface{}) {
 			out = append(out, v)
 			return
 		default:
-			glog.Errorln("Trying to build unknown primitive value.")
+			clog.Errorf("Trying to build unknown primitive value.")
 		}
 	}
 	switch val.Class() {
@@ -224,7 +224,7 @@ func buildPathFromValue(val otto.Value) (out []interface{}) {
 		out = append(out, val.String())
 		return
 	default:
-		glog.Errorln("Trying to handle unsupported Javascript value.")
+		clog.Errorf("Trying to handle unsupported Javascript value.")
 		return nil
 	}
 }
@@ -232,7 +232,7 @@ func buildPathFromValue(val otto.Value) (out []interface{}) {
 func getViaData(obj *otto.Object) (predicates []interface{}, tags []string, ok bool) {
 	argList, _ := obj.Get("_gremlin_values")
 	if argList.Class() != "GoArray" {
-		glog.Errorln("How is arglist not an array? Return nothing.", argList.Class())
+		clog.Errorf("How is arglist not an array? Return nothing. %v", argList.Class())
 		return nil, nil, false
 	}
 	argArray := argList.Object()

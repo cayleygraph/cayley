@@ -18,7 +18,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -264,7 +264,9 @@ func (qs *QuadStore) DebugPrint() {
 		if i == 0 {
 			continue
 		}
-		glog.V(2).Infof("%d: %#v", i, l)
+		if clog.V(2) {
+			clog.Infof("%d: %#v", i, l)
+		}
 	}
 }
 

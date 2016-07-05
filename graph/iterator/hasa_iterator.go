@@ -34,7 +34,7 @@ package iterator
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
 import (
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
@@ -146,8 +146,8 @@ func (it *HasA) Describe() graph.Description {
 func (it *HasA) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
-	if glog.V(4) {
-		glog.V(4).Infoln("Id is", it.qs.NameOf(val))
+	if clog.V(4) {
+		clog.Infof("Id is %v", it.qs.NameOf(val))
 	}
 	// TODO(barakmich): Optimize this
 	if it.resultIt != nil {
@@ -168,8 +168,8 @@ func (it *HasA) NextContains() bool {
 	for graph.Next(it.resultIt) {
 		it.runstats.ContainsNext += 1
 		link := it.resultIt.Result()
-		if glog.V(4) {
-			glog.V(4).Infoln("Quad is", it.qs.Quad(link))
+		if clog.V(4) {
+			clog.Infof("Quad is %v", it.qs.Quad(link))
 		}
 		if it.primaryIt.Contains(link) {
 			it.result = it.qs.QuadDirection(link, it.dir)
@@ -188,7 +188,9 @@ func (it *HasA) NextPath() bool {
 	//
 	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
-	glog.V(4).Infoln("HASA", it.UID(), "NextPath")
+	if clog.V(4) {
+		clog.Infof("HASA %v NextPath", it.UID())
+	}
 	if it.primaryIt.NextPath() {
 		return true
 	}
@@ -201,7 +203,9 @@ func (it *HasA) NextPath() bool {
 	if it.err != nil {
 		return false
 	}
-	glog.V(4).Infoln("HASA", it.UID(), "NextPath Returns", result, "")
+	if clog.V(4) {
+		clog.Infof("HASA %v NextPath Returns %v", it.UID(), result)
+	}
 	return result
 }
 

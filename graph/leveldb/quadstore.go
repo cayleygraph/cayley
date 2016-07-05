@@ -24,7 +24,7 @@ import (
 	"hash"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -80,7 +80,7 @@ func createNewLevelDB(path string, _ graph.Options) error {
 	opts := &opt.Options{}
 	db, err := leveldb.OpenFile(path, opts)
 	if err != nil {
-		glog.Errorf("Error: could not create database: %v", err)
+		clog.Errorf("Error: could not create database: %v", err)
 		return err
 	}
 	defer db.Close()
@@ -92,7 +92,7 @@ func createNewLevelDB(path string, _ graph.Options) error {
 	qs.readopts = &opt.ReadOptions{}
 	_, err = qs.db.Get([]byte(horizonKey), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorln("couldn't read from leveldb during init")
+		clog.Errorf("couldn't read from leveldb during init")
 		return err
 	}
 	if err != leveldb.ErrNotFound {
@@ -133,11 +133,11 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	qs.readopts = &opt.ReadOptions{}
 	db, err := leveldb.OpenFile(qs.path, qs.dbOpts)
 	if err != nil {
-		glog.Errorln("Error, could not open! ", err)
+		clog.Errorf("Error, could not open! %v", err)
 		return nil, err
 	}
 	qs.db = db
-	glog.Infoln(qs.GetStats())
+	clog.Infof("%v", qs.GetStats())
 	err = qs.getMetadata()
 	if err != nil {
 		return nil, err
@@ -250,7 +250,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	}
 	err := qs.db.Write(batch, qs.writeopts)
 	if err != nil {
-		glog.Error("could not write to DB for quadset.")
+		clog.Errorf("could not write to DB for quadset.")
 		return err
 	}
 	qs.size += sizeChange
@@ -268,7 +268,7 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 	var entry IndexEntry
 	data, err := qs.db.Get(qs.createKeyFor(spo, q), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Error("could not access DB to prepare index: ", err)
+		clog.Errorf("could not access DB to prepare index: %v", err)
 		return err
 	}
 	if err == nil {
@@ -282,11 +282,11 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 	}
 
 	if isAdd && len(entry.History)%2 == 1 {
-		glog.Errorf("attempt to add existing quad %v: %#v", entry, q)
+		clog.Errorf("attempt to add existing quad %v: %#v", entry, q)
 		return graph.ErrQuadExists
 	}
 	if !isAdd && len(entry.History)%2 == 0 {
-		glog.Error("attempt to delete non-existent quad %v: %#c", entry, q)
+		clog.Errorf("attempt to delete non-existent quad %v: %#c", entry, q)
 		return graph.ErrQuadNotExist
 	}
 
@@ -294,7 +294,7 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		glog.Errorf("could not write to buffer for entry %#v: %s", entry, err)
+		clog.Errorf("could not write to buffer for entry %#v: %s", entry, err)
 		return err
 	}
 	batch.Put(qs.createKeyFor(spo, q), bytes)
@@ -318,7 +318,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, batch *leveldb.
 
 	// Error getting the node from the database.
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorf("Error reading Value %s from the DB.", name)
+		clog.Errorf("Error reading Value %s from the DB.", name)
 		return err
 	}
 
@@ -326,7 +326,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, batch *leveldb.
 	if b != nil && err != leveldb.ErrNotFound {
 		err = json.Unmarshal(b, value)
 		if err != nil {
-			glog.Errorf("Error: could not reconstruct value: %v", err)
+			clog.Errorf("Error: could not reconstruct value: %v", err)
 			return err
 		}
 		value.Size += amount
@@ -340,7 +340,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, batch *leveldb.
 	// Repackage and rewrite.
 	bytes, err := json.Marshal(&value)
 	if err != nil {
-		glog.Errorf("could not write to buffer for value %s: %s", name, err)
+		clog.Errorf("could not write to buffer for value %s: %s", name, err)
 		return err
 	}
 	if batch == nil {
@@ -357,20 +357,20 @@ func (qs *QuadStore) Close() {
 	if err == nil {
 		werr := qs.db.Put([]byte(sizeKey), buf.Bytes(), qs.writeopts)
 		if werr != nil {
-			glog.Error("could not write size before closing!")
+			clog.Errorf("could not write size before closing!")
 		}
 	} else {
-		glog.Errorf("could not convert size before closing!")
+		clog.Errorf("could not convert size before closing!")
 	}
 	buf.Reset()
 	err = binary.Write(buf, binary.LittleEndian, qs.horizon)
 	if err == nil {
 		werr := qs.db.Put([]byte(horizonKey), buf.Bytes(), qs.writeopts)
 		if werr != nil {
-			glog.Error("could not write horizon before closing!")
+			clog.Errorf("could not write horizon before closing!")
 		}
 	} else {
-		glog.Errorf("could not convert horizon before closing!")
+		clog.Errorf("could not convert horizon before closing!")
 	}
 	qs.db.Close()
 	qs.open = false
@@ -380,7 +380,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	var q quad.Quad
 	b, err := qs.db.Get(k.(Token), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Error("Error: could not get quad from DB.")
+		clog.Errorf("Error: could not get quad from DB.")
 		return quad.Quad{}
 	}
 	if err == leveldb.ErrNotFound {
@@ -389,7 +389,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	}
 	err = json.Unmarshal(b, &q)
 	if err != nil {
-		glog.Error("Error: could not reconstruct quad.")
+		clog.Errorf("Error: could not reconstruct quad.")
 		return quad.Quad{}
 	}
 	return q
@@ -401,18 +401,18 @@ func (qs *QuadStore) ValueOf(s string) graph.Value {
 
 func (qs *QuadStore) valueData(key []byte) ValueData {
 	var out ValueData
-	if glog.V(3) {
-		glog.V(3).Infof("%c %v", key[0], key)
+	if clog.V(3) {
+		clog.Infof("%c %v", key[0], key)
 	}
 	b, err := qs.db.Get(key, qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorln("Error: could not get value from DB")
+		clog.Errorf("Error: could not get value from DB")
 		return out
 	}
 	if b != nil && err != leveldb.ErrNotFound {
 		err = json.Unmarshal(b, &out)
 		if err != nil {
-			glog.Errorln("Error: could not reconstruct value")
+			clog.Errorf("Error: could not reconstruct value")
 			return ValueData{}
 		}
 	}
@@ -421,7 +421,7 @@ func (qs *QuadStore) valueData(key []byte) ValueData {
 
 func (qs *QuadStore) NameOf(k graph.Value) string {
 	if k == nil {
-		glog.V(2).Info("k was nil")
+		clog.Infof("k was nil")
 		return ""
 	}
 	return qs.valueData(k.(Token)).Name
@@ -438,7 +438,7 @@ func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {
 	var out int64
 	b, err := qs.db.Get([]byte(key), qs.readopts)
 	if err != nil && err != leveldb.ErrNotFound {
-		glog.Errorln("could not read " + key + ": " + err.Error())
+		clog.Errorf("could not read %v: %v", key, err)
 		return 0, err
 	}
 	if err == leveldb.ErrNotFound {
@@ -448,7 +448,7 @@ func (qs *QuadStore) getInt64ForKey(key string, empty int64) (int64, error) {
 	buf := bytes.NewBuffer(b)
 	err = binary.Read(buf, binary.LittleEndian, &out)
 	if err != nil {
-		glog.Errorln("Error: could not parse", key)
+		clog.Errorf("Error: could not parse %v", key)
 		return 0, err
 	}
 	return out, nil

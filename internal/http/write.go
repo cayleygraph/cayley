@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/internal"
@@ -73,7 +73,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 
 	formFile, _, err := r.FormFile("NQuadFile")
 	if err != nil {
-		glog.Errorln(err)
+		clog.Errorf("%v", err)
 		return jsonResponse(w, 500, "Couldn't read file: "+err.Error())
 	}
 	defer formFile.Close()
@@ -102,7 +102,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 			if err == io.EOF {
 				break
 			}
-			glog.Fatalln("what can do this here?", err) // FIXME(kortschak)
+			clog.Fatalf("what can do this here? %v", err) // FIXME(kortschak)
 		}
 		block = append(block, t)
 		n++

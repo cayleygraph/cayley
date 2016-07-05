@@ -24,7 +24,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -164,7 +164,7 @@ func (qs *QuadStore) updateNodeBy(name string, inc int) error {
 
 	_, err := qs.db.C("nodes").UpsertId(node, upsert)
 	if err != nil {
-		glog.Errorf("Error updating node: %v", err)
+		clog.Errorf("Error updating node: %v", err)
 	}
 	return err
 }
@@ -184,7 +184,7 @@ func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) err
 	}
 	_, err := qs.db.C("quads").UpsertId(qs.getIDForQuad(q), upsert)
 	if err != nil {
-		glog.Errorf("Error: %v", err)
+		clog.Errorf("Error: %v", err)
 	}
 	return err
 }
@@ -199,7 +199,7 @@ func (qs *QuadStore) checkValid(key string) bool {
 		return false
 	}
 	if err != nil {
-		glog.Errorln("Other error checking valid quad: %s %v.", key, err)
+		clog.Errorf("Other error checking valid quad: %s %v.", key, err)
 		return false
 	}
 	if len(indexEntry.Added) <= len(indexEntry.Deleted) {
@@ -223,7 +223,7 @@ func (qs *QuadStore) updateLog(d graph.Delta) error {
 	}
 	err := qs.db.C("log").Insert(entry)
 	if err != nil {
-		glog.Errorf("Error updating log: %v", err)
+		clog.Errorf("Error updating log: %v", err)
 	}
 	return err
 }
@@ -256,8 +256,8 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			}
 		}
 	}
-	if glog.V(2) {
-		glog.Infoln("Existence verified. Proceeding.")
+	if clog.V(2) {
+		clog.Infof("Existence verified. Proceeding.")
 	}
 	for _, d := range in {
 		err := qs.updateLog(d)
@@ -297,7 +297,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	var q quad.Quad
 	err := qs.db.C("quads").FindId(val.(string)).One(&q)
 	if err != nil {
-		glog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
+		clog.Errorf("Error: Couldn't retrieve quad %s %v", val, err)
 	}
 	return q
 }
@@ -326,7 +326,7 @@ func (qs *QuadStore) NameOf(v graph.Value) string {
 	var node MongoNode
 	err := qs.db.C("nodes").FindId(v.(string)).One(&node)
 	if err != nil {
-		glog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
+		clog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
 	} else if node.ID != "" && node.Name != "" {
 		qs.ids.Put(v.(string), node.Name)
 	}
@@ -337,7 +337,7 @@ func (qs *QuadStore) Size() int64 {
 	// TODO(barakmich): Make size real; store it in the log, and retrieve it.
 	count, err := qs.db.C("quads").Count()
 	if err != nil {
-		glog.Errorf("Error: %v", err)
+		clog.Errorf("Error: %v", err)
 		return 0
 	}
 	return int64(count)
@@ -350,7 +350,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 		if err == mgo.ErrNotFound {
 			return graph.NewSequentialKey(0)
 		}
-		glog.Errorf("Could not get Horizon from Mongo: %v", err)
+		clog.Errorf("Could not get Horizon from Mongo: %v", err)
 	}
 	return graph.NewSequentialKey(log.LogID)
 }
@@ -390,7 +390,7 @@ func (qs *QuadStore) getSize(collection string, constraint bson.M) (int64, error
 	var size int
 	bytes, err := bson.Marshal(constraint)
 	if err != nil {
-		glog.Errorf("Couldn't marshal internal constraint")
+		clog.Errorf("Couldn't marshal internal constraint")
 		return -1, err
 	}
 	key := collection + string(bytes)
@@ -403,7 +403,7 @@ func (qs *QuadStore) getSize(collection string, constraint bson.M) (int64, error
 		size, err = qs.db.C(collection).Find(constraint).Count()
 	}
 	if err != nil {
-		glog.Errorln("Trouble getting size for iterator! ", err)
+		clog.Errorf("Trouble getting size for iterator! %v", err)
 		return -1, err
 	}
 	qs.sizes.Put(key, int64(size))

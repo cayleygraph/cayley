@@ -17,7 +17,7 @@ package iterator
 // A simple iterator that, when first called Contains() or Next() upon, materializes the whole subiterator, stores it locally, and responds. Essentially a cache.
 
 import (
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -166,10 +166,14 @@ func (it *Materialize) Optimize() (graph.Iterator, bool) {
 // Otherwise, guess based on the size of the subiterator.
 func (it *Materialize) Size() (int64, bool) {
 	if it.hasRun && !it.aborted {
-		glog.V(2).Infoln("returning size", it.actualSize)
+		if clog.V(2) {
+			clog.Infof("returning size %v", it.actualSize)
+		}
 		return it.actualSize, true
 	}
-	glog.V(2).Infoln("bailing size", it.actualSize)
+	if clog.V(2) {
+		clog.Infof("bailing size %v", it.actualSize)
+	}
 	return it.subIt.Size()
 }
 
@@ -295,8 +299,8 @@ func (it *Materialize) materializeSet() {
 	}
 	it.err = it.subIt.Err()
 	if it.err == nil && it.aborted {
-		if glog.V(2) {
-			glog.V(2).Infoln("Aborting subiterator")
+		if clog.V(2) {
+			clog.Infof("Aborting subiterator")
 		}
 		it.values = nil
 		it.containsMap = nil

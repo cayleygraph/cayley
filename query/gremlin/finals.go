@@ -17,7 +17,7 @@ package gremlin
 import (
 	"encoding/json"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/robertkrimen/otto"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -82,7 +82,7 @@ func (wk *worker) toArrayFunc(env *otto.Otto, obj *otto.Object, withTags bool) f
 		}
 
 		if err != nil {
-			glog.Error(err)
+			clog.Errorf("%v", err)
 			return otto.NullValue()
 		}
 		return val
@@ -110,7 +110,7 @@ func (wk *worker) toValueFunc(env *otto.Otto, obj *otto.Object, withTags bool) f
 			val, err = call.Otto.ToValue(array[0])
 		}
 		if err != nil {
-			glog.Error(err)
+			clog.Errorf("%v", err)
 			return otto.NullValue()
 		}
 		return val
@@ -208,12 +208,12 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []strin
 func (wk *worker) runIteratorWithCallback(it graph.Iterator, callback otto.Value, this otto.FunctionCall, limit int) {
 	n := 0
 	it, _ = it.Optimize()
-	if glog.V(2) {
+	if clog.V(2) {
 		b, err := json.MarshalIndent(it.Describe(), "", "  ")
 		if err != nil {
-			glog.V(2).Infof("failed to format description: %v", err)
+			clog.Infof("failed to format description: %v", err)
 		} else {
-			glog.V(2).Infof("%s", b)
+			clog.Infof("%s", b)
 		}
 	}
 	for {
@@ -278,12 +278,12 @@ func (wk *worker) runIterator(it graph.Iterator) {
 		return
 	}
 	it, _ = it.Optimize()
-	if glog.V(2) {
+	if clog.V(2) {
 		b, err := json.MarshalIndent(it.Describe(), "", "  ")
 		if err != nil {
-			glog.V(2).Infof("failed to format description: %v", err)
+			clog.Infof("failed to format description: %v", err)
 		} else {
-			glog.V(2).Infof("%s", b)
+			clog.Infof("%s", b)
 		}
 	}
 	for {
@@ -313,9 +313,9 @@ func (wk *worker) runIterator(it graph.Iterator) {
 			}
 		}
 	}
-	if glog.V(2) {
+	if clog.V(2) {
 		bytes, _ := json.MarshalIndent(graph.DumpStats(it), "", "  ")
-		glog.V(2).Infoln(string(bytes))
+		clog.Infof(string(bytes))
 	}
 	it.Close()
 }

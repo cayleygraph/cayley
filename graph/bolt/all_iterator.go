@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -121,7 +121,7 @@ func (it *AllIterator) Next() bool {
 			return nil
 		})
 		if err != nil {
-			glog.Error("Error nexting in database: ", err)
+			clog.Errorf("Error nexting in database: %v", err)
 			it.err = err
 			it.done = true
 			return false

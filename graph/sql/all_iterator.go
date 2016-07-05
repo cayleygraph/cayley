@@ -17,7 +17,7 @@ package sql
 import (
 	"database/sql"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -45,11 +45,13 @@ func (it *AllIterator) makeCursor() {
 	if it.table == "quads" {
 		cursor, err = it.qs.db.Query(`SELECT subject, predicate, object, label FROM quads;`)
 		if err != nil {
-			glog.Errorln("Couldn't get cursor from SQL database: %v", err)
+			clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 			cursor = nil
 		}
 	} else {
-		glog.V(4).Infoln("sql: getting node query")
+		if clog.V(4) {
+			clog.Infof("sql: getting node query")
+		}
 		cursor, err = it.qs.db.Query(`SELECT node FROM
 			(
 				SELECT subject FROM quads
@@ -61,10 +63,12 @@ func (it *AllIterator) makeCursor() {
 				SELECT label FROM quads
 			) AS DistinctNodes (node) WHERE node IS NOT NULL;`)
 		if err != nil {
-			glog.Errorln("Couldn't get cursor from SQL database: %v", err)
+			clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 			cursor = nil
 		}
-		glog.V(4).Infoln("sql: got node query")
+		if clog.V(4) {
+			clog.Infof("sql: got node query")
+		}
 	}
 	it.cursor = cursor
 }
@@ -136,10 +140,10 @@ func (it *AllIterator) Next() bool {
 		}
 	}
 	if !it.cursor.Next() {
-		glog.V(4).Infoln("sql: No next")
+		clog.Infof("sql: No next")
 		err := it.cursor.Err()
 		if err != nil {
-			glog.Errorf("Cursor error in SQL: %v", err)
+			clog.Errorf("Cursor error in SQL: %v", err)
 			it.err = err
 		}
 		it.cursor.Close()
@@ -149,7 +153,7 @@ func (it *AllIterator) Next() bool {
 		var node string
 		err := it.cursor.Scan(&node)
 		if err != nil {
-			glog.Errorf("Error nexting node iterator: %v", err)
+			clog.Errorf("Error nexting node iterator: %v", err)
 			it.err = err
 			return false
 		}
@@ -159,7 +163,7 @@ func (it *AllIterator) Next() bool {
 	var q quad.Quad
 	err := it.cursor.Scan(&q.Subject, &q.Predicate, &q.Object, &q.Label)
 	if err != nil {
-		glog.Errorf("Error scanning sql iterator: %v", err)
+		clog.Errorf("Error scanning sql iterator: %v", err)
 		it.err = err
 		return false
 	}
@@ -179,7 +183,7 @@ func (it *AllIterator) Size() (int64, bool) {
 
 func (it *AllIterator) Result() graph.Value {
 	if it.result == nil {
-		glog.Fatalln("result was nil", it)
+		clog.Fatalf("result was nil %v", it)
 	}
 	return it.result
 }

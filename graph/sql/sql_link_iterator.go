@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -304,12 +304,12 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 	query += constraint
 	query += ";"
 
-	if glog.V(4) {
+	if clog.V(4) {
 		dstr := query
 		for i := 1; i <= len(values); i++ {
 			dstr = strings.Replace(dstr, "?", fmt.Sprintf("'%s'", values[i-1]), 1)
 		}
-		glog.V(4).Infoln(dstr)
+		clog.Infof("%v", dstr)
 	}
 	return query, values
 }

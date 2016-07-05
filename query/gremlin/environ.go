@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/robertkrimen/otto"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -54,7 +54,7 @@ func newWorker(qs graph.QuadStore) *worker {
 		call.Otto.Run("var out = {}")
 		out, err := call.Otto.Object("out")
 		if err != nil {
-			glog.Error(err.Error())
+			clog.Errorf("%v", err.Error())
 			return otto.TrueValue()
 		}
 		out.Set("_gremlin_type", "vertex")

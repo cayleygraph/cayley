@@ -19,8 +19,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -56,7 +56,7 @@ type Iterator struct {
 func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
 	tok := value.(*Token)
 	if !bytes.Equal(tok.bucket, nodeBucket) {
-		glog.Error("creating an iterator from a non-node value")
+		clog.Errorf("creating an iterator from a non-node value")
 		return &Iterator{done: true}
 	}
 
@@ -173,7 +173,7 @@ func (it *Iterator) Next() bool {
 		})
 		if err != nil {
 			if err != errNotExist {
-				glog.Errorf("Error nexting in database: %v", err)
+				clog.Errorf("Error nexting in database: %v", err)
 				it.err = err
 			}
 			it.done = true

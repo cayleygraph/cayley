@@ -17,7 +17,7 @@ package iterator
 import (
 	"sort"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -89,7 +89,9 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	newAnd.tags.CopyFrom(it)
 
 	newAnd.optimizeContains()
-	glog.V(3).Infoln(it.UID(), "became", newAnd.UID())
+	if clog.V(3) {
+		clog.Infof("%v become %v", it.UID(), newAnd.UID())
+	}
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the
@@ -103,7 +105,9 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 		newReplacement, hasOne := it.qs.OptimizeIterator(newAnd)
 		if hasOne {
 			newAnd.Close()
-			glog.V(3).Infoln(it.UID(), "became", newReplacement.UID(), "from quadstore")
+			if clog.V(3) {
+				clog.Infof("%v become %v from quadstore", it.UID(), newReplacement.UID())
+			}
 			return newReplacement, true
 		}
 	}
@@ -180,16 +184,16 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 			cost += stats.ContainsCost * (1 + (rootStats.Size / (stats.Size + 1)))
 		}
 		cost *= rootStats.Size
-		if glog.V(3) {
-			glog.V(3).Infoln("And:", it.UID(), "Root:", root.UID(), "Total Cost:", cost, "Best:", bestCost)
+		if clog.V(3) {
+			clog.Infof("And: %v Root: %v Total Cost: %v Best: %v", it.UID(), root.UID(), cost, bestCost)
 		}
 		if cost < bestCost {
 			best = root
 			bestCost = cost
 		}
 	}
-	if glog.V(3) {
-		glog.V(3).Infoln("And:", it.UID(), "Choosing:", best.UID(), "Best:", bestCost)
+	if clog.V(3) {
+		clog.Infof("And: %v Choosing: %v Best: %v", it.UID(), best.UID(), bestCost)
 	}
 
 	// TODO(barakmich): Optimization of order need not stop here. Picking a smart

@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
@@ -67,7 +67,7 @@ func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *QuadSto
 	if !ok {
 		it.open = false
 		it.iter.Release()
-		glog.Error("Opening LevelDB iterator couldn't seek to location ", it.nextPrefix)
+		clog.Errorf("Opening LevelDB iterator couldn't seek to location %v", it.nextPrefix)
 	}
 
 	return &it

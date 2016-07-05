@@ -21,7 +21,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -189,7 +189,7 @@ func Next(it Iterator) bool {
 	if n, ok := it.(Nexter); ok {
 		return n.Next()
 	}
-	glog.Errorln("Nexting an un-nextable iterator")
+	clog.Errorf("Nexting an un-nextable iterator: %T", it)
 	return false
 }
 
@@ -332,34 +332,34 @@ func DumpStats(it Iterator) StatsContainer {
 // well as what they return. Highly useful for tracing the execution path of a query.
 
 func ContainsLogIn(it Iterator, val Value) {
-	if glog.V(4) {
-		glog.V(4).Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
+	if clog.V(4) {
+		clog.Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
 	}
 }
 
 func ContainsLogOut(it Iterator, val Value, good bool) bool {
-	if glog.V(4) {
+	if clog.V(4) {
 		if good {
-			glog.V(4).Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			clog.Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			clog.Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		}
 	}
 	return good
 }
 
 func NextLogIn(it Iterator) {
-	if glog.V(4) {
-		glog.V(4).Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
+	if clog.V(4) {
+		clog.Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
 	}
 }
 
 func NextLogOut(it Iterator, val Value, ok bool) bool {
-	if glog.V(4) {
+	if clog.V(4) {
 		if ok {
-			glog.V(4).Infof("%s %d NEXT IS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
+			clog.Infof("%s %d NEXT IS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
+			clog.Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
 		}
 	}
 	return ok

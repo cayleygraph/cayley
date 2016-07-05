@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"errors"
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -107,7 +107,7 @@ func iterateResults(qs graph.QuadStore, it graph.Iterator) []string {
 
 func printIterator(qs graph.QuadStore, it graph.Iterator) {
 	for graph.Next(it) {
-		glog.Infof("%v", qs.Quad(it.Result()))
+		clog.Infof("%v", qs.Quad(it.Result()))
 	}
 }
 
@@ -219,7 +219,7 @@ func TestAddRemove(t *testing.T) {
 }
 
 func TestIterators(t *testing.T) {
-	glog.Info("\n-----------\n")
+	clog.Infof("\n-----------\n")
 	inst, opts, err := createInstance()
 	defer inst.Close()
 
@@ -262,7 +262,7 @@ func TestIterators(t *testing.T) {
 }
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
-	glog.Info("\n-----------\n")
+	clog.Infof("\n-----------\n")
 	inst, opts, err := createInstance()
 	defer inst.Close()
 

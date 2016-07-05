@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/pborman/uuid"
 )
 
@@ -86,7 +86,7 @@ func (p *PrimaryKey) Int() int64 {
 		return p.sequentialID
 	case unique:
 		msg := "UUID cannot be converted to an int64"
-		glog.Errorln(msg)
+		clog.Errorf(msg)
 		panic(msg)
 	}
 	return -1

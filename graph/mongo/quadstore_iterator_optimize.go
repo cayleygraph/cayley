@@ -15,7 +15,7 @@
 package mongo
 
 import (
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -34,16 +34,22 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 
 func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool) {
 	// Fail fast if nothing can happen
-	glog.V(4).Infoln("Entering optimizeAndIterator", it.UID())
+	if clog.V(4) {
+		clog.Infof("Entering optimizeAndIterator %v", it.UID())
+	}
 	found := false
 	for _, it := range it.SubIterators() {
-		glog.V(4).Infoln(it.Type())
+		if clog.V(4) {
+			clog.Infof("%v", it.Type())
+		}
 		if it.Type() == mongoType {
 			found = true
 		}
 	}
 	if !found {
-		glog.V(4).Infoln("Aborting optimizeAndIterator")
+		if clog.V(4) {
+			clog.Infof("Aborting optimizeAndIterator")
+		}
 		return it, false
 	}
 

@@ -17,7 +17,7 @@ package gremlin
 // Adds special traversal functions to JS Gremlin objects. Most of these just build the chain of objects, and won't often need the session.
 
 import (
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/robertkrimen/otto"
 )
 
@@ -72,7 +72,9 @@ func (wk *worker) gremlinFunc(kind string, prev *otto.Object, env *otto.Otto) fu
 
 func debugChain(obj *otto.Object) bool {
 	val, _ := obj.Get("_gremlin_type")
-	glog.V(2).Infoln(val)
+	if clog.V(2) {
+		clog.Infof("%v", val)
+	}
 	val, _ = obj.Get("_gremlin_prev")
 	if val.IsObject() {
 		return debugChain(val.Object())

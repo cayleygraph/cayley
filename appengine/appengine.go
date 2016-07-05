@@ -21,7 +21,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/internal/db"
@@ -57,7 +57,7 @@ func configFrom(file string) (*config.Config, error) {
 		file = "/cayley_appengine.cfg"
 	}
 	if file == "" {
-		glog.Infoln("Couldn't find a config file appengine.cfg. Going by flag defaults only.")
+		clog.Infof("Couldn't find a config file appengine.cfg. Going by flag defaults only.")
 	}
 	cfg, err := config.Load(file)
 	if err != nil {
@@ -98,15 +98,14 @@ func configFrom(file string) (*config.Config, error) {
 }
 
 func init() {
-	glog.SetToStderr(true)
 	cfg, err := configFrom("cayley_appengine.cfg")
 	if err != nil {
-		glog.Fatalln("Error loading config:", err)
+		clog.Fatalf("Error loading config: %v", err)
 	}
 
 	handle, err := db.Open(cfg)
 	if err != nil {
-		glog.Fatalln("Error opening database:", err)
+		clog.Fatalf("Error opening database: %v", err)
 	}
 	http.SetupRoutes(handle, cfg)
 }

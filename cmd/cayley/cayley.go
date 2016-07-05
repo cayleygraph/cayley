@@ -24,7 +24,8 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
+	_ "github.com/cayleygraph/cayley/clog/glog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"
@@ -93,7 +94,7 @@ func configFrom(file string) *config.Config {
 	// Find the file...
 	if file != "" {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
-			glog.Fatalln("Cannot find specified configuration file", file, ", aborting.")
+			clog.Fatalf("Cannot find specified configuration file '%s', aborting.", file)
 		}
 	} else if _, err := os.Stat(os.Getenv("CAYLEY_CFG")); err == nil {
 		file = os.Getenv("CAYLEY_CFG")
@@ -101,11 +102,11 @@ func configFrom(file string) *config.Config {
 		file = "/etc/cayley.cfg"
 	}
 	if file == "" {
-		glog.Infoln("Couldn't find a config file in either $CAYLEY_CFG or /etc/cayley.cfg. Going by flag defaults only.")
+		clog.Infof("Couldn't find a config file in either $CAYLEY_CFG or /etc/cayley.cfg. Going by flag defaults only.")
 	}
 	cfg, err := config.Load(file)
 	if err != nil {
-		glog.Fatalln(err)
+		clog.Fatalf("%v", err)
 	}
 
 	if cfg.DatabasePath == "" {
@@ -156,7 +157,7 @@ func main() {
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			glog.Fatal(err)
+			clog.Fatalf("%v", err)
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
@@ -165,16 +166,16 @@ func main() {
 	var buildString string
 	if Version != "" {
 		buildString = fmt.Sprint("Cayley ", Version, " built ", BuildDate)
-		glog.Infoln(buildString)
+		clog.Infof(buildString)
 	}
 
 	cfg := configFrom(*configFile)
 
 	if os.Getenv("GOMAXPROCS") == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		glog.Infoln("Setting GOMAXPROCS to", runtime.NumCPU())
+		clog.Infof("Setting GOMAXPROCS to %d", runtime.NumCPU())
 	} else {
-		glog.Infoln("GOMAXPROCS currently", os.Getenv("GOMAXPROCS"), " -- not adjusting")
+		clog.Infof("GOMAXPROCS currently %v -- not adjusting", os.Getenv("GOMAXPROCS"))
 	}
 
 	var (
@@ -287,6 +288,6 @@ func main() {
 		usage()
 	}
 	if err != nil {
-		glog.Errorln(err)
+		clog.Errorf("%v", err)
 	}
 }

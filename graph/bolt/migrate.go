@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/proto"
 )
@@ -39,7 +39,7 @@ func upgradeBolt(path string, opts graph.Options) error {
 	defer db.Close()
 
 	if err != nil {
-		glog.Errorln("Error, couldn't open! ", err)
+		clog.Errorf("Error, couldn't open! %v", err)
 		return err
 	}
 	var version int64
@@ -48,7 +48,7 @@ func upgradeBolt(path string, opts graph.Options) error {
 		return err
 	})
 	if err != nil {
-		glog.Errorln("error:", err)
+		clog.Errorf("error: %v", err)
 		return err
 	}
 
@@ -59,7 +59,7 @@ func upgradeBolt(path string, opts graph.Options) error {
 
 	if version > latestDataVersion {
 		err := fmt.Errorf("Unknown data version: %d -- upgrade this tool", version)
-		glog.Errorln("error:", err)
+		clog.Errorf("error: %v", err)
 		return err
 	}
 

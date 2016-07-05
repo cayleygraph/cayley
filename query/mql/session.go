@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -83,12 +83,12 @@ func (s *Session) Execute(input string, c chan interface{}, _ int) {
 		return
 	}
 	it, _ := s.currentQuery.it.Optimize()
-	if glog.V(2) {
+	if clog.V(2) {
 		b, err := json.MarshalIndent(it.Describe(), "", "  ")
 		if err != nil {
-			glog.Infof("failed to format description: %v", err)
+			clog.Infof("failed to format description: %v", err)
 		} else {
-			glog.Infof("%s", b)
+			clog.Infof("%s", b)
 		}
 	}
 	for graph.Next(it) {

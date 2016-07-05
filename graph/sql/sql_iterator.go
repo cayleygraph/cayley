@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -152,23 +152,25 @@ func (it *SQLIterator) Next() bool {
 	if it.cursor == nil {
 		err = it.makeCursor(true, nil)
 		if err != nil {
-			glog.Errorf("Couldn't make query: %v", err)
+			clog.Errorf("Couldn't make query: %v", err)
 			it.err = err
 			return false
 		}
 		it.cols, err = it.cursor.Columns()
 		if err != nil {
-			glog.Errorf("Couldn't get columns")
+			clog.Errorf("Couldn't get columns")
 			it.err = err
 			it.cursor.Close()
 			return false
 		}
 		// iterate the first one
 		if !it.cursor.Next() {
-			glog.V(4).Infoln("sql: No next")
+			if clog.V(4) {
+				clog.Infof("sql: No next")
+			}
 			err := it.cursor.Err()
 			if err != nil {
-				glog.Errorf("Cursor error in SQL: %v", err)
+				clog.Errorf("Cursor error in SQL: %v", err)
 				it.err = err
 			}
 			it.cursor.Close()
@@ -191,10 +193,12 @@ func (it *SQLIterator) Next() bool {
 	it.resultIndex = 0
 	for {
 		if !it.cursor.Next() {
-			glog.V(4).Infoln("sql: No next")
+			if clog.V(4) {
+				clog.Infof("sql: No next")
+			}
 			err := it.cursor.Err()
 			if err != nil {
-				glog.Errorf("Cursor error in SQL: %v", err)
+				clog.Errorf("Cursor error in SQL: %v", err)
 				it.err = err
 			}
 			it.cursor.Close()
@@ -229,7 +233,7 @@ func (it *SQLIterator) Contains(v graph.Value) bool {
 	}
 	err = it.makeCursor(false, v)
 	if err != nil {
-		glog.Errorf("Couldn't make query: %v", err)
+		clog.Errorf("Couldn't make query: %v", err)
 		it.err = err
 		if it.cursor != nil {
 			it.cursor.Close()
@@ -238,7 +242,7 @@ func (it *SQLIterator) Contains(v graph.Value) bool {
 	}
 	it.cols, err = it.cursor.Columns()
 	if err != nil {
-		glog.Errorf("Couldn't get columns")
+		clog.Errorf("Couldn't get columns")
 		it.err = err
 		it.cursor.Close()
 		return false
@@ -246,10 +250,12 @@ func (it *SQLIterator) Contains(v graph.Value) bool {
 	it.resultList = nil
 	for {
 		if !it.cursor.Next() {
-			glog.V(4).Infoln("sql: No next")
+			if clog.V(4) {
+				clog.Infof("sql: No next")
+			}
 			err := it.cursor.Err()
 			if err != nil {
-				glog.Errorf("Cursor error in SQL: %v", err)
+				clog.Errorf("Cursor error in SQL: %v", err)
 				it.err = err
 			}
 			it.cursor.Close()
@@ -281,7 +287,7 @@ func scan(cursor *sql.Rows, nCols int) ([]string, error) {
 	}
 	err := cursor.Scan(pointers...)
 	if err != nil {
-		glog.Errorf("Error scanning iterator: %v", err)
+		clog.Errorf("Error scanning iterator: %v", err)
 		return nil, err
 	}
 	return container, nil
@@ -305,7 +311,7 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 	}
 	cursor, err := it.qs.db.Query(q, ivalues...)
 	if err != nil {
-		glog.Errorf("Couldn't get cursor from SQL database: %v", err)
+		clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 		cursor = nil
 		return err
 	}

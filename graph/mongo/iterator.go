@@ -17,7 +17,7 @@ package mongo
 import (
 	"fmt"
 
-	"github.com/barakmich/glog"
+	"github.com/cayleygraph/cayley/clog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -138,7 +138,7 @@ func (it *Iterator) Next() bool {
 		err := it.iter.Err()
 		if err != nil {
 			it.err = err
-			glog.Errorln("Error Nexting Iterator: ", err)
+			clog.Errorf("Error Nexting Iterator: %v", err)
 		}
 		return false
 	}
