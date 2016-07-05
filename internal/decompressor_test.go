@@ -86,7 +86,7 @@ func TestDecompressor(t *testing.T) {
 		}
 		p := make([]byte, len(test.expect)*2)
 		n, err := r.Read(p)
-		if err != test.readErr {
+		if err != test.readErr && err != io.EOF {
 			t.Fatalf("Unexpected error for reading %s, got:%v expect:%v", test.message, err, test.err)
 		}
 		if bytes.Compare(p[:n], test.expect) != 0 {
