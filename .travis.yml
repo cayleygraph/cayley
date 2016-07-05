@@ -3,9 +3,9 @@ language: go
 sudo: false
 
 go:
-  - 1.4
   - 1.5
   - 1.6
+  - tip
 
 install:
   # Install our tracked dependencies
