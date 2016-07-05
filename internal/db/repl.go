@@ -25,13 +25,13 @@ import (
 
 	"github.com/peterh/liner"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/internal/config"
-	"github.com/google/cayley/quad/cquads"
-	"github.com/google/cayley/query"
-	"github.com/google/cayley/query/gremlin"
-	"github.com/google/cayley/query/mql"
-	"github.com/google/cayley/query/sexp"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/internal/config"
+	"github.com/cayleygraph/cayley/quad/cquads"
+	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/gremlin"
+	"github.com/cayleygraph/cayley/query/mql"
+	"github.com/cayleygraph/cayley/query/sexp"
 )
 
 func trace(s string) (string, time.Time) {

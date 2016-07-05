@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/query"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/query"
 )
 
 type Session struct {

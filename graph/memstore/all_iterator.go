@@ -15,8 +15,8 @@
 package memstore
 
 import (
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 )
 
 type AllIterator struct {

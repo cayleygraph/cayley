@@ -17,11 +17,11 @@ package sexp
 import (
 	"testing"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/quad"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 
-	_ "github.com/google/cayley/graph/memstore"
-	_ "github.com/google/cayley/writer"
+	_ "github.com/cayleygraph/cayley/graph/memstore"
+	_ "github.com/cayleygraph/cayley/writer"
 )
 
 func TestBadParse(t *testing.T) {

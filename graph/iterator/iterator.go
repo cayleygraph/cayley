@@ -19,7 +19,7 @@ package iterator
 import (
 	"sync/atomic"
 
-	"github.com/google/cayley/graph"
+	"github.com/cayleygraph/cayley/graph"
 )
 
 var nextIteratorID uint64

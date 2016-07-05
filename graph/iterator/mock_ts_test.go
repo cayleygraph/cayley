@@ -15,8 +15,8 @@
 package iterator
 
 import (
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/quad"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 // store is a mocked version of the QuadStore interface, for use in tests.

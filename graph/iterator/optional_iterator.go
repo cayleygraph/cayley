@@ -27,7 +27,7 @@ package iterator
 // -- all things in the graph. It matches everything (as does the regex "(a)?")
 
 import (
-	"github.com/google/cayley/graph"
+	"github.com/cayleygraph/cayley/graph"
 )
 
 // An optional iterator has the sub-constraint iterator we wish to be optional

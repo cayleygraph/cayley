@@ -8,12 +8,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/internal/config"
-	"github.com/google/cayley/internal/db"
-	"github.com/google/cayley/quad"
-	"github.com/google/cayley/quad/cquads"
-	"github.com/google/cayley/quad/nquads"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/internal/config"
+	"github.com/cayleygraph/cayley/internal/db"
+	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/cquads"
+	"github.com/cayleygraph/cayley/quad/nquads"
 )
 
 // Load loads a graph from the given path and write it to qw.  See

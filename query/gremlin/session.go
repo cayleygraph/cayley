@@ -24,8 +24,8 @@ import (
 	// Provide underscore JS library.
 	_ "github.com/robertkrimen/otto/underscore"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/query"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/query"
 )
 
 var ErrKillTimeout = errors.New("query timed out")

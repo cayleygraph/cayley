@@ -21,12 +21,12 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/quad"
-	"github.com/google/cayley/quad/cquads"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/cquads"
 
-	_ "github.com/google/cayley/graph/memstore"
-	_ "github.com/google/cayley/writer"
+	_ "github.com/cayleygraph/cayley/graph/memstore"
+	_ "github.com/cayleygraph/cayley/writer"
 )
 
 // This is a simple test graph.

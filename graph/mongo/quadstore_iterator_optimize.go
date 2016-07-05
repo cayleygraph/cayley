@@ -17,8 +17,8 @@ package mongo
 import (
 	"github.com/barakmich/glog"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 )
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -67,7 +67,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 
 	lset := []graph.Linkage{
 		{
-			Dir:    mongoIt.dir,
+			Dir:   mongoIt.dir,
 			Value: qs.ValueOf(mongoIt.name),
 		},
 	}

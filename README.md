@@ -5,7 +5,7 @@ Cayley is an open-source graph inspired by the graph database behind [Freebase](
 
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
-[![Build Status](https://travis-ci.org/google/cayley.png?branch=master)](https://travis-ci.org/google/cayley)
+[![Build Status](https://travis-ci.org/cayleygraph/cayley.png?branch=master)](https://travis-ci.org/cayleygraph/cayley)
 [![Container Repository on Quay](https://quay.io/repository/barakmich/cayley/status "Container Repository on Quay")](https://quay.io/repository/barakmich/cayley)
 
 ## Features
@@ -34,16 +34,16 @@ Rough performance testing shows that, on consumer hardware and an average disk, 
 
 ## Getting Started
 
-Grab the latest [release binary](https://github.com/google/cayley/releases) and extract it wherever you like.
+Grab the latest [release binary](https://github.com/cayleygraph/cayley/releases) and extract it wherever you like.
 
-If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/google/cayley/wiki/How-to-start-hacking-on-Cayley) or type
+If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/cayleygraph/cayley/wiki/How-to-start-hacking-on-Cayley) or type
 ```
 mkdir -p ~/cayley && cd ~/cayley
 export GOPATH=`pwd`
 export PATH=$PATH:~/cayley/bin
 mkdir -p bin pkg src/github.com/google
 cd src/github.com/google
-git clone https://github.com/google/cayley
+git clone https://github.com/cayleygraph/cayley
 cd cayley
 go get github.com/tools/godep
 godep restore

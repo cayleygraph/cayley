@@ -5,7 +5,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/google/cayley/graph"
+	"github.com/cayleygraph/cayley/graph"
 )
 
 type Exporter struct {
