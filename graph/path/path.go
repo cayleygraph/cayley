@@ -283,6 +283,13 @@ func (p *Path) Has(via interface{}, nodes ...string) *Path {
 	return p
 }
 
+// HasRegex limits the paths to be ones where the current nodes have some linkage
+// to a node satisfying a regular expression.
+func (p *Path) HasRegex(via interface{}, pattern string) *Path {
+	p.stack = append(p.stack, hasRegexMorphism(via, pattern))
+	return p
+}
+
 // LabelContext restricts the following operations (such as In, Out) to only
 // traverse edges that match the given set of labels.
 func (p *Path) LabelContext(via ...interface{}) *Path {

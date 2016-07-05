@@ -17,6 +17,7 @@ package path
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
@@ -96,6 +97,41 @@ func hasMorphism(via interface{}, nodes ...string) morphism {
 				has := iterator.NewHasA(qs, route, quad.Subject)
 				return join(qs, in, has), ctx
 			}
+
+			// This looks backwards. That's OK-- see the note above.
+			route := join(qs, dest, trail)
+			has := iterator.NewHasA(qs, route, quad.Subject)
+			return join(qs, has, in), ctx
+		},
+	}
+}
+
+func hasRegexMorphism(via interface{}, pattern string) morphism {
+	return morphism{
+		Name:     "hasregex",
+		Reversal: func(ctx *context) (morphism, *context) { return hasRegexMorphism(via, pattern), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			viaIter := buildViaPath(qs, via).
+				BuildIterator()
+
+			ends := func() graph.Iterator {
+				re := regexp.MustCompile(pattern)
+				out := inOutIterator(buildViaPath(qs, via), in, false, nil, ctx)
+
+				// Transfer dest nodes from 'all outbound' to fixed queue is they
+				// pass the regex.
+				fixed := qs.FixedIterator()
+				for graph.Next(out) {
+					n := out.Result()
+					if re.MatchString(qs.NameOf(n)) {
+						fixed.Add(n)
+					}
+				}
+				return fixed
+			}()
+
+			trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
+			dest := iterator.NewLinksTo(qs, ends, quad.Object)
 
 			// This looks backwards. That's OK-- see the note above.
 			route := join(qs, dest, trail)
