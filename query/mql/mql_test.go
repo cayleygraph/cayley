@@ -19,10 +19,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/cayley/graph"
-	_ "github.com/google/cayley/graph/memstore"
-	"github.com/google/cayley/quad"
-	_ "github.com/google/cayley/writer"
+	"github.com/cayleygraph/cayley/graph"
+	_ "github.com/cayleygraph/cayley/graph/memstore"
+	"github.com/cayleygraph/cayley/quad"
+	_ "github.com/cayleygraph/cayley/writer"
 )
 
 // This is a simple test graph.

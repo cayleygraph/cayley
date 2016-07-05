@@ -25,22 +25,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/internal"
-	"github.com/google/cayley/internal/config"
-	"github.com/google/cayley/internal/db"
-	"github.com/google/cayley/quad"
-	"github.com/google/cayley/query/gremlin"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/internal"
+	"github.com/cayleygraph/cayley/internal/config"
+	"github.com/cayleygraph/cayley/internal/db"
+	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/query/gremlin"
 
 	// Load all supported backends.
-	_ "github.com/google/cayley/graph/bolt"
-	_ "github.com/google/cayley/graph/leveldb"
-	_ "github.com/google/cayley/graph/memstore"
-	_ "github.com/google/cayley/graph/mongo"
-	_ "github.com/google/cayley/graph/sql"
+	_ "github.com/cayleygraph/cayley/graph/bolt"
+	_ "github.com/cayleygraph/cayley/graph/leveldb"
+	_ "github.com/cayleygraph/cayley/graph/memstore"
+	_ "github.com/cayleygraph/cayley/graph/mongo"
+	_ "github.com/cayleygraph/cayley/graph/sql"
 
 	// Load writer registry
-	_ "github.com/google/cayley/writer"
+	_ "github.com/cayleygraph/cayley/writer"
 )
 
 var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")

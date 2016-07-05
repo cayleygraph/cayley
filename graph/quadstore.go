@@ -25,7 +25,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/cayley/quad"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 // Value defines an opaque "quad store value" type. However the backend wishes

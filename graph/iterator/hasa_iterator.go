@@ -36,8 +36,8 @@ package iterator
 import (
 	"github.com/barakmich/glog"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/quad"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 // A HasA consists of a reference back to the graph.QuadStore that it references,

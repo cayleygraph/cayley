@@ -17,7 +17,7 @@ package mql
 import (
 	"sort"
 
-	"github.com/google/cayley/graph"
+	"github.com/cayleygraph/cayley/graph"
 )
 
 func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string {

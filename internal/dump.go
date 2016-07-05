@@ -1,13 +1,13 @@
 package internal
 
 import (
+	"compress/gzip"
 	"fmt"
 	"os"
-	"compress/gzip"
 	"path/filepath"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/exporter"
+	"github.com/cayleygraph/cayley/exporter"
+	"github.com/cayleygraph/cayley/graph"
 )
 
 // Dump the content of the database into a file based
@@ -49,12 +49,12 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 	default:
 		return fmt.Errorf("unknown format %q", typ)
 	}
-	
+
 	if export.Err() != nil {
 		return export.Err()
 	}
 
-        if outFile != "-" {
+	if outFile != "-" {
 		fmt.Printf("%d entries were written\n", export.Count())
 	}
 	return nil

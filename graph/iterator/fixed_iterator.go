@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/cayley/graph"
+	"github.com/cayleygraph/cayley/graph"
 )
 
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
