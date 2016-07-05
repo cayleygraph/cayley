@@ -110,11 +110,6 @@ func TestCreateDatabase(t *testing.T) {
 	}
 	qs.Close()
 
-	err = createNewLevelDB("/dev/null/some terrible path", nil)
-	if err == nil {
-		t.Errorf("Created LevelDB database for bad path.")
-	}
-
 	os.RemoveAll(tmpDir)
 }
 
