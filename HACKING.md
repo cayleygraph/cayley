@@ -5,8 +5,8 @@ If you just want to build Cayley and check out the source, or use it as a librar
 But suppose you want to contribute back on your own fork (and pull requests are welcome!). A good way to do this is to set up your $GOPATH and then...
 
 ```
-mkdir -p $GOPATH/src/github.com/google
-cd $GOPATH/src/github.com/google
+mkdir -p $GOPATH/src/github.com/cayleygraph
+cd $GOPATH/src/github.com/cayleygraph
 git clone https://github.com/$GITHUBUSERNAME/cayley
 ```
 
@@ -14,7 +14,7 @@ git clone https://github.com/$GITHUBUSERNAME/cayley
 
 ```
 cd cayley
-git remote add upstream http://github.com/google/cayley
+git remote add upstream http://github.com/cayleygraph/cayley
 ```
 
 So that you can keep up with the latest changes by periodically running
