@@ -1,35 +1,71 @@
-
-\* Note that while it's not exactly Gremlin, it certainly takes inspiration from that API. For this flavor, [see the documentation](GremlinAPI.md).
+# Overview
 
 ## Getting Started
 
-Grab the latest [release binary](https://github.com/cayleygraph/cayley/releases) and extract it wherever you like.
+This guide will take you through starting a persistent graph based on the provided data, with some hints for each backend.
 
-If you prefer to build from source, see the documentation on the wiki at [How to start hacking on Cayley](https://github.com/cayleygraph/cayley/wiki/How-to-start-hacking-on-Cayley) or type
-```
-mkdir -p ~/cayley && cd ~/cayley
-export GOPATH=`pwd`
-export PATH=$PATH:~/cayley/bin
-mkdir -p bin pkg src/github.com/google
-cd src/github.com/google
-git clone https://github.com/cayleygraph/cayley
-cd cayley
-go get github.com/tools/godep
-godep restore
-go build ./cmd/cayley
+Grab the latest [release binary](http://github.com/cayleygraph/cayley/releases) and extract it wherever you like.
+
+If you prefer to build from source, see [Contributing.md](Contributing.md) which has instructions. 
+
+### Initialize A Graph
+
+Now that Cayley is downloaded (or built), let's create our database. `init` is the subcommand to set up a database and the right indices.
+
+You can set up a full [configuration file](Configuration.md) if you'd prefer, but it will also work from the command line.
+
+Examples for each backend:
+
+  * `leveldb`:  `./cayley init --db=leveldb --dbpath=/tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
+  * `bolt`:  `./cayley init --db=bolt --dbpath=/tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
+  * `mongo`: `./cayley init --db=mongo --dbpath="<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
+  * `sql`: `./cayley init --db=sql --dbpath="postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
+
+Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley.cfg.example` in the root directory.
+
+You can repeat the `--db` and `--dbpath` flags from here forward instead of the config flag, but let's assume you created `cayley.cfg.overview`
+
+### Load Data Into A Graph
+
+First we load the data.
+
+```bash
+./cayley load --config=cayley.cfg.overview --quads=data/testdata.nq
 ```
 
-Then `cd` to the directory and give it a quick test with:
-```
-./cayley repl --dbpath=data/testdata.nq
+And wait. It will load. If you'd like to watch it load, you can run
+
+```bash
+./cayley load --config=cayley.cfg.overview --quads=data/testdata.nq --alsologtostderr
 ```
 
-To run the web frontend, replace the "repl" command with "http"
-```
-./cayley http --dbpath=data/testdata.nq
+And watch the log output go by.
+
+### Connect a REPL To Your Graph
+
+Now it's loaded. We can use Cayley now to connect to the graph. As you might have guessed, that command is:
+
+```bash
+./cayley repl --config=cayley.cfg.overview
 ```
 
-You should see a `cayley>` REPL prompt. Go ahead and give it a try:
+Where you'll be given a `cayley>` prompt. It's expecting Gremlin/JS, but that can also be configured with a flag.
+
+New nodes and links can be added with the following command:
+
+```bash
+cayley> :a subject predicate object label .
+```
+
+Removing links works similarly:
+
+```bash
+cayley> :d subject predicate object .
+```
+
+This is great for testing, and ultimately also for scripting, but the real workhorse is the next step.
+
+Go ahead and give it a try:
 
 ```
 // Simple math
@@ -49,9 +85,65 @@ cayley> graph.Vertex("dani").All()
 cayley> graph.Vertex("dani").Out("follows").All()
 ```
 
-**Running the visualizer on the web frontend**
 
-To run the visualizer: click on visualize and enter:
+### Serve Your Graph
+
+Just as before:
+
+```bash
+./cayley http --config=cayley.cfg.overview
+```
+
+And you'll see a message not unlike
+
+```bash
+Cayley now listening on 127.0.0.1:64210
+```
+
+If you visit that address (often, [http://localhost:64210](http://localhost:64210)) you'll see the full web interface and also have a graph ready to serve queries via the [HTTP API](HTTP.md)
+
+## UI Overview
+
+### Sidebar
+
+Along the side are the various actions or views you can take. From the top, these are:
+
+* Run Query (run the query)
+* Gremlin (a dropdown, to pick your query language, MPL is the other)
+  * [GremlinAPI.md](GremlinAPI.md]: This is the one of the two query languages used either via the REPL or HTTP interface.
+  * [MQL.md](MQL.md): The *other* query language the interfaces support. 
+
+----
+
+* Query (a request/response editor for the query language)
+* Query Shape (a visualization of the shape of the final query. Does not execute the query.)
+* Visualize  (runs a query and, if tagged correctly, gives a sigmajs view of the results)
+* Write (an interface to write or remove individual quads or quad files)
+
+----
+
+* Documentation (this documentation)
+
+### Visualize
+
+To use the visualize function, emit, either through tags or JS post-processing, a set of JSON objects containing the keys `source` and `target`. These will be the links, and nodes will automatically be detected.
+
+For example:
+
+```javascript
+[
+{
+  "source": "node1"
+  "target": "node2"
+},
+{
+  "source": "node1"
+  "target": "node3"
+},
+]
+```
+
+Other keys are ignored. The upshot is that if you use the "Tag" functionality to add "source" and "target" tags, you can extract and quickly view subgraphs.
 
 ```
 // Visualize who dani follows.
@@ -61,28 +153,14 @@ The visualizer expects to tag nodes as either "source" or "target."  Your source
 While your target is represented as an orange node.
 The idea being that our node relationship goes from blue to orange (source to target).
 
+----
+
+
 **Sample Data**
 
-For somewhat more interesting data, a sample of 30k movies from Freebase comes in the checkout.
+For more interesting test data -- follow the same loading procedure as outlined above, but with "data/30kmoviedata.nq.gz"
 
-```
-./cayley repl --dbpath=data/30kmoviedata.nq.gz
-```
-
-To run the web frontend, replace the "repl" command with "http"
-
-```
-./cayley http --dbpath=data/30kmoviedata.nq.gz
-```
-
-And visit port 64210 on your machine, commonly [http://localhost:64210](http://localhost:64210)
-
-
-## Running queries
-
-The default environment is based on [Gremlin](http://gremlindocs.com/) and is simply a JavaScript environment. If you can write jQuery, you can query a graph.
-
-You'll notice we have a special object, `graph` or `g`, which is how you can interact with the graph.
+## Running some more interesting queries
 
 The simplest query is merely to return a single vertex. Using the 30kmoviedata.nq dataset from above, let's walk through some simple queries:
 
@@ -132,14 +210,3 @@ g.V().Has("name", "Casablanca").Follow(filmToActor).Out("name").All()
 ```
 
 There's more in the JavaScript API Documentation, but that should give you a feel for how to walk around the graph.
-
-## Running in a container
-
-A container exposing the HTTP API of cayley is available.
-To run the container one must first setup a data directory that contains the configuration file and optionally contains persistent files (i.e. a boltdb database file).
-
-```
-mkdir data
-cp my_config.cfg data/cayley.cfg
-docker run -v $PWD/data:/data -p 64321:64321 -d quay.io/barakmich/cayley
-```
