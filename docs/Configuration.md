@@ -124,6 +124,16 @@ Optionally disable syncing to disk per transaction. Nosync being true means much
 
 The name of the database within MongoDB to connect to. Manages its own collections and indices therein.
 
+### SQL
+
+#### **`db_sql_flavor`**
+
+  * Type: String
+  * Default: "postgres"
+
+The SQL flavor to use with the sql driver. Can be "postgres" or "cockroach".
+
+
 ## Per-Replication Options
 
 The `replication_options` object in the main configuration file contains any of these following options that change the behavior of the replication manager.
