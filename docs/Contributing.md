@@ -66,3 +66,5 @@ go build ./cmd/cayley && ./cayley <subcommand> <your options>
 ```
 
 Which will also resolve the relevant static content paths for serving HTTP.
+
+**Remember:** to add yourself to CONTRIBUTORS and AUTHORS
