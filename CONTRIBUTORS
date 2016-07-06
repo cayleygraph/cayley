@@ -1,10 +1,6 @@
-# People who have agreed to one of the CLAs and can contribute patches.
 # The AUTHORS file lists the copyright holders; this file
 # lists people.  For example, Google employees are listed here
 # but not in AUTHORS, because Google holds the copyright.
-#
-# https://developers.google.com/open-source/cla/individual
-# https://developers.google.com/open-source/cla/corporate
 #
 # Names should be added to this file as:
 #     Name <email address>
@@ -19,7 +15,8 @@ Jay Graves <jaywgraves@gmail.com>
 Jeremy Jay <jeremy@pbnjay.com>
 Pius Uzamere <pius+github@alum.mit.edu>
 Robert Daniel Kortschak <dan.kortschak@adelaide.edu.au>
+Robert Melton <rmelton@gmail.com>
+Stefan Koshiw <anonwasere@gmail.com>
 Timothy Armstrong <armstrong.timothy@gmail.com>
 Tyler Gibbons <tyler.gibbons@ideogr.am>
 Zihua Li <i@zihua.li>
-Stefan Koshiw <anonwasere@gmail.com>
