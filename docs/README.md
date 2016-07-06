@@ -8,5 +8,6 @@
 - [HACKING.md](HACKING.md): See [Contributing.md](Contributing.md)
 - [Contributing.md](Contributing.md): You starting point for getting involved in the project.
 - [Locations.md](Locations.md): Where you can find parts of our community, and even bits of important code.
+- [Container.md](Container.md): How to use the Cayley docker container.
 - [Todo.md](Todo.md): Basically moved into [Issues](https://github.com/cayleygraph/cayley/issues)
 - [FAQ.md](FAQ.md): Frequently Asked Questions
