@@ -1,5 +1,5 @@
 
-\* Note that while it's not exactly Gremlin, it certainly takes inspiration from that API. For this flavor, [see the documentation](docs/GremlinAPI.md).
+\* Note that while it's not exactly Gremlin, it certainly takes inspiration from that API. For this flavor, [see the documentation](GremlinAPI.md).
 
 ## Getting Started
 
