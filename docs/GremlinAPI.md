@@ -221,7 +221,28 @@ g.V("dani").Out("follows").LabelContext("smart_graph").Out("status")
 // Find all people followed by people with statuses in the smart_graph.
 g.V().LabelContext("smart_graph").In("status").LabelContext(null).In("follows")
 ```
+####**`path.InPredicates()`**
 
+Get the list of predicates that are pointing in to a node
+
+Example:
+```javascript
+// bob only has "follows" predicates pointing inward
+// returns "follows"
+g.V("bob").InPredicates()
+```
+
+####**`path.OutPredicates()`**
+
+Get the list of predicates that are pointing out from a node
+
+Example:
+```javascript
+// bob has "follows" and "status" edges pointing outwards
+// returns "follows", "status"
+g.V("bob").OutPredicates()
+```
+ 
 ### Tagging
 
 ####**`path.Tag(tag)`**
