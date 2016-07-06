@@ -70,37 +70,17 @@ func hasMorphism(via interface{}, nodes ...string) morphism {
 		Name:     "has",
 		Reversal: func(ctx *context) (morphism, *context) { return hasMorphism(via, nodes...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
-			viaIter := buildViaPath(qs, via).
-				BuildIterator()
-			ends := func() graph.Iterator {
-				if len(nodes) == 0 {
-					return qs.NodesAllIterator()
-				}
+			return buildHas(qs, via, in, false, nodes), ctx
+		},
+	}
+}
 
-				fixed := qs.FixedIterator()
-				for _, n := range nodes {
-					fixed.Add(qs.ValueOf(n))
-				}
-				return fixed
-			}()
-
-			trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
-			dest := iterator.NewLinksTo(qs, ends, quad.Object)
-
-			// If we were given nodes, intersecting with them first will
-			// be extremely cheap-- otherwise, it will be the most expensive
-			// (requiring iteration over all nodes). We have enough info to
-			// make this optimization now since intersections are commutative
-			if len(nodes) == 0 { // Where dest involves an All iterator.
-				route := join(qs, trail, dest)
-				has := iterator.NewHasA(qs, route, quad.Subject)
-				return join(qs, in, has), ctx
-			}
-
-			// This looks backwards. That's OK-- see the note above.
-			route := join(qs, dest, trail)
-			has := iterator.NewHasA(qs, route, quad.Subject)
-			return join(qs, has, in), ctx
+func hasReverseMorphism(via interface{}, nodes ...string) morphism {
+	return morphism{
+		Name:     "hasr",
+		Reversal: func(ctx *context) (morphism, *context) { return hasMorphism(via, nodes...), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			return buildHas(qs, via, in, true, nodes), ctx
 		},
 	}
 }
@@ -317,6 +297,45 @@ func saveOptionalReverseMorphism(via interface{}, tag string) morphism {
 		},
 		tags: []string{tag},
 	}
+}
+
+func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bool, nodes []string) graph.Iterator {
+	viaIter := buildViaPath(qs, via).
+		BuildIterator()
+	ends := func() graph.Iterator {
+		if len(nodes) == 0 {
+			return qs.NodesAllIterator()
+		}
+
+		fixed := qs.FixedIterator()
+		for _, n := range nodes {
+			fixed.Add(qs.ValueOf(n))
+		}
+		return fixed
+	}()
+
+	start, goal := quad.Subject, quad.Object
+	if reverse {
+		start, goal = goal, start
+	}
+
+	trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
+	dest := iterator.NewLinksTo(qs, ends, goal)
+
+	// If we were given nodes, intersecting with them first will
+	// be extremely cheap-- otherwise, it will be the most expensive
+	// (requiring iteration over all nodes). We have enough info to
+	// make this optimization now since intersections are commutative
+	if len(nodes) == 0 { // Where dest involves an All iterator.
+		route := join(qs, trail, dest)
+		has := iterator.NewHasA(qs, route, start)
+		return join(qs, in, has)
+	}
+
+	// This looks backwards. That's OK-- see the note above.
+	route := join(qs, dest, trail)
+	has := iterator.NewHasA(qs, route, start)
+	return join(qs, has, in)
 }
 
 func buildSave(

@@ -283,6 +283,13 @@ func (p *Path) Has(via interface{}, nodes ...string) *Path {
 	return p
 }
 
+// HasReverse limits the paths to be ones where some known node have some linkage
+// to the current nodes.
+func (p *Path) HasReverse(via interface{}, nodes ...string) *Path {
+	p.stack = append(p.stack, hasReverseMorphism(via, nodes...))
+	return p
+}
+
 // LabelContext restricts the following operations (such as In, Out) to only
 // traverse edges that match the given set of labels.
 func (p *Path) LabelContext(via ...interface{}) *Path {
