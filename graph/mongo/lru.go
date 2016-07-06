@@ -14,52 +14,83 @@
 
 package mongo
 
-import (
-	"container/list"
-)
-
-// TODO(kortschak) Reimplement without container/list.
-
 // cache implements an LRU cache.
 type cache struct {
-	cache    map[string]*list.Element
-	priority *list.List
-	maxSize  int
+	cache   map[string]*kv
+	head    *kv
+	tail    *kv
+	maxSize int
 }
 
 type kv struct {
 	key   string
 	value interface{}
+	next  *kv
+	prev  *kv
 }
 
 func newCache(size int) *cache {
-	var lru cache
-	lru.maxSize = size
-	lru.priority = list.New()
-	lru.cache = make(map[string]*list.Element)
-	return &lru
+	return &cache{
+		maxSize: size,
+		cache:   make(map[string]*kv),
+	}
 }
 
 func (lru *cache) Put(key string, value interface{}) {
-	if _, ok := lru.Get(key); ok {
+	if element, ok := lru.cache[key]; ok {
+		element.value = value
+		lru.moveToFront(element)
 		return
 	}
 	if len(lru.cache) == lru.maxSize {
 		lru.removeOldest()
 	}
-	lru.priority.PushFront(kv{key: key, value: value})
-	lru.cache[key] = lru.priority.Front()
+	newItem := &kv{key: key, value: value}
+	lru.cache[key] = newItem
+	if lru.head == nil {
+		lru.head = newItem
+		lru.tail = newItem
+	} else {
+		newItem.next = lru.head
+		lru.head.prev = newItem
+		lru.head = newItem
+	}
 }
 
 func (lru *cache) Get(key string) (interface{}, bool) {
 	if element, ok := lru.cache[key]; ok {
-		lru.priority.MoveToFront(element)
-		return element.Value.(kv).value, true
+		lru.moveToFront(element)
+		return element.value, true
 	}
 	return nil, false
 }
 
 func (lru *cache) removeOldest() {
-	last := lru.priority.Remove(lru.priority.Back())
-	delete(lru.cache, last.(kv).key)
+	last := lru.tail
+	if lru.head == last {
+		lru.tail = nil
+		lru.head = nil
+	} else {
+		lru.tail = last.prev
+		if lru.tail != nil {
+			lru.tail.next = nil
+		}
+	}
+	last.next = nil
+	last.prev = nil
+	delete(lru.cache, last.key)
 }
+
+func (lru *cache) moveToFront(element *kv) {
+	if element.next != nil {
+		element.next.prev = element.prev
+	}
+	if element.prev != nil {
+		element.prev.next = element.next
+	}
+	element.next = lru.head
+	element.prev = nil
+	lru.head.prev = element
+	lru.head = element
+}
+
