@@ -25,6 +25,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
   * [Bolt](https://github.com/boltdb/bolt)
   * [PostgreSQL](http://www.postgresql.org)
   * [MongoDB](https://www.mongodb.org) for distributed stores
+  * [Postgres](http://www.postgresql.org)
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
 * Good test coverage
