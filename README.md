@@ -36,7 +36,7 @@ Rough performance testing shows that, on 2014 consumer hardware and an average d
 ## Community
 
 * Website: [cayley.io](https://cayley.io)
-* Discourse list: [discourse.cayley.io](https://discourse.cayley.io)
+* Discourse list: [discourse.cayley.io](https://discourse.cayley.io) (Also acts as mailing list, enable mailing list mode)
 * Twitter: [@cayleygraph](https://twitter.com/cayleygraph)
 * IRC: [#cayley on Freenode](http://webchat.freenode.net/?channels=%23cayley&uio=d4)
 
