@@ -1,8 +1,34 @@
 # Community Involvement
 
-Join our community on [discourse.cayley.io](https://discourse.cayley.io)
+Join our community on [discourse.cayley.io](https://discourse.cayley.io) or other [Locations](Locations.md).
 
-# Coding
+# Simply building Cayley
+
+```
+mkdir -p ~/cayley && cd ~/cayley
+export GOPATH=`pwd`
+export PATH=$PATH:~/cayley/bin
+mkdir -p bin pkg src/github.com/google
+cd src/github.com/google
+git clone https://github.com/cayleygraph/cayley
+cd cayley
+go get github.com/tools/godep
+godep restore
+go build ./cmd/cayley
+```
+
+Then `cd` to the directory and give it a quick test with:
+```
+./cayley repl --dbpath=data/testdata.nq
+```
+
+To run the web frontend, replace the "repl" command with "http"
+```
+./cayley http --dbpath=data/testdata.nq
+```
+
+
+# Hacking on Cayley
 
 First, you'll need Go [(version 1.3.x or greater)](https://golang.org/doc/install) and a Go workspace. This is outlined by the Go team at http://golang.org/doc/code.html and is sort of the official way of going about it.
 
