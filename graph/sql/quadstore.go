@@ -185,7 +185,8 @@ func (qs *QuadStore) copyFrom(tx *sql.Tx, in []graph.Delta) error {
 	if err != nil {
 		return err
 	}
-	return stmt.Close()
+	_ = stmt.Close() // COPY will be closed on last Exec, this will return non-nil error in all cases
+	return nil
 }
 
 func (qs *QuadStore) runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
