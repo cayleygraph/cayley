@@ -1,7 +1,9 @@
+# Quickstart as Library
+
 Currently, Cayley supports being used as a Go library for other projects. To use it in such a way, here's a quick example:
 
 ```go
-package main                                                                                                                                                                                   
+package main
 
 import (
   "log"
@@ -40,5 +42,109 @@ func open() {
 
   // Open and use the database
   cayley.NewGraph("bolt", path, nil)
+}
+```
+
+---
+
+Another example of using it as a library from a users gist: 
+
+https://gist.github.com/ejemba/6934c4784ef55fbd3aee
+
+```go
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/google/cayley"
+	"github.com/google/cayley/graph"
+	_ "github.com/google/cayley/graph/bolt"
+	"github.com/google/cayley/internal/config"
+	"github.com/google/cayley/internal/db"
+)
+
+var store *cayley.Handle
+
+// Open opens a Cayley database, creating it if necessary and return its handle
+func Open(dbType, dbPath string) error {
+	if store != nil {
+		return errors.New("Could not open database : a database is already opened.")
+	}
+
+	var err error
+
+	// Does it exist ?
+	if dbType == "bolt" || dbType == "leveldb" {
+		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+			// No, initialize it if possible
+
+			err = db.Init(&config.Config{DatabasePath: dbPath, DatabaseType: dbType})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if dbType == "sql" {
+		db.Init(&config.Config{DatabasePath: dbPath, DatabaseType: dbType})
+	}
+
+	store, err = cayley.NewGraph(dbType, dbPath, nil)
+	if err != nil {
+		return errors.New("Could not open database")
+	}
+
+	return nil
+}
+
+// Close closes a Cayley database
+func Close() {
+	if store != nil {
+		store.Close()
+		store = nil
+	}
+}
+
+func main() {
+	err := Open("bolt", "/tmp/boltdb")
+	if err != nil {
+		panic(err.Error())
+	}
+	defer Close()
+
+	// Insert quads in a transaction
+	t := cayley.NewTransaction()
+	t.AddQuad(cayley.Quad("cayley", "is", "awesome", ""))
+	t.AddQuad(cayley.Quad("cayley", "is", "simple", ""))
+	store.ApplyTransaction(t)
+
+	// Select quads
+	it, _ := cayley.StartPath(store, "cayley").Out("is").BuildIterator().Optimize() // Do not forget to use Optimize() otherwise it will be really slow.
+	defer it.Close()                                                                // Do not forget to close the iterator to avoid exhausting connections
+	for cayley.RawNext(it) {
+		if it.Result() != nil {
+			fmt.Println(store.NameOf(it.Result()))
+		}
+	}
+	if it.Err() != nil {
+		fmt.Println(it.Err().Error()) // May happen if you loose the database connection for example
+	}
+
+	// Select quads using tags
+	it, _ = cayley.StartPath(store, "cayley").Save("is", "is").BuildIterator().Optimize()
+	defer it.Close()
+	for cayley.RawNext(it) {
+		if it.Result() != nil {
+			tags := make(map[string]graph.Value)
+			it.TagResults(tags)
+
+			fmt.Println(store.NameOf(tags["is"]))
+		}
+	}
+	if it.Err() != nil {
+		fmt.Println(it.Err().Error())
+	}
 }
 ```

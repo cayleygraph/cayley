@@ -1,4 +1,4 @@
-## Running in a container
+# Running in a container
 
 A container exposing the HTTP API of cayley is available.
 To run the container one must first setup a data directory that contains the configuration file and optionally contains persistent files (i.e. a boltdb database file).
