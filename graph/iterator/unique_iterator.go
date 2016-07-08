@@ -72,9 +72,13 @@ func (it *Unique) Next() bool {
 
 	for graph.Next(it.subIt) {
 		curr := it.subIt.Result()
-		if ok := it.seen[curr]; !ok {
+		key := curr
+		if v, ok := curr.(interface{ Key() interface{} }); ok {
+			key = graph.Value(v.Key())
+		}
+		if ok := it.seen[key]; !ok {
 			it.result = curr
-			it.seen[curr] = true
+			it.seen[key] = true
 			return graph.NextLogOut(it, it.result, true)
 		}
 	}
