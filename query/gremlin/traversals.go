@@ -43,6 +43,8 @@ var traversals = []string{
 	"InPredicates",
 	"OutPredicates",
 	"LabelContext",
+	"Limit",
+	"Skip",
 }
 
 func (wk *worker) embedTraversals(env *otto.Otto, obj *otto.Object) {

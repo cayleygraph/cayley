@@ -424,3 +424,35 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 	}
 	return StartPath(qs, strings...)
 }
+
+// skipMorphism will skip a number of values-- if there are none, this function
+// acts as a passthrough for the previous iterator.
+func skipMorphism(v int64) morphism {
+	return morphism{
+		Name:     "skip",
+		Reversal: func(ctx *context) (morphism, *context) { return skipMorphism(v), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			if v == 0 {
+				// Acting as a passthrough
+				return in, ctx
+			}
+			return iterator.NewSkip(in, v), ctx
+		},
+	}
+}
+
+// limitMorphism will limit a number of values-- if number is negative or zero, this function
+// acts as a passthrough for the previous iterator.
+func limitMorphism(v int64) morphism {
+	return morphism{
+		Name:     "limit",
+		Reversal: func(ctx *context) (morphism, *context) { return limitMorphism(v), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			if v <= 0 {
+				// Acting as a passthrough
+				return in, ctx
+			}
+			return iterator.NewLimit(in, v), ctx
+		},
+	}
+}

@@ -196,6 +196,21 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []string{"greg", "dani", "bob"},
 		},
 		{
+			message: "use Limit",
+			path:    StartPath(qs).Has("status", "cool_person").Limit(2),
+			expect:  []string{"bob", "dani"},
+		},
+		{
+			message: "use Skip",
+			path:    StartPath(qs).Has("status", "cool_person").Skip(2),
+			expect:  []string{"greg"},
+		},
+		{
+			message: "use Skip and Limit",
+			path:    StartPath(qs).Has("status", "cool_person").Skip(1).Limit(1),
+			expect:  []string{"dani"},
+		},
+		{
 			message: "show a double Has",
 			path:    StartPath(qs).Has("status", "cool_person").Has("follows", "fred"),
 			expect:  []string{"bob"},

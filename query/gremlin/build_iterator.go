@@ -64,6 +64,22 @@ func getFirstArgAsMorphismChain(obj *otto.Object) *otto.Object {
 	return firstArg.Object()
 }
 
+func getFirstArgAsInt64(obj *otto.Object) (int64, bool) {
+	arg, err := obj.Get("_gremlin_values")
+	if err != nil {
+		return 0, false
+	}
+	firstArg, err := arg.Object().Get("0")
+	if err != nil {
+		return 0, false
+	}
+	if !firstArg.IsNumber() {
+		return 0, false
+	}
+	v, err := firstArg.ToInteger()
+	return v, err == nil
+}
+
 func buildPathFromObject(obj *otto.Object) *path.Path {
 	var p *path.Path
 	val, _ := obj.Get("_gremlin_type")
@@ -169,6 +185,18 @@ func buildPathFromObject(obj *otto.Object) *path.Path {
 			return nil
 		}
 		return p.LabelContextWithTags(tags, labels...)
+	case "Limit":
+		v, ok := getFirstArgAsInt64(obj)
+		if !ok {
+			return nil
+		}
+		return p.Limit(v)
+	case "Skip":
+		v, ok := getFirstArgAsInt64(obj)
+		if !ok {
+			return nil
+		}
+		return p.Skip(v)
 	default:
 		panic(fmt.Sprint("Unimplemented Gremlin function", gremlinType))
 	}

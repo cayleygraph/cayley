@@ -363,3 +363,15 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 		return i
 	}
 }
+
+// Skip will omit a number of values from result set.
+func (p *Path) Skip(v int64) *Path {
+	p.stack = append(p.stack, skipMorphism(v))
+	return p
+}
+
+// Limit will limit a number of values in result set.
+func (p *Path) Limit(v int64) *Path {
+	p.stack = append(p.stack, limitMorphism(v))
+	return p
+}

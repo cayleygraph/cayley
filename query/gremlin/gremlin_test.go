@@ -210,6 +210,29 @@ var testQueries = []struct {
 		expect: []string{"bob"},
 	},
 
+	// Gremlin Skip/Limit tests.
+	{
+		message: "use Limit",
+		query: `
+				g.V().Has("status", "cool_person").Limit(2).All()
+		`,
+		expect: []string{"bob", "dani"},
+	},
+	{
+		message: "use Skip",
+		query: `
+				g.V().Has("status", "cool_person").Skip(2).All()
+		`,
+		expect: []string{"greg"},
+	},
+	{
+		message: "use Skip and Limit",
+		query: `
+				g.V().Has("status", "cool_person").Skip(1).Limit(1).All()
+		`,
+		expect: []string{"dani"},
+	},
+
 	// Tag tests.
 	{
 		message: "show a simple save",
