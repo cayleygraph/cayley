@@ -242,6 +242,8 @@ const (
 	Optional
 	Materialize
 	Unique
+	Limit
+	Skip
 )
 
 var (
@@ -264,6 +266,8 @@ var (
 		"optional",
 		"materialize",
 		"unique",
+		"limit",
+		"skip",
 	}
 )
 
