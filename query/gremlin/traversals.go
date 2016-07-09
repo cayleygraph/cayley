@@ -44,7 +44,11 @@ func (p *pathObject) buildIteratorTree() graph.Iterator {
 	return p.path.BuildIteratorOn(p.wk.qs)
 }
 func (p *pathObject) Is(call otto.FunctionCall) otto.Value {
-	args := toQuadValues(exportArgs(call.ArgumentList))
+	args, err := toQuadValues(exportArgs(call.ArgumentList))
+	if err != nil {
+		//TODO(dennwc): pass error to caller
+		return otto.NullValue()
+	}
 	np := p.path.Is(args...)
 	return outObj(call, p.clone(np))
 }
@@ -124,6 +128,12 @@ func (p *pathObject) As(call otto.FunctionCall) otto.Value {
 	return p.Tag(call)
 }
 func (p *pathObject) Has(call otto.FunctionCall) otto.Value {
+	return p.has(call, false)
+}
+func (p *pathObject) HasR(call otto.FunctionCall) otto.Value {
+	return p.has(call, true)
+}
+func (p *pathObject) has(call otto.FunctionCall, rev bool) otto.Value {
 	args := exportArgs(call.ArgumentList)
 	if len(args) == 0 {
 		return otto.NullValue()
@@ -132,8 +142,17 @@ func (p *pathObject) Has(call otto.FunctionCall) otto.Value {
 	if vp, ok := via.(*pathObject); ok {
 		via = vp.path
 	}
-	qv := toQuadValues(args[1:])
-	np := p.path.Has(via, qv...)
+	qv, err := toQuadValues(args[1:])
+	if err != nil {
+		//TODO(dennwc): pass error to caller
+		return otto.NullValue()
+	}
+	var np *path.Path
+	if rev {
+		np = p.path.HasReverse(via, qv...)
+	} else {
+		np = p.path.Has(via, qv...)
+	}
 	return outObj(call, p.clone(np))
 }
 func (p *pathObject) save(call otto.FunctionCall, rev bool) otto.Value {
@@ -200,5 +219,15 @@ func (p *pathObject) Filter(call otto.FunctionCall) otto.Value {
 		}
 		np = np.Filter(op.op, op.val)
 	}
+	return outObj(call, p.clone(np))
+}
+func (p *pathObject) Limit(call otto.FunctionCall) otto.Value {
+	args := exportArgs(call.ArgumentList)
+	np := p.path.Limit(int64(toInt(args[0])))
+	return outObj(call, p.clone(np))
+}
+func (p *pathObject) Skip(call otto.FunctionCall) otto.Value {
+	args := exportArgs(call.ArgumentList)
+	np := p.path.Skip(int64(toInt(args[0])))
 	return outObj(call, p.clone(np))
 }

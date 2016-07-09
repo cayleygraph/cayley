@@ -67,6 +67,13 @@ var testQueries = []struct {
 		expect: []string{"<alice>"},
 	},
 	{
+		message: "use .GetLimit",
+		query: `
+			g.V().GetLimit(5)
+		`,
+		expect: []string{"<alice>", "<bob>", "<follows>", "<fred>", "<status>"},
+	},
+	{
 		message: "get a single vertex (IRI)",
 		query: `
 			g.V(iri("alice")).All()
@@ -224,6 +231,13 @@ var testQueries = []struct {
 		expect: []string{"<greg>", "<dani>", "<bob>"},
 	},
 	{
+		message: "show a simple HasR",
+		query: `
+				g.V().HasR("<status>", "<bob>").All()
+		`,
+		expect: []string{`"cool_person"`},
+	},
+	{
 		message: "show a double Has",
 		query: `
 				g.V().Has("<status>", '"cool_person"').Has("<follows>", "<fred>").All()
@@ -335,6 +349,11 @@ var testQueries = []struct {
 			g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follows>").All()
 		`,
 		expect: []string{"<dani>", "<fred>"},
+	},
+	{
+		message: "issue #254",
+		query:   `g.V({"id":"<alice>"}).All()`,
+		expect:  nil,
 	},
 }
 

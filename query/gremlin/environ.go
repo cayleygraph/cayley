@@ -51,7 +51,11 @@ func (g *graphObject) V(call otto.FunctionCall) otto.Value {
 	return g.Vertex(call)
 }
 func (g *graphObject) Vertex(call otto.FunctionCall) otto.Value {
-	qv := toQuadValues(exportArgs(call.ArgumentList))
+	qv, err := toQuadValues(exportArgs(call.ArgumentList))
+	if err != nil {
+		//TODO(dennwc): pass error to caller
+		return otto.NullValue()
+	}
 	return outObj(call, &pathObject{
 		wk:     g.wk,
 		finals: true,
@@ -247,19 +251,19 @@ func toQuadValue(o interface{}) (quad.Value, bool) {
 	return qv, true
 }
 
-func toQuadValues(objs []interface{}) []quad.Value {
+func toQuadValues(objs []interface{}) ([]quad.Value, error) {
 	if len(objs) == 0 {
-		return nil
+		return nil, nil
 	}
 	vals := make([]quad.Value, 0, len(objs))
 	for _, o := range objs {
 		qv, ok := toQuadValue(o)
 		if !ok {
-			panic(fmt.Errorf("unsupported type: %T", o))
+			return nil, fmt.Errorf("unsupported type: %T", o)
 		}
 		vals = append(vals, qv)
 	}
-	return vals
+	return vals, nil
 }
 
 func toStrings(objs []interface{}) []string {
