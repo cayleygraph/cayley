@@ -15,7 +15,10 @@ RUN go install -v github.com/cayleygraph/cayley/cmd/cayley
 
 # Expose the port and volume for configuration and data persistence. If you're
 # using a backend like bolt, make sure the file is saved to this directory.
-VOLUME ["/data"]
-EXPOSE 64321
+RUN mkdir /data #VOLUME ["/data"]
+EXPOSE 64210
 
-CMD ["cayley", "http", "-config", "/data/cayley.cfg", "-init"]
+RUN echo '{"database":"bolt","db_path":"/data/cayley","read_only":false}' > /data/cayley.cfg
+RUN cayley init -db bolt -dbpath /data/cayley -quads ./data/30kmoviedata.nq.gz
+
+ENTRYPOINT ["cayley", "http", "-config", "/data/cayley.cfg", "-host", "0.0.0.0", "-port", "64210"]
