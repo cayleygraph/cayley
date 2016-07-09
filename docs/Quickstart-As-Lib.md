@@ -8,7 +8,7 @@ package main
 import (
   "log"
 
-  "github.com/google/cayley"
+  "github.com/cayleygraph/cayley"
 )
 
 func main() {
@@ -28,13 +28,13 @@ func main() {
 To use other backends, you can empty-import them, eg
 
 ```go
-import _ "github.com/google/cayley/graph/bolt"
+import _ "github.com/cayleygraph/cayley/graph/bolt"
 ```
 
 And use them with a call like
 
 ```go
-import "github.com/google/cayley/graph"
+import "github.com/cayleygraph/cayley/graph"
 
 func open() {
   // Initialize the database
@@ -59,11 +59,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/cayley"
-	"github.com/google/cayley/graph"
-	_ "github.com/google/cayley/graph/bolt"
-	"github.com/google/cayley/internal/config"
-	"github.com/google/cayley/internal/db"
+	"github.com/cayleygraph/cayley"
+	"github.com/cayleygraph/cayley/graph"
+	_ "github.com/cayleygraph/cayley/graph/bolt"
+	"github.com/cayleygraph/cayley/internal/config"
+	"github.com/cayleygraph/cayley/internal/db"
 )
 
 var store *cayley.Handle

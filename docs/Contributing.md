@@ -8,8 +8,8 @@ Join our community on [discourse.cayley.io](https://discourse.cayley.io) or othe
 mkdir -p ~/cayley && cd ~/cayley
 export GOPATH=`pwd`
 export PATH=$PATH:~/cayley/bin
-mkdir -p bin pkg src/github.com/google
-cd src/github.com/google
+mkdir -p bin pkg src/github.com/cayleygraph
+cd src/github.com/cayleygraph
 git clone https://github.com/cayleygraph/cayley
 cd cayley
 go get github.com/tools/godep
@@ -32,7 +32,7 @@ To run the web frontend, replace the "repl" command with "http"
 
 First, you'll need Go [(version 1.3.x or greater)](https://golang.org/doc/install) and a Go workspace. This is outlined by the Go team at http://golang.org/doc/code.html and is sort of the official way of going about it.
 
-If you just want to build Cayley and check out the source, or use it as a library, a simple `go get github.com/google/cayley` will work!
+If you just want to build Cayley and check out the source, or use it as a library, a simple `go get github.com/cayleygraph/cayley` will work!
 
 But suppose you want to contribute back on your own fork (and pull requests are welcome!). A good way to do this is to set up your $GOPATH and then...
 
