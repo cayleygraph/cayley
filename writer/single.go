@@ -102,6 +102,25 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
 
+// RemoveNode removes all quads with the given value
+func (s *Single) RemoveNode(v graph.Value) error {
+	var deltas []graph.Delta
+	// TODO(dennwc): QuadStore may remove node without iterations. Consider optional interface for this.
+	for _, d := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
+		it := s.qs.QuadIterator(d, v)
+		for graph.Next(it) {
+			deltas = append(deltas, graph.Delta{
+				ID:        s.currentID.Next(),
+				Quad:      s.qs.Quad(it.Result()),
+				Action:    graph.Delete,
+				Timestamp: time.Now(),
+			})
+		}
+		it.Close()
+	}
+	return s.qs.ApplyDeltas(deltas, graph.IgnoreOpts{IgnoreMissing: true})
+}
+
 func (s *Single) Close() error {
 	// Nothing to clean up locally.
 	return nil
