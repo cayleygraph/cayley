@@ -305,9 +305,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		clog.Errorf("Couldn't write to DB for Delta set. Error: %v", err)
 		qs.horizon = oldHorizon
 		qs.size = oldSize
-		return err
 	}
-	return nil
+	return err
 }
 
 func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bool) error {
