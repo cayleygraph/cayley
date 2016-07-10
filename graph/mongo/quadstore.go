@@ -227,11 +227,11 @@ func (qs *QuadStore) updateLog(d graph.Delta) error {
 	return err
 }
 
-func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	qs.session.SetSafe(nil)
 	ids := make(map[string]int)
 	// Pre-check the existence condition.
-	for _, d := range in {
+	for _, d := range deltas {
 		if d.Action != graph.Add && d.Action != graph.Delete {
 			return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
@@ -258,13 +258,13 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	if clog.V(2) {
 		clog.Infof("Existence verified. Proceeding.")
 	}
-	for _, d := range in {
+	for _, d := range deltas {
 		err := qs.updateLog(d)
 		if err != nil {
 			return &graph.DeltaError{Delta: d, Err: err}
 		}
 	}
-	for _, d := range in {
+	for _, d := range deltas {
 		err := qs.updateQuad(d.Quad, d.ID.Int(), d.Action)
 		if err != nil {
 			return &graph.DeltaError{Delta: d, Err: err}
