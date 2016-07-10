@@ -30,6 +30,17 @@ import (
 
 type Procedure int8
 
+func (p Procedure) String() string {
+	switch p {
+	case +1:
+		return "add"
+	case -1:
+		return "delete"
+	default:
+		return "invalid"
+	}
+}
+
 // The different types of actions a transaction can do.
 const (
 	Add    Procedure = +1
@@ -58,9 +69,50 @@ func (h *Handle) Close() {
 }
 
 var (
-	ErrQuadExists   = errors.New("quad exists")
-	ErrQuadNotExist = errors.New("quad does not exist")
+	ErrQuadExists    = errors.New("quad exists")
+	ErrQuadNotExist  = errors.New("quad does not exist")
+	ErrInvalidAction = errors.New("invalid action")
 )
+
+// DeltaError records an error and the delta that caused it.
+type DeltaError struct {
+	Delta Delta
+	Err   error
+}
+
+func (e *DeltaError) Error() string {
+	return e.Delta.Action.String() + " " + e.Delta.Quad.String() + ": " + e.Err.Error()
+}
+
+// IsQuadExist returns whether an error is a DeltaError
+// with the Err field equal to ErrQuadExists.
+func IsQuadExist(err error) bool {
+	if err == ErrQuadExists {
+		return true
+	}
+	de, ok := err.(*DeltaError)
+	return ok && de == ErrQuadExists
+}
+
+// IsQuadNotExist returns whether an error is a DeltaError
+// with the Err field equal to ErrQuadNotExist.
+func IsQuadNotExist(err error) bool {
+	if err == ErrQuadNotExist {
+		return true
+	}
+	de, ok := err.(*DeltaError)
+	return ok && de == ErrQuadNotExist
+}
+
+// IsInvalidAction returns whether an error is a DeltaError
+// with the Err field equal to ErrInvalidAction.
+func IsInvalidAction(err error) bool {
+	if err == ErrInvalidAction {
+		return true
+	}
+	de, ok := err.(*DeltaError)
+	return ok && de == ErrInvalidAction
+}
 
 var (
 	// IgnoreDuplicates specifies whether duplicate quads

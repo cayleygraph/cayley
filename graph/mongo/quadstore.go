@@ -17,7 +17,6 @@ package mongo
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"errors"
 	"hash"
 	"sync"
 
@@ -234,7 +233,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	// Pre-check the existence condition.
 	for _, d := range in {
 		if d.Action != graph.Add && d.Action != graph.Delete {
-			return errors.New("mongo: invalid action")
+			return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
 		key := qs.getIDForQuad(d.Quad)
 		switch d.Action {
@@ -243,7 +242,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 				if ignoreOpts.IgnoreDup {
 					continue
 				} else {
-					return graph.ErrQuadExists
+					return &graph.DeltaError{Delta: d, Err: graph.ErrQuadExists}
 				}
 			}
 		case graph.Delete:
@@ -251,7 +250,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 				if ignoreOpts.IgnoreMissing {
 					continue
 				} else {
-					return graph.ErrQuadNotExist
+					return &graph.DeltaError{Delta: d, Err: graph.ErrQuadNotExist}
 				}
 			}
 		}
@@ -262,13 +261,13 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	for _, d := range in {
 		err := qs.updateLog(d)
 		if err != nil {
-			return err
+			return &graph.DeltaError{Delta: d, Err: err}
 		}
 	}
 	for _, d := range in {
 		err := qs.updateQuad(d.Quad, d.ID.Int(), d.Action)
 		if err != nil {
-			return err
+			return &graph.DeltaError{Delta: d, Err: err}
 		}
 		var countdelta int
 		if d.Action == graph.Add {

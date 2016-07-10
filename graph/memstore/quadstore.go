@@ -15,7 +15,6 @@
 package memstore
 
 import (
-	"errors"
 	"time"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -118,17 +117,17 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			case graph.Add:
 				if !ignoreOpts.IgnoreDup {
 					if _, exists := qs.indexOf(d.Quad); exists {
-						return graph.ErrQuadExists
+						return &graph.DeltaError{Delta: d, Err: graph.ErrQuadExists}
 					}
 				}
 			case graph.Delete:
 				if !ignoreOpts.IgnoreMissing {
 					if _, exists := qs.indexOf(d.Quad); !exists {
-						return graph.ErrQuadNotExist
+						return &graph.DeltaError{Delta: d, Err: graph.ErrQuadNotExist}
 					}
 				}
 			default:
-				return errors.New("memstore: invalid action")
+				return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 			}
 		}
 	}
@@ -147,7 +146,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				err = nil
 			}
 		default:
-			return errors.New("memstore: invalid action")
+			err = &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
 		if err != nil {
 			return err
@@ -193,7 +192,7 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 
 func (qs *QuadStore) AddDelta(d graph.Delta) error {
 	if _, exists := qs.indexOf(d.Quad); exists {
-		return graph.ErrQuadExists
+		return &graph.DeltaError{Delta: d, Err: graph.ErrQuadExists}
 	}
 	qid := qs.nextQuadID
 	qs.log = append(qs.log, LogEntry{
@@ -226,7 +225,7 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 	prevQuadID, exists := qs.indexOf(d.Quad)
 	if !exists {
-		return graph.ErrQuadNotExist
+		return &graph.DeltaError{Delta: d, Err: graph.ErrQuadNotExist}
 	}
 
 	quadID := qs.nextQuadID
