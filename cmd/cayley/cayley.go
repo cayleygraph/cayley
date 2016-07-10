@@ -88,6 +88,9 @@ Flags:`)
 
 func init() {
 	flag.Usage = usage
+
+	flag.BoolVar(&graph.IgnoreDuplicates, "ignoredup", false, "Don't stop loading on duplicated key on add")
+	flag.BoolVar(&graph.IgnoreMissing, "ignoremissing", false, "Don't stop loading on missing key on delete")
 }
 
 func configFrom(file string) *config.Config {

@@ -253,16 +253,16 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		sizeChange := int64(0)
 		for _, d := range deltas {
 			if d.Action != graph.Add && d.Action != graph.Delete {
-				return errors.New("bolt: invalid action")
+				return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 			}
 			p := deltaToProto(d)
 			bytes, err := p.Marshal()
 			if err != nil {
-				return err
+				return &graph.DeltaError{Delta: d, Err: err}
 			}
 			err = b.Put(qs.createDeltaKeyFor(d.ID.Int()), bytes)
 			if err != nil {
-				return err
+				return &graph.DeltaError{Delta: d, Err: err}
 			}
 		}
 		for _, d := range deltas {
@@ -274,7 +274,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				if err == graph.ErrQuadNotExist && ignoreOpts.IgnoreMissing {
 					continue
 				}
-				return err
+				return &graph.DeltaError{Delta: d, Err: err}
 			}
 			delta := int64(1)
 			if d.Action == graph.Delete {
@@ -305,9 +305,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		clog.Errorf("Couldn't write to DB for Delta set. Error: %v", err)
 		qs.horizon = oldHorizon
 		qs.size = oldSize
-		return err
 	}
-	return nil
+	return err
 }
 
 func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bool) error {

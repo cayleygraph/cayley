@@ -19,7 +19,6 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"hash"
 	"sync"
@@ -210,11 +209,11 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	sizeChange := int64(0)
 	for _, d := range deltas {
 		if d.Action != graph.Add && d.Action != graph.Delete {
-			return errors.New("leveldb: invalid action")
+			return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
 		bytes, err := json.Marshal(d)
 		if err != nil {
-			return err
+			return &graph.DeltaError{Delta: d, Err: err}
 		}
 		batch.Put(keyFor(d), bytes)
 		err = qs.buildQuadWrite(batch, d.Quad, d.ID.Int(), d.Action == graph.Add)
@@ -225,7 +224,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			if err == graph.ErrQuadNotExist && ignoreOpts.IgnoreMissing {
 				continue
 			}
-			return err
+			return &graph.DeltaError{Delta: d, Err: err}
 		}
 		delta := int64(1)
 		if d.Action == graph.Delete {
