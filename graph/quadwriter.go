@@ -23,7 +23,6 @@ package graph
 
 import (
 	"errors"
-	"flag"
 	"time"
 
 	"github.com/cayleygraph/cayley/quad"
@@ -64,8 +63,13 @@ var (
 )
 
 var (
-	IgnoreDup     = flag.Bool("ignoredup", false, "Don't stop loading on duplicated key on add")
-	IgnoreMissing = flag.Bool("ignoremissing", false, "Don't stop loading on missing key on delete")
+	// IgnoreDuplicates specifies whether duplicate quads
+	// cause an error during loading or are ignored.
+	IgnoreDuplicates = false
+
+	// IgnoreMissing specifies whether missing quads
+	// cause an error during deletion or are ignored.
+	IgnoreMissing = false
 )
 
 type QuadWriter interface {

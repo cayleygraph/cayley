@@ -38,7 +38,7 @@ func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWri
 		err             error
 	)
 
-	if *graph.IgnoreMissing {
+	if graph.IgnoreMissing {
 		ignoreMissing = true
 	} else {
 		ignoreMissing, _, err = opts.BoolKey("ignore_missing")
@@ -47,7 +47,7 @@ func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWri
 		}
 	}
 
-	if *graph.IgnoreDup {
+	if graph.IgnoreDuplicates {
 		ignoreDuplicate = true
 	} else {
 		ignoreDuplicate, _, err = opts.BoolKey("ignore_duplicate")
