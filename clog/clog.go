@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package clog provides a logging interface for cayley packages.
 package clog
 
 import "log"
@@ -31,11 +32,11 @@ func SetLogger(l Logger) { logger = l }
 
 var verbosity int
 
-// Set returns whether v is at or above the current verbosity level.
-func V(v int) bool { return v <= verbosity }
+// V returns whether the current clog verbosity is above the specified level.
+func V(level int) bool { return verbosity >= level }
 
 // SetV sets the clog verbosity level.
-func SetV(v int) { verbosity = v }
+func SetV(level int) { verbosity = level }
 
 // Infof logs information level messages.
 func Infof(format string, args ...interface{}) {
