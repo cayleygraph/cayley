@@ -363,3 +363,13 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 		return i
 	}
 }
+
+func (p *Path) Clone() *Path {
+	stack := make([]morphism, len(p.stack))
+	copy(stack, p.stack)
+	return &Path{
+		stack:       stack,
+		qs:          p.qs,
+		baseContext: p.baseContext,
+	}
+}
