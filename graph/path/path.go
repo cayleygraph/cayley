@@ -290,6 +290,13 @@ func (p *Path) HasRegex(via interface{}, pattern string) *Path {
 	return p
 }
 
+// HasComparison limits the paths to be ones where the current nodes have some linkage
+// to a node satisfying a numeric comparison.
+func (p *Path) HasComparison(via interface{}, operator string, number float64) *Path {
+	p.stack = append(p.stack, hasComparisonMorphism(via, operator, number))
+	return p
+}
+
 // LabelContext restricts the following operations (such as In, Out) to only
 // traverse edges that match the given set of labels.
 func (p *Path) LabelContext(via ...interface{}) *Path {

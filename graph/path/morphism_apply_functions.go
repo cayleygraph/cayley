@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
@@ -118,7 +119,7 @@ func hasRegexMorphism(via interface{}, pattern string) morphism {
 				re := regexp.MustCompile(pattern)
 				out := inOutIterator(buildViaPath(qs, via), in, false, nil, ctx)
 
-				// Transfer dest nodes from 'all outbound' to fixed queue is they
+				// Transfer dest nodes from 'all outbound' to fixed queue if they
 				// pass the regex.
 				fixed := qs.FixedIterator()
 				for graph.Next(out) {
@@ -134,6 +135,57 @@ func hasRegexMorphism(via interface{}, pattern string) morphism {
 			dest := iterator.NewLinksTo(qs, ends, quad.Object)
 
 			// This looks backwards. That's OK-- see the note above.
+			route := join(qs, dest, trail)
+			has := iterator.NewHasA(qs, route, quad.Subject)
+			return join(qs, has, in), ctx
+		},
+	}
+}
+
+func hasComparisonMorphism(via interface{}, operator string, number float64) morphism {
+	return morphism{
+		Name:     "hascomparison",
+		Reversal: func(ctx *context) (morphism, *context) { return hasComparisonMorphism(via, operator, number), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			viaIter := buildViaPath(qs, via).
+				BuildIterator()
+
+			ends := func() graph.Iterator {
+				var compare func(float64, float64) bool
+				switch operator {
+				case "==":
+					compare = func(lhs, rhs float64) bool { return lhs == rhs }
+				case "<":
+					compare = func(lhs, rhs float64) bool { return lhs < rhs }
+				case "<=":
+					compare = func(lhs, rhs float64) bool { return lhs <= rhs }
+				case ">":
+					compare = func(lhs, rhs float64) bool { return lhs > rhs }
+				case ">=":
+					compare = func(lhs, rhs float64) bool { return lhs >= rhs }
+				}
+
+				out := inOutIterator(buildViaPath(qs, via), in, false, nil, ctx)
+
+				// Transfer dest nodes from 'all outbound' to fixed queue if they
+				// pass the comparison.
+				fixed := qs.FixedIterator()
+				for graph.Next(out) {
+					n := out.Result()
+					fl, err := strconv.ParseFloat(qs.NameOf(n), 64)
+					if err != nil {
+						fl = 0
+					}
+					if compare(fl, number) {
+						fixed.Add(n)
+					}
+				}
+				return fixed
+			}()
+
+			trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
+			dest := iterator.NewLinksTo(qs, ends, quad.Object)
+
 			route := join(qs, dest, trail)
 			has := iterator.NewHasA(qs, route, quad.Subject)
 			return join(qs, has, in), ctx
