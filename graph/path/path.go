@@ -98,6 +98,16 @@ func NewPath(qs graph.QuadStore) *Path {
 	}
 }
 
+// Clone returns a clone of the current path.
+func (p *Path) Clone() *Path {
+	stack := p.stack
+	return &Path{
+		stack:       stack[:len(stack):len(stack)],
+		qs:          p.qs,
+		baseContext: p.baseContext,
+	}
+}
+
 // Reverse returns a new Path that is the reverse of the current one.
 func (p *Path) Reverse() *Path {
 	newPath := NewPath(p.qs)
