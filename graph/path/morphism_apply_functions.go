@@ -16,7 +16,6 @@ package path
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -421,22 +420,15 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 			return p
 		case quad.Value:
 			return StartPath(qs, p)
-		case string:
-			return StartPath(qs, quad.Raw(p))
-		default:
-			panic(fmt.Sprintln("Invalid type passed to buildViaPath.", reflect.TypeOf(v), p))
 		}
 	}
-	var nodes []quad.Value
-	for _, s := range via {
-		switch v := s.(type) {
-		case quad.Value:
-			nodes = append(nodes, v)
-		case string:
-			nodes = append(nodes, quad.Raw(v))
-		default:
-			panic("Non-value type passed to long Via path")
+	nodes := make([]quad.Value, 0, len(via))
+	for _, v := range via {
+		qv, ok := quad.AsValue(v)
+		if !ok {
+			panic(fmt.Errorf("Invalid type passed to buildViaPath: %v (%T)", v, v))
 		}
+		nodes = append(nodes, qv)
 	}
 	return StartPath(qs, nodes...)
 }

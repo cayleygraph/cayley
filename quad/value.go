@@ -56,6 +56,37 @@ func StringOf(v Value) string {
 	return v.String()
 }
 
+// AsValue converts native type into closest Value representation.
+// It returns false if type was not recognized.
+func AsValue(v interface{}) (out Value, ok bool) {
+	if v == nil {
+		return nil, true
+	}
+	switch v := v.(type) {
+	case Value:
+		out = v
+	case string:
+		out = String(v)
+	case int:
+		out = Int(v)
+	case int64:
+		out = Int(v)
+	case int32:
+		out = Int(v)
+	case float64:
+		out = Float(v)
+	case float32:
+		out = Float(v)
+	case bool:
+		out = Bool(v)
+	case time.Time:
+		out = Time(v)
+	default:
+		return nil, false
+	}
+	return out, true
+}
+
 // Raw is a Turtle/NQuads-encoded value.
 type Raw string
 
