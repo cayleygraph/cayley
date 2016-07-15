@@ -59,7 +59,7 @@ var benchmarkQueries = []struct {
 	{
 		message: "name predicate",
 		query: `
-		g.V('"Humphrey Bogart"').In("<name>").All()
+		g.V("Humphrey Bogart").In("<name>").All()
 		`,
 		expect: []interface{}{
 			map[string]string{"id": "</en/humphrey_bogart>"},
@@ -75,8 +75,8 @@ var benchmarkQueries = []struct {
 		function getId(x) { return g.V(x).In("<name>") }
 		var actor_to_film = g.M().In("</film/performance/actor>").In("</film/film/starring>")
 
-		getId('"Oliver Hardy"').Follow(actor_to_film).Out("<name>").Intersect(
-			getId('"Mel Blanc"').Follow(actor_to_film).Out("<name>")).All()
+		getId("Oliver Hardy").Follow(actor_to_film).Out("<name>").Intersect(
+			getId("Mel Blanc").Follow(actor_to_film).Out("<name>")).All()
 			`,
 		expect: nil,
 	},
@@ -89,9 +89,9 @@ var benchmarkQueries = []struct {
 			function getId(x) { return g.V(x).In("<name>") }
 			var actor_to_film = g.M().In("</film/performance/actor>").In("</film/film/starring>")
 
-			var a = getId('"Oliver Hardy"').Follow(actor_to_film).FollowR(actor_to_film)
-			var b = getId('"Mel Blanc"').Follow(actor_to_film).FollowR(actor_to_film)
-			var c = getId('"Billy Gilbert"').Follow(actor_to_film).FollowR(actor_to_film)
+			var a = getId("Oliver Hardy").Follow(actor_to_film).FollowR(actor_to_film)
+			var b = getId("Mel Blanc").Follow(actor_to_film).FollowR(actor_to_film)
+			var c = getId("Billy Gilbert").Follow(actor_to_film).FollowR(actor_to_film)
 
 			seen = {}
 
@@ -115,7 +115,7 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker",
 		long:    true,
 		query: `
-			g.V().As("person").In("<name>").In().In().Out("<name>").Is('"Casablanca"').All()
+			g.V().As("person").In("<name>").In().In().Out("<name>").Is("Casablanca").All()
 			`,
 		tag: "person",
 		expect: []interface{}{
@@ -142,7 +142,7 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker, negated (films without Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.V().As("person").In("<name>").In().In().Out("<name>").Except(g.V('"Ingrid Bergman"').In("<name>").In().In().Out("<name>")).Is('"Casablanca"').All()
+			g.V().As("person").In("<name>").In().In().Out("<name>").Except(g.V("Ingrid Bergman").In("<name>").In().In().Out("<name>")).Is("Casablanca").All()
 			`,
 		tag:    "person",
 		expect: nil,
@@ -151,7 +151,7 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker, negated (without actors Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.V().As("person").In("<name>").Except(g.V('"Ingrid Bergman"').In("<name>")).In().In().Out("<name>").Is('"Casablanca"').All()
+			g.V().As("person").In("<name>").Except(g.V("Ingrid Bergman").In("<name>")).In().In().Out("<name>").Is("Casablanca").All()
 			`,
 		tag: "person",
 		expect: []interface{}{
@@ -410,10 +410,10 @@ var benchmarkQueries = []struct {
 }
 
 const common = `
-var movie1 = g.V().Has("<name>", '"The Net"')
-var movie2 = g.V().Has("<name>", '"Speed"')
-var actor1 = g.V().Has("<name>", '"Sandra Bullock"')
-var actor2 = g.V().Has("<name>", '"Keanu Reeves"')
+var movie1 = g.V().Has("<name>", "The Net")
+var movie2 = g.V().Has("<name>", "Speed")
+var actor1 = g.V().Has("<name>", "Sandra Bullock")
+var actor2 = g.V().Has("<name>", "Keanu Reeves")
 
 // (film) -> starring -> (actor)
 var filmToActor = g.Morphism().Out("</film/film/starring>").Out("</film/performance/actor>")

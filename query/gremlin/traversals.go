@@ -141,6 +141,11 @@ func (p *pathObject) has(call otto.FunctionCall, rev bool) otto.Value {
 	via := args[0]
 	if vp, ok := via.(*pathObject); ok {
 		via = vp.path
+	} else {
+		via, ok = toQuadValue(via)
+		if !ok {
+			return otto.NullValue()
+		}
 	}
 	qv, err := toQuadValues(args[1:])
 	if err != nil {
@@ -167,6 +172,11 @@ func (p *pathObject) save(call otto.FunctionCall, rev bool) otto.Value {
 	via := args[0]
 	if vp, ok := via.(*pathObject); ok {
 		via = vp.path
+	} else {
+		via, ok = toQuadValue(via)
+		if !ok {
+			return otto.NullValue()
+		}
 	}
 	var np *path.Path
 	if rev {
