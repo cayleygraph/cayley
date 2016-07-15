@@ -42,7 +42,7 @@ type AllIterator struct {
 
 func NewAllIterator(bucket []byte, d quad.Direction, qs *QuadStore) *AllIterator {
 	return &AllIterator{
-		nodes:  d == 0,
+		nodes:  d == quad.Any,
 		uid:    iterator.NextUID(),
 		bucket: bucket,
 		dir:    d,

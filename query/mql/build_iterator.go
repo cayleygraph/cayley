@@ -92,7 +92,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 		it = q.buildResultIterator(path)
 		optional = true
 	default:
-		err = fmt.Errorf("Unknown JSON type: %T")
+		err = fmt.Errorf("Unknown JSON type: %T", query)
 	}
 	if err != nil {
 		return nil, false, err
