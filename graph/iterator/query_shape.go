@@ -129,7 +129,7 @@ func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 		}
 	case graph.Fixed:
 		n.IsFixed = true
-		for graph.Next(it) {
+		for nxt := graph.AsNexter(it); nxt.Next() ; {
 			n.Values = append(n.Values, s.qs.NameOf(it.Result()).String())
 		}
 	case graph.HasA:

@@ -70,7 +70,7 @@ func (it *Unique) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for graph.Next(it.subIt) {
+	for nxt := graph.AsNexter(it.subIt); nxt.Next() ; {
 		curr := it.subIt.Result()
 		var key interface{} = curr
 		if v, ok := curr.(graph.Keyer); ok {

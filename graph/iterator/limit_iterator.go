@@ -54,7 +54,7 @@ func (it *Limit) Next() bool {
 	if it.limit > 0 && it.count >= it.limit {
 		return graph.NextLogOut(it, nil, false)
 	}
-	if graph.Next(it.primaryIt) {
+	if graph.AsNexter(it.primaryIt).Next() {
 		curr := it.primaryIt.Result()
 		it.count++
 		return graph.NextLogOut(it, curr, true)

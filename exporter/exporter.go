@@ -32,7 +32,7 @@ func (exp *Exporter) Count() int {
 
 func (exp *Exporter) ExportQuad() {
 	exp.qi.Reset()
-	for it := exp.qi; graph.Next(it); {
+	for it := graph.AsNexter(exp.qi); it.Next(); {
 		exp.count++
 		quad := exp.qstore.Quad(it.Result())
 
@@ -53,7 +53,7 @@ func (exp *Exporter) ExportJson() {
 	var jstr []byte
 	exp.Write("[")
 	exp.qi.Reset()
-	for it := exp.qi; graph.Next(it); {
+	for it := graph.AsNexter(exp.qi); it.Next(); {
 		exp.count++
 		if exp.count > 1 {
 			exp.Write(",")
@@ -77,7 +77,7 @@ func (exp *Exporter) ExportGml() {
 
 	seen = make(map[quad.Value]int32)
 	exp.qi.Reset()
-	for it := exp.qi; graph.Next(it); {
+	for it := graph.AsNexter(exp.qi); it.Next(); {
 		cur := exp.qstore.Quad(it.Result())
 		if _, ok := seen[cur.Subject]; !ok {
 			exp.Write("  node\n  [\n    id ")
@@ -101,7 +101,7 @@ func (exp *Exporter) ExportGml() {
 	}
 
 	exp.qi.Reset()
-	for it := exp.qi; graph.Next(it); {
+	for it := graph.AsNexter(exp.qi); it.Next(); {
 		cur := exp.qstore.Quad(it.Result())
 		exp.Write("  edge\n  [\n    source ")
 		exp.Write(strconv.FormatInt(int64(seen[cur.Subject]), 10))
@@ -127,7 +127,7 @@ func (exp *Exporter) ExportGraphml() {
 
 	seen = make(map[quad.Value]bool)
 	exp.qi.Reset()
-	for it := exp.qi; graph.Next(it); {
+	for it := graph.AsNexter(exp.qi); it.Next(); {
 		cur := exp.qstore.Quad(it.Result())
 		if found := seen[cur.Subject]; !found {
 			seen[cur.Subject] = true
@@ -145,7 +145,7 @@ func (exp *Exporter) ExportGraphml() {
 	}
 
 	exp.qi.Reset()
-	for it := exp.qi; graph.Next(it); {
+	for it := graph.AsNexter(exp.qi); it.Next(); {
 		cur := exp.qstore.Quad(it.Result())
 		exp.Write("    <edge source=")
 		exp.WriteEscString(cur.Subject.String())

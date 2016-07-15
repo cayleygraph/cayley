@@ -91,7 +91,7 @@ func (s *Session) Execute(input string, c chan interface{}, _ int) {
 			clog.Infof("%s", b)
 		}
 	}
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		c <- tags

@@ -83,7 +83,7 @@ func (s *Session) Execute(input string, out chan interface{}, limit int) {
 		}
 	}
 	nResults := 0
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		out <- &tags

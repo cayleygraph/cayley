@@ -51,12 +51,13 @@ func (it *Skip) SubIterators() []graph.Iterator {
 // before returning actual result.
 func (it *Skip) Next() bool {
 	graph.NextLogIn(it)
+	nxt := graph.AsNexter(it.primaryIt)
 	for ; it.skipped < it.skip; it.skipped++ {
-		if !graph.Next(it.primaryIt) {
+		if !nxt.Next() {
 			return graph.NextLogOut(it, nil, false)
 		}
 	}
-	if graph.Next(it.primaryIt) {
+	if nxt.Next() {
 		curr := it.primaryIt.Result()
 		return graph.NextLogOut(it, curr, true)
 	}

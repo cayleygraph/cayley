@@ -134,7 +134,7 @@ func (it *Or) Next() bool {
 		}
 		curIt := it.internalIterators[it.currentIterator]
 
-		if graph.Next(curIt) {
+		if graph.AsNexter(curIt).Next() {
 			it.result = curIt.Result()
 			return graph.NextLogOut(it, it.result, true)
 		}

@@ -42,14 +42,14 @@ func TestSQLLinkIteration(t *testing.T) {
 		t.Fatal(err)
 	}
 	it := NewSQLLinkIterator(qs, quad.Object, quad.Raw("Humphrey Bogart"))
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		fmt.Println(it.Result())
 	}
 	it = NewSQLLinkIterator(qs, quad.Subject, quad.Raw("/en/casablanca_1942"))
 	s, v := it.sql.buildSQL(true, nil)
 	t.Log(s, v)
 	c := 0
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		fmt.Println(it.Result())
 		c += 1
 	}
@@ -81,7 +81,7 @@ func TestSQLNodeIteration(t *testing.T) {
 	s, v := it.sql.buildSQL(true, nil)
 	t.Log(s, v)
 	c := 0
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		t.Log(it.Result())
 		c += 1
 	}

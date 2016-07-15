@@ -191,10 +191,10 @@ func TestOptimize(t *testing.T) {
 		t.Errorf("Optimized iteration does not match original")
 	}
 
-	graph.Next(oldIt)
+	graph.AsNexter(oldIt).Next()
 	oldResults := make(map[string]graph.Value)
 	oldIt.TagResults(oldResults)
-	graph.Next(newIt)
+	graph.AsNexter(newIt).Next()
 	newResults := make(map[string]graph.Value)
 	newIt.TagResults(newResults)
 	if !reflect.DeepEqual(newResults, oldResults) {

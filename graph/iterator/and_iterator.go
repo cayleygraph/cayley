@@ -140,7 +140,7 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 func (it *And) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
-	for graph.Next(it.primaryIt) {
+	for nxt := graph.AsNexter(it.primaryIt); nxt.Next() ; {
 		curr := it.primaryIt.Result()
 		if it.subItsContain(curr, nil) {
 			it.result = curr

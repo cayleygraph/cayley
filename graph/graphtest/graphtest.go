@@ -93,7 +93,7 @@ func MakeQuadSet() []quad.Quad {
 
 func IteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Quad {
 	var res quad.ByQuadString
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		res = append(res, qs.Quad(it.Result()))
 	}
 	require.Nil(t, it.Err())
@@ -131,7 +131,7 @@ func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator, e
 
 func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []string {
 	var res []string
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		res = append(res, qs.NameOf(it.Result()).String())
 	}
 	require.Nil(t, it.Err())
@@ -141,7 +141,7 @@ func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []s
 
 func IteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Value {
 	var res []quad.Value
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next() ; {
 		res = append(res, qs.NameOf(it.Result()))
 	}
 	require.Nil(t, it.Err())
@@ -274,7 +274,7 @@ func TestIterator(t testing.TB, gen DatabaseFunc) {
 	optIt, changed = it.Optimize()
 	require.True(t, !changed && optIt == it, "Optimize unexpectedly changed iterator: %v, %T", changed, optIt)
 
-	require.True(t, graph.Next(it))
+	require.True(t, graph.AsNexter(it).Next())
 
 	q := qs.Quad(it.Result())
 	require.Nil(t, it.Err())

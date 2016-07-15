@@ -166,13 +166,14 @@ func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]
 	output := make([]map[string]interface{}, 0)
 	n := 0
 	it, _ = it.Optimize()
+	nxt := graph.AsNexter(it)
 	for {
 		select {
 		case <-wk.kill:
 			return nil
 		default:
 		}
-		if !graph.Next(it) {
+		if !nxt.Next() {
 			break
 		}
 		tags := make(map[string]graph.Value)
@@ -205,13 +206,14 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []inter
 	output := make([]interface{}, 0)
 	n := 0
 	it, _ = it.Optimize()
+	nxt := graph.AsNexter(it)
 	for {
 		select {
 		case <-wk.kill:
 			return nil
 		default:
 		}
-		if !graph.Next(it) {
+		if !nxt.Next() {
 			break
 		}
 		output = append(output, quadValueToNative(wk.qs.NameOf(it.Result())))
@@ -235,13 +237,14 @@ func (wk *worker) runIteratorWithCallback(it graph.Iterator, callback otto.Value
 			clog.Infof("%s", b)
 		}
 	}
+	nxt := graph.AsNexter(it)
 	for {
 		select {
 		case <-wk.kill:
 			return
 		default:
 		}
-		if !graph.Next(it) {
+		if !nxt.Next() {
 			break
 		}
 		tags := make(map[string]graph.Value)
@@ -305,13 +308,14 @@ func (wk *worker) runIterator(it graph.Iterator) {
 			clog.Infof("%s", b)
 		}
 	}
+	nxt := graph.AsNexter(it)
 	for {
 		select {
 		case <-wk.kill:
 			return
 		default:
 		}
-		if !graph.Next(it) {
+		if !nxt.Next() {
 			break
 		}
 		tags := make(map[string]graph.Value)
