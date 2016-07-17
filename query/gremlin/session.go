@@ -186,7 +186,7 @@ func (s *Session) Format(result interface{}) string {
 			if k == "$_" {
 				continue
 			}
-			out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
+			out += fmt.Sprintf("%s : %s\n", k, quadValueToString(s.qs.NameOf(tags[k])))
 		}
 	} else {
 		switch export := data.val.(type) {
@@ -219,7 +219,7 @@ func (s *Session) Collate(result interface{}) {
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
 				if name := s.qs.NameOf(tags[k]); name != nil {
-					obj[k] = name.String()
+					obj[k] = quadValueToString(name)
 				} else {
 					delete(obj, k)
 				}

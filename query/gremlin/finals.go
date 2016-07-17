@@ -70,7 +70,7 @@ func (p *pathObject) toArray(call otto.FunctionCall, withTags bool) otto.Value {
 		val, err = call.Otto.ToValue(array)
 	}
 	if err != nil {
-		clog.Errorf("%v",err)
+		clog.Errorf("%v", err)
 		return otto.NullValue()
 	}
 	return val
@@ -103,7 +103,7 @@ func (p *pathObject) toValue(call otto.FunctionCall, withTags bool) otto.Value {
 		val, err = call.Otto.ToValue(array[0])
 	}
 	if err != nil {
-		clog.Errorf("%v",err)
+		clog.Errorf("%v", err)
 		return otto.NullValue()
 	}
 	return val
@@ -133,10 +133,17 @@ func (p *pathObject) ForEach(call otto.FunctionCall) otto.Value {
 	return otto.NullValue()
 }
 
+func quadValueToString(v quad.Value) string {
+	if s, ok := v.(quad.String); ok {
+		return string(s)
+	}
+	return quad.StringOf(v)
+}
+
 func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]string {
 	outputMap := make(map[string]string)
 	for k, v := range m {
-		outputMap[k] = quad.StringOf(wk.qs.NameOf(v))
+		outputMap[k] = quadValueToString(wk.qs.NameOf(v))
 	}
 	return outputMap
 }
@@ -193,7 +200,7 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []strin
 		if !graph.Next(it) {
 			break
 		}
-		output = append(output, quad.StringOf(wk.qs.NameOf(it.Result())))
+		output = append(output, quadValueToString(wk.qs.NameOf(it.Result())))
 		n++
 		if limit >= 0 && n >= limit {
 			break

@@ -235,7 +235,7 @@ var testQueries = []struct {
 		query: `
 				g.V().HasR("<status>", "<bob>").All()
 		`,
-		expect: []string{`"cool_person"`},
+		expect: []string{"cool_person"},
 	},
 	{
 		message: "show a double Has",
@@ -275,7 +275,7 @@ var testQueries = []struct {
 			g.V().Save("<status>", "somecool").All()
 		`,
 		tag:    "somecool",
-		expect: []string{`"cool_person"`, `"cool_person"`, `"cool_person"`, `"smart_person"`, `"smart_person"`},
+		expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 	},
 	{
 		message: "show a simple saveR",
@@ -306,7 +306,7 @@ var testQueries = []struct {
 		query: `
 			g.V("<dani>").Out(["<follows>", "<status>"]).All()
 		`,
-		expect: []string{"<bob>", "<greg>", `"cool_person"`},
+		expect: []string{"<bob>", "<greg>", "cool_person"},
 	},
 	{
 		message: "show a predicate path",
@@ -341,7 +341,7 @@ var testQueries = []struct {
 		query: `
 			g.V("<greg>").LabelContext("<smart_graph>").Out("<status>").All()
 		`,
-		expect: []string{`"smart_person"`},
+		expect: []string{"smart_person"},
 	},
 	{
 		message: "open and close a LabelContext",
@@ -354,6 +354,24 @@ var testQueries = []struct {
 		message: "issue #254",
 		query:   `g.V({"id":"<alice>"}).All()`,
 		expect:  nil,
+	},
+	{
+		message: "roundtrip values",
+		query: `
+		v = g.V("<bob>").ToValue()
+		s = g.V(v).Out("<status>").ToValue()
+		g.V(s).All()
+		`,
+		expect: []string{"cool_person"},
+	},
+	{
+		message: "roundtrip values (tag map)",
+		query: `
+		v = g.V("<bob>").TagValue()
+		s = g.V(v.id).Out("<status>").TagValue()
+		g.V(s.id).All()
+		`,
+		expect: []string{"cool_person"},
 	},
 }
 
@@ -371,7 +389,7 @@ func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []strin
 		if data.val == nil {
 			val := data.actualResults[tag]
 			if val != nil {
-				results = append(results, quad.StringOf(js.qs.NameOf(val)))
+				results = append(results, quadValueToString(js.qs.NameOf(val)))
 			}
 		}
 	}
