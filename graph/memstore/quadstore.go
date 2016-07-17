@@ -88,7 +88,7 @@ type QuadStore struct {
 	nextID     int64
 	nextQuadID int64
 	idMap      map[string]int64
-	revIDMap   map[int64]string
+	revIDMap   map[int64]quad.Value
 	log        []LogEntry
 	size       int64
 	index      QuadDirectionIndex
@@ -98,7 +98,7 @@ type QuadStore struct {
 func newQuadStore() *QuadStore {
 	return &QuadStore{
 		idMap:    make(map[string]int64),
-		revIDMap: make(map[int64]string),
+		revIDMap: make(map[int64]quad.Value),
 
 		// Sentinel null entry so indices start at 1
 		log: make([]LogEntry, 1, 200),
@@ -162,10 +162,10 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 	var tree *b.Tree
 	for d := quad.Subject; d <= quad.Label; d++ {
 		sid := t.Get(d)
-		if d == quad.Label && sid == "" {
+		if d == quad.Label && sid == nil {
 			continue
 		}
-		id, ok := qs.idMap[sid]
+		id, ok := qs.idMap[quad.StringOf(sid)]
 		// If we've never heard about a node, it must not exist
 		if !ok {
 			return 0, false
@@ -180,11 +180,10 @@ func (qs *QuadStore) indexOf(t quad.Quad) (int64, bool) {
 		}
 	}
 
-	it := NewIterator(tree, qs, 0, 0)
+	it := NewIterator(tree, qs, 0, nil)
 	for it.Next() {
-		val := it.Result()
-		if t == qs.log[val.(int64)].Quad {
-			return val.(int64), true
+		if t == qs.log[it.result].Quad {
+			return it.result, true
 		}
 	}
 	return 0, false
@@ -205,15 +204,16 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 
 	for dir := quad.Subject; dir <= quad.Label; dir++ {
 		sid := d.Quad.Get(dir)
-		if dir == quad.Label && sid == "" {
+		if dir == quad.Label && sid == nil {
 			continue
 		}
-		if _, ok := qs.idMap[sid]; !ok {
-			qs.idMap[sid] = qs.nextID
+		ssid := quad.StringOf(sid)
+		if _, ok := qs.idMap[ssid]; !ok {
+			qs.idMap[ssid] = qs.nextID
 			qs.revIDMap[qs.nextID] = sid
 			qs.nextID++
 		}
-		id := qs.idMap[sid]
+		id := qs.idMap[ssid]
 		tree := qs.index.Tree(dir, id)
 		tree.Set(qid, struct{}{})
 	}
@@ -241,11 +241,11 @@ func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 }
 
 func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
-	return qs.log[index.(int64)].Quad
+	return qs.log[index.(iterator.Int64Quad)].Quad
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Iterator {
-	index, ok := qs.index.Get(d, value.(int64))
+	index, ok := qs.index.Get(d, int64(value.(iterator.Int64Node)))
 	if ok {
 		return NewIterator(index, qs, d, value)
 	}
@@ -271,15 +271,15 @@ func (qs *QuadStore) DebugPrint() {
 	}
 }
 
-func (qs *QuadStore) ValueOf(name string) graph.Value {
-	return qs.idMap[name]
+func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
+	return iterator.Int64Node(qs.idMap[quad.StringOf(name)])
 }
 
-func (qs *QuadStore) NameOf(id graph.Value) string {
+func (qs *QuadStore) NameOf(id graph.Value) quad.Value {
 	if id == nil {
-		return ""
+		return nil
 	}
-	return qs.revIDMap[id.(int64)]
+	return qs.revIDMap[int64(id.(iterator.Int64Node))]
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {

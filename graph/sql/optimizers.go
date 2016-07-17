@@ -173,15 +173,15 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			it.Close()
 			return newIt, true
 		} else if size > 1 {
-			var vals []string
+			var vals []NodeHash
 			for graph.Next(primary) {
-				vals = append(vals, qs.NameOf(primary.Result()))
+				vals = append(vals, primary.Result().(NodeHash))
 			}
 			lsql := &SQLLinkIterator{
 				constraints: []constraint{
 					constraint{
-						dir:  it.Direction(),
-						vals: vals,
+						dir:    it.Direction(),
+						hashes: vals,
 					},
 				},
 				tableName: newTableName(),

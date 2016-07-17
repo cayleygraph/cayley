@@ -24,7 +24,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/proto"
 )
 
-const latestDataVersion = 2
+const latestDataVersion = 3
 const nilDataVersion = 1
 
 type upgradeFunc func(*bolt.DB) error
@@ -32,6 +32,7 @@ type upgradeFunc func(*bolt.DB) error
 var migrateFunctions = []upgradeFunc{
 	nil,
 	upgrade1To2,
+	upgrade2To3,
 }
 
 func upgradeBolt(path string, opts graph.Options) error {
@@ -157,6 +158,59 @@ func upgrade1To2(db *bolt.DB) error {
 		if err := tx.Commit(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func upgrade2To3(db *bolt.DB) error {
+	fmt.Println("Upgrading v2 to v3...")
+	tx, err := db.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	fmt.Println("Upgrading bucket", string(logBucket))
+	lb := tx.Bucket(logBucket)
+	c := lb.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var delta proto.LogDelta
+		err := delta.Unmarshal(v)
+		if err != nil {
+			return err
+		}
+		delta.Quad.Upgrade()
+		data, err := delta.Marshal()
+		if err != nil {
+			return err
+		}
+		lb.Put(k, data)
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	tx, err = db.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	fmt.Println("Upgrading bucket", string(nodeBucket))
+	nb := tx.Bucket(nodeBucket)
+	c = nb.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var vd proto.NodeData
+		err := vd.Unmarshal(v)
+		if err != nil {
+			return err
+		}
+		vd.Upgrade()
+		data, err := vd.Marshal()
+		if err != nil {
+			return err
+		}
+		nb.Put(k, data)
+	}
+	if err := tx.Commit(); err != nil {
+		return err
 	}
 	return nil
 }

@@ -43,6 +43,8 @@ import (
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
+const format = "cquad"
+
 var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
 var backendPath = flag.String("backend_path", "", "Path to the chosen backend. Will have sane testing defaults if not specified")
 
@@ -59,10 +61,10 @@ var benchmarkQueries = []struct {
 	{
 		message: "name predicate",
 		query: `
-		g.V("Humphrey Bogart").In("name").All()
+		g.V("Humphrey Bogart").In("<name>").All()
 		`,
 		expect: []interface{}{
-			map[string]string{"id": "/en/humphrey_bogart"},
+			map[string]string{"id": "</en/humphrey_bogart>"},
 		},
 	},
 
@@ -72,11 +74,11 @@ var benchmarkQueries = []struct {
 	{
 		message: "two large sets with no intersection",
 		query: `
-		function getId(x) { return g.V(x).In("name") }
-		var actor_to_film = g.M().In("/film/performance/actor").In("/film/film/starring")
+		function getId(x) { return g.V(x).In("<name>") }
+		var actor_to_film = g.M().In("</film/performance/actor>").In("</film/film/starring>")
 
-		getId("Oliver Hardy").Follow(actor_to_film).Out("name").Intersect(
-			getId("Mel Blanc").Follow(actor_to_film).Out("name")).All()
+		getId("Oliver Hardy").Follow(actor_to_film).Out("<name>").Intersect(
+			getId("Mel Blanc").Follow(actor_to_film).Out("<name>")).All()
 			`,
 		expect: nil,
 	},
@@ -86,8 +88,8 @@ var benchmarkQueries = []struct {
 		message: "three huge sets with small intersection",
 		long:    true,
 		query: `
-			function getId(x) { return g.V(x).In("name") }
-			var actor_to_film = g.M().In("/film/performance/actor").In("/film/film/starring")
+			function getId(x) { return g.V(x).In("<name>") }
+			var actor_to_film = g.M().In("</film/performance/actor>").In("</film/film/starring>")
 
 			var a = getId("Oliver Hardy").Follow(actor_to_film).FollowR(actor_to_film)
 			var b = getId("Mel Blanc").Follow(actor_to_film).FollowR(actor_to_film)
@@ -103,8 +105,8 @@ var benchmarkQueries = []struct {
 			})
 			`,
 		expect: []interface{}{
-			map[string]string{"id": "/en/sterling_holloway"},
-			map[string]string{"id": "/en/billy_gilbert"},
+			map[string]string{"id": "</en/sterling_holloway>"},
+			map[string]string{"id": "</en/billy_gilbert>"},
 		},
 	},
 
@@ -115,7 +117,7 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker",
 		long:    true,
 		query: `
-			g.V().As("person").In("name").In().In().Out("name").Is("Casablanca").All()
+			g.V().As("person").In("<name>").In().In().Out("<name>").Is("Casablanca").All()
 			`,
 		tag: "person",
 		expect: []interface{}{
@@ -142,7 +144,7 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker, negated (films without Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.V().As("person").In("name").In().In().Out("name").Except(g.V("Ingrid Bergman").In("name").In().In().Out("name")).Is("Casablanca").All()
+			g.V().As("person").In("<name>").In().In().Out("<name>").Except(g.V("Ingrid Bergman").In("<name>").In().In().Out("<name>")).Is("Casablanca").All()
 			`,
 		tag:    "person",
 		expect: nil,
@@ -151,7 +153,7 @@ var benchmarkQueries = []struct {
 		message: "the helpless checker, negated (without actors Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.V().As("person").In("name").Except(g.V("Ingrid Bergman").In("name")).In().In().Out("name").Is("Casablanca").All()
+			g.V().As("person").In("<name>").Except(g.V("Ingrid Bergman").In("<name>")).In().In().Out("<name>").Is("Casablanca").All()
 			`,
 		tag: "person",
 		expect: []interface{}{
@@ -176,7 +178,7 @@ var benchmarkQueries = []struct {
 	//A: "Sandra Bullock"
 	{
 		message: "Net and Speed",
-		query: common + `m1_actors.Intersect(m2_actors).Out("name").All()
+		query: common + `m1_actors.Intersect(m2_actors).Out("<name>").All()
 `,
 		expect: []interface{}{
 			map[string]string{"id": "Sandra Bullock", "movie1": "The Net", "movie2": "Speed"},
@@ -187,7 +189,7 @@ var benchmarkQueries = []struct {
 	//A: No
 	{
 		message: "Keanu in The Net",
-		query: common + `actor2.Intersect(m1_actors).Out("name").All()
+		query: common + `actor2.Intersect(m1_actors).Out("<name>").All()
 `,
 		expect: nil,
 	},
@@ -196,7 +198,7 @@ var benchmarkQueries = []struct {
 	//A: Yes
 	{
 		message: "Keanu in Speed",
-		query: common + `actor2.Intersect(m2_actors).Out("name").All()
+		query: common + `actor2.Intersect(m2_actors).Out("<name>").All()
 `,
 		expect: []interface{}{
 			map[string]string{"id": "Keanu Reeves", "movie2": "Speed"},
@@ -209,7 +211,7 @@ var benchmarkQueries = []struct {
 	{
 		message: "Keanu with other in The Net",
 		long:    true,
-		query: common + `actor2.Follow(coStars1).Intersect(m1_actors).Out("name").All()
+		query: common + `actor2.Follow(coStars1).Intersect(m1_actors).Out("<name>").All()
 `,
 		expect: []interface{}{
 			map[string]string{"id": "Sandra Bullock", "movie1": "The Net", "costar1_movie": "Speed"},
@@ -223,7 +225,7 @@ var benchmarkQueries = []struct {
 	{
 		message: "Keanu and Bullock with other",
 		long:    true,
-		query: common + `actor1.Save("name","costar1_actor").Follow(coStars1).Intersect(actor2.Save("name","costar2_actor").Follow(coStars2)).Out("name").All()
+		query: common + `actor1.Save("<name>","costar1_actor").Follow(coStars1).Intersect(actor2.Save("<name>","costar2_actor").Follow(coStars2)).Out("<name>").All()
 `,
 		expect: []interface{}{
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Proposal", "costar2_actor": "Keanu Reeves", "costar2_movie": "Speed", "id": "Sandra Bullock"},
@@ -289,8 +291,8 @@ var benchmarkQueries = []struct {
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Replacements", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Even Cowgirls Get the Blues", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Youngblood", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Bogus Journey", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Excellent Adventure", "id": "Keanu Reeves"},
+			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill & Ted's Bogus Journey", "id": "Keanu Reeves"},
+			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill & Ted's Excellent Adventure", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Johnny Mnemonic", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Devil's Advocate", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "Speed", "costar2_actor": "Keanu Reeves", "costar2_movie": "Thumbsucker", "id": "Keanu Reeves"},
@@ -347,8 +349,8 @@ var benchmarkQueries = []struct {
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Replacements", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Even Cowgirls Get the Blues", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Youngblood", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Bogus Journey", "id": "Keanu Reeves"},
-			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill \u0026 Ted's Excellent Adventure", "id": "Keanu Reeves"},
+			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill & Ted's Bogus Journey", "id": "Keanu Reeves"},
+			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Bill & Ted's Excellent Adventure", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Johnny Mnemonic", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "The Devil's Advocate", "id": "Keanu Reeves"},
 			map[string]string{"costar1_actor": "Sandra Bullock", "costar1_movie": "The Lake House", "costar2_actor": "Keanu Reeves", "costar2_movie": "Thumbsucker", "id": "Keanu Reeves"},
@@ -397,34 +399,34 @@ var benchmarkQueries = []struct {
 	{
 		message: "Save a number of predicates around a set of nodes",
 		query: `
-		g.V("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").Save("/film/performance/character", "char").Save("/film/performance/actor", "act").SaveR("/film/film/starring", "film").All()
+		g.V("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").Save("</film/performance/character>", "char").Save("</film/performance/actor>", "act").SaveR("</film/film/starring>", "film").All()
 		`,
 		expect: []interface{}{
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Rick Blaine", "film": "/en/casablanca_1942", "id": "_:9037"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Sam Spade", "film": "/en/the_maltese_falcon_1941", "id": "_:49278"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Philip Marlowe", "film": "/en/the_big_sleep_1946", "id": "_:44112"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Captain Queeg", "film": "/en/the_caine_mutiny_1954", "id": "_:44709"},
-			map[string]string{"act": "/en/humphrey_bogart", "char": "Charlie Allnut", "film": "/en/the_african_queen", "id": "_:43382"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": "Rick Blaine", "film": "</en/casablanca_1942>", "id": "_:9037"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": "Sam Spade", "film": "</en/the_maltese_falcon_1941>", "id": "_:49278"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": "Philip Marlowe", "film": "</en/the_big_sleep_1946>", "id": "_:44112"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": "Captain Queeg", "film": "</en/the_caine_mutiny_1954>", "id": "_:44709"},
+			map[string]string{"act": "</en/humphrey_bogart>", "char": "Charlie Allnut", "film": "</en/the_african_queen>", "id": "_:43382"},
 		},
 	},
 }
 
 const common = `
-var movie1 = g.V().Has("name", "The Net")
-var movie2 = g.V().Has("name", "Speed")
-var actor1 = g.V().Has("name", "Sandra Bullock")
-var actor2 = g.V().Has("name", "Keanu Reeves")
+var movie1 = g.V().Has("<name>", "The Net")
+var movie2 = g.V().Has("<name>", "Speed")
+var actor1 = g.V().Has("<name>", "Sandra Bullock")
+var actor2 = g.V().Has("<name>", "Keanu Reeves")
 
 // (film) -> starring -> (actor)
-var filmToActor = g.Morphism().Out("/film/film/starring").Out("/film/performance/actor")
+var filmToActor = g.Morphism().Out("</film/film/starring>").Out("</film/performance/actor>")
 
 // (actor) -> starring -> [film -> starring -> (actor)]
-var coStars1 = g.Morphism().In("/film/performance/actor").In("/film/film/starring").Save("name","costar1_movie").Follow(filmToActor)
-var coStars2 = g.Morphism().In("/film/performance/actor").In("/film/film/starring").Save("name","costar2_movie").Follow(filmToActor)
+var coStars1 = g.Morphism().In("</film/performance/actor>").In("</film/film/starring>").Save("<name>","costar1_movie").Follow(filmToActor)
+var coStars2 = g.Morphism().In("</film/performance/actor>").In("</film/film/starring>").Save("<name>","costar2_movie").Follow(filmToActor)
 
 // Stars for the movies "The Net" and "Speed"
-var m1_actors = movie1.Save("name","movie1").Follow(filmToActor)
-var m2_actors = movie2.Save("name","movie2").Follow(filmToActor)
+var m1_actors = movie1.Save("<name>","movie1").Follow(filmToActor)
+var m2_actors = movie2.Save("<name>","movie2").Follow(filmToActor)
 `
 
 var (
@@ -485,7 +487,7 @@ func prepare(t testing.TB) {
 		}
 
 		if needsLoad && !remote {
-			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", format)
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -498,11 +500,11 @@ func deletePrepare(t testing.TB) {
 	deleteAndRecreate.Do(func() {
 		prepare(t)
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = removeAll(handle.QuadWriter, cfg, "", "cquad")
+			err = removeAll(handle.QuadWriter, cfg, "", format)
 			if err != nil {
 				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
 			}
-			err = internal.Load(handle.QuadWriter, cfg, "", "cquad")
+			err = internal.Load(handle.QuadWriter, cfg, "", format)
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -607,8 +609,14 @@ func unsortedEqual(got, expect []interface{}) bool {
 func convertToStringList(in []interface{}) []string {
 	var out []string
 	for _, x := range in {
-		for k, v := range x.(map[string]string) {
-			out = append(out, fmt.Sprint(k, ":", v))
+		if xc, ok := x.(map[string]string); ok {
+			for k, v := range xc {
+				out = append(out, fmt.Sprint(k, ":", v))
+			}
+		} else {
+			for k, v := range x.(map[string]interface{}) {
+				out = append(out, fmt.Sprint(k, ":", v))
+			}
 		}
 	}
 	sort.Strings(out)

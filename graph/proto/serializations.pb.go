@@ -13,22 +13,27 @@
 		HistoryEntry
 		NodeData
 		Quad
+		Value
 */
 package proto
 
 import proto1 "github.com/gogo/protobuf/proto"
+import fmt "fmt"
+import math "math"
+import _ "github.com/gogo/protobuf/gogoproto"
 
 import io "io"
-import fmt "fmt"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
+var _ = fmt.Errorf
+var _ = math.Inf
 
 type LogDelta struct {
-	ID        uint64 `protobuf:"varint,1,opt,proto3" json:"ID,omitempty"`
-	Quad      *Quad  `protobuf:"bytes,2,opt" json:"Quad,omitempty"`
-	Action    int32  `protobuf:"varint,3,opt,proto3" json:"Action,omitempty"`
-	Timestamp int64  `protobuf:"varint,4,opt,proto3" json:"Timestamp,omitempty"`
+	ID        uint64 `protobuf:"varint,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	Quad      *Quad  `protobuf:"bytes,2,opt,name=Quad" json:"Quad,omitempty"`
+	Action    int32  `protobuf:"varint,3,opt,name=Action,proto3" json:"Action,omitempty"`
+	Timestamp int64  `protobuf:"varint,4,opt,name=Timestamp,proto3" json:"Timestamp,omitempty"`
 }
 
 func (m *LogDelta) Reset()         { *m = LogDelta{} }
@@ -43,7 +48,7 @@ func (m *LogDelta) GetQuad() *Quad {
 }
 
 type HistoryEntry struct {
-	History []uint64 `protobuf:"varint,1,rep" json:"History,omitempty"`
+	History []uint64 `protobuf:"varint,1,rep,name=History" json:"History,omitempty"`
 }
 
 func (m *HistoryEntry) Reset()         { *m = HistoryEntry{} }
@@ -51,571 +56,397 @@ func (m *HistoryEntry) String() string { return proto1.CompactTextString(m) }
 func (*HistoryEntry) ProtoMessage()    {}
 
 type NodeData struct {
-	Name  string `protobuf:"bytes,1,opt,proto3" json:"Name,omitempty"`
-	Size_ int64  `protobuf:"varint,2,opt,proto3" json:"Size,omitempty"`
+	Name  string `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
+	Size  int64  `protobuf:"varint,2,opt,name=Size,proto3" json:"Size,omitempty"`
+	Value *Value `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
 }
 
 func (m *NodeData) Reset()         { *m = NodeData{} }
 func (m *NodeData) String() string { return proto1.CompactTextString(m) }
 func (*NodeData) ProtoMessage()    {}
 
+func (m *NodeData) GetValue() *Value {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
 type Quad struct {
-	Subject   string `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
-	Predicate string `protobuf:"bytes,2,opt,name=predicate,proto3" json:"predicate,omitempty"`
-	Object    string `protobuf:"bytes,3,opt,name=object,proto3" json:"object,omitempty"`
-	Label     string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	Subject        string `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Predicate      string `protobuf:"bytes,2,opt,name=predicate,proto3" json:"predicate,omitempty"`
+	Object         string `protobuf:"bytes,3,opt,name=object,proto3" json:"object,omitempty"`
+	Label          string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	SubjectValue   *Value `protobuf:"bytes,5,opt,name=subject_value" json:"subject_value,omitempty"`
+	PredicateValue *Value `protobuf:"bytes,6,opt,name=predicate_value" json:"predicate_value,omitempty"`
+	ObjectValue    *Value `protobuf:"bytes,7,opt,name=object_value" json:"object_value,omitempty"`
+	LabelValue     *Value `protobuf:"bytes,8,opt,name=label_value" json:"label_value,omitempty"`
 }
 
 func (m *Quad) Reset()         { *m = Quad{} }
 func (m *Quad) String() string { return proto1.CompactTextString(m) }
 func (*Quad) ProtoMessage()    {}
 
+func (m *Quad) GetSubjectValue() *Value {
+	if m != nil {
+		return m.SubjectValue
+	}
+	return nil
+}
+
+func (m *Quad) GetPredicateValue() *Value {
+	if m != nil {
+		return m.PredicateValue
+	}
+	return nil
+}
+
+func (m *Quad) GetObjectValue() *Value {
+	if m != nil {
+		return m.ObjectValue
+	}
+	return nil
+}
+
+func (m *Quad) GetLabelValue() *Value {
+	if m != nil {
+		return m.LabelValue
+	}
+	return nil
+}
+
+type Value struct {
+	// Types that are valid to be assigned to Value:
+	//	*Value_Raw
+	//	*Value_Str
+	//	*Value_Iri
+	//	*Value_Bnode
+	//	*Value_TypedStr
+	//	*Value_LangStr
+	//	*Value_Int
+	//	*Value_Float_
+	//	*Value_Boolean
+	//	*Value_Time
+	Value isValue_Value `protobuf_oneof:"value"`
+}
+
+func (m *Value) Reset()         { *m = Value{} }
+func (m *Value) String() string { return proto1.CompactTextString(m) }
+func (*Value) ProtoMessage()    {}
+
+type isValue_Value interface {
+	isValue_Value()
+	MarshalTo([]byte) (int, error)
+	ProtoSize() int
+}
+
+type Value_Raw struct {
+	Raw []byte `protobuf:"bytes,1,opt,name=raw,proto3,oneof"`
+}
+type Value_Str struct {
+	Str string `protobuf:"bytes,2,opt,name=str,proto3,oneof"`
+}
+type Value_Iri struct {
+	Iri string `protobuf:"bytes,3,opt,name=iri,proto3,oneof"`
+}
+type Value_Bnode struct {
+	Bnode string `protobuf:"bytes,4,opt,name=bnode,proto3,oneof"`
+}
+type Value_TypedStr struct {
+	TypedStr *Value_TypedString `protobuf:"bytes,5,opt,name=typed_str,oneof"`
+}
+type Value_LangStr struct {
+	LangStr *Value_LangString `protobuf:"bytes,6,opt,name=lang_str,oneof"`
+}
+type Value_Int struct {
+	Int int64 `protobuf:"varint,7,opt,name=int,proto3,oneof"`
+}
+type Value_Float_ struct {
+	Float_ float64 `protobuf:"fixed64,8,opt,name=float_,proto3,oneof"`
+}
+type Value_Boolean struct {
+	Boolean bool `protobuf:"varint,9,opt,name=boolean,proto3,oneof"`
+}
+type Value_Time struct {
+	Time *Value_Timestamp `protobuf:"bytes,10,opt,name=time,oneof"`
+}
+
+func (*Value_Raw) isValue_Value()      {}
+func (*Value_Str) isValue_Value()      {}
+func (*Value_Iri) isValue_Value()      {}
+func (*Value_Bnode) isValue_Value()    {}
+func (*Value_TypedStr) isValue_Value() {}
+func (*Value_LangStr) isValue_Value()  {}
+func (*Value_Int) isValue_Value()      {}
+func (*Value_Float_) isValue_Value()   {}
+func (*Value_Boolean) isValue_Value()  {}
+func (*Value_Time) isValue_Value()     {}
+
+func (m *Value) GetValue() isValue_Value {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+func (m *Value) GetRaw() []byte {
+	if x, ok := m.GetValue().(*Value_Raw); ok {
+		return x.Raw
+	}
+	return nil
+}
+
+func (m *Value) GetStr() string {
+	if x, ok := m.GetValue().(*Value_Str); ok {
+		return x.Str
+	}
+	return ""
+}
+
+func (m *Value) GetIri() string {
+	if x, ok := m.GetValue().(*Value_Iri); ok {
+		return x.Iri
+	}
+	return ""
+}
+
+func (m *Value) GetBnode() string {
+	if x, ok := m.GetValue().(*Value_Bnode); ok {
+		return x.Bnode
+	}
+	return ""
+}
+
+func (m *Value) GetTypedStr() *Value_TypedString {
+	if x, ok := m.GetValue().(*Value_TypedStr); ok {
+		return x.TypedStr
+	}
+	return nil
+}
+
+func (m *Value) GetLangStr() *Value_LangString {
+	if x, ok := m.GetValue().(*Value_LangStr); ok {
+		return x.LangStr
+	}
+	return nil
+}
+
+func (m *Value) GetInt() int64 {
+	if x, ok := m.GetValue().(*Value_Int); ok {
+		return x.Int
+	}
+	return 0
+}
+
+func (m *Value) GetFloat_() float64 {
+	if x, ok := m.GetValue().(*Value_Float_); ok {
+		return x.Float_
+	}
+	return 0
+}
+
+func (m *Value) GetBoolean() bool {
+	if x, ok := m.GetValue().(*Value_Boolean); ok {
+		return x.Boolean
+	}
+	return false
+}
+
+func (m *Value) GetTime() *Value_Timestamp {
+	if x, ok := m.GetValue().(*Value_Time); ok {
+		return x.Time
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Value) XXX_OneofFuncs() (func(msg proto1.Message, b *proto1.Buffer) error, func(msg proto1.Message, tag, wire int, b *proto1.Buffer) (bool, error), []interface{}) {
+	return _Value_OneofMarshaler, _Value_OneofUnmarshaler, []interface{}{
+		(*Value_Raw)(nil),
+		(*Value_Str)(nil),
+		(*Value_Iri)(nil),
+		(*Value_Bnode)(nil),
+		(*Value_TypedStr)(nil),
+		(*Value_LangStr)(nil),
+		(*Value_Int)(nil),
+		(*Value_Float_)(nil),
+		(*Value_Boolean)(nil),
+		(*Value_Time)(nil),
+	}
+}
+
+func _Value_OneofMarshaler(msg proto1.Message, b *proto1.Buffer) error {
+	m := msg.(*Value)
+	// value
+	switch x := m.Value.(type) {
+	case *Value_Raw:
+		_ = b.EncodeVarint(1<<3 | proto1.WireBytes)
+		_ = b.EncodeRawBytes(x.Raw)
+	case *Value_Str:
+		_ = b.EncodeVarint(2<<3 | proto1.WireBytes)
+		_ = b.EncodeStringBytes(x.Str)
+	case *Value_Iri:
+		_ = b.EncodeVarint(3<<3 | proto1.WireBytes)
+		_ = b.EncodeStringBytes(x.Iri)
+	case *Value_Bnode:
+		_ = b.EncodeVarint(4<<3 | proto1.WireBytes)
+		_ = b.EncodeStringBytes(x.Bnode)
+	case *Value_TypedStr:
+		_ = b.EncodeVarint(5<<3 | proto1.WireBytes)
+		if err := b.EncodeMessage(x.TypedStr); err != nil {
+			return err
+		}
+	case *Value_LangStr:
+		_ = b.EncodeVarint(6<<3 | proto1.WireBytes)
+		if err := b.EncodeMessage(x.LangStr); err != nil {
+			return err
+		}
+	case *Value_Int:
+		_ = b.EncodeVarint(7<<3 | proto1.WireVarint)
+		_ = b.EncodeVarint(uint64(x.Int))
+	case *Value_Float_:
+		_ = b.EncodeVarint(8<<3 | proto1.WireFixed64)
+		_ = b.EncodeFixed64(math.Float64bits(x.Float_))
+	case *Value_Boolean:
+		t := uint64(0)
+		if x.Boolean {
+			t = 1
+		}
+		_ = b.EncodeVarint(9<<3 | proto1.WireVarint)
+		_ = b.EncodeVarint(t)
+	case *Value_Time:
+		_ = b.EncodeVarint(10<<3 | proto1.WireBytes)
+		if err := b.EncodeMessage(x.Time); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Value.Value has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Value_OneofUnmarshaler(msg proto1.Message, tag, wire int, b *proto1.Buffer) (bool, error) {
+	m := msg.(*Value)
+	switch tag {
+	case 1: // value.raw
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeRawBytes(true)
+		m.Value = &Value_Raw{x}
+		return true, err
+	case 2: // value.str
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Value = &Value_Str{x}
+		return true, err
+	case 3: // value.iri
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Value = &Value_Iri{x}
+		return true, err
+	case 4: // value.bnode
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Value = &Value_Bnode{x}
+		return true, err
+	case 5: // value.typed_str
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		msg := new(Value_TypedString)
+		err := b.DecodeMessage(msg)
+		m.Value = &Value_TypedStr{msg}
+		return true, err
+	case 6: // value.lang_str
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		msg := new(Value_LangString)
+		err := b.DecodeMessage(msg)
+		m.Value = &Value_LangStr{msg}
+		return true, err
+	case 7: // value.int
+		if wire != proto1.WireVarint {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Value = &Value_Int{int64(x)}
+		return true, err
+	case 8: // value.float_
+		if wire != proto1.WireFixed64 {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeFixed64()
+		m.Value = &Value_Float_{math.Float64frombits(x)}
+		return true, err
+	case 9: // value.boolean
+		if wire != proto1.WireVarint {
+			return true, proto1.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Value = &Value_Boolean{x != 0}
+		return true, err
+	case 10: // value.time
+		if wire != proto1.WireBytes {
+			return true, proto1.ErrInternalBadWireType
+		}
+		msg := new(Value_Timestamp)
+		err := b.DecodeMessage(msg)
+		m.Value = &Value_Time{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+type Value_TypedString struct {
+	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Type  string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+}
+
+func (m *Value_TypedString) Reset()         { *m = Value_TypedString{} }
+func (m *Value_TypedString) String() string { return proto1.CompactTextString(m) }
+func (*Value_TypedString) ProtoMessage()    {}
+
+type Value_LangString struct {
+	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Lang  string `protobuf:"bytes,2,opt,name=lang,proto3" json:"lang,omitempty"`
+}
+
+func (m *Value_LangString) Reset()         { *m = Value_LangString{} }
+func (m *Value_LangString) String() string { return proto1.CompactTextString(m) }
+func (*Value_LangString) ProtoMessage()    {}
+
+// From https://github.com/golang/protobuf/blob/master/ptypes/timestamp/timestamp.proto
+type Value_Timestamp struct {
+	Seconds int64 `protobuf:"varint,1,opt,name=seconds,proto3" json:"seconds,omitempty"`
+	Nanos   int32 `protobuf:"varint,2,opt,name=nanos,proto3" json:"nanos,omitempty"`
+}
+
+func (m *Value_Timestamp) Reset()         { *m = Value_Timestamp{} }
+func (m *Value_Timestamp) String() string { return proto1.CompactTextString(m) }
+func (*Value_Timestamp) ProtoMessage()    {}
+
 func init() {
-}
-func (m *LogDelta) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
-			}
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				m.ID |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Quad", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Quad == nil {
-				m.Quad = &Quad{}
-			}
-			if err := m.Quad.Unmarshal(data[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
-			}
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				m.Action |= (int32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
-			}
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				m.Timestamp |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			var sizeOfWire int
-			for {
-				sizeOfWire++
-				wire >>= 7
-				if wire == 0 {
-					break
-				}
-			}
-			iNdEx -= sizeOfWire
-			skippy, err := skipSerializations(data[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	return nil
-}
-func (m *HistoryEntry) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field History", wireType)
-			}
-			var v uint64
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				v |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.History = append(m.History, v)
-		default:
-			var sizeOfWire int
-			for {
-				sizeOfWire++
-				wire >>= 7
-				if wire == 0 {
-					break
-				}
-			}
-			iNdEx -= sizeOfWire
-			skippy, err := skipSerializations(data[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	return nil
-}
-func (m *NodeData) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + int(stringLen)
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Name = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Size_", wireType)
-			}
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				m.Size_ |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			var sizeOfWire int
-			for {
-				sizeOfWire++
-				wire >>= 7
-				if wire == 0 {
-					break
-				}
-			}
-			iNdEx -= sizeOfWire
-			skippy, err := skipSerializations(data[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	return nil
-}
-func (m *Quad) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Subject", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + int(stringLen)
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Subject = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Predicate", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + int(stringLen)
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Predicate = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + int(stringLen)
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Object = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + int(stringLen)
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Label = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			var sizeOfWire int
-			for {
-				sizeOfWire++
-				wire >>= 7
-				if wire == 0 {
-					break
-				}
-			}
-			iNdEx -= sizeOfWire
-			skippy, err := skipSerializations(data[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	return nil
-}
-func skipSerializations(data []byte) (n int, err error) {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if iNdEx >= l {
-				return 0, io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		wireType := int(wire & 0x7)
-		switch wireType {
-		case 0:
-			for {
-				if iNdEx >= l {
-					return 0, io.ErrUnexpectedEOF
-				}
-				iNdEx++
-				if data[iNdEx-1] < 0x80 {
-					break
-				}
-			}
-			return iNdEx, nil
-		case 1:
-			iNdEx += 8
-			return iNdEx, nil
-		case 2:
-			var length int
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return 0, io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				length |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			iNdEx += length
-			return iNdEx, nil
-		case 3:
-			for {
-				var wire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := data[iNdEx]
-					iNdEx++
-					wire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				wireType := int(wire & 0x7)
-				if wireType == 4 {
-					break
-				}
-				next, err := skipSerializations(data[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-			}
-			return iNdEx, nil
-		case 4:
-			return iNdEx, nil
-		case 5:
-			iNdEx += 4
-			return iNdEx, nil
-		default:
-			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
-		}
-	}
-	panic("unreachable")
-}
-func (m *LogDelta) Size() (n int) {
-	var l int
-	_ = l
-	if m.ID != 0 {
-		n += 1 + sovSerializations(uint64(m.ID))
-	}
-	l = m.Quad.Size()
-	n += 1 + l + sovSerializations(uint64(l))
-	if m.Action != 0 {
-		n += 1 + sovSerializations(uint64(m.Action))
-	}
-	if m.Timestamp != 0 {
-		n += 1 + sovSerializations(uint64(m.Timestamp))
-	}
-	return n
-}
-
-func (m *HistoryEntry) Size() (n int) {
-	var l int
-	_ = l
-	if len(m.History) > 0 {
-		for _, e := range m.History {
-			n += 1 + sovSerializations(uint64(e))
-		}
-	}
-	return n
-}
-
-func (m *NodeData) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Name)
-	if l > 0 {
-		n += 1 + l + sovSerializations(uint64(l))
-	}
-	if m.Size_ != 0 {
-		n += 1 + sovSerializations(uint64(m.Size_))
-	}
-	return n
-}
-
-func (m *Quad) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Subject)
-	if l > 0 {
-		n += 1 + l + sovSerializations(uint64(l))
-	}
-	l = len(m.Predicate)
-	if l > 0 {
-		n += 1 + l + sovSerializations(uint64(l))
-	}
-	l = len(m.Object)
-	if l > 0 {
-		n += 1 + l + sovSerializations(uint64(l))
-	}
-	l = len(m.Label)
-	if l > 0 {
-		n += 1 + l + sovSerializations(uint64(l))
-	}
-	return n
-}
-
-func sovSerializations(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
-}
-func sozSerializations(x uint64) (n int) {
-	return sovSerializations(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+	proto1.RegisterType((*LogDelta)(nil), "proto.LogDelta")
+	proto1.RegisterType((*HistoryEntry)(nil), "proto.HistoryEntry")
+	proto1.RegisterType((*NodeData)(nil), "proto.NodeData")
+	proto1.RegisterType((*Quad)(nil), "proto.Quad")
+	proto1.RegisterType((*Value)(nil), "proto.Value")
+	proto1.RegisterType((*Value_TypedString)(nil), "proto.Value.TypedString")
+	proto1.RegisterType((*Value_LangString)(nil), "proto.Value.LangString")
+	proto1.RegisterType((*Value_Timestamp)(nil), "proto.Value.Timestamp")
 }
 func (m *LogDelta) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -624,7 +455,7 @@ func (m *LogDelta) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *LogDelta) MarshalTo(data []byte) (n int, err error) {
+func (m *LogDelta) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -634,14 +465,16 @@ func (m *LogDelta) MarshalTo(data []byte) (n int, err error) {
 		i++
 		i = encodeVarintSerializations(data, i, uint64(m.ID))
 	}
-	data[i] = 0x12
-	i++
-	i = encodeVarintSerializations(data, i, uint64(m.Quad.Size()))
-	n1, err := m.Quad.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
+	if m.Quad != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Quad.ProtoSize()))
+		n1, err := m.Quad.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n1
 	}
-	i += n1
 	if m.Action != 0 {
 		data[i] = 0x18
 		i++
@@ -656,7 +489,7 @@ func (m *LogDelta) MarshalTo(data []byte) (n int, err error) {
 }
 
 func (m *HistoryEntry) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -665,7 +498,7 @@ func (m *HistoryEntry) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *HistoryEntry) MarshalTo(data []byte) (n int, err error) {
+func (m *HistoryEntry) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -681,7 +514,7 @@ func (m *HistoryEntry) MarshalTo(data []byte) (n int, err error) {
 }
 
 func (m *NodeData) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -690,7 +523,7 @@ func (m *NodeData) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *NodeData) MarshalTo(data []byte) (n int, err error) {
+func (m *NodeData) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -701,16 +534,26 @@ func (m *NodeData) MarshalTo(data []byte) (n int, err error) {
 		i = encodeVarintSerializations(data, i, uint64(len(m.Name)))
 		i += copy(data[i:], m.Name)
 	}
-	if m.Size_ != 0 {
+	if m.Size != 0 {
 		data[i] = 0x10
 		i++
-		i = encodeVarintSerializations(data, i, uint64(m.Size_))
+		i = encodeVarintSerializations(data, i, uint64(m.Size))
+	}
+	if m.Value != nil {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Value.ProtoSize()))
+		n2, err := m.Value.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
 	}
 	return i, nil
 }
 
 func (m *Quad) Marshal() (data []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
 	if err != nil {
@@ -719,7 +562,7 @@ func (m *Quad) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *Quad) MarshalTo(data []byte) (n int, err error) {
+func (m *Quad) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -747,6 +590,261 @@ func (m *Quad) MarshalTo(data []byte) (n int, err error) {
 		i++
 		i = encodeVarintSerializations(data, i, uint64(len(m.Label)))
 		i += copy(data[i:], m.Label)
+	}
+	if m.SubjectValue != nil {
+		data[i] = 0x2a
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.SubjectValue.ProtoSize()))
+		n3, err := m.SubjectValue.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	if m.PredicateValue != nil {
+		data[i] = 0x32
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.PredicateValue.ProtoSize()))
+		n4, err := m.PredicateValue.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n4
+	}
+	if m.ObjectValue != nil {
+		data[i] = 0x3a
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.ObjectValue.ProtoSize()))
+		n5, err := m.ObjectValue.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
+	}
+	if m.LabelValue != nil {
+		data[i] = 0x42
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.LabelValue.ProtoSize()))
+		n6, err := m.LabelValue.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
+	}
+	return i, nil
+}
+
+func (m *Value) Marshal() (data []byte, err error) {
+	size := m.ProtoSize()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Value) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Value != nil {
+		nn7, err := m.Value.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn7
+	}
+	return i, nil
+}
+
+func (m *Value_Raw) MarshalTo(data []byte) (int, error) {
+	i := 0
+	if m.Raw != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintSerializations(data, i, uint64(len(m.Raw)))
+		i += copy(data[i:], m.Raw)
+	}
+	return i, nil
+}
+func (m *Value_Str) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x12
+	i++
+	i = encodeVarintSerializations(data, i, uint64(len(m.Str)))
+	i += copy(data[i:], m.Str)
+	return i, nil
+}
+func (m *Value_Iri) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x1a
+	i++
+	i = encodeVarintSerializations(data, i, uint64(len(m.Iri)))
+	i += copy(data[i:], m.Iri)
+	return i, nil
+}
+func (m *Value_Bnode) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x22
+	i++
+	i = encodeVarintSerializations(data, i, uint64(len(m.Bnode)))
+	i += copy(data[i:], m.Bnode)
+	return i, nil
+}
+func (m *Value_TypedStr) MarshalTo(data []byte) (int, error) {
+	i := 0
+	if m.TypedStr != nil {
+		data[i] = 0x2a
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.TypedStr.ProtoSize()))
+		n8, err := m.TypedStr.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n8
+	}
+	return i, nil
+}
+func (m *Value_LangStr) MarshalTo(data []byte) (int, error) {
+	i := 0
+	if m.LangStr != nil {
+		data[i] = 0x32
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.LangStr.ProtoSize()))
+		n9, err := m.LangStr.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n9
+	}
+	return i, nil
+}
+func (m *Value_Int) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x38
+	i++
+	i = encodeVarintSerializations(data, i, uint64(m.Int))
+	return i, nil
+}
+func (m *Value_Float_) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x41
+	i++
+	i = encodeFixed64Serializations(data, i, uint64(math.Float64bits(float64(m.Float_))))
+	return i, nil
+}
+func (m *Value_Boolean) MarshalTo(data []byte) (int, error) {
+	i := 0
+	data[i] = 0x48
+	i++
+	if m.Boolean {
+		data[i] = 1
+	} else {
+		data[i] = 0
+	}
+	i++
+	return i, nil
+}
+func (m *Value_Time) MarshalTo(data []byte) (int, error) {
+	i := 0
+	if m.Time != nil {
+		data[i] = 0x52
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Time.ProtoSize()))
+		n10, err := m.Time.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n10
+	}
+	return i, nil
+}
+func (m *Value_TypedString) Marshal() (data []byte, err error) {
+	size := m.ProtoSize()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Value_TypedString) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Value) > 0 {
+		data[i] = 0xa
+		i++
+		i = encodeVarintSerializations(data, i, uint64(len(m.Value)))
+		i += copy(data[i:], m.Value)
+	}
+	if len(m.Type) > 0 {
+		data[i] = 0x12
+		i++
+		i = encodeVarintSerializations(data, i, uint64(len(m.Type)))
+		i += copy(data[i:], m.Type)
+	}
+	return i, nil
+}
+
+func (m *Value_LangString) Marshal() (data []byte, err error) {
+	size := m.ProtoSize()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Value_LangString) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Value) > 0 {
+		data[i] = 0xa
+		i++
+		i = encodeVarintSerializations(data, i, uint64(len(m.Value)))
+		i += copy(data[i:], m.Value)
+	}
+	if len(m.Lang) > 0 {
+		data[i] = 0x12
+		i++
+		i = encodeVarintSerializations(data, i, uint64(len(m.Lang)))
+		i += copy(data[i:], m.Lang)
+	}
+	return i, nil
+}
+
+func (m *Value_Timestamp) Marshal() (data []byte, err error) {
+	size := m.ProtoSize()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Value_Timestamp) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Seconds != 0 {
+		data[i] = 0x8
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Seconds))
+	}
+	if m.Nanos != 0 {
+		data[i] = 0x10
+		i++
+		i = encodeVarintSerializations(data, i, uint64(m.Nanos))
 	}
 	return i, nil
 }
@@ -778,3 +876,1594 @@ func encodeVarintSerializations(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	return offset + 1
 }
+func (m *LogDelta) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.ID != 0 {
+		n += 1 + sovSerializations(uint64(m.ID))
+	}
+	if m.Quad != nil {
+		l = m.Quad.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	if m.Action != 0 {
+		n += 1 + sovSerializations(uint64(m.Action))
+	}
+	if m.Timestamp != 0 {
+		n += 1 + sovSerializations(uint64(m.Timestamp))
+	}
+	return n
+}
+
+func (m *HistoryEntry) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if len(m.History) > 0 {
+		for _, e := range m.History {
+			n += 1 + sovSerializations(uint64(e))
+		}
+	}
+	return n
+}
+
+func (m *NodeData) ProtoSize() (n int) {
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	if m.Size != 0 {
+		n += 1 + sovSerializations(uint64(m.Size))
+	}
+	if m.Value != nil {
+		l = m.Value.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+
+func (m *Quad) ProtoSize() (n int) {
+	var l int
+	_ = l
+	l = len(m.Subject)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	l = len(m.Predicate)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	l = len(m.Object)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	if m.SubjectValue != nil {
+		l = m.SubjectValue.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	if m.PredicateValue != nil {
+		l = m.PredicateValue.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	if m.ObjectValue != nil {
+		l = m.ObjectValue.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	if m.LabelValue != nil {
+		l = m.LabelValue.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+
+func (m *Value) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.Value != nil {
+		n += m.Value.ProtoSize()
+	}
+	return n
+}
+
+func (m *Value_Raw) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.Raw != nil {
+		l = len(m.Raw)
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+func (m *Value_Str) ProtoSize() (n int) {
+	var l int
+	_ = l
+	l = len(m.Str)
+	n += 1 + l + sovSerializations(uint64(l))
+	return n
+}
+func (m *Value_Iri) ProtoSize() (n int) {
+	var l int
+	_ = l
+	l = len(m.Iri)
+	n += 1 + l + sovSerializations(uint64(l))
+	return n
+}
+func (m *Value_Bnode) ProtoSize() (n int) {
+	var l int
+	_ = l
+	l = len(m.Bnode)
+	n += 1 + l + sovSerializations(uint64(l))
+	return n
+}
+func (m *Value_TypedStr) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.TypedStr != nil {
+		l = m.TypedStr.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+func (m *Value_LangStr) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.LangStr != nil {
+		l = m.LangStr.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+func (m *Value_Int) ProtoSize() (n int) {
+	var l int
+	_ = l
+	n += 1 + sovSerializations(uint64(m.Int))
+	return n
+}
+func (m *Value_Float_) ProtoSize() (n int) {
+	var l int
+	_ = l
+	n += 9
+	return n
+}
+func (m *Value_Boolean) ProtoSize() (n int) {
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *Value_Time) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.Time != nil {
+		l = m.Time.ProtoSize()
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+func (m *Value_TypedString) ProtoSize() (n int) {
+	var l int
+	_ = l
+	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	l = len(m.Type)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+
+func (m *Value_LangString) ProtoSize() (n int) {
+	var l int
+	_ = l
+	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	l = len(m.Lang)
+	if l > 0 {
+		n += 1 + l + sovSerializations(uint64(l))
+	}
+	return n
+}
+
+func (m *Value_Timestamp) ProtoSize() (n int) {
+	var l int
+	_ = l
+	if m.Seconds != 0 {
+		n += 1 + sovSerializations(uint64(m.Seconds))
+	}
+	if m.Nanos != 0 {
+		n += 1 + sovSerializations(uint64(m.Nanos))
+	}
+	return n
+}
+
+func sovSerializations(x uint64) (n int) {
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
+}
+func sozSerializations(x uint64) (n int) {
+	return sovSerializations(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *LogDelta) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LogDelta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LogDelta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
+			}
+			m.ID = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.ID |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quad", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Quad == nil {
+				m.Quad = &Quad{}
+			}
+			if err := m.Quad.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
+			}
+			m.Action = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Action |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			m.Timestamp = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Timestamp |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HistoryEntry) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HistoryEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HistoryEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field History", wireType)
+			}
+			var v uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.History = append(m.History, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *NodeData) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NodeData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NodeData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
+			}
+			m.Size = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Size |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Value == nil {
+				m.Value = &Value{}
+			}
+			if err := m.Value.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Quad) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Quad: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Quad: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Subject", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Subject = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Predicate", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Predicate = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Object = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SubjectValue", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.SubjectValue == nil {
+				m.SubjectValue = &Value{}
+			}
+			if err := m.SubjectValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PredicateValue", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PredicateValue == nil {
+				m.PredicateValue = &Value{}
+			}
+			if err := m.PredicateValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectValue", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ObjectValue == nil {
+				m.ObjectValue = &Value{}
+			}
+			if err := m.ObjectValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LabelValue", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LabelValue == nil {
+				m.LabelValue = &Value{}
+			}
+			if err := m.LabelValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Value) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Value: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Value: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Raw", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, data[iNdEx:postIndex])
+			m.Value = &Value_Raw{v}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Str", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = &Value_Str{string(data[iNdEx:postIndex])}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Iri", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = &Value_Iri{string(data[iNdEx:postIndex])}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bnode", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = &Value_Bnode{string(data[iNdEx:postIndex])}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypedStr", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &Value_TypedString{}
+			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Value = &Value_TypedStr{v}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LangStr", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &Value_LangString{}
+			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Value = &Value_LangStr{v}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Int", wireType)
+			}
+			var v int64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Value = &Value_Int{v}
+		case 8:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Float_", wireType)
+			}
+			var v uint64
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += 8
+			v = uint64(data[iNdEx-8])
+			v |= uint64(data[iNdEx-7]) << 8
+			v |= uint64(data[iNdEx-6]) << 16
+			v |= uint64(data[iNdEx-5]) << 24
+			v |= uint64(data[iNdEx-4]) << 32
+			v |= uint64(data[iNdEx-3]) << 40
+			v |= uint64(data[iNdEx-2]) << 48
+			v |= uint64(data[iNdEx-1]) << 56
+			m.Value = &Value_Float_{float64(math.Float64frombits(v))}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Boolean", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Value = &Value_Boolean{b}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &Value_Timestamp{}
+			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Value = &Value_Time{v}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Value_TypedString) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TypedString: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TypedString: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Type = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Value_LangString) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LangString: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LangString: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lang", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Lang = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Value_Timestamp) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Timestamp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Timestamp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seconds", wireType)
+			}
+			m.Seconds = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Seconds |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nanos", wireType)
+			}
+			m.Nanos = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Nanos |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSerializations(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSerializations
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func skipSerializations(data []byte) (n int, err error) {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return 0, ErrIntOverflowSerializations
+			}
+			if iNdEx >= l {
+				return 0, io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		wireType := int(wire & 0x7)
+		switch wireType {
+		case 0:
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				iNdEx++
+				if data[iNdEx-1] < 0x80 {
+					break
+				}
+			}
+			return iNdEx, nil
+		case 1:
+			iNdEx += 8
+			return iNdEx, nil
+		case 2:
+			var length int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowSerializations
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				length |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			iNdEx += length
+			if length < 0 {
+				return 0, ErrInvalidLengthSerializations
+			}
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return 0, ErrIntOverflowSerializations
+					}
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := data[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipSerializations(data[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
+		case 5:
+			iNdEx += 4
+			return iNdEx, nil
+		default:
+			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
+		}
+	}
+	panic("unreachable")
+}
+
+var (
+	ErrInvalidLengthSerializations = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowSerializations   = fmt.Errorf("proto: integer overflow")
+)

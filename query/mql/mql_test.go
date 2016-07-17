@@ -39,17 +39,17 @@ import (
 //              +---+
 //
 var simpleGraph = []quad.Quad{
-	{"A", "follows", "B", ""},
-	{"C", "follows", "B", ""},
-	{"C", "follows", "D", ""},
-	{"D", "follows", "B", ""},
-	{"B", "follows", "F", ""},
-	{"F", "follows", "G", ""},
-	{"D", "follows", "G", ""},
-	{"E", "follows", "F", ""},
-	{"B", "status", "cool", "status_graph"},
-	{"D", "status", "cool", "status_graph"},
-	{"G", "status", "cool", "status_graph"},
+	quad.Make("A", "follows", "B", ""),
+	quad.Make("C", "follows", "B", ""),
+	quad.Make("C", "follows", "D", ""),
+	quad.Make("D", "follows", "B", ""),
+	quad.Make("B", "follows", "F", ""),
+	quad.Make("F", "follows", "G", ""),
+	quad.Make("D", "follows", "G", ""),
+	quad.Make("E", "follows", "F", ""),
+	quad.Make("B", "status", "cool", "status_graph"),
+	quad.Make("D", "status", "cool", "status_graph"),
+	quad.Make("G", "status", "cool", "status_graph"),
 }
 
 func makeTestSession(data []quad.Quad) *Session {

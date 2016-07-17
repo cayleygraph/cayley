@@ -14,7 +14,11 @@
 
 package path
 
-import "github.com/cayleygraph/cayley/graph"
+import (
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/quad"
+)
 
 type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
 
@@ -68,12 +72,12 @@ type Path struct {
 func (p *Path) IsMorphism() bool { return p.qs == nil }
 
 // StartMorphism creates a new Path with no underlying QuadStore.
-func StartMorphism(nodes ...string) *Path {
+func StartMorphism(nodes ...quad.Value) *Path {
 	return StartPath(nil, nodes...)
 }
 
 // StartPath creates a new Path from a set of nodes and an underlying QuadStore.
-func StartPath(qs graph.QuadStore, nodes ...string) *Path {
+func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 	return &Path{
 		stack: []morphism{
 			isMorphism(nodes...),
@@ -122,8 +126,14 @@ func (p *Path) Reverse() *Path {
 
 // Is declares that the current nodes in this path are only the nodes
 // passed as arguments.
-func (p *Path) Is(nodes ...string) *Path {
+func (p *Path) Is(nodes ...quad.Value) *Path {
 	p.stack = append(p.stack, isMorphism(nodes...))
+	return p
+}
+
+// Filter represents the nodes that are passing comparison with provided value.
+func (p *Path) Filter(op iterator.Operator, node quad.Value) *Path {
+	p.stack = append(p.stack, cmpMorphism(op, node))
 	return p
 }
 
@@ -288,14 +298,14 @@ func (p *Path) SaveOptionalReverse(via interface{}, tag string) *Path {
 
 // Has limits the paths to be ones where the current nodes have some linkage
 // to some known node.
-func (p *Path) Has(via interface{}, nodes ...string) *Path {
+func (p *Path) Has(via interface{}, nodes ...quad.Value) *Path {
 	p.stack = append(p.stack, hasMorphism(via, nodes...))
 	return p
 }
 
 // HasReverse limits the paths to be ones where some known node have some linkage
 // to the current nodes.
-func (p *Path) HasReverse(via interface{}, nodes ...string) *Path {
+func (p *Path) HasReverse(via interface{}, nodes ...quad.Value) *Path {
 	p.stack = append(p.stack, hasReverseMorphism(via, nodes...))
 	return p
 }

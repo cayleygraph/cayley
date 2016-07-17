@@ -156,7 +156,7 @@ func (it *LinksTo) Next() bool {
 	if graph.Next(it.nextIt) {
 		it.runstats.ContainsNext += 1
 		it.result = it.nextIt.Result()
-		return graph.NextLogOut(it, it.nextIt, true)
+		return graph.NextLogOut(it, it.result, true)
 	}
 
 	// If there's an error in the 'next' iterator, we save it and we're done.
@@ -171,7 +171,7 @@ func (it *LinksTo) Next() bool {
 		it.err = it.primaryIt.Err()
 
 		// We're out of nodes in our subiterator, so we're done as well.
-		return graph.NextLogOut(it, 0, false)
+		return graph.NextLogOut(it, nil, false)
 	}
 	it.nextIt.Close()
 	it.nextIt = it.qs.QuadIterator(it.dir, it.primaryIt.Result())

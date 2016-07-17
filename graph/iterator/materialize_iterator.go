@@ -29,14 +29,6 @@ type result struct {
 	tags map[string]graph.Value
 }
 
-// Keyer provides a method for comparing types that are not otherwise comparable.
-// The Key method must return a dynamic type that is comparable according to the
-// Go language specification. The returned value must be unique for each receiver
-// value.
-type Keyer interface {
-	Key() interface{}
-}
-
 type Materialize struct {
 	uid         uint64
 	tags        graph.Tagger
@@ -231,10 +223,7 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	if it.aborted {
 		return it.subIt.Contains(v)
 	}
-	key := v
-	if h, ok := v.(Keyer); ok {
-		key = h.Key()
-	}
+	key := graph.ToKey(v)
 	if i, ok := it.containsMap[key]; ok {
 		it.index = i
 		it.subindex = 0
@@ -272,10 +261,7 @@ func (it *Materialize) materializeSet() {
 			break
 		}
 		id := it.subIt.Result()
-		val := id
-		if h, ok := id.(Keyer); ok {
-			val = h.Key()
-		}
+		val := graph.ToKey(id)
 		if _, ok := it.containsMap[val]; !ok {
 			it.containsMap[val] = len(it.values)
 			it.values = append(it.values, nil)

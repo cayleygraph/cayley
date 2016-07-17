@@ -7,11 +7,11 @@ import (
 
 func TestSkipIteratorBasics(t *testing.T) {
 	allIt := NewFixed(Identity)
-	allIt.Add(1)
-	allIt.Add(2)
-	allIt.Add(3)
-	allIt.Add(4)
-	allIt.Add(5)
+	allIt.Add(Int64Node(1))
+	allIt.Add(Int64Node(2))
+	allIt.Add(Int64Node(3))
+	allIt.Add(Int64Node(4))
+	allIt.Add(Int64Node(5))
 
 	u := NewSkip(allIt, 0)
 	expectSz, _ := allIt.Size()
@@ -36,7 +36,7 @@ func TestSkipIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{1, 2, 3, 4, 5} {
-		if !u.Contains(v) {
+		if !u.Contains(Int64Node(v)) {
 			t.Errorf("Failed to find a correct value in the Skip iterator.")
 		}
 	}

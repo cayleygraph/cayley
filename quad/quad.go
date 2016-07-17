@@ -37,6 +37,7 @@ package quad
 // the consequences are not to be taken lightly. But do suggest cool features!
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -46,12 +47,61 @@ var (
 	ErrIncomplete = errors.New("incomplete N-Quad")
 )
 
+// Make creates a quad with provided raw values.
+func Make(subject, predicate, object, label string) (q Quad) {
+	if subject != "" {
+		q.Subject = Raw(subject)
+	}
+	if predicate != "" {
+		q.Predicate = Raw(predicate)
+	}
+	if object != "" {
+		q.Object = Raw(object)
+	}
+	if label != "" {
+		q.Label = Raw(label)
+	}
+	return
+}
+
+var (
+	_ json.Marshaler   = Quad{}
+	_ json.Unmarshaler = (*Quad)(nil)
+)
+
 // Our quad struct, used throughout.
 type Quad struct {
+	Subject   Value `json:"subject"`
+	Predicate Value `json:"predicate"`
+	Object    Value `json:"object"`
+	Label     Value `json:"label,omitempty"`
+}
+
+type rawQuad struct {
 	Subject   string `json:"subject"`
 	Predicate string `json:"predicate"`
 	Object    string `json:"object"`
 	Label     string `json:"label,omitempty"`
+}
+
+func (q Quad) MarshalJSON() ([]byte, error) {
+	rq := rawQuad{
+		Subject:   q.Subject.String(),
+		Predicate: q.Predicate.String(),
+		Object:    q.Object.String(),
+	}
+	if q.Label != nil {
+		rq.Label = q.Label.String()
+	}
+	return json.Marshal(rq)
+}
+func (q *Quad) UnmarshalJSON(data []byte) error {
+	var rq rawQuad
+	if err := json.Unmarshal(data, &rq); err != nil {
+		return err
+	}
+	*q = Make(rq.Subject, rq.Predicate, rq.Object, rq.Label)
+	return nil
 }
 
 // Direction specifies an edge's type.
@@ -103,7 +153,7 @@ func (d Direction) String() string {
 }
 
 // Per-field accessor for quads.
-func (q Quad) Get(d Direction) string {
+func (q Quad) Get(d Direction) Value {
 	switch d {
 	case Subject:
 		return q.Subject
@@ -118,19 +168,35 @@ func (q Quad) Get(d Direction) string {
 	}
 }
 
+// Per-field accessor for quads that returns strings instead of values.
+func (q Quad) GetString(d Direction) string {
+	switch d {
+	case Subject:
+		return StringOf(q.Subject)
+	case Predicate:
+		return StringOf(q.Predicate)
+	case Object:
+		return StringOf(q.Object)
+	case Label:
+		return StringOf(q.Label)
+	default:
+		panic(d.String())
+	}
+}
+
 // Pretty-prints a quad.
 func (q Quad) String() string {
-	return fmt.Sprintf("%s -- %s -> %s", q.Subject, q.Predicate, q.Object)
+	return fmt.Sprintf("%v -- %v -> %v", q.Subject, q.Predicate, q.Object)
 }
 
 func (q Quad) IsValid() bool {
-	return q.Subject != "" && q.Predicate != "" && q.Object != ""
+	return q.Subject != nil && q.Predicate != nil && q.Object != nil &&
+		q.Subject.String() != "" && q.Predicate.String() != "" && q.Object.String() != ""
 }
 
 // Prints a quad in N-Quad format.
 func (q Quad) NQuad() string {
-	if q.Label == "" {
-		//TODO(barakmich): Proper escaping.
+	if q.Label == nil || q.Label.String() == "" {
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)
 	}
 	return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
@@ -139,3 +205,30 @@ func (q Quad) NQuad() string {
 type Unmarshaler interface {
 	Unmarshal() (Quad, error)
 }
+
+type ByQuadString []Quad
+
+func (o ByQuadString) Len() int { return len(o) }
+func (o ByQuadString) Less(i, j int) bool {
+	switch { // TODO: optimize
+	case StringOf(o[i].Subject) < StringOf(o[j].Subject),
+
+		StringOf(o[i].Subject) == StringOf(o[j].Subject) &&
+			StringOf(o[i].Predicate) < StringOf(o[j].Predicate),
+
+		StringOf(o[i].Subject) == StringOf(o[j].Subject) &&
+			StringOf(o[i].Predicate) == StringOf(o[j].Predicate) &&
+			StringOf(o[i].Object) < StringOf(o[j].Object),
+
+		StringOf(o[i].Subject) == StringOf(o[j].Subject) &&
+			StringOf(o[i].Predicate) == StringOf(o[j].Predicate) &&
+			StringOf(o[i].Object) == StringOf(o[j].Object) &&
+			StringOf(o[i].Label) < StringOf(o[j].Label):
+
+		return true
+
+	default:
+		return false
+	}
+}
+func (o ByQuadString) Swap(i, j int) { o[i], o[j] = o[j], o[i] }

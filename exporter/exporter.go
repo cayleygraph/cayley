@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 type Exporter struct {
@@ -35,14 +36,14 @@ func (exp *Exporter) ExportQuad() {
 		exp.count++
 		quad := exp.qstore.Quad(it.Result())
 
-		exp.WriteEscString(quad.Subject)
+		exp.WriteEscString(quad.Subject.String())
 		exp.Write(" ")
-		exp.WriteEscString(quad.Predicate)
+		exp.WriteEscString(quad.Predicate.String())
 		exp.Write(" ")
-		exp.WriteEscString(quad.Object)
-		if quad.Label != "" {
+		exp.WriteEscString(quad.Object.String())
+		if quad.Label != nil {
 			exp.Write(" ")
-			exp.WriteEscString(quad.Label)
+			exp.WriteEscString(quad.Label.String())
 		}
 		exp.Write(" .\n")
 	}
@@ -69,12 +70,12 @@ func (exp *Exporter) ExportJson() {
 
 //experimental
 func (exp *Exporter) ExportGml() {
-	var seen map[string]int32 // todo eliminate this for large dbs
+	var seen map[quad.Value]int32 // todo eliminate this for large dbs
 	var id int32
 
 	exp.Write("Creator Cayley\ngraph\n[\n")
 
-	seen = make(map[string]int32)
+	seen = make(map[quad.Value]int32)
 	exp.qi.Reset()
 	for it := exp.qi; graph.Next(it); {
 		cur := exp.qstore.Quad(it.Result())
@@ -83,7 +84,7 @@ func (exp *Exporter) ExportGml() {
 			seen[cur.Subject] = id
 			exp.Write(strconv.FormatInt(int64(id), 10))
 			exp.Write("\n    label ")
-			exp.WriteEscString(cur.Subject)
+			exp.WriteEscString(cur.Subject.String())
 			exp.Write("\n  ]\n")
 			id++
 		}
@@ -92,7 +93,7 @@ func (exp *Exporter) ExportGml() {
 			seen[cur.Object] = id
 			exp.Write(strconv.FormatInt(int64(id), 10))
 			exp.Write("\n    label ")
-			exp.WriteEscString(cur.Object)
+			exp.WriteEscString(cur.Object.String())
 			exp.Write("\n  ]\n")
 			id++
 		}
@@ -107,7 +108,7 @@ func (exp *Exporter) ExportGml() {
 		exp.Write("\n    target ")
 		exp.Write(strconv.FormatInt(int64(seen[cur.Object]), 10))
 		exp.Write("\n    label ")
-		exp.WriteEscString(cur.Predicate)
+		exp.WriteEscString(cur.Predicate.String())
 		exp.Write("\n  ]\n")
 		exp.count++
 	}
@@ -116,7 +117,7 @@ func (exp *Exporter) ExportGml() {
 
 //experimental
 func (exp *Exporter) ExportGraphml() {
-	var seen map[string]bool // eliminate this for large databases
+	var seen map[quad.Value]bool // eliminate this for large databases
 
 	exp.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 	exp.Write("<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"\n")
@@ -124,20 +125,20 @@ func (exp *Exporter) ExportGraphml() {
 	exp.Write("   xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n")
 	exp.Write("  <graph id=\"Caylay\" edgedefault=\"directed\">\n")
 
-	seen = make(map[string]bool)
+	seen = make(map[quad.Value]bool)
 	exp.qi.Reset()
 	for it := exp.qi; graph.Next(it); {
 		cur := exp.qstore.Quad(it.Result())
 		if found := seen[cur.Subject]; !found {
 			seen[cur.Subject] = true
 			exp.Write("    <node id=")
-			exp.WriteEscString(cur.Subject)
+			exp.WriteEscString(cur.Subject.String())
 			exp.Write(" />\n")
 		}
 		if found := seen[cur.Object]; !found {
 			seen[cur.Object] = true
 			exp.Write("    <node id=")
-			exp.WriteEscString(cur.Object)
+			exp.WriteEscString(cur.Object.String())
 			exp.Write(" />\n")
 		}
 		exp.count++
@@ -147,12 +148,12 @@ func (exp *Exporter) ExportGraphml() {
 	for it := exp.qi; graph.Next(it); {
 		cur := exp.qstore.Quad(it.Result())
 		exp.Write("    <edge source=")
-		exp.WriteEscString(cur.Subject)
+		exp.WriteEscString(cur.Subject.String())
 		exp.Write(" target=")
-		exp.WriteEscString(cur.Object)
+		exp.WriteEscString(cur.Object.String())
 		exp.Write(">\n")
 		exp.Write("      <data key=\"predicate\">")
-		exp.Write(cur.Predicate)
+		exp.Write(cur.Predicate.String())
 		exp.Write("</data>\n    </edge>\n")
 		exp.count++
 	}

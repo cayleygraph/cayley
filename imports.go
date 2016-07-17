@@ -28,11 +28,11 @@ type Handle struct {
 }
 
 func Triple(subject, predicate, object string) quad.Quad {
-	return quad.Quad{subject, predicate, object, ""}
+	return Quad(subject, predicate, object, "")
 }
 
 func Quad(subject, predicate, object, label string) quad.Quad {
-	return quad.Quad{subject, predicate, object, label}
+	return quad.Make(subject, predicate, object, label)
 }
 
 func NewGraph(name, dbpath string, opts graph.Options) (*Handle, error) {

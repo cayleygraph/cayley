@@ -35,8 +35,8 @@ var parseTests = []struct {
 			{"subject": "foo", "predicate": "bar", "object": "baz", "label": "graph"}
 		]`,
 		expect: []quad.Quad{
-			{"foo", "bar", "baz", ""},
-			{"foo", "bar", "baz", "graph"},
+			quad.Make("foo", "bar", "baz", ""),
+			quad.Make("foo", "bar", "baz", "graph"),
 		},
 		err: nil,
 	},
@@ -46,7 +46,7 @@ var parseTests = []struct {
 			{"subject": "foo", "predicate": "bar", "object": "foo", "something_else": "extra data"}
 		]`,
 		expect: []quad.Quad{
-			{"foo", "bar", "foo", ""},
+			quad.Make("foo", "bar", "foo", ""),
 		},
 		err: nil,
 	},
@@ -56,7 +56,7 @@ var parseTests = []struct {
 			{"subject": "foo", "predicate": "bar"}
 		]`,
 		expect: nil,
-		err:    fmt.Errorf("invalid quad at index %d. %v", 0, quad.Quad{"foo", "bar", "", ""}),
+		err:    fmt.Errorf("invalid quad at index %d. %v", 0, quad.Make("foo", "bar", "", "")),
 	},
 }
 
