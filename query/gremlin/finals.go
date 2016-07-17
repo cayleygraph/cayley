@@ -140,16 +140,30 @@ func quadValueToString(v quad.Value) string {
 	return quad.StringOf(v)
 }
 
-func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]string {
-	outputMap := make(map[string]string)
+func quadValueToNative(v quad.Value) interface{} {
+	switch v := v.(type) {
+	case quad.String:
+		return string(v)
+	case quad.Int:
+		return int(v)
+	case quad.Float:
+		return float64(v)
+	case quad.Bool:
+		return bool(v)
+	}
+	return quad.StringOf(v)
+}
+
+func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]interface{} {
+	outputMap := make(map[string]interface{})
 	for k, v := range m {
-		outputMap[k] = quadValueToString(wk.qs.NameOf(v))
+		outputMap[k] = quadValueToNative(wk.qs.NameOf(v))
 	}
 	return outputMap
 }
 
-func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]string {
-	output := make([]map[string]string, 0)
+func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]interface{} {
+	output := make([]map[string]interface{}, 0)
 	n := 0
 	it, _ = it.Optimize()
 	for {
@@ -187,8 +201,8 @@ func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]
 	return output
 }
 
-func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []string {
-	output := make([]string, 0)
+func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []interface{} {
+	output := make([]interface{}, 0)
 	n := 0
 	it, _ = it.Optimize()
 	for {
@@ -200,7 +214,7 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []strin
 		if !graph.Next(it) {
 			break
 		}
-		output = append(output, quadValueToString(wk.qs.NameOf(it.Result())))
+		output = append(output, quadValueToNative(wk.qs.NameOf(it.Result())))
 		n++
 		if limit >= 0 && n >= limit {
 			break

@@ -210,7 +210,7 @@ func (s *Session) Collate(result interface{}) {
 	data := result.(*Result)
 	if !data.metaresult {
 		if data.val == nil {
-			obj := make(map[string]string)
+			obj := make(map[string]interface{})
 			tags := data.actualResults
 			var tagKeys []string
 			for k := range tags {
@@ -219,7 +219,7 @@ func (s *Session) Collate(result interface{}) {
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
 				if name := s.qs.NameOf(tags[k]); name != nil {
-					obj[k] = quadValueToString(name)
+					obj[k] = quadValueToNative(name)
 				} else {
 					delete(obj, k)
 				}

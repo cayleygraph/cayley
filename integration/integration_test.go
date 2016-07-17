@@ -609,8 +609,14 @@ func unsortedEqual(got, expect []interface{}) bool {
 func convertToStringList(in []interface{}) []string {
 	var out []string
 	for _, x := range in {
-		for k, v := range x.(map[string]string) {
-			out = append(out, fmt.Sprint(k, ":", v))
+		if xc, ok := x.(map[string]string); ok {
+			for k, v := range xc {
+				out = append(out, fmt.Sprint(k, ":", v))
+			}
+		} else {
+			for k, v := range x.(map[string]interface{}) {
+				out = append(out, fmt.Sprint(k, ":", v))
+			}
 		}
 	}
 	sort.Strings(out)
