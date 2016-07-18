@@ -12,6 +12,10 @@ import (
 // Value is a type used by all quad directions.
 type Value interface {
 	String() string
+	// Native converts Value to a closest native Go type.
+	//
+	// If type has no analogs in Go, Native return an object itself.
+	Native() interface{}
 }
 
 // Equaler interface is implemented by values, that needs a special equality check.
@@ -90,7 +94,8 @@ func AsValue(v interface{}) (out Value, ok bool) {
 // Raw is a Turtle/NQuads-encoded value.
 type Raw string
 
-func (s Raw) String() string { return string(s) }
+func (s Raw) String() string      { return string(s) }
+func (s Raw) Native() interface{} { return s }
 
 // String is an RDF string value (ex: "name").
 type String string
@@ -107,6 +112,7 @@ func (s String) String() string {
 	//TODO(barakmich): Proper escaping.
 	return `"` + escaper.Replace(string(s)) + `"`
 }
+func (s String) Native() interface{} { return string(s) }
 
 // TypedString is an RDF value with type (ex: "name"^^<type>).
 type TypedString struct {
@@ -117,14 +123,22 @@ type TypedString struct {
 func (s TypedString) String() string {
 	return s.Value.String() + `^^` + s.Type.String()
 }
+func (s TypedString) Native() interface{} {
+	if s.Type == "" {
+		return s.Value.Native()
+	}
+	if v, err := s.ParseValue(); err == nil && v != s {
+		return v.Native()
+	}
+	return s
+}
 
-// ToNative will try to convert string value to its native representation
-// using registered conversion functions.
+// ParseValue will try to parse underlying string value using registered functions.
 //
-// It will return unchanged value if none conversion are available.
+// It will return unchanged value if suitable function is not available.
 //
-// Error will be returned if the type was recognizes, but conversion (parsing) was failed.
-func (s TypedString) ToNative() (Value, error) {
+// Error will be returned if the type was recognizes, but parsing failed.
+func (s TypedString) ParseValue() (Value, error) {
 	fnc := knownConversions[s.Type]
 	if fnc == nil {
 		return s, nil
@@ -141,16 +155,19 @@ type LangString struct {
 func (s LangString) String() string {
 	return s.Value.String() + `@` + s.Lang
 }
+func (s LangString) Native() interface{} { return s.Value.Native() }
 
 // IRI is an RDF Internationalized Resource Identifier (ex: <name>).
 type IRI string
 
-func (s IRI) String() string { return `<` + string(s) + `>` }
+func (s IRI) String() string      { return `<` + string(s) + `>` }
+func (s IRI) Native() interface{} { return s }
 
 // BNode is an RDF Blank Node (ex: _:name).
 type BNode string
 
-func (s BNode) String() string { return `_:` + string(s) }
+func (s BNode) String() string      { return `_:` + string(s) }
+func (s BNode) Native() interface{} { return s }
 
 // Native support for basic types
 
@@ -239,6 +256,7 @@ type Int int64
 func (s Int) String() string {
 	return `"` + strconv.Itoa(int(s)) + `"^^<` + string(defaultIntType) + `>`
 }
+func (s Int) Native() interface{} { return int(s) }
 
 // Float is a native wrapper for float64 type.
 //
@@ -248,6 +266,7 @@ type Float float64
 func (s Float) String() string {
 	return `"` + strconv.FormatFloat(float64(s), 'E', -1, 64) + `"^^<` + string(defaultFloatType) + `>`
 }
+func (s Float) Native() interface{} { return float64(s) }
 
 // Bool is a native wrapper for bool type.
 //
@@ -260,6 +279,7 @@ func (s Bool) String() string {
 	}
 	return `"False"^^<` + string(defaultBoolType) + `>`
 }
+func (s Bool) Native() interface{} { return bool(s) }
 
 var _ Equaler = Time{}
 
@@ -272,6 +292,7 @@ func (s Time) String() string {
 	// TODO(dennwc): this is used to compute hash, thus we might want to include nanos
 	return `"` + time.Time(s).Format(time.RFC3339) + `"^^<` + string(defaultTimeType) + `>`
 }
+func (s Time) Native() interface{} { return time.Time(s) }
 func (s Time) Equal(v Value) bool {
 	t, ok := v.(Time)
 	if !ok {

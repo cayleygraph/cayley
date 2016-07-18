@@ -141,17 +141,11 @@ func quadValueToString(v quad.Value) string {
 }
 
 func quadValueToNative(v quad.Value) interface{} {
-	switch v := v.(type) {
-	case quad.String:
-		return string(v)
-	case quad.Int:
-		return int(v)
-	case quad.Float:
-		return float64(v)
-	case quad.Bool:
-		return bool(v)
+	out := v.Native()
+	if nv, ok := out.(quad.Value); ok && v == nv {
+		return quad.StringOf(v)
 	}
-	return quad.StringOf(v)
+	return out
 }
 
 func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]interface{} {

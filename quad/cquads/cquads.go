@@ -168,7 +168,7 @@ func unEscape(r []rune, spec int, isQuoted, isEscaped bool) quad.Value {
 			Type:  quad.IRI(sp[3 : len(sp)-1]),
 		}
 		if AutoConvertTypedString {
-			nv, err := v.ToNative()
+			nv, err := v.ParseValue()
 			if err == nil {
 				return nv
 			}
