@@ -83,7 +83,7 @@ func (s *Session) Execute(input string, out chan interface{}, limit int) {
 		}
 	}
 	nResults := 0
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for nxt := graph.AsNexter(it); nxt.Next(); {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		out <- &tags
@@ -106,7 +106,10 @@ func (s *Session) Execute(input string, out chan interface{}, limit int) {
 
 func (s *Session) Format(result interface{}) string {
 	out := fmt.Sprintln("****")
-	tags := result.(map[string]graph.Value)
+	tags, ok := result.(map[string]graph.Value)
+	if !ok {
+		return ""
+	}
 	tagKeys := make([]string, len(tags))
 	i := 0
 	for k := range tags {

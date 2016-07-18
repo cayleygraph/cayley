@@ -80,7 +80,10 @@ func (p *pathObject) Both(call otto.FunctionCall) otto.Value {
 	return outObj(call, p.clone(np))
 }
 func (p *pathObject) follow(call otto.FunctionCall, rev bool) otto.Value {
-	ep := exportAsPath(call.ArgumentList)
+	ep, ok := exportAsPath(call.ArgumentList)
+	if !ok {
+		return otto.NullValue()
+	}
 	var np *path.Path
 	if rev {
 		np = p.path.FollowReverse(ep.path)
@@ -96,7 +99,10 @@ func (p *pathObject) FollowR(call otto.FunctionCall) otto.Value {
 	return p.follow(call, true)
 }
 func (p *pathObject) And(call otto.FunctionCall) otto.Value {
-	ep := exportAsPath(call.ArgumentList)
+	ep, ok := exportAsPath(call.ArgumentList)
+	if !ok {
+		return otto.NullValue()
+	}
 	np := p.path.And(ep.path)
 	return outObj(call, p.clone(np))
 }
@@ -107,7 +113,10 @@ func (p *pathObject) Union(call otto.FunctionCall) otto.Value {
 	return p.Or(call)
 }
 func (p *pathObject) Or(call otto.FunctionCall) otto.Value {
-	ep := exportAsPath(call.ArgumentList)
+	ep, ok := exportAsPath(call.ArgumentList)
+	if !ok {
+		return otto.NullValue()
+	}
 	np := p.path.Or(ep.path)
 	return outObj(call, p.clone(np))
 }
@@ -165,9 +174,13 @@ func (p *pathObject) save(call otto.FunctionCall, rev bool) otto.Value {
 	if len(args) > 2 || len(args) == 0 {
 		return otto.NullValue()
 	}
-	tag := args[0]
+	vtag := args[0]
 	if len(args) == 2 {
-		tag = args[1]
+		vtag = args[1]
+	}
+	tag, ok := vtag.(string)
+	if !ok {
+		return otto.NullValue()
 	}
 	via := args[0]
 	if vp, ok := via.(*pathObject); ok {
@@ -180,9 +193,9 @@ func (p *pathObject) save(call otto.FunctionCall, rev bool) otto.Value {
 	}
 	var np *path.Path
 	if rev {
-		np = p.path.SaveReverse(via, tag.(string))
+		np = p.path.SaveReverse(via, tag)
 	} else {
-		np = p.path.Save(via, tag.(string))
+		np = p.path.Save(via, tag)
 	}
 	return outObj(call, p.clone(np))
 }
@@ -193,7 +206,10 @@ func (p *pathObject) SaveR(call otto.FunctionCall) otto.Value {
 	return p.save(call, true)
 }
 func (p *pathObject) Except(call otto.FunctionCall) otto.Value {
-	ep := exportAsPath(call.ArgumentList)
+	ep, ok := exportAsPath(call.ArgumentList)
+	if !ok {
+		return otto.NullValue()
+	}
 	np := p.path.Except(ep.path)
 	return outObj(call, p.clone(np))
 }

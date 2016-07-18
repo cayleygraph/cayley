@@ -24,6 +24,7 @@ import (
 	// Provide underscore JS library.
 	_ "github.com/robertkrimen/otto/underscore"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 )
@@ -88,7 +89,7 @@ func (s *Session) Parse(input string) (query.ParseResult, error) {
 	return query.Parsed, nil
 }
 
-func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
+func (s *Session) runUnsafe(input interface{}) (_ otto.Value, gerr error) {
 	wk := s.wk
 	defer func() {
 		if r := recover(); r != nil {
@@ -96,8 +97,11 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 				s.err = ErrKillTimeout
 				wk.env = s.persist
 				return
+			} else if err, ok := r.(error); ok {
+				gerr = err
+			} else {
+				gerr = fmt.Errorf("recovered: %v", err)
 			}
-			panic(r)
 		}
 	}()
 
@@ -156,7 +160,10 @@ func (s *Session) Execute(input string, out chan interface{}, _ int) {
 }
 
 func (s *Session) Format(result interface{}) string {
-	data := result.(*Result)
+	data, ok := result.(*Result)
+	if !ok {
+		return fmt.Sprintf("Error: unexpected result type: %T\n", result)
+	}
 	if data.metaresult {
 		if data.err != nil {
 			return fmt.Sprintf("Error: %v\n", data.err)
@@ -207,7 +214,11 @@ func (s *Session) Format(result interface{}) string {
 
 // Web stuff
 func (s *Session) Collate(result interface{}) {
-	data := result.(*Result)
+	data, ok := result.(*Result)
+	if !ok {
+		clog.Errorf("unexpected result type: %T", result)
+		return
+	}
 	if !data.metaresult {
 		if data.val == nil {
 			obj := make(map[string]interface{})

@@ -159,12 +159,16 @@ func (wk *worker) wantShape() bool {
 	return wk.shape != nil
 }
 
-func exportAsPath(args []otto.Value) *pathObject {
+func exportAsPath(args []otto.Value) (*pathObject, bool) {
 	if len(args) == 0 {
-		return nil
+		return nil, true
 	}
-	o, _ := args[0].Export()
-	return o.(*pathObject)
+	o, err := args[0].Export()
+	if err != nil { // TODO(dennwc): throw js exception
+		return nil, false
+	}
+	po, ok := o.(*pathObject)
+	return po, ok
 }
 
 func unwrap(o interface{}) interface{} {
@@ -232,7 +236,7 @@ func toQuadValue(o interface{}) (quad.Value, bool) {
 	case string:
 		if len(v) > 2 {
 			if v[0] == '<' && v[len(v)-1] == '>' {
-				qv = quad.IRI(v[1:len(v)-1])
+				qv = quad.IRI(v[1 : len(v)-1])
 			} else if v[:2] == "_:" {
 				qv = quad.BNode(v[2:])
 			}
