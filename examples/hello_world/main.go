@@ -1,8 +1,3 @@
-# Quickstart as Library
-
-Currently, Cayley supports being used as a Go library for other projects. To use it in such a way, here's a quick example:
-
-```go
 package main
 
 import (
@@ -46,24 +41,3 @@ func main() {
 		fmt.Println(nativeValue) // print it!
 	}
 }
-```
-
-To use other backends, you can empty-import them, eg
-
-```go
-import _ "github.com/cayleygraph/cayley/graph/bolt"
-```
-
-And use them with a call like
-
-```go
-import "github.com/cayleygraph/cayley/graph"
-
-func open() {
-  // Initialize the database
-  graph.InitQuadStore("bolt", path, nil)
-
-  // Open and use the database
-  cayley.NewGraph("bolt", path, nil)
-}
-```
