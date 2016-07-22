@@ -42,10 +42,10 @@ import (
 //
 var simpleGraph = graphtest.MakeQuadSet()
 var simpleGraphUpdate = []quad.Quad{
-	quad.Make("A", "follows", "B", ""),
-	quad.Make("F", "follows", "B", ""),
-	quad.Make("C", "follows", "D", ""),
-	quad.Make("X", "follows", "B", ""),
+	quad.MakeRaw("A", "follows", "B", ""),
+	quad.MakeRaw("F", "follows", "B", ""),
+	quad.MakeRaw("C", "follows", "D", ""),
+	quad.MakeRaw("X", "follows", "B", ""),
 }
 
 type pair struct {
@@ -125,8 +125,8 @@ func TestIterators(t *testing.T) {
 	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
 
 	var expected = []quad.Quad{
-		quad.Make("C", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""),
+		quad.MakeRaw("C", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "D", ""),
 	}
 
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
@@ -135,7 +135,7 @@ func TestIterators(t *testing.T) {
 	// Test contains
 	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))
 	gqs := qs.(*QuadStore)
-	key := gqs.createKeyForQuad(quad.Make("G", "status", "cool", "status_graph"))
+	key := gqs.createKeyForQuad(quad.MakeRaw("G", "status", "cool", "status_graph"))
 	token := &Token{quadKind, key.StringID()}
 
 	require.True(t, it.Contains(token), "Contains failed")

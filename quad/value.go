@@ -60,6 +60,14 @@ func StringOf(v Value) string {
 	return v.String()
 }
 
+// NativeOf safely call v.Native, returning nil in case of nil Value.
+func NativeOf(v Value) interface{} {
+	if v == nil {
+		return nil
+	}
+	return v.Native()
+}
+
 // AsValue converts native type into closest Value representation.
 // It returns false if type was not recognized.
 func AsValue(v interface{}) (out Value, ok bool) {

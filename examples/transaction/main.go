@@ -19,11 +19,11 @@ func main() {
 	// Create a transaction of work to do
 	// NOTE: the transaction is independant of the storage type, so comes from cayley rather than store
 	t := cayley.NewTransaction()
-	t.AddQuad(quad.Quad{quad.String("food"), quad.String("is"), quad.String("good"), quad.String("demo graph")})
-	t.AddQuad(quad.Quad{quad.String("phrase of the day"), quad.String("is of course"), quad.String("Hello World!"), quad.String("demo graph")})
-	t.AddQuad(quad.Quad{quad.String("cats"), quad.String("are"), quad.String("awesome"), quad.String("demo graph")})
-	t.AddQuad(quad.Quad{quad.String("cats"), quad.String("are"), quad.String("scary"), quad.String("demo graph")})
-	t.AddQuad(quad.Quad{quad.String("cats"), quad.String("want to"), quad.String("kill you"), quad.String("demo graph")})
+	t.AddQuad(quad.Make("food", "is", "good", nil))
+	t.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
+	t.AddQuad(quad.Make("cats", "are", "awesome", nil))
+	t.AddQuad(quad.Make("cats", "are", "scary", nil))
+	t.AddQuad(quad.Make("cats", "want to", "kill you", nil))
 
 	// Apply the transaction
 	err = store.ApplyTransaction(t)
@@ -39,5 +39,8 @@ func main() {
 	defer nxt.Close()
 	for nxt.Next() {
 		fmt.Println("cats are", store.NameOf(it.Result()).Native())
+	}
+	if err = nxt.Err(); err != nil {
+		log.Fatalln(err)
 	}
 }

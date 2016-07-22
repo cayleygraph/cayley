@@ -457,7 +457,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 			clog.Errorf("Error: %v", err)
 		}
 	}
-	return quad.Make(
+	return quad.MakeRaw(
 		q.Subject,
 		q.Predicate,
 		q.Object,

@@ -21,7 +21,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	store.AddQuad(quad.Quad{quad.String("phrase of the day"), quad.String("is of course"), quad.String("Hello World!"), quad.String("demo graph")})
+	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", "demo graph"))
 
 	// Now we create the path, to get to our data
 	p := cayley.StartPath(store, quad.String("phrase of the day")).Out(quad.String("is of course"))
@@ -41,9 +41,12 @@ func main() {
 	for nxt.Next() {
 		token := it.Result()          // get a ref to a node
 		value := store.NameOf(token)  // get the value in the node
-		nativeValue := value.Native() // this converts nquad escaped string to normal type
+		nativeValue := quad.NativeOf(value) // this converts nquad values to normal Go type
 
 		fmt.Println(nativeValue) // print it!
+	}
+	if err := nxt.Err(); err != nil {
+		log.Fatalln(err)
 	}
 }
 ```

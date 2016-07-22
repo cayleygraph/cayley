@@ -47,8 +47,26 @@ var (
 	ErrIncomplete = errors.New("incomplete N-Quad")
 )
 
-// Make creates a quad with provided raw values.
-func Make(subject, predicate, object, label string) (q Quad) {
+// Make creates a quad with provided values.
+func Make(subject, predicate, object, label interface{}) (q Quad) {
+	var ok bool
+	if q.Subject, ok = AsValue(subject); !ok {
+		q.Subject = String(fmt.Sprint(subject))
+	}
+	if q.Predicate, ok = AsValue(predicate); !ok {
+		q.Predicate = String(fmt.Sprint(predicate))
+	}
+	if q.Object, ok = AsValue(object); !ok {
+		q.Object = String(fmt.Sprint(object))
+	}
+	if q.Label, ok = AsValue(label); !ok {
+		q.Label = String(fmt.Sprint(label))
+	}
+	return
+}
+
+// MakeRaw creates a quad with provided raw values (nquads-escaped).
+func MakeRaw(subject, predicate, object, label string) (q Quad) {
 	if subject != "" {
 		q.Subject = Raw(subject)
 	}
@@ -100,7 +118,7 @@ func (q *Quad) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &rq); err != nil {
 		return err
 	}
-	*q = Make(rq.Subject, rq.Predicate, rq.Object, rq.Label)
+	*q = MakeRaw(rq.Subject, rq.Predicate, rq.Object, rq.Label)
 	return nil
 }
 

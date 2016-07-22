@@ -40,17 +40,17 @@ import (
 //              +---+
 //
 var simpleGraph = []quad.Quad{
-	quad.Make("A", "follows", "B", ""),
-	quad.Make("C", "follows", "B", ""),
-	quad.Make("C", "follows", "D", ""),
-	quad.Make("D", "follows", "B", ""),
-	quad.Make("B", "follows", "F", ""),
-	quad.Make("F", "follows", "G", ""),
-	quad.Make("D", "follows", "G", ""),
-	quad.Make("E", "follows", "F", ""),
-	quad.Make("B", "status", "cool", "status_graph"),
-	quad.Make("D", "status", "cool", "status_graph"),
-	quad.Make("G", "status", "cool", "status_graph"),
+	quad.MakeRaw("A", "follows", "B", ""),
+	quad.MakeRaw("C", "follows", "B", ""),
+	quad.MakeRaw("C", "follows", "D", ""),
+	quad.MakeRaw("D", "follows", "B", ""),
+	quad.MakeRaw("B", "follows", "F", ""),
+	quad.MakeRaw("F", "follows", "G", ""),
+	quad.MakeRaw("D", "follows", "G", ""),
+	quad.MakeRaw("E", "follows", "F", ""),
+	quad.MakeRaw("B", "status", "cool", "status_graph"),
+	quad.MakeRaw("D", "status", "cool", "status_graph"),
+	quad.MakeRaw("G", "status", "cool", "status_graph"),
 }
 
 func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
@@ -190,7 +190,7 @@ func TestLinksToOptimization(t *testing.T) {
 func TestRemoveQuad(t *testing.T) {
 	qs, w, _ := makeTestStore(simpleGraph)
 
-	err := w.RemoveQuad(quad.Make(
+	err := w.RemoveQuad(quad.MakeRaw(
 		"E",
 		"follows",
 		"F",
@@ -224,12 +224,12 @@ func TestTransaction(t *testing.T) {
 	size := qs.Size()
 
 	tx := graph.NewTransaction()
-	tx.AddQuad(quad.Make(
+	tx.AddQuad(quad.MakeRaw(
 		"E",
 		"follows",
 		"G",
 		""))
-	tx.RemoveQuad(quad.Make(
+	tx.RemoveQuad(quad.MakeRaw(
 		"Non",
 		"existent",
 		"quad",

@@ -32,7 +32,7 @@ func Triple(subject, predicate, object string) quad.Quad {
 }
 
 func Quad(subject, predicate, object, label string) quad.Quad {
-	return quad.Make(subject, predicate, object, label)
+	return quad.MakeRaw(subject, predicate, object, label)
 }
 
 func NewGraph(name, dbpath string, opts graph.Options) (*Handle, error) {

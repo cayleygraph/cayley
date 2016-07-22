@@ -443,15 +443,15 @@ func TestGremlin(t *testing.T) {
 }
 
 var issue160TestGraph = []quad.Quad{
-	quad.Make("alice", "follows", "bob", ""),
-	quad.Make("bob", "follows", "alice", ""),
-	quad.Make("charlie", "follows", "bob", ""),
-	quad.Make("dani", "follows", "charlie", ""),
-	quad.Make("dani", "follows", "alice", ""),
-	quad.Make("alice", "is", "cool", ""),
-	quad.Make("bob", "is", "not cool", ""),
-	quad.Make("charlie", "is", "cool", ""),
-	quad.Make("danie", "is", "not cool", ""),
+	quad.MakeRaw("alice", "follows", "bob", ""),
+	quad.MakeRaw("bob", "follows", "alice", ""),
+	quad.MakeRaw("charlie", "follows", "bob", ""),
+	quad.MakeRaw("dani", "follows", "charlie", ""),
+	quad.MakeRaw("dani", "follows", "alice", ""),
+	quad.MakeRaw("alice", "is", "cool", ""),
+	quad.MakeRaw("bob", "is", "not cool", ""),
+	quad.MakeRaw("charlie", "is", "cool", ""),
+	quad.MakeRaw("danie", "is", "not cool", ""),
 }
 
 func TestIssue160(t *testing.T) {

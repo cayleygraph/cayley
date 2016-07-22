@@ -40,14 +40,14 @@ var testQueries = []struct {
 }{
 	{
 		message: "get a single quad linkage",
-		add:     quad.Make("i", "can", "win", ""),
+		add:     quad.MakeRaw("i", "can", "win", ""),
 		query:   "($a (:can \"win\"))",
 		typ:     graph.And,
 		expect:  "i",
 	},
 	{
 		message: "get a single quad linkage",
-		add:     quad.Make("i", "can", "win", ""),
+		add:     quad.MakeRaw("i", "can", "win", ""),
 		query:   "(\"i\" (:can $a))",
 		typ:     graph.And,
 		expect:  "i",
@@ -82,8 +82,8 @@ func TestMemstoreBackedSexp(t *testing.T) {
 func TestTreeConstraintParse(t *testing.T) {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
-	w.AddQuad(quad.Make("i", "like", "food", ""))
-	w.AddQuad(quad.Make("food", "is", "good", ""))
+	w.AddQuad(quad.MakeRaw("i", "like", "food", ""))
+	w.AddQuad(quad.MakeRaw("food", "is", "good", ""))
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -103,8 +103,8 @@ func TestTreeConstraintParse(t *testing.T) {
 func TestTreeConstraintTagParse(t *testing.T) {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
-	w.AddQuad(quad.Make("i", "like", "food", ""))
-	w.AddQuad(quad.Make("food", "is", "good", ""))
+	w.AddQuad(quad.MakeRaw("i", "like", "food", ""))
+	w.AddQuad(quad.MakeRaw("food", "is", "good", ""))
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -124,9 +124,9 @@ func TestMultipleConstraintParse(t *testing.T) {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, tv := range []quad.Quad{
-		quad.Make("i", "like", "food", ""),
-		quad.Make("i", "like", "beer", ""),
-		quad.Make("you", "like", "beer", ""),
+		quad.MakeRaw("i", "like", "food", ""),
+		quad.MakeRaw("i", "like", "beer", ""),
+		quad.MakeRaw("you", "like", "beer", ""),
 	} {
 		w.AddQuad(tv)
 	}

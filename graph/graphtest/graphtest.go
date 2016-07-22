@@ -77,23 +77,23 @@ func MakeWriter(t testing.TB, qs graph.QuadStore, opts graph.Options, data ...qu
 //
 func MakeQuadSet() []quad.Quad {
 	return []quad.Quad{
-		quad.Make("A", "follows", "B", ""),
-		quad.Make("C", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""),
-		quad.Make("D", "follows", "B", ""),
-		quad.Make("B", "follows", "F", ""),
-		quad.Make("F", "follows", "G", ""),
-		quad.Make("D", "follows", "G", ""),
-		quad.Make("E", "follows", "F", ""),
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
+		quad.MakeRaw("A", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "D", ""),
+		quad.MakeRaw("D", "follows", "B", ""),
+		quad.MakeRaw("B", "follows", "F", ""),
+		quad.MakeRaw("F", "follows", "G", ""),
+		quad.MakeRaw("D", "follows", "G", ""),
+		quad.MakeRaw("E", "follows", "F", ""),
+		quad.MakeRaw("B", "status", "cool", "status_graph"),
+		quad.MakeRaw("D", "status", "cool", "status_graph"),
+		quad.MakeRaw("G", "status", "cool", "status_graph"),
 	}
 }
 
 func IteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Quad {
 	var res quad.ByQuadString
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for nxt := graph.AsNexter(it); nxt.Next(); {
 		res = append(res, qs.Quad(it.Result()))
 	}
 	require.Nil(t, it.Err())
@@ -131,7 +131,7 @@ func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator, e
 
 func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []string {
 	var res []string
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for nxt := graph.AsNexter(it); nxt.Next(); {
 		res = append(res, qs.NameOf(it.Result()).String())
 	}
 	require.Nil(t, it.Err())
@@ -141,7 +141,7 @@ func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []s
 
 func IteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Value {
 	var res []quad.Value
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for nxt := graph.AsNexter(it); nxt.Next(); {
 		res = append(res, qs.NameOf(it.Result()))
 	}
 	require.Nil(t, it.Err())
@@ -155,7 +155,7 @@ func TestLoadOneQuad(t testing.TB, gen DatabaseFunc) {
 
 	w := MakeWriter(t, qs, opts)
 
-	err := w.AddQuad(quad.Make(
+	err := w.AddQuad(quad.MakeRaw(
 		"Something",
 		"points_to",
 		"Something Else",
@@ -194,7 +194,7 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 	horizon = qs.Horizon()
 	require.Equal(t, int64(11), horizon.Int(), "Unexpected horizon value")
 
-	err = w.RemoveQuad(quad.Make(
+	err = w.RemoveQuad(quad.MakeRaw(
 		"A",
 		"follows",
 		"B",
@@ -304,8 +304,8 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
 
 	expectIteratedQuads(it, []quad.Quad{
-		quad.Make("C", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""),
+		quad.MakeRaw("C", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "D", ""),
 	})
 	it.Reset()
 
@@ -314,16 +314,16 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	and.AddSubIterator(it)
 
 	expectIteratedQuads(and, []quad.Quad{
-		quad.Make("C", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""),
+		quad.MakeRaw("C", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "D", ""),
 	})
 
 	// Object iterator.
 	it = qs.QuadIterator(quad.Object, qs.ValueOf(quad.Raw("F")))
 
 	expectIteratedQuads(it, []quad.Quad{
-		quad.Make("B", "follows", "F", ""),
-		quad.Make("E", "follows", "F", ""),
+		quad.MakeRaw("B", "follows", "F", ""),
+		quad.MakeRaw("E", "follows", "F", ""),
 	})
 
 	and = iterator.NewAnd(qs)
@@ -331,25 +331,25 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	and.AddSubIterator(it)
 
 	expectIteratedQuads(and, []quad.Quad{
-		quad.Make("B", "follows", "F", ""),
+		quad.MakeRaw("B", "follows", "F", ""),
 	})
 
 	// Predicate iterator.
 	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.Raw("status")))
 
 	expectIteratedQuads(it, []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
+		quad.MakeRaw("B", "status", "cool", "status_graph"),
+		quad.MakeRaw("D", "status", "cool", "status_graph"),
+		quad.MakeRaw("G", "status", "cool", "status_graph"),
 	})
 
 	// Label iterator.
 	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))
 
 	expectIteratedQuads(it, []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
+		quad.MakeRaw("B", "status", "cool", "status_graph"),
+		quad.MakeRaw("D", "status", "cool", "status_graph"),
+		quad.MakeRaw("G", "status", "cool", "status_graph"),
 	})
 	it.Reset()
 
@@ -359,7 +359,7 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	and.AddSubIterator(it)
 
 	expectIteratedQuads(and, []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
+		quad.MakeRaw("B", "status", "cool", "status_graph"),
 	})
 	it.Reset()
 
@@ -369,7 +369,7 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
 
 	expectIteratedQuads(and, []quad.Quad{
-		quad.Make("B", "status", "cool", "status_graph"),
+		quad.MakeRaw("B", "status", "cool", "status_graph"),
 	})
 }
 
@@ -383,12 +383,12 @@ func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc) {
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
 
 	ExpectIteratedQuads(t, qs, it, []quad.Quad{
-		quad.Make("E", "follows", "F", ""),
+		quad.MakeRaw("E", "follows", "F", ""),
 	})
 
 	it.Reset()
 
-	w.RemoveQuad(quad.Make("E", "follows", "F", ""))
+	w.RemoveQuad(quad.MakeRaw("E", "follows", "F", ""))
 
 	ExpectIteratedQuads(t, qs, it, nil)
 }
@@ -490,10 +490,10 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 
 	// Add more quads, some conflicts
 	err := w.AddQuadSet([]quad.Quad{
-		quad.Make("A", "follows", "B", ""), // duplicate
-		quad.Make("F", "follows", "B", ""),
-		quad.Make("C", "follows", "D", ""), // duplicate
-		quad.Make("X", "follows", "B", ""),
+		quad.MakeRaw("A", "follows", "B", ""), // duplicate
+		quad.MakeRaw("F", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "D", ""), // duplicate
+		quad.MakeRaw("X", "follows", "B", ""),
 	})
 	assert.Nil(t, err, "AddQuadSet failed")
 
@@ -517,7 +517,7 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 	ExpectIteratedRawStrings(t, qs, all, expect)
 
 	// Remove quad
-	toRemove := quad.Make("X", "follows", "B", "")
+	toRemove := quad.MakeRaw("X", "follows", "B", "")
 	err = w.RemoveQuad(toRemove)
 	require.Nil(t, err, "RemoveQuad failed")
 

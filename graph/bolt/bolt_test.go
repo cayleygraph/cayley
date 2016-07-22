@@ -99,7 +99,7 @@ func TestLoadDatabase(t *testing.T) {
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuad(quad.Make(
+	w.AddQuad(quad.MakeRaw(
 		"Something",
 		"points_to",
 		"Something Else",
@@ -148,7 +148,7 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected horizon value, got:%d expect:12", horizon.Int())
 	}
 
-	w.RemoveQuad(quad.Make(
+	w.RemoveQuad(quad.MakeRaw(
 		"A",
 		"follows",
 		"B",
