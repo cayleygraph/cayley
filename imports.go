@@ -27,12 +27,12 @@ type Handle struct {
 	graph.QuadWriter
 }
 
-func Triple(subject, predicate, object string) quad.Quad {
-	return Quad(subject, predicate, object, "")
+func Triple(subject, predicate, object interface{}) quad.Quad {
+	return Quad(subject, predicate, object, nil)
 }
 
-func Quad(subject, predicate, object, label string) quad.Quad {
-	return quad.MakeRaw(subject, predicate, object, label)
+func Quad(subject, predicate, object, label interface{}) quad.Quad {
+	return quad.Make(subject, predicate, object, label)
 }
 
 func NewGraph(name, dbpath string, opts graph.Options) (*Handle, error) {
