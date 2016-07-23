@@ -26,12 +26,13 @@ import (
 )
 
 type Iterator struct {
+	nodes  bool
 	uid    uint64
 	qs     *QuadStore
 	tags   graph.Tagger
 	tree   *b.Tree
 	iter   *b.Enumerator
-	result graph.Value
+	result int64
 	err    error
 
 	d     quad.Direction
@@ -44,6 +45,7 @@ func NewIterator(tree *b.Tree, qs *QuadStore, d quad.Direction, value graph.Valu
 		iter = nil
 	}
 	return &Iterator{
+		nodes: d == 0,
 		uid:   iterator.NextUID(),
 		qs:    qs,
 		tree:  tree,
@@ -81,9 +83,9 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 
 func (it *Iterator) Clone() graph.Iterator {
 	var iter *b.Enumerator
-	if it.result != nil {
+	if it.result > 0 {
 		var ok bool
-		iter, ok = it.tree.Seek(it.result.(int64))
+		iter, ok = it.tree.Seek(it.result)
 		if !ok {
 			panic("value unexpectedly missing")
 		}
@@ -133,7 +135,7 @@ func (it *Iterator) Next() bool {
 		return it.Next()
 	}
 	it.result = result
-	return graph.NextLogOut(it, it.result, true)
+	return graph.NextLogOut(it, it.Result(), true)
 }
 
 func (it *Iterator) Err() error {
@@ -141,7 +143,10 @@ func (it *Iterator) Err() error {
 }
 
 func (it *Iterator) Result() graph.Value {
-	return it.result
+	if it.nodes {
+		return iterator.Int64Node(it.result)
+	}
+	return iterator.Int64Quad(it.result)
 }
 
 func (it *Iterator) NextPath() bool {
@@ -159,8 +164,19 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
-	if _, ok := it.tree.Get(v.(int64)); ok {
-		it.result = v
+	if v == nil {
+		return graph.ContainsLogOut(it, v, false)
+	} else if it.nodes != v.IsNode() {
+		return graph.ContainsLogOut(it, v, false)
+	}
+	var vi int64
+	if it.nodes {
+		vi = int64(v.(iterator.Int64Node))
+	} else {
+		vi = int64(v.(iterator.Int64Quad))
+	}
+	if _, ok := it.tree.Get(vi); ok {
+		it.result = vi
 		return graph.ContainsLogOut(it, v, true)
 	}
 	return graph.ContainsLogOut(it, v, false)

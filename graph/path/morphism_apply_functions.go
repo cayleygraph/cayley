@@ -16,7 +16,6 @@ package path
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -39,7 +38,7 @@ func join(qs graph.QuadStore, its ...graph.Iterator) graph.Iterator {
 
 // isMorphism represents all nodes passed in-- if there are none, this function
 // acts as a passthrough for the previous iterator.
-func isMorphism(nodes ...string) morphism {
+func isMorphism(nodes ...quad.Value) morphism {
 	return morphism{
 		Name:     "is",
 		Reversal: func(ctx *context) (morphism, *context) { return isMorphism(nodes...), ctx },
@@ -63,9 +62,20 @@ func isMorphism(nodes ...string) morphism {
 	}
 }
 
+// cmpMorphism is the set of nodes that passes comparison iterator with the same parameters.
+func cmpMorphism(op iterator.Operator, node quad.Value) morphism {
+	return morphism{
+		Name:     "cmp",
+		Reversal: func(ctx *context) (morphism, *context) { return cmpMorphism(op, node), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			return iterator.NewComparison(in, op, node, qs), ctx
+		},
+	}
+}
+
 // hasMorphism is the set of nodes that is reachable via either a *Path, a
 // single node.(string) or a list of nodes.([]string).
-func hasMorphism(via interface{}, nodes ...string) morphism {
+func hasMorphism(via interface{}, nodes ...quad.Value) morphism {
 	return morphism{
 		Name:     "has",
 		Reversal: func(ctx *context) (morphism, *context) { return hasMorphism(via, nodes...), ctx },
@@ -75,7 +85,7 @@ func hasMorphism(via interface{}, nodes ...string) morphism {
 	}
 }
 
-func hasReverseMorphism(via interface{}, nodes ...string) morphism {
+func hasReverseMorphism(via interface{}, nodes ...quad.Value) morphism {
 	return morphism{
 		Name:     "hasr",
 		Reversal: func(ctx *context) (morphism, *context) { return hasMorphism(via, nodes...), ctx },
@@ -299,7 +309,7 @@ func saveOptionalReverseMorphism(via interface{}, tag string) morphism {
 	}
 }
 
-func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bool, nodes []string) graph.Iterator {
+func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bool, nodes []quad.Value) graph.Iterator {
 	viaIter := buildViaPath(qs, via).
 		BuildIterator()
 	ends := func() graph.Iterator {
@@ -408,19 +418,49 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 				return newp
 			}
 			return p
-		case string:
+		case quad.Value:
 			return StartPath(qs, p)
-		default:
-			panic(fmt.Sprintln("Invalid type passed to buildViaPath.", reflect.TypeOf(v), p))
 		}
 	}
-	var strings []string
-	for _, s := range via {
-		if str, ok := s.(string); ok {
-			strings = append(strings, str)
-		} else {
-			panic("Non-string type passed to long Via path")
+	nodes := make([]quad.Value, 0, len(via))
+	for _, v := range via {
+		qv, ok := quad.AsValue(v)
+		if !ok {
+			panic(fmt.Errorf("Invalid type passed to buildViaPath: %v (%T)", v, v))
 		}
+		nodes = append(nodes, qv)
 	}
-	return StartPath(qs, strings...)
+	return StartPath(qs, nodes...)
+}
+
+// skipMorphism will skip a number of values-- if there are none, this function
+// acts as a passthrough for the previous iterator.
+func skipMorphism(v int64) morphism {
+	return morphism{
+		Name:     "skip",
+		Reversal: func(ctx *context) (morphism, *context) { return skipMorphism(v), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			if v == 0 {
+				// Acting as a passthrough
+				return in, ctx
+			}
+			return iterator.NewSkip(in, v), ctx
+		},
+	}
+}
+
+// limitMorphism will limit a number of values-- if number is negative or zero, this function
+// acts as a passthrough for the previous iterator.
+func limitMorphism(v int64) morphism {
+	return morphism{
+		Name:     "limit",
+		Reversal: func(ctx *context) (morphism, *context) { return limitMorphism(v), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+			if v <= 0 {
+				// Acting as a passthrough
+				return in, ctx
+			}
+			return iterator.NewLimit(in, v), ctx
+		},
+	}
 }

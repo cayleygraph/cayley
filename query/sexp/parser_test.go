@@ -40,14 +40,14 @@ var testQueries = []struct {
 }{
 	{
 		message: "get a single quad linkage",
-		add:     quad.Quad{"i", "can", "win", ""},
+		add:     quad.MakeRaw("i", "can", "win", ""),
 		query:   "($a (:can \"win\"))",
 		typ:     graph.And,
 		expect:  "i",
 	},
 	{
 		message: "get a single quad linkage",
-		add:     quad.Quad{"i", "can", "win", ""},
+		add:     quad.MakeRaw("i", "can", "win", ""),
 		query:   "(\"i\" (:can $a))",
 		typ:     graph.And,
 		expect:  "i",
@@ -69,11 +69,11 @@ func TestMemstoreBackedSexp(t *testing.T) {
 		if it.Type() != test.typ {
 			t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
 		}
-		if !graph.Next(it) {
+		if !graph.AsNexter(it).Next() {
 			t.Errorf("Failed to %s", test.message)
 		}
 		got := it.Result()
-		if expect := qs.ValueOf(test.expect); got != expect {
+		if expect := qs.ValueOf(quad.Raw(test.expect)); got != expect {
 			t.Errorf("Incorrect result for %s, got:%v expect %v", test.message, got, expect)
 		}
 	}
@@ -82,8 +82,8 @@ func TestMemstoreBackedSexp(t *testing.T) {
 func TestTreeConstraintParse(t *testing.T) {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
-	w.AddQuad(quad.Quad{"i", "like", "food", ""})
-	w.AddQuad(quad.Quad{"food", "is", "good", ""})
+	w.AddQuad(quad.MakeRaw("i", "like", "food", ""))
+	w.AddQuad(quad.MakeRaw("food", "is", "good", ""))
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
@@ -91,30 +91,30 @@ func TestTreeConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Errorf("Odd iterator tree. Got: %#v", it.Describe())
 	}
-	if !graph.Next(it) {
+	if !graph.AsNexter(it).Next() {
 		t.Error("Got no results")
 	}
 	out := it.Result()
-	if out != qs.ValueOf("i") {
-		t.Errorf("Got %d, expected %d", out, qs.ValueOf("i"))
+	if out != qs.ValueOf(quad.Raw("i")) {
+		t.Errorf("Got %d, expected %d", out, qs.ValueOf(quad.Raw("i")))
 	}
 }
 
 func TestTreeConstraintTagParse(t *testing.T) {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
-	w.AddQuad(quad.Quad{"i", "like", "food", ""})
-	w.AddQuad(quad.Quad{"food", "is", "good", ""})
+	w.AddQuad(quad.MakeRaw("i", "like", "food", ""))
+	w.AddQuad(quad.MakeRaw("food", "is", "good", ""))
 	query := "(\"i\"\n" +
 		"(:like\n" +
 		"($a (:is :good))))"
 	it := BuildIteratorTreeForQuery(qs, query)
-	if !graph.Next(it) {
+	if !graph.AsNexter(it).Next() {
 		t.Error("Got no results")
 	}
 	tags := make(map[string]graph.Value)
 	it.TagResults(tags)
-	if qs.NameOf(tags["$a"]) != "food" {
+	if qs.NameOf(tags["$a"]).String() != "food" {
 		t.Errorf("Got %s, expected food", qs.NameOf(tags["$a"]))
 	}
 
@@ -124,9 +124,9 @@ func TestMultipleConstraintParse(t *testing.T) {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, tv := range []quad.Quad{
-		{"i", "like", "food", ""},
-		{"i", "like", "beer", ""},
-		{"you", "like", "beer", ""},
+		quad.MakeRaw("i", "like", "food", ""),
+		quad.MakeRaw("i", "like", "beer", ""),
+		quad.MakeRaw("you", "like", "beer", ""),
 	} {
 		w.AddQuad(tv)
 	}
@@ -139,14 +139,14 @@ func TestMultipleConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Errorf("Odd iterator tree. Got: %#v", it.Describe())
 	}
-	if !graph.Next(it) {
+	if !graph.AsNexter(it).Next() {
 		t.Error("Got no results")
 	}
 	out := it.Result()
-	if out != qs.ValueOf("i") {
-		t.Errorf("Got %d, expected %d", out, qs.ValueOf("i"))
+	if out != qs.ValueOf(quad.Raw("i")) {
+		t.Errorf("Got %d, expected %d", out, qs.ValueOf(quad.Raw("i")))
 	}
-	if graph.Next(it) {
+	if graph.AsNexter(it).Next() {
 		t.Error("Too many results")
 	}
 }

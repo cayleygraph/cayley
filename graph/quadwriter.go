@@ -23,13 +23,23 @@ package graph
 
 import (
 	"errors"
-	"flag"
 	"time"
 
 	"github.com/cayleygraph/cayley/quad"
 )
 
 type Procedure int8
+
+func (p Procedure) String() string {
+	switch p {
+	case +1:
+		return "add"
+	case -1:
+		return "delete"
+	default:
+		return "invalid"
+	}
+}
 
 // The different types of actions a transaction can do.
 const (
@@ -59,31 +69,80 @@ func (h *Handle) Close() {
 }
 
 var (
-	ErrQuadExists   = errors.New("quad exists")
-	ErrQuadNotExist = errors.New("quad does not exist")
+	ErrQuadExists    = errors.New("quad exists")
+	ErrQuadNotExist  = errors.New("quad does not exist")
+	ErrInvalidAction = errors.New("invalid action")
 )
 
+// DeltaError records an error and the delta that caused it.
+type DeltaError struct {
+	Delta Delta
+	Err   error
+}
+
+func (e *DeltaError) Error() string {
+	return e.Delta.Action.String() + " " + e.Delta.Quad.String() + ": " + e.Err.Error()
+}
+
+// IsQuadExist returns whether an error is a DeltaError
+// with the Err field equal to ErrQuadExists.
+func IsQuadExist(err error) bool {
+	if err == ErrQuadExists {
+		return true
+	}
+	de, ok := err.(*DeltaError)
+	return ok && de == ErrQuadExists
+}
+
+// IsQuadNotExist returns whether an error is a DeltaError
+// with the Err field equal to ErrQuadNotExist.
+func IsQuadNotExist(err error) bool {
+	if err == ErrQuadNotExist {
+		return true
+	}
+	de, ok := err.(*DeltaError)
+	return ok && de == ErrQuadNotExist
+}
+
+// IsInvalidAction returns whether an error is a DeltaError
+// with the Err field equal to ErrInvalidAction.
+func IsInvalidAction(err error) bool {
+	if err == ErrInvalidAction {
+		return true
+	}
+	de, ok := err.(*DeltaError)
+	return ok && de == ErrInvalidAction
+}
+
 var (
-	IgnoreDup     = flag.Bool("ignoredup", false, "Don't stop loading on duplicated key on add")
-	IgnoreMissing = flag.Bool("ignoremissing", false, "Don't stop loading on missing key on delete")
+	// IgnoreDuplicates specifies whether duplicate quads
+	// cause an error during loading or are ignored.
+	IgnoreDuplicates = false
+
+	// IgnoreMissing specifies whether missing quads
+	// cause an error during deletion or are ignored.
+	IgnoreMissing = false
 )
 
 type QuadWriter interface {
-	// Add a quad to the store.
+	// AddQuad adds a quad to the store.
 	AddQuad(quad.Quad) error
 
 	// TODO(barakmich): Deprecate in favor of transaction.
-	// Add a set of quads to the store, atomically if possible.
+	// AddQuadSet adds a set of quads to the store, atomically if possible.
 	AddQuadSet([]quad.Quad) error
 
-	// Removes a quad matching the given one  from the database,
+	// RemoveQuad removes a quad matching the given one  from the database,
 	// if it exists. Does nothing otherwise.
 	RemoveQuad(quad.Quad) error
 
-	// Apply a set of quad changes
+	// ApplyTransaction applies a set of quad changes.
 	ApplyTransaction(*Transaction) error
 
-	// Cleans up replication and closes the writing aspect of the database.
+	// RemoveNode removes all quads which have the given node as subject, predicate, object, or label.
+	RemoveNode(Value) error
+
+	// Close cleans up replication and closes the writing aspect of the database.
 	Close() error
 }
 

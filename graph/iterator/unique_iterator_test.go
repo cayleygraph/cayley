@@ -7,11 +7,11 @@ import (
 
 func TestUniqueIteratorBasics(t *testing.T) {
 	allIt := NewFixed(Identity)
-	allIt.Add(1)
-	allIt.Add(2)
-	allIt.Add(3)
-	allIt.Add(3)
-	allIt.Add(2)
+	allIt.Add(Int64Node(1))
+	allIt.Add(Int64Node(2))
+	allIt.Add(Int64Node(3))
+	allIt.Add(Int64Node(3))
+	allIt.Add(Int64Node(2))
 
 	u := NewUnique(allIt)
 
@@ -24,7 +24,7 @@ func TestUniqueIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{1, 2, 3} {
-		if !u.Contains(v) {
+		if !u.Contains(Int64Node(v)) {
 			t.Errorf("Failed to find a correct value in the unique iterator.")
 		}
 	}

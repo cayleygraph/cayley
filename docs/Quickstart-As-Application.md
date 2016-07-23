@@ -1,4 +1,4 @@
-# Quickstart-As-Application (an overview)
+# Quickstart as Application (an overview)
 
 ## Getting Started
 

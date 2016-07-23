@@ -1,3 +1,5 @@
+# Guide to documentation
+
 - [Quickstart-As-Application.md](Quickstart-As-Application.md): This is how to start using Cayley as an application.  This is a great place to start.
   - [Configuration.md](Configuration.md): This defines how the application configuration file works -- a great thing to scan through when you are getting started.
   - [GremlinAPI.md](GremlinAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.

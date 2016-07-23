@@ -26,6 +26,7 @@ import (
 )
 
 type AllIterator struct {
+	nodes  bool
 	uid    uint64
 	tags   graph.Tagger
 	prefix []byte
@@ -43,6 +44,7 @@ func NewAllIterator(prefix string, d quad.Direction, qs *QuadStore) *AllIterator
 	}
 
 	it := AllIterator{
+		nodes:  prefix == "z",
 		uid:    iterator.NextUID(),
 		ro:     opts,
 		iter:   qs.db.NewIterator(nil, opts),

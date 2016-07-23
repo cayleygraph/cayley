@@ -198,7 +198,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 				n = nodeID[1:]
 			}
 			fixed := qs.FixedIterator()
-			fixed.Add(qs.ValueOf(n))
+			fixed.Add(qs.ValueOf(quad.Raw(n)))
 			out = fixed
 		}
 		return out

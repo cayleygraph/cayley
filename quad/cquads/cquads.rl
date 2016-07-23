@@ -90,7 +90,7 @@
 
 	whitespace              = [ \t] ;
 
-	literal                 = STRING_LITERAL | STRING_LITERAL_QUOTE % Quote | STRING_LITERAL_QUOTE ('^^' IRIREF | LANGTAG) ;
+	literal                 = STRING_LITERAL | STRING_LITERAL_QUOTE % Quote | STRING_LITERAL_QUOTE ('^^' >Spec IRIREF | LANGTAG >Spec) ;
 
 	subject                 = (literal | BLANK_NODE_LABEL) ;
 	predicate               = literal ;

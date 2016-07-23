@@ -18,6 +18,7 @@ import (
 	"sort"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string {
@@ -27,7 +28,7 @@ func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string
 		if v == nil {
 			continue
 		}
-		results[Path(k)] = q.ses.qs.NameOf(v)
+		results[Path(k)] = quad.StringOf(q.ses.qs.NameOf(v))
 	}
 	resultPaths := make(map[ResultPath]string)
 	for k, v := range results {

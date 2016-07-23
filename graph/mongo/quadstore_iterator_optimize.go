@@ -15,10 +15,14 @@
 package mongo
 
 import (
-	"github.com/cayleygraph/cayley/clog"
+	"time"
 
+	"gopkg.in/mgo.v2/bson"
+
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -27,7 +31,8 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 		return qs.optimizeLinksTo(it.(*iterator.LinksTo))
 	case graph.And:
 		return qs.optimizeAndIterator(it.(*iterator.And))
-
+	case graph.Comparison:
+		return qs.optimizeComparison(it.(*iterator.Comparison))
 	}
 	return it, false
 }
@@ -74,7 +79,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	lset := []graph.Linkage{
 		{
 			Dir:   mongoIt.dir,
-			Value: qs.ValueOf(mongoIt.name),
+			Value: mongoIt.hash,
 		},
 	}
 
@@ -108,7 +113,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
-			if !graph.Next(primary) {
+			if !graph.AsNexter(primary).Next() {
 				panic("unexpected size during optimize")
 			}
 			val := primary.Result()
@@ -123,4 +128,64 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		}
 	}
 	return it, false
+}
+
+func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator, bool) {
+	subs := it.SubIterators()
+	if len(subs) != 1 {
+		return it, false
+	}
+	mit, ok := subs[0].(*Iterator)
+	if !ok || !mit.isAll {
+		return it, false
+	}
+	name := ""
+	switch it.Operator() {
+	case iterator.CompareGT:
+		name = "$gt"
+	case iterator.CompareGTE:
+		name = "$gte"
+	case iterator.CompareLT:
+		name = "$lt"
+	case iterator.CompareLTE:
+		name = "$lte"
+	default:
+		return it, false
+	}
+
+	var constraint bson.M
+	const base = "Name"
+	switch v := it.Value().(type) {
+	case quad.String:
+		constraint = bson.M{
+			base + ".val":   bson.M{name: string(v)},
+			base + ".iri":   bson.M{"$ne": true},
+			base + ".bnode": bson.M{"$ne": true},
+		}
+	case quad.IRI:
+		constraint = bson.M{
+			base + ".val": bson.M{name: string(v)},
+			base + ".iri": true,
+		}
+	case quad.BNode:
+		constraint = bson.M{
+			base + ".val":   bson.M{name: string(v)},
+			base + ".bnode": true,
+		}
+	case quad.Int:
+		constraint = bson.M{
+			base: bson.M{name: int64(v)},
+		}
+	case quad.Float:
+		constraint = bson.M{
+			base: bson.M{name: float64(v)},
+		}
+	case quad.Time:
+		constraint = bson.M{
+			base: bson.M{name: time.Time(v)},
+		}
+	default:
+		return it, false
+	}
+	return NewIteratorWithConstraints(qs, mit.collection, constraint), true
 }

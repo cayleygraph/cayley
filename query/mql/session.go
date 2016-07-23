@@ -91,7 +91,7 @@ func (s *Session) Execute(input string, c chan interface{}, _ int) {
 			clog.Infof("%s", b)
 		}
 	}
-	for graph.Next(it) {
+	for nxt := graph.AsNexter(it); nxt.Next(); {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		c <- tags
@@ -104,7 +104,10 @@ func (s *Session) Execute(input string, c chan interface{}, _ int) {
 }
 
 func (s *Session) Format(result interface{}) string {
-	tags := result.(map[string]graph.Value)
+	tags, ok := result.(map[string]graph.Value)
+	if !ok {
+		return ""
+	}
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
 	s.currentQuery.treeifyResult(tags)
@@ -127,7 +130,11 @@ func (s *Session) Format(result interface{}) string {
 }
 
 func (s *Session) Collate(result interface{}) {
-	s.currentQuery.treeifyResult(result.(map[string]graph.Value))
+	res, ok := result.(map[string]graph.Value)
+	if !ok {
+		return
+	}
+	s.currentQuery.treeifyResult(res)
 }
 
 func (s *Session) Results() (interface{}, error) {

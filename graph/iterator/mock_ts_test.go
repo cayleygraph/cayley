@@ -17,18 +17,34 @@ package iterator
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
+	"strconv"
 )
 
 // store is a mocked version of the QuadStore interface, for use in tests.
 type store struct {
-	data []string
-	iter graph.Iterator
+	parse bool
+	data  []string
+	iter  graph.Iterator
 }
 
-func (qs *store) ValueOf(s string) graph.Value {
-	for i, v := range qs.data {
-		if s == v {
-			return i
+func (qs *store) valueAt(i int) quad.Value {
+	if !qs.parse {
+		return quad.Raw(qs.data[i])
+	}
+	iv, err := strconv.Atoi(qs.data[i])
+	if err == nil {
+		return quad.Int(iv)
+	}
+	return quad.String(qs.data[i])
+}
+
+func (qs *store) ValueOf(s quad.Value) graph.Value {
+	if s == nil {
+		return nil
+	}
+	for i := range qs.data {
+		if s.String() == qs.valueAt(i).String() {
+			return Int64Node(i)
 		}
 	}
 	return nil
@@ -46,18 +62,21 @@ func (qs *store) NodesAllIterator() graph.Iterator { return &Null{} }
 
 func (qs *store) QuadsAllIterator() graph.Iterator { return &Null{} }
 
-func (qs *store) NameOf(v graph.Value) string {
+func (qs *store) NameOf(v graph.Value) quad.Value {
 	switch v.(type) {
-	case int:
-		i := v.(int)
+	case Int64Node:
+		i := int(v.(Int64Node))
 		if i < 0 || i >= len(qs.data) {
-			return ""
+			return nil
 		}
-		return qs.data[i]
-	case string:
-		return v.(string)
+		return qs.valueAt(i)
+	case stringNode:
+		if qs.parse {
+			return quad.String(v.(stringNode))
+		}
+		return quad.Raw(v.(stringNode))
 	default:
-		return ""
+		return nil
 	}
 }
 
@@ -77,7 +96,7 @@ func (qs *store) FixedIterator() graph.FixedIterator {
 
 func (qs *store) Close() {}
 
-func (qs *store) QuadDirection(graph.Value, quad.Direction) graph.Value { return 0 }
+func (qs *store) QuadDirection(graph.Value, quad.Direction) graph.Value { return Int64Quad(0) }
 
 func (qs *store) RemoveQuad(t quad.Quad) {}
 

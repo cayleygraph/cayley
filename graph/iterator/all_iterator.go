@@ -28,21 +28,31 @@ import (
 
 // An All iterator across a range of int64 values, from `max` to `min`.
 type Int64 struct {
+	node     bool
 	uid      uint64
 	tags     graph.Tagger
 	max, min int64
 	at       int64
-	result   graph.Value
+	result   int64
 	runstats graph.IteratorStats
 }
 
+type Int64Node int64
+
+func (Int64Node) IsNode() bool { return true }
+
+type Int64Quad int64
+
+func (Int64Quad) IsNode() bool { return false }
+
 // Creates a new Int64 with the given range.
-func NewInt64(min, max int64) *Int64 {
+func NewInt64(min, max int64, node bool) *Int64 {
 	return &Int64{
-		uid: NextUID(),
-		min: min,
-		max: max,
-		at:  min,
+		uid:  NextUID(),
+		node: node,
+		min:  min,
+		max:  max,
+		at:   min,
 	}
 }
 
@@ -60,7 +70,7 @@ func (it *Int64) Close() error {
 }
 
 func (it *Int64) Clone() graph.Iterator {
-	out := NewInt64(it.min, it.max)
+	out := NewInt64(it.min, it.max, it.node)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -102,15 +112,22 @@ func (it *Int64) Next() bool {
 		it.at = -1
 	}
 	it.result = val
-	return graph.NextLogOut(it, val, true)
+	return graph.NextLogOut(it, it.Result(), true)
 }
 
 func (it *Int64) Err() error {
 	return nil
 }
 
+func (it *Int64) toValue(v int64) graph.Value {
+	if it.node {
+		return Int64Node(v)
+	}
+	return Int64Quad(v)
+}
+
 func (it *Int64) Result() graph.Value {
-	return it.result
+	return it.toValue(it.result)
 }
 
 func (it *Int64) NextPath() bool {
@@ -134,12 +151,17 @@ func (it *Int64) Size() (int64, bool) {
 func (it *Int64) Contains(tsv graph.Value) bool {
 	graph.ContainsLogIn(it, tsv)
 	it.runstats.Contains += 1
-	v := tsv.(int64)
+	var v int64
+	if tsv.IsNode() {
+		v = int64(tsv.(Int64Node))
+	} else {
+		v = int64(tsv.(Int64Quad))
+	}
 	if it.min <= v && v <= it.max {
 		it.result = v
-		return graph.ContainsLogOut(it, v, true)
+		return graph.ContainsLogOut(it, it.toValue(v), true)
 	}
-	return graph.ContainsLogOut(it, v, false)
+	return graph.ContainsLogOut(it, it.toValue(v), false)
 }
 
 // The type of this iterator is an "all". This is important, as it puts it in

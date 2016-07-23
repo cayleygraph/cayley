@@ -16,12 +16,9 @@ package bolt
 
 import (
 	"bytes"
-	"crypto/sha1"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"hash"
-	"sync"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
@@ -46,22 +43,21 @@ var (
 	errNoBucket = errors.New("bolt: bucket is missing")
 )
 
-var (
-	hashPool = sync.Pool{
-		New: func() interface{} { return sha1.New() },
-	}
-	hashSize         = sha1.Size
-	localFillPercent = 0.7
-)
+const localFillPercent = 0.7
 
 const (
 	QuadStoreType = "bolt"
 )
 
+var _ graph.Keyer = (*Token)(nil)
+
 type Token struct {
+	nodes  bool
 	bucket []byte
 	key    []byte
 }
+
+func (t *Token) IsNode() bool { return t.nodes }
 
 func (t *Token) Key() interface{} {
 	return fmt.Sprint(t.bucket, t.key)
@@ -187,29 +183,17 @@ func bucketFor(d [4]quad.Direction) []byte {
 	return []byte{d[0].Prefix(), d[1].Prefix(), d[2].Prefix(), d[3].Prefix()}
 }
 
-func hashOf(s string) []byte {
-	h := hashPool.Get().(hash.Hash)
-	h.Reset()
-	defer hashPool.Put(h)
-	key := make([]byte, 0, hashSize)
-	h.Write([]byte(s))
-	key = h.Sum(key)
-	return key
-}
-
 func (qs *QuadStore) createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
-	key := make([]byte, 0, (hashSize * 4))
-	key = append(key, hashOf(q.Get(d[0]))...)
-	key = append(key, hashOf(q.Get(d[1]))...)
-	key = append(key, hashOf(q.Get(d[2]))...)
-	key = append(key, hashOf(q.Get(d[3]))...)
+	key := make([]byte, quad.HashSize*4)
+	quad.HashTo(q.Get(d[0]), key[quad.HashSize*0:quad.HashSize*1])
+	quad.HashTo(q.Get(d[1]), key[quad.HashSize*1:quad.HashSize*2])
+	quad.HashTo(q.Get(d[2]), key[quad.HashSize*2:quad.HashSize*3])
+	quad.HashTo(q.Get(d[3]), key[quad.HashSize*3:quad.HashSize*4])
 	return key
 }
 
-func (qs *QuadStore) createValueKeyFor(s string) []byte {
-	key := make([]byte, 0, hashSize)
-	key = append(key, hashOf(s)...)
-	return key
+func (qs *QuadStore) createValueKeyFor(s quad.Value) []byte {
+	return quad.HashOf(s)
 }
 
 var (
@@ -234,12 +218,7 @@ func deltaToProto(delta graph.Delta) proto.LogDelta {
 	newd.ID = uint64(delta.ID.Int())
 	newd.Action = int32(delta.Action)
 	newd.Timestamp = delta.Timestamp.UnixNano()
-	newd.Quad = &proto.Quad{
-		Subject:   delta.Quad.Subject,
-		Predicate: delta.Quad.Predicate,
-		Object:    delta.Quad.Object,
-		Label:     delta.Quad.Label,
-	}
+	newd.Quad = proto.MakeQuad(delta.Quad)
 	return newd
 }
 
@@ -249,20 +228,20 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	err := qs.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(logBucket)
 		b.FillPercent = localFillPercent
-		resizeMap := make(map[string]int64)
+		resizeMap := make(map[quad.Value]int64)
 		sizeChange := int64(0)
 		for _, d := range deltas {
 			if d.Action != graph.Add && d.Action != graph.Delete {
-				return errors.New("bolt: invalid action")
+				return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 			}
 			p := deltaToProto(d)
 			bytes, err := p.Marshal()
 			if err != nil {
-				return err
+				return &graph.DeltaError{Delta: d, Err: err}
 			}
 			err = b.Put(qs.createDeltaKeyFor(d.ID.Int()), bytes)
 			if err != nil {
-				return err
+				return &graph.DeltaError{Delta: d, Err: err}
 			}
 		}
 		for _, d := range deltas {
@@ -274,7 +253,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				if err == graph.ErrQuadNotExist && ignoreOpts.IgnoreMissing {
 					continue
 				}
-				return err
+				return &graph.DeltaError{Delta: d, Err: err}
 			}
 			delta := int64(1)
 			if d.Action == graph.Delete {
@@ -283,7 +262,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			resizeMap[d.Quad.Subject] += delta
 			resizeMap[d.Quad.Predicate] += delta
 			resizeMap[d.Quad.Object] += delta
-			if d.Quad.Label != "" {
+			if d.Quad.Label != nil {
 				resizeMap[d.Quad.Label] += delta
 			}
 			sizeChange += delta
@@ -305,9 +284,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		clog.Errorf("Couldn't write to DB for Delta set. Error: %v", err)
 		qs.horizon = oldHorizon
 		qs.size = oldSize
-		return err
 	}
-	return nil
+	return err
 }
 
 func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bool) error {
@@ -340,7 +318,7 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 		return err
 	}
 	for _, index := range [][4]quad.Direction{spo, osp, pos, cps} {
-		if index == cps && q.Get(quad.Label) == "" {
+		if index == cps && q.Get(quad.Label) == nil {
 			continue
 		}
 		b := tx.Bucket(bucketFor(index))
@@ -353,10 +331,10 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 	return nil
 }
 
-func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, tx *bolt.Tx) error {
+func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, tx *bolt.Tx) error {
 	value := proto.NodeData{
-		Name:  name,
-		Size_: amount,
+		Value: proto.MakeValue(name),
+		Size:  amount,
 	}
 	b := tx.Bucket(nodeBucket)
 	b.FillPercent = localFillPercent
@@ -371,13 +349,13 @@ func (qs *QuadStore) UpdateValueKeyBy(name string, amount int64, tx *bolt.Tx) er
 			clog.Errorf("Error: couldn't reconstruct value: %v", err)
 			return err
 		}
-		oldvalue.Size_ += amount
+		oldvalue.Size += amount
 		value = oldvalue
 	}
 
 	// Are we deleting something?
-	if value.Size_ <= 0 {
-		value.Size_ = 0
+	if value.Size <= 0 {
+		value.Size = 0
 	}
 
 	// Repackage and rewrite.
@@ -457,15 +435,10 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 		clog.Errorf("Error getting quad: %v", err)
 		return quad.Quad{}
 	}
-	return quad.Quad{
-		d.Quad.Subject,
-		d.Quad.Predicate,
-		d.Quad.Object,
-		d.Quad.Label,
-	}
+	return d.Quad.ToNative()
 }
 
-func (qs *QuadStore) ValueOf(s string) graph.Value {
+func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	return &Token{
 		bucket: nodeBucket,
 		key:    qs.createValueKeyFor(s),
@@ -492,21 +465,22 @@ func (qs *QuadStore) valueData(t *Token) proto.NodeData {
 	return out
 }
 
-func (qs *QuadStore) NameOf(k graph.Value) string {
+func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
 	if k == nil {
 		if clog.V(2) {
 			clog.Infof("k was nil")
 		}
-		return ""
+		return nil
 	}
-	return qs.valueData(k.(*Token)).Name
+	v := qs.valueData(k.(*Token))
+	return v.GetNativeValue()
 }
 
 func (qs *QuadStore) SizeOf(k graph.Value) int64 {
 	if k == nil {
 		return -1
 	}
-	return int64(qs.valueData(k.(*Token)).Size_)
+	return int64(qs.valueData(k.(*Token)).Size)
 }
 
 func getInt64ForMetaKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
@@ -575,7 +549,7 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	if offset != -1 {
 		return &Token{
 			bucket: nodeBucket,
-			key:    v.key[offset : offset+hashSize],
+			key:    v.key[offset : offset+quad.HashSize],
 		}
 	}
 	return qs.ValueOf(qs.Quad(v).Get(d))

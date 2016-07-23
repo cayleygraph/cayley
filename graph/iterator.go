@@ -182,15 +182,19 @@ type Nexter interface {
 	Iterator
 }
 
-// Next is a convenience function that conditionally calls the Next method
-// of an Iterator if it is a Nexter. If the Iterator is not a Nexter, Next
-// returns false.
-func Next(it Iterator) bool {
+type fakeNexter struct{
+	Iterator
+}
+func (fakeNexter) Next() bool { return false }
+
+// AsNexter converts any iterator to Nexter. If iterator is not a Nexter,
+// returned implementation will always return false on Next calls.
+func AsNexter(it Iterator) Nexter {
 	if n, ok := it.(Nexter); ok {
-		return n.Next()
+		return n
 	}
 	clog.Errorf("Nexting an un-nextable iterator: %T", it)
-	return false
+	return fakeNexter{it}
 }
 
 // Height is a convienence function to measure the height of an iterator tree.
@@ -242,6 +246,8 @@ const (
 	Optional
 	Materialize
 	Unique
+	Limit
+	Skip
 )
 
 var (
@@ -264,6 +270,8 @@ var (
 		"optional",
 		"materialize",
 		"unique",
+		"limit",
+		"skip",
 	}
 )
 

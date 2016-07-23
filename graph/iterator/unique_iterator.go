@@ -12,14 +12,14 @@ type Unique struct {
 	result   graph.Value
 	runstats graph.IteratorStats
 	err      error
-	seen     map[graph.Value]bool
+	seen     map[interface{}]bool
 }
 
 func NewUnique(subIt graph.Iterator) *Unique {
 	return &Unique{
 		uid:   NextUID(),
 		subIt: subIt,
-		seen:  make(map[graph.Value]bool),
+		seen:  make(map[interface{}]bool),
 	}
 }
 
@@ -31,7 +31,7 @@ func (it *Unique) UID() uint64 {
 func (it *Unique) Reset() {
 	it.result = nil
 	it.subIt.Reset()
-	it.seen = make(map[graph.Value]bool)
+	it.seen = make(map[interface{}]bool)
 }
 
 func (it *Unique) Tagger() *graph.Tagger {
@@ -70,11 +70,15 @@ func (it *Unique) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for graph.Next(it.subIt) {
+	for nxt := graph.AsNexter(it.subIt); nxt.Next() ; {
 		curr := it.subIt.Result()
-		if ok := it.seen[curr]; !ok {
+		var key interface{} = curr
+		if v, ok := curr.(graph.Keyer); ok {
+			key = v.Key()
+		}
+		if ok := it.seen[key]; !ok {
 			it.result = curr
-			it.seen[curr] = true
+			it.seen[key] = true
 			return graph.NextLogOut(it, it.result, true)
 		}
 	}

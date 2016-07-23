@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mongo
+package lru
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ import (
 
 func TestPanicLRUCache(t *testing.T) {
 	xch := make(chan int)
-	c := newCache(1024)
+	c := New(1024)
 	for i := 0; i < 100; i++ {
 		go func(i int) {
 			key := fmt.Sprintf("Key%d", i)
