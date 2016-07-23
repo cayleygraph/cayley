@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
@@ -11,14 +13,19 @@ import (
 )
 
 func main() {
-	// path to your new BoltDB
-	path := "./db"
+	// file for your new BoltDB. Use path to regular file and not temporary in the real world
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer os.Remove(tmpfile.Name()) // clean up
 
 	// Initialize the database
-	graph.InitQuadStore("bolt", path, nil)
+	graph.InitQuadStore("bolt", tmpfile.Name(), nil)
 
 	// Open and use the database
-	store, err := cayley.NewGraph("bolt", path, nil)
+	store, err := cayley.NewGraph("bolt", tmpfile.Name(), nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
