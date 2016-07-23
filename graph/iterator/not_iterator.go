@@ -73,7 +73,7 @@ func (it *Not) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for nxt := graph.AsNexter(it.allIt); nxt.Next() ; {
+	for it.allIt.Next() {
 		if curr := it.allIt.Result(); !it.primaryIt.Contains(curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1
@@ -175,4 +175,4 @@ func (it *Not) Describe() graph.Description {
 	}
 }
 
-var _ graph.Nexter = &Not{}
+var _ graph.Iterator = &Not{}

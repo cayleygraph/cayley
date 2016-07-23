@@ -165,7 +165,7 @@ func (it *HasA) Contains(val graph.Value) bool {
 // result iterator (a quad iterator based on the last checked value) and returns true if
 // another match is made.
 func (it *HasA) NextContains() bool {
-	for nxt := graph.AsNexter(it.resultIt); nxt.Next() ; {
+	for it.resultIt.Next() {
 		it.runstats.ContainsNext += 1
 		link := it.resultIt.Result()
 		if clog.V(4) {
@@ -220,7 +220,7 @@ func (it *HasA) Next() bool {
 	}
 	it.resultIt = &Null{}
 
-	if !graph.AsNexter(it.primaryIt).Next() {
+	if !it.primaryIt.Next() {
 		it.err = it.primaryIt.Err()
 		return graph.NextLogOut(it, nil, false)
 	}
@@ -284,4 +284,4 @@ func (it *HasA) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
 
-var _ graph.Nexter = &HasA{}
+var _ graph.Iterator = &HasA{}

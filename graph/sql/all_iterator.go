@@ -136,7 +136,9 @@ func (it *AllIterator) Next() bool {
 		}
 	}
 	if !it.cursor.Next() {
-		clog.Infof("sql: No next")
+		if clog.V(4) {
+			clog.Infof("sql: No next")
+		}
 		err := it.cursor.Err()
 		if err != nil {
 			clog.Errorf("Cursor error in SQL: %v", err)

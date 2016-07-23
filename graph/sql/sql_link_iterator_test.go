@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -42,14 +41,14 @@ func TestSQLLinkIteration(t *testing.T) {
 		t.Fatal(err)
 	}
 	it := NewSQLLinkIterator(qs, quad.Object, quad.Raw("Humphrey Bogart"))
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for it.Next() {
 		fmt.Println(it.Result())
 	}
 	it = NewSQLLinkIterator(qs, quad.Subject, quad.Raw("/en/casablanca_1942"))
 	s, v := it.sql.buildSQL(true, nil)
 	t.Log(s, v)
 	c := 0
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for it.Next() {
 		fmt.Println(it.Result())
 		c += 1
 	}
@@ -81,7 +80,7 @@ func TestSQLNodeIteration(t *testing.T) {
 	s, v := it.sql.buildSQL(true, nil)
 	t.Log(s, v)
 	c := 0
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for it.Next() {
 		t.Log(it.Result())
 		c += 1
 	}

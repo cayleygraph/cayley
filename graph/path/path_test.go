@@ -77,7 +77,7 @@ func runTopLevel(path *Path) []quad.Value {
 	var out []quad.Value
 	it := path.BuildIterator()
 	it, _ = it.Optimize()
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for it.Next() {
 		v := path.qs.NameOf(it.Result())
 		out = append(out, v)
 	}
@@ -88,7 +88,7 @@ func runTag(path *Path, tag string) []quad.Value {
 	var out []quad.Value
 	it := path.BuildIterator()
 	it, _ = it.Optimize()
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for it.Next() {
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
 		if t, ok := tags[tag]; ok {

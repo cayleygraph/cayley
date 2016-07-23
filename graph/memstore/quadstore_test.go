@@ -214,7 +214,7 @@ func TestRemoveQuad(t *testing.T) {
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Object)
 
 	newIt, _ := hasa.Optimize()
-	if graph.AsNexter(newIt).Next() {
+	if newIt.Next() {
 		t.Error("E should not have any followers.")
 	}
 }

@@ -51,13 +51,12 @@ func (it *Skip) SubIterators() []graph.Iterator {
 // before returning actual result.
 func (it *Skip) Next() bool {
 	graph.NextLogIn(it)
-	nxt := graph.AsNexter(it.primaryIt)
 	for ; it.skipped < it.skip; it.skipped++ {
-		if !nxt.Next() {
+		if !it.primaryIt.Next() {
 			return graph.NextLogOut(it, nil, false)
 		}
 	}
-	if nxt.Next() {
+	if it.primaryIt.Next() {
 		curr := it.primaryIt.Result()
 		return graph.NextLogOut(it, curr, true)
 	}
@@ -137,4 +136,4 @@ func (it *Skip) Describe() graph.Description {
 	}
 }
 
-var _ graph.Nexter = &Skip{}
+var _ graph.Iterator = &Skip{}

@@ -79,5 +79,5 @@ func (it *quadsAllIterator) Next() bool {
 func (it *nodesAllIterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *quadsAllIterator) Optimize() (graph.Iterator, bool) { return it, false }
 
-var _ graph.Nexter = &nodesAllIterator{}
-var _ graph.Nexter = &quadsAllIterator{}
+var _ graph.Iterator = &nodesAllIterator{}
+var _ graph.Iterator = &quadsAllIterator{}

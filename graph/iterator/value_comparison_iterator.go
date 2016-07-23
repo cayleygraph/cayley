@@ -191,7 +191,7 @@ func (it *Comparison) Clone() graph.Iterator {
 }
 
 func (it *Comparison) Next() bool {
-	for nxt := graph.AsNexter(it.subIt); nxt.Next() ; {
+	for it.subIt.Next() {
 		val := it.subIt.Result()
 		if it.doComparison(val) {
 			it.result = val
@@ -288,4 +288,4 @@ func (it *Comparison) Size() (int64, bool) {
 	return 0, true
 }
 
-var _ graph.Nexter = &Comparison{}
+var _ graph.Iterator = &Comparison{}

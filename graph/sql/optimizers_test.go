@@ -117,7 +117,7 @@ func TestInterestingQuery(t *testing.T) {
 	s, v := it8.sql.buildSQL(true, nil)
 	it8.Tagger().Add("id")
 	t.Log(s, v)
-	for nxt := graph.AsNexter(it8); nxt.Next() ; {
+	for it8.Next() {
 		t.Log(it8.Result())
 		out := make(map[string]graph.Value)
 		it8.TagResults(out)

@@ -167,14 +167,14 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	// all of it's contents, and to Contains() each of those against everyone
 	// else.
 	for _, root := range its {
-		if _, canNext := root.(graph.Nexter); !canNext {
+		if !graph.CanNext(root) {
 			bad = append(bad, root)
 			continue
 		}
 		rootStats := root.Stats()
 		cost := rootStats.NextCost
 		for _, f := range its {
-			if _, canNext := f.(graph.Nexter); !canNext {
+			if !graph.CanNext(f) {
 				continue
 			}
 			if f == root {
@@ -205,7 +205,7 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 
 	// ... push everyone else after...
 	for _, it := range its {
-		if _, canNext := it.(graph.Nexter); !canNext {
+		if !graph.CanNext(it) {
 			continue
 		}
 		if it != best {

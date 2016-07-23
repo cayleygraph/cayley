@@ -24,7 +24,7 @@ import (
 
 func iterated(it graph.Iterator) []int {
 	var res []int
-	for nxt := graph.AsNexter(it); nxt.Next() ; {
+	for it.Next() {
 		res = append(res, int(it.Result().(Int64Node)))
 	}
 	return res

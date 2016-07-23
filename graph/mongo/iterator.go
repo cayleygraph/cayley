@@ -242,4 +242,4 @@ func (it *Iterator) Stats() graph.IteratorStats {
 	}
 }
 
-var _ graph.Nexter = &Iterator{}
+var _ graph.Iterator = &Iterator{}

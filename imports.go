@@ -18,7 +18,6 @@ var (
 	StartMorphism = path.StartMorphism
 	StartPath     = path.StartPath
 
-	RawNext        = func(it Iterator) bool { return graph.AsNexter(it).Next() }
 	NewTransaction = graph.NewTransaction
 )
 

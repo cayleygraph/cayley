@@ -69,7 +69,7 @@ func TestMemstoreBackedSexp(t *testing.T) {
 		if it.Type() != test.typ {
 			t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
 		}
-		if !graph.AsNexter(it).Next() {
+		if !it.Next() {
 			t.Errorf("Failed to %s", test.message)
 		}
 		got := it.Result()
@@ -91,7 +91,7 @@ func TestTreeConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Errorf("Odd iterator tree. Got: %#v", it.Describe())
 	}
-	if !graph.AsNexter(it).Next() {
+	if !it.Next() {
 		t.Error("Got no results")
 	}
 	out := it.Result()
@@ -109,7 +109,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 		"(:like\n" +
 		"($a (:is :good))))"
 	it := BuildIteratorTreeForQuery(qs, query)
-	if !graph.AsNexter(it).Next() {
+	if !it.Next() {
 		t.Error("Got no results")
 	}
 	tags := make(map[string]graph.Value)
@@ -139,14 +139,14 @@ func TestMultipleConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Errorf("Odd iterator tree. Got: %#v", it.Describe())
 	}
-	if !graph.AsNexter(it).Next() {
+	if !it.Next() {
 		t.Error("Got no results")
 	}
 	out := it.Result()
 	if out != qs.ValueOf(quad.Raw("i")) {
 		t.Errorf("Got %d, expected %d", out, qs.ValueOf(quad.Raw("i")))
 	}
-	if graph.AsNexter(it).Next() {
+	if it.Next() {
 		t.Error("Too many results")
 	}
 }

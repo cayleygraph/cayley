@@ -184,4 +184,4 @@ func (it *Int64) Stats() graph.IteratorStats {
 	}
 }
 
-var _ graph.Nexter = &Int64{}
+var _ graph.Iterator = &Int64{}

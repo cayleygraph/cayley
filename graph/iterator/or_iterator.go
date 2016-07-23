@@ -134,7 +134,7 @@ func (it *Or) Next() bool {
 		}
 		curIt := it.internalIterators[it.currentIterator]
 
-		if graph.AsNexter(curIt).Next() {
+		if curIt.Next() {
 			it.result = curIt.Result()
 			return graph.NextLogOut(it, it.result, true)
 		}
@@ -312,4 +312,4 @@ func (it *Or) Stats() graph.IteratorStats {
 // Register this as an "or" graph.iterator.
 func (it *Or) Type() graph.Type { return graph.Or }
 
-var _ graph.Nexter = &Or{}
+var _ graph.Iterator = &Or{}

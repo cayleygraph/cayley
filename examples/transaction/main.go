@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/cayleygraph/cayley"
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -35,12 +34,10 @@ func main() {
 	it, _ := p.BuildIterator().Optimize()
 	defer it.Close()
 
-	nxt := graph.AsNexter(it)
-	defer nxt.Close()
-	for nxt.Next() {
+	for it.Next() {
 		fmt.Println("cats are", store.NameOf(it.Result()).Native())
 	}
-	if err = nxt.Err(); err != nil {
+	if err = it.Err(); err != nil {
 		log.Fatalln(err)
 	}
 }

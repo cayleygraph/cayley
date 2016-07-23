@@ -153,7 +153,7 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 func (it *LinksTo) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
-	if graph.AsNexter(it.nextIt).Next() {
+	if it.nextIt.Next() {
 		it.runstats.ContainsNext += 1
 		it.result = it.nextIt.Result()
 		return graph.NextLogOut(it, it.result, true)
@@ -166,7 +166,7 @@ func (it *LinksTo) Next() bool {
 	}
 
 	// Subiterator is empty, get another one
-	if !graph.AsNexter(it.primaryIt).Next() {
+	if !it.primaryIt.Next() {
 		// Possibly save error
 		it.err = it.primaryIt.Err()
 
@@ -234,4 +234,4 @@ func (it *LinksTo) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
 
-var _ graph.Nexter = &LinksTo{}
+var _ graph.Iterator = &LinksTo{}

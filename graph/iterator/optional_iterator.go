@@ -27,6 +27,7 @@ package iterator
 // -- all things in the graph. It matches everything (as does the regex "(a)?")
 
 import (
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 )
 
@@ -79,6 +80,15 @@ func (it *Optional) Err() error {
 func (it *Optional) Result() graph.Value {
 	return it.result
 }
+
+// Optional iterator cannot be Next()'ed.
+func (it *Optional) Next() bool {
+	clog.Errorf("Nexting an un-nextable iterator: %T", it)
+	return false
+}
+
+// Optional iterator cannot be Next()'ed.
+func (it *Optional) NoNext() {}
 
 // An optional iterator only has a next result if, (a) last time we checked
 // we had any results whatsoever, and (b) there was another subresult in our
@@ -158,4 +168,7 @@ func (it *Optional) Size() (int64, bool) {
 	return 0, true
 }
 
-var _ graph.Iterator = &Optional{}
+var (
+	_ graph.Iterator = &Optional{}
+	_ graph.NoNext   = &Optional{}
+)

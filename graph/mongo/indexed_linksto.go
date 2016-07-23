@@ -23,7 +23,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var _ graph.Nexter = &LinksTo{}
+var _ graph.Iterator = &LinksTo{}
 
 var linksToType graph.Type
 
@@ -115,7 +115,6 @@ func (it *LinksTo) Next() bool {
 		Deleted []int64 `bson:"Deleted"`
 	}
 	graph.NextLogIn(it)
-	nxt := graph.AsNexter(it.primaryIt)
 next:
 	for {
 		it.runstats.Next += 1
@@ -137,7 +136,7 @@ next:
 
 		}
 		// Subiterator is empty, get another one
-		if !nxt.Next() {
+		if !it.primaryIt.Next() {
 			// Possibly save error
 			it.err = it.primaryIt.Err()
 

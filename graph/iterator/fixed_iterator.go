@@ -188,4 +188,4 @@ func (it *Fixed) Stats() graph.IteratorStats {
 	}
 }
 
-var _ graph.Nexter = &Fixed{}
+var _ graph.Iterator = &Fixed{}

@@ -90,6 +90,12 @@ type Iterator interface {
 	// Returns the current result.
 	Result() Value
 
+	// Next advances the iterator to the next value, which will then be available through
+	// the Result method. It returns false if no further advancement is possible, or if an
+	// error was encountered during iteration.  Err should be consulted to distinguish
+	// between the two cases.
+	Next() bool
+
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
 	//
@@ -172,29 +178,15 @@ type Description struct {
 // ApplyMorphism is a curried function that can generates a new iterator based on some prior iterator.
 type ApplyMorphism func(QuadStore, Iterator) Iterator
 
-type Nexter interface {
-	// Next advances the iterator to the next value, which will then be available through
-	// the Result method. It returns false if no further advancement is possible, or if an
-	// error was encountered during iteration.  Err should be consulted to distinguish
-	// between the two cases.
-	Next() bool
-
-	Iterator
+// CanNext is a helper for checking if iterator can be Next()'ed.
+func CanNext(it Iterator) bool {
+	_, ok := it.(NoNext)
+	return !ok
 }
 
-type fakeNexter struct{
-	Iterator
-}
-func (fakeNexter) Next() bool { return false }
-
-// AsNexter converts any iterator to Nexter. If iterator is not a Nexter,
-// returned implementation will always return false on Next calls.
-func AsNexter(it Iterator) Nexter {
-	if n, ok := it.(Nexter); ok {
-		return n
-	}
-	clog.Errorf("Nexting an un-nextable iterator: %T", it)
-	return fakeNexter{it}
+// NoNext is an optional interface to signal that iterator should be Contain()'ed instead of Next()'ing if possible.
+type NoNext interface {
+	NoNext()
 }
 
 // Height is a convienence function to measure the height of an iterator tree.

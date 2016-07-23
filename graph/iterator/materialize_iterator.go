@@ -194,7 +194,7 @@ func (it *Materialize) Next() bool {
 		return false
 	}
 	if it.aborted {
-		n := graph.AsNexter(it.subIt).Next()
+		n := it.subIt.Next()
 		it.err = it.subIt.Err()
 		return n
 	}
@@ -254,7 +254,7 @@ func (it *Materialize) NextPath() bool {
 
 func (it *Materialize) materializeSet() {
 	i := 0
-	for nxt := graph.AsNexter(it.subIt); nxt.Next() ; {
+	for it.subIt.Next() {
 		i++
 		if i > abortMaterializeAt {
 			it.aborted = true
@@ -295,4 +295,4 @@ func (it *Materialize) materializeSet() {
 	it.hasRun = true
 }
 
-var _ graph.Nexter = &Materialize{}
+var _ graph.Iterator = &Materialize{}
