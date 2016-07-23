@@ -31,12 +31,10 @@ func main() {
 	// Now we get an iterator for the path (and optimize it, the second return is if it was optimized,
 	// but we don't care for now)
 	it, _ := p.BuildIterator().Optimize()
-	// remember to cleanup after yourself
-	defer it.Close()
 
 	// Now for each time we can go to next iterator
 	nxt := graph.AsNexter(it)
-	// remember to cleanup after yourself
+	// remember to cleanup after yourself. Closing the nexter closes the iterator as well
 	defer nxt.Close()
 
 	// While we have items
