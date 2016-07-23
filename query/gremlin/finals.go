@@ -49,7 +49,7 @@ func (p *pathObject) GetLimit(call otto.FunctionCall) otto.Value {
 }
 func (p *pathObject) toArray(call otto.FunctionCall, withTags bool) otto.Value {
 	args := exportArgs(call.ArgumentList)
-	if len(args) != 1 {
+	if len(args) > 1 {
 		return otto.NullValue()
 	}
 	limit := -1

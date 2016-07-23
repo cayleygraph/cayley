@@ -373,6 +373,22 @@ var testQueries = []struct {
 		`,
 		expect: []string{"cool_person"},
 	},
+	{
+		message: "show ToArray",
+		query: `
+			arr = g.V("<bob>").In("<follows>").ToArray()
+			for (i in arr) g.Emit(arr[i]);
+		`,
+		expect: []string{"<alice>", "<charlie>", "<dani>"},
+	},
+	{
+		message: "show ToArray with limit",
+		query: `
+			arr = g.V("<bob>").In("<follows>").ToArray(2)
+			for (i in arr) g.Emit(arr[i]);
+		`,
+		expect: []string{"<alice>", "<charlie>"},
+	},
 }
 
 func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []string {
@@ -387,9 +403,13 @@ func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []strin
 	for res := range c {
 		data := res.(*Result)
 		if data.val == nil {
-			val := data.actualResults[tag]
-			if val != nil {
+			if val := data.actualResults[tag]; val != nil {
 				results = append(results, quadValueToString(js.qs.NameOf(val)))
+			}
+		} else {
+			switch v := data.val.(type) {
+			case string:
+				results = append(results, v)
 			}
 		}
 	}
