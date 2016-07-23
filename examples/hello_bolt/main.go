@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	// file for your new BoltDB. Use path to regular file and not temporary in the real world
+	// File for your new BoltDB. Use path to regular file and not temporary in the real world
 	tmpfile, err := ioutil.TempFile("", "example")
 	if err != nil {
 		log.Fatal(err)
