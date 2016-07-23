@@ -2,21 +2,35 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
+	_ "github.com/cayleygraph/cayley/graph/bolt"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 func main() {
-	// Create a brand new graph
-	store, err := cayley.NewMemoryGraph()
+	// File for your new BoltDB. Use path to regular file and not temporary in the real world
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer os.Remove(tmpfile.Name()) // clean up
+
+	// Initialize the database
+	graph.InitQuadStore("bolt", tmpfile.Name(), nil)
+
+	// Open and use the database
+	store, err := cayley.NewGraph("bolt", tmpfile.Name(), nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", "demo graph"))
+	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello BoltDB!", "demo graph"))
 
 	// Now we create the path, to get to our data
 	p := cayley.StartPath(store, quad.String("phrase of the day")).Out(quad.String("is of course"))
