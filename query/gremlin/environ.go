@@ -234,16 +234,7 @@ func toQuadValue(o interface{}) (quad.Value, bool) {
 	case quad.Value:
 		qv = v
 	case string:
-		if len(v) > 2 {
-			if v[0] == '<' && v[len(v)-1] == '>' {
-				qv = quad.IRI(v[1 : len(v)-1])
-			} else if v[:2] == "_:" {
-				qv = quad.BNode(v[2:])
-			}
-		}
-		if qv == nil {
-			qv = quad.String(v)
-		}
+		qv = quad.StringToValue(v)
 	case bool:
 		qv = quad.Bool(v)
 	case int:

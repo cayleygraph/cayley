@@ -99,6 +99,24 @@ func AsValue(v interface{}) (out Value, ok bool) {
 	return out, true
 }
 
+// StringToValue is a function to convert strings to typed
+// quad values.
+//
+// Warning: should not be used directly - will be deprecated.
+func StringToValue(v string) Value {
+	if v == "" {
+		return nil
+	}
+	if len(v) > 2 {
+		if v[0] == '<' && v[len(v)-1] == '>' {
+			return IRI(v[1 : len(v)-1])
+		} else if v[:2] == "_:" {
+			return BNode(v[2:])
+		}
+	}
+	return String(v)
+}
+
 // Raw is a Turtle/NQuads-encoded value.
 type Raw string
 
