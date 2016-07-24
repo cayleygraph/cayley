@@ -16,8 +16,6 @@ package gremlin
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -25,9 +23,9 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphtest"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/nquads"
 	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
 )
@@ -500,29 +498,8 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string,
 	return results, nil
 }
 
-func loadGraph(path string, t testing.TB) []quad.Quad {
-	var r io.Reader
-	var simpleGraph []quad.Quad
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("Failed to open %q: %v", path, err)
-	}
-	defer f.Close()
-	r = f
-
-	dec := nquads.NewReader(r)
-	q1, err := dec.ReadQuad()
-	if err != nil {
-		t.Fatalf("Failed to Unmarshal: %v", err)
-	}
-	for ; err == nil; q1, err = dec.ReadQuad() {
-		simpleGraph = append(simpleGraph, q1)
-	}
-	return simpleGraph
-}
-
 func TestGremlin(t *testing.T) {
-	simpleGraph := loadGraph("../../data/testdata.nq", t)
+	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
 		func() {
 			rec := func() {

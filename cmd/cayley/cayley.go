@@ -42,6 +42,14 @@ import (
 	_ "github.com/cayleygraph/cayley/graph/mongo"
 	_ "github.com/cayleygraph/cayley/graph/sql"
 
+	// Load all supported quad formats.
+	_ "github.com/cayleygraph/cayley/quad/gml"
+	_ "github.com/cayleygraph/cayley/quad/graphml"
+	_ "github.com/cayleygraph/cayley/quad/json"
+	_ "github.com/cayleygraph/cayley/quad/jsonld"
+	_ "github.com/cayleygraph/cayley/quad/nquads"
+	_ "github.com/cayleygraph/cayley/quad/pquads"
+
 	// Load writer registry
 	_ "github.com/cayleygraph/cayley/writer"
 

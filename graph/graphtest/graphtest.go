@@ -1,6 +1,7 @@
 package graphtest
 
 import (
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/nquads"
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,6 +63,20 @@ func MakeWriter(t testing.TB, qs graph.QuadStore, opts graph.Options, data ...qu
 		require.Nil(t, err)
 	}
 	return w
+}
+
+func LoadGraph(t testing.TB, path string) []quad.Quad {
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("Failed to open %q: %v", path, err)
+	}
+	defer f.Close()
+	dec := nquads.NewReader(f)
+	quads, err := quad.ReadAll(dec)
+	if err != nil {
+		t.Fatalf("Failed to Unmarshal: %v", err)
+	}
+	return quads
 }
 
 // This is a simple test graph.
