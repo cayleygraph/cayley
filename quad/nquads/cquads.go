@@ -12,16 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate ragel -Z -G2 parse.rl
+//go:generate ragel -Z -G2 cquads_parse.rl
 
-// Package cquads implements parsing N-Quads like line-based syntax
-// for RDF datasets.
-//
-// N-Quad parsing is performed as based on a simplified grammar derived from
-// the N-Quads grammar defined by http://www.w3.org/TR/n-quads/.
-//
-// For a complete definition of the grammar, see cquads.rl.
-package cquads
+package nquads
 
 import (
 	"bufio"
@@ -39,20 +32,20 @@ import (
 // If conversion error occurs, it will preserve original TypedString value.
 var AutoConvertTypedString = true
 
-// Decoder implements simplified N-Quad document parsing.
-type Decoder struct {
+// Reader implements simplified N-Quad document parsing.
+type Reader struct {
 	r    *bufio.Reader
 	line []byte
 }
 
-// NewDecoder returns an N-Quad decoder that takes its input from the
+// NewReader returns an N-Quad decoder that takes its input from the
 // provided io.Reader.
-func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{r: bufio.NewReader(r)}
+func NewReader(r io.Reader) *Reader {
+	return &Reader{r: bufio.NewReader(r)}
 }
 
-// Unmarshal returns the next valid N-Quad as a quad.Quad, or an error.
-func (dec *Decoder) Unmarshal() (quad.Quad, error) {
+// ReadQuad returns the next valid N-Quad as a quad.Quad, or an error.
+func (dec *Reader) ReadQuad() (quad.Quad, error) {
 	dec.line = dec.line[:0]
 	var line []byte
 	for {
@@ -76,10 +69,11 @@ func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 		return quad.Quad{}, fmt.Errorf("failed to parse %q: %v", dec.line, err)
 	}
 	if !q.IsValid() {
-		return dec.Unmarshal()
+		return dec.ReadQuad()
 	}
 	return q, nil
 }
+func (dec *Reader) Close() error { return nil }
 
 func unEscape(r []rune, spec int, isQuoted, isEscaped bool) quad.Value {
 	raw := r
@@ -177,3 +171,35 @@ func unEscape(r []rune, spec int, isQuoted, isEscaped bool) quad.Value {
 	}
 	return quad.Raw(raw)
 }
+
+// NewWriter returns an N-Quad encoder that writes its output to the
+// provided io.Writer.
+func NewWriter(w io.Writer) *Writer { return &Writer{w: w} }
+
+// Writer implements N-Quad document generator according to the RDF
+// 1.1 N-Quads specification.
+type Writer struct {
+	w   io.Writer
+	err error
+}
+
+func (enc *Writer) writeValue(v quad.Value) {
+	if enc.err != nil {
+		return
+	}
+	_, enc.err = enc.w.Write([]byte(v.String() + " "))
+}
+func (enc *Writer) WriteQuad(q quad.Quad) error {
+	enc.writeValue(q.Subject)
+	enc.writeValue(q.Predicate)
+	enc.writeValue(q.Object)
+	if q.Label != nil {
+		enc.writeValue(q.Label)
+	}
+	if enc.err != nil {
+		return enc.err
+	}
+	_, enc.err = enc.w.Write([]byte(".\n"))
+	return enc.err
+}
+func (enc *Writer) Close() error { return enc.err }

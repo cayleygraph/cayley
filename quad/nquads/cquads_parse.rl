@@ -24,16 +24,16 @@ import (
 )
 
 %%{
-	machine quads;
+	machine cquads;
 
-	include "actions.rl";
+	include "cquads_actions.rl";
 
-	include "nquads.rl";
+	include "cquads.rl";
 
 	write data;
 }%%
 
-// Parse returns a valid quad.Quad or a non-nil error. Parse does
+// ParseTyped returns a valid quad.Quad or a non-nil error. ParseTyped does
 // handle comments except where the comment placement does not prevent
 // a complete valid quad.Quad from being defined.
 func Parse(statement string) (quad.Quad, error) {
@@ -49,7 +49,10 @@ func Parse(statement string) (quad.Quad, error) {
 		object    = -1
 		label     = -1
 
+		spec = -1
+
 		isEscaped bool
+		isQuoted  bool
 
 		q quad.Quad
 	)

@@ -26,9 +26,9 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 )
 
 const DefaultDBName = "cayley"
@@ -406,7 +406,7 @@ func toMongoValue(v quad.Value) value {
 		// (maybe add an option for this)
 		return time.Time(d)
 	default:
-		qv := proto.MakeValue(v)
+		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
@@ -457,7 +457,7 @@ func toQuadValue(v value) quad.Value {
 		}
 		return quad.String(s)
 	case []byte:
-		var p proto.Value
+		var p pquads.Value
 		if err := p.Unmarshal(d); err != nil {
 			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil

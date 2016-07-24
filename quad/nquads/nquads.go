@@ -12,14 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate ragel -Z -G2 parse.rl
+//go:generate ragel -Z -G2 nquads_parse.rl
 
-// Package nquads implements parsing the RDF 1.1 N-Quads line-based syntax
-// for RDF datasets.
-//
-// N-Quad parsing is performed as defined by http://www.w3.org/TR/n-quads/
-// with the exception that the nquads package will allow relative IRI values,
-// which are prohibited by the N-Quads quad-Quads specifications.
 package nquads
 
 import (
@@ -32,21 +26,21 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-// Decoder implements N-Quad document parsing according to the RDF
+// RawDecoder implements N-Quad document parsing according to the RDF
 // 1.1 N-Quads specification.
-type Decoder struct {
+type RawReader struct {
 	r    *bufio.Reader
 	line []byte
 }
 
-// NewDecoder returns an N-Quad decoder that takes its input from the
+// NewRawReader returns an N-Quad decoder that takes its input from the
 // provided io.Reader.
-func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{r: bufio.NewReader(r)}
+func NewRawReader(r io.Reader) *RawReader {
+	return &RawReader{r: bufio.NewReader(r)}
 }
 
-// Unmarshal returns the next valid N-Quad as a quad.Quad, or an error.
-func (dec *Decoder) Unmarshal() (quad.Quad, error) {
+// ReadQuad returns the next valid N-Quad as a quad.Quad, or an error.
+func (dec *RawReader) ReadQuad() (quad.Quad, error) {
 	dec.line = dec.line[:0]
 	var line []byte
 	for {
@@ -65,17 +59,18 @@ func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 		}
 		dec.line = dec.line[:0]
 	}
-	q, err := Parse(string(line))
+	q, err := ParseRaw(string(line))
 	if err != nil {
 		return quad.Quad{}, fmt.Errorf("failed to parse %q: %v", dec.line, err)
 	}
 	if !q.IsValid() {
-		return dec.Unmarshal()
+		return dec.ReadQuad()
 	}
 	return q, nil
 }
+func (dec *RawReader) Close() error { return nil }
 
-func unEscape(r []rune, isEscaped bool) quad.Value {
+func unEscapeRaw(r []rune, isEscaped bool) quad.Value {
 	if !isEscaped {
 		return quad.Raw(string(r))
 	}

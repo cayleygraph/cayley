@@ -1,4 +1,4 @@
-package proto
+package pquads
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/cayleygraph/cayley/quad"
 )
+
+//go:generate protoc --proto_path=$GOPATH/src:. --gogo_out=. quads.proto
 
 // MakeValue converts quad.Value to its protobuf representation.
 func MakeValue(qv quad.Value) *Value {
@@ -110,26 +112,6 @@ func (m *Value) ToNative() (qv quad.Value) {
 		return quad.Time(t)
 	default:
 		panic(fmt.Errorf("unsupported type: %T", m.Value))
-	}
-}
-
-// GetNativeValue returns the value stored in Node.
-func (m *NodeData) GetNativeValue() quad.Value {
-	if m == nil {
-		return nil
-	} else if m.Value == nil {
-		if m.Name == "" {
-			return nil
-		}
-		return quad.Raw(m.Name)
-	}
-	return m.Value.ToNative()
-}
-
-func (m *NodeData) Upgrade() {
-	if m.Value == nil {
-		m.Value = MakeValue(quad.Raw(m.Name))
-		m.Name = ""
 	}
 }
 

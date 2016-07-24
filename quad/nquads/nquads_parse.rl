@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cquads
+package nquads
 
 import (
 	"fmt"
@@ -24,19 +24,19 @@ import (
 )
 
 %%{
-	machine quads;
+	machine nquads;
 
-	include "actions.rl";
+	include "nquads_actions.rl";
 
-	include "cquads.rl";
+	include "nquads.rl";
 
 	write data;
 }%%
 
-// Parse returns a valid quad.Quad or a non-nil error. Parse does
+// ParseRaw returns a valid quad.Quad or a non-nil error. ParseRaw does
 // handle comments except where the comment placement does not prevent
 // a complete valid quad.Quad from being defined.
-func Parse(statement string) (quad.Quad, error) {
+func ParseRaw(statement string) (quad.Quad, error) {
 	data := []rune(statement)
 
 	var (
@@ -49,10 +49,7 @@ func Parse(statement string) (quad.Quad, error) {
 		object    = -1
 		label     = -1
 
-		spec = -1
-
 		isEscaped bool
-		isQuoted  bool
 
 		q quad.Quad
 	)
