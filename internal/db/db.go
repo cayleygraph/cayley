@@ -17,7 +17,6 @@ package db
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/cayleygraph/cayley/clog"
 
@@ -68,38 +67,25 @@ func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, e
 	return w, nil
 }
 
-func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {
-	block := make([]quad.Quad, 0, cfg.LoadSize)
-	count := 0
-	for {
-		t, err := dec.ReadQuad()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		block = append(block, t)
-		if len(block) == cap(block) {
-			count += len(block)
-			err := qw.AddQuadSet(block)
-			if err != nil {
-				return fmt.Errorf("db: failed to load data: %v", err)
-			}
-			block = block[:0]
-			if clog.V(2) {
-				clog.Infof("Wrote %d quads.", count)
-			}
-		}
+type batchLogger struct {
+	cnt int
+	quad.BatchWriter
+}
+
+func (w *batchLogger) WriteQuads(quads []quad.Quad) (int, error) {
+	n, err := w.BatchWriter.WriteQuads(quads)
+	if clog.V(2) {
+		w.cnt += n
+		clog.Infof("Wrote %d quads.", w.cnt)
 	}
-	count += len(block)
-	err := qw.AddQuadSet(block)
+	return n, err
+}
+
+func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {
+	w := graph.NewWriter(qw)
+	_, err := quad.CopyBatch(&batchLogger{BatchWriter: w}, dec, cfg.LoadSize)
 	if err != nil {
 		return fmt.Errorf("db: failed to load data: %v", err)
 	}
-	if clog.V(2) {
-		clog.Infof("Wrote %d quads.", count)
-	}
-
 	return nil
 }

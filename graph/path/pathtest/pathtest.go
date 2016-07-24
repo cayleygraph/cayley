@@ -15,8 +15,6 @@
 package pathtest
 
 import (
-	"io"
-	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -31,7 +29,6 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/cquads"
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
@@ -48,28 +45,8 @@ import (
 //        \-->| #dani# |------------>+--------+
 //            +--------+
 
-func loadGraph(path string, t testing.TB) []quad.Quad {
-	var r io.Reader
-	var simpleGraph []quad.Quad
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("Failed to open %q: %v", path, err)
-	}
-	defer f.Close()
-	r = f
-
-	dec := cquads.NewDecoder(r)
-	for q1, err := dec.Unmarshal(); err == nil; q1, err = dec.Unmarshal() {
-		simpleGraph = append(simpleGraph, q1)
-	}
-	if err != nil {
-		t.Fatalf("Failed to Unmarshal: %v", err)
-	}
-	return simpleGraph
-}
-
 func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc) (graph.QuadStore, func()) {
-	simpleGraph := loadGraph("../../data/testdata.nq", t)
+	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
 	var (
 		qs     graph.QuadStore
 		opts   graph.Options
