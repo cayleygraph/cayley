@@ -66,11 +66,17 @@ func DecompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 	var qr quad.Reader
 	switch typ {
 	case "cquad":
-		qr = nquads.NewReader(r)
+		qr = nquads.NewReader(r, false)
 	case "nquad":
-		qr = nquads.NewRawReader(r)
+		qr = nquads.NewReader(r, true)
 	default:
-		return fmt.Errorf("unknown quad format %q", typ)
+		rf := quad.FormatByName(typ)
+		if rf == nil {
+			return fmt.Errorf("unknown quad format %q", typ)
+		} else if rf.Reader == nil {
+			return fmt.Errorf("decoding of %q is not supported", typ)
+		}
+		qr = rf.Reader(r)
 	}
 
 	if loadFn != nil {

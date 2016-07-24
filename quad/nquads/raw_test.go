@@ -448,7 +448,7 @@ func TestParseRaw(t *testing.T) {
 }
 
 func TestRawDecoder(t *testing.T) {
-	dec := NewRawReader(strings.NewReader(document))
+	dec := NewReader(strings.NewReader(document), true)
 	var n int
 	for {
 		q, err := dec.ReadQuad()
@@ -519,7 +519,7 @@ func TestRDFWorkingGroupSuitRaw(t *testing.T) {
 
 			isBad := strings.Contains(h.Name, "bad")
 
-			dec := NewRawReader(tr)
+			dec := NewReader(tr, true)
 			for {
 				_, err := dec.ReadQuad()
 				if err == io.EOF {
