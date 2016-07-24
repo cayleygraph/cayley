@@ -519,9 +519,9 @@ func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error 
 	return internal.DecompressAndLoad(qw, cfg, path, typ, remove)
 }
 
-func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
+func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {
 	for {
-		t, err := dec.Unmarshal()
+		t, err := dec.ReadQuad()
 		if err != nil {
 			if err == io.EOF {
 				break

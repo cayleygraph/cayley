@@ -68,11 +68,11 @@ func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, e
 	return w, nil
 }
 
-func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
+func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {
 	block := make([]quad.Quad, 0, cfg.LoadSize)
 	count := 0
 	for {
-		t, err := dec.Unmarshal()
+		t, err := dec.ReadQuad()
 		if err != nil {
 			if err == io.EOF {
 				break

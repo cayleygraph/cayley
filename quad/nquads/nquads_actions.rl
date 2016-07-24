@@ -13,14 +13,10 @@
 // limitations under the License.
 
 %%{
-	machine quads;
+	machine nquads;
 
 	action Escape {
 		isEscaped = true
-	}
-
-	action Quote {
-		isQuoted = true
 	}
 
 	action StartSubject {
@@ -39,44 +35,36 @@
 		label = p
 	}
 
-	action Spec {
-    	spec = p
-    }
-
 	action SetSubject {
 		if subject < 0 {
 			panic("unexpected parser state: subject start not set")
 		}
-		q.Subject = unEscape(data[subject:p], spec-subject, isQuoted, isEscaped)
+		q.Subject = unEscapeRaw(data[subject:p], isEscaped)
 		isEscaped = false
-		isQuoted = false
 	}
 
 	action SetPredicate {
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		q.Predicate = unEscape(data[predicate:p], spec-predicate, isQuoted, isEscaped)
+		q.Predicate = unEscapeRaw(data[predicate:p], isEscaped)
 		isEscaped = false
-		isQuoted = false
 	}
 
 	action SetObject {
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
+		q.Object = unEscapeRaw(data[object:p], isEscaped)
 		isEscaped = false
-		isQuoted = false
 	}
 
 	action SetLabel {
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
+		q.Label = unEscapeRaw(data[label:p], isEscaped)
 		isEscaped = false
-		isQuoted = false
 	}
 
 	action Return {

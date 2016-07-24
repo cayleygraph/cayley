@@ -30,7 +30,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad/cquads"
+	"github.com/cayleygraph/cayley/quad/nquads"
 	"github.com/cayleygraph/cayley/query"
 )
 
@@ -163,7 +163,7 @@ func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout ti
 				continue
 
 			case ":a":
-				quad, err := cquads.Parse(args)
+				quad, err := nquads.Parse(args)
 				if err != nil {
 					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue
@@ -173,7 +173,7 @@ func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout ti
 				continue
 
 			case ":d":
-				quad, err := cquads.Parse(args)
+				quad, err := nquads.Parse(args)
 				if err != nil {
 					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue

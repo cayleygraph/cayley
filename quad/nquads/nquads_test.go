@@ -28,7 +28,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var testNQuads = []struct {
+var testNQuadsRaw = []struct {
 	message string
 	input   string
 	expect  quad.Quad
@@ -435,9 +435,9 @@ var testNQuads = []struct {
 	},
 }
 
-func TestParse(t *testing.T) {
-	for _, test := range testNQuads {
-		got, err := Parse(test.input)
+func TestParseRaw(t *testing.T) {
+	for _, test := range testNQuadsRaw {
+		got, err := ParseRaw(test.input)
 		if err != test.err && (err != nil && err.Error() != test.err.Error()) {
 			t.Errorf("Unexpected error when %s: got:%v expect:%v", test.message, err, test.err)
 		}
@@ -447,43 +447,14 @@ func TestParse(t *testing.T) {
 	}
 }
 
-// This is a sample taken from 30kmoviedata.nq.
-// It has intentional defects:
-// The second comment is inset one space and
-// the second line after that comment is blank.
-var document = `# first 10 lines of 30kmoviedata.nq
-_:100000 </film/performance/actor> </en/larry_fine_1902> .
-_:100001 </film/performance/actor> </en/samuel_howard> .
-_:100002 </film/performance/actor> </en/joe_palma> .
-_:100003 </film/performance/actor> </en/symona_boniface> .
-_:100004 </film/performance/actor> </en/dudley_dickerson> .
-_:100005 </film/performance/actor> </guid/9202a8c04000641f8000000006ec181a> .
-_:100006 </film/performance/actor> </en/emil_sitka> .
-_:100007 </film/performance/actor> </en/christine_mcintyre> .
-_:100008 </film/performance/actor> </en/moe_howard> .
-_:100009 </film/performance/actor> </en/larry_fine_1902> .
- #last ten lines of 30kmoviedata.nq
-</guid/9202a8c04000641f800000001473e673> <name> "Bill Fishman" .
-
-</guid/9202a8c04000641f800000001473e673> <type> </people/person> .
-</guid/9202a8c04000641f800000001474a221> <name> "Matthew J. Evans" .
-</guid/9202a8c04000641f800000001474a221> <type> </people/person> .
-</guid/9202a8c04000641f800000001474f486> <name> "Nina Bonherry" .
-</guid/9202a8c04000641f800000001474f486> <type> </people/person> .
-</user/basketball_loader/basketballdatabase_namespace/ROBERBI01> <name> "Bill Roberts" .
-</user/basketball_loader/basketballdatabase_namespace/ROBERBI01> <type> </people/person> .
-</user/jamie/nytdataid/N17971793050606542713> <name> "Christopher Ashley" .
-</user/jamie/nytdataid/N17971793050606542713> <type> </people/person> .
-`
-
-func TestDecoder(t *testing.T) {
-	dec := NewDecoder(strings.NewReader(document))
+func TestRawDecoder(t *testing.T) {
+	dec := NewRawReader(strings.NewReader(document))
 	var n int
 	for {
-		q, err := dec.Unmarshal()
+		q, err := dec.ReadQuad()
 		if err != nil {
 			if err != io.EOF {
-				t.Fatalf("Failed to read document: %v", err)
+				t.Fatalf("Failed to read documentRaw: %v", err)
 			}
 			break
 		}
@@ -497,7 +468,7 @@ func TestDecoder(t *testing.T) {
 	}
 }
 
-func TestRDFWorkingGroupSuit(t *testing.T) {
+func TestRDFWorkingGroupSuitRaw(t *testing.T) {
 	// These tests erroneously pass because the parser does not
 	// perform semantic testing on the URI in the IRIRef as required
 	// by the specification. So, we skip them.
@@ -548,9 +519,9 @@ func TestRDFWorkingGroupSuit(t *testing.T) {
 
 			isBad := strings.Contains(h.Name, "bad")
 
-			dec := NewDecoder(tr)
+			dec := NewRawReader(tr)
 			for {
-				_, err := dec.Unmarshal()
+				_, err := dec.ReadQuad()
 				if err == io.EOF {
 					break
 				}
@@ -563,40 +534,17 @@ func TestRDFWorkingGroupSuit(t *testing.T) {
 	}
 }
 
-var escapeSequenceTests = []struct {
-	input  string
-	expect string
-}{
-	{input: `\t`, expect: "\t"},
-	{input: `\b`, expect: "\b"},
-	{input: `\n`, expect: "\n"},
-	{input: `\r`, expect: "\r"},
-	{input: `\f`, expect: "\f"},
-	{input: `\\`, expect: "\\"},
-	{input: `\u00b7`, expect: "·"},
-	{input: `\U000000b7`, expect: "·"},
-
-	{input: `\t\u00b7`, expect: "\t·"},
-	{input: `\b\U000000b7`, expect: "\b·"},
-	{input: `\u00b7\n`, expect: "·\n"},
-	{input: `\U000000b7\r`, expect: "·\r"},
-	{input: `\u00b7\f\U000000b7`, expect: "·\f·"},
-	{input: `\U000000b7\\\u00b7`, expect: "·\\·"},
-}
-
-func TestUnescape(t *testing.T) {
+func TestUnescapeRaw(t *testing.T) {
 	for _, test := range escapeSequenceTests {
-		got := unEscape([]rune(test.input), true)
+		got := unEscapeRaw([]rune(test.input), true)
 		if got == nil || got.String() != test.expect {
 			t.Errorf("Failed to properly unescape %q, got:%q expect:%q", test.input, got, test.expect)
 		}
 	}
 }
 
-var result quad.Quad
-
-func BenchmarkParser(b *testing.B) {
+func BenchmarkParserRaw(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		result, _ = Parse("<http://example/s> <http://example/p> \"object of some real\\tlength\"@en . # comment")
+		result, _ = ParseRaw("<http://example/s> <http://example/p> \"object of some real\\tlength\"@en . # comment")
 	}
 }

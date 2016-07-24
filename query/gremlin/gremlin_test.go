@@ -27,7 +27,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/cquads"
+	"github.com/cayleygraph/cayley/quad/nquads"
 	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
 )
@@ -510,12 +510,12 @@ func loadGraph(path string, t testing.TB) []quad.Quad {
 	defer f.Close()
 	r = f
 
-	dec := cquads.NewDecoder(r)
-	q1, err := dec.Unmarshal()
+	dec := nquads.NewReader(r)
+	q1, err := dec.ReadQuad()
 	if err != nil {
 		t.Fatalf("Failed to Unmarshal: %v", err)
 	}
-	for ; err == nil; q1, err = dec.Unmarshal() {
+	for ; err == nil; q1, err = dec.ReadQuad() {
 		simpleGraph = append(simpleGraph, q1)
 	}
 	return simpleGraph

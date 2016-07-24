@@ -15,7 +15,7 @@
 // Ragel gramar definition derived from http://www.w3.org/TR/n-quads/#sec-grammar.
 
 %%{
-	machine quads;
+	machine cquads;
 
 	alphtype rune;
 

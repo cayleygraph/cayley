@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cquads
+package nquads
 
 import (
 	"archive/tar"
@@ -675,10 +675,10 @@ _:100009 </film/performance/actor> </en/larry_fine_1902> .
 `
 
 func TestDecoder(t *testing.T) {
-	dec := NewDecoder(strings.NewReader(document))
+	dec := NewReader(strings.NewReader(document))
 	var n int
 	for {
-		q, err := dec.Unmarshal()
+		q, err := dec.ReadQuad()
 		if err != nil {
 			if err != io.EOF {
 				t.Fatalf("Failed to read document: %v", err)
@@ -789,9 +789,9 @@ func TestRDFWorkingGroupSuit(t *testing.T) {
 
 			isBad := strings.Contains(h.Name, "bad")
 
-			dec := NewDecoder(tr)
+			dec := NewReader(tr)
 			for {
-				_, err := dec.Unmarshal()
+				_, err := dec.ReadQuad()
 				if err == io.EOF {
 					break
 				}

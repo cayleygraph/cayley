@@ -27,7 +27,7 @@ import (
 
 	"github.com/cayleygraph/cayley/internal"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/cquads"
+	"github.com/cayleygraph/cayley/quad/nquads"
 )
 
 func ParseJSONToQuadList(jsonBody []byte) (out []quad.Quad, _ error) {
@@ -98,7 +98,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 
 	quadReader, err := internal.Decompressor(formFile)
 	// TODO(kortschak) Make this configurable from the web UI.
-	dec := cquads.NewDecoder(quadReader)
+	dec := nquads.NewReader(quadReader)
 
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
@@ -110,7 +110,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		block = make([]quad.Quad, 0, blockSize)
 	)
 	for {
-		t, err := dec.Unmarshal()
+		t, err := dec.ReadQuad()
 		if err != nil {
 			if err == io.EOF {
 				break

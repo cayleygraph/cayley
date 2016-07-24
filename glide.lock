@@ -37,7 +37,7 @@ imports:
 - name: github.com/fsouza/go-dockerclient
   version: 4efaf0ea3c8990e1648f68672d011289f0c0cb0a
 - name: github.com/gogo/protobuf
-  version: ff05bbbb0ff143cc11fc3f8b700fc3a2864b884d
+  version: 50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61
   subpackages:
   - gogoproto
   - proto

@@ -13,9 +13,9 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 )
 
 const QuadStoreType = "sql"
@@ -284,19 +284,19 @@ func convInsertError(err error) error {
 }
 
 func marshalQuadDirections(q quad.Quad) (s, p, o, l []byte, err error) {
-	s, err = proto.MarshalValue(q.Subject)
+	s, err = pquads.MarshalValue(q.Subject)
 	if err != nil {
 		return
 	}
-	p, err = proto.MarshalValue(q.Predicate)
+	p, err = pquads.MarshalValue(q.Predicate)
 	if err != nil {
 		return
 	}
-	o, err = proto.MarshalValue(q.Object)
+	o, err = pquads.MarshalValue(q.Object)
 	if err != nil {
 		return
 	}
-	l, err = proto.MarshalValue(q.Label)
+	l, err = pquads.MarshalValue(q.Label)
 	if err != nil {
 		return
 	}
@@ -385,7 +385,7 @@ func nodeValues(h NodeHash, v quad.Value) (int, []interface{}, error) {
 		values = append(values, time.Time(v))
 	default:
 		nodeKey = 0
-		p, err := proto.MarshalValue(v)
+		p, err := pquads.MarshalValue(v)
 		if err != nil {
 			clog.Errorf("couldn't marshal value: %v", err)
 			return 0, nil, err
@@ -661,7 +661,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	} else if vtime.Valid {
 		val = quad.Time(vtime.Time)
 	} else {
-		qv, err := proto.UnmarshalValue(data)
+		qv, err := pquads.UnmarshalValue(data)
 		if err != nil {
 			clog.Errorf("Couldn't unmarshal value: %v", err)
 			return nil

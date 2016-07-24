@@ -28,6 +28,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 )
 
 func init() {
@@ -246,7 +247,7 @@ func deltaToProto(delta graph.Delta) proto.LogDelta {
 	newd.ID = uint64(delta.ID.Int())
 	newd.Action = int32(delta.Action)
 	newd.Timestamp = delta.Timestamp.UnixNano()
-	newd.Quad = proto.MakeQuad(delta.Quad)
+	newd.Quad = pquads.MakeQuad(delta.Quad)
 	return newd
 }
 
@@ -346,7 +347,7 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 
 func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leveldb.Batch) error {
 	value := proto.NodeData{
-		Value: proto.MakeValue(name),
+		Value: pquads.MakeValue(name),
 		Size:  amount,
 	}
 	key := createValueKeyFor(name)
