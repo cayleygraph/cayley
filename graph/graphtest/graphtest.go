@@ -71,7 +71,7 @@ func LoadGraph(t testing.TB, path string) []quad.Quad {
 		t.Fatalf("Failed to open %q: %v", path, err)
 	}
 	defer f.Close()
-	dec := nquads.NewReader(f)
+	dec := nquads.NewReader(f, false)
 	quads, err := quad.ReadAll(dec)
 	if err != nil {
 		t.Fatalf("Failed to Unmarshal: %v", err)

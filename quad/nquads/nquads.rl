@@ -52,6 +52,15 @@
 
 	BLANK_NODE_LABEL        = '_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)? ;
 
+	STRING_LITERAL          = (
+							  '!'
+							| '#' .. '['
+							| ']' .. 0x7e
+							| 0x80 .. 0x10ffff
+							| ECHAR
+							| UCHAR)+ - ('_:' | any* '.' | '#' any*)
+							;
+
 	STRING_LITERAL_QUOTE    = '"' (
 							  0x00 .. 0x09
 							| 0x0b .. 0x0c
@@ -80,19 +89,4 @@
 	LANGTAG                 = '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)* ;
 
 	whitespace              = [ \t] ;
-
-	literal                 = STRING_LITERAL_QUOTE ('^^' IRIREF | LANGTAG)? ;
-
-	subject                 = IRIREF | BLANK_NODE_LABEL ;
-	predicate               = IRIREF ;
-	object                  = IRIREF | BLANK_NODE_LABEL | literal ;
-	graphLabel              = IRIREF | BLANK_NODE_LABEL ;
-
-	statement := (
-					whitespace*  subject    >StartSubject   %SetSubject
-					whitespace*  predicate  >StartPredicate %SetPredicate
-					whitespace*  object     >StartObject    %SetObject
-					(whitespace* graphLabel >StartLabel     %SetLabel)?
-					whitespace*  '.' whitespace* ('#' any*)? >Comment
-				 ) %Return @!Error ;
 }%%

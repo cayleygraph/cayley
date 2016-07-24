@@ -675,7 +675,7 @@ _:100009 </film/performance/actor> </en/larry_fine_1902> .
 `
 
 func TestDecoder(t *testing.T) {
-	dec := NewReader(strings.NewReader(document))
+	dec := NewReader(strings.NewReader(document), false)
 	var n int
 	for {
 		q, err := dec.ReadQuad()
@@ -789,7 +789,7 @@ func TestRDFWorkingGroupSuit(t *testing.T) {
 
 			isBad := strings.Contains(h.Name, "bad")
 
-			dec := NewReader(tr)
+			dec := NewReader(tr, false)
 			for {
 				_, err := dec.ReadQuad()
 				if err == io.EOF {
