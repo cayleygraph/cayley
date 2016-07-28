@@ -16,7 +16,7 @@ func main() {
 	}
 
 	// Create a transaction of work to do
-	// NOTE: the transaction is independant of the storage type, so comes from cayley rather than store
+	// NOTE: the transaction is independent of the storage type, so comes from cayley rather than store
 	t := cayley.NewTransaction()
 	t.AddQuad(quad.Make("food", "is", "good", nil))
 	t.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
@@ -31,13 +31,11 @@ func main() {
 	}
 
 	p := cayley.StartPath(store, quad.String("cats")).Out(quad.String("are"))
-	it, _ := p.BuildIterator().Optimize()
-	defer it.Close()
 
-	for it.Next() {
-		fmt.Println("cats are", store.NameOf(it.Result()).Native())
-	}
-	if err = it.Err(); err != nil {
+	err = p.Iterate(nil, true).EachValue(nil, func(v quad.Value) {
+		fmt.Println("cats are", v.Native())
+	})
+	if err != nil {
 		log.Fatalln(err)
 	}
 }

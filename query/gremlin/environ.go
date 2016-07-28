@@ -76,7 +76,7 @@ func (g *graphObject) Emit(call otto.FunctionCall) otto.Value {
 	if value.IsDefined() {
 		val := exportArgs([]otto.Value{value})[0]
 		if val != nil {
-			g.wk.send(&Result{val: val})
+			g.wk.send(nil, &Result{val: val})
 		}
 	}
 	return otto.NullValue()

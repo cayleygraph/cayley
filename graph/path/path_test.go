@@ -21,12 +21,13 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/cquads"
+	"golang.org/x/net/context"
 
+	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
+	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/cquads"
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
@@ -74,34 +75,17 @@ func makeTestStore(t testing.TB) graph.QuadStore {
 }
 
 func runTopLevel(path *Path) []quad.Value {
-	var out []quad.Value
-	it := path.BuildIterator()
-	it, _ = it.Optimize()
-	for it.Next() {
-		v := path.qs.NameOf(it.Result())
-		out = append(out, v)
-	}
+	out, _ := path.Iterate(context.TODO(), true).Paths(false).AllValues(path.qs)
 	return out
 }
 
 func runTag(path *Path, tag string) []quad.Value {
 	var out []quad.Value
-	it := path.BuildIterator()
-	it, _ = it.Optimize()
-	for it.Next() {
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
+	_ = path.Iterate(context.TODO(), true).Paths(true).TagEach(func(tags map[string]graph.Value) {
 		if t, ok := tags[tag]; ok {
 			out = append(out, path.qs.NameOf(t))
 		}
-		for it.NextPath() {
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			if t, ok := tags[tag]; ok {
-				out = append(out, path.qs.NameOf(t))
-			}
-		}
-	}
+	})
 	return out
 }
 

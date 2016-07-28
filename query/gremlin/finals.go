@@ -15,9 +15,8 @@
 package gremlin
 
 import (
-	"encoding/json"
-
 	"github.com/robertkrimen/otto"
+	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -156,133 +155,81 @@ func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]interface{
 	return outputMap
 }
 
-func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]interface{} {
-	output := make([]map[string]interface{}, 0)
-	n := 0
-	it, _ = it.Optimize()
-	for {
-		select {
-		case <-wk.kill:
-			return nil
-		default:
-		}
-		if !it.Next() {
-			break
-		}
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
-		output = append(output, wk.tagsToValueMap(tags))
-		n++
-		if limit >= 0 && n >= limit {
-			break
-		}
-		for it.NextPath() {
+func (wk *worker) newContext() (context.Context, func()) {
+	rctx := context.TODO()
+	kill := wk.kill
+	ctx, cancel := context.WithCancel(rctx)
+	if kill != nil {
+		go func() {
 			select {
-			case <-wk.kill:
-				return nil
-			default:
+			case <-ctx.Done():
+			case <-kill:
+				cancel()
 			}
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			output = append(output, wk.tagsToValueMap(tags))
-			n++
-			if limit >= 0 && n >= limit {
-				break
-			}
-		}
+		}()
 	}
-	it.Close()
+	return ctx, cancel
+}
+
+func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]interface{} {
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
+	output := make([]map[string]interface{}, 0)
+	err := graph.Iterate(ctx, it, true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+		output = append(output, wk.tagsToValueMap(tags))
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
+	}
 	return output
 }
 
 func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []interface{} {
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
 	output := make([]interface{}, 0)
-	n := 0
-	it, _ = it.Optimize()
-	for {
-		select {
-		case <-wk.kill:
-			return nil
-		default:
-		}
-		if !it.Next() {
-			break
-		}
-		output = append(output, quadValueToNative(wk.qs.NameOf(it.Result())))
-		n++
-		if limit >= 0 && n >= limit {
-			break
-		}
+	err := graph.Iterate(ctx, it, true).Paths(false).Limit(limit).EachValue(wk.qs, func(v quad.Value) {
+		output = append(output, quadValueToNative(v))
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
 	}
-	it.Close()
 	return output
 }
 
 func (wk *worker) runIteratorWithCallback(it graph.Iterator, callback otto.Value, this otto.FunctionCall, limit int) {
-	n := 0
-	it, _ = it.Optimize()
-	if clog.V(2) {
-		b, err := json.MarshalIndent(it.Describe(), "", "  ")
-		if err != nil {
-			clog.Infof("failed to format description: %v", err)
-		} else {
-			clog.Infof("%s", b)
-		}
-	}
-	for {
-		select {
-		case <-wk.kill:
-			return
-		default:
-		}
-		if !it.Next() {
-			break
-		}
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
+	err := graph.Iterate(ctx, it, true).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		val, _ := this.Otto.ToValue(wk.tagsToValueMap(tags))
 		val, _ = callback.Call(this.This, val)
-		n++
-		if limit >= 0 && n >= limit {
-			break
-		}
-		for it.NextPath() {
-			select {
-			case <-wk.kill:
-				return
-			default:
-			}
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			val, _ := this.Otto.ToValue(wk.tagsToValueMap(tags))
-			val, _ = callback.Call(this.This, val)
-			n++
-			if limit >= 0 && n >= limit {
-				break
-			}
-		}
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
 	}
-	it.Close()
 }
 
-func (wk *worker) send(r *Result) bool {
-	if wk.limit >= 0 && wk.limit == wk.count {
+func (wk *worker) send(ctx context.Context, r *Result) bool {
+	if wk.limit >= 0 && wk.count >= wk.limit {
 		return false
+	}
+	if wk.results == nil {
+		return false
+	}
+	done := wk.kill
+	if ctx != nil {
+		done = ctx.Done()
 	}
 	select {
-	case <-wk.kill:
+	case wk.results <- r:
+	case <-done:
 		return false
-	default:
 	}
-	if wk.results != nil {
-		wk.results <- r
-		wk.count++
-		if wk.limit >= 0 && wk.limit == wk.count {
-			return false
-		}
-		return true
-	}
-	return false
+	wk.count++
+	return wk.limit < 0 || wk.count < wk.limit
 }
 
 func (wk *worker) runIterator(it graph.Iterator) {
@@ -290,45 +237,16 @@ func (wk *worker) runIterator(it graph.Iterator) {
 		iterator.OutputQueryShapeForIterator(it, wk.qs, wk.shape)
 		return
 	}
-	it, _ = it.Optimize()
-	if clog.V(2) {
-		b, err := json.MarshalIndent(it.Describe(), "", "  ")
-		if err != nil {
-			clog.Infof("failed to format description: %v", err)
-		} else {
-			clog.Infof("%s", b)
+
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
+	err := graph.Iterate(ctx, it, true).Paths(true).TagEach(func(tags map[string]graph.Value) {
+		if !wk.send(ctx, &Result{actualResults: tags}) {
+			cancel()
 		}
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
 	}
-	for {
-		select {
-		case <-wk.kill:
-			return
-		default:
-		}
-		if !it.Next() {
-			break
-		}
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
-		if !wk.send(&Result{actualResults: tags}) {
-			break
-		}
-		for it.NextPath() {
-			select {
-			case <-wk.kill:
-				return
-			default:
-			}
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			if !wk.send(&Result{actualResults: tags}) {
-				break
-			}
-		}
-	}
-	if clog.V(2) {
-		bytes, _ := json.MarshalIndent(graph.DumpStats(it), "", "  ")
-		clog.Infof(string(bytes))
-	}
-	it.Close()
 }

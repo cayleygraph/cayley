@@ -19,8 +19,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/cayleygraph/cayley/clog"
+	"golang.org/x/net/context"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
@@ -70,7 +71,7 @@ func (s *Session) Parse(input string) (query.ParseResult, error) {
 	return query.Parsed, nil
 }
 
-func (s *Session) Execute(input string, c chan interface{}, _ int) {
+func (s *Session) Execute(input string, c chan interface{}, limit int) {
 	defer close(c)
 	var mqlQuery interface{}
 	err := json.Unmarshal([]byte(input), &mqlQuery)
@@ -82,24 +83,13 @@ func (s *Session) Execute(input string, c chan interface{}, _ int) {
 	if s.currentQuery.isError() {
 		return
 	}
-	it, _ := s.currentQuery.it.Optimize()
-	if clog.V(2) {
-		b, err := json.MarshalIndent(it.Describe(), "", "  ")
-		if err != nil {
-			clog.Infof("failed to format description: %v", err)
-		} else {
-			clog.Infof("%s", b)
-		}
-	}
-	for it.Next() {
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
+
+	it := s.currentQuery.it
+	err = graph.Iterate(context.TODO(), it, true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		c <- tags
-		for it.NextPath() == true {
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			c <- tags
-		}
+	})
+	if err != nil {
+		clog.Errorf("mql: %v", err)
 	}
 }
 

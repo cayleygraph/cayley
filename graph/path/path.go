@@ -18,20 +18,21 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
+	"golang.org/x/net/context"
 )
 
-type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
+type applyMorphism func(graph.QuadStore, graph.Iterator, *pathContext) (graph.Iterator, *pathContext)
 
 type morphism struct {
 	Name     string
-	Reversal func(*context) (morphism, *context)
+	Reversal func(*pathContext) (morphism, *pathContext)
 	Apply    applyMorphism
 	tags     []string
 }
 
-// context allows a high-level change to the way paths are constructed. Some
+// pathContext allows a high-level change to the way paths are constructed. Some
 // functions may change the context, causing following chained calls to act
-// cdifferently.
+// differently.
 //
 // In a sense, this is a global state which can be changed as the path
 // continues. And as with dealing with any global state, care should be taken:
@@ -45,7 +46,9 @@ type morphism struct {
 // then yield a pointer to their own member context as the return value.
 //
 // For more examples, look at the morphisms which claim the individual fields.
-type context struct {
+type pathContext struct {
+	// TODO(dennwc): replace with net/context?
+
 	// Represents the path to the limiting set of labels that should be considered under traversal.
 	// inMorphism, outMorphism, et al should constrain edges by this set.
 	// A nil in this field represents all labels.
@@ -54,8 +57,8 @@ type context struct {
 	labelSet *Path
 }
 
-func (c context) copy() context {
-	return context{
+func (c pathContext) copy() pathContext {
+	return pathContext{
 		labelSet: c.labelSet,
 	}
 }
@@ -65,7 +68,7 @@ func (c context) copy() context {
 type Path struct {
 	stack       []morphism
 	qs          graph.QuadStore // Optionally. A nil qs is equivalent to a morphism.
-	baseContext context
+	baseContext pathContext
 }
 
 // IsMorphism returns whether this Path is a morphism.
@@ -394,4 +397,9 @@ func (p *Path) Skip(v int64) *Path {
 func (p *Path) Limit(v int64) *Path {
 	p.stack = append(p.stack, limitMorphism(v))
 	return p
+}
+
+// Iterate is an shortcut for graph.Iterate.
+func (p *Path) Iterate(ctx context.Context, optimize bool) *graph.IterateChain {
+	return graph.Iterate(ctx, p.BuildIterator(), optimize).On(p.qs)
 }
