@@ -68,6 +68,10 @@
 			"ImportPath": "gopkg.in/mgo.v2",
 			"Comment": "r2015.01.24",
 			"Rev": "c6a7dce14133ccac2dcac3793f1d6e2ef048503a"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "6a513affb38dc9788b449d59ffed099b8de18fa0"
 		}
 	]
 }
