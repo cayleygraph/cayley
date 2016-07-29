@@ -389,6 +389,17 @@ var testQueries = []struct {
 		`,
 		expect: []string{"<alice>", "<charlie>"},
 	},
+	{
+		message: "clone paths",
+		query: `
+			var alice = g.V('<alice>')
+			g.Emit(alice.ToValue())
+			var out = alice.Out('<follows>')
+			g.Emit(out.ToValue())
+			g.Emit(alice.ToValue())
+		`,
+		expect: []string{"<alice>", "<bob>", "<alice>"},
+	},
 }
 
 func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []string {

@@ -30,12 +30,19 @@ type pathObject struct {
 	path   *path.Path
 }
 
-func (p *pathObject) clone(np *path.Path) *pathObject {
+func (p *pathObject) new(np *path.Path) *pathObject {
 	return &pathObject{
 		wk:     p.wk,
 		finals: p.finals,
 		path:   np,
 	}
+}
+func (p *pathObject) clonePath() *path.Path {
+	np := p.path.Clone()
+	// most likely path will be continued, so we'll put non-capped stack slice
+	// into new path object instead of preserving it in an old one
+	p.path, np = np, p.path
+	return np
 }
 func (p *pathObject) buildIteratorTree() graph.Iterator {
 	if p.path == nil {
@@ -49,21 +56,21 @@ func (p *pathObject) Is(call otto.FunctionCall) otto.Value {
 		//TODO(dennwc): pass error to caller
 		return otto.NullValue()
 	}
-	np := p.path.Is(args...)
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Is(args...)
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) inout(call otto.FunctionCall, in bool) otto.Value {
 	preds, tags, ok := toViaData(exportArgs(call.ArgumentList))
 	if !ok {
 		return otto.NullValue()
 	}
-	var np *path.Path
+	np := p.clonePath()
 	if in {
-		np = p.path.InWithTags(tags, preds...)
+		np = np.InWithTags(tags, preds...)
 	} else {
-		np = p.path.OutWithTags(tags, preds...)
+		np = np.OutWithTags(tags, preds...)
 	}
-	return outObj(call, p.clone(np))
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) In(call otto.FunctionCall) otto.Value {
 	return p.inout(call, true)
@@ -76,21 +83,21 @@ func (p *pathObject) Both(call otto.FunctionCall) otto.Value {
 	if !ok {
 		return otto.NullValue()
 	}
-	np := p.path.Both(preds...)
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Both(preds...)
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) follow(call otto.FunctionCall, rev bool) otto.Value {
 	ep, ok := exportAsPath(call.ArgumentList)
 	if !ok {
 		return otto.NullValue()
 	}
-	var np *path.Path
+	np := p.clonePath()
 	if rev {
-		np = p.path.FollowReverse(ep.path)
+		np = np.FollowReverse(ep.path)
 	} else {
-		np = p.path.Follow(ep.path)
+		np = np.Follow(ep.path)
 	}
-	return outObj(call, p.clone(np))
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Follow(call otto.FunctionCall) otto.Value {
 	return p.follow(call, false)
@@ -103,8 +110,8 @@ func (p *pathObject) And(call otto.FunctionCall) otto.Value {
 	if !ok {
 		return otto.NullValue()
 	}
-	np := p.path.And(ep.path)
-	return outObj(call, p.clone(np))
+	np := p.clonePath().And(ep.path)
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Intersect(call otto.FunctionCall) otto.Value {
 	return p.And(call)
@@ -117,21 +124,21 @@ func (p *pathObject) Or(call otto.FunctionCall) otto.Value {
 	if !ok {
 		return otto.NullValue()
 	}
-	np := p.path.Or(ep.path)
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Or(ep.path)
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Back(call otto.FunctionCall) otto.Value {
 	args := toStrings(exportArgs(call.ArgumentList))
 	if len(args) != 1 {
 		return otto.NullValue()
 	}
-	np := p.path.Back(args[0])
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Back(args[0])
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Tag(call otto.FunctionCall) otto.Value {
 	args := toStrings(exportArgs(call.ArgumentList))
-	np := p.path.Tag(args...)
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Tag(args...)
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) As(call otto.FunctionCall) otto.Value {
 	return p.Tag(call)
@@ -161,13 +168,13 @@ func (p *pathObject) has(call otto.FunctionCall, rev bool) otto.Value {
 		//TODO(dennwc): pass error to caller
 		return otto.NullValue()
 	}
-	var np *path.Path
+	np := p.clonePath()
 	if rev {
-		np = p.path.HasReverse(via, qv...)
+		np = np.HasReverse(via, qv...)
 	} else {
-		np = p.path.Has(via, qv...)
+		np = np.Has(via, qv...)
 	}
-	return outObj(call, p.clone(np))
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) save(call otto.FunctionCall, rev bool) otto.Value {
 	args := exportArgs(call.ArgumentList)
@@ -191,13 +198,13 @@ func (p *pathObject) save(call otto.FunctionCall, rev bool) otto.Value {
 			return otto.NullValue()
 		}
 	}
-	var np *path.Path
+	np := p.clonePath()
 	if rev {
-		np = p.path.SaveReverse(via, tag)
+		np = np.SaveReverse(via, tag)
 	} else {
-		np = p.path.Save(via, tag)
+		np = np.Save(via, tag)
 	}
-	return outObj(call, p.clone(np))
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Save(call otto.FunctionCall) otto.Value {
 	return p.save(call, false)
@@ -210,34 +217,34 @@ func (p *pathObject) Except(call otto.FunctionCall) otto.Value {
 	if !ok {
 		return otto.NullValue()
 	}
-	np := p.path.Except(ep.path)
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Except(ep.path)
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Difference(call otto.FunctionCall) otto.Value {
 	return p.Except(call)
 }
 func (p *pathObject) InPredicates(call otto.FunctionCall) otto.Value {
-	np := p.path.InPredicates()
-	return outObj(call, p.clone(np))
+	np := p.clonePath().InPredicates()
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) OutPredicates(call otto.FunctionCall) otto.Value {
-	np := p.path.OutPredicates()
-	return outObj(call, p.clone(np))
+	np := p.clonePath().OutPredicates()
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) LabelContext(call otto.FunctionCall) otto.Value {
 	labels, tags, ok := toViaData(exportArgs(call.ArgumentList))
 	if !ok {
 		return otto.NullValue()
 	}
-	np := p.path.LabelContextWithTags(tags, labels...)
-	return outObj(call, p.clone(np))
+	np := p.clonePath().LabelContextWithTags(tags, labels...)
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Filter(call otto.FunctionCall) otto.Value {
 	args := exportArgs(call.ArgumentList)
 	if len(args) == 0 {
 		return otto.NullValue()
 	}
-	np := p.path
+	np := p.clonePath()
 	for _, arg := range args {
 		op, ok := arg.(cmpOperator)
 		if !ok {
@@ -245,15 +252,15 @@ func (p *pathObject) Filter(call otto.FunctionCall) otto.Value {
 		}
 		np = np.Filter(op.op, op.val)
 	}
-	return outObj(call, p.clone(np))
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Limit(call otto.FunctionCall) otto.Value {
 	args := exportArgs(call.ArgumentList)
-	np := p.path.Limit(int64(toInt(args[0])))
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Limit(int64(toInt(args[0])))
+	return outObj(call, p.new(np))
 }
 func (p *pathObject) Skip(call otto.FunctionCall) otto.Value {
 	args := exportArgs(call.ArgumentList)
-	np := p.path.Skip(int64(toInt(args[0])))
-	return outObj(call, p.clone(np))
+	np := p.clonePath().Skip(int64(toInt(args[0])))
+	return outObj(call, p.new(np))
 }
