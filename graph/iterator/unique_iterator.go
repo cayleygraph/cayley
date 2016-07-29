@@ -79,11 +79,11 @@ func (it *Unique) Next() bool {
 		if ok := it.seen[key]; !ok {
 			it.result = curr
 			it.seen[key] = true
-			return graph.NextLogOut(it, it.result, true)
+			return graph.NextLogOut(it, true)
 		}
 	}
 	it.err = it.subIt.Err()
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *Unique) Err() error {

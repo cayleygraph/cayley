@@ -52,14 +52,13 @@ func (it *Limit) SubIterators() []graph.Iterator {
 func (it *Limit) Next() bool {
 	graph.NextLogIn(it)
 	if it.limit > 0 && it.count >= it.limit {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	if it.primaryIt.Next() {
-		curr := it.primaryIt.Result()
 		it.count++
-		return graph.NextLogOut(it, curr, true)
+		return graph.NextLogOut(it, true)
 	}
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *Limit) Err() error {

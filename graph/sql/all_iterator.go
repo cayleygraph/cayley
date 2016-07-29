@@ -166,7 +166,7 @@ func (it *AllIterator) Next() bool {
 		return false
 	}
 	it.result = q
-	return graph.NextLogOut(it, it.result, true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *AllIterator) Contains(v graph.Value) bool {

@@ -144,11 +144,11 @@ func (it *And) Next() bool {
 		curr := it.primaryIt.Result()
 		if it.subItsContain(curr, nil) {
 			it.result = curr
-			return graph.NextLogOut(it, curr, true)
+			return graph.NextLogOut(it, true)
 		}
 	}
 	it.err = it.primaryIt.Err()
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *And) Err() error {

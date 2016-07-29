@@ -265,10 +265,10 @@ func (it *SQLIterator) Next() bool {
 	}
 
 	if len(it.resultList) == 0 {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	it.buildResult(0)
-	return graph.NextLogOut(it, it.Result(), true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *SQLIterator) Contains(v graph.Value) bool {

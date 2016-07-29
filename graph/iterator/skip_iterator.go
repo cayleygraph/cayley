@@ -53,14 +53,13 @@ func (it *Skip) Next() bool {
 	graph.NextLogIn(it)
 	for ; it.skipped < it.skip; it.skipped++ {
 		if !it.primaryIt.Next() {
-			return graph.NextLogOut(it, nil, false)
+			return graph.NextLogOut(it, false)
 		}
 	}
 	if it.primaryIt.Next() {
-		curr := it.primaryIt.Result()
-		return graph.NextLogOut(it, curr, true)
+		return graph.NextLogOut(it, true)
 	}
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *Skip) Err() error {

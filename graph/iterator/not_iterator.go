@@ -77,11 +77,11 @@ func (it *Not) Next() bool {
 		if curr := it.allIt.Result(); !it.primaryIt.Contains(curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1
-			return graph.NextLogOut(it, curr, true)
+			return graph.NextLogOut(it, true)
 		}
 	}
 	it.err = it.allIt.Err()
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *Not) Err() error {

@@ -222,12 +222,12 @@ func (it *HasA) Next() bool {
 
 	if !it.primaryIt.Next() {
 		it.err = it.primaryIt.Err()
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	tID := it.primaryIt.Result()
 	val := it.qs.QuadDirection(tID, it.dir)
 	it.result = val
-	return graph.NextLogOut(it, val, true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *HasA) Err() error {

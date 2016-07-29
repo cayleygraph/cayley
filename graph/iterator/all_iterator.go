@@ -104,7 +104,7 @@ func (it *Int64) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	if it.at == -1 {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	val := it.at
 	it.at = it.at + 1
@@ -112,7 +112,7 @@ func (it *Int64) Next() bool {
 		it.at = -1
 	}
 	it.result = val
-	return graph.NextLogOut(it, it.Result(), true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *Int64) Err() error {
@@ -147,7 +147,7 @@ func (it *Int64) Size() (int64, bool) {
 }
 
 // Contains() for an Int64 is merely seeing if the passed value is
-// withing the range, assuming the value is an int64.
+// within the range, assuming the value is an int64.
 func (it *Int64) Contains(tsv graph.Value) bool {
 	graph.ContainsLogIn(it, tsv)
 	it.runstats.Contains += 1

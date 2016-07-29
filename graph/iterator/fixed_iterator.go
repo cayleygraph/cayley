@@ -137,12 +137,12 @@ func (it *Fixed) Contains(v graph.Value) bool {
 func (it *Fixed) Next() bool {
 	graph.NextLogIn(it)
 	if it.lastIndex == len(it.values) {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
 	out := it.values[it.lastIndex]
 	it.result = out
 	it.lastIndex++
-	return graph.NextLogOut(it, out, true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *Fixed) Err() error {
@@ -181,10 +181,11 @@ func (it *Fixed) Size() (int64, bool) {
 // As we right now have to scan the entire list, Next and Contains are linear with the
 // size. However, a better data structure could remove these limits.
 func (it *Fixed) Stats() graph.IteratorStats {
+	s, _ := it.Size()
 	return graph.IteratorStats{
-		ContainsCost: int64(len(it.values)),
-		NextCost:     int64(len(it.values)),
-		Size:         int64(len(it.values)),
+		ContainsCost: s,
+		NextCost:     s,
+		Size:         s,
 	}
 }
 

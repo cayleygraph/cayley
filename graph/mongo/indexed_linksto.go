@@ -124,7 +124,7 @@ next:
 				continue next
 			}
 			it.result = QuadHash(result.ID)
-			return graph.NextLogOut(it, it.result, true)
+			return graph.NextLogOut(it, true)
 		}
 
 		if it.nextIt != nil {
@@ -141,7 +141,7 @@ next:
 			it.err = it.primaryIt.Err()
 
 			// We're out of nodes in our subiterator, so we're done as well.
-			return graph.NextLogOut(it, nil, false)
+			return graph.NextLogOut(it, false)
 		}
 		if it.nextIt != nil {
 			it.nextIt.Close()
