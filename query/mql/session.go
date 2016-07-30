@@ -85,7 +85,7 @@ func (s *Session) Execute(input string, c chan interface{}, limit int) {
 	}
 
 	it := s.currentQuery.it
-	err = graph.Iterate(context.TODO(), it, true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err = graph.Iterate(context.TODO(), it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		c <- tags
 	})
 	if err != nil {

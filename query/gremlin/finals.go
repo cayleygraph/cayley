@@ -176,7 +176,7 @@ func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]
 	defer cancel()
 
 	output := make([]map[string]interface{}, 0)
-	err := graph.Iterate(ctx, it, true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		output = append(output, wk.tagsToValueMap(tags))
 	})
 	if err != nil {
@@ -190,7 +190,7 @@ func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []inter
 	defer cancel()
 
 	output := make([]interface{}, 0)
-	err := graph.Iterate(ctx, it, true).Paths(false).Limit(limit).EachValue(wk.qs, func(v quad.Value) {
+	err := graph.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(wk.qs, func(v quad.Value) {
 		output = append(output, quadValueToNative(v))
 	})
 	if err != nil {
@@ -203,7 +203,7 @@ func (wk *worker) runIteratorWithCallback(it graph.Iterator, callback otto.Value
 	ctx, cancel := wk.newContext()
 	defer cancel()
 
-	err := graph.Iterate(ctx, it, true).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		val, _ := this.Otto.ToValue(wk.tagsToValueMap(tags))
 		val, _ = callback.Call(this.This, val)
 	})
@@ -241,7 +241,7 @@ func (wk *worker) runIterator(it graph.Iterator) {
 	ctx, cancel := wk.newContext()
 	defer cancel()
 
-	err := graph.Iterate(ctx, it, true).Paths(true).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Value) {
 		if !wk.send(ctx, &Result{actualResults: tags}) {
 			cancel()
 		}

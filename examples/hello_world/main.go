@@ -22,9 +22,8 @@ func main() {
 
 	// Now we iterate over results. Arguments:
 	// 1. Optional context used for cancellation.
-	// 2. Flag to optimize query before execution.
-	// 3. Quad store, but we can omit it because we have already built path with it.
-	err = p.Iterate(nil, true).EachValue(nil, func(value quad.Value) {
+	// 2. Quad store, but we can omit it because we have already built path with it.
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		fmt.Println(nativeValue)
 	})

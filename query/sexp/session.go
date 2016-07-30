@@ -72,7 +72,7 @@ func (s *Session) Parse(input string) (query.ParseResult, error) {
 func (s *Session) Execute(input string, out chan interface{}, limit int) {
 	defer close(out)
 	it := BuildIteratorTreeForQuery(s.qs, input)
-	err := graph.Iterate(context.TODO(), it, true).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(context.TODO(), it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		out <- &tags
 	})
 	if err != nil {

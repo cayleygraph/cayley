@@ -32,7 +32,7 @@ func main() {
 
 	p := cayley.StartPath(store, quad.String("cats")).Out(quad.String("are"))
 
-	err = p.Iterate(nil, true).EachValue(nil, func(v quad.Value) {
+	err = p.Iterate(nil).EachValue(nil, func(v quad.Value) {
 		fmt.Println("cats are", v.Native())
 	})
 	if err != nil {

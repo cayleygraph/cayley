@@ -75,13 +75,13 @@ func makeTestStore(t testing.TB) graph.QuadStore {
 }
 
 func runTopLevel(path *Path) []quad.Value {
-	out, _ := path.Iterate(context.TODO(), true).Paths(false).AllValues(path.qs)
+	out, _ := path.Iterate(context.TODO()).Paths(false).AllValues(path.qs)
 	return out
 }
 
 func runTag(path *Path, tag string) []quad.Value {
 	var out []quad.Value
-	_ = path.Iterate(context.TODO(), true).Paths(true).TagEach(func(tags map[string]graph.Value) {
+	_ = path.Iterate(context.TODO()).Paths(true).TagEach(func(tags map[string]graph.Value) {
 		if t, ok := tags[tag]; ok {
 			out = append(out, path.qs.NameOf(t))
 		}

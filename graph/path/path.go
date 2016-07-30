@@ -400,6 +400,6 @@ func (p *Path) Limit(v int64) *Path {
 }
 
 // Iterate is an shortcut for graph.Iterate.
-func (p *Path) Iterate(ctx context.Context, optimize bool) *graph.IterateChain {
-	return graph.Iterate(ctx, p.BuildIterator(), optimize).On(p.qs)
+func (p *Path) Iterate(ctx context.Context) *graph.IterateChain {
+	return graph.Iterate(ctx, p.BuildIterator()).On(p.qs)
 }

@@ -22,22 +22,17 @@ type IterateChain struct {
 }
 
 // Iterate is a set of helpers for iteration. Context may be used to cancel execution.
-// Iterator will be closed after execution.
-//
-// If optimize is set, iterator will be optimized before using it.
+// Iterator will be optimized and closed after execution.
 //
 // By default, iteration has no limit and includes sub-paths.
-func Iterate(ctx context.Context, it Iterator, optimize bool) *IterateChain {
+func Iterate(ctx context.Context, it Iterator) *IterateChain {
 	if ctx == nil {
 		ctx = context.Background()
-	}
-	if optimize {
-		it, _ = it.Optimize()
 	}
 	return &IterateChain{
 		ctx: ctx, it: it,
 		limit: -1, paths: true,
-		optimize: optimize,
+		optimize: true,
 	}
 }
 func (c *IterateChain) next() bool {
@@ -64,19 +59,13 @@ func (c *IterateChain) nextPath() bool {
 	}
 	return ok
 }
-func (c *IterateChain) optimizeQS(qs QuadStore) error {
-	if qs != nil {
-		c.qs = qs
-	}
-	if c.qs == nil {
-		return fmt.Errorf("no quad store in Iterate")
-	}
-	if c.optimize {
-		c.it, _ = c.qs.OptimizeIterator(c.it)
-	}
-	return nil
-}
 func (c *IterateChain) start() {
+	if c.optimize {
+		c.it, _ = c.it.Optimize()
+		if c.qs != nil {
+			c.it, _ = c.qs.OptimizeIterator(c.it)
+		}
+	}
 	if !clog.V(2) {
 		return
 	}
@@ -114,6 +103,12 @@ func (c *IterateChain) Paths(enable bool) *IterateChain {
 // On sets a default quad store for iteration. If qs was set, it may be omitted in other functions.
 func (c *IterateChain) On(qs QuadStore) *IterateChain {
 	c.qs = qs
+	return c
+}
+
+// UnOptimized disables iterator optimization.
+func (c *IterateChain) UnOptimized() *IterateChain {
+	c.optimize = false
 	return c
 }
 
@@ -221,11 +216,16 @@ func (c *IterateChain) TagEach(fnc func(map[string]Value)) error {
 	return c.it.Err()
 }
 
+var errNoQuadStore = fmt.Errorf("no quad store in Iterate")
+
 // EachValue is an analog of Each, but it will additionally call NameOf
 // for each graph.Value before passing it to a callback.
 func (c *IterateChain) EachValue(qs QuadStore, fnc func(quad.Value)) error {
-	if err := c.optimizeQS(qs); err != nil {
-		return err
+	if qs != nil {
+		c.qs = qs
+	}
+	if c.qs == nil {
+		return errNoQuadStore
 	}
 	// TODO(dennwc): batch NameOf?
 	return c.Each(func(v Value) {
@@ -246,8 +246,11 @@ func (c *IterateChain) AllValues(qs QuadStore) ([]quad.Value, error) {
 // SendValues is an analog of Send, but it will additionally call NameOf
 // for each graph.Value before sending it to a channel.
 func (c *IterateChain) SendValues(qs QuadStore, out chan<- quad.Value) error {
-	if err := c.optimizeQS(qs); err != nil {
-		return err
+	if qs != nil {
+		c.qs = qs
+	}
+	if c.qs == nil {
+		return errNoQuadStore
 	}
 	c.start()
 	defer c.end()
@@ -272,8 +275,11 @@ func (c *IterateChain) SendValues(qs QuadStore, out chan<- quad.Value) error {
 // TagValues is an analog of TagEach, but it will additionally call NameOf
 // for each graph.Value before passing the map to a callback.
 func (c *IterateChain) TagValues(qs QuadStore, fnc func(map[string]quad.Value)) error {
-	if err := c.optimizeQS(qs); err != nil {
-		return err
+	if qs != nil {
+		c.qs = qs
+	}
+	if c.qs == nil {
+		return errNoQuadStore
 	}
 	return c.TagEach(func(m map[string]Value) {
 		vm := make(map[string]quad.Value, len(m))
