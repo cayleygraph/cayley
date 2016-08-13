@@ -100,8 +100,8 @@ func hasReverseMorphism(via interface{}, nodes ...quad.Value) morphism {
 func hasRegexMorphism(via interface{}, pattern string) morphism {
 	return morphism{
 		Name:     "hasregex",
-		Reversal: func(ctx *context) (morphism, *context) { return hasRegexMorphism(via, pattern), ctx },
-		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasRegexMorphism(via, pattern), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
 			viaIter := buildViaPath(qs, via).
 				BuildIterator()
 
@@ -112,9 +112,9 @@ func hasRegexMorphism(via interface{}, pattern string) morphism {
 				// Transfer dest nodes from 'all outbound' to fixed queue if they
 				// pass the regex.
 				fixed := qs.FixedIterator()
-				for graph.Next(out) {
+				for out.Next() {
 					n := out.Result()
-					if re.MatchString(qs.NameOf(n)) {
+					if re.MatchString(qs.NameOf(n).String()) {
 						fixed.Add(n)
 					}
 				}
@@ -134,9 +134,11 @@ func hasRegexMorphism(via interface{}, pattern string) morphism {
 
 func hasComparisonMorphism(via interface{}, operator string, number float64) morphism {
 	return morphism{
-		Name:     "hascomparison",
-		Reversal: func(ctx *context) (morphism, *context) { return hasComparisonMorphism(via, operator, number), ctx },
-		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *context) (graph.Iterator, *context) {
+		Name: "hascomparison",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
+			return hasComparisonMorphism(via, operator, number), ctx
+		},
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
 			viaIter := buildViaPath(qs, via).
 				BuildIterator()
 
@@ -160,9 +162,9 @@ func hasComparisonMorphism(via interface{}, operator string, number float64) mor
 				// Transfer dest nodes from 'all outbound' to fixed queue if they
 				// pass the comparison.
 				fixed := qs.FixedIterator()
-				for graph.Next(out) {
+				for out.Next() {
 					n := out.Result()
-					fl, err := strconv.ParseFloat(qs.NameOf(n), 64)
+					fl, err := strconv.ParseFloat(qs.NameOf(n).String(), 64)
 					if err != nil {
 						fl = 0
 					}

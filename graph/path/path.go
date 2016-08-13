@@ -317,6 +317,8 @@ func (p *Path) HasRegex(via interface{}, pattern string) *Path {
 // to a node satisfying a numeric comparison.
 func (p *Path) HasComparison(via interface{}, operator string, number float64) *Path {
 	p.stack = append(p.stack, hasComparisonMorphism(via, operator, number))
+	return p
+}
 
 // HasReverse limits the paths to be ones where some known node have some linkage
 // to the current nodes.
