@@ -119,4 +119,4 @@ func (it *Null) Stats() graph.IteratorStats {
 	return graph.IteratorStats{}
 }
 
-var _ graph.Nexter = &Null{}
+var _ graph.Iterator = &Null{}

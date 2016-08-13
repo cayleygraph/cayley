@@ -17,11 +17,13 @@ package sexp
 // Defines a running session of the sexp query language.
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 
+	"golang.org/x/net/context"
+
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/query"
 )
@@ -68,45 +70,22 @@ func (s *Session) Parse(input string) (query.ParseResult, error) {
 }
 
 func (s *Session) Execute(input string, out chan interface{}, limit int) {
+	defer close(out)
 	it := BuildIteratorTreeForQuery(s.qs, input)
-	newIt, changed := it.Optimize()
-	if changed {
-		it = newIt
-	}
-
-	if s.debug {
-		b, err := json.MarshalIndent(it.Describe(), "", "  ")
-		if err != nil {
-			fmt.Printf("failed to format description: %v", err)
-		} else {
-			fmt.Printf("%s", b)
-		}
-	}
-	nResults := 0
-	for graph.Next(it) {
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
+	err := graph.Iterate(context.TODO(), it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		out <- &tags
-		nResults++
-		if nResults > limit && limit != -1 {
-			break
-		}
-		for it.NextPath() == true {
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			out <- &tags
-			nResults++
-			if nResults > limit && limit != -1 {
-				break
-			}
-		}
+	})
+	if err != nil {
+		clog.Errorf("sexp: %v", err)
 	}
-	close(out)
 }
 
 func (s *Session) Format(result interface{}) string {
 	out := fmt.Sprintln("****")
-	tags := result.(map[string]graph.Value)
+	tags, ok := result.(map[string]graph.Value)
+	if !ok {
+		return ""
+	}
 	tagKeys := make([]string, len(tags))
 	i := 0
 	for k := range tags {

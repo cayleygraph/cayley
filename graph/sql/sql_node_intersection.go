@@ -18,10 +18,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/quad"
 )
+
+var _ sqlIterator = (*SQLNodeIntersection)(nil)
 
 type SQLNodeIntersection struct {
 	tableName string
@@ -31,7 +33,7 @@ type SQLNodeIntersection struct {
 	size       int64
 	tagger     graph.Tagger
 
-	result string
+	result graph.Value
 }
 
 func (n *SQLNodeIntersection) sqlClone() sqlIterator {
@@ -67,16 +69,16 @@ func (n *SQLNodeIntersection) Describe() string {
 	return fmt.Sprintf("SQL_NODE_INTERSECTION: %s", s)
 }
 
-func (n *SQLNodeIntersection) buildResult(result []string, cols []string) map[string]string {
-	m := make(map[string]string)
+func (n *SQLNodeIntersection) buildResult(result []NodeHash, cols []string) map[string]graph.Value {
+	m := make(map[string]graph.Value)
 	for i, c := range cols {
 		if strings.HasSuffix(c, "_hash") {
 			continue
 		}
 		if c == "__execd" {
-			n.result = result[i]
+			n.result = NodeHash(result[i])
 		}
-		m[c] = result[i]
+		m[c] = NodeHash(result[i])
 	}
 	return m
 }
@@ -150,17 +152,17 @@ func (n *SQLNodeIntersection) getTags() []tagDir {
 	return out
 }
 
-func (n *SQLNodeIntersection) buildWhere() (string, []string) {
+func (n *SQLNodeIntersection) buildWhere() (string, sqlArgs) {
 	var q []string
-	var vals []string
+	var vals sqlArgs
 	for _, tb := range n.nodetables[1:] {
-		q = append(q, fmt.Sprintf("%s.__execd_hash = %s.__execd_hash", n.nodetables[0], tb))
+		q = append(q, fmt.Sprintf("%s.__execd = %s.__execd", n.nodetables[0], tb))
 	}
 	query := strings.Join(q, " AND ")
 	return query, vals
 }
 
-func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []string) {
+func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, sqlArgs) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
@@ -172,7 +174,7 @@ func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []st
 	query += strings.Join(t, ", ")
 	query += " FROM "
 	t = []string{}
-	var values []string
+	var values sqlArgs
 	for _, k := range n.getTables() {
 		values = append(values, k.values...)
 		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
@@ -184,27 +186,27 @@ func (n *SQLNodeIntersection) buildSQL(next bool, val graph.Value) (string, []st
 	values = append(values, wherevalues...)
 
 	if !next {
-		v := val.(string)
+		v := val.(NodeHash)
 		if constraint != "" {
 			constraint += " AND "
 		}
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, hashOf(v))
+		values = append(values, v.toSQL())
 	}
 	query += constraint
 	query += ";"
 
-	if glog.V(4) {
+	if clog.V(4) {
 		dstr := query
 		for i := 1; i <= len(values); i++ {
 			dstr = strings.Replace(dstr, "?", fmt.Sprintf("'%s'", values[i-1]), 1)
 		}
-		glog.V(4).Infoln(dstr)
+		clog.Infof("%v", dstr)
 	}
 	return query, values
 }
 
-func (n *SQLNodeIntersection) sameTopResult(target []string, test []string) bool {
+func (n *SQLNodeIntersection) sameTopResult(target []NodeHash, test []NodeHash) bool {
 	return target[0] == test[0]
 }
 

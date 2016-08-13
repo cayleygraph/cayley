@@ -33,6 +33,12 @@ import (
 	"github.com/codelingo/cayley/quad"
 )
 
+// AutoConvertTypedString allows to convert TypedString values to native
+// equivalents directly while parsing. It will call ToNative on all TypedString values.
+//
+// If conversion error occurs, it will preserve original TypedString value.
+var AutoConvertTypedString = true
+
 // Decoder implements simplified N-Quad document parsing.
 type Decoder struct {
 	r    *bufio.Reader
@@ -75,64 +81,99 @@ func (dec *Decoder) Unmarshal() (quad.Quad, error) {
 	return q, nil
 }
 
-func unEscape(r []rune, isQuoted, isEscaped bool) string {
+func unEscape(r []rune, spec int, isQuoted, isEscaped bool) quad.Value {
+	raw := r
+	var sp []rune
+	if spec > 0 {
+		r, sp = r[:spec], r[spec:]
+		isQuoted = true
+	}
 	if isQuoted {
 		r = r[1 : len(r)-1]
-	}
-	if len(r) >= 2 && r[0] == '<' && r[len(r)-1] == '>' {
-		return string(r[1 : len(r)-1])
-	}
-	if !isEscaped {
-		return string(r)
-	}
-
-	buf := bytes.NewBuffer(make([]byte, 0, len(r)))
-
-	for i := 0; i < len(r); {
-		switch r[i] {
-		case '\\':
-			i++
-			var c byte
-			switch r[i] {
-			case 't':
-				c = '\t'
-			case 'b':
-				c = '\b'
-			case 'n':
-				c = '\n'
-			case 'r':
-				c = '\r'
-			case 'f':
-				c = '\f'
-			case '"':
-				c = '"'
-			case '\'':
-				c = '\''
-			case '\\':
-				c = '\\'
-			case 'u':
-				rc, err := strconv.ParseInt(string(r[i+1:i+5]), 16, 32)
-				if err != nil {
-					panic(fmt.Errorf("internal parser error: %v", err))
-				}
-				buf.WriteRune(rune(rc))
-				i += 5
-				continue
-			case 'U':
-				rc, err := strconv.ParseInt(string(r[i+1:i+9]), 16, 32)
-				if err != nil {
-					panic(fmt.Errorf("internal parser error: %v", err))
-				}
-				buf.WriteRune(rune(rc))
-				i += 9
-				continue
-			}
-			buf.WriteByte(c)
-		default:
-			buf.WriteRune(r[i])
+	} else {
+		if len(r) >= 2 && r[0] == '<' && r[len(r)-1] == '>' {
+			return quad.IRI(r[1 : len(r)-1])
 		}
-		i++
+		if len(r) >= 2 && r[0] == '_' && r[1] == ':' {
+			return quad.BNode(string(r[2:]))
+		}
 	}
+	var val string
+	if isEscaped {
+		buf := bytes.NewBuffer(make([]byte, 0, len(r)))
 
-	return buf.String()
+		for i := 0; i < len(r); {
+			switch r[i] {
+			case '\\':
+				i++
+				var c byte
+				switch r[i] {
+				case 't':
+					c = '\t'
+				case 'b':
+					c = '\b'
+				case 'n':
+					c = '\n'
+				case 'r':
+					c = '\r'
+				case 'f':
+					c = '\f'
+				case '"':
+					c = '"'
+				case '\'':
+					c = '\''
+				case '\\':
+					c = '\\'
+				case 'u':
+					rc, err := strconv.ParseInt(string(r[i+1:i+5]), 16, 32)
+					if err != nil {
+						panic(fmt.Errorf("internal parser error: %v", err))
+					}
+					buf.WriteRune(rune(rc))
+					i += 5
+					continue
+				case 'U':
+					rc, err := strconv.ParseInt(string(r[i+1:i+9]), 16, 32)
+					if err != nil {
+						panic(fmt.Errorf("internal parser error: %v", err))
+					}
+					buf.WriteRune(rune(rc))
+					i += 9
+					continue
+				}
+				buf.WriteByte(c)
+			default:
+				buf.WriteRune(r[i])
+			}
+			i++
+		}
+		val = buf.String()
+	} else {
+		val = string(r)
+	}
+	if len(sp) == 0 {
+		if isQuoted {
+			return quad.String(val)
+		}
+		return quad.Raw(val)
+	}
+	if sp[0] == '@' {
+		return quad.LangString{
+			Value: quad.String(val),
+			Lang:  string(sp[1:]),
+		}
+	} else if len(sp) >= 4 && sp[0] == '^' && sp[1] == '^' && sp[2] == '<' && sp[len(sp)-1] == '>' {
+		v := quad.TypedString{
+			Value: quad.String(val),
+			Type:  quad.IRI(sp[3 : len(sp)-1]),
+		}
+		if AutoConvertTypedString {
+			nv, err := v.ParseValue()
+			if err == nil {
+				return nv
+			}
+		}
+		return v
+	}
+	return quad.Raw(raw)
 }

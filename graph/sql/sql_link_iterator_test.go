@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/quad"
 )
@@ -27,7 +26,7 @@ import (
 var postgres_path = flag.String("postgres_path", "", "Path to running DB")
 
 func TestSQLLink(t *testing.T) {
-	it := NewSQLLinkIterator(nil, quad.Object, "cool")
+	it := NewSQLLinkIterator(nil, quad.Object, quad.Raw("cool"))
 	s, v := it.sql.buildSQL(true, nil)
 	t.Log(s, v)
 }
@@ -41,15 +40,15 @@ func TestSQLLinkIteration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	it := NewSQLLinkIterator(qs, quad.Object, "Humphrey Bogart")
-	for graph.Next(it) {
+	it := NewSQLLinkIterator(qs, quad.Object, quad.Raw("Humphrey Bogart"))
+	for it.Next() {
 		fmt.Println(it.Result())
 	}
-	it = NewSQLLinkIterator(qs, quad.Subject, "/en/casablanca_1942")
+	it = NewSQLLinkIterator(qs, quad.Subject, quad.Raw("/en/casablanca_1942"))
 	s, v := it.sql.buildSQL(true, nil)
 	t.Log(s, v)
 	c := 0
-	for graph.Next(it) {
+	for it.Next() {
 		fmt.Println(it.Result())
 		c += 1
 	}
@@ -66,7 +65,7 @@ func TestSQLNodeIteration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	link := NewSQLLinkIterator(db.(*QuadStore), quad.Object, "/en/humphrey_bogart")
+	link := NewSQLLinkIterator(db.(*QuadStore), quad.Object, quad.Raw("/en/humphrey_bogart"))
 	it := &SQLIterator{
 		uid: iterator.NextUID(),
 		qs:  db.(*QuadStore),
@@ -81,7 +80,7 @@ func TestSQLNodeIteration(t *testing.T) {
 	s, v := it.sql.buildSQL(true, nil)
 	t.Log(s, v)
 	c := 0
-	for graph.Next(it) {
+	for it.Next() {
 		t.Log(it.Result())
 		c += 1
 	}

@@ -140,15 +140,15 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 func (it *And) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
-	for graph.Next(it.primaryIt) {
+	for it.primaryIt.Next() {
 		curr := it.primaryIt.Result()
 		if it.subItsContain(curr, nil) {
 			it.result = curr
-			return graph.NextLogOut(it, curr, true)
+			return graph.NextLogOut(it, true)
 		}
 	}
 	it.err = it.primaryIt.Err()
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *And) Err() error {
@@ -298,4 +298,4 @@ func (it *And) Close() error {
 // Register this as an "and" iterator.
 func (it *And) Type() graph.Type { return graph.And }
 
-var _ graph.Nexter = &And{}
+var _ graph.Iterator = &And{}

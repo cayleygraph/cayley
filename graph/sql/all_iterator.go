@@ -17,7 +17,7 @@ package sql
 import (
 	"database/sql"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
@@ -43,28 +43,28 @@ func (it *AllIterator) makeCursor() {
 		it.cursor.Close()
 	}
 	if it.table == "quads" {
-		cursor, err = it.qs.db.Query(`SELECT subject, predicate, object, label FROM quads;`)
+		cursor, err = it.qs.db.Query(`SELECT
+			subject_hash,
+			predicate_hash,
+			object_hash,
+			label_hash
+			FROM quads;`)
 		if err != nil {
-			glog.Errorln("Couldn't get cursor from SQL database: %v", err)
+			clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 			cursor = nil
 		}
 	} else {
-		glog.V(4).Infoln("sql: getting node query")
-		cursor, err = it.qs.db.Query(`SELECT node FROM
-			(
-				SELECT subject FROM quads
-				UNION
-				SELECT predicate FROM quads
-				UNION
-				SELECT object FROM quads
-				UNION
-				SELECT label FROM quads
-			) AS DistinctNodes (node) WHERE node IS NOT NULL;`)
+		if clog.V(4) {
+			clog.Infof("sql: getting node query")
+		}
+		cursor, err = it.qs.db.Query(`SELECT hash FROM nodes;`)
 		if err != nil {
-			glog.Errorln("Couldn't get cursor from SQL database: %v", err)
+			clog.Errorf("Couldn't get cursor from SQL database: %v", err)
 			cursor = nil
 		}
-		glog.V(4).Infoln("sql: got node query")
+		if clog.V(4) {
+			clog.Infof("sql: got node query")
+		}
 	}
 	it.cursor = cursor
 }
@@ -136,35 +136,37 @@ func (it *AllIterator) Next() bool {
 		}
 	}
 	if !it.cursor.Next() {
-		glog.V(4).Infoln("sql: No next")
+		if clog.V(4) {
+			clog.Infof("sql: No next")
+		}
 		err := it.cursor.Err()
 		if err != nil {
-			glog.Errorf("Cursor error in SQL: %v", err)
+			clog.Errorf("Cursor error in SQL: %v", err)
 			it.err = err
 		}
 		it.cursor.Close()
 		return false
 	}
 	if it.table == "nodes" {
-		var node string
-		err := it.cursor.Scan(&node)
+		var hash NodeHash
+		err := it.cursor.Scan(&hash)
 		if err != nil {
-			glog.Errorf("Error nexting node iterator: %v", err)
+			clog.Errorf("Error nexting node iterator: %v", err)
 			it.err = err
 			return false
 		}
-		it.result = node
+		it.result = NodeHash(hash)
 		return true
 	}
-	var q quad.Quad
-	err := it.cursor.Scan(&q.Subject, &q.Predicate, &q.Object, &q.Label)
+	var q QuadHashes
+	err := it.cursor.Scan(&q[0], &q[1], &q[2], &q[3])
 	if err != nil {
-		glog.Errorf("Error scanning sql iterator: %v", err)
+		clog.Errorf("Error scanning sql iterator: %v", err)
 		it.err = err
 		return false
 	}
 	it.result = q
-	return graph.NextLogOut(it, it.result, true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *AllIterator) Contains(v graph.Value) bool {
@@ -179,7 +181,7 @@ func (it *AllIterator) Size() (int64, bool) {
 
 func (it *AllIterator) Result() graph.Value {
 	if it.result == nil {
-		glog.Fatalln("result was nil", it)
+		clog.Fatalf("result was nil %v", it)
 	}
 	return it.result
 }

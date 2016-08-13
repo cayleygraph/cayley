@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/quad"
 )
@@ -49,9 +49,9 @@ type SQLNodeIterator struct {
 	linkIt   sqlItDir
 	size     int64
 	tagger   graph.Tagger
-	fixedSet []string
+	fixedSet []quad.Value
 
-	result string
+	result graph.Value
 }
 
 func (n *SQLNodeIterator) sqlClone() sqlIterator {
@@ -62,7 +62,7 @@ func (n *SQLNodeIterator) sqlClone() sqlIterator {
 			dir: n.linkIt.dir,
 			it:  n.linkIt.it.sqlClone(),
 		},
-		fixedSet: make([]string, len(n.fixedSet)),
+		fixedSet: make([]quad.Value, len(n.fixedSet)),
 	}
 	m.tagger.CopyFromTagger(n.Tagger())
 	copy(m.fixedSet, n.fixedSet)
@@ -90,16 +90,16 @@ func (n *SQLNodeIterator) Describe() string {
 	return fmt.Sprintf("SQL_NODE_QUERY: %s", s)
 }
 
-func (n *SQLNodeIterator) buildResult(result []string, cols []string) map[string]string {
-	m := make(map[string]string)
+func (n *SQLNodeIterator) buildResult(result []NodeHash, cols []string) map[string]graph.Value {
+	m := make(map[string]graph.Value)
 	for i, c := range cols {
 		if strings.HasSuffix(c, "_hash") {
 			continue
 		}
 		if c == "__execd" {
-			n.result = result[i]
+			n.result = NodeHash(result[i])
 		}
-		m[c] = result[i]
+		m[c] = NodeHash(result[i])
 	}
 	return m
 }
@@ -152,9 +152,9 @@ func (n *SQLNodeIterator) getTags() []tagDir {
 	return out
 }
 
-func (n *SQLNodeIterator) buildWhere() (string, []string) {
+func (n *SQLNodeIterator) buildWhere() (string, sqlArgs) {
 	var q []string
-	var vals []string
+	var vals sqlArgs
 	if n.linkIt.it != nil {
 		s, v := n.linkIt.it.buildWhere()
 		q = append(q, s)
@@ -164,7 +164,7 @@ func (n *SQLNodeIterator) buildWhere() (string, []string) {
 		topData := n.tableID()
 		var valueChain []string
 		for _, v := range n.fixedSet {
-			vals = append(vals, hashOf(v))
+			vals = append(vals, hashOf(v).toSQL())
 			valueChain = append(valueChain, "?")
 		}
 		q = append(q, fmt.Sprintf("%s.%s_hash IN (%s)", topData.table, topData.dir, strings.Join(valueChain, ", ")))
@@ -173,7 +173,7 @@ func (n *SQLNodeIterator) buildWhere() (string, []string) {
 	return query, vals
 }
 
-func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string) {
+func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
@@ -186,7 +186,7 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string
 	query += strings.Join(t, ", ")
 	query += " FROM "
 	t = []string{}
-	var values []string
+	var values sqlArgs
 	for _, k := range n.getTables() {
 		values = append(values, k.values...)
 		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
@@ -198,28 +198,28 @@ func (n *SQLNodeIterator) buildSQL(next bool, val graph.Value) (string, []string
 	values = append(values, wherevalues...)
 
 	if !next {
-		v := val.(string)
+		v := val.(NodeHash)
 		if constraint != "" {
 			constraint += " AND "
 		}
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, hashOf(v))
+		values = append(values, v.toSQL())
 	}
 
 	query += constraint
 	query += ";"
 
-	if glog.V(4) {
+	if clog.V(4) {
 		dstr := query
 		for i := 1; i <= len(values); i++ {
 			dstr = strings.Replace(dstr, "?", fmt.Sprintf("'%s'", values[i-1]), 1)
 		}
-		glog.V(4).Infoln(dstr)
+		clog.Infof("%v", dstr)
 	}
 	return query, values
 }
 
-func (n *SQLNodeIterator) sameTopResult(target []string, test []string) bool {
+func (n *SQLNodeIterator) sameTopResult(target []NodeHash, test []NodeHash) bool {
 	return target[0] == test[0]
 }
 

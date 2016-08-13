@@ -24,6 +24,7 @@ import (
 	// Provide underscore JS library.
 	_ "github.com/robertkrimen/otto/underscore"
 
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/query"
 )
@@ -61,7 +62,7 @@ func NewSession(qs graph.QuadStore, timeout time.Duration, persist bool) *Sessio
 type Result struct {
 	metaresult    bool
 	err           error
-	val           *otto.Value
+	val           interface{}
 	actualResults map[string]graph.Value
 }
 
@@ -88,7 +89,7 @@ func (s *Session) Parse(input string) (query.ParseResult, error) {
 	return query.Parsed, nil
 }
 
-func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
+func (s *Session) runUnsafe(input interface{}) (_ otto.Value, gerr error) {
 	wk := s.wk
 	defer func() {
 		if r := recover(); r != nil {
@@ -96,8 +97,11 @@ func (s *Session) runUnsafe(input interface{}) (otto.Value, error) {
 				s.err = ErrKillTimeout
 				wk.env = s.persist
 				return
+			} else if err, ok := r.(error); ok {
+				gerr = err
+			} else {
+				gerr = fmt.Errorf("recovered: %v", err)
 			}
-			panic(r)
 		}
 	}()
 
@@ -146,7 +150,7 @@ func (s *Session) Execute(input string, out chan interface{}, _ int) {
 	out <- &Result{
 		metaresult: true,
 		err:        err,
-		val:        &value,
+		val:        exportArgs([]otto.Value{value})[0],
 	}
 	s.wk.results = nil
 	s.script = nil
@@ -156,22 +160,23 @@ func (s *Session) Execute(input string, out chan interface{}, _ int) {
 }
 
 func (s *Session) Format(result interface{}) string {
-	data := result.(*Result)
+	data, ok := result.(*Result)
+	if !ok {
+		return fmt.Sprintf("Error: unexpected result type: %T\n", result)
+	}
 	if data.metaresult {
 		if data.err != nil {
 			return fmt.Sprintf("Error: %v\n", data.err)
 		}
 		if data.val != nil {
-			s, _ := data.val.Export()
-			if data.val.IsObject() {
-				typeVal, _ := data.val.Object().Get("_gremlin_type")
-				if !typeVal.IsUndefined() {
-					s = "[internal Iterator]"
-				}
+			s := data.val
+			switch s.(type) {
+			case *pathObject, *graphObject:
+				s = "[internal Iterator]"
 			}
 			return fmt.Sprintln("=>", s)
 		}
-		return ""
+		return fmt.Sprintln("=>", nil)
 	}
 	var out string
 	out = fmt.Sprintln("****")
@@ -188,26 +193,20 @@ func (s *Session) Format(result interface{}) string {
 			if k == "$_" {
 				continue
 			}
-			out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
+			out += fmt.Sprintf("%s : %s\n", k, quadValueToString(s.qs.NameOf(tags[k])))
 		}
 	} else {
-		if data.val.IsObject() {
-			export, _ := data.val.Export()
-			switch export := export.(type) {
-			case map[string]string:
-				for k, v := range export {
-					out += fmt.Sprintf("%s : %s\n", k, v)
-				}
-			case map[string]interface{}:
-				for k, v := range export {
-					out += fmt.Sprintf("%s : %v\n", k, v)
-				}
-			default:
-				panic(fmt.Sprintf("unexpected type: %T", export))
+		switch export := data.val.(type) {
+		case map[string]string:
+			for k, v := range export {
+				out += fmt.Sprintf("%s : %s\n", k, v)
 			}
-		} else {
-			strVersion, _ := data.val.ToString()
-			out += fmt.Sprintf("%s\n", strVersion)
+		case map[string]interface{}:
+			for k, v := range export {
+				out += fmt.Sprintf("%s : %v\n", k, v)
+			}
+		default:
+			out += fmt.Sprintf("%s\n", data.val)
 		}
 	}
 	return out
@@ -215,10 +214,14 @@ func (s *Session) Format(result interface{}) string {
 
 // Web stuff
 func (s *Session) Collate(result interface{}) {
-	data := result.(*Result)
+	data, ok := result.(*Result)
+	if !ok {
+		clog.Errorf("unexpected result type: %T", result)
+		return
+	}
 	if !data.metaresult {
 		if data.val == nil {
-			obj := make(map[string]string)
+			obj := make(map[string]interface{})
 			tags := data.actualResults
 			var tagKeys []string
 			for k := range tags {
@@ -226,9 +229,8 @@ func (s *Session) Collate(result interface{}) {
 			}
 			sort.Strings(tagKeys)
 			for _, k := range tagKeys {
-				name := s.qs.NameOf(tags[k])
-				if name != "" {
-					obj[k] = name
+				if name := s.qs.NameOf(tags[k]); name != nil {
+					obj[k] = quadValueToNative(name)
 				} else {
 					delete(obj, k)
 				}
@@ -237,13 +239,7 @@ func (s *Session) Collate(result interface{}) {
 				s.dataOutput = append(s.dataOutput, obj)
 			}
 		} else {
-			if data.val.IsObject() {
-				export, _ := data.val.Export()
-				s.dataOutput = append(s.dataOutput, export)
-			} else {
-				strVersion, _ := data.val.ToString()
-				s.dataOutput = append(s.dataOutput, strVersion)
-			}
+			s.dataOutput = append(s.dataOutput, data.val)
 		}
 	}
 }

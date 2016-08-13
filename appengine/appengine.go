@@ -21,14 +21,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 
-	"github.com/google/cayley/internal/config"
-	"github.com/google/cayley/internal/db"
-	"github.com/google/cayley/internal/http"
+	"github.com/codelingo/cayley/internal/config"
+	"github.com/codelingo/cayley/internal/db"
+	"github.com/codelingo/cayley/internal/http"
 
-	_ "github.com/google/cayley/graph/gaedatastore"
-	_ "github.com/google/cayley/writer"
+	_ "github.com/codelingo/cayley/graph/gaedatastore"
+	_ "github.com/codelingo/cayley/writer"
 )
 
 var (
@@ -57,7 +57,7 @@ func configFrom(file string) (*config.Config, error) {
 		file = "/cayley_appengine.cfg"
 	}
 	if file == "" {
-		glog.Infoln("Couldn't find a config file appengine.cfg. Going by flag defaults only.")
+		clog.Infof("Couldn't find a config file appengine.cfg. Going by flag defaults only.")
 	}
 	cfg, err := config.Load(file)
 	if err != nil {
@@ -98,15 +98,14 @@ func configFrom(file string) (*config.Config, error) {
 }
 
 func init() {
-	glog.SetToStderr(true)
 	cfg, err := configFrom("cayley_appengine.cfg")
 	if err != nil {
-		glog.Fatalln("Error loading config:", err)
+		clog.Fatalf("Error loading config: %v", err)
 	}
 
 	handle, err := db.Open(cfg)
 	if err != nil {
-		glog.Fatalln("Error opening database:", err)
+		clog.Fatalf("Error opening database: %v", err)
 	}
 	http.SetupRoutes(handle, cfg)
 }

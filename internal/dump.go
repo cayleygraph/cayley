@@ -1,13 +1,13 @@
 package internal
 
 import (
+	"compress/gzip"
 	"fmt"
 	"os"
-	"compress/gzip"
 	"path/filepath"
 
-	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/exporter"
+	"github.com/codelingo/cayley/graph"
 )
 
 // Dump the content of the database into a file based

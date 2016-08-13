@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mongo
+package lru
 
 import (
 	"container/list"
+	"sync"
 )
 
 // TODO(kortschak) Reimplement without container/list.
 
 // cache implements an LRU cache.
-type cache struct {
+type Cache struct {
+	sync.RWMutex
 	cache    map[string]*list.Element
 	priority *list.List
 	maxSize  int
@@ -32,18 +34,21 @@ type kv struct {
 	value interface{}
 }
 
-func newCache(size int) *cache {
-	var lru cache
+func New(size int) *Cache {
+	var lru Cache
 	lru.maxSize = size
 	lru.priority = list.New()
 	lru.cache = make(map[string]*list.Element)
 	return &lru
 }
 
-func (lru *cache) Put(key string, value interface{}) {
+func (lru *Cache) Put(key string, value interface{}) {
 	if _, ok := lru.Get(key); ok {
 		return
 	}
+
+	lru.Lock()
+	defer lru.Unlock()
 	if len(lru.cache) == lru.maxSize {
 		lru.removeOldest()
 	}
@@ -51,15 +56,19 @@ func (lru *cache) Put(key string, value interface{}) {
 	lru.cache[key] = lru.priority.Front()
 }
 
-func (lru *cache) Get(key string) (interface{}, bool) {
+func (lru *Cache) Get(key string) (interface{}, bool) {
+	lru.RLock()
+	defer lru.RUnlock()
 	if element, ok := lru.cache[key]; ok {
 		lru.priority.MoveToFront(element)
 		return element.Value.(kv).value, true
 	}
+
 	return nil, false
 }
 
-func (lru *cache) removeOldest() {
+func (lru *Cache) removeOldest() {
 	last := lru.priority.Remove(lru.priority.Back())
 	delete(lru.cache, last.(kv).key)
+
 }

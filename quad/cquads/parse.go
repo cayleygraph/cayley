@@ -49,20 +49,22 @@ func Parse(statement string) (quad.Quad, error) {
 		object    = -1
 		label     = -1
 
+		spec = -1
+
 		isEscaped bool
 		isQuoted  bool
 
 		q quad.Quad
 	)
 
-	// line 64 "parse.go"
+	// line 66 "parse.go"
 	{
 		cs = quads_start
 	}
 
-	// line 59 "parse.rl"
+	// line 61 "parse.rl"
 
-	// line 72 "parse.go"
+	// line 74 "parse.go"
 	{
 		if p == pe {
 			goto _test_eof
@@ -585,7 +587,7 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto tr0
 	tr0:
-		// line 85 "actions.rl"
+		// line 89 "actions.rl"
 
 		if p < len(data) {
 			if r := data[p]; r < unicode.MaxASCII {
@@ -597,7 +599,7 @@ func Parse(statement string) (quad.Quad, error) {
 		return q, quad.ErrIncomplete
 
 		goto st0
-		// line 608 "parse.go"
+		// line 610 "parse.go"
 	st_case_0:
 	st0:
 		cs = 0
@@ -619,7 +621,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof2
 		}
 	st_case_2:
-		// line 632 "parse.go"
+		// line 634 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
@@ -642,12 +644,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto tr0
 	tr7:
-		// line 42 "actions.rl"
+		// line 46 "actions.rl"
 
 		if subject < 0 {
 			panic("unexpected parser state: subject start not set")
 		}
-		q.Subject = unEscape(data[subject:p], isQuoted, isEscaped)
+		q.Subject = unEscape(data[subject:p], spec-subject, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -657,12 +659,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 42 "actions.rl"
+		// line 46 "actions.rl"
 
 		if subject < 0 {
 			panic("unexpected parser state: subject start not set")
 		}
-		q.Subject = unEscape(data[subject:p], isQuoted, isEscaped)
+		q.Subject = unEscape(data[subject:p], spec-subject, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -672,12 +674,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 42 "actions.rl"
+		// line 46 "actions.rl"
 
 		if subject < 0 {
 			panic("unexpected parser state: subject start not set")
 		}
-		q.Subject = unEscape(data[subject:p], isQuoted, isEscaped)
+		q.Subject = unEscape(data[subject:p], spec-subject, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -687,7 +689,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof3
 		}
 	st_case_3:
-		// line 705 "parse.go"
+		// line 707 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st3
@@ -730,7 +732,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof4
 		}
 	st_case_4:
-		// line 750 "parse.go"
+		// line 752 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr17
@@ -753,12 +755,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto tr0
 	tr17:
-		// line 51 "actions.rl"
+		// line 55 "actions.rl"
 
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		q.Predicate = unEscape(data[predicate:p], isQuoted, isEscaped)
+		q.Predicate = unEscape(data[predicate:p], spec-predicate, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -768,12 +770,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 51 "actions.rl"
+		// line 55 "actions.rl"
 
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		q.Predicate = unEscape(data[predicate:p], isQuoted, isEscaped)
+		q.Predicate = unEscape(data[predicate:p], spec-predicate, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -783,12 +785,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 51 "actions.rl"
+		// line 55 "actions.rl"
 
 		if predicate < 0 {
 			panic("unexpected parser state: predicate start not set")
 		}
-		q.Predicate = unEscape(data[predicate:p], isQuoted, isEscaped)
+		q.Predicate = unEscape(data[predicate:p], spec-predicate, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -798,7 +800,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof5
 		}
 	st_case_5:
-		// line 823 "parse.go"
+		// line 825 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st5
@@ -841,7 +843,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof6
 		}
 	st_case_6:
-		// line 868 "parse.go"
+		// line 870 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr27
@@ -864,12 +866,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto tr0
 	tr27:
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -879,12 +881,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -894,12 +896,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -909,7 +911,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof7
 		}
 	st_case_7:
-		// line 941 "parse.go"
+		// line 943 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st7
@@ -952,7 +954,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof8
 		}
 	st_case_8:
-		// line 986 "parse.go"
+		// line 988 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr37
@@ -975,12 +977,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto tr0
 	tr37:
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -990,12 +992,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1005,12 +1007,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1020,7 +1022,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof9
 		}
 	st_case_9:
-		// line 1059 "parse.go"
+		// line 1061 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st9
@@ -1031,23 +1033,23 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto tr0
 	tr119:
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
 		goto st178
 	tr66:
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1057,12 +1059,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1072,12 +1074,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1087,7 +1089,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof178
 		}
 	st_case_178:
-		// line 1132 "parse.go"
+		// line 1134 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st178
@@ -1098,7 +1100,7 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto st0
 	tr250:
-		// line 82 "actions.rl"
+		// line 86 "actions.rl"
 
 		goto st179
 	st179:
@@ -1106,7 +1108,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof179
 		}
 	st_case_179:
-		// line 1153 "parse.go"
+		// line 1155 "parse.go"
 		goto st179
 	tr34:
 		// line 38 "actions.rl"
@@ -1115,12 +1117,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		goto st180
 	tr39:
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1130,12 +1132,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1145,7 +1147,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof180
 		}
 	st_case_180:
-		// line 1196 "parse.go"
+		// line 1198 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st178
@@ -1182,7 +1184,7 @@ func Parse(statement string) (quad.Quad, error) {
 
 		goto st181
 	tr252:
-		// line 82 "actions.rl"
+		// line 86 "actions.rl"
 
 		goto st181
 	st181:
@@ -1190,7 +1192,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof181
 		}
 	st_case_181:
-		// line 1245 "parse.go"
+		// line 1247 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr253
@@ -1213,12 +1215,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto st179
 	tr253:
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1228,12 +1230,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1243,12 +1245,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1258,7 +1260,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof182
 		}
 	st_case_182:
-		// line 1318 "parse.go"
+		// line 1320 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st182
@@ -1269,12 +1271,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto st179
 	tr293:
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1284,12 +1286,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isQuoted = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1299,7 +1301,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof183
 		}
 	st_case_183:
-		// line 1362 "parse.go"
+		// line 1364 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st183
@@ -1316,12 +1318,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		goto st184
 	tr255:
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1331,12 +1333,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 69 "actions.rl"
+		// line 73 "actions.rl"
 
 		if label < 0 {
 			panic("unexpected parser state: label start not set")
 		}
-		q.Label = unEscape(data[label:p], isQuoted, isEscaped)
+		q.Label = unEscape(data[label:p], spec-label, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -1346,7 +1348,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof184
 		}
 	st_case_184:
-		// line 1413 "parse.go"
+		// line 1415 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st183
@@ -1409,7 +1411,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof186
 		}
 	st_case_186:
-		// line 1478 "parse.go"
+		// line 1480 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st187
@@ -1642,7 +1644,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof11
 		}
 	st_case_11:
-		// line 1713 "parse.go"
+		// line 1715 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st12
@@ -1853,7 +1855,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof21
 		}
 	st_case_21:
-		// line 1926 "parse.go"
+		// line 1928 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st22
@@ -1884,7 +1886,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof22
 		}
 	st_case_22:
-		// line 1958 "parse.go"
+		// line 1960 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr60
@@ -1893,16 +1895,23 @@ func Parse(statement string) (quad.Quad, error) {
 		case 46:
 			goto tr61
 		case 64:
-			goto st23
+			goto tr62
 		case 94:
-			goto st27
+			goto tr63
 		}
 		goto tr0
+	tr62:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st23
 	st23:
 		if p++; p == pe {
 			goto _test_eof23
 		}
 	st_case_23:
+		// line 1986 "parse.go"
 		switch {
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
@@ -1982,11 +1991,18 @@ func Parse(statement string) (quad.Quad, error) {
 			goto st26
 		}
 		goto tr0
+	tr63:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st27
 	st27:
 		if p++; p == pe {
 			goto _test_eof27
 		}
 	st_case_27:
+		// line 2078 "parse.go"
 		if data[p] == 94 {
 			goto st28
 		}
@@ -2011,7 +2027,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof29
 		}
 	st_case_29:
-		// line 2086 "parse.go"
+		// line 2104 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st29
@@ -2053,7 +2069,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof30
 		}
 	st_case_30:
-		// line 2129 "parse.go"
+		// line 2147 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr37
@@ -2074,7 +2090,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof31
 		}
 	st_case_31:
-		// line 2151 "parse.go"
+		// line 2169 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st32
@@ -2272,7 +2288,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof41
 		}
 	st_case_41:
-		// line 2350 "parse.go"
+		// line 2368 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st42
@@ -2475,7 +2491,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof51
 		}
 	st_case_51:
-		// line 2554 "parse.go"
+		// line 2572 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr37
@@ -2500,12 +2516,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto tr0
 	tr29:
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -2515,12 +2531,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -2530,7 +2546,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof196
 		}
 	st_case_196:
-		// line 2612 "parse.go"
+		// line 2630 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st178
@@ -2561,7 +2577,7 @@ func Parse(statement string) (quad.Quad, error) {
 
 		goto st197
 	tr273:
-		// line 82 "actions.rl"
+		// line 86 "actions.rl"
 
 		goto st197
 	st197:
@@ -2569,7 +2585,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof197
 		}
 	st_case_197:
-		// line 2654 "parse.go"
+		// line 2672 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr274
@@ -2592,12 +2608,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto st179
 	tr274:
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -2607,12 +2623,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -2622,7 +2638,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof198
 		}
 	st_case_198:
-		// line 2710 "parse.go"
+		// line 2728 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st198
@@ -2665,7 +2681,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof199
 		}
 	st_case_199:
-		// line 2755 "parse.go"
+		// line 2773 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st200
@@ -2696,7 +2712,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof200
 		}
 	st_case_200:
-		// line 2787 "parse.go"
+		// line 2805 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr287
@@ -2705,16 +2721,23 @@ func Parse(statement string) (quad.Quad, error) {
 		case 46:
 			goto tr288
 		case 64:
-			goto st201
+			goto tr289
 		case 94:
-			goto st205
+			goto tr290
 		}
 		goto st179
+	tr289:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st201
 	st201:
 		if p++; p == pe {
 			goto _test_eof201
 		}
 	st_case_201:
+		// line 2831 "parse.go"
 		switch {
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
@@ -2794,11 +2817,18 @@ func Parse(statement string) (quad.Quad, error) {
 			goto st204
 		}
 		goto st179
+	tr290:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st205
 	st205:
 		if p++; p == pe {
 			goto _test_eof205
 		}
 	st_case_205:
+		// line 2923 "parse.go"
 		if data[p] == 94 {
 			goto st206
 		}
@@ -2823,7 +2853,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof207
 		}
 	st_case_207:
-		// line 2915 "parse.go"
+		// line 2949 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st207
@@ -2865,7 +2895,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof208
 		}
 	st_case_208:
-		// line 2958 "parse.go"
+		// line 2992 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr253
@@ -2886,7 +2916,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof209
 		}
 	st_case_209:
-		// line 2980 "parse.go"
+		// line 3014 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st210
@@ -3084,7 +3114,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof219
 		}
 	st_case_219:
-		// line 3179 "parse.go"
+		// line 3213 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st220
@@ -3287,7 +3317,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof229
 		}
 	st_case_229:
-		// line 3383 "parse.go"
+		// line 3417 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr253
@@ -3312,12 +3342,12 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 		goto st179
 	tr276:
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -3327,12 +3357,12 @@ func Parse(statement string) (quad.Quad, error) {
 
 		isEscaped = true
 
-		// line 60 "actions.rl"
+		// line 64 "actions.rl"
 
 		if object < 0 {
 			panic("unexpected parser state: object start not set")
 		}
-		q.Object = unEscape(data[object:p], isQuoted, isEscaped)
+		q.Object = unEscape(data[object:p], spec-object, isQuoted, isEscaped)
 		isEscaped = false
 		isQuoted = false
 
@@ -3342,7 +3372,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof230
 		}
 	st_case_230:
-		// line 3441 "parse.go"
+		// line 3475 "parse.go"
 		switch data[p] {
 		case 9:
 			goto st183
@@ -3399,7 +3429,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof232
 		}
 	st_case_232:
-		// line 3499 "parse.go"
+		// line 3533 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st233
@@ -3604,7 +3634,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof52
 		}
 	st_case_52:
-		// line 3705 "parse.go"
+		// line 3739 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st6
@@ -3639,7 +3669,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof53
 		}
 	st_case_53:
-		// line 3742 "parse.go"
+		// line 3776 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st54
@@ -3850,7 +3880,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof63
 		}
 	st_case_63:
-		// line 3955 "parse.go"
+		// line 3989 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st64
@@ -3881,7 +3911,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof64
 		}
 	st_case_64:
-		// line 3987 "parse.go"
+		// line 4021 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr113
@@ -3890,16 +3920,23 @@ func Parse(statement string) (quad.Quad, error) {
 		case 46:
 			goto tr114
 		case 64:
-			goto st65
+			goto tr115
 		case 94:
-			goto st69
+			goto tr116
 		}
 		goto tr0
+	tr115:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st65
 	st65:
 		if p++; p == pe {
 			goto _test_eof65
 		}
 	st_case_65:
+		// line 4047 "parse.go"
 		switch {
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
@@ -3979,11 +4016,18 @@ func Parse(statement string) (quad.Quad, error) {
 			goto st68
 		}
 		goto tr0
+	tr116:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st69
 	st69:
 		if p++; p == pe {
 			goto _test_eof69
 		}
 	st_case_69:
+		// line 4139 "parse.go"
 		if data[p] == 94 {
 			goto st70
 		}
@@ -4008,7 +4052,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof71
 		}
 	st_case_71:
-		// line 4115 "parse.go"
+		// line 4165 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st71
@@ -4050,7 +4094,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof72
 		}
 	st_case_72:
-		// line 4158 "parse.go"
+		// line 4208 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr27
@@ -4071,7 +4115,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof73
 		}
 	st_case_73:
-		// line 4180 "parse.go"
+		// line 4230 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st74
@@ -4269,7 +4313,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof83
 		}
 	st_case_83:
-		// line 4379 "parse.go"
+		// line 4429 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st84
@@ -4472,7 +4516,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof93
 		}
 	st_case_93:
-		// line 4583 "parse.go"
+		// line 4633 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr27
@@ -4513,7 +4557,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof94
 		}
 	st_case_94:
-		// line 4626 "parse.go"
+		// line 4676 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st4
@@ -4548,7 +4592,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof95
 		}
 	st_case_95:
-		// line 4663 "parse.go"
+		// line 4713 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st96
@@ -4759,7 +4803,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof105
 		}
 	st_case_105:
-		// line 4876 "parse.go"
+		// line 4926 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st106
@@ -4790,23 +4834,30 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof106
 		}
 	st_case_106:
-		// line 4908 "parse.go"
+		// line 4958 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr165
 		case 32:
 			goto tr165
 		case 64:
-			goto st107
+			goto tr166
 		case 94:
-			goto st111
+			goto tr167
 		}
 		goto tr0
+	tr166:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st107
 	st107:
 		if p++; p == pe {
 			goto _test_eof107
 		}
 	st_case_107:
+		// line 4982 "parse.go"
 		switch {
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
@@ -4882,11 +4933,18 @@ func Parse(statement string) (quad.Quad, error) {
 			goto st110
 		}
 		goto tr0
+	tr167:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st111
 	st111:
 		if p++; p == pe {
 			goto _test_eof111
 		}
 	st_case_111:
+		// line 5070 "parse.go"
 		if data[p] == 94 {
 			goto st112
 		}
@@ -4911,7 +4969,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof113
 		}
 	st_case_113:
-		// line 5030 "parse.go"
+		// line 5096 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st113
@@ -4953,7 +5011,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof114
 		}
 	st_case_114:
-		// line 5073 "parse.go"
+		// line 5139 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr17
@@ -4972,7 +5030,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof115
 		}
 	st_case_115:
-		// line 5093 "parse.go"
+		// line 5159 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st116
@@ -5170,7 +5228,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof125
 		}
 	st_case_125:
-		// line 5292 "parse.go"
+		// line 5358 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st126
@@ -5373,7 +5431,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof135
 		}
 	st_case_135:
-		// line 5496 "parse.go"
+		// line 5562 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr17
@@ -5414,7 +5472,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof136
 		}
 	st_case_136:
-		// line 5539 "parse.go"
+		// line 5605 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st2
@@ -5449,7 +5507,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof137
 		}
 	st_case_137:
-		// line 5576 "parse.go"
+		// line 5642 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st138
@@ -5660,7 +5718,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof147
 		}
 	st_case_147:
-		// line 5789 "parse.go"
+		// line 5855 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st148
@@ -5691,23 +5749,30 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof148
 		}
 	st_case_148:
-		// line 5821 "parse.go"
+		// line 5887 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr215
 		case 32:
 			goto tr215
 		case 64:
-			goto st149
+			goto tr216
 		case 94:
-			goto st153
+			goto tr217
 		}
 		goto tr0
+	tr216:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st149
 	st149:
 		if p++; p == pe {
 			goto _test_eof149
 		}
 	st_case_149:
+		// line 5911 "parse.go"
 		switch {
 		case data[p] > 90:
 			if 97 <= data[p] && data[p] <= 122 {
@@ -5783,11 +5848,18 @@ func Parse(statement string) (quad.Quad, error) {
 			goto st152
 		}
 		goto tr0
+	tr217:
+		// line 42 "actions.rl"
+
+		spec = p
+
+		goto st153
 	st153:
 		if p++; p == pe {
 			goto _test_eof153
 		}
 	st_case_153:
+		// line 5999 "parse.go"
 		if data[p] == 94 {
 			goto st154
 		}
@@ -5812,7 +5884,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof155
 		}
 	st_case_155:
-		// line 5943 "parse.go"
+		// line 6025 "parse.go"
 		switch data[p] {
 		case 33:
 			goto st155
@@ -5854,7 +5926,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof156
 		}
 	st_case_156:
-		// line 5986 "parse.go"
+		// line 6068 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
@@ -5873,7 +5945,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof157
 		}
 	st_case_157:
-		// line 6006 "parse.go"
+		// line 6088 "parse.go"
 		switch data[p] {
 		case 85:
 			goto st158
@@ -6071,7 +6143,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof167
 		}
 	st_case_167:
-		// line 6205 "parse.go"
+		// line 6287 "parse.go"
 		switch data[p] {
 		case 34:
 			goto st168
@@ -6274,7 +6346,7 @@ func Parse(statement string) (quad.Quad, error) {
 			goto _test_eof177
 		}
 	st_case_177:
-		// line 6409 "parse.go"
+		// line 6491 "parse.go"
 		switch data[p] {
 		case 9:
 			goto tr7
@@ -7029,12 +7101,12 @@ func Parse(statement string) (quad.Quad, error) {
 		if p == eof {
 			switch cs {
 			case 179, 181, 182, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241:
-				// line 78 "actions.rl"
+				// line 82 "actions.rl"
 
 				return q, nil
 
 			case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177:
-				// line 85 "actions.rl"
+				// line 89 "actions.rl"
 
 				if p < len(data) {
 					if r := data[p]; r < unicode.MaxASCII {
@@ -7046,13 +7118,13 @@ func Parse(statement string) (quad.Quad, error) {
 				return q, quad.ErrIncomplete
 
 			case 178, 180, 183, 184, 196, 230:
-				// line 82 "actions.rl"
+				// line 86 "actions.rl"
 
-				// line 78 "actions.rl"
+				// line 82 "actions.rl"
 
 				return q, nil
 
-				// line 6708 "parse.go"
+				// line 6790 "parse.go"
 			}
 		}
 
@@ -7061,7 +7133,7 @@ func Parse(statement string) (quad.Quad, error) {
 		}
 	}
 
-	// line 61 "parse.rl"
+	// line 63 "parse.rl"
 
 	return quad.Quad{}, quad.ErrInvalid
 }

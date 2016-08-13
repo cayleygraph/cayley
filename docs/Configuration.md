@@ -25,6 +25,7 @@ All command line flags take precedence over the configuration file.
   * `leveldb`: A persistent on-disk store backed by [LevelDB](https://github.com/google/leveldb).
   * `bolt`: Stores the graph data on-disk in a [Bolt](http://github.com/boltdb/bolt) file. Uses more disk space and memory than LevelDB for smaller stores, but is often faster to write to and comparable for large ones, with faster average query times.
   * `mongo`: Stores the graph data and indices in a [MongoDB](http://mongodb.org) instance. Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
+  * `sql`: Stores the graph data and indices in a [PostgreSQL](http://www.postgresql.org) instance.
 
 #### **`db_path`**
 
@@ -37,6 +38,7 @@ All command line flags take precedence over the configuration file.
   * `leveldb`: Directory to hold the LevelDB database files.
   * `bolt`: Path to the persistent single Bolt database file.
   * `mongo`: "hostname:port" of the desired MongoDB server.
+  * `sql`: "postgres://[username:password@]host[:port]/database-name?sslmode=disable" of the desired PostgreSQL database and credentials. Sslmode is optional.
 
 #### **`listen_host`**
 
@@ -116,13 +118,28 @@ Optionally disable syncing to disk per transaction. Nosync being true means much
 
 ### Mongo
 
-
 #### **`database_name`**
 
   * Type: String
   * Default: "cayley"
 
 The name of the database within MongoDB to connect to. Manages its own collections and indices therein.
+
+### PostgreSQL
+
+#### **`db_fill_factor`**
+
+  * Type: Integer
+  * Default: 50
+
+Amount of empty space as a percentage to leave in the database when creating a table and inserting rows. See [PostgreSQL CreateTable](http://www.postgresql.org/docs/current/static/sql-createtable.html).
+
+#### **`local_optimize`**
+
+  * Type: Boolean
+  * Default: true
+
+Whether to skip checking quad store size.
 
 ## Per-Replication Options
 

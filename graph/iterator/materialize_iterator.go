@@ -17,7 +17,7 @@ package iterator
 // A simple iterator that, when first called Contains() or Next() upon, materializes the whole subiterator, stores it locally, and responds. Essentially a cache.
 
 import (
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 
 	"github.com/codelingo/cayley/graph"
 )
@@ -27,14 +27,6 @@ var abortMaterializeAt = 1000
 type result struct {
 	id   graph.Value
 	tags map[string]graph.Value
-}
-
-// Keyer provides a method for comparing types that are not otherwise comparable.
-// The Key method must return a dynamic type that is comparable according to the
-// Go language specification. The returned value must be unique for each receiver
-// value.
-type Keyer interface {
-	Key() interface{}
 }
 
 type Materialize struct {
@@ -166,10 +158,14 @@ func (it *Materialize) Optimize() (graph.Iterator, bool) {
 // Otherwise, guess based on the size of the subiterator.
 func (it *Materialize) Size() (int64, bool) {
 	if it.hasRun && !it.aborted {
-		glog.V(2).Infoln("returning size", it.actualSize)
+		if clog.V(2) {
+			clog.Infof("returning size %v", it.actualSize)
+		}
 		return it.actualSize, true
 	}
-	glog.V(2).Infoln("bailing size", it.actualSize)
+	if clog.V(2) {
+		clog.Infof("bailing size %v", it.actualSize)
+	}
 	return it.subIt.Size()
 }
 
@@ -198,7 +194,7 @@ func (it *Materialize) Next() bool {
 		return false
 	}
 	if it.aborted {
-		n := graph.Next(it.subIt)
+		n := it.subIt.Next()
 		it.err = it.subIt.Err()
 		return n
 	}
@@ -206,9 +202,9 @@ func (it *Materialize) Next() bool {
 	it.index++
 	it.subindex = 0
 	if it.index >= len(it.values) {
-		return graph.NextLogOut(it, nil, false)
+		return graph.NextLogOut(it, false)
 	}
-	return graph.NextLogOut(it, it.Result(), true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *Materialize) Err() error {
@@ -227,10 +223,7 @@ func (it *Materialize) Contains(v graph.Value) bool {
 	if it.aborted {
 		return it.subIt.Contains(v)
 	}
-	key := v
-	if h, ok := v.(Keyer); ok {
-		key = h.Key()
-	}
+	key := graph.ToKey(v)
 	if i, ok := it.containsMap[key]; ok {
 		it.index = i
 		it.subindex = 0
@@ -261,17 +254,14 @@ func (it *Materialize) NextPath() bool {
 
 func (it *Materialize) materializeSet() {
 	i := 0
-	for graph.Next(it.subIt) {
+	for it.subIt.Next() {
 		i++
 		if i > abortMaterializeAt {
 			it.aborted = true
 			break
 		}
 		id := it.subIt.Result()
-		val := id
-		if h, ok := id.(Keyer); ok {
-			val = h.Key()
-		}
+		val := graph.ToKey(id)
 		if _, ok := it.containsMap[val]; !ok {
 			it.containsMap[val] = len(it.values)
 			it.values = append(it.values, nil)
@@ -295,8 +285,8 @@ func (it *Materialize) materializeSet() {
 	}
 	it.err = it.subIt.Err()
 	if it.err == nil && it.aborted {
-		if glog.V(2) {
-			glog.V(2).Infoln("Aborting subiterator")
+		if clog.V(2) {
+			clog.Infof("Aborting subiterator")
 		}
 		it.values = nil
 		it.containsMap = nil
@@ -305,4 +295,4 @@ func (it *Materialize) materializeSet() {
 	it.hasRun = true
 }
 
-var _ graph.Nexter = &Materialize{}
+var _ graph.Iterator = &Materialize{}

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"unicode"
 
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 %%{
@@ -48,6 +48,8 @@ func Parse(statement string) (quad.Quad, error) {
 		predicate = -1
 		object    = -1
 		label     = -1
+
+		spec = -1
 
 		isEscaped bool
 		isQuoted  bool

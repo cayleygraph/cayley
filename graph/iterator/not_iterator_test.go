@@ -8,14 +8,14 @@ import (
 
 func TestNotIteratorBasics(t *testing.T) {
 	allIt := NewFixed(Identity)
-	allIt.Add(1)
-	allIt.Add(2)
-	allIt.Add(3)
-	allIt.Add(4)
+	allIt.Add(Int64Node(1))
+	allIt.Add(Int64Node(2))
+	allIt.Add(Int64Node(3))
+	allIt.Add(Int64Node(4))
 
 	toComplementIt := NewFixed(Identity)
-	toComplementIt.Add(2)
-	toComplementIt.Add(4)
+	toComplementIt.Add(Int64Node(2))
+	toComplementIt.Add(Int64Node(4))
 
 	not := NewNot(toComplementIt, allIt)
 
@@ -32,13 +32,13 @@ func TestNotIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{1, 3} {
-		if !not.Contains(v) {
+		if !not.Contains(Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as true", v)
 		}
 	}
 
 	for _, v := range []int{2, 4} {
-		if not.Contains(v) {
+		if not.Contains(Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as false", v)
 		}
 	}

@@ -153,10 +153,10 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 func (it *LinksTo) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
-	if graph.Next(it.nextIt) {
+	if it.nextIt.Next() {
 		it.runstats.ContainsNext += 1
 		it.result = it.nextIt.Result()
-		return graph.NextLogOut(it, it.nextIt, true)
+		return graph.NextLogOut(it, true)
 	}
 
 	// If there's an error in the 'next' iterator, we save it and we're done.
@@ -166,12 +166,12 @@ func (it *LinksTo) Next() bool {
 	}
 
 	// Subiterator is empty, get another one
-	if !graph.Next(it.primaryIt) {
+	if !it.primaryIt.Next() {
 		// Possibly save error
 		it.err = it.primaryIt.Err()
 
 		// We're out of nodes in our subiterator, so we're done as well.
-		return graph.NextLogOut(it, 0, false)
+		return graph.NextLogOut(it, false)
 	}
 	it.nextIt.Close()
 	it.nextIt = it.qs.QuadIterator(it.dir, it.primaryIt.Result())
@@ -234,4 +234,4 @@ func (it *LinksTo) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
 
-var _ graph.Nexter = &LinksTo{}
+var _ graph.Iterator = &LinksTo{}

@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/barakmich/glog"
 	"github.com/boltdb/bolt"
+	"github.com/codelingo/cayley/clog"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
@@ -27,6 +27,7 @@ import (
 )
 
 type AllIterator struct {
+	nodes  bool
 	uid    uint64
 	tags   graph.Tagger
 	bucket []byte
@@ -41,6 +42,7 @@ type AllIterator struct {
 
 func NewAllIterator(bucket []byte, d quad.Direction, qs *QuadStore) *AllIterator {
 	return &AllIterator{
+		nodes:  d == quad.Any,
 		uid:    iterator.NextUID(),
 		bucket: bucket,
 		dir:    d,
@@ -121,7 +123,7 @@ func (it *AllIterator) Next() bool {
 			return nil
 		})
 		if err != nil {
-			glog.Error("Error nexting in database: ", err)
+			clog.Errorf("Error nexting in database: %v", err)
 			it.err = err
 			it.done = true
 			return false
@@ -153,7 +155,7 @@ func (it *AllIterator) Result() graph.Value {
 	if it.buffer[it.offset] == nil {
 		return nil
 	}
-	return &Token{bucket: it.bucket, key: it.buffer[it.offset]}
+	return &Token{nodes: it.nodes, bucket: it.bucket, key: it.buffer[it.offset]}
 }
 
 func (it *AllIterator) NextPath() bool {
@@ -208,4 +210,4 @@ func (it *AllIterator) Stats() graph.IteratorStats {
 	}
 }
 
-var _ graph.Nexter = &AllIterator{}
+var _ graph.Iterator = &AllIterator{}

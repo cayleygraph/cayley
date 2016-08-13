@@ -15,261 +15,221 @@
 package gremlin
 
 import (
-	"encoding/json"
-
-	"github.com/barakmich/glog"
 	"github.com/robertkrimen/otto"
+	"golang.org/x/net/context"
 
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 const TopResultTag = "id"
 
-func (wk *worker) embedFinals(env *otto.Otto, obj *otto.Object) {
-	obj.Set("All", wk.allFunc(env, obj))
-	obj.Set("GetLimit", wk.limitFunc(env, obj))
-	obj.Set("ToArray", wk.toArrayFunc(env, obj, false))
-	obj.Set("ToValue", wk.toValueFunc(env, obj, false))
-	obj.Set("TagArray", wk.toArrayFunc(env, obj, true))
-	obj.Set("TagValue", wk.toValueFunc(env, obj, true))
-	obj.Set("Map", wk.mapFunc(env, obj))
-	obj.Set("ForEach", wk.mapFunc(env, obj))
+func (p *pathObject) getLimit(limit int) otto.Value {
+	it := p.buildIteratorTree()
+	it.Tagger().Add(TopResultTag)
+	p.wk.limit = limit
+	p.wk.count = 0
+	p.wk.runIterator(it)
+	return otto.NullValue()
 }
 
-func (wk *worker) allFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
-	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.qs)
-		it.Tagger().Add(TopResultTag)
-		wk.limit = -1
-		wk.count = 0
-		wk.runIterator(it)
+func (p *pathObject) All(call otto.FunctionCall) otto.Value {
+	return p.getLimit(-1)
+}
+
+func (p *pathObject) GetLimit(call otto.FunctionCall) otto.Value {
+	args := exportArgs(call.ArgumentList)
+	if len(args) != 1 {
 		return otto.NullValue()
 	}
+	return p.getLimit(toInt(args[0]))
 }
-
-func (wk *worker) limitFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
-	return func(call otto.FunctionCall) otto.Value {
-		if len(call.ArgumentList) > 0 {
-			limitVal, _ := call.Argument(0).ToInteger()
-			it := buildIteratorTree(obj, wk.qs)
-			it.Tagger().Add(TopResultTag)
-			wk.limit = int(limitVal)
-			wk.count = 0
-			wk.runIterator(it)
-		}
+func (p *pathObject) toArray(call otto.FunctionCall, withTags bool) otto.Value {
+	args := exportArgs(call.ArgumentList)
+	if len(args) > 1 {
 		return otto.NullValue()
 	}
-}
-
-func (wk *worker) toArrayFunc(env *otto.Otto, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
-	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.qs)
-		it.Tagger().Add(TopResultTag)
-		limit := -1
-		if len(call.ArgumentList) > 0 {
-			limitParsed, _ := call.Argument(0).ToInteger()
-			limit = int(limitParsed)
-		}
-		var val otto.Value
-		var err error
-		if !withTags {
-			array := wk.runIteratorToArrayNoTags(it, limit)
-			val, err = call.Otto.ToValue(array)
-		} else {
-			array := wk.runIteratorToArray(it, limit)
-			val, err = call.Otto.ToValue(array)
-		}
-
-		if err != nil {
-			glog.Error(err)
-			return otto.NullValue()
-		}
-		return val
+	limit := -1
+	if len(args) > 0 {
+		limit = toInt(args[0])
 	}
-}
-
-func (wk *worker) toValueFunc(env *otto.Otto, obj *otto.Object, withTags bool) func(otto.FunctionCall) otto.Value {
-	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.qs)
-		it.Tagger().Add(TopResultTag)
-		limit := 1
-		var val otto.Value
-		var err error
-		if !withTags {
-			array := wk.runIteratorToArrayNoTags(it, limit)
-			if len(array) < 1 {
-				return otto.NullValue()
-			}
-			val, err = call.Otto.ToValue(array[0])
-		} else {
-			array := wk.runIteratorToArray(it, limit)
-			if len(array) < 1 {
-				return otto.NullValue()
-			}
-			val, err = call.Otto.ToValue(array[0])
-		}
-		if err != nil {
-			glog.Error(err)
-			return otto.NullValue()
-		}
-		return val
+	it := p.buildIteratorTree()
+	it.Tagger().Add(TopResultTag)
+	var (
+		val otto.Value
+		err error
+	)
+	if !withTags {
+		array := p.wk.runIteratorToArrayNoTags(it, limit)
+		val, err = call.Otto.ToValue(array)
+	} else {
+		array := p.wk.runIteratorToArray(it, limit)
+		val, err = call.Otto.ToValue(array)
 	}
-}
-
-func (wk *worker) mapFunc(env *otto.Otto, obj *otto.Object) func(otto.FunctionCall) otto.Value {
-	return func(call otto.FunctionCall) otto.Value {
-		it := buildIteratorTree(obj, wk.qs)
-		it.Tagger().Add(TopResultTag)
-		limit := -1
-		if len(call.ArgumentList) == 0 {
-			return otto.NullValue()
-		}
-		callback := call.Argument(len(call.ArgumentList) - 1)
-		if len(call.ArgumentList) > 1 {
-			limitParsed, _ := call.Argument(0).ToInteger()
-			limit = int(limitParsed)
-		}
-		wk.runIteratorWithCallback(it, callback, call, limit)
+	if err != nil {
+		clog.Errorf("%v", err)
 		return otto.NullValue()
 	}
+	return val
+}
+func (p *pathObject) ToArray(call otto.FunctionCall) otto.Value {
+	return p.toArray(call, false)
+}
+func (p *pathObject) TagArray(call otto.FunctionCall) otto.Value {
+	return p.toArray(call, true)
+}
+func (p *pathObject) toValue(call otto.FunctionCall, withTags bool) otto.Value {
+	it := p.buildIteratorTree()
+	it.Tagger().Add(TopResultTag)
+	const limit = 1
+	var (
+		val otto.Value
+		err error
+	)
+	if !withTags {
+		array := p.wk.runIteratorToArrayNoTags(it, limit)
+		if len(array) < 1 {
+			return otto.NullValue()
+		}
+		val, err = call.Otto.ToValue(array[0])
+	} else {
+		array := p.wk.runIteratorToArray(it, limit)
+		if len(array) < 1 {
+			return otto.NullValue()
+		}
+		val, err = call.Otto.ToValue(array[0])
+	}
+	if err != nil {
+		clog.Errorf("%v", err)
+		return otto.NullValue()
+	}
+	return val
+}
+func (p *pathObject) ToValue(call otto.FunctionCall) otto.Value {
+	return p.toValue(call, false)
+}
+func (p *pathObject) TagValue(call otto.FunctionCall) otto.Value {
+	return p.toValue(call, true)
+}
+func (p *pathObject) Map(call otto.FunctionCall) otto.Value {
+	return p.ForEach(call)
+}
+func (p *pathObject) ForEach(call otto.FunctionCall) otto.Value {
+	it := p.buildIteratorTree()
+	it.Tagger().Add(TopResultTag)
+	limit := -1
+	if len(call.ArgumentList) == 0 {
+		return otto.NullValue()
+	}
+	callback := call.Argument(len(call.ArgumentList) - 1)
+	args := exportArgs(call.ArgumentList[:len(call.ArgumentList)-1])
+	if len(args) > 1 {
+		limit = toInt(args[0])
+	}
+	p.wk.runIteratorWithCallback(it, callback, call, limit)
+	return otto.NullValue()
 }
 
-func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]string {
-	outputMap := make(map[string]string)
+func quadValueToString(v quad.Value) string {
+	if s, ok := v.(quad.String); ok {
+		return string(s)
+	}
+	return quad.StringOf(v)
+}
+
+func quadValueToNative(v quad.Value) interface{} {
+	out := v.Native()
+	if nv, ok := out.(quad.Value); ok && v == nv {
+		return quad.StringOf(v)
+	}
+	return out
+}
+
+func (wk *worker) tagsToValueMap(m map[string]graph.Value) map[string]interface{} {
+	outputMap := make(map[string]interface{})
 	for k, v := range m {
-		outputMap[k] = wk.qs.NameOf(v)
+		outputMap[k] = quadValueToNative(wk.qs.NameOf(v))
 	}
 	return outputMap
 }
 
-func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]string {
-	output := make([]map[string]string, 0)
-	n := 0
-	it, _ = it.Optimize()
-	for {
-		select {
-		case <-wk.kill:
-			return nil
-		default:
-		}
-		if !graph.Next(it) {
-			break
-		}
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
-		output = append(output, wk.tagsToValueMap(tags))
-		n++
-		if limit >= 0 && n >= limit {
-			break
-		}
-		for it.NextPath() {
+func (wk *worker) newContext() (context.Context, func()) {
+	rctx := context.TODO()
+	kill := wk.kill
+	ctx, cancel := context.WithCancel(rctx)
+	if kill != nil {
+		go func() {
 			select {
-			case <-wk.kill:
-				return nil
-			default:
+			case <-ctx.Done():
+			case <-kill:
+				cancel()
 			}
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			output = append(output, wk.tagsToValueMap(tags))
-			n++
-			if limit >= 0 && n >= limit {
-				break
-			}
-		}
+		}()
 	}
-	it.Close()
+	return ctx, cancel
+}
+
+func (wk *worker) runIteratorToArray(it graph.Iterator, limit int) []map[string]interface{} {
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
+	output := make([]map[string]interface{}, 0)
+	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+		output = append(output, wk.tagsToValueMap(tags))
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
+	}
 	return output
 }
 
-func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []string {
-	output := make([]string, 0)
-	n := 0
-	it, _ = it.Optimize()
-	for {
-		select {
-		case <-wk.kill:
-			return nil
-		default:
-		}
-		if !graph.Next(it) {
-			break
-		}
-		output = append(output, wk.qs.NameOf(it.Result()))
-		n++
-		if limit >= 0 && n >= limit {
-			break
-		}
+func (wk *worker) runIteratorToArrayNoTags(it graph.Iterator, limit int) []interface{} {
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
+	output := make([]interface{}, 0)
+	err := graph.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(wk.qs, func(v quad.Value) {
+		output = append(output, quadValueToNative(v))
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
 	}
-	it.Close()
 	return output
 }
 
 func (wk *worker) runIteratorWithCallback(it graph.Iterator, callback otto.Value, this otto.FunctionCall, limit int) {
-	n := 0
-	it, _ = it.Optimize()
-	if glog.V(2) {
-		b, err := json.MarshalIndent(it.Describe(), "", "  ")
-		if err != nil {
-			glog.V(2).Infof("failed to format description: %v", err)
-		} else {
-			glog.V(2).Infof("%s", b)
-		}
-	}
-	for {
-		select {
-		case <-wk.kill:
-			return
-		default:
-		}
-		if !graph.Next(it) {
-			break
-		}
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
+	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		val, _ := this.Otto.ToValue(wk.tagsToValueMap(tags))
 		val, _ = callback.Call(this.This, val)
-		n++
-		if limit >= 0 && n >= limit {
-			break
-		}
-		for it.NextPath() {
-			select {
-			case <-wk.kill:
-				return
-			default:
-			}
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			val, _ := this.Otto.ToValue(wk.tagsToValueMap(tags))
-			val, _ = callback.Call(this.This, val)
-			n++
-			if limit >= 0 && n >= limit {
-				break
-			}
-		}
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
 	}
-	it.Close()
 }
 
-func (wk *worker) send(r *Result) bool {
-	if wk.limit >= 0 && wk.limit == wk.count {
+func (wk *worker) send(ctx context.Context, r *Result) bool {
+	if wk.limit >= 0 && wk.count >= wk.limit {
 		return false
+	}
+	if wk.results == nil {
+		return false
+	}
+	done := wk.kill
+	if ctx != nil {
+		done = ctx.Done()
 	}
 	select {
-	case <-wk.kill:
+	case wk.results <- r:
+	case <-done:
 		return false
-	default:
 	}
-	if wk.results != nil {
-		wk.results <- r
-		wk.count++
-		if wk.limit >= 0 && wk.limit == wk.count {
-			return false
-		}
-		return true
-	}
-	return false
+	wk.count++
+	return wk.limit < 0 || wk.count < wk.limit
 }
 
 func (wk *worker) runIterator(it graph.Iterator) {
@@ -277,45 +237,16 @@ func (wk *worker) runIterator(it graph.Iterator) {
 		iterator.OutputQueryShapeForIterator(it, wk.qs, wk.shape)
 		return
 	}
-	it, _ = it.Optimize()
-	if glog.V(2) {
-		b, err := json.MarshalIndent(it.Describe(), "", "  ")
-		if err != nil {
-			glog.V(2).Infof("failed to format description: %v", err)
-		} else {
-			glog.V(2).Infof("%s", b)
+
+	ctx, cancel := wk.newContext()
+	defer cancel()
+
+	err := graph.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Value) {
+		if !wk.send(ctx, &Result{actualResults: tags}) {
+			cancel()
 		}
+	})
+	if err != nil {
+		clog.Errorf("gremlin: %v", err)
 	}
-	for {
-		select {
-		case <-wk.kill:
-			return
-		default:
-		}
-		if !graph.Next(it) {
-			break
-		}
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
-		if !wk.send(&Result{actualResults: tags}) {
-			break
-		}
-		for it.NextPath() {
-			select {
-			case <-wk.kill:
-				return
-			default:
-			}
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			if !wk.send(&Result{actualResults: tags}) {
-				break
-			}
-		}
-	}
-	if glog.V(2) {
-		bytes, _ := json.MarshalIndent(graph.DumpStats(it), "", "  ")
-		glog.V(2).Infoln(string(bytes))
-	}
-	it.Close()
 }

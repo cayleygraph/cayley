@@ -14,20 +14,25 @@
 
 package path
 
-import "github.com/codelingo/cayley/graph"
+import (
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
+	"golang.org/x/net/context"
+)
 
-type applyMorphism func(graph.QuadStore, graph.Iterator, *context) (graph.Iterator, *context)
+type applyMorphism func(graph.QuadStore, graph.Iterator, *pathContext) (graph.Iterator, *pathContext)
 
 type morphism struct {
 	Name     string
-	Reversal func(*context) (morphism, *context)
+	Reversal func(*pathContext) (morphism, *pathContext)
 	Apply    applyMorphism
 	tags     []string
 }
 
-// context allows a high-level change to the way paths are constructed. Some
+// pathContext allows a high-level change to the way paths are constructed. Some
 // functions may change the context, causing following chained calls to act
-// cdifferently.
+// differently.
 //
 // In a sense, this is a global state which can be changed as the path
 // continues. And as with dealing with any global state, care should be taken:
@@ -41,7 +46,9 @@ type morphism struct {
 // then yield a pointer to their own member context as the return value.
 //
 // For more examples, look at the morphisms which claim the individual fields.
-type context struct {
+type pathContext struct {
+	// TODO(dennwc): replace with net/context?
+
 	// Represents the path to the limiting set of labels that should be considered under traversal.
 	// inMorphism, outMorphism, et al should constrain edges by this set.
 	// A nil in this field represents all labels.
@@ -50,8 +57,8 @@ type context struct {
 	labelSet *Path
 }
 
-func (c context) copy() context {
-	return context{
+func (c pathContext) copy() pathContext {
+	return pathContext{
 		labelSet: c.labelSet,
 	}
 }
@@ -61,19 +68,19 @@ func (c context) copy() context {
 type Path struct {
 	stack       []morphism
 	qs          graph.QuadStore // Optionally. A nil qs is equivalent to a morphism.
-	baseContext context
+	baseContext pathContext
 }
 
 // IsMorphism returns whether this Path is a morphism.
 func (p *Path) IsMorphism() bool { return p.qs == nil }
 
 // StartMorphism creates a new Path with no underlying QuadStore.
-func StartMorphism(nodes ...string) *Path {
+func StartMorphism(nodes ...quad.Value) *Path {
 	return StartPath(nil, nodes...)
 }
 
 // StartPath creates a new Path from a set of nodes and an underlying QuadStore.
-func StartPath(qs graph.QuadStore, nodes ...string) *Path {
+func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 	return &Path{
 		stack: []morphism{
 			isMorphism(nodes...),
@@ -98,6 +105,16 @@ func NewPath(qs graph.QuadStore) *Path {
 	}
 }
 
+// Clone returns a clone of the current path.
+func (p *Path) Clone() *Path {
+	stack := p.stack
+	return &Path{
+		stack:       stack[:len(stack):len(stack)],
+		qs:          p.qs,
+		baseContext: p.baseContext,
+	}
+}
+
 // Reverse returns a new Path that is the reverse of the current one.
 func (p *Path) Reverse() *Path {
 	newPath := NewPath(p.qs)
@@ -112,8 +129,14 @@ func (p *Path) Reverse() *Path {
 
 // Is declares that the current nodes in this path are only the nodes
 // passed as arguments.
-func (p *Path) Is(nodes ...string) *Path {
+func (p *Path) Is(nodes ...quad.Value) *Path {
 	p.stack = append(p.stack, isMorphism(nodes...))
+	return p
+}
+
+// Filter represents the nodes that are passing comparison with provided value.
+func (p *Path) Filter(op iterator.Operator, node quad.Value) *Path {
+	p.stack = append(p.stack, cmpMorphism(op, node))
 	return p
 }
 
@@ -278,7 +301,7 @@ func (p *Path) SaveOptionalReverse(via interface{}, tag string) *Path {
 
 // Has limits the paths to be ones where the current nodes have some linkage
 // to some known node.
-func (p *Path) Has(via interface{}, nodes ...string) *Path {
+func (p *Path) Has(via interface{}, nodes ...quad.Value) *Path {
 	p.stack = append(p.stack, hasMorphism(via, nodes...))
 	return p
 }
@@ -294,6 +317,11 @@ func (p *Path) HasRegex(via interface{}, pattern string) *Path {
 // to a node satisfying a numeric comparison.
 func (p *Path) HasComparison(via interface{}, operator string, number float64) *Path {
 	p.stack = append(p.stack, hasComparisonMorphism(via, operator, number))
+
+// HasReverse limits the paths to be ones where some known node have some linkage
+// to the current nodes.
+func (p *Path) HasReverse(via interface{}, nodes ...quad.Value) *Path {
+	p.stack = append(p.stack, hasReverseMorphism(via, nodes...))
 	return p
 }
 
@@ -371,12 +399,19 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 	}
 }
 
-func (p *Path) Clone() *Path {
-	stack := make([]morphism, len(p.stack))
-	copy(stack, p.stack)
-	return &Path{
-		stack:       stack,
-		qs:          p.qs,
-		baseContext: p.baseContext,
-	}
+// Skip will omit a number of values from result set.
+func (p *Path) Skip(v int64) *Path {
+	p.stack = append(p.stack, skipMorphism(v))
+	return p
+}
+
+// Limit will limit a number of values in result set.
+func (p *Path) Limit(v int64) *Path {
+	p.stack = append(p.stack, limitMorphism(v))
+	return p
+}
+
+// Iterate is an shortcut for graph.Iterate.
+func (p *Path) Iterate(ctx context.Context) *graph.IterateChain {
+	return graph.Iterate(ctx, p.BuildIterator()).On(p.qs)
 }

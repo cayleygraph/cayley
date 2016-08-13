@@ -21,7 +21,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
+	_ "github.com/codelingo/cayley/clog/glog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/internal/config"
 
@@ -43,7 +44,7 @@ func configFrom(file string) *config.Config {
 	// Find the file...
 	if file != "" {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
-			glog.Fatalln("Cannot find specified configuration file", file, ", aborting.")
+			clog.Fatalf("Cannot find specified configuration file '%s', aborting.", file)
 		}
 	} else if _, err := os.Stat(os.Getenv("CAYLEY_CFG")); err == nil {
 		file = os.Getenv("CAYLEY_CFG")
@@ -51,11 +52,11 @@ func configFrom(file string) *config.Config {
 		file = "/etc/cayley.cfg"
 	}
 	if file == "" {
-		glog.Infoln("Couldn't find a config file in either $CAYLEY_CFG or /etc/cayley.cfg. Going by flag defaults only.")
+		clog.Infof("Couldn't find a config file in either $CAYLEY_CFG or /etc/cayley.cfg. Going by flag defaults only.")
 	}
 	cfg, err := config.Load(file)
 	if err != nil {
-		glog.Fatalln(err)
+		clog.Fatalf("%v", err)
 	}
 	if cfg.DatabasePath == "" {
 		cfg.DatabasePath = *databasePath

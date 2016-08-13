@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"unicode"
 
-	"github.com/google/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 %%{

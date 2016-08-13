@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/quad"
 )
@@ -36,31 +36,8 @@ func newTableName() string {
 }
 
 type constraint struct {
-	dir  quad.Direction
-	vals []string
-}
-
-type tagDir struct {
-	tag       string
-	dir       quad.Direction
-	table     string
-	justLocal bool
-}
-
-func (t tagDir) String() string {
-	if t.dir == quad.Any {
-		if t.justLocal {
-			return fmt.Sprintf("%s.__execd as \"%s\", %s.__execd_hash as %s_hash", t.table, t.tag, t.table, t.tag)
-		}
-		return fmt.Sprintf("%s.\"%s\" as \"%s\", %s.%s_hash as %s_hash", t.table, t.tag, t.tag, t.table, t.tag, t.tag)
-	}
-	return fmt.Sprintf("%s.%s as \"%s\", %s.%s_hash as %s_hash", t.table, t.dir, t.tag, t.table, t.dir, t.tag)
-}
-
-type tableDef struct {
-	table  string
-	name   string
-	values []string
+	dir    quad.Direction
+	hashes []NodeHash
 }
 
 type sqlItDir struct {
@@ -68,25 +45,7 @@ type sqlItDir struct {
 	it  sqlIterator
 }
 
-type sqlIterator interface {
-	sqlClone() sqlIterator
-
-	buildSQL(next bool, val graph.Value) (string, []string)
-	getTables() []tableDef
-	getTags() []tagDir
-	buildWhere() (string, []string)
-	tableID() tagDir
-
-	quickContains(graph.Value) (ok bool, result bool)
-	buildResult(result []string, cols []string) map[string]string
-	sameTopResult(target []string, test []string) bool
-
-	Result() graph.Value
-	Size(*QuadStore) (int64, bool)
-	Describe() string
-	Type() sqlQueryType
-	Tagger() *graph.Tagger
-}
+var _ sqlIterator = (*SQLLinkIterator)(nil)
 
 type SQLLinkIterator struct {
 	tagger graph.Tagger
@@ -97,7 +56,7 @@ type SQLLinkIterator struct {
 	size        int64
 	tagdirs     []tagDir
 
-	resultQuad quad.Quad
+	resultQuad QuadHashes
 }
 
 func (l *SQLLinkIterator) sqlClone() sqlIterator {
@@ -132,7 +91,7 @@ func (l *SQLLinkIterator) Size(qs *QuadStore) (int64, bool) {
 		return l.size, true
 	}
 	if len(l.constraints) > 0 {
-		l.size = qs.sizeForIterator(false, l.constraints[0].dir, l.constraints[0].vals[0])
+		l.size = qs.sizeForIterator(false, l.constraints[0].dir, l.constraints[0].hashes[0])
 	} else if len(l.nodeIts) > 1 {
 		subsize, _ := l.nodeIts[0].it.(*SQLNodeIterator).Size(qs)
 		return subsize * 20, false
@@ -154,8 +113,8 @@ func (l *SQLLinkIterator) Type() sqlQueryType {
 func (l *SQLLinkIterator) quickContains(v graph.Value) (bool, bool) {
 	for _, c := range l.constraints {
 		none := true
-		desired := v.(quad.Quad).Get(c.dir)
-		for _, s := range c.vals {
+		desired := v.(QuadHashes).Get(c.dir)
+		for _, s := range c.hashes {
 			if s == desired {
 				none = false
 				break
@@ -171,16 +130,16 @@ func (l *SQLLinkIterator) quickContains(v graph.Value) (bool, bool) {
 	return false, false
 }
 
-func (l *SQLLinkIterator) buildResult(result []string, cols []string) map[string]string {
-	var q quad.Quad
-	q.Subject = result[0]
-	q.Predicate = result[1]
-	q.Object = result[2]
-	q.Label = result[3]
-	l.resultQuad = q
-	m := make(map[string]string)
+func (l *SQLLinkIterator) buildResult(result []NodeHash, cols []string) map[string]graph.Value {
+	l.resultQuad = QuadHashes{
+		result[0],
+		result[1],
+		result[2],
+		result[3],
+	}
+	m := make(map[string]graph.Value)
 	for i, c := range cols[4:] {
-		m[c] = result[i+4]
+		m[c] = NodeHash(result[i+4])
 	}
 	return m
 }
@@ -216,19 +175,19 @@ func (l *SQLLinkIterator) getTags() []tagDir {
 	return out
 }
 
-func (l *SQLLinkIterator) buildWhere() (string, []string) {
+func (l *SQLLinkIterator) buildWhere() (string, sqlArgs) {
 	var q []string
-	var vals []string
+	var vals sqlArgs
 	for _, c := range l.constraints {
-		if len(c.vals) == 1 {
+		if len(c.hashes) == 1 {
 			q = append(q, fmt.Sprintf("%s.%s_hash = ?", l.tableName, c.dir))
-			vals = append(vals, hashOf(c.vals[0]))
-		} else if len(c.vals) > 1 {
-			valslots := strings.Join(strings.Split(strings.Repeat("?", len(c.vals)), ""), ", ")
+			vals = append(vals, c.hashes[0].toSQL())
+		} else if len(c.hashes) > 1 {
+			valslots := strings.Join(strings.Split(strings.Repeat("?", len(c.hashes)), ""), ", ")
 			subq := fmt.Sprintf("%s.%s_hash IN (%s)", l.tableName, c.dir, valslots)
 			q = append(q, subq)
-			for _, v := range c.vals {
-				vals = append(vals, hashOf(v))
+			for _, v := range c.hashes {
+				vals = append(vals, v.toSQL())
 			}
 		}
 	}
@@ -237,8 +196,10 @@ func (l *SQLLinkIterator) buildWhere() (string, []string) {
 		dir := t.dir.String()
 		if t.dir == quad.Any {
 			dir = t.tag
+		} else {
+			dir += "_hash"
 		}
-		q = append(q, fmt.Sprintf("%s.%s_hash = %s.%s_hash", l.tableName, i.dir, t.table, dir))
+		q = append(q, fmt.Sprintf("%s.%s_hash = %s.%s", l.tableName, i.dir, t.table, dir))
 	}
 	for _, i := range l.nodeIts {
 		s, v := i.it.buildWhere()
@@ -256,13 +217,13 @@ func (l *SQLLinkIterator) tableID() tagDir {
 	}
 }
 
-func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string) {
+func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs) {
 	query := "SELECT "
 	t := []string{
-		fmt.Sprintf("%s.subject", l.tableName),
-		fmt.Sprintf("%s.predicate", l.tableName),
-		fmt.Sprintf("%s.object", l.tableName),
-		fmt.Sprintf("%s.label", l.tableName),
+		fmt.Sprintf("%s.subject_hash AS subject", l.tableName),
+		fmt.Sprintf("%s.predicate_hash AS predicate", l.tableName),
+		fmt.Sprintf("%s.object_hash AS object", l.tableName),
+		fmt.Sprintf("%s.label_hash AS label", l.tableName),
 	}
 	for _, v := range l.getTags() {
 		t = append(t, v.String())
@@ -270,7 +231,7 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 	query += strings.Join(t, ", ")
 	query += " FROM "
 	t = []string{}
-	var values []string
+	var values sqlArgs
 	for _, k := range l.getTables() {
 		values = append(values, k.values...)
 		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
@@ -283,7 +244,7 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 
 	values = append(values, wherevalues...)
 	if !next {
-		v := val.(quad.Quad)
+		h := val.(QuadHashes)
 		if constraint != "" {
 			constraint += " AND "
 		} else {
@@ -296,24 +257,24 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, []string
 			fmt.Sprintf("%s.label_hash = ?", l.tableName),
 		}
 		constraint += strings.Join(t, " AND ")
-		values = append(values, hashOf(v.Subject))
-		values = append(values, hashOf(v.Predicate))
-		values = append(values, hashOf(v.Object))
-		values = append(values, hashOf(v.Label))
+		values = append(values, h[0].toSQL())
+		values = append(values, h[1].toSQL())
+		values = append(values, h[2].toSQL())
+		values = append(values, h[3].toSQL())
 	}
 	query += constraint
 	query += ";"
 
-	if glog.V(4) {
+	if clog.V(4) {
 		dstr := query
 		for i := 1; i <= len(values); i++ {
 			dstr = strings.Replace(dstr, "?", fmt.Sprintf("'%s'", values[i-1]), 1)
 		}
-		glog.V(4).Infoln(dstr)
+		clog.Infof("%v", dstr)
 	}
 	return query, values
 }
 
-func (l *SQLLinkIterator) sameTopResult(target []string, test []string) bool {
+func (l *SQLLinkIterator) sameTopResult(target []NodeHash, test []NodeHash) bool {
 	return target[0] == test[0] && target[1] == test[1] && target[2] == test[2] && target[3] == test[3]
 }

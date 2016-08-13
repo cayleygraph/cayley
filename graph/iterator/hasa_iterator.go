@@ -34,7 +34,7 @@ package iterator
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
 import (
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/quad"
@@ -146,8 +146,8 @@ func (it *HasA) Describe() graph.Description {
 func (it *HasA) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
-	if glog.V(4) {
-		glog.V(4).Infoln("Id is", it.qs.NameOf(val))
+	if clog.V(4) {
+		clog.Infof("Id is %v", it.qs.NameOf(val))
 	}
 	// TODO(barakmich): Optimize this
 	if it.resultIt != nil {
@@ -165,11 +165,11 @@ func (it *HasA) Contains(val graph.Value) bool {
 // result iterator (a quad iterator based on the last checked value) and returns true if
 // another match is made.
 func (it *HasA) NextContains() bool {
-	for graph.Next(it.resultIt) {
+	for it.resultIt.Next() {
 		it.runstats.ContainsNext += 1
 		link := it.resultIt.Result()
-		if glog.V(4) {
-			glog.V(4).Infoln("Quad is", it.qs.Quad(link))
+		if clog.V(4) {
+			clog.Infof("Quad is %v", it.qs.Quad(link))
 		}
 		if it.primaryIt.Contains(link) {
 			it.result = it.qs.QuadDirection(link, it.dir)
@@ -188,7 +188,9 @@ func (it *HasA) NextPath() bool {
 	//
 	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
-	glog.V(4).Infoln("HASA", it.UID(), "NextPath")
+	if clog.V(4) {
+		clog.Infof("HASA %v NextPath", it.UID())
+	}
 	if it.primaryIt.NextPath() {
 		return true
 	}
@@ -201,7 +203,9 @@ func (it *HasA) NextPath() bool {
 	if it.err != nil {
 		return false
 	}
-	glog.V(4).Infoln("HASA", it.UID(), "NextPath Returns", result, "")
+	if clog.V(4) {
+		clog.Infof("HASA %v NextPath Returns %v", it.UID(), result)
+	}
 	return result
 }
 
@@ -216,14 +220,14 @@ func (it *HasA) Next() bool {
 	}
 	it.resultIt = &Null{}
 
-	if !graph.Next(it.primaryIt) {
+	if !it.primaryIt.Next() {
 		it.err = it.primaryIt.Err()
-		return graph.NextLogOut(it, 0, false)
+		return graph.NextLogOut(it, false)
 	}
 	tID := it.primaryIt.Result()
 	val := it.qs.QuadDirection(tID, it.dir)
 	it.result = val
-	return graph.NextLogOut(it, val, true)
+	return graph.NextLogOut(it, true)
 }
 
 func (it *HasA) Err() error {
@@ -280,4 +284,4 @@ func (it *HasA) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
 
-var _ graph.Nexter = &HasA{}
+var _ graph.Iterator = &HasA{}

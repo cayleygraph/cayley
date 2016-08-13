@@ -222,6 +222,56 @@ g.V("dani").Out("follows").LabelContext("smart_graph").Out("status")
 g.V().LabelContext("smart_graph").In("status").LabelContext(null).In("follows")
 ```
 
+####**`path.Limit(limit)`**
+
+Arguments:
+
+  * `limit`: A number of nodes to limit results to.
+
+Limits a number of nodes for current path.
+
+Example:
+```javascript
+// Start from all nodes that follow bob, and limit them to 2 nodes -- results in alice and charlie
+g.V().Has("follows", "bob").Limit(2)
+```
+
+####**`path.Skip(offset)`**
+
+Arguments:
+
+  * `offset`: A number of nodes to skip.
+
+Skips a number of nodes for current path.
+
+Example:
+```javascript
+// Start from all nodes that follow bob, and skip 2 nodes -- results in dani
+g.V().Has("follows", "bob").Skip(2)
+```
+
+####**`path.InPredicates()`**
+
+Get the list of predicates that are pointing in to a node
+
+Example:
+```javascript
+// bob only has "follows" predicates pointing inward
+// returns "follows"
+g.V("bob").InPredicates()
+```
+
+####**`path.OutPredicates()`**
+
+Get the list of predicates that are pointing out from a node
+
+Example:
+```javascript
+// bob has "follows" and "status" edges pointing outwards
+// returns "follows", "status"
+g.V("bob").OutPredicates()
+```
+
 ### Tagging
 
 ####**`path.Tag(tag)`**

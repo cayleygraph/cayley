@@ -3,12 +3,13 @@ language: go
 sudo: false
 
 go:
-  - 1.4
   - 1.5
+  - 1.6
   - tip
 
 install:
   # Install our tracked dependencies
+  - go get -t ./...
   - go get github.com/tools/godep
   - godep restore
 
@@ -17,9 +18,13 @@ install:
   - wget https://storage.googleapis.com/appengine-sdks/featured/go_appengine_sdk_linux_amd64-1.9.23.zip
   - unzip -q go_appengine_sdk_linux_amd64-1.9.23.zip
   - export PATH=$PATH:$PWD/go_appengine/
+  - $PWD/go_appengine/goapp get github.com/stretchr/testify/require
   - cd cayley
 
 script:
   - go test -v ./...
   - goapp test -v ./graph/gaedatastore
 
+matrix:
+  allow_failures:
+    - go: tip

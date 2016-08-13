@@ -18,12 +18,14 @@ package gaedatastore
 
 import (
 	"fmt"
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/graph/iterator"
-	"github.com/google/cayley/quad"
+
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
+
+	"github.com/codelingo/cayley/clog"
 
 	"appengine/datastore"
-	"github.com/barakmich/glog"
 )
 
 type Iterator struct {
@@ -51,28 +53,28 @@ var (
 func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Value) *Iterator {
 	t := val.(*Token)
 	if t == nil {
-		glog.Error("Token == nil")
+		clog.Errorf("Token == nil")
 	}
 	if t.Kind != nodeKind {
-		glog.Error("Cannot create an iterator from a non-node value")
+		clog.Errorf("Cannot create an iterator from a non-node value")
 		return &Iterator{done: true}
 	}
 	if k != nodeKind && k != quadKind {
-		glog.Error("Cannot create iterator for unknown kind")
+		clog.Errorf("Cannot create iterator for unknown kind")
 		return &Iterator{done: true}
 	}
 	if qs.context == nil {
-		glog.Error("Cannot create iterator without a valid context")
+		clog.Errorf("Cannot create iterator without a valid context")
 		return &Iterator{done: true}
 	}
-	name := qs.NameOf(t)
+	name := quad.StringOf(qs.NameOf(t))
 
 	// The number of references to this node is held in the nodes entity
 	key := qs.createKeyFromToken(t)
 	foundNode := new(NodeEntry)
 	err := datastore.Get(qs.context, key, foundNode)
 	if err != nil && err != datastore.ErrNoSuchEntity {
-		glog.Errorf("Error: %v", err)
+		clog.Errorf("Error: %v", err)
 		return &Iterator{done: true}
 	}
 	size := foundNode.Size
@@ -92,11 +94,11 @@ func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Value) *It
 
 func NewAllIterator(qs *QuadStore, kind string) *Iterator {
 	if kind != nodeKind && kind != quadKind {
-		glog.Error("Cannot create iterator for an unknown kind")
+		clog.Errorf("Cannot create iterator for an unknown kind")
 		return &Iterator{done: true}
 	}
 	if qs.context == nil {
-		glog.Error("Cannot create iterator without a valid context")
+		clog.Errorf("Cannot create iterator without a valid context")
 		return &Iterator{done: true}
 	}
 
@@ -151,11 +153,11 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	}
 	t := v.(*Token)
 	if t == nil {
-		glog.Error("Could not cast to token")
+		clog.Errorf("Could not cast to token")
 		return graph.ContainsLogOut(it, v, false)
 	}
 	if t.Kind == nodeKind {
-		glog.Error("Contains does not work with node values")
+		clog.Errorf("Contains does not work with node values")
 		return graph.ContainsLogOut(it, v, false)
 	}
 	// Contains is for when you want to know that an iterator refers to a quad
@@ -164,13 +166,13 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	case quad.Subject:
 		offset = 0
 	case quad.Predicate:
-		offset = (hashSize * 2)
+		offset = (quad.HashSize * 2)
 	case quad.Object:
-		offset = (hashSize * 2) * 2
+		offset = (quad.HashSize * 2) * 2
 	case quad.Label:
-		offset = (hashSize * 2) * 3
+		offset = (quad.HashSize * 2) * 3
 	}
-	val := t.Hash[offset : offset+(hashSize*2)]
+	val := t.Hash[offset : offset+(quad.HashSize*2)]
 	if val == it.hash {
 		return graph.ContainsLogOut(it, v, true)
 	}
@@ -264,7 +266,7 @@ func (it *Iterator) Next() bool {
 			break
 		}
 		if err != nil {
-			glog.Errorf("Error fetching next entry %v", err)
+			clog.Errorf("Error fetching next entry %v", err)
 			it.err = err
 			return false
 		}
@@ -279,7 +281,7 @@ func (it *Iterator) Next() bool {
 	}
 	// Protect against bad queries
 	if it.done && len(it.buffer) == 0 {
-		glog.Warningf("Query did not return any results")
+		clog.Warningf("Query did not return any results")
 		return false
 	}
 	// First result
@@ -301,8 +303,13 @@ func init() {
 	gaedatastoreType = graph.RegisterIterator("gaedatastore")
 }
 
-func Type() graph.Type                                { return gaedatastoreType }
-func (it *Iterator) Type() graph.Type                 { return gaedatastoreType }
+func Type() graph.Type { return gaedatastoreType }
+func (it *Iterator) Type() graph.Type {
+	if it.isAll {
+		return graph.All
+	}
+	return gaedatastoreType
+}
 func (it *Iterator) Sorted() bool                     { return false }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) Describe() graph.Description {
@@ -327,4 +334,4 @@ func (it *Iterator) Stats() graph.IteratorStats {
 	}
 }
 
-var _ graph.Nexter = &Iterator{}
+var _ graph.Iterator = &Iterator{}

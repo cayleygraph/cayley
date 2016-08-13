@@ -19,8 +19,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/barakmich/glog"
+	"golang.org/x/net/context"
 
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/query"
@@ -70,7 +71,7 @@ func (s *Session) Parse(input string) (query.ParseResult, error) {
 	return query.Parsed, nil
 }
 
-func (s *Session) Execute(input string, c chan interface{}, _ int) {
+func (s *Session) Execute(input string, c chan interface{}, limit int) {
 	defer close(c)
 	var mqlQuery interface{}
 	err := json.Unmarshal([]byte(input), &mqlQuery)
@@ -82,29 +83,21 @@ func (s *Session) Execute(input string, c chan interface{}, _ int) {
 	if s.currentQuery.isError() {
 		return
 	}
-	it, _ := s.currentQuery.it.Optimize()
-	if glog.V(2) {
-		b, err := json.MarshalIndent(it.Describe(), "", "  ")
-		if err != nil {
-			glog.Infof("failed to format description: %v", err)
-		} else {
-			glog.Infof("%s", b)
-		}
-	}
-	for graph.Next(it) {
-		tags := make(map[string]graph.Value)
-		it.TagResults(tags)
+
+	it := s.currentQuery.it
+	err = graph.Iterate(context.TODO(), it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
 		c <- tags
-		for it.NextPath() == true {
-			tags := make(map[string]graph.Value)
-			it.TagResults(tags)
-			c <- tags
-		}
+	})
+	if err != nil {
+		clog.Errorf("mql: %v", err)
 	}
 }
 
 func (s *Session) Format(result interface{}) string {
-	tags := result.(map[string]graph.Value)
+	tags, ok := result.(map[string]graph.Value)
+	if !ok {
+		return ""
+	}
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
 	s.currentQuery.treeifyResult(tags)
@@ -127,7 +120,11 @@ func (s *Session) Format(result interface{}) string {
 }
 
 func (s *Session) Collate(result interface{}) {
-	s.currentQuery.treeifyResult(result.(map[string]graph.Value))
+	res, ok := result.(map[string]graph.Value)
+	if !ok {
+		return
+	}
+	s.currentQuery.treeifyResult(res)
 }
 
 func (s *Session) Results() (interface{}, error) {

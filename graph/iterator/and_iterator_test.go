@@ -28,7 +28,7 @@ func TestTag(t *testing.T) {
 		iter: NewFixed(Identity),
 	}
 	fix1 := NewFixed(Identity)
-	fix1.Add(234)
+	fix1.Add(Int64Node(234))
 	fix1.Tagger().Add("foo")
 	and := NewAnd(qs)
 	and.AddSubIterator(fix1)
@@ -45,15 +45,15 @@ func TestTag(t *testing.T) {
 		t.Errorf("And did not next")
 	}
 	val := and.Result()
-	if val != 234 {
+	if val.(Int64Node) != 234 {
 		t.Errorf("Unexpected value")
 	}
 	tags := make(map[string]graph.Value)
 	and.TagResults(tags)
-	if tags["bar"] != 234 {
+	if tags["bar"].(Int64Node) != 234 {
 		t.Errorf("no bar tag")
 	}
-	if tags["foo"] != 234 {
+	if tags["foo"].(Int64Node) != 234 {
 		t.Errorf("no foo tag")
 	}
 }
@@ -65,14 +65,14 @@ func TestAndAndFixedIterators(t *testing.T) {
 		iter: NewFixed(Identity),
 	}
 	fix1 := NewFixed(Identity)
-	fix1.Add(1)
-	fix1.Add(2)
-	fix1.Add(3)
-	fix1.Add(4)
+	fix1.Add(Int64Node(1))
+	fix1.Add(Int64Node(2))
+	fix1.Add(Int64Node(3))
+	fix1.Add(Int64Node(4))
 	fix2 := NewFixed(Identity)
-	fix2.Add(3)
-	fix2.Add(4)
-	fix2.Add(5)
+	fix2.Add(Int64Node(3))
+	fix2.Add(Int64Node(4))
+	fix2.Add(Int64Node(5))
 	and := NewAnd(qs)
 	and.AddSubIterator(fix1)
 	and.AddSubIterator(fix2)
@@ -85,11 +85,11 @@ func TestAndAndFixedIterators(t *testing.T) {
 		t.Error("not accurate")
 	}
 
-	if !and.Next() || and.Result() != 3 {
+	if !and.Next() || and.Result().(Int64Node) != 3 {
 		t.Error("Incorrect first value")
 	}
 
-	if !and.Next() || and.Result() != 4 {
+	if !and.Next() || and.Result().(Int64Node) != 4 {
 		t.Error("Incorrect second value")
 	}
 
@@ -107,14 +107,14 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 		iter: NewFixed(Identity),
 	}
 	fix1 := NewFixed(Identity)
-	fix1.Add(1)
-	fix1.Add(2)
-	fix1.Add(3)
-	fix1.Add(4)
+	fix1.Add(Int64Node(1))
+	fix1.Add(Int64Node(2))
+	fix1.Add(Int64Node(3))
+	fix1.Add(Int64Node(4))
 	fix2 := NewFixed(Identity)
-	fix2.Add(5)
-	fix2.Add(6)
-	fix2.Add(7)
+	fix2.Add(Int64Node(5))
+	fix2.Add(Int64Node(6))
+	fix2.Add(Int64Node(7))
 	and := NewAnd(qs)
 	and.AddSubIterator(fix1)
 	and.AddSubIterator(fix2)
@@ -138,17 +138,17 @@ func TestAllIterators(t *testing.T) {
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	all1 := NewInt64(1, 5)
-	all2 := NewInt64(4, 10)
+	all1 := NewInt64(1, 5, true)
+	all2 := NewInt64(4, 10, true)
 	and := NewAnd(qs)
 	and.AddSubIterator(all2)
 	and.AddSubIterator(all1)
 
-	if !and.Next() || and.Result() != int64(4) {
+	if !and.Next() || and.Result().(Int64Node) != Int64Node(4) {
 		t.Error("Incorrect first value")
 	}
 
-	if !and.Next() || and.Result() != int64(5) {
+	if !and.Next() || and.Result().(Int64Node) != Int64Node(5) {
 		t.Error("Incorrect second value")
 	}
 
@@ -167,7 +167,7 @@ func TestAndIteratorErr(t *testing.T) {
 
 	and := NewAnd(qs)
 	and.AddSubIterator(allErr)
-	and.AddSubIterator(NewInt64(1, 5))
+	and.AddSubIterator(NewInt64(1, 5, true))
 
 	if and.Next() != false {
 		t.Errorf("And iterator did not pass through initial 'false'")

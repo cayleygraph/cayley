@@ -43,7 +43,7 @@ func TestMaterializeIteratorErrorAbort(t *testing.T) {
 	// underlying iterator is larger than our 'abort at' value, and then
 	// returns an error.
 	or := NewOr()
-	or.AddSubIterator(NewInt64(1, int64(abortMaterializeAt+1)))
+	or.AddSubIterator(NewInt64(1, int64(abortMaterializeAt+1), true))
 	or.AddSubIterator(errIt)
 
 	mIt := NewMaterialize(or)

@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/codelingo/cayley/graph"
@@ -49,7 +49,7 @@ func findAssetsPath() string {
 		if hasAssets(*assetsPath) {
 			return *assetsPath
 		}
-		glog.Fatalln("Cannot find assets at", *assetsPath, ".")
+		clog.Fatalf("Cannot find assets at", *assetsPath, ".")
 	}
 
 	if hasAssets(".") {
@@ -60,11 +60,11 @@ func findAssetsPath() string {
 		return ".."
 	}
 
-	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/google/cayley")
+	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley")
 	if hasAssets(gopathPath) {
 		return gopathPath
 	}
-	glog.Fatalln("Cannot find assets in any of the default search paths. Please run in the same directory, in a Go workspace, or set --assets .")
+	clog.Fatalf("Cannot find assets in any of the default search paths. Please run in the same directory, in a Go workspace, or set --assets .")
 	panic("cannot reach")
 }
 
@@ -78,9 +78,9 @@ func LogRequest(handler ResponseHandler) httprouter.Handle {
 				addr = req.RemoteAddr
 			}
 		}
-		glog.Infof("Started %s %s for %s", req.Method, req.URL.Path, addr)
+		clog.Infof("Started %s %s for %s", req.Method, req.URL.Path, addr)
 		code := handler(w, req, params)
-		glog.Infof("Completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
+		clog.Infof("Completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
 
 	}
 }
@@ -141,8 +141,8 @@ func (api *API) APIv1(r *httprouter.Router) {
 func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	r := httprouter.New()
 	assets := findAssetsPath()
-	if glog.V(2) {
-		glog.V(2).Infoln("Found assets at", assets)
+	if clog.V(2) {
+		clog.Infof("Found assets at %v", assets)
 	}
 	var templates = template.Must(template.ParseGlob(fmt.Sprint(assets, "/templates/*.tmpl")))
 	templates.ParseGlob(fmt.Sprint(assets, "/templates/*.html"))
@@ -162,10 +162,10 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 
 func Serve(handle *graph.Handle, cfg *config.Config) {
 	SetupRoutes(handle, cfg)
-	glog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
+	clog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
 	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenHost, cfg.ListenPort), nil)
 	if err != nil {
-		glog.Fatal("ListenAndServe: ", err)
+		clog.Fatalf("ListenAndServe: %v", err)
 	}
 }

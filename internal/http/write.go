@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/codelingo/cayley/internal"
@@ -30,18 +30,31 @@ import (
 	"github.com/codelingo/cayley/quad/cquads"
 )
 
-func ParseJSONToQuadList(jsonBody []byte) ([]quad.Quad, error) {
-	var quads []quad.Quad
+func ParseJSONToQuadList(jsonBody []byte) (out []quad.Quad, _ error) {
+	var quads []struct {
+		Subject   string `json:"subject"`
+		Predicate string `json:"predicate"`
+		Object    string `json:"object"`
+		Label     string `json:"label"`
+	}
 	err := json.Unmarshal(jsonBody, &quads)
 	if err != nil {
 		return nil, err
 	}
-	for i, q := range quads {
+	out = make([]quad.Quad, 0, len(quads))
+	for i, jq := range quads {
+		q := quad.Quad{
+			Subject:   quad.StringToValue(jq.Subject),
+			Predicate: quad.StringToValue(jq.Predicate),
+			Object:    quad.StringToValue(jq.Object),
+			Label:     quad.StringToValue(jq.Label),
+		}
 		if !q.IsValid() {
 			return nil, fmt.Errorf("invalid quad at index %d. %s", i, q)
 		}
+		out = append(out, q)
 	}
-	return quads, nil
+	return out, nil
 }
 
 func (api *API) ServeV1Write(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
@@ -73,7 +86,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 
 	formFile, _, err := r.FormFile("NQuadFile")
 	if err != nil {
-		glog.Errorln(err)
+		clog.Errorf("%v", err)
 		return jsonResponse(w, 500, "Couldn't read file: "+err.Error())
 	}
 	defer formFile.Close()
@@ -102,7 +115,7 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 			if err == io.EOF {
 				break
 			}
-			glog.Fatalln("what can do this here?", err) // FIXME(kortschak)
+			clog.Fatalf("what can do this here? %v", err) // FIXME(kortschak)
 		}
 		block = append(block, t)
 		n++

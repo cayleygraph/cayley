@@ -17,7 +17,7 @@ package sql
 import (
 	"errors"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/quad"
@@ -160,7 +160,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			return iterator.NewNull(), true
 		}
 		if size == 1 {
-			if !graph.Next(primary) {
+			if !primary.Next() {
 				panic("sql: unexpected size during optimize")
 			}
 			val := primary.Result()
@@ -173,15 +173,15 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			it.Close()
 			return newIt, true
 		} else if size > 1 {
-			var vals []string
-			for graph.Next(primary) {
-				vals = append(vals, qs.NameOf(primary.Result()))
+			var vals []NodeHash
+			for primary.Next() {
+				vals = append(vals, primary.Result().(NodeHash))
 			}
 			lsql := &SQLLinkIterator{
 				constraints: []constraint{
 					constraint{
-						dir:  it.Direction(),
-						vals: vals,
+						dir:    it.Direction(),
+						hashes: vals,
 					},
 				},
 				tableName: newTableName(),
@@ -207,7 +207,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		p := primary.(*SQLIterator)
 		newit, err := linksto(p.sql, it.Direction(), qs)
 		if err != nil {
-			glog.Errorln(err)
+			clog.Errorf("%v", err)
 			return it, false
 		}
 		newit.Tagger().CopyFrom(it)
@@ -242,7 +242,9 @@ func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 	var err error
 
 	// Combine SQL iterators
-	glog.V(4).Infof("Combining SQL %#v", subs)
+	if clog.V(4) {
+		clog.Infof("Combining SQL %#v", subs)
+	}
 	for _, subit := range subs {
 		if subit.Type() == sqlType {
 			if newit == nil {
@@ -251,7 +253,7 @@ func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 				changed = true
 				newit, err = intersect(newit.sql, subit.(*SQLIterator).sql, qs)
 				if err != nil {
-					glog.Error(err)
+					clog.Errorf("%v", err)
 					return it, false
 				}
 			}
@@ -265,7 +267,9 @@ func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 	}
 
 	// Combine fixed iterators into the SQL iterators.
-	glog.V(4).Infof("Combining fixed %#v", unusedIts)
+	if clog.V(4) {
+		clog.Infof("Combining fixed %#v", unusedIts)
+	}
 	var nodeit *SQLNodeIterator
 	if n, ok := newit.sql.(*SQLNodeIterator); ok {
 		nodeit = n
@@ -281,7 +285,7 @@ func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 				continue
 			}
 			changed = true
-			for graph.Next(subit) {
+			for subit.Next() {
 				nodeit.fixedSet = append(nodeit.fixedSet, qs.NameOf(subit.Result()))
 			}
 		}
@@ -315,7 +319,7 @@ func (qs *QuadStore) optimizeHasA(it *iterator.HasA) (graph.Iterator, bool) {
 		p := primary.(*SQLIterator)
 		newit, err := hasa(p.sql, it.Direction(), qs)
 		if err != nil {
-			glog.Errorln(err)
+			clog.Errorf("%v", err)
 			return it, false
 		}
 		newit.Tagger().CopyFrom(it)

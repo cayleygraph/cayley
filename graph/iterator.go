@@ -21,7 +21,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/quad"
 )
 
@@ -90,6 +90,12 @@ type Iterator interface {
 	// Returns the current result.
 	Result() Value
 
+	// Next advances the iterator to the next value, which will then be available through
+	// the Result method. It returns false if no further advancement is possible, or if an
+	// error was encountered during iteration.  Err should be consulted to distinguish
+	// between the two cases.
+	Next() bool
+
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
 	//
@@ -103,7 +109,7 @@ type Iterator interface {
 	//  	}
 	//  }
 	//
-	// All of them should set iterator.Last to be the last returned value, to
+	// All of them should set iterator.result to be the last returned value, to
 	// make results work.
 	//
 	// NextPath() advances iterators that may have more than one valid result,
@@ -172,25 +178,15 @@ type Description struct {
 // ApplyMorphism is a curried function that can generates a new iterator based on some prior iterator.
 type ApplyMorphism func(QuadStore, Iterator) Iterator
 
-type Nexter interface {
-	// Next advances the iterator to the next value, which will then be available through
-	// the Result method. It returns false if no further advancement is possible, or if an
-	// error was encountered during iteration.  Err should be consulted to distinguish
-	// between the two cases.
-	Next() bool
-
-	Iterator
+// CanNext is a helper for checking if iterator can be Next()'ed.
+func CanNext(it Iterator) bool {
+	_, ok := it.(NoNext)
+	return !ok
 }
 
-// Next is a convenience function that conditionally calls the Next method
-// of an Iterator if it is a Nexter. If the Iterator is not a Nexter, Next
-// returns false.
-func Next(it Iterator) bool {
-	if n, ok := it.(Nexter); ok {
-		return n.Next()
-	}
-	glog.Errorln("Nexting an un-nextable iterator")
-	return false
+// NoNext is an optional interface to signal that iterator should be Contain()'ed instead of Next()'ing if possible.
+type NoNext interface {
+	NoNext()
 }
 
 // Height is a convienence function to measure the height of an iterator tree.
@@ -242,6 +238,8 @@ const (
 	Optional
 	Materialize
 	Unique
+	Limit
+	Skip
 )
 
 var (
@@ -264,6 +262,8 @@ var (
 		"optional",
 		"materialize",
 		"unique",
+		"limit",
+		"skip",
 	}
 )
 
@@ -332,34 +332,35 @@ func DumpStats(it Iterator) StatsContainer {
 // well as what they return. Highly useful for tracing the execution path of a query.
 
 func ContainsLogIn(it Iterator, val Value) {
-	if glog.V(4) {
-		glog.V(4).Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
+	if clog.V(4) {
+		clog.Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
 	}
 }
 
 func ContainsLogOut(it Iterator, val Value, good bool) bool {
-	if glog.V(4) {
+	if clog.V(4) {
 		if good {
-			glog.V(4).Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			clog.Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		} else {
-			glog.V(4).Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			clog.Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
 		}
 	}
 	return good
 }
 
 func NextLogIn(it Iterator) {
-	if glog.V(4) {
-		glog.V(4).Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
+	if clog.V(4) {
+		clog.Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
 	}
 }
 
-func NextLogOut(it Iterator, val Value, ok bool) bool {
-	if glog.V(4) {
+func NextLogOut(it Iterator, ok bool) bool {
+	if clog.V(4) {
 		if ok {
-			glog.V(4).Infof("%s %d NEXT IS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
+			val := it.Result()
+			clog.Infof("%s %d NEXT IS %v (%T)", strings.ToUpper(it.Type().String()), it.UID(), val, val)
 		} else {
-			glog.V(4).Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
+			clog.Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
 		}
 	}
 	return ok

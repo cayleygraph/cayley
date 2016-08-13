@@ -73,15 +73,15 @@ func (it *Not) Next() bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for graph.Next(it.allIt) {
+	for it.allIt.Next() {
 		if curr := it.allIt.Result(); !it.primaryIt.Contains(curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1
-			return graph.NextLogOut(it, curr, true)
+			return graph.NextLogOut(it, true)
 		}
 	}
 	it.err = it.allIt.Err()
-	return graph.NextLogOut(it, nil, false)
+	return graph.NextLogOut(it, false)
 }
 
 func (it *Not) Err() error {
@@ -175,4 +175,4 @@ func (it *Not) Describe() graph.Description {
 	}
 }
 
-var _ graph.Nexter = &Not{}
+var _ graph.Iterator = &Not{}

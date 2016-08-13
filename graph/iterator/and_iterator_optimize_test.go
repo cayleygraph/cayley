@@ -30,9 +30,9 @@ func TestIteratorPromotion(t *testing.T) {
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	all := NewInt64(1, 3)
+	all := NewInt64(1, 3, true)
 	fixed := NewFixed(Identity)
-	fixed.Add(3)
+	fixed.Add(Int64Node(3))
 	a := NewAnd(qs)
 	a.AddSubIterator(all)
 	a.AddSubIterator(fixed)
@@ -59,7 +59,7 @@ func TestNullIteratorAnd(t *testing.T) {
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	all := NewInt64(1, 3)
+	all := NewInt64(1, 3, true)
 	null := NewNull()
 	a := NewAnd(qs)
 	a.AddSubIterator(all)
@@ -78,9 +78,9 @@ func TestAllPromotion(t *testing.T) {
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	all := NewInt64(100, 300)
+	all := NewInt64(100, 300, true)
 	all.Tagger().Add("good")
-	all2 := NewInt64(1, 30000)
+	all2 := NewInt64(1, 30000, true)
 	all2.Tagger().Add("slow")
 	a := NewAnd(qs)
 	// Make all2 the default iterator
@@ -111,14 +111,14 @@ func TestReorderWithTag(t *testing.T) {
 		iter: NewFixed(Identity),
 	}
 	all := NewFixed(Identity)
-	all.Add(3)
+	all.Add(Int64Node(3))
 	all.Tagger().Add("good")
 	all2 := NewFixed(Identity)
 	all2.Tagger().Add("slow")
-	all2.Add(3)
-	all2.Add(4)
-	all2.Add(5)
-	all2.Add(6)
+	all2.Add(Int64Node(3))
+	all2.Add(Int64Node(4))
+	all2.Add(Int64Node(5))
+	all2.Add(Int64Node(6))
 	a := NewAnd(qs)
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
@@ -149,9 +149,9 @@ func TestAndStatistics(t *testing.T) {
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	all := NewInt64(100, 300)
+	all := NewInt64(100, 300, true)
 	all.Tagger().Add("good")
-	all2 := NewInt64(1, 30000)
+	all2 := NewInt64(1, 30000, true)
 	all2.Tagger().Add("slow")
 	a := NewAnd(qs)
 	// Make all2 the default iterator

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/barakmich/glog"
+	"github.com/codelingo/cayley/clog"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/internal/config"
@@ -49,7 +49,7 @@ func Open(cfg *config.Config) (*graph.Handle, error) {
 }
 
 func OpenQuadStore(cfg *config.Config) (graph.QuadStore, error) {
-	glog.Infof("Opening quad store %q at %s", cfg.DatabaseType, cfg.DatabasePath)
+	clog.Infof("Opening quad store %q at %s", cfg.DatabaseType, cfg.DatabasePath)
 	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func OpenQuadStore(cfg *config.Config) (graph.QuadStore, error) {
 }
 
 func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, error) {
-	glog.Infof("Opening replication method %q", cfg.ReplicationType)
+	clog.Infof("Opening replication method %q", cfg.ReplicationType)
 	w, err := graph.NewQuadWriter(cfg.ReplicationType, qs, cfg.ReplicationOptions)
 	if err != nil {
 		return nil, err
@@ -87,8 +87,8 @@ func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
 				return fmt.Errorf("db: failed to load data: %v", err)
 			}
 			block = block[:0]
-			if glog.V(2) {
-				glog.V(2).Infof("Wrote %d quads.", count)
+			if clog.V(2) {
+				clog.Infof("Wrote %d quads.", count)
 			}
 		}
 	}
@@ -97,8 +97,8 @@ func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
 	if err != nil {
 		return fmt.Errorf("db: failed to load data: %v", err)
 	}
-	if glog.V(2) {
-		glog.V(2).Infof("Wrote %d quads.", count)
+	if clog.V(2) {
+		clog.Infof("Wrote %d quads.", count)
 	}
 
 	return nil
