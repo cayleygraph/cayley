@@ -6,12 +6,12 @@ WORKDIR /go/src/github.com/cayleygraph/cayley
 
 # Restore vendored dependencies
 RUN go get github.com/tools/godep
-ADD Godeps /go/src/github.com/cayleygraph/cayley/Godeps
+ADD Godeps ./Godeps
 RUN godep restore
 
 # Add and install cayley
 ADD . .
-RUN go install -v github.com/cayleygraph/cayley/cmd/cayley
+RUN go install -v ./cmd/cayley
 
 # Expose the port and volume for configuration and data persistence. If you're
 # using a backend like bolt, make sure the file is saved to this directory.
