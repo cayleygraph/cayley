@@ -114,10 +114,9 @@ func (s *Session) runUnsafe(input interface{}) (_ otto.Value, gerr error) {
 	defer close(done)
 	if s.timeout >= 0 {
 		go func() {
-			time.Sleep(s.timeout)
 			select {
 			case <-done:
-			default:
+			case <-time.After(s.timeout):
 				close(s.kill)
 				wk.Lock()
 				if wk.env != nil {
