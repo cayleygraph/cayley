@@ -303,6 +303,16 @@ func testSet(qs graph.QuadStore) []test {
 			tag:     "statustag",
 			expect:  []quad.Value{vCool, vCool},
 		},
+		{
+			message: "composite paths (clone paths)",
+			path: func() *Path {
+				alice_path := StartPath(qs, vAlice)
+				_ = alice_path.Out(vFollows)
+
+				return alice_path
+			}(),
+			expect: []quad.Value{vAlice},
+		},
 	}
 }
 
