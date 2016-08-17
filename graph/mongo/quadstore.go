@@ -17,6 +17,7 @@ package mongo
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -113,38 +114,57 @@ func ensureIndexes(db *mgo.Database) error {
 }
 
 func createNewMongoGraph(addr string, options graph.Options) error {
-	conn, err := mgo.Dial(addr)
+	conn, err := dialMongo(addr, options)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 	conn.SetSafe(&mgo.Safe{})
+	db := conn.DB("")
+	return ensureIndexes(db)
+}
+
+func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
+	var dialInfo mgo.DialInfo
+	dialInfo.Addrs = strings.Split(addr, ",")
+	user, ok, err := options.StringKey("username")
+	switch {
+	case err != nil:
+		return &mgo.Session{}, err
+	case ok:
+		dialInfo.Username = user
+		password, ok, err := options.StringKey("password")
+		switch {
+		case err != nil:
+			return &mgo.Session{}, err
+		case ok:
+			dialInfo.Password = password
+		}
+	}
 	dbName := DefaultDBName
 	val, ok, err := options.StringKey("database_name")
-	if err != nil {
-		return err
-	} else if ok {
+	switch {
+	case err != nil:
+		return &mgo.Session{}, err
+	case ok:
 		dbName = val
 	}
-	db := conn.DB(dbName)
-	return ensureIndexes(db)
+	dialInfo.Database = dbName
+	conn, err := mgo.DialWithInfo(&dialInfo)
+	if err != nil {
+		return &mgo.Session{}, err
+	}
+	return conn, nil
 }
 
 func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	var qs QuadStore
-	conn, err := mgo.Dial(addr)
+	conn, err := dialMongo(addr, options)
 	if err != nil {
 		return nil, err
 	}
 	conn.SetSafe(&mgo.Safe{})
-	dbName := DefaultDBName
-	val, ok, err := options.StringKey("database_name")
-	if err != nil {
-		return nil, err
-	} else if ok {
-		dbName = val
-	}
-	qs.db = conn.DB(dbName)
+	qs.db = conn.DB("")
 	if err := ensureIndexes(qs.db); err != nil {
 		conn.Close()
 		return nil, err
