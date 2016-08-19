@@ -129,13 +129,13 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 	dialInfo.Addrs = strings.Split(addr, ",")
 	user, ok, err := options.StringKey("username")
 	if err != nil {
-		return &mgo.Session{}, err
+		return nil, err
 	}
 	if ok {
 		dialInfo.Username = user
 		password, ok, err := options.StringKey("password")
 		if err != nil {
-			return &mgo.Session{}, err
+			return nil, err
 		}
 		if ok {
 			dialInfo.Password = password
@@ -144,7 +144,7 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 	dbName := DefaultDBName
 	val, ok, err := options.StringKey("database_name")
 	if err != nil {
-		return &mgo.Session{}, err
+		return nil, err
 	}
 	if ok {
 		dbName = val
@@ -152,7 +152,7 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 	dialInfo.Database = dbName
 	conn, err := mgo.DialWithInfo(&dialInfo)
 	if err != nil {
-		return &mgo.Session{}, err
+		return nil, err
 	}
 	return conn, nil
 }
