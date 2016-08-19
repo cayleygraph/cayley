@@ -5,9 +5,9 @@ MAINTAINER Barak Michener <me@barakmich.com>
 WORKDIR /go/src/github.com/cayleygraph/cayley
 
 # Restore vendored dependencies
-RUN go get github.com/tools/godep
-ADD Godeps ./Godeps
-RUN godep restore
+RUN sh -c "curl https://glide.sh/get | sh"
+ADD glide.* ./
+RUN glide install
 
 # Add and install cayley
 ADD . .

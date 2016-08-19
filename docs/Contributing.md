@@ -12,8 +12,8 @@ mkdir -p bin pkg src/github.com/cayleygraph
 cd src/github.com/cayleygraph
 git clone https://github.com/cayleygraph/cayley
 cd cayley
-go get github.com/tools/godep
-godep restore
+curl https://glide.sh/get | sh
+glide install
 go build ./cmd/cayley
 ```
 
@@ -60,8 +60,8 @@ With that in place, that folder will reflect your local fork, be able to take ch
 For iterating, it can be helpful to, from the directory, run
 
 ```
-go get github.com/tools/godep
-godep restore
+curl https://glide.sh/get | sh
+glide install
 go build ./cmd/cayley && ./cayley <subcommand> <your options>
 ```
 
