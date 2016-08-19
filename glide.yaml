@@ -1,0 +1,40 @@
+package: github.com/cayleygraph/cayley
+import:
+- package: github.com/badgerodon/peg
+- package: github.com/golang/glog
+- package: github.com/boltdb/bolt
+- package: github.com/cznic/mathutil
+- package: github.com/gogo/protobuf
+  subpackages:
+  - proto
+  - gogoproto
+- package: github.com/julienschmidt/httprouter
+- package: github.com/lib/pq
+- package: github.com/pborman/uuid
+- package: github.com/peterh/liner
+- package: github.com/robertkrimen/otto
+  subpackages:
+  - underscore
+- package: github.com/russross/blackfriday
+- package: github.com/shurcooL/sanitized_anchor_name
+- package: github.com/syndtr/goleveldb
+  subpackages:
+  - leveldb
+  - leveldb/iterator
+  - leveldb/opt
+  - leveldb/util
+- package: github.com/syndtr/gosnappy
+  subpackages:
+  - snappy
+- package: gopkg.in/mgo.v2
+  subpackages:
+  - bson
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: github.com/fsouza/go-dockerclient
+- package: github.com/stretchr/testify
+  version: v1.1.3
+  subpackages:
+  - assert
+  - require
