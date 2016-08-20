@@ -91,7 +91,7 @@ func IsQuadExist(err error) bool {
 		return true
 	}
 	de, ok := err.(*DeltaError)
-	return ok && de == ErrQuadExists
+	return ok && de.Err == ErrQuadExists
 }
 
 // IsQuadNotExist returns whether an error is a DeltaError
@@ -101,7 +101,7 @@ func IsQuadNotExist(err error) bool {
 		return true
 	}
 	de, ok := err.(*DeltaError)
-	return ok && de == ErrQuadNotExist
+	return ok && de.Err == ErrQuadNotExist
 }
 
 // IsInvalidAction returns whether an error is a DeltaError
@@ -111,7 +111,7 @@ func IsInvalidAction(err error) bool {
 		return true
 	}
 	de, ok := err.(*DeltaError)
-	return ok && de == ErrInvalidAction
+	return ok && de.Err == ErrInvalidAction
 }
 
 var (
