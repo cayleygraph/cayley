@@ -8,3 +8,4 @@ cayley.cfg
 
 # The built binary
 /cayley
+/vendor
