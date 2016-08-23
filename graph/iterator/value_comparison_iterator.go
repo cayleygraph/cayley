@@ -43,7 +43,6 @@ const (
 )
 
 type Comparison struct {
-	uid    uint64
 	tags   graph.Tagger
 	subIt  graph.Iterator
 	op     Operator
@@ -55,16 +54,11 @@ type Comparison struct {
 
 func NewComparison(sub graph.Iterator, op Operator, val quad.Value, qs graph.QuadStore) *Comparison {
 	return &Comparison{
-		uid:   NextUID(),
 		subIt: sub,
 		op:    op,
 		val:   val,
 		qs:    qs,
 	}
-}
-
-func (it *Comparison) UID() uint64 {
-	return it.uid
 }
 
 func (it *Comparison) Value() quad.Value  { return it.val }
@@ -260,7 +254,7 @@ func (it *Comparison) Type() graph.Type { return graph.Comparison }
 func (it *Comparison) Describe() graph.Description {
 	primary := it.subIt.Describe()
 	return graph.Description{
-		UID:      it.UID(),
+		UID:      graph.UID(it),
 		Type:     it.Type(),
 		Iterator: &primary,
 	}

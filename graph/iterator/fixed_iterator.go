@@ -30,7 +30,6 @@ import (
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
 // an equality function.
 type Fixed struct {
-	uid       uint64
 	tags      graph.Tagger
 	values    []graph.Value
 	lastIndex int
@@ -49,14 +48,9 @@ func Identity(a, b graph.Value) bool {
 // Creates a new Fixed iterator with a custom comparator.
 func NewFixed(cmp Equality) *Fixed {
 	return &Fixed{
-		uid:    NextUID(),
 		values: make([]graph.Value, 0, 20),
 		cmp:    cmp,
 	}
-}
-
-func (it *Fixed) UID() uint64 {
-	return it.uid
 }
 
 func (it *Fixed) Reset() {
@@ -107,7 +101,7 @@ func (it *Fixed) Describe() graph.Description {
 	}
 	sort.Strings(fixed)
 	return graph.Description{
-		UID:  it.UID(),
+		UID:  graph.UID(it),
 		Name: value,
 		Type: it.Type(),
 		Tags: fixed,

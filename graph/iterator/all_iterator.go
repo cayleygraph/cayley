@@ -29,7 +29,6 @@ import (
 // An All iterator across a range of int64 values, from `max` to `min`.
 type Int64 struct {
 	node     bool
-	uid      uint64
 	tags     graph.Tagger
 	max, min int64
 	at       int64
@@ -48,16 +47,11 @@ func (Int64Quad) IsNode() bool { return false }
 // Creates a new Int64 with the given range.
 func NewInt64(min, max int64, node bool) *Int64 {
 	return &Int64{
-		uid:  NextUID(),
 		node: node,
 		min:  min,
 		max:  max,
 		at:   min,
 	}
-}
-
-func (it *Int64) UID() uint64 {
-	return it.uid
 }
 
 // Start back at the beginning
@@ -92,7 +86,7 @@ func (it *Int64) TagResults(dst map[string]graph.Value) {
 
 func (it *Int64) Describe() graph.Description {
 	return graph.Description{
-		UID:  it.UID(),
+		UID:  graph.UID(it),
 		Type: it.Type(),
 		Tags: it.tags.Tags(),
 	}

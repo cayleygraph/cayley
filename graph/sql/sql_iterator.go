@@ -21,7 +21,6 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -77,7 +76,6 @@ type sqlIterator interface {
 }
 
 type SQLIterator struct {
-	uid    uint64
 	qs     *QuadStore
 	cursor *sql.Rows
 	err    error
@@ -93,15 +91,10 @@ type SQLIterator struct {
 
 func (it *SQLIterator) Clone() graph.Iterator {
 	m := &SQLIterator{
-		uid: iterator.NextUID(),
 		qs:  it.qs,
 		sql: it.sql.sqlClone(),
 	}
 	return m
-}
-
-func (it *SQLIterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *SQLIterator) Reset() {
@@ -166,7 +159,7 @@ func (it *SQLIterator) Size() (int64, bool) {
 func (it *SQLIterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:  it.UID(),
+		UID:  graph.UID(it),
 		Name: it.sql.Describe(),
 		Type: it.Type(),
 		Size: size,
@@ -373,8 +366,7 @@ func NewSQLLinkIterator(qs *QuadStore, d quad.Direction, v quad.Value) *SQLItera
 
 func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIterator {
 	l := &SQLIterator{
-		uid: iterator.NextUID(),
-		qs:  qs,
+		qs: qs,
 		sql: &SQLLinkIterator{
 			constraints: []constraint{
 				constraint{
@@ -390,10 +382,8 @@ func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIter
 }
 
 func NewSQLIterator(qs *QuadStore, sql sqlIterator) *SQLIterator {
-	l := &SQLIterator{
-		uid: iterator.NextUID(),
+	return &SQLIterator{
 		qs:  qs,
 		sql: sql,
 	}
-	return l
 }

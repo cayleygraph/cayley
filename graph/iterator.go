@@ -18,6 +18,7 @@ package graph
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -159,9 +160,6 @@ type Iterator interface {
 
 	// Close the iterator and do internal cleanup.
 	Close() error
-
-	// UID returns the unique identifier of the iterator.
-	UID() uint64
 }
 
 type Description struct {
@@ -321,7 +319,7 @@ func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
 	out.Type = it.Type()
-	out.UID = it.UID()
+	out.UID = UID(it)
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))
 	}
@@ -333,16 +331,16 @@ func DumpStats(it Iterator) StatsContainer {
 
 func ContainsLogIn(it Iterator, val Value) {
 	if clog.V(4) {
-		clog.Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
+		clog.Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), UID(it), val)
 	}
 }
 
 func ContainsLogOut(it Iterator, val Value, good bool) bool {
 	if clog.V(4) {
 		if good {
-			clog.Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			clog.Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), UID(it), val)
 		} else {
-			clog.Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
+			clog.Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), UID(it), val)
 		}
 	}
 	return good
@@ -350,7 +348,7 @@ func ContainsLogOut(it Iterator, val Value, good bool) bool {
 
 func NextLogIn(it Iterator) {
 	if clog.V(4) {
-		clog.Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
+		clog.Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), UID(it))
 	}
 }
 
@@ -358,10 +356,28 @@ func NextLogOut(it Iterator, ok bool) bool {
 	if clog.V(4) {
 		if ok {
 			val := it.Result()
-			clog.Infof("%s %d NEXT IS %v (%T)", strings.ToUpper(it.Type().String()), it.UID(), val, val)
+			clog.Infof("%s %d NEXT IS %v (%T)", strings.ToUpper(it.Type().String()), UID(it), val, val)
 		} else {
-			clog.Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
+			clog.Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), UID(it))
 		}
 	}
 	return ok
+}
+
+// UID returns the unique identifier of the iterator.
+func UID(it Iterator) uint64 {
+	if it == nil {
+		return 0
+	}
+	v := reflect.ValueOf(it)
+	if v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Ptr {
+		panic(fmt.Errorf("iterator is expected to be a pointer, got: %v", v.Type()))
+	}
+	if v.IsNil() {
+		return 0
+	}
+	return uint64(v.Pointer())
 }

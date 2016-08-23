@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -67,8 +66,7 @@ func TestSQLNodeIteration(t *testing.T) {
 	}
 	link := NewSQLLinkIterator(db.(*QuadStore), quad.Object, quad.Raw("/en/humphrey_bogart"))
 	it := &SQLIterator{
-		uid: iterator.NextUID(),
-		qs:  db.(*QuadStore),
+		qs: db.(*QuadStore),
 		sql: &SQLNodeIterator{
 			tableName: newTableName(),
 			linkIt: sqlItDir{

@@ -44,7 +44,6 @@ import (
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type HasA struct {
-	uid       uint64
 	tags      graph.Tagger
 	qs        graph.QuadStore
 	primaryIt graph.Iterator
@@ -59,15 +58,10 @@ type HasA struct {
 // direction for which it stands.
 func NewHasA(qs graph.QuadStore, subIt graph.Iterator, d quad.Direction) *HasA {
 	return &HasA{
-		uid:       NextUID(),
 		qs:        qs,
 		primaryIt: subIt,
 		dir:       d,
 	}
-}
-
-func (it *HasA) UID() uint64 {
-	return it.uid
 }
 
 // Return our sole subiterator.
@@ -132,7 +126,7 @@ func (it *HasA) TagResults(dst map[string]graph.Value) {
 func (it *HasA) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Direction: it.dir,
@@ -189,7 +183,7 @@ func (it *HasA) NextPath() bool {
 	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
 	if clog.V(4) {
-		clog.Infof("HASA %v NextPath", it.UID())
+		clog.Infof("HASA %v NextPath", graph.UID(it))
 	}
 	if it.primaryIt.NextPath() {
 		return true
@@ -204,7 +198,7 @@ func (it *HasA) NextPath() bool {
 		return false
 	}
 	if clog.V(4) {
-		clog.Infof("HASA %v NextPath Returns %v", it.UID(), result)
+		clog.Infof("HASA %v NextPath Returns %v", graph.UID(it), result)
 	}
 	return result
 }

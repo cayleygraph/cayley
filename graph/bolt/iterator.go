@@ -23,7 +23,6 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -39,7 +38,6 @@ func init() {
 }
 
 type Iterator struct {
-	uid     uint64
 	tags    graph.Tagger
 	bucket  []byte
 	checkID []byte
@@ -61,7 +59,6 @@ func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadSto
 	}
 
 	it := Iterator{
-		uid:    iterator.NextUID(),
 		bucket: bucket,
 		dir:    d,
 		qs:     qs,
@@ -75,10 +72,6 @@ func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadSto
 }
 
 func Type() graph.Type { return boltType }
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
-}
 
 func (it *Iterator) Reset() {
 	it.buffer = nil
@@ -297,7 +290,6 @@ func (it *Iterator) Size() (int64, bool) {
 
 func (it *Iterator) Describe() graph.Description {
 	return graph.Description{
-		UID:       it.UID(),
 		Name:      it.qs.NameOf(&Token{true, it.bucket, it.checkID}).String(),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),

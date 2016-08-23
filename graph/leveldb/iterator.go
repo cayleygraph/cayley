@@ -22,13 +22,11 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 type Iterator struct {
-	uid            uint64
 	tags           graph.Tagger
 	nextPrefix     []byte
 	checkID        []byte
@@ -52,7 +50,6 @@ func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *QuadSto
 	}
 
 	it := Iterator{
-		uid:            iterator.NextUID(),
 		nextPrefix:     p,
 		checkID:        vb,
 		dir:            d,
@@ -71,10 +68,6 @@ func NewIterator(prefix string, d quad.Direction, value graph.Value, qs *QuadSto
 	}
 
 	return &it
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) Reset() {
@@ -257,7 +250,7 @@ func (it *Iterator) Size() (int64, bool) {
 func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Name:      it.qs.NameOf(Token(it.checkID)).String(),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),

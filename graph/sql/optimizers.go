@@ -188,7 +188,6 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 				size:      0,
 			}
 			l := &SQLIterator{
-				uid: iterator.NextUID(),
 				qs:  qs,
 				sql: lsql,
 			}

@@ -20,12 +20,10 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 type Iterator struct {
-	uid        uint64
 	tags       graph.Tagger
 	qs         *QuadStore
 	dir        quad.Direction
@@ -45,7 +43,6 @@ func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.V
 	constraint := bson.M{d.String(): string(h)}
 
 	return &Iterator{
-		uid:        iterator.NextUID(),
 		constraint: constraint,
 		collection: collection,
 		qs:         qs,
@@ -66,7 +63,6 @@ func (it *Iterator) makeMongoIterator() *mgo.Iter {
 
 func NewAllIterator(qs *QuadStore, collection string) *Iterator {
 	return &Iterator{
-		uid:        iterator.NextUID(),
 		qs:         qs,
 		dir:        quad.Any,
 		constraint: nil,
@@ -80,7 +76,6 @@ func NewAllIterator(qs *QuadStore, collection string) *Iterator {
 
 func NewIteratorWithConstraints(qs *QuadStore, collection string, constraint bson.M) *Iterator {
 	return &Iterator{
-		uid:        iterator.NextUID(),
 		qs:         qs,
 		dir:        quad.Any,
 		constraint: constraint,
@@ -90,10 +85,6 @@ func NewIteratorWithConstraints(qs *QuadStore, collection string, constraint bso
 		hash:       "",
 		isAll:      false,
 	}
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) Reset() {
@@ -226,7 +217,7 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:  it.UID(),
+		UID:  graph.UID(it),
 		Name: string(it.hash),
 		Type: it.Type(),
 		Size: size,

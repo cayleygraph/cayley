@@ -7,7 +7,6 @@ import (
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type Not struct {
-	uid       uint64
 	tags      graph.Tagger
 	primaryIt graph.Iterator
 	allIt     graph.Iterator
@@ -18,14 +17,9 @@ type Not struct {
 
 func NewNot(primaryIt, allIt graph.Iterator) *Not {
 	return &Not{
-		uid:       NextUID(),
 		primaryIt: primaryIt,
 		allIt:     allIt,
 	}
-}
-
-func (it *Not) UID() uint64 {
-	return it.uid
 }
 
 // Reset resets the internal iterators and the iterator itself.
@@ -168,7 +162,7 @@ func (it *Not) Describe() graph.Description {
 	}
 
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Iterators: subIts,

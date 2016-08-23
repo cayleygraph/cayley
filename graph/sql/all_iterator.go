@@ -20,12 +20,10 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 type AllIterator struct {
-	uid    uint64
 	tags   graph.Tagger
 	qs     *QuadStore
 	dir    quad.Direction
@@ -71,15 +69,10 @@ func (it *AllIterator) makeCursor() {
 
 func NewAllIterator(qs *QuadStore, table string) *AllIterator {
 	it := &AllIterator{
-		uid:   iterator.NextUID(),
 		qs:    qs,
 		table: table,
 	}
 	return it
-}
-
-func (it *AllIterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *AllIterator) Reset() {
@@ -200,7 +193,7 @@ func (it *AllIterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *AllIterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:  it.UID(),
+		UID:  graph.UID(it),
 		Name: "sql/all",
 		Type: it.Type(),
 		Size: size,

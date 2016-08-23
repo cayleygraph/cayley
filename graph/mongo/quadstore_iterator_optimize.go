@@ -40,7 +40,7 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool) {
 	// Fail fast if nothing can happen
 	if clog.V(4) {
-		clog.Infof("Entering optimizeAndIterator %v", it.UID())
+		clog.Infof("Entering optimizeAndIterator %v", graph.UID(it))
 	}
 	found := false
 	for _, it := range it.SubIterators() {

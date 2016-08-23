@@ -22,13 +22,11 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 type AllIterator struct {
 	nodes  bool
-	uid    uint64
 	tags   graph.Tagger
 	bucket []byte
 	dir    quad.Direction
@@ -43,15 +41,10 @@ type AllIterator struct {
 func NewAllIterator(bucket []byte, d quad.Direction, qs *QuadStore) *AllIterator {
 	return &AllIterator{
 		nodes:  d == quad.Any,
-		uid:    iterator.NextUID(),
 		bucket: bucket,
 		dir:    d,
 		qs:     qs,
 	}
-}
-
-func (it *AllIterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *AllIterator) Reset() {
@@ -186,7 +179,7 @@ func (it *AllIterator) Size() (int64, bool) {
 func (it *AllIterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      size,

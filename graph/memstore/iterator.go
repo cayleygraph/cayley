@@ -27,7 +27,6 @@ import (
 
 type Iterator struct {
 	nodes  bool
-	uid    uint64
 	qs     *QuadStore
 	tags   graph.Tagger
 	tree   *b.Tree
@@ -46,17 +45,12 @@ func NewIterator(tree *b.Tree, qs *QuadStore, d quad.Direction, value graph.Valu
 	}
 	return &Iterator{
 		nodes: d == 0,
-		uid:   iterator.NextUID(),
 		qs:    qs,
 		tree:  tree,
 		iter:  iter,
 		d:     d,
 		value: value,
 	}
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) Reset() {
@@ -98,7 +92,6 @@ func (it *Iterator) Clone() graph.Iterator {
 	}
 
 	m := &Iterator{
-		uid:   iterator.NextUID(),
 		qs:    it.qs,
 		tree:  it.tree,
 		iter:  iter,
@@ -185,7 +178,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:  it.UID(),
+		UID:  graph.UID(it),
 		Name: fmt.Sprintf("dir:%s val:%d", it.d, it.value),
 		Type: it.Type(),
 		Tags: it.tags.Tags(),

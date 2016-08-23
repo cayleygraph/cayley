@@ -38,7 +38,6 @@ import (
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
-	uid       uint64
 	tags      graph.Tagger
 	qs        graph.QuadStore
 	primaryIt graph.Iterator
@@ -53,16 +52,11 @@ type LinksTo struct {
 // nodes.
 func NewLinksTo(qs graph.QuadStore, it graph.Iterator, d quad.Direction) *LinksTo {
 	return &LinksTo{
-		uid:       NextUID(),
 		qs:        qs,
 		primaryIt: it,
 		dir:       d,
 		nextIt:    &Null{},
 	}
-}
-
-func (it *LinksTo) UID() uint64 {
-	return it.uid
 }
 
 func (it *LinksTo) Reset() {
@@ -102,7 +96,7 @@ func (it *LinksTo) TagResults(dst map[string]graph.Value) {
 func (it *LinksTo) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Direction: it.dir,
 		Iterator:  &primary,
