@@ -290,7 +290,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 		return graph.PrimaryKey{}
 	}
 	// TODO: store horizon separately?
-	return graph.NewSequentialKey(resp.Header.Revision)
+	return graph.NewSequentialKey(resp.Header.Revision - 2)
 }
 func (qs *QuadStore) QuadDirection(id graph.Value, d quad.Direction) graph.Value {
 	return id.(QuadHash).Get(d)
@@ -310,6 +310,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		seen = make(map[ValueHash]struct{})
 	)
 	for _, d := range deltas {
+		ifs = ifs[:0]
+		ops = ops[:0]
 		if d.Action == graph.Add {
 			for _, dir := range indSPO[:] {
 				if v := d.Quad.Get(dir); v != nil {
@@ -352,12 +354,16 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		} else {
 			return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
-	}
-	resp, err := qs.etc.Txn(ctx).If(ifs...).Then(ops...).Commit()
-	if err != nil {
-		return err
-	} else if !resp.Succeeded {
-		return fmt.Errorf("tx failed") // FIXME
+		resp, err := qs.etc.Txn(ctx).If(ifs...).Then(ops...).Commit()
+		if err != nil {
+			return err
+		} else if !resp.Succeeded {
+			if d.Action == graph.Add {
+				return &graph.DeltaError{Delta: d, Err: graph.ErrQuadExists}
+			} else {
+				return &graph.DeltaError{Delta: d, Err: graph.ErrQuadNotExist}
+			}
+		}
 	}
 	return nil
 }

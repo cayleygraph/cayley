@@ -8,6 +8,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+const iteratorLimit = 1000
+
 var _ graph.Iterator = (*AllIterator)(nil)
 
 type AllIterator struct {
@@ -32,7 +34,10 @@ func NewAllIterator(qs *QuadStore, nodes bool, rev int64) *AllIterator {
 		p, n := qs.prefQuad(indSPO, 0)
 		pref = string(p[:n])
 	}
-	it.kvs = NewIterator(qs.etc, pref, rev, clientv3.WithKeysOnly())
+	it.kvs = NewIterator(qs.etc, pref, rev,
+		clientv3.WithKeysOnly(),
+		clientv3.WithLimit(iteratorLimit),
+	)
 	return it
 }
 

@@ -44,7 +44,10 @@ func NewQuadIterator(qs *QuadStore, dir quad.Direction, val graph.Value) *QuadIt
 	p, n := qs.prefQuad(it.index, quad.HashSize)
 	copy(p[n:], it.hash[:])
 	pref := string(p)
-	it.kvs = NewIterator(qs.etc, pref, 0, clientv3.WithKeysOnly())
+	it.kvs = NewIterator(qs.etc, pref, 0,
+		clientv3.WithKeysOnly(),
+		clientv3.WithLimit(iteratorLimit),
+	)
 	return it
 }
 
@@ -107,7 +110,7 @@ func (it *QuadIterator) Next() bool {
 	key := bytes.TrimPrefix(kv.Key, p)
 	const hs = quad.HashSize
 	switch it.dir {
-	case quad.Subject:
+	case quad.Subject: // SPOL
 		copy(h[:], key[:])
 	case quad.Predicate: // POSL
 		copy(h[0*hs:1*hs], key[hs*2:]) // S

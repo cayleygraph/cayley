@@ -21,7 +21,7 @@ func makeEtcd(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestEtcd(t *testing.T) {
 	graphtest.TestAll(t, makeEtcd, &graphtest.Config{
-		CustomHorizon:           true,
+		//CustomHorizon:           true,
 		SkipDeletedFromIterator: true,
 		SkipNodeDelAfterQuadDel: true,
 	})
