@@ -38,3 +38,5 @@ import:
   subpackages:
   - assert
   - require
+- package: github.com/coreos/etcd
+  version: ^3.0.6
