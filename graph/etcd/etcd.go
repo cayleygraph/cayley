@@ -295,9 +295,6 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 func (qs *QuadStore) QuadDirection(id graph.Value, d quad.Direction) graph.Value {
 	return id.(QuadHash).Get(d)
 }
-func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
-	return it, false // TODO
-}
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(func(a, b graph.Value) bool {
 		atok := a.(ValueHash)
