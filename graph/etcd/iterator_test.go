@@ -11,12 +11,12 @@ import (
 	"time"
 )
 
-const version = "v3.0.6"
+const etcdVersion = "v3.0.6"
 
 func runEtcd3(t testing.TB) (*clientv3.Client, func()) {
 	var conf dock.Config
 
-	conf.Image = "quay.io/coreos/etcd:" + version
+	conf.Image = "quay.io/coreos/etcd:" + etcdVersion
 	conf.Cmd = []string{
 		`etcd`,
 		`--listen-client-urls=http://0.0.0.0:2379`,

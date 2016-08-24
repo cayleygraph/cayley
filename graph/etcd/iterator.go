@@ -103,3 +103,25 @@ func (it *Iterator) Next() bool {
 	it.result = it.resp.Kvs[it.offset]
 	return true
 }
+func (it *Iterator) Size() (int64, bool) {
+	ctx := context.TODO()
+	opts := []clientv3.OpOption{
+		clientv3.WithPrefix(),
+	}
+	if it.rev > 0 {
+		opts = append(opts, clientv3.WithRev(it.rev))
+	}
+	if len(it.opts) > 0 {
+		opts = append(opts, it.opts...)
+	}
+	it.requests++
+	resp, err := it.etc.Get(ctx, it.pref, opts...)
+	if err != nil {
+		it.err = err
+		return 0, false
+	}
+	if it.rev <= 0 { // fix revision
+		it.rev = resp.Header.Revision
+	}
+	return resp.Count, true
+}
