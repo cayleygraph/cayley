@@ -34,7 +34,6 @@ import (
 // An optional iterator has the sub-constraint iterator we wish to be optional
 // and whether the last check we received was true or false.
 type Optional struct {
-	uid       uint64
 	tags      graph.Tagger
 	subIt     graph.Iterator
 	lastCheck bool
@@ -45,13 +44,8 @@ type Optional struct {
 // Creates a new optional iterator.
 func NewOptional(it graph.Iterator) *Optional {
 	return &Optional{
-		uid:   NextUID(),
 		subIt: it,
 	}
-}
-
-func (it *Optional) UID() uint64 {
-	return it.uid
 }
 
 func (it *Optional) Reset() {
@@ -135,7 +129,7 @@ func (it *Optional) Type() graph.Type { return graph.Optional }
 func (it *Optional) Describe() graph.Description {
 	primary := it.subIt.Describe()
 	return graph.Description{
-		UID:      it.UID(),
+		UID:      graph.UID(it),
 		Type:     it.Type(),
 		Tags:     it.tags.Tags(),
 		Iterator: &primary,

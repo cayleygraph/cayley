@@ -30,7 +30,6 @@ type result struct {
 }
 
 type Materialize struct {
-	uid         uint64
 	tags        graph.Tagger
 	containsMap map[graph.Value]int
 	values      [][]result
@@ -46,15 +45,10 @@ type Materialize struct {
 
 func NewMaterialize(sub graph.Iterator) *Materialize {
 	return &Materialize{
-		uid:         NextUID(),
 		containsMap: make(map[graph.Value]int),
 		subIt:       sub,
 		index:       -1,
 	}
-}
-
-func (it *Materialize) UID() uint64 {
-	return it.uid
 }
 
 func (it *Materialize) Reset() {
@@ -112,7 +106,7 @@ func (it *Materialize) Clone() graph.Iterator {
 func (it *Materialize) Describe() graph.Description {
 	primary := it.subIt.Describe()
 	return graph.Description{
-		UID:      it.UID(),
+		UID:      graph.UID(it),
 		Type:     it.Type(),
 		Tags:     it.tags.Tags(),
 		Size:     int64(len(it.values)),

@@ -22,7 +22,6 @@ import (
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type And struct {
-	uid               uint64
 	tags              graph.Tagger
 	internalIterators []graph.Iterator
 	itCount           int
@@ -38,14 +37,9 @@ type And struct {
 // for QuadStore-specific optimizations, otherwise nil is acceptable.
 func NewAnd(qs graph.QuadStore) *And {
 	return &And{
-		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 		qs:                qs,
 	}
-}
-
-func (it *And) UID() uint64 {
-	return it.uid
 }
 
 // Reset all internal iterators
@@ -109,7 +103,7 @@ func (it *And) Describe() graph.Description {
 	}
 	primary := it.primaryIt.Describe()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Iterator:  &primary,

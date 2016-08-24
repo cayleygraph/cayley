@@ -6,7 +6,6 @@ import (
 
 // Unique iterator removes duplicate values from it's subiterator.
 type Unique struct {
-	uid      uint64
 	tags     graph.Tagger
 	subIt    graph.Iterator
 	result   graph.Value
@@ -17,14 +16,9 @@ type Unique struct {
 
 func NewUnique(subIt graph.Iterator) *Unique {
 	return &Unique{
-		uid:   NextUID(),
 		subIt: subIt,
 		seen:  make(map[interface{}]bool),
 	}
-}
-
-func (it *Unique) UID() uint64 {
-	return it.uid
 }
 
 // Reset resets the internal iterators and the iterator itself.
@@ -149,7 +143,7 @@ func (it *Unique) Describe() graph.Description {
 	}
 
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Iterators: subIts,

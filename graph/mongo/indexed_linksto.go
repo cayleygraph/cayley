@@ -19,7 +19,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -37,7 +36,6 @@ func init() {
 // LinksTo, as it can use the secondary indices in Mongo as features within the
 // Mongo query, reducing the size of the result set and speeding up iteration.
 type LinksTo struct {
-	uid        uint64
 	collection string
 	tags       graph.Tagger
 	qs         *QuadStore
@@ -54,7 +52,6 @@ type LinksTo struct {
 // and a subiterator of nodes.
 func NewLinksTo(qs *QuadStore, it graph.Iterator, collection string, d quad.Direction, lset []graph.Linkage) *LinksTo {
 	return &LinksTo{
-		uid:        iterator.NextUID(),
 		qs:         qs,
 		primaryIt:  it,
 		dir:        d,
@@ -77,10 +74,6 @@ func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *mgo.Iter
 	constraint := it.buildConstraint()
 	constraint[d.String()] = string(val.(NodeHash))
 	return it.qs.db.C(it.collection).Find(constraint).Iter()
-}
-
-func (it *LinksTo) UID() uint64 {
-	return it.uid
 }
 
 func (it *LinksTo) Tagger() *graph.Tagger {
@@ -215,7 +208,7 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 func (it *LinksTo) Describe() graph.Description {
 	primary := it.primaryIt.Describe()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Direction: it.dir,
 		Iterator:  &primary,

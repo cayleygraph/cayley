@@ -90,7 +90,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	newAnd.optimizeContains()
 	if clog.V(3) {
-		clog.Infof("%v become %v", it.UID(), newAnd.UID())
+		clog.Infof("%v become %v", graph.UID(it), graph.UID(newAnd))
 	}
 
 	// And close ourselves but not our subiterators -- some may still be alive in
@@ -106,7 +106,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 		if hasOne {
 			newAnd.Close()
 			if clog.V(3) {
-				clog.Infof("%v become %v from quadstore", it.UID(), newReplacement.UID())
+				clog.Infof("%v become %v from quadstore", graph.UID(it), graph.UID(newReplacement))
 			}
 			return newReplacement, true
 		}
@@ -185,7 +185,7 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 		}
 		cost *= rootStats.Size
 		if clog.V(3) {
-			clog.Infof("And: %v Root: %v Total Cost: %v Best: %v", it.UID(), root.UID(), cost, bestCost)
+			clog.Infof("And: %v Root: %v Total Cost: %v Best: %v", graph.UID(it), graph.UID(root), cost, bestCost)
 		}
 		if cost < bestCost {
 			best = root
@@ -193,7 +193,7 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 		}
 	}
 	if clog.V(3) {
-		clog.Infof("And: %v Choosing: %v Best: %v", it.UID(), best.UID(), bestCost)
+		clog.Infof("And: %v Choosing: %v Best: %v", graph.UID(it), graph.UID(best), bestCost)
 	}
 
 	// TODO(barakmich): Optimization of order need not stop here. Picking a smart

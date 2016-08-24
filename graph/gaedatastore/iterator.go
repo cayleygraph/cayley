@@ -19,7 +19,6 @@ package gaedatastore
 import (
 	"fmt"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 
 	"appengine/datastore"
@@ -27,7 +26,6 @@ import (
 )
 
 type Iterator struct {
-	uid    uint64
 	size   int64
 	tags   graph.Tagger
 	dir    quad.Direction
@@ -78,7 +76,6 @@ func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Value) *It
 	size := foundNode.Size
 
 	return &Iterator{
-		uid:   iterator.NextUID(),
 		name:  name,
 		dir:   d,
 		qs:    qs,
@@ -108,7 +105,6 @@ func NewAllIterator(qs *QuadStore, kind string) *Iterator {
 	}
 
 	return &Iterator{
-		uid:   iterator.NextUID(),
 		qs:    qs,
 		size:  size,
 		dir:   quad.Any,
@@ -116,10 +112,6 @@ func NewAllIterator(qs *QuadStore, kind string) *Iterator {
 		kind:  kind,
 		done:  false,
 	}
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) Reset() {
@@ -313,7 +305,7 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Name:      fmt.Sprintf("%s/%s", it.name, it.hash),
 		Type:      it.Type(),
 		Size:      size,

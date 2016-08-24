@@ -21,13 +21,11 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 type AllIterator struct {
 	nodes  bool
-	uid    uint64
 	tags   graph.Tagger
 	prefix []byte
 	dir    quad.Direction
@@ -45,7 +43,6 @@ func NewAllIterator(prefix string, d quad.Direction, qs *QuadStore) *AllIterator
 
 	it := AllIterator{
 		nodes:  prefix == "z",
-		uid:    iterator.NextUID(),
 		ro:     opts,
 		iter:   qs.db.NewIterator(nil, opts),
 		prefix: []byte(prefix),
@@ -63,10 +60,6 @@ func NewAllIterator(prefix string, d quad.Direction, qs *QuadStore) *AllIterator
 	}
 
 	return &it
-}
-
-func (it *AllIterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *AllIterator) Reset() {
@@ -163,7 +156,7 @@ func (it *AllIterator) Size() (int64, bool) {
 func (it *AllIterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      size,

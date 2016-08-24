@@ -7,7 +7,6 @@ import (
 // Limit iterator will stop iterating if certain a number of values were encountered.
 // Zero and negative limit values means no limit.
 type Limit struct {
-	uid       uint64
 	limit     int64
 	count     int64
 	primaryIt graph.Iterator
@@ -15,14 +14,9 @@ type Limit struct {
 
 func NewLimit(primaryIt graph.Iterator, limit int64) *Limit {
 	return &Limit{
-		uid:       NextUID(),
 		limit:     limit,
 		primaryIt: primaryIt,
 	}
-}
-
-func (it *Limit) UID() uint64 {
-	return it.uid
 }
 
 // Reset resets the internal iterators and the iterator itself.
@@ -125,7 +119,7 @@ func (it *Limit) Describe() graph.Description {
 	}
 
 	return graph.Description{
-		UID:       it.UID(),
+		UID:       graph.UID(it),
 		Type:      it.Type(),
 		Tags:      it.Tagger().Tags(),
 		Iterators: subIts,

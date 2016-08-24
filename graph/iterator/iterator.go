@@ -17,37 +17,18 @@ package iterator
 // Define the general iterator interface.
 
 import (
-	"sync/atomic"
-
 	"github.com/cayleygraph/cayley/graph"
 )
-
-var nextIteratorID uint64
-
-func init() {
-	atomic.StoreUint64(&nextIteratorID, 1)
-}
-
-func NextUID() uint64 {
-	return atomic.AddUint64(&nextIteratorID, 1) - 1
-}
 
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
 type Null struct {
-	uid  uint64
 	tags graph.Tagger
 }
 
 // Fairly useless New function.
-func NewNull() *Null {
-	return &Null{uid: NextUID()}
-}
-
-func (it *Null) UID() uint64 {
-	return it.uid
-}
+func NewNull() *Null { return &Null{} }
 
 func (it *Null) Tagger() *graph.Tagger {
 	return &it.tags
@@ -79,7 +60,7 @@ func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
 
 func (it *Null) Describe() graph.Description {
 	return graph.Description{
-		UID:  it.UID(),
+		UID:  graph.UID(it),
 		Type: it.Type(),
 	}
 }
