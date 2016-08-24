@@ -57,6 +57,7 @@ var testQueries = []struct {
 	query   string
 	tag     string
 	expect  []string
+	err     bool // TODO(dennwc): define error types for Gremlin and handle them
 }{
 	// Simple query tests.
 	{
@@ -353,7 +354,7 @@ var testQueries = []struct {
 	{
 		message: "issue #254",
 		query:   `g.V({"id":"<alice>"}).All()`,
-		expect:  nil,
+		expect:  nil, err: true,
 	},
 	{
 		message: "roundtrip values",
@@ -402,7 +403,7 @@ var testQueries = []struct {
 	},
 }
 
-func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []string {
+func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) ([]string, error) {
 	js := makeTestSession(g)
 	c := make(chan interface{}, 1)
 	go func() {
@@ -413,7 +414,9 @@ func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []strin
 	var results []string
 	for res := range c {
 		data := res.(*Result)
-		if data.val == nil {
+		if data.err != nil {
+			return results, data.err
+		} else if data.val == nil {
 			if val := data.actualResults[tag]; val != nil {
 				results = append(results, quadValueToString(js.qs.NameOf(val)))
 			}
@@ -424,8 +427,7 @@ func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []strin
 			}
 		}
 	}
-
-	return results
+	return results, nil
 }
 
 func loadGraph(path string, t testing.TB) []quad.Quad {
@@ -462,7 +464,13 @@ func TestGremlin(t *testing.T) {
 			if test.tag == "" {
 				test.tag = TopResultTag
 			}
-			got := runQueryGetTag(rec, simpleGraph, test.query, test.tag)
+			got, err := runQueryGetTag(rec, simpleGraph, test.query, test.tag)
+			if err != nil {
+				if test.err {
+					return //expected
+				}
+				t.Errorf("unexpected error on %s: %v", test.message, err)
+			}
 			sort.Strings(got)
 			sort.Strings(test.expect)
 			t.Log("testing", test.message)

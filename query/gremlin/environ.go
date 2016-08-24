@@ -300,6 +300,12 @@ func toVia(via []interface{}) []interface{} {
 			return nil
 		} else if v, ok := via[0].([]interface{}); ok {
 			return toVia(v)
+		} else if v, ok := via[0].([]string); ok {
+			arr := make([]interface{}, 0, len(v))
+			for _, s := range v {
+				arr = append(arr, s)
+			}
+			return toVia(arr)
 		}
 	}
 	for i := range via {
