@@ -103,6 +103,10 @@ func (it *Iterator) Next() bool {
 		it.rev = it.resp.Header.Revision
 	}
 	it.offset = 0
+	if len(it.resp.Kvs) == 0 {
+		it.result = nil
+		return false
+	}
 	it.result = it.resp.Kvs[it.offset]
 	return true
 }

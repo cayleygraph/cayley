@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/cayleygraph/cayley/clog"
@@ -88,11 +89,13 @@ func newQuadStore(endpoints string, opts graph.Options) (*QuadStore, error) {
 
 type ValueHash [quad.HashSize]byte
 
-func (ValueHash) IsNode() bool { return true }
+func (ValueHash) IsNode() bool     { return true }
+func (h ValueHash) String() string { return hex.EncodeToString(h[:]) }
 
 type QuadHash [4 * quad.HashSize]byte
 
-func (QuadHash) IsNode() bool { return false }
+func (QuadHash) IsNode() bool     { return false }
+func (h QuadHash) String() string { return hex.EncodeToString(h[:]) }
 
 func (h QuadHash) Get(d quad.Direction) (v ValueHash) {
 	off := 0

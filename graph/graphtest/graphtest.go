@@ -293,6 +293,30 @@ func TestIterator(t testing.TB, gen DatabaseFunc) {
 		}
 	}
 	require.True(t, ok, "Failed to find %q during iteration, got:%q", q, set)
+
+	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.Raw("follows")))
+	var quads []quad.Quad
+	for it.Next() {
+		q := qs.Quad(it.Result())
+		quads = append(quads, q)
+	}
+	require.Nil(t, it.Err())
+	sort.Sort(quad.ByQuadString(quads))
+	expectQuads := []quad.Quad{
+		quad.MakeRaw("C", "follows", "D", ""),
+		quad.MakeRaw("D", "follows", "G", ""),
+		quad.MakeRaw("F", "follows", "G", ""),
+		quad.MakeRaw("C", "follows", "B", ""),
+		quad.MakeRaw("D", "follows", "B", ""),
+		quad.MakeRaw("A", "follows", "B", ""),
+		quad.MakeRaw("B", "follows", "F", ""),
+		quad.MakeRaw("E", "follows", "F", ""),
+	}
+	sort.Sort(quad.ByQuadString(expectQuads))
+	require.Equal(t, expectQuads, quads)
+
+	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.Raw("not existent")))
+	require.False(t, it.Next(), "unexpected quad in iterator")
 }
 
 func TestSetIterator(t testing.TB, gen DatabaseFunc) {
