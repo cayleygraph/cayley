@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build appengine
-
 package gaedatastore
 
 import (
 	"fmt"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 
-	"appengine/datastore"
 	"github.com/cayleygraph/cayley/clog"
+	"google.golang.org/appengine/datastore"
 )
 
 type Iterator struct {
