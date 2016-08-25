@@ -5,7 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/coreos/etcd/clientv3"
-	"golang.org/x/net/context"
 )
 
 const iteratorLimit = 1000
@@ -108,27 +107,13 @@ func (it *AllIterator) Next() bool {
 }
 
 func (it *AllIterator) Contains(v graph.Value) bool {
-	ctx := context.TODO()
-	var (
-		resp *clientv3.GetResponse
-		err  error
-	)
+	var key string
 	if it.nodes {
-		resp, err = it.qs.etc.Get(
-			ctx, it.qs.keyValue(v.(ValueHash)),
-			clientv3.WithCountOnly(),
-		)
+		key = it.qs.keyValue(v.(ValueHash))
 	} else {
-		resp, err = it.qs.etc.Get(
-			ctx, it.qs.keyQuadHash(v.(QuadHash), indSPO),
-			clientv3.WithCountOnly(),
-		)
+		key = it.qs.keyQuadHash(v.(QuadHash), indSPO)
 	}
-	if err != nil {
-		it.kvs.err = err
-		return false
-	}
-	ok := resp.Count > 0
+	ok := it.kvs.Contains(key)
 	if ok {
 		it.result = v
 	}

@@ -12,6 +12,7 @@ func NewIterator(etc *clientv3.Client, pref string, rev int64, opts ...clientv3.
 	}
 	return &Iterator{
 		etc: etc, pref: pref, rev: rev, opts: opts,
+		size: -1,
 	}
 }
 
@@ -25,6 +26,7 @@ type Iterator struct {
 	offset int
 	err    error
 	result *mvccpb.KeyValue
+	size   int64
 
 	requests int
 }
@@ -36,6 +38,7 @@ func (it *Iterator) Reset() {
 	it.err = nil
 	it.resp = nil
 	it.offset = 0
+	it.size = -1
 }
 func (it *Iterator) Clone() *Iterator {
 	return NewIterator(it.etc, it.pref, it.rev, it.opts...)
@@ -104,6 +107,9 @@ func (it *Iterator) Next() bool {
 	return true
 }
 func (it *Iterator) Size() (int64, bool) {
+	if it.size >= 0 {
+		return it.size, true
+	}
 	ctx := context.TODO()
 	opts := []clientv3.OpOption{
 		clientv3.WithPrefix(),
@@ -123,5 +129,24 @@ func (it *Iterator) Size() (int64, bool) {
 	if it.rev <= 0 { // fix revision
 		it.rev = resp.Header.Revision
 	}
-	return resp.Count, true
+	it.size = resp.Count
+	return it.size, true
+}
+func (it *Iterator) Contains(key string) bool {
+	ctx := context.TODO()
+	opts := []clientv3.OpOption{
+		clientv3.WithCountOnly(),
+	}
+	if it.rev > 0 {
+		opts = append(opts, clientv3.WithRev(it.rev))
+	}
+	resp, err := it.etc.Get(ctx, key, opts...)
+	if err != nil {
+		it.err = err
+		return false
+	}
+	if it.rev <= 0 { // fix revision
+		it.rev = resp.Header.Revision
+	}
+	return resp.Count > 0
 }

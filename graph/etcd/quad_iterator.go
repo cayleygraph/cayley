@@ -6,7 +6,6 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/coreos/etcd/clientv3"
-	"golang.org/x/net/context"
 )
 
 var etcdItType graph.Type
@@ -135,21 +134,9 @@ func (it *QuadIterator) Contains(v graph.Value) bool {
 	if h.Get(it.dir) != it.hash {
 		return false
 	}
-	ctx := context.TODO()
-	var (
-		resp *clientv3.GetResponse
-		err  error
-	)
-	resp, err = it.qs.etc.Get(
-		// TODO: use it.index instead?
-		ctx, it.qs.keyQuadHash(v.(QuadHash), indSPO),
-		clientv3.WithCountOnly(),
-	)
-	if err != nil {
-		it.kvs.err = err
-		return false
-	}
-	return resp.Count > 0
+	// TODO: use it.index instead?
+	key := it.qs.keyQuadHash(v.(QuadHash), indSPO)
+	return it.kvs.Contains(key)
 }
 
 func (it *QuadIterator) Size() (int64, bool) {
