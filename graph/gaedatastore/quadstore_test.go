@@ -10,7 +10,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// +build appengine
 
 package gaedatastore
 
@@ -24,7 +23,7 @@ import (
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/require"
 
-	"appengine/aetest"
+	"google.golang.org/appengine/aetest"
 )
 
 // This is a simple test graph.
