@@ -36,14 +36,14 @@ func (exp *Exporter) ExportQuad() {
 		exp.count++
 		quad := exp.qstore.Quad(it.Result())
 
-		exp.WriteEscString(quad.Subject.String())
+		exp.Write(quad.Subject.String())
 		exp.Write(" ")
-		exp.WriteEscString(quad.Predicate.String())
+		exp.Write(quad.Predicate.String())
 		exp.Write(" ")
-		exp.WriteEscString(quad.Object.String())
+		exp.Write(quad.Object.String())
 		if quad.Label != nil {
 			exp.Write(" ")
-			exp.WriteEscString(quad.Label.String())
+			exp.Write(quad.Label.String())
 		}
 		exp.Write(" .\n")
 	}
