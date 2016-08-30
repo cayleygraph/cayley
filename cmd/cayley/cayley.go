@@ -38,6 +38,7 @@ import (
 	_ "github.com/cayleygraph/cayley/graph/leveldb"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/graph/mongo"
+	_ "github.com/cayleygraph/cayley/graph/rethinkdb"
 	_ "github.com/cayleygraph/cayley/graph/sql"
 
 	// Load writer registry
