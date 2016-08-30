@@ -37,6 +37,7 @@ import (
 	_ "github.com/cayleygraph/cayley/graph/leveldb"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/graph/mongo"
+	_ "github.com/cayleygraph/cayley/graph/rethinkdb"
 	_ "github.com/cayleygraph/cayley/graph/sql"
 
 	// Load writer registry
@@ -459,6 +460,9 @@ func prepare(t testing.TB) {
 		remote = true
 	case "sql":
 		cfg.DatabasePath = "postgres://localhost/cayley_test"
+		remote = true
+	case "rethinkdb":
+		cfg.DatabasePath = "localhost:28015"
 		remote = true
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
