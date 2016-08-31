@@ -1,9 +1,3 @@
-# Forked!
-
-With RethinkDB as backend store.
-
-The implementation is heavily inspired by the MongoDB implementation.
-
 <p align="center">
   <img src="static/branding/cayley_side.png?raw=true" alt="Cayley" />
 </p>
