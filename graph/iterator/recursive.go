@@ -1,7 +1,6 @@
 package iterator
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -130,7 +129,6 @@ func (it *Recursive) Next() bool {
 				it.subIt.TagResults(tags)
 				it.pathMap[res] = append(it.pathMap[res], tags)
 			}
-			fmt.Printf("A: %#v %#v\n", res, it.pathMap[res])
 		}
 	}
 	for {

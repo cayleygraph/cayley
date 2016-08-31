@@ -118,7 +118,10 @@ func (qs *store) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return nil
 func (qs *store) Quad(v graph.Value) quad.Quad { return v.(quad.Quad) }
 
 func (qs *store) NameOf(v graph.Value) quad.Value {
-	return v.(quad.String)
+	if v == nil {
+		return nil
+	}
+	return v.(quad.Value)
 }
 
 func (qs *store) RemoveQuad(t quad.Quad) {}
@@ -157,12 +160,15 @@ func (qs *store) NodesAllIterator() graph.Iterator {
 	set := make(map[string]bool)
 	for _, q := range qs.data {
 		for _, d := range quad.Directions {
-			set[qs.NameOf(q.Get(d)).String()] = true
+			n := qs.NameOf(q.Get(d))
+			if n != nil {
+				set[n.String()] = true
+			}
 		}
 	}
 	fixed := qs.FixedIterator()
 	for k, _ := range set {
-		fixed.Add(quad.String(k))
+		fixed.Add(quad.Raw(k))
 	}
 	return fixed
 }

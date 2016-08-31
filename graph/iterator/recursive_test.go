@@ -19,14 +19,14 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/google/cayley/graph"
-	"github.com/google/cayley/quad"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 func singleHop(pred string) graph.ApplyMorphism {
 	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
 		fixed := qs.FixedIterator()
-		fixed.Add(pred)
+		fixed.Add(quad.Raw(pred))
 		predlto := NewLinksTo(qs, fixed, quad.Predicate)
 		lto := NewLinksTo(qs, it.Clone(), quad.Subject)
 		and := NewAnd(qs)
@@ -38,26 +38,26 @@ func singleHop(pred string) graph.ApplyMorphism {
 
 var rec_test_qs = &store{
 	data: []quad.Quad{
-		{"alice", "parent", "bob", ""},
-		{"bob", "parent", "charlie", ""},
-		{"charlie", "parent", "dani", ""},
-		{"charlie", "parent", "bob", ""},
-		{"dani", "parent", "emily", ""},
-		{"fred", "follows", "alice", ""},
-		{"greg", "follows", "alice", ""},
+		quad.MakeRaw("alice", "parent", "bob", ""),
+		quad.MakeRaw("bob", "parent", "charlie", ""),
+		quad.MakeRaw("charlie", "parent", "dani", ""),
+		quad.MakeRaw("charlie", "parent", "bob", ""),
+		quad.MakeRaw("dani", "parent", "emily", ""),
+		quad.MakeRaw("fred", "follows", "alice", ""),
+		quad.MakeRaw("greg", "follows", "alice", ""),
 	},
 }
 
 func TestRecursiveNext(t *testing.T) {
 	qs := rec_test_qs
 	start := qs.FixedIterator()
-	start.Add("alice")
+	start.Add(quad.Raw("alice"))
 	r := NewRecursive(qs, start, singleHop("parent"))
 	expected := []string{"bob", "charlie", "dani", "emily"}
 
 	var got []string
-	for graph.Next(r) {
-		got = append(got, qs.NameOf(r.Result()))
+	for r.Next() {
+		got = append(got, qs.NameOf(r.Result()).String())
 	}
 	sort.Strings(expected)
 	sort.Strings(got)
@@ -69,13 +69,13 @@ func TestRecursiveNext(t *testing.T) {
 func TestRecursiveContains(t *testing.T) {
 	qs := rec_test_qs
 	start := qs.FixedIterator()
-	start.Add("alice")
+	start.Add(quad.Raw("alice"))
 	r := NewRecursive(qs, start, singleHop("parent"))
 	values := []string{"charlie", "bob", "not"}
 	expected := []bool{true, true, false}
 
 	for i, v := range values {
-		ok := r.Contains(qs.ValueOf(v))
+		ok := r.Contains(qs.ValueOf(quad.Raw(v)))
 		if expected[i] != ok {
 			t.Errorf("Failed to %s, value: %s, got: %v, expected: %v", "check basic recursive contains", v, ok, expected[i])
 		}
@@ -90,20 +90,20 @@ func TestRecursiveNextPath(t *testing.T) {
 	and := NewAnd(qs)
 	and.AddSubIterator(it)
 	fixed := qs.FixedIterator()
-	fixed.Add("alice")
+	fixed.Add(quad.Raw("alice"))
 	and.AddSubIterator(fixed)
 	r := NewRecursive(qs, and, singleHop("parent"))
 
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string
-	for graph.Next(r) {
+	for r.Next() {
 		res := make(map[string]graph.Value)
 		r.TagResults(res)
-		got = append(got, qs.NameOf(res["person"]))
+		got = append(got, qs.NameOf(res["person"]).String())
 		for r.NextPath() {
 			res := make(map[string]graph.Value)
 			r.TagResults(res)
-			got = append(got, qs.NameOf(res["person"]))
+			got = append(got, qs.NameOf(res["person"]).String())
 		}
 	}
 	sort.Strings(expected)
