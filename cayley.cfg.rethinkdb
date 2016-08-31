@@ -1,9 +1,0 @@
-{
-	"database": "rethinkdb",
-	"db_path": "192.168.99.100:28015",
-	"db_options": {
-		"database_name": "dev_cayley",
-        "log_level": "DEBUG"
-	},
-	"read_only": false
-}
