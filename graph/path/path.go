@@ -115,14 +115,13 @@ func (p *Path) Clone() *Path {
 	}
 }
 
-// Unexported clone method returns a *Path with a copy of the original stack.
-// On the assumption that the new stack will be appended to, the new
-// capacity is one greater than the current stack's length.
+// Unexported clone method returns a *Path with a copy of the original stack,
+// with assumption that the new stack will be appended to.
 func (p *Path) clone() *Path {
-	stack_c := make([]morphism, len(p.stack), len(p.stack)+1)
-	copy(stack_c, p.stack)
+	stack := p.stack
+	p.stack = stack[:len(stack):len(stack)]
 	return &Path{
-		stack:       stack_c,
+		stack:       stack,
 		qs:          p.qs,
 		baseContext: p.baseContext,
 	}
