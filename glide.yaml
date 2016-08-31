@@ -38,3 +38,4 @@ import:
   subpackages:
   - assert
   - require
+- package: gopkg.in/dancannon/gorethink.v2

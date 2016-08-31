@@ -1,10 +1,12 @@
-hash: 80622f54e5ee6819770a6d90324f90b5fc75790d8311d1e39d12be1bb00cd95b
-updated: 2016-08-26T17:11:12.108578825+07:00
+hash: 9f97065297b799e148753f44bba710c39e270e2ba7a11b70ccd37830c6289266
+updated: 2016-08-31T11:24:09.723636473+02:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
 - name: github.com/boltdb/bolt
   version: 04a3e85793043e76d41164037d0d7f9d53eecae3
+- name: github.com/cenk/backoff
+  version: cdf48bbc1eb78d1349cbda326a4a037f7ba565c6
 - name: github.com/cznic/mathutil
   version: f9551431b78e71ee24939a1e9d8f49f43898b5cd
 - name: github.com/davecgh/go-spew
@@ -18,19 +20,19 @@ imports:
   - pkg/archive
   - pkg/fileutils
   - pkg/homedir
+  - pkg/stdcopy
   - pkg/idtools
   - pkg/ioutils
-  - pkg/longpath
   - pkg/pools
   - pkg/promise
-  - pkg/stdcopy
   - pkg/system
+  - pkg/longpath
 - name: github.com/docker/engine-api
   version: c9fd33c91008b9c558a6ed1cb11a68dbe4db0493
   subpackages:
+  - types/swarm
   - types/filters
   - types/mount
-  - types/swarm
   - types/versions
 - name: github.com/docker/go-units
   version: eb879ae3e2b84e2a142af415b679ddeda47ec71c
@@ -39,8 +41,8 @@ imports:
 - name: github.com/gogo/protobuf
   version: ff05bbbb0ff143cc11fc3f8b700fc3a2864b884d
   subpackages:
-  - gogoproto
   - proto
+  - gogoproto
   - protoc-gen-gogo/descriptor
 - name: github.com/golang/glog
   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
@@ -48,6 +50,8 @@ imports:
   version: 888eb0692c857ec880338addf316bd662d5e630e
   subpackages:
   - proto
+- name: github.com/hailocab/go-hostpool
+  version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
 - name: github.com/hashicorp/go-cleanhttp
   version: ad28ea4487f05916463e2423a55166280e8254b5
 - name: github.com/julienschmidt/httprouter
@@ -72,13 +76,13 @@ imports:
 - name: github.com/robertkrimen/otto
   version: d1b4d8ef0e0e4b088c8328c95ca63ab9ebd8fc9d
   subpackages:
+  - underscore
   - ast
   - dbg
   - file
   - parser
   - registry
   - token
-  - underscore
 - name: github.com/russross/blackfriday
   version: 17bb7999de6cfb791d4f8986cc00b3309b370cdb
 - name: github.com/shurcooL/sanitized_anchor_name
@@ -94,21 +98,25 @@ imports:
   version: 4875955338b0a434238a31165cb87255ab6e9e4a
   subpackages:
   - leveldb
+  - leveldb/iterator
+  - leveldb/opt
+  - leveldb/util
   - leveldb/cache
   - leveldb/comparer
   - leveldb/errors
   - leveldb/filter
-  - leveldb/iterator
   - leveldb/journal
   - leveldb/memdb
-  - leveldb/opt
   - leveldb/storage
   - leveldb/table
-  - leveldb/util
 - name: github.com/syndtr/gosnappy
   version: 156a073208e131d7d2e212cb749feae7c339e846
   subpackages:
   - snappy
+- name: golang.org/x/crypto
+  version: b13fc1fd382d01861b16b2e6474487d3d4d27f20
+  subpackages:
+  - pbkdf2
 - name: golang.org/x/net
   version: 6a513affb38dc9788b449d59ffed099b8de18fa0
   subpackages:
@@ -121,21 +129,26 @@ imports:
 - name: google.golang.org/appengine
   version: 4f7eeb5305a4ba1966344836ba4af9996b7b4e05
   subpackages:
-  - aetest
   - datastore
   - internal
   - internal/app_identity
-  - internal/base
-  - internal/datastore
-  - internal/log
   - internal/modules
+  - internal/datastore
+  - internal/base
+  - internal/log
   - internal/remote_api
-  - internal/user
-  - user
+- name: gopkg.in/dancannon/gorethink.v2
+  version: e75f34b0817d1ed1a4b967975ccf5fac9535dbc2
+  subpackages:
+  - encoding
+  - ql2
+  - types
+- name: gopkg.in/fatih/pool.v2
+  version: 20a0a429c5f93de45c90f5f09ea297c25e0929b3
 - name: gopkg.in/mgo.v2
   version: c6a7dce14133ccac2dcac3793f1d6e2ef048503a
   subpackages:
   - bson
   - internal/scram
   - sasl
-testImports: []
+devImports: []
