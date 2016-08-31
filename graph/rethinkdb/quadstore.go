@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"gopkg.in/dancannon/gorethink.v2"
@@ -137,21 +136,6 @@ func dialRethinkDB(addr string, options graph.Options) (session *gorethink.Sessi
 	dbName := DefaultDBName
 	if val, ok, err := options.StringKey("database_name"); err == nil && ok {
 		dbName = val
-	}
-
-	if val, ok, err := options.StringKey("log_level"); err == nil && ok {
-		switch strings.ToUpper(val) {
-		case "DEBUG":
-			clog.SetV(5)
-		case "INFO":
-			clog.SetV(4)
-		case "WARN":
-			clog.SetV(3)
-		case "ERROR":
-			clog.SetV(2)
-		case "FATAL":
-			clog.SetV(1)
-		}
 	}
 
 	session, err = openSession(addr, dbName)
