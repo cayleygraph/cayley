@@ -1,54 +1,40 @@
 package rethinkdb
 
-import (
-	"time"
-
-	"gopkg.in/dancannon/gorethink.v2"
-)
+import "gopkg.in/dancannon/gorethink.v2"
 
 // openSession initializes the rethink db session
-func openSession(address string, database string) (c *gorethink.Session, err error) {
+func openSession(address string, database string) (session *gorethink.Session, err error) {
 	gorethink.SetTags("gorethink", "json")
 
-	for i := 0; i < 10; i++ {
-		c, err = gorethink.Connect(gorethink.ConnectOpts{
-			Address:  address,
-			Database: database,
-			MaxIdle:  10,
-			MaxOpen:  10,
-		})
-		if err == nil {
-			break
-		} else {
-			time.Sleep(time.Second * 2)
-		}
-	}
-
+	session, err = gorethink.Connect(gorethink.ConnectOpts{
+		Address:  address,
+		Database: database,
+	})
 	if err != nil {
 		return
 	}
 
 	// Create database if not already exists
-	exists, err := databaseExists(database, c)
+	exists, err := databaseExists(database, session)
 	if err != nil {
+		session.Close()
 		return
 	}
 
 	if !exists {
-		err = gorethink.DBCreate(database).Exec(c)
-		if err != nil {
+		if err = gorethink.DBCreate(database).Exec(session); err != nil {
+			session.Close()
 			return
 		}
 	}
 
-	c.Use(database)
+	session.Use(database)
 
 	return
 }
 
 // databaseExists checks if a database exists
 func databaseExists(name string, s *gorethink.Session) (exists bool, err error) {
-	exists = false
 	res, err := gorethink.DBList().Run(s)
 	if err != nil {
 		return
@@ -70,7 +56,6 @@ func databaseExists(name string, s *gorethink.Session) (exists bool, err error) 
 
 // tableExists checks if a table exists
 func tableExists(name string, s *gorethink.Session) (exists bool, err error) {
-	exists = false
 	res, err := gorethink.TableList().Run(s)
 	if err != nil {
 		return
@@ -90,19 +75,16 @@ func tableExists(name string, s *gorethink.Session) (exists bool, err error) {
 }
 
 // ensureTable creates a table if it does not already exist
-func ensureTable(name string, s *gorethink.Session) (err error) {
-	var exists bool
-	if exists, err = tableExists(name, s); err != nil || exists {
-		return
+func ensureTable(name string, s *gorethink.Session) error {
+	if exists, err := tableExists(name, s); err != nil || exists {
+		return err
 	}
 
-	err = gorethink.TableCreate(name).Exec(s)
-	return
+	return gorethink.TableCreate(name).Exec(s)
 }
 
 // indexExists checks if a table index exists
 func indexExists(table gorethink.Term, index string, s *gorethink.Session) (exists bool, err error) {
-	exists = false
 	res, err := table.IndexList().Run(s)
 	if err != nil {
 		return
@@ -122,23 +104,19 @@ func indexExists(table gorethink.Term, index string, s *gorethink.Session) (exis
 }
 
 // ensureIndex creates an index if not already exist
-func ensureIndex(table gorethink.Term, index string, s *gorethink.Session) (err error) {
-	var exists bool
-	if exists, err = indexExists(table, index, s); err != nil || exists {
-		return
+func ensureIndex(table gorethink.Term, index string, s *gorethink.Session) error {
+	if exists, err := indexExists(table, index, s); err != nil || exists {
+		return err
 	}
 
-	err = table.IndexCreate(index).Exec(s)
-	return
+	return table.IndexCreate(index).Exec(s)
 }
 
 // ensureIndexFunc creates an index if not already exist
-func ensureIndexFunc(table gorethink.Term, index string, indexFunction interface{}, s *gorethink.Session) (err error) {
-	var exists bool
-	if exists, err = indexExists(table, index, s); err != nil || exists {
-		return
+func ensureIndexFunc(table gorethink.Term, index string, indexFunction interface{}, s *gorethink.Session) error {
+	if exists, err := indexExists(table, index, s); err != nil || exists {
+		return err
 	}
 
-	err = table.IndexCreateFunc(index, indexFunction).Exec(s)
-	return
+	return table.IndexCreateFunc(index, indexFunction).Exec(s)
 }

@@ -16,11 +16,6 @@ func init() {
 	linksToType = graph.RegisterIterator("rethinkdb-linksto")
 }
 
-// LinksTo is a MongoDB-dependent version of a LinksTo iterator. Like the normal
-// LinksTo, it represents a set of links to a set of nodes, represented by its
-// subiterator. However, this iterator may often be faster than the generic
-// LinksTo, as it can use the secondary indices in Mongo as features within the
-// Mongo query, reducing the size of the result set and speeding up iteration.
 type LinksTo struct {
 	uid       uint64
 	table     string
@@ -35,8 +30,6 @@ type LinksTo struct {
 	err       error
 }
 
-// NewLinksTo constructs a new indexed LinksTo iterator for Mongo around a direction
-// and a subiterator of nodes.
 func NewLinksTo(qs *QuadStore, it graph.Iterator, table string, d quad.Direction, lset []graph.Linkage) *LinksTo {
 	return &LinksTo{
 		uid:       iterator.NextUID(),
@@ -104,7 +97,7 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 }
 
 func (it *LinksTo) Next() bool {
-	var result RethinkDBQuad
+	var result Quad
 	graph.NextLogIn(it)
 next:
 	for {
@@ -124,27 +117,21 @@ next:
 		}
 
 		if it.nextIt != nil {
-			// If there's an error in the 'next' iterator, we save it and we're done.
 			it.err = it.nextIt.Err()
 			if it.err != nil {
 				return false
 			}
 
 		}
-		// Subiterator is empty, get another one
 		if !it.primaryIt.Next() {
-			// Possibly save error
 			it.err = it.primaryIt.Err()
 
-			// We're out of nodes in our subiterator, so we're done as well.
 			return graph.NextLogOut(it, false)
 		}
 		if it.nextIt != nil {
 			it.nextIt.Close()
 		}
 		it.nextIt = it.buildIteratorFor(it.dir, it.primaryIt.Result())
-
-		// Recurse -- return the first in the next set.
 	}
 }
 
@@ -223,6 +210,7 @@ func (it *LinksTo) Reset() {
 	if it.nextIt != nil {
 		it.nextIt.Close()
 	}
+	it.err = nil
 	it.nextIt = nil
 }
 

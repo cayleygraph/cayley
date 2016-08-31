@@ -17,11 +17,16 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-const DefaultDBName = "cayley"
-const QuadStoreType = "rethinkdb"
-const nodeTableName = "nodes"
-const quadTableName = "quads"
-const logTableName = "log"
+const (
+	DefaultDBName = "cayley"
+	QuadStoreType = "rethinkdb"
+)
+
+const (
+	nodeTableName = "nodes"
+	quadTableName = "quads"
+	logTableName  = "log"
+)
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
@@ -35,7 +40,7 @@ func init() {
 
 type NodeHash string
 
-func (NodeHash) IsNode() bool { return false }
+func (NodeHash) IsNode() bool { return true }
 
 type QuadHash [4]NodeHash
 
@@ -61,22 +66,44 @@ type QuadStore struct {
 	sizes   *lru.Cache
 }
 
-type RethinkDBNode struct {
-	ID   string `json:"id"`
-	Name value  `json:"name"`
-	Size int    `json:"size"`
+type dbType int
+
+const (
+	dbRaw dbType = iota
+	dbString
+	dbIRI
+	dbBNode
+	dbFloat
+	dbInt
+	dbBool
+	dbTime
+	dbLangString
+	dbTypedString
+	dbProto
+)
+
+type Node struct {
+	ID          string    `json:"id"`
+	StringValue string    `json:"val_string,omitempty"`
+	IntValue    int64     `json:"val_int,omitempty"`
+	FloatValue  float64   `json:"val_float,omitempty"`
+	TimeValue   time.Time `json:"val_time,omitempty"`
+	BoolValue   bool      `json:"val_bool,omitempty"`
+	BytesValue  []byte    `json:"val_bytes,omitempty"`
+	Type        dbType    `json:"type"`
+	LangString  string    `json:"lang_string,omitempty"`
+	TypeString  string    `json:"type_string,omitempty"`
+	Size        int       `json:"size"`
 }
 
-type RethinkDBLogEntry struct {
+type LogEntry struct {
 	ID        string `json:"id"`
 	Action    string `json:"action"`
 	Key       string `json:"key"`
 	Timestamp int64  `json:"ts"`
 }
 
-type value interface{}
-
-type RethinkDBQuad struct {
+type Quad struct {
 	ID        string   `json:"id"`
 	Subject   string   `json:"subject"`
 	Predicate string   `json:"predicate"`
@@ -86,18 +113,16 @@ type RethinkDBQuad struct {
 	Deleted   []string `json:"deleted"`
 }
 
-type RethinkDBString struct {
-	Value   string `json:"val"`
-	IsIRI   bool   `json:"iri,omitempty"`
-	IsBNode bool   `json:"bnode,omitempty"`
-	Type    string `json:"type,omitempty"`
-	Lang    string `json:"lang,omitempty"`
-}
-
 func ensureIndexes(session *gorethink.Session) (err error) {
-	if err = ensureTable(nodeTableName, session); err != nil {
+	// nodes 
+    if err = ensureTable(nodeTableName, session); err != nil {
 		return
 	}
+	if err = ensureIndex(gorethink.Table(nodeTableName), "type", session); err != nil {
+		return
+	}
+
+    // quads
 	if err = ensureTable(quadTableName, session); err != nil {
 		return
 	}
@@ -114,6 +139,7 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 		return
 	}
 
+    // log
 	if err = ensureTable(logTableName, session); err != nil {
 		return
 	}
@@ -124,11 +150,12 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 	return
 }
 
-func createNewRethinkDBGraph(addr string, options graph.Options) (err error) {
+func createNewRethinkDBGraph(addr string, options graph.Options) error {
 	session, err := dialRethinkDB(addr, options)
 	if err != nil {
-		return
+		return err
 	}
+	defer session.Close()
 	return ensureIndexes(session)
 }
 
@@ -139,14 +166,10 @@ func dialRethinkDB(addr string, options graph.Options) (session *gorethink.Sessi
 	}
 
 	session, err = openSession(addr, dbName)
-	if err != nil {
-		return
-	}
 	return
 }
 
 func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err error) {
-	s := QuadStore{}
 	session, err := dialRethinkDB(addr, options)
 	if err != nil {
 		return
@@ -155,10 +178,12 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 	if err = ensureIndexes(session); err != nil {
 		return
 	}
-	s.session = session
-	s.ids = lru.New(1 << 16)
-	s.sizes = lru.New(1 << 16)
-	qs = &s
+
+	qs = &QuadStore{
+		session: session,
+		ids:     lru.New(1 << 16),
+		sizes:   lru.New(1 << 16),
+	}
 	return
 }
 
@@ -170,25 +195,33 @@ func hashOf(s quad.Value) string {
 }
 
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
-	hash := hashOf(t.Subject)
-	hash += hashOf(t.Predicate)
-	hash += hashOf(t.Object)
-	hash += hashOf(t.Label)
 	h := sha1.New()
-	h.Write([]byte(hash))
+	h.Write([]byte(quad.HashOf(t.Subject)))
+	h.Write([]byte(quad.HashOf(t.Predicate)))
+	h.Write([]byte(quad.HashOf(t.Object)))
+	if t.Label != nil {
+		h.Write([]byte(quad.HashOf(t.Label)))
+	}
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) (err error) {
 	node := qs.ValueOf(name)
 
-	query := gorethink.Table(nodeTableName).Insert(RethinkDBNode{
+	row := &Node{
 		ID:   string(node.(NodeHash)),
-		Name: toRethinkDBValue(name),
 		Size: inc,
-	}, gorethink.InsertOpts{
-		Conflict: "replace",
-	})
+	}
+
+	row.fillValue(name)
+
+	query := gorethink.Table(nodeTableName).Insert(*row, gorethink.InsertOpts{
+		Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
+			return newDoc.Merge(map[string]interface{}{
+				"size": oldDoc.Add(newDoc.Field("size")),
+			})
+		},
+    })
 
 	if clog.V(5) {
 		// Debug
@@ -204,7 +237,7 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) (err error) {
 }
 
 func (qs *QuadStore) updateQuad(q quad.Quad, id string, proc graph.Procedure) (err error) {
-	row := RethinkDBQuad{
+	row := Quad{
 		ID:        qs.getIDForQuad(q),
 		Subject:   hashOf(q.Subject),
 		Predicate: hashOf(q.Predicate),
@@ -251,7 +284,7 @@ func (qs *QuadStore) updateLog(d graph.Delta) (err error) {
 		action = "Delete"
 	}
 
-	query := gorethink.Table(logTableName).Insert(&RethinkDBLogEntry{
+	query := gorethink.Table(logTableName).Insert(LogEntry{
 		ID:        d.ID.String(),
 		Action:    action,
 		Key:       qs.getIDForQuad(d.Quad),
@@ -308,91 +341,92 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
-func toRethinkDBValue(v quad.Value) value {
+func (n *Node) fillValue(v quad.Value) {
 	if v == nil {
-		return nil
+		return
 	}
 	switch d := v.(type) {
 	case quad.Raw:
-		return string(d) // compatibility
+		n.Type = dbRaw
+		n.BytesValue = []byte(d)
 	case quad.String:
-		return RethinkDBString{Value: string(d)}
+		n.Type = dbString
+		n.StringValue = string(d)
 	case quad.IRI:
-		return RethinkDBString{Value: string(d), IsIRI: true}
+		n.Type = dbIRI
+		n.StringValue = string(d)
 	case quad.BNode:
-		return RethinkDBString{Value: string(d), IsBNode: true}
+		n.Type = dbBNode
+		n.StringValue = string(d)
 	case quad.TypedString:
-		return RethinkDBString{Value: string(d.Value), Type: string(d.Type)}
+		n.Type = dbTypedString
+		n.StringValue = string(d.Value)
+		n.TypeString = string(d.Type)
 	case quad.LangString:
-		return RethinkDBString{Value: string(d.Value), Lang: string(d.Lang)}
+		n.Type = dbLangString
+		n.StringValue = string(d.Value)
+		n.LangString = string(d.Lang)
 	case quad.Int:
-		return int64(d)
+		n.Type = dbInt
+		n.IntValue = int64(d)
 	case quad.Float:
-		return float64(d)
+		n.Type = dbFloat
+		n.FloatValue = float64(d)
 	case quad.Bool:
-		return bool(d)
+		n.Type = dbBool
+		n.BoolValue = bool(d)
 	case quad.Time:
-		return time.Time(d)
+		n.Type = dbTime
+		n.TimeValue = time.Time(d).UTC()
 	default:
 		qv := proto.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
 		}
-		return data
+		n.Type = dbProto
+		n.BytesValue = data
 	}
 }
 
-func toQuadValue(v value) quad.Value {
-	if v == nil {
-		return nil
-	}
-	switch d := v.(type) {
-	case string:
-		return quad.Raw(d) // compatibility
-	case int64:
-		return quad.Int(d)
-	case float64:
-		return quad.Float(d)
-	case bool:
-		return quad.Bool(d)
-	case time.Time:
-		return quad.Time(d)
-	case map[string]interface{}:
-		so, ok := d["val"]
-		if !ok {
-			clog.Errorf("Error: Empty value in map: %v", v)
-			return nil
+func (n Node) quadValue() quad.Value {
+	switch n.Type {
+	case dbString:
+		return quad.String(n.StringValue)
+	case dbRaw:
+		return quad.Raw(n.BytesValue)
+	case dbBNode:
+		return quad.BNode(n.StringValue)
+	case dbInt:
+		return quad.Int(n.IntValue)
+	case dbBool:
+		return quad.Bool(n.BoolValue)
+	case dbFloat:
+		return quad.Float(n.FloatValue)
+	case dbIRI:
+		return quad.IRI(n.StringValue)
+	case dbLangString:
+		return quad.LangString{
+			Value: quad.String(n.StringValue),
+			Lang:  n.LangString,
 		}
-		s := so.(string)
-		if len(d) == 1 {
-			return quad.String(s)
+	case dbTypedString:
+		return quad.TypedString{
+			Value: quad.String(n.StringValue),
+			Type:  quad.IRI(n.TypeString),
 		}
-		if o, ok := d["iri"]; ok && o.(bool) {
-			return quad.IRI(s)
-		} else if o, ok := d["bnode"]; ok && o.(bool) {
-			return quad.BNode(s)
-		} else if o, ok := d["lang"]; ok && o.(string) != "" {
-			return quad.LangString{
-				Value: quad.String(s),
-				Lang:  o.(string),
-			}
-		} else if o, ok := d["type"]; ok && o.(string) != "" {
-			return quad.TypedString{
-				Value: quad.String(s),
-				Type:  quad.IRI(o.(string)),
-			}
-		}
-		return quad.String(s)
-	case []byte:
+	case dbTime:
+		return quad.Time(n.TimeValue)
+	case dbProto:
 		var p proto.Value
-		if err := p.Unmarshal(d); err != nil {
-			clog.Errorf("Error: Couldn't decode value: %v", err)
+		if err := p.Unmarshal(n.BytesValue); err != nil {
+            clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil
-		}
+        }
 		return p.ToNative()
-	default:
-		panic(fmt.Errorf("unsupported type: %T", v))
+    default:
+        clog.Warningf("Unhandled quad value type: %s", n.Type)
+        return nil
 	}
 }
 
@@ -430,8 +464,8 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	if val, ok := qs.ids.Get(string(hash)); ok {
 		return val.(quad.Value)
 	}
-	var node RethinkDBNode
 
+	var node Node
 	query := gorethink.Table(nodeTableName).Get(string(hash))
 
 	if clog.V(5) {
@@ -442,12 +476,13 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	err := query.ReadOne(&node, qs.session)
 	switch err {
 	case nil: // do nothing
-	case gorethink.ErrEmptyResult: // do nothing
+	case gorethink.ErrEmptyResult:
+		return nil
 	default:
 		clog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
 	}
 
-	qv := toQuadValue(node.Name)
+	qv := node.quadValue()
 	if node.ID != "" && qv != nil {
 		qs.ids.Put(string(hash), qv)
 	}

@@ -73,7 +73,6 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	for _, it := range it.SubIterators() {
 		if it.Type() == graph.LinksTo {
 			lto := it.(*iterator.LinksTo)
-			// Is it more effective to do the replacement, or let the mongo check the linksto?
 			ltostats := lto.Stats()
 			if (ltostats.ContainsCost+stats.NextCost)*stats.Size > (ltostats.NextCost+stats.ContainsCost)*ltostats.Size {
 				continue
@@ -142,26 +141,27 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 		}
 	}
 
-	constraint := gorethink.Row.Field("name")
+	var constraint gorethink.Term
 
 	switch v := it.Value().(type) {
 	case quad.String:
-		constraint = comparer(constraint)(string(v)).
-			And(gorethink.Row.Not(gorethink.Row.HasFields("iri", "bnode")))
+		constraint = comparer(gorethink.Row.Field("val_string"))(string(v)).
+			And(gorethink.Row.Field("type").Eq(dbString))
 	case quad.IRI:
-		constraint = comparer(constraint)(string(v)).
-			And(gorethink.Row.Not(gorethink.Row.HasFields("bnode"))).
-			And(gorethink.Row.Field("iri").Eq(true))
+		constraint = comparer(gorethink.Row.Field("val_string"))(string(v)).
+			And(gorethink.Row.Field("type").Eq(dbIRI))
 	case quad.BNode:
-		constraint = comparer(constraint)(string(v)).
-			And(gorethink.Row.Not(gorethink.Row.HasFields("iri"))).
-			And(gorethink.Row.Field("bnode").Eq(true))
+		constraint = comparer(gorethink.Row.Field("val_string"))(string(v)).
+			And(gorethink.Row.Field("type").Eq(dbBNode))
 	case quad.Int:
-		constraint = comparer(constraint)(int64(v))
+		constraint = comparer(gorethink.Row.Field("val_int"))(int64(v)).
+			And(gorethink.Row.Field("type").Eq(dbInt))
 	case quad.Float:
-		constraint = comparer(constraint)(float64(v))
+		constraint = comparer(gorethink.Row.Field("val_float"))(float64(v)).
+			And(gorethink.Row.Field("type").Eq(dbFloat))
 	case quad.Time:
-		constraint = comparer(constraint)(time.Time(v))
+		constraint = comparer(gorethink.Row.Field("val_time"))(time.Time(v)).
+			And(gorethink.Row.Field("type").Eq(dbTime))
 	default:
 		return it, false
 	}

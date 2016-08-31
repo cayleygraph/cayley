@@ -98,6 +98,7 @@ func (it *Iterator) UID() uint64 {
 func (it *Iterator) Reset() {
 	it.Close()
 	it.iter = it.makeRDBIterator()
+	it.err = nil
 }
 
 func (it *Iterator) Close() error {
@@ -133,7 +134,7 @@ func (it *Iterator) Clone() graph.Iterator {
 }
 
 func (it *Iterator) Next() bool {
-	var result RethinkDBQuad
+	var result Quad
 	if it.iter == nil {
 		it.iter = it.makeRDBIterator()
 	}
@@ -174,7 +175,6 @@ func (it *Iterator) NextPath() bool {
 	return false
 }
 
-// SubIterators returns no subiterators for a Mongo iterator.
 func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
