@@ -35,7 +35,7 @@ func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	}
 }
 
-func TestMongoAll(t *testing.T) {
+func TestRethinkDBAll(t *testing.T) {
 	graphtest.TestAll(t, makeRethinkDB, &graphtest.Config{
 		TimeInMs:                 true,
 		OptimizesComparison:      true,
