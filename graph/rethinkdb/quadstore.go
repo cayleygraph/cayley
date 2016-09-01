@@ -114,15 +114,15 @@ type Quad struct {
 }
 
 func ensureIndexes(session *gorethink.Session) (err error) {
-	// nodes 
-    if err = ensureTable(nodeTableName, session); err != nil {
+	// nodes
+	if err = ensureTable(nodeTableName, session); err != nil {
 		return
 	}
 	if err = ensureIndex(gorethink.Table(nodeTableName), "type", session); err != nil {
 		return
 	}
 
-    // quads
+	// quads
 	if err = ensureTable(quadTableName, session); err != nil {
 		return
 	}
@@ -139,7 +139,7 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 		return
 	}
 
-    // log
+	// log
 	if err = ensureTable(logTableName, session); err != nil {
 		return
 	}
@@ -196,11 +196,11 @@ func hashOf(s quad.Value) string {
 
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	h := sha1.New()
-	h.Write([]byte(quad.HashOf(t.Subject)))
-	h.Write([]byte(quad.HashOf(t.Predicate)))
-	h.Write([]byte(quad.HashOf(t.Object)))
+	h.Write(quad.HashOf(t.Subject))
+	h.Write(quad.HashOf(t.Predicate))
+	h.Write(quad.HashOf(t.Object))
 	if t.Label != nil {
-		h.Write([]byte(quad.HashOf(t.Label)))
+		h.Write(quad.HashOf(t.Label))
 	}
 	return hex.EncodeToString(h.Sum(nil))
 }
@@ -221,7 +221,7 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) (err error) {
 				"size": oldDoc.Add(newDoc.Field("size")),
 			})
 		},
-    })
+	})
 
 	if clog.V(5) {
 		// Debug
@@ -420,13 +420,13 @@ func (n Node) quadValue() quad.Value {
 	case dbProto:
 		var p proto.Value
 		if err := p.Unmarshal(n.BytesValue); err != nil {
-            clog.Errorf("Error: Couldn't decode value: %v", err)
+			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil
-        }
+		}
 		return p.ToNative()
-    default:
-        clog.Warningf("Unhandled quad value type: %s", n.Type)
-        return nil
+	default:
+		clog.Warningf("Unhandled quad value type: %s", n.Type)
+		return nil
 	}
 }
 
