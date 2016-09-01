@@ -176,6 +176,7 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 	}
 
 	if err = ensureIndexes(session); err != nil {
+		session.Close()
 		return
 	}
 
