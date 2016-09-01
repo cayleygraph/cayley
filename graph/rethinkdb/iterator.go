@@ -27,7 +27,7 @@ type Iterator struct {
 func NewIterator(qs *QuadStore, table string, d quad.Direction, val graph.Value) *Iterator {
 	h := val.(NodeHash)
 
-	constraint := gorethink.Row.Field(d.String()).Eq(string(h))
+	constraint := gorethink.Row.Field(d.String()).Eq(h)
 
 	return &Iterator{
 		uid:        iterator.NextUID(),
@@ -72,7 +72,7 @@ func NewAllIterator(qs *QuadStore, table string) *Iterator {
 		table:      table,
 		iter:       nil,
 		size:       -1,
-		hash:       "",
+		hash:       NodeHash{},
 		isAll:      true,
 	}
 }
@@ -86,7 +86,7 @@ func NewIteratorWithConstraints(qs *QuadStore, table string, constraint gorethin
 		table:      table,
 		iter:       nil,
 		size:       -1,
-		hash:       "",
+		hash:       NodeHash{},
 		isAll:      false,
 	}
 }
@@ -151,12 +151,7 @@ func (it *Iterator) Next() bool {
 		return it.Next()
 	}
 	if it.table == quadTableName {
-		it.result = QuadHash{
-			NodeHash(result.Subject),
-			NodeHash(result.Predicate),
-			NodeHash(result.Object),
-			NodeHash(result.Label),
-		}
+		it.result = result.quadHash()
 	} else {
 		it.result = NodeHash(result.ID)
 	}
@@ -226,7 +221,7 @@ func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
 		UID:  it.UID(),
-		Name: string(it.hash),
+		Name: it.hash.String(),
 		Type: it.Type(),
 		Size: size,
 	}
