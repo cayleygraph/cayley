@@ -378,7 +378,7 @@ func (n *Node) fillValue(v quad.Value) {
 		n.BoolValue = bool(d)
 	case quad.Time:
 		n.Type = dbTime
-		n.TimeValue = time.Time(d).UTC()
+		n.TimeValue = time.Time(d)
 	default:
 		qv := proto.MakeValue(v)
 		data, err := qv.Marshal()
