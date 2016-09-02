@@ -160,7 +160,7 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 		constraint = comparer(gorethink.Row.Field("val_float"))(float64(v)).
 			And(gorethink.Row.Field("type").Eq(dbFloat))
 	case quad.Time:
-		constraint = comparer(gorethink.Row.Field("val_time"))(time.Time(v).UTC()).
+		constraint = comparer(gorethink.Row.Field("val_time"))(time.Time(v)).
 			And(gorethink.Row.Field("type").Eq(dbTime))
 	default:
 		return it, false

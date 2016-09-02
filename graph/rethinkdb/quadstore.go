@@ -38,28 +38,9 @@ func init() {
 	})
 }
 
-type QuadID [sha1.Size]byte
-
-type NodeHash [quad.HashSize]byte
+type NodeHash string
 
 func (NodeHash) IsNode() bool { return true }
-
-func (h NodeHash) Valid() bool {
-	return h != NodeHash{}
-}
-
-func (h NodeHash) toSlice() []byte {
-	if !h.Valid() {
-		return nil
-	}
-	return []byte(h[:])
-}
-func (h NodeHash) String() string {
-	if !h.Valid() {
-		return ""
-	}
-	return hex.EncodeToString(h[:])
-}
 
 type QuadHash [4]NodeHash
 
@@ -77,36 +58,6 @@ func (q QuadHash) Get(d quad.Direction) NodeHash {
 		return q[3]
 	}
 	panic(fmt.Errorf("unknown direction: %v", d))
-}
-
-// quadID is the combined hash for the quad (subject, predicate, object, [label])
-func (q QuadHash) quadID() QuadID {
-	h := sha1.New()
-	h.Write(q[0].toSlice())
-	h.Write(q[1].toSlice())
-	h.Write(q[2].toSlice())
-	if q[3].Valid() {
-		h.Write(q[3].toSlice())
-	}
-	var r QuadID
-	copy(r[:], h.Sum(nil))
-	return r
-}
-
-func (q QuadHash) subject() NodeHash {
-	return q[0]
-}
-
-func (q QuadHash) predicate() NodeHash {
-	return q[1]
-}
-
-func (q QuadHash) object() NodeHash {
-	return q[2]
-}
-
-func (q QuadHash) label() NodeHash {
-	return q[3]
 }
 
 type QuadStore struct {
@@ -132,7 +83,7 @@ const (
 )
 
 type Node struct {
-	ID          NodeHash  `json:"id"`
+	ID          string    `json:"id"`
 	StringValue string    `json:"val_string,omitempty"`
 	IntValue    int64     `json:"val_int,omitempty"`
 	FloatValue  float64   `json:"val_float,omitempty"`
@@ -148,45 +99,18 @@ type Node struct {
 type LogEntry struct {
 	ID        string `json:"id"`
 	Action    string `json:"action"`
-	Key       QuadID `json:"key"`
+	Key       string `json:"key"`
 	Timestamp int64  `json:"ts"`
 }
 
 type Quad struct {
-	ID        QuadID   `json:"id"`
-	Subject   NodeHash `json:"subject"`
-	Predicate NodeHash `json:"predicate"`
-	Object    NodeHash `json:"object"`
-	Label     NodeHash `json:"label"`
+	ID        string   `json:"id"`
+	Subject   string   `json:"subject"`
+	Predicate string   `json:"predicate"`
+	Object    string   `json:"object"`
+	Label     string   `json:"label"`
 	Added     []string `json:"added"`
 	Deleted   []string `json:"deleted"`
-}
-
-func (q Quad) quadHash() QuadHash {
-	return QuadHash{
-		q.Subject,
-		q.Predicate,
-		q.Object,
-		q.Label,
-	}
-}
-
-func nodeHashOf(s quad.Value) (out NodeHash) {
-	if s == nil {
-		return
-	}
-	quad.HashTo(s, out[:])
-	return
-}
-
-func quadHashOf(q quad.Quad) (h QuadHash) {
-	h[0] = nodeHashOf(q.Subject)
-	h[1] = nodeHashOf(q.Predicate)
-	h[2] = nodeHashOf(q.Object)
-	if q.Label != nil {
-		h[3] = nodeHashOf(q.Label)
-	}
-	return
 }
 
 func ensureIndexes(session *gorethink.Session) (err error) {
@@ -264,11 +188,29 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 	return
 }
 
+func hashOf(s quad.Value) string {
+	if s == nil {
+		return ""
+	}
+	return hex.EncodeToString(quad.HashOf(s))
+}
+
+func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
+	h := sha1.New()
+	h.Write(quad.HashOf(t.Subject))
+	h.Write(quad.HashOf(t.Predicate))
+	h.Write(quad.HashOf(t.Object))
+	if t.Label != nil {
+		h.Write(quad.HashOf(t.Label))
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) (err error) {
 	node := qs.ValueOf(name)
 
 	row := &Node{
-		ID:   node.(NodeHash),
+		ID:   string(node.(NodeHash)),
 		Size: inc,
 	}
 
@@ -296,14 +238,12 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) (err error) {
 }
 
 func (qs *QuadStore) updateQuad(q quad.Quad, id string, proc graph.Procedure) (err error) {
-	qh := quadHashOf(q)
-
 	row := Quad{
-		ID:        qh.quadID(),
-		Subject:   qh.subject(),
-		Predicate: qh.predicate(),
-		Object:    qh.object(),
-		Label:     qh.label(),
+		ID:        qs.getIDForQuad(q),
+		Subject:   hashOf(q.Subject),
+		Predicate: hashOf(q.Predicate),
+		Object:    hashOf(q.Object),
+		Label:     hashOf(q.Label),
 	}
 
 	var setname string
@@ -345,12 +285,10 @@ func (qs *QuadStore) updateLog(d graph.Delta) (err error) {
 		action = "Delete"
 	}
 
-	qh := quadHashOf(d.Quad)
-
 	query := gorethink.Table(logTableName).Insert(LogEntry{
 		ID:        d.ID.String(),
 		Action:    action,
-		Key:       qh.quadID(),
+		Key:       qs.getIDForQuad(d.Quad),
 		Timestamp: d.Timestamp.UnixNano(),
 	})
 
@@ -479,7 +417,7 @@ func (n Node) quadValue() quad.Value {
 			Type:  quad.IRI(n.TypeString),
 		}
 	case dbTime:
-		return quad.Time(n.TimeValue.UTC())
+		return quad.Time(n.TimeValue)
 	case dbProto:
 		var p proto.Value
 		if err := p.Unmarshal(n.BytesValue); err != nil {
@@ -496,10 +434,10 @@ func (n Node) quadValue() quad.Value {
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	h := val.(QuadHash)
 	return quad.Quad{
-		Subject:   qs.NameOf(h.Get(quad.Subject)),
-		Predicate: qs.NameOf(h.Get(quad.Predicate)),
-		Object:    qs.NameOf(h.Get(quad.Object)),
-		Label:     qs.NameOf(h.Get(quad.Label)),
+		Subject:   qs.NameOf(NodeHash(h.Get(quad.Subject))),
+		Predicate: qs.NameOf(NodeHash(h.Get(quad.Predicate))),
+		Object:    qs.NameOf(NodeHash(h.Get(quad.Object))),
+		Label:     qs.NameOf(NodeHash(h.Get(quad.Label))),
 	}
 }
 
@@ -516,20 +454,20 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return nodeHashOf(s)
+	return NodeHash(hashOf(s))
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	hash := v.(NodeHash)
-	if !hash.Valid() {
+	if hash == "" {
 		return nil
 	}
-	if val, ok := qs.ids.Get(hash.String()); ok {
+	if val, ok := qs.ids.Get(string(hash)); ok {
 		return val.(quad.Value)
 	}
 
 	var node Node
-	query := gorethink.Table(nodeTableName).Get(hash)
+	query := gorethink.Table(nodeTableName).Get(string(hash))
 
 	if clog.V(5) {
 		// Debug
@@ -546,8 +484,8 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	}
 
 	qv := node.quadValue()
-	if node.ID.Valid() && qv != nil {
-		qs.ids.Put(hash.String(), qv)
+	if node.ID != "" && qv != nil {
+		qs.ids.Put(string(hash), qv)
 	}
 	return qv
 }
@@ -581,7 +519,7 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
-	return in.(QuadHash).Get(d)
+	return NodeHash(in.(QuadHash).Get(d))
 }
 
 func (qs *QuadStore) Type() string {

@@ -51,7 +51,7 @@ func (it *LinksTo) buildConstraint() gorethink.Term {
 }
 
 func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *gorethink.Cursor {
-	constraint := gorethink.Row.Field(d.String()).Eq(val.(NodeHash)).And(it.buildConstraint())
+	constraint := gorethink.Row.Field(d.String()).Eq(string(val.(NodeHash))).And(it.buildConstraint())
 	query := gorethink.Table(it.table).Filter(constraint)
 
 	if clog.V(5) {
@@ -107,7 +107,12 @@ next:
 			if it.table == quadTableName && len(result.Added) <= len(result.Deleted) {
 				continue next
 			}
-			it.result = result.quadHash()
+			it.result = QuadHash{
+				NodeHash(result.Subject),
+				NodeHash(result.Predicate),
+				NodeHash(result.Object),
+				NodeHash(result.Label),
+			}
 			return graph.NextLogOut(it, true)
 		}
 
