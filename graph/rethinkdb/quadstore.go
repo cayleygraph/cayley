@@ -2,7 +2,7 @@ package rethinkdb
 
 import (
 	"crypto/sha1"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -192,7 +192,7 @@ func hashOf(s quad.Value) string {
 	if s == nil {
 		return ""
 	}
-	return hex.EncodeToString(quad.HashOf(s))
+	return base64.StdEncoding.EncodeToString(quad.HashOf(s))
 }
 
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
@@ -203,7 +203,7 @@ func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	if t.Label != nil {
 		h.Write(quad.HashOf(t.Label))
 	}
-	return hex.EncodeToString(h.Sum(nil))
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
 func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) (err error) {
