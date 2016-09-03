@@ -23,9 +23,11 @@ const (
 )
 
 const (
-	nodeTableName = "nodes"
-	quadTableName = "quads"
-	logTableName  = "log"
+	nodeTableName    = "nodes"
+	quadTableName    = "quads"
+	logTableName     = "log"
+	versionTableName = "version"
+	version          = 1
 )
 
 func init() {
@@ -61,9 +63,10 @@ func (q QuadHash) Get(d quad.Direction) NodeHash {
 }
 
 type QuadStore struct {
-	session *gorethink.Session
-	ids     *lru.Cache
-	sizes   *lru.Cache
+	session   *gorethink.Session
+	ids       *lru.Cache
+	sizes     *lru.Cache
+	dbVersion int
 }
 
 type dbType int
@@ -114,6 +117,23 @@ type Quad struct {
 }
 
 func ensureIndexes(session *gorethink.Session) (err error) {
+	// version
+	if err = ensureTable(versionTableName, session); err != nil {
+		return
+	}
+
+	// Insert the current version if the "version" record does not exist
+	if err = gorethink.Table(versionTableName).Insert(map[string]interface{}{
+		"id":    "version",
+		"value": version,
+	}, gorethink.InsertOpts{
+		Conflict: func(id, oldDoc, newDoc gorethink.Term) interface{} {
+			return oldDoc
+		},
+	}).Exec(session); err != nil {
+		return
+	}
+
 	// nodes
 	if err = ensureTable(nodeTableName, session); err != nil {
 		return
@@ -180,10 +200,23 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		return
 	}
 
+	var dbVersion = struct {
+		Value int `json:"value"`
+	}{}
+	if err = gorethink.Table(versionTableName).Get("version").ReadOne(&dbVersion, session); err != nil {
+		session.Close()
+		return
+	}
+
+	if dbVersion.Value != version && clog.V(2) {
+		clog.Warningf("RethinkDB stored version: %d != implementation version: %d", dbVersion.Value, version)
+	}
+
 	qs = &QuadStore{
-		session: session,
-		ids:     lru.New(1 << 16),
-		sizes:   lru.New(1 << 16),
+		session:   session,
+		ids:       lru.New(1 << 16),
+		sizes:     lru.New(1 << 16),
+		dbVersion: dbVersion.Value,
 	}
 	return
 }
@@ -195,158 +228,43 @@ func hashOf(s quad.Value) string {
 	return base64.StdEncoding.EncodeToString(quad.HashOf(s))
 }
 
-func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
+func newQuad(d quad.Quad) Quad {
 	h := sha1.New()
-	h.Write(quad.HashOf(t.Subject))
-	h.Write(quad.HashOf(t.Predicate))
-	h.Write(quad.HashOf(t.Object))
-	if t.Label != nil {
-		h.Write(quad.HashOf(t.Label))
+	sh := quad.HashOf(d.Subject)
+	h.Write(sh)
+
+	ph := quad.HashOf(d.Predicate)
+	h.Write(ph)
+
+	oh := quad.HashOf(d.Object)
+	h.Write(oh)
+
+	var lh []byte
+	var lhs string
+	if d.Label != nil {
+		lh = quad.HashOf(d.Label)
+		lhs = base64.StdEncoding.EncodeToString(lh)
+		h.Write(lh)
 	}
-	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	return Quad{
+		ID:        base64.StdEncoding.EncodeToString(h.Sum(nil)),
+		Subject:   base64.StdEncoding.EncodeToString(sh),
+		Predicate: base64.StdEncoding.EncodeToString(ph),
+		Object:    base64.StdEncoding.EncodeToString(oh),
+		Label:     lhs,
+	}
 }
 
-func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) (err error) {
-	node := qs.ValueOf(name)
-
-	row := &Node{
-		ID:   string(node.(NodeHash)),
-		Size: inc,
+func newNode(id string, size int, v quad.Value) (n Node) {
+	n = Node{
+		ID:   id,
+		Size: size,
 	}
 
-	row.fillValue(name)
-
-	query := gorethink.Table(nodeTableName).Insert(*row, gorethink.InsertOpts{
-		Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
-			return newDoc.Merge(map[string]interface{}{
-				"size": oldDoc.Add(newDoc.Field("size")),
-			})
-		},
-	})
-
-	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", query)
-	}
-
-	if err = query.Exec(qs.session); err != nil {
-		clog.Errorf("Error updating node: %v", err)
-		return
-	}
-
-	return
-}
-
-func (qs *QuadStore) updateQuad(q quad.Quad, id string, proc graph.Procedure) (err error) {
-	row := Quad{
-		ID:        qs.getIDForQuad(q),
-		Subject:   hashOf(q.Subject),
-		Predicate: hashOf(q.Predicate),
-		Object:    hashOf(q.Object),
-		Label:     hashOf(q.Label),
-	}
-
-	var setname string
-	switch proc {
-	case graph.Add:
-		setname = "added"
-		row.Added = []string{id}
-	case graph.Delete:
-		row.Deleted = []string{id}
-		setname = "deleted"
-	}
-
-	query := gorethink.Table(quadTableName).Insert(row, gorethink.InsertOpts{
-		Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
-			return newDoc.Merge(map[string]interface{}{
-				setname: oldDoc.Append(newDoc.Field(setname)),
-			})
-		},
-	})
-
-	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", query)
-	}
-
-	if err = query.Exec(qs.session); err != nil {
-		clog.Errorf("Error updating quad: %v", err)
-		return
-	}
-
-	return
-}
-
-func (qs *QuadStore) updateLog(d graph.Delta) (err error) {
-	var action string
-	if d.Action == graph.Add {
-		action = "Add"
-	} else {
-		action = "Delete"
-	}
-
-	query := gorethink.Table(logTableName).Insert(LogEntry{
-		ID:        d.ID.String(),
-		Action:    action,
-		Key:       qs.getIDForQuad(d.Quad),
-		Timestamp: d.Timestamp.UnixNano(),
-	})
-
-	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", query)
-	}
-
-	if err = query.Exec(qs.session); err != nil {
-		clog.Errorf("Error updating log: %v", err)
-		return
-	}
-
-	return
-}
-
-func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
-	ids := make(map[quad.Value]int)
-
-	for _, d := range deltas {
-		err := qs.updateLog(d)
-		if err != nil {
-			return &graph.DeltaError{Delta: d, Err: err}
-		}
-	}
-	for _, d := range deltas {
-		err := qs.updateQuad(d.Quad, d.ID.String(), d.Action)
-		if err != nil {
-			return &graph.DeltaError{Delta: d, Err: err}
-		}
-		var countdelta int
-		if d.Action == graph.Add {
-			countdelta = 1
-		} else {
-			countdelta = -1
-		}
-		ids[d.Quad.Subject] += countdelta
-		ids[d.Quad.Object] += countdelta
-		ids[d.Quad.Predicate] += countdelta
-		if d.Quad.Label != nil {
-			ids[d.Quad.Label] += countdelta
-		}
-	}
-	for k, v := range ids {
-		err := qs.updateNodeBy(k, v)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (n *Node) fillValue(v quad.Value) {
-	if v == nil {
-		return
-	}
 	switch d := v.(type) {
+	case nil:
+		return
 	case quad.Raw:
 		n.Type = dbRaw
 		n.BytesValue = []byte(d)
@@ -380,14 +298,81 @@ func (n *Node) fillValue(v quad.Value) {
 		n.Type = dbTime
 		n.TimeValue = time.Time(d)
 	default:
-		qv := proto.MakeValue(v)
-		data, err := qv.Marshal()
+		data, err := proto.MakeValue(v).Marshal()
 		if err != nil {
-			panic(err)
+			clog.Errorf("Failed to marshal value")
+			return
 		}
 		n.Type = dbProto
 		n.BytesValue = data
 	}
+	return
+}
+
+func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	var logEntries []LogEntry
+	var quads []Quad
+	var nodes []Node
+
+	for _, d := range deltas {
+		quad := newQuad(d.Quad)
+
+		var size int
+		if d.Action == graph.Add {
+			size = 1
+			quad.Added = []string{d.ID.String()}
+		} else {
+			quad.Deleted = []string{d.ID.String()}
+			size = -1
+		}
+
+		nodes = append(nodes, newNode(quad.Subject, size, d.Quad.Subject))
+		nodes = append(nodes, newNode(quad.Predicate, size, d.Quad.Predicate))
+		nodes = append(nodes, newNode(quad.Object, size, d.Quad.Object))
+
+		if d.Quad.Label != nil {
+			nodes = append(nodes, newNode(quad.Label, size, d.Quad.Label))
+		}
+
+		logEntries = append(logEntries, LogEntry{
+			ID:        d.ID.String(),
+			Key:       quad.ID,
+			Timestamp: d.Timestamp.Unix(),
+			Action:    d.Action.String(),
+		})
+		quads = append(quads, quad)
+	}
+
+	// Bulk insert
+	if err := gorethink.Table(logTableName).Insert(logEntries).Exec(qs.session); err != nil {
+		clog.Errorf("Error updating log: %v", err)
+		return err
+	}
+
+	if err := gorethink.Table(quadTableName).Insert(quads, gorethink.InsertOpts{
+		Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
+			return newDoc.Merge(map[string]interface{}{
+				"added":   oldDoc.Append(newDoc.Field("added")),
+				"deleted": oldDoc.Append(newDoc.Field("deleted")),
+			})
+		},
+	}).Exec(qs.session); err != nil {
+		clog.Errorf("Error updating quads: %v", err)
+		return err
+	}
+
+	if err := gorethink.Table(nodeTableName).Insert(nodes, gorethink.InsertOpts{
+		Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
+			return newDoc.Merge(map[string]interface{}{
+				"size": oldDoc.Add(newDoc.Field("size")),
+			})
+		},
+	}).Exec(qs.session); err != nil {
+		clog.Errorf("Error updating nodes: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (n Node) quadValue() quad.Value {
@@ -519,7 +504,7 @@ func (qs *QuadStore) Close() {
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
-	return NodeHash(in.(QuadHash).Get(d))
+	return in.(QuadHash).Get(d)
 }
 
 func (qs *QuadStore) Type() string {
