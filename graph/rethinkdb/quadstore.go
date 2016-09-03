@@ -208,8 +208,14 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		return
 	}
 
-	if dbVersion.Value != version && clog.V(2) {
-		clog.Warningf("RethinkDB stored version: %d != implementation version: %d", dbVersion.Value, version)
+	if dbVersion.Value != version {
+		if clog.V(3) {
+			clog.Infof("RethinkDB stored version: %d != implementation version: %d", dbVersion.Value, version)
+		}
+		if err = performUpgrade(dbVersion.Value, session); err != nil {
+			session.Close()
+			return
+		}
 	}
 
 	qs = &QuadStore{
@@ -219,6 +225,14 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		dbVersion: dbVersion.Value,
 	}
 	return
+}
+
+func performUpgrade(dbVersion int, session *gorethink.Session) error {
+	// This would be the place to do database upgrades
+	if version == 2 && dbVersion == 1 {
+		// Do some changes if neccessary ...
+	}
+	return nil
 }
 
 func hashOf(s quad.Value) string {
