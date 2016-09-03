@@ -51,8 +51,9 @@ func (it *LinksTo) buildConstraint() gorethink.Term {
 }
 
 func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *gorethink.Cursor {
-	constraint := gorethink.Row.Field(d.String()).Eq(string(val.(NodeHash))).And(it.buildConstraint())
-	query := gorethink.Table(it.table).Filter(constraint)
+	query := gorethink.Table(it.table).
+		GetAllByIndex(d.String(), string(val.(NodeHash))).
+		Filter(it.buildConstraint())
 
 	if clog.V(5) {
 		// Debug

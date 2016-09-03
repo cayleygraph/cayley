@@ -23,18 +23,18 @@ const (
 )
 
 const (
-	nodeTableName    = "nodes"
-	quadTableName    = "quads"
-	logTableName     = "log"
-	versionTableName = "version"
-	version          = 1
+	nodeTableName     = "graph_nodes"
+	quadTableName     = "graph_quads"
+	logTableName      = "graph_log"
+	metadataTableName = "graph_metadata"
+	version           = 1
 )
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
 		NewFunc:           newQuadStore,
 		NewForRequestFunc: nil,
-		UpgradeFunc:       nil,
+		UpgradeFunc:       upgradeRethinkDBGraph,
 		InitFunc:          createNewRethinkDBGraph,
 		IsPersistent:      true,
 	})
@@ -118,12 +118,12 @@ type Quad struct {
 
 func ensureIndexes(session *gorethink.Session) (err error) {
 	// version
-	if err = ensureTable(versionTableName, session); err != nil {
+	if err = ensureTable(metadataTableName, session); err != nil {
 		return
 	}
 
 	// Insert the current version if the "version" record does not exist
-	if err = gorethink.Table(versionTableName).Insert(map[string]interface{}{
+	if err = gorethink.Table(metadataTableName).Insert(map[string]interface{}{
 		"id":    "version",
 		"value": version,
 	}, gorethink.InsertOpts{
@@ -203,19 +203,15 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 	var dbVersion = struct {
 		Value int `json:"value"`
 	}{}
-	if err = gorethink.Table(versionTableName).Get("version").ReadOne(&dbVersion, session); err != nil {
+	if err = gorethink.Table(metadataTableName).Get("version").ReadOne(&dbVersion, session); err != nil {
 		session.Close()
 		return
 	}
 
 	if dbVersion.Value != version {
-		if clog.V(3) {
-			clog.Infof("RethinkDB stored version: %d != implementation version: %d", dbVersion.Value, version)
-		}
-		if err = performUpgrade(dbVersion.Value, session); err != nil {
-			session.Close()
-			return
-		}
+		err = fmt.Errorf("RethinkDB version mismatch. DB: %d != impl.: %d", dbVersion.Value, version)
+		clog.Errorf("%v", err)
+		return
 	}
 
 	qs = &QuadStore{
@@ -227,11 +223,7 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 	return
 }
 
-func performUpgrade(dbVersion int, session *gorethink.Session) error {
-	// This would be the place to do database upgrades
-	if version == 2 && dbVersion == 1 {
-		// Do some changes if neccessary ...
-	}
+func upgradeRethinkDBGraph(addr string, options graph.Options) error {
 	return nil
 }
 
@@ -314,7 +306,7 @@ func newNode(id string, size int, v quad.Value) (n Node) {
 	default:
 		data, err := proto.MakeValue(v).Marshal()
 		if err != nil {
-			clog.Errorf("Failed to marshal value")
+			clog.Errorf("Failed to marshal value: %v", err)
 			return
 		}
 		n.Type = dbProto
@@ -324,9 +316,11 @@ func newNode(id string, size int, v quad.Value) (n Node) {
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
-	var logEntries []LogEntry
-	var quads []Quad
-	var nodes []Node
+	var (
+		logEntries []LogEntry
+		quads      []Quad
+		nodes      []Node
+	)
 
 	for _, d := range deltas {
 		quad := newQuad(d.Quad)
@@ -525,25 +519,25 @@ func (qs *QuadStore) Type() string {
 	return QuadStoreType
 }
 
-func (qs *QuadStore) getSize(collection string, constraint *gorethink.Term) (size int64, err error) {
+func (qs *QuadStore) getSize(table string, constraint *gorethink.Term) (size int64, err error) {
 	size = -1
-	bytes, err := json.Marshal(constraint)
+
+	var query gorethink.Term
+	if constraint != nil {
+		query = gorethink.Table(table).Filter(*constraint).Count()
+	} else {
+		query = gorethink.Table(table).Count()
+	}
+
+	bytes, err := json.Marshal(query)
 	if err != nil {
-		clog.Errorf("Couldn't marshal internal constraint")
+		clog.Errorf("Couldn't marshal gorethink query: %v", err)
 		return
 	}
-	key := collection + string(bytes)
+	key := string(bytes)
 	if val, ok := qs.sizes.Get(key); ok {
 		size = val.(int64)
 		return
-	}
-
-	var query gorethink.Term
-
-	if constraint == nil {
-		query = gorethink.Table(collection).Count()
-	} else {
-		query = gorethink.Table(collection).Filter(*constraint).Count()
 	}
 
 	if clog.V(5) {
@@ -552,7 +546,7 @@ func (qs *QuadStore) getSize(collection string, constraint *gorethink.Term) (siz
 	}
 
 	if err = query.ReadOne(&size, qs.session); err != nil {
-		clog.Errorf("Trouble getting size for iterator! %v", err)
+		clog.Errorf("Failed to get size for iterator: %v", err)
 		return
 	}
 	qs.sizes.Put(key, size)

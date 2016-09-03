@@ -18,6 +18,7 @@ type Iterator struct {
 	hash       NodeHash
 	size       int64
 	isAll      bool
+	query      gorethink.Term
 	constraint *gorethink.Term
 	table      string
 	result     graph.Value
@@ -27,35 +28,21 @@ type Iterator struct {
 func NewIterator(qs *QuadStore, table string, d quad.Direction, val graph.Value) *Iterator {
 	h := val.(NodeHash)
 
-	constraint := gorethink.Row.Field(d.String()).Eq(string(h))
-
 	return &Iterator{
-		uid:        iterator.NextUID(),
-		constraint: &constraint,
-		table:      table,
-		qs:         qs,
-		dir:        d,
-		size:       -1,
-		hash:       h,
-		isAll:      false,
+		uid:   iterator.NextUID(),
+		query: gorethink.Table(table).GetAllByIndex(d.String(), string(h)),
+		table: table,
+		qs:    qs,
+		dir:   d,
+		size:  -1,
+		hash:  h,
+		isAll: false,
 	}
 }
 
 func (it *Iterator) makeRDBIterator() (c *gorethink.Cursor) {
-	var query gorethink.Term
-	if it.isAll {
-		query = gorethink.Table(it.table)
-	} else {
-		query = gorethink.Table(it.table).Filter(*it.constraint)
-	}
-
-	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", query)
-	}
-
 	var err error
-	if c, err = query.Run(it.qs.session); err != nil {
+	if c, err = it.query.Run(it.qs.session); err != nil {
 		clog.Errorf("Error: Couldn't make rdb cursor/iterator: %v", err)
 		return
 	}
@@ -66,6 +53,7 @@ func NewAllIterator(qs *QuadStore, table string) *Iterator {
 	return &Iterator{
 		uid:   iterator.NextUID(),
 		qs:    qs,
+		query: gorethink.Table(table),
 		dir:   quad.Any,
 		table: table,
 		size:  -1,
@@ -76,15 +64,15 @@ func NewAllIterator(qs *QuadStore, table string) *Iterator {
 
 func NewIteratorWithConstraints(qs *QuadStore, table string, constraint gorethink.Term) *Iterator {
 	return &Iterator{
-		uid:        iterator.NextUID(),
-		qs:         qs,
-		dir:        quad.Any,
-		constraint: &constraint,
-		table:      table,
-		iter:       nil,
-		size:       -1,
-		hash:       "",
-		isAll:      false,
+		uid:   iterator.NextUID(),
+		qs:    qs,
+		dir:   quad.Any,
+		query: gorethink.Table(table).Filter(constraint),
+		table: table,
+		iter:  nil,
+		size:  -1,
+		hash:  "",
+		isAll: false,
 	}
 }
 
