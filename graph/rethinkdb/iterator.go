@@ -35,7 +35,6 @@ func NewIterator(qs *QuadStore, table string, d quad.Direction, val graph.Value)
 		table:      table,
 		qs:         qs,
 		dir:        d,
-		iter:       nil,
 		size:       -1,
 		hash:       h,
 		isAll:      false,
@@ -65,15 +64,13 @@ func (it *Iterator) makeRDBIterator() (c *gorethink.Cursor) {
 
 func NewAllIterator(qs *QuadStore, table string) *Iterator {
 	return &Iterator{
-		uid:        iterator.NextUID(),
-		qs:         qs,
-		dir:        quad.Any,
-		constraint: nil,
-		table:      table,
-		iter:       nil,
-		size:       -1,
-		hash:       "",
-		isAll:      true,
+		uid:   iterator.NextUID(),
+		qs:    qs,
+		dir:   quad.Any,
+		table: table,
+		size:  -1,
+		hash:  "",
+		isAll: true,
 	}
 }
 
