@@ -1,119 +1,148 @@
-hash: 80622f54e5ee6819770a6d90324f90b5fc75790d8311d1e39d12be1bb00cd95b
-updated: 2016-08-26T17:11:12.108578825+07:00
+hash: bb672f65400baad9502716125f6f3a58ad702bceca0d3877cb519f75135ac631
+updated: 2016-09-03T22:47:23.250739708+03:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
 - name: github.com/boltdb/bolt
-  version: 04a3e85793043e76d41164037d0d7f9d53eecae3
+  version: ec58b76ba0e6b190fed15db6911036a5760d2145
+- name: github.com/cayleygraph/cayley
+  version: e055ce9c011279057a0891c9ef38445d11780730
+  subpackages:
+  - quad/jsonld
+  - quad/pquads
+- name: github.com/coreos/etcd
+  version: 5695120efcfdc05b8ba51be2018d99c2937b41d0
+  subpackages:
+  - clientv3
+  - etcdserver/api/v3rpc/rpctypes
+  - mvcc/mvccpb
+  - auth/authpb
+  - etcdserver/etcdserverpb
+  - pkg/tlsutil
 - name: github.com/cznic/mathutil
-  version: f9551431b78e71ee24939a1e9d8f49f43898b5cd
+  version: 78ad7f262603437f0ecfebc835d80094f89c8f54
 - name: github.com/davecgh/go-spew
   version: 2df174808ee097f90d259e432cc04442cf60be21
   subpackages:
   - spew
 - name: github.com/docker/docker
-  version: 282b0aff08030a2521adf7d64bdd333f0864b720
+  version: 93a8b5c42be79ae2ed5c956dfbb39da8e1f6d78b
   subpackages:
   - opts
   - pkg/archive
   - pkg/fileutils
   - pkg/homedir
+  - pkg/stdcopy
   - pkg/idtools
   - pkg/ioutils
-  - pkg/longpath
   - pkg/pools
   - pkg/promise
-  - pkg/stdcopy
   - pkg/system
+  - pkg/longpath
 - name: github.com/docker/engine-api
-  version: c9fd33c91008b9c558a6ed1cb11a68dbe4db0493
+  version: 611c63f5121770f6d0db2f9988458310ccbfbe74
   subpackages:
+  - types/swarm
   - types/filters
   - types/mount
-  - types/swarm
   - types/versions
 - name: github.com/docker/go-units
-  version: eb879ae3e2b84e2a142af415b679ddeda47ec71c
+  version: 2c1805a1c750c4ea749899f49221e1d5f3e5ce42
 - name: github.com/fsouza/go-dockerclient
-  version: 4efaf0ea3c8990e1648f68672d011289f0c0cb0a
+  version: 466d3ea716f467221a588685437209bbcd3ebcff
+- name: github.com/ghodss/yaml
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/gogo/protobuf
-  version: ff05bbbb0ff143cc11fc3f8b700fc3a2864b884d
+  version: e18d7aa8f8c624c915db340349aad4c49b10d173
   subpackages:
-  - gogoproto
   - proto
+  - gogoproto
   - protoc-gen-gogo/descriptor
 - name: github.com/golang/glog
   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
-  version: 888eb0692c857ec880338addf316bd662d5e630e
+  version: 8616e8ee5e20a1704615e6c8d7afcdac06087a67
   subpackages:
   - proto
+  - jsonpb
+- name: github.com/golang/snappy
+  version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
+- name: github.com/grpc-ecosystem/grpc-gateway
+  version: f52d055dc48aec25854ed7d31862f78913cf17d1
+  subpackages:
+  - runtime
+  - utilities
+  - runtime/internal
 - name: github.com/hashicorp/go-cleanhttp
   version: ad28ea4487f05916463e2423a55166280e8254b5
 - name: github.com/julienschmidt/httprouter
-  version: b59a38004596b696aca7aa2adccfa68760864d86
+  version: d8ff598a019f2c7bad0980917a588193cf26666e
 - name: github.com/lib/pq
-  version: 0dad96c0b94f8dee039aa40467f767467392a0af
+  version: 50761b0867bd1d9d069276790bcd4a3bccf2324a
   subpackages:
   - oid
 - name: github.com/opencontainers/runc
-  version: 6df383c2f881fbdeb85060fd27d8bf61afedacd9
+  version: 10da74affeaadaae883056ed646d832029a0d2ff
   subpackages:
   - libcontainer/system
   - libcontainer/user
 - name: github.com/pborman/uuid
-  version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
+  version: b984ec7fa9ff9e428bd0cf0abf429384dfbe3e37
 - name: github.com/peterh/liner
-  version: 1bb0d1c1a25ed393d8feb09bab039b2b1b1fbced
+  version: 8975875355a81d612fafb9f5a6037bdcc2d9b073
 - name: github.com/pmezard/go-difflib
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
   - difflib
 - name: github.com/robertkrimen/otto
-  version: d1b4d8ef0e0e4b088c8328c95ca63ab9ebd8fc9d
+  version: 7d9cbc2befca39869eb0e5bcb0f44c0692c2f8ff
   subpackages:
+  - underscore
   - ast
   - dbg
   - file
   - parser
   - registry
   - token
-  - underscore
 - name: github.com/russross/blackfriday
-  version: 17bb7999de6cfb791d4f8986cc00b3309b370cdb
+  version: 93622da34e54fb6529bfb7c57e710f37a8d9cbd8
 - name: github.com/shurcooL/sanitized_anchor_name
-  version: 8e87604bec3c645a4eeaee97dfec9f25811ff20d
+  version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/Sirupsen/logrus
-  version: 08a8a7c27e3d058a8989316a850daad1c10bf4ab
+  version: 3ec0642a7fb6488f65b06f9040adc67e3990296a
 - name: github.com/stretchr/testify
   version: f390dcf405f7b83c997eac1b06768bb9f44dec18
   subpackages:
   - assert
   - require
 - name: github.com/syndtr/goleveldb
-  version: 4875955338b0a434238a31165cb87255ab6e9e4a
+  version: 6ae1797c0b42b9323fc27ff7dcf568df88f2f33d
   subpackages:
   - leveldb
+  - leveldb/iterator
+  - leveldb/opt
+  - leveldb/util
   - leveldb/cache
   - leveldb/comparer
   - leveldb/errors
   - leveldb/filter
-  - leveldb/iterator
   - leveldb/journal
   - leveldb/memdb
-  - leveldb/opt
   - leveldb/storage
   - leveldb/table
-  - leveldb/util
 - name: github.com/syndtr/gosnappy
   version: 156a073208e131d7d2e212cb749feae7c339e846
   subpackages:
   - snappy
 - name: golang.org/x/net
-  version: 6a513affb38dc9788b449d59ffed099b8de18fa0
+  version: 6acef71eb69611914f7a30939ea9f6e194c78172
   subpackages:
   - context
   - context/ctxhttp
+  - http2
+  - trace
+  - http2/hpack
+  - internal/timeseries
 - name: golang.org/x/sys
   version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
   subpackages:
@@ -121,21 +150,39 @@ imports:
 - name: google.golang.org/appengine
   version: 4f7eeb5305a4ba1966344836ba4af9996b7b4e05
   subpackages:
-  - aetest
   - datastore
+  - aetest
   - internal
-  - internal/app_identity
-  - internal/base
   - internal/datastore
-  - internal/log
+  - user
+  - internal/app_identity
   - internal/modules
+  - internal/base
+  - internal/log
   - internal/remote_api
   - internal/user
-  - user
+- name: google.golang.org/grpc
+  version: 231b4cfea0e79843053a33f5fe90bd4d84b23cd3
+  subpackages:
+  - codes
+  - credentials
+  - grpclog
+  - metadata
+  - internal
+  - naming
+  - transport
+  - peer
 - name: gopkg.in/mgo.v2
-  version: c6a7dce14133ccac2dcac3793f1d6e2ef048503a
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
   subpackages:
   - bson
+  - internal/sasl
   - internal/scram
-  - sasl
+  - internal/json
+- name: gopkg.in/sourcemap.v1
+  version: 8cd1e2e0ddc78dcb4511bcb184d23171bed15c67
+  subpackages:
+  - base64vlq
+- name: gopkg.in/yaml.v2
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []
