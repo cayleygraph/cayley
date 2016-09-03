@@ -16,11 +16,11 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/gremlin"
@@ -47,15 +47,6 @@ func WrapResult(result interface{}) ([]byte, error) {
 	return json.MarshalIndent(wrap, "", " ")
 }
 
-func Run(q string, ses query.HTTP) (interface{}, error) {
-	c := make(chan interface{}, 5)
-	go ses.Execute(q, c, 100)
-	for res := range c {
-		ses.Collate(res)
-	}
-	return ses.Results()
-}
-
 func GetQueryShape(q string, ses query.HTTP) ([]byte, error) {
 	s, err := ses.ShapeOf(q)
 	if err != nil {
@@ -64,13 +55,29 @@ func GetQueryShape(q string, ses query.HTTP) ([]byte, error) {
 	return json.Marshal(s)
 }
 
+func (api *API) contextForRequest(r *http.Request) (context.Context, func()) {
+	ctx := context.TODO() // TODO(dennwc): get from request
+	cancel := func() {}
+	if api.config.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, api.config.Timeout)
+	}
+	return ctx, cancel
+}
+
 // TODO(barakmich): Turn this into proper middleware.
 func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+	ctx, cancel := api.contextForRequest(r)
+	defer cancel()
+	select {
+	case <-ctx.Done():
+		return jsonResponse(w, 400, "Cancelled")
+	default:
+	}
 	h, err := api.GetHandleForRequest(r)
 	var ses query.HTTP
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(h.QuadStore, api.config.Timeout, false)
+		ses = gremlin.NewSession(h.QuadStore, false)
 	case "mql":
 		ses = mql.NewSession(h.QuadStore)
 	default:
@@ -81,42 +88,50 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		return jsonResponse(w, 400, err)
 	}
 	code := string(bodyBytes)
-	result, err := ses.Parse(code)
-	switch result {
-	case query.Parsed:
-		var output interface{}
-		var bytes []byte
-		var err error
-		output, err = Run(code, ses)
-		if err != nil {
-			bytes, err = WrapErrResult(err)
+
+	c := make(chan query.Result, 5)
+	go ses.Execute(ctx, code, c, 100)
+
+	for res := range c {
+		if err := res.Err(); err != nil {
+			if err == nil {
+				continue // wait for results channel to close
+			} else if err == query.ErrParseMore {
+				return jsonResponse(w, 500, "Incomplete data?")
+			}
+			bytes, _ := WrapErrResult(err)
 			http.Error(w, string(bytes), 400)
-			ses = nil
 			return 400
 		}
-		bytes, err = WrapResult(output)
-		if err != nil {
-			ses = nil
-			return jsonResponse(w, 400, err)
-		}
-		fmt.Fprint(w, string(bytes))
-		ses = nil
-		return 200
-	case query.ParseFail:
-		ses = nil
-		return jsonResponse(w, 400, err)
-	default:
-		ses = nil
-		return jsonResponse(w, 500, "Incomplete data?")
+		ses.Collate(res)
 	}
+	output, err := ses.Results()
+	if err != nil {
+		bytes, _ := WrapErrResult(err)
+		http.Error(w, string(bytes), 400)
+		return 400
+	}
+	bytes, err := WrapResult(output)
+	if err != nil {
+		return jsonResponse(w, 400, err)
+	}
+	w.Write(bytes)
+	return 200
 }
 
 func (api *API) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+	ctx, cancel := api.contextForRequest(r)
+	defer cancel()
+	select {
+	case <-ctx.Done():
+		return jsonResponse(w, 400, "Cancelled")
+	default:
+	}
 	h, err := api.GetHandleForRequest(r)
 	var ses query.HTTP
 	switch params.ByName("query_lang") {
 	case "gremlin":
-		ses = gremlin.NewSession(h.QuadStore, api.config.Timeout, false)
+		ses = gremlin.NewSession(h.QuadStore, false)
 	case "mql":
 		ses = mql.NewSession(h.QuadStore)
 	default:
@@ -127,20 +142,15 @@ func (api *API) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 		return jsonResponse(w, 400, err)
 	}
 	code := string(bodyBytes)
-	result, err := ses.Parse(code)
-	switch result {
-	case query.Parsed:
-		var output []byte
-		var err error
-		output, err = GetQueryShape(code, ses)
-		if err != nil {
-			return jsonResponse(w, 400, err)
-		}
-		fmt.Fprint(w, string(output))
-		return 200
-	case query.ParseFail:
-		return jsonResponse(w, 400, err)
-	default:
+
+	output, err := GetQueryShape(code, ses)
+	if err == query.ErrParseMore {
 		return jsonResponse(w, 500, "Incomplete data?")
+	} else if err != nil {
+		bytes, _ := WrapErrResult(err)
+		http.Error(w, string(bytes), 400)
+		return 400
 	}
+	w.Write(output)
+	return 200
 }

@@ -26,9 +26,10 @@ import (
 	"time"
 
 	"github.com/peterh/liner"
+	"golang.org/x/net/context"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/quad/cquads"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/gremlin"
@@ -46,7 +47,7 @@ func un(s string, startTime time.Time) {
 	fmt.Printf(s, float64(endTime.UnixNano()-startTime.UnixNano())/float64(1E6))
 }
 
-func Run(query string, ses query.Session) {
+func Run(ctx context.Context, qu string, ses query.REPLSession) error {
 	nResults := 0
 	startTrace, startTime := trace("Elapsed time: %g ms\n\n")
 	defer func() {
@@ -55,10 +56,13 @@ func Run(query string, ses query.Session) {
 		}
 	}()
 	fmt.Printf("\n")
-	c := make(chan interface{}, 5)
-	go ses.Execute(query, c, 100)
+	c := make(chan query.Result, 5)
+	go ses.Execute(ctx, qu, c, 100)
 	for res := range c {
-		fmt.Print(ses.Format(res))
+		if err := res.Err(); err != nil {
+			return err
+		}
+		fmt.Print(ses.FormatREPL(res))
 		nResults++
 	}
 	if nResults > 0 {
@@ -68,6 +72,7 @@ func Run(query string, ses query.Session) {
 		}
 		fmt.Printf("-----------\n%d %s\n", nResults, results)
 	}
+	return nil
 }
 
 const (
@@ -77,8 +82,8 @@ const (
 	history = ".cayley_history"
 )
 
-func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
-	var ses query.Session
+func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout time.Duration) error {
+	var ses query.REPLSession
 	switch queryLanguage {
 	case "sexp":
 		ses = sexp.NewSession(h.QuadStore)
@@ -87,7 +92,7 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 	case "gremlin":
 		fallthrough
 	default:
-		ses = gremlin.NewSession(h.QuadStore, cfg.Timeout, true)
+		ses = gremlin.NewSession(h.QuadStore, true)
 	}
 
 	term, err := terminal(history)
@@ -102,7 +107,17 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 		code string
 	)
 
+	newCtx := func() (context.Context, func()) { return ctx, func() {} }
+	if timeout > 0 {
+		newCtx = func() (context.Context, func()) { return context.WithTimeout(ctx, timeout) }
+	}
+
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		if len(code) == 0 {
 			prompt = ps1
 		} else {
@@ -143,7 +158,11 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 						continue
 					}
 				}
-				ses.Debug(debug)
+				if debug {
+					clog.SetV(2)
+				} else {
+					clog.SetV(0)
+				}
 				fmt.Printf("Debug set to %t\n", debug)
 				continue
 
@@ -183,15 +202,16 @@ func Repl(h *graph.Handle, queryLanguage string, cfg *config.Config) error {
 
 		code += line
 
-		result, err := ses.Parse(code)
-		switch result {
-		case query.Parsed:
-			Run(code, ses)
-			code = ""
-		case query.ParseFail:
+		nctx, cancel := newCtx()
+		err = Run(nctx, code, ses)
+		cancel()
+		if err == query.ErrParseMore {
+			// collect more input
+		} else if err != nil {
 			fmt.Println("Error: ", err)
 			code = ""
-		case query.ParseMore:
+		} else {
+			code = ""
 		}
 	}
 }

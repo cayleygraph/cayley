@@ -24,6 +24,8 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/cayleygraph/cayley/clog"
 	_ "github.com/cayleygraph/cayley/clog/glog"
 
@@ -260,7 +262,7 @@ func main() {
 			}
 		}
 
-		err = db.Repl(handle, *queryLanguage, cfg)
+		err = db.Repl(context.TODO(), handle, *queryLanguage, cfg.Timeout)
 
 		handle.Close()
 

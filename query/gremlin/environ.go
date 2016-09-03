@@ -27,6 +27,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/query"
 )
 
 type worker struct {
@@ -34,7 +35,7 @@ type worker struct {
 	env *otto.Otto
 	sync.Mutex
 
-	results chan interface{}
+	results chan query.Result
 	shape   map[string]interface{}
 
 	count int

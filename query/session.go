@@ -12,33 +12,61 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package query defines the graph session interface general to all query languages.
 package query
 
-// Defines the graph session interface general to all query languages.
-
-type ParseResult int
-
-const (
-	Parsed ParseResult = iota
-	ParseMore
-	ParseFail
+import (
+	"errors"
+	"github.com/cayleygraph/cayley/graph"
+	"golang.org/x/net/context"
 )
 
-type Session interface {
-	// Return whether the string is a valid expression.
-	Parse(string) (ParseResult, error)
-	Execute(string, chan interface{}, int)
-	Format(interface{}) string
-	Debug(bool)
+var ErrParseMore = errors.New("query: more input required")
+
+type Result interface {
+	Result() interface{}
+	Err() error
 }
 
-type HTTP interface {
-	// Return whether the string is a valid expression.
-	Parse(string) (ParseResult, error)
+func ErrorResult(err error) Result {
+	return errResult{err: err}
+}
+
+type errResult struct {
+	err error
+}
+
+func (errResult) Result() interface{} { return nil }
+func (e errResult) Err() error        { return e.err }
+
+func TagMapResult(m map[string]graph.Value) Result {
+	return tagMap(m)
+}
+
+type tagMap map[string]graph.Value
+
+func (m tagMap) Result() interface{} { return map[string]graph.Value(m) }
+func (tagMap) Err() error            { return nil }
+
+type Session interface {
 	// Runs the query and returns individual results on the channel.
-	Execute(string, chan interface{}, int)
+	//
+	// Channel will be closed when function returns.
+	Execute(ctx context.Context, query string, out chan Result, limit int)
+}
+
+// TODO(dennwc): review HTTP interface (Collate is weird)
+// TODO(dennwc): specify exact type to return from ShapeOf
+// TODO(dennwc): add context to ShapeOf?
+
+type HTTP interface {
+	Session
 	ShapeOf(string) (interface{}, error)
-	Collate(interface{})
+	Collate(Result)
 	Results() (interface{}, error)
-	Clear()
+}
+
+type REPLSession interface {
+	Session
+	FormatREPL(Result) string
 }
