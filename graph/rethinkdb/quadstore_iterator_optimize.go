@@ -143,6 +143,8 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 
 	var constraint gorethink.Term
 
+	// TODO: Could possibly be optimized to use secondary indexes (explicitly).
+
 	switch v := it.Value().(type) {
 	case quad.String:
 		constraint = comparer(gorethink.Row.Field("val_string"))(string(v)).
