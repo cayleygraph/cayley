@@ -19,6 +19,7 @@ import (
 	"errors"
 	"github.com/cayleygraph/cayley/graph"
 	"golang.org/x/net/context"
+	"io"
 )
 
 var ErrParseMore = errors.New("query: more input required")
@@ -71,12 +72,23 @@ type REPLSession interface {
 	FormatREPL(Result) string
 }
 
+// ResponseWriter is a subset of http.ResponseWriter
+type ResponseWriter interface {
+	Write([]byte) (int, error)
+	WriteHeader(int)
+}
+
 // Language is a description of query language.
 type Language struct {
 	Name    string
 	Session func(graph.QuadStore) Session
 	REPL    func(graph.QuadStore) REPLSession
 	HTTP    func(graph.QuadStore) HTTP
+
+	// Custom HTTP handlers
+
+	HTTPQuery func(ctx context.Context, qs graph.QuadStore, w ResponseWriter, r io.Reader)
+	HTTPError func(w ResponseWriter, err error)
 }
 
 var languages = make(map[string]Language)
@@ -95,20 +107,12 @@ func NewSession(qs graph.QuadStore, lang string) Session {
 	return nil
 }
 
-// NewHTTPSession creates a new session for specified query language to serve via HTTP.
+// GetLanguage returns a query language description.
 // It returns nil if language was not registered.
-func NewHTTPSession(qs graph.QuadStore, lang string) HTTP {
-	if l := languages[lang]; l.HTTP != nil {
-		return l.HTTP(qs)
-	}
-	return nil
-}
-
-// NewREPLSession creates a new session for specified query language to serve via HTTP.
-// It returns nil if language was not registered.
-func NewREPLSession(qs graph.QuadStore, lang string) REPLSession {
-	if l := languages[lang]; l.REPL != nil {
-		return l.REPL(qs)
+func GetLanguage(lang string) *Language {
+	l, ok := languages[lang]
+	if ok {
+		return &l
 	}
 	return nil
 }

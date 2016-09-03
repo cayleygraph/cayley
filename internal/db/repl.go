@@ -85,10 +85,11 @@ func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout ti
 	if queryLanguage == "" {
 		queryLanguage = defaultLanguage
 	}
-	ses := query.NewREPLSession(h.QuadStore, queryLanguage)
-	if ses == nil {
+	l := query.GetLanguage(queryLanguage)
+	if l == nil || l.REPL == nil {
 		return fmt.Errorf("unsupported query language: %q", queryLanguage)
 	}
+	ses := l.REPL(h.QuadStore)
 
 	term, err := terminal(history)
 	if os.IsNotExist(err) {
