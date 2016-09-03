@@ -32,9 +32,6 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad/cquads"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/gremlin"
-	"github.com/cayleygraph/cayley/query/mql"
-	"github.com/cayleygraph/cayley/query/sexp"
 )
 
 func trace(s string) (string, time.Time) {
@@ -76,6 +73,8 @@ func Run(ctx context.Context, qu string, ses query.REPLSession) error {
 }
 
 const (
+	defaultLanguage = "gremlin"
+
 	ps1 = "cayley> "
 	ps2 = "...     "
 
@@ -83,16 +82,12 @@ const (
 )
 
 func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout time.Duration) error {
-	var ses query.REPLSession
-	switch queryLanguage {
-	case "sexp":
-		ses = sexp.NewSession(h.QuadStore)
-	case "mql":
-		ses = mql.NewSession(h.QuadStore)
-	case "gremlin":
-		fallthrough
-	default:
-		ses = gremlin.NewSession(h.QuadStore, true)
+	if queryLanguage == "" {
+		queryLanguage = defaultLanguage
+	}
+	ses := query.NewREPLSession(h.QuadStore, queryLanguage)
+	if ses == nil {
+		return fmt.Errorf("unsupported query language: %q", queryLanguage)
 	}
 
 	term, err := terminal(history)

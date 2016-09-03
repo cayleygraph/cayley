@@ -70,3 +70,54 @@ type REPLSession interface {
 	Session
 	FormatREPL(Result) string
 }
+
+// Language is a description of query language.
+type Language struct {
+	Name    string
+	Session func(graph.QuadStore) Session
+	REPL    func(graph.QuadStore) REPLSession
+	HTTP    func(graph.QuadStore) HTTP
+}
+
+var languages = make(map[string]Language)
+
+// RegisterLanguage register a new query language.
+func RegisterLanguage(lang Language) {
+	languages[lang.Name] = lang
+}
+
+// NewSession creates a new session for specified query language.
+// It returns nil if language was not registered.
+func NewSession(qs graph.QuadStore, lang string) Session {
+	if l := languages[lang]; l.Session != nil {
+		return l.Session(qs)
+	}
+	return nil
+}
+
+// NewHTTPSession creates a new session for specified query language to serve via HTTP.
+// It returns nil if language was not registered.
+func NewHTTPSession(qs graph.QuadStore, lang string) HTTP {
+	if l := languages[lang]; l.HTTP != nil {
+		return l.HTTP(qs)
+	}
+	return nil
+}
+
+// NewREPLSession creates a new session for specified query language to serve via HTTP.
+// It returns nil if language was not registered.
+func NewREPLSession(qs graph.QuadStore, lang string) REPLSession {
+	if l := languages[lang]; l.REPL != nil {
+		return l.REPL(qs)
+	}
+	return nil
+}
+
+// Languages returns names of registered query languages.
+func Languages() []string {
+	out := make([]string, 0, len(languages))
+	for name := range languages {
+		out = append(out, name)
+	}
+	return out
+}

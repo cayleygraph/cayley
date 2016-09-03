@@ -23,8 +23,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/gremlin"
-	"github.com/cayleygraph/cayley/query/mql"
 )
 
 type SuccessQueryWrapper struct {
@@ -74,14 +72,9 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	default:
 	}
 	h, err := api.GetHandleForRequest(r)
-	var ses query.HTTP
-	switch params.ByName("query_lang") {
-	case "gremlin":
-		ses = gremlin.NewSession(h.QuadStore, false)
-	case "mql":
-		ses = mql.NewSession(h.QuadStore)
-	default:
-		return jsonResponse(w, 400, "Need a query language.")
+	ses := query.NewHTTPSession(h.QuadStore, params.ByName("query_lang"))
+	if ses == nil {
+		return jsonResponse(w, 400, "Unknown query language.")
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -128,14 +121,9 @@ func (api *API) ServeV1Shape(w http.ResponseWriter, r *http.Request, params http
 	default:
 	}
 	h, err := api.GetHandleForRequest(r)
-	var ses query.HTTP
-	switch params.ByName("query_lang") {
-	case "gremlin":
-		ses = gremlin.NewSession(h.QuadStore, false)
-	case "mql":
-		ses = mql.NewSession(h.QuadStore)
-	default:
-		return jsonResponse(w, 400, "Need a query language.")
+	ses := query.NewHTTPSession(h.QuadStore, params.ByName("query_lang"))
+	if ses == nil {
+		return jsonResponse(w, 400, "Unknown query language.")
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {

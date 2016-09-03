@@ -28,11 +28,22 @@ import (
 	"github.com/cayleygraph/cayley/query"
 )
 
-var (
-	_ query.Session     = (*Session)(nil)
-	_ query.HTTP        = (*Session)(nil)
-	_ query.REPLSession = (*Session)(nil)
-)
+const Name = "gremlin"
+
+func init() {
+	query.RegisterLanguage(query.Language{
+		Name: Name,
+		Session: func(qs graph.QuadStore) query.Session {
+			return NewSession(qs, false)
+		},
+		HTTP: func(qs graph.QuadStore) query.HTTP {
+			return NewSession(qs, false)
+		},
+		REPL: func(qs graph.QuadStore) query.REPLSession {
+			return NewSession(qs, true)
+		},
+	})
+}
 
 type errKilled struct {
 	Err error
