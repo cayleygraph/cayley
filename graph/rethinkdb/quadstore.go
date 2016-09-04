@@ -23,10 +23,10 @@ const (
 )
 
 const (
-	nodeTableName     = "graph_nodes"
-	quadTableName     = "graph_quads"
-	logTableName      = "graph_log"
-	metadataTableName = "graph_metadata"
+	nodeTableName     = "nodes"
+	quadTableName     = "quads"
+	logTableName      = "log"
+	metadataTableName = "metadata"
 	version           = 1
 )
 
@@ -34,7 +34,7 @@ func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
 		NewFunc:           newQuadStore,
 		NewForRequestFunc: nil,
-		UpgradeFunc:       upgradeRethinkDBGraph,
+		UpgradeFunc:       nil,
 		InitFunc:          createNewRethinkDBGraph,
 		IsPersistent:      true,
 	})
@@ -211,6 +211,7 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 	if dbVersion.Value != version {
 		err = fmt.Errorf("RethinkDB version mismatch. DB: %d != impl.: %d", dbVersion.Value, version)
 		clog.Errorf("%v", err)
+		session.Close()
 		return
 	}
 
@@ -221,10 +222,6 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		dbVersion: dbVersion.Value,
 	}
 	return
-}
-
-func upgradeRethinkDBGraph(addr string, options graph.Options) error {
-	return nil
 }
 
 func hashOf(s quad.Value) string {
