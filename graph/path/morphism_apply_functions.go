@@ -118,8 +118,8 @@ func hasRegexMorphism(via interface{}, pattern string) morphism {
 						fixed.Add(n)
 					}
 				}
-				// Even though out isn't used again, there is some global state that
-				// is be out of sync if it isn't reset
+				// Even though out isn't used again, it holds 'in' as a sub-iterator and
+				// therefore needs to be reset
 				out.Reset()
 
 				return fixed
@@ -128,7 +128,6 @@ func hasRegexMorphism(via interface{}, pattern string) morphism {
 			trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
 			dest := iterator.NewLinksTo(qs, ends, quad.Object)
 
-			// This looks backwards. That's OK-- see the note above.
 			route := join(qs, dest, trail)
 			has := iterator.NewHasA(qs, route, quad.Subject)
 			return join(qs, has, in), ctx
@@ -176,6 +175,10 @@ func hasComparisonMorphism(via interface{}, operator string, number float64) mor
 						fixed.Add(n)
 					}
 				}
+				// Even though out isn't used again, it holds 'in' as a sub-iterator and
+				// therefore needs to be reset
+				out.Reset()
+
 				return fixed
 			}()
 
