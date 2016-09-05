@@ -124,6 +124,11 @@ var (
 func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
+			message: "has then has regex",
+			path:    StartPath(qs).Has(vStatus, vSmart).HasRegex(vStatus, "co+l.[pP]er.+n"),
+			expect:  []quad.Value{vGreg},
+		},
+		{
 			message: "use out",
 			path:    StartPath(qs, vAlice).Out(vFollows),
 			expect:  []quad.Value{vBob},

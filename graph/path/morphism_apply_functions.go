@@ -118,6 +118,10 @@ func hasRegexMorphism(via interface{}, pattern string) morphism {
 						fixed.Add(n)
 					}
 				}
+				// Even though out isn't used again, there is some global state that
+				// is be out of sync if it isn't reset
+				out.Reset()
+
 				return fixed
 			}()
 
