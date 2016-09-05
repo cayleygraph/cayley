@@ -23,7 +23,7 @@ import (
 
 // cache implements an LRU cache.
 type Cache struct {
-	sync.RWMutex
+	mu       sync.Mutex
 	cache    map[string]*list.Element
 	priority *list.List
 	maxSize  int
@@ -35,11 +35,11 @@ type kv struct {
 }
 
 func New(size int) *Cache {
-	var lru Cache
-	lru.maxSize = size
-	lru.priority = list.New()
-	lru.cache = make(map[string]*list.Element)
-	return &lru
+	return &Cache{
+		maxSize:  size,
+		priority: list.New(),
+		cache:    make(map[string]*list.Element),
+	}
 }
 
 func (lru *Cache) Put(key string, value interface{}) {
@@ -47,28 +47,22 @@ func (lru *Cache) Put(key string, value interface{}) {
 		return
 	}
 
-	lru.Lock()
-	defer lru.Unlock()
+	lru.mu.Lock()
+	defer lru.mu.Unlock()
 	if len(lru.cache) == lru.maxSize {
-		lru.removeOldest()
+		last := lru.priority.Remove(lru.priority.Back())
+		delete(lru.cache, last.(kv).key)
 	}
 	lru.priority.PushFront(kv{key: key, value: value})
 	lru.cache[key] = lru.priority.Front()
 }
 
 func (lru *Cache) Get(key string) (interface{}, bool) {
-	lru.RLock()
-	defer lru.RUnlock()
+	lru.mu.Lock()
+	defer lru.mu.Unlock()
 	if element, ok := lru.cache[key]; ok {
 		lru.priority.MoveToFront(element)
 		return element.Value.(kv).value, true
 	}
-
 	return nil, false
-}
-
-func (lru *Cache) removeOldest() {
-	last := lru.priority.Remove(lru.priority.Back())
-	delete(lru.cache, last.(kv).key)
-
 }
