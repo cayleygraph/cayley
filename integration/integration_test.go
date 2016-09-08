@@ -25,11 +25,14 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"
 	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/gremlin"
 
 	// Load all supported backends.
@@ -554,49 +557,45 @@ func checkQueries(t *testing.T) {
 		if test.skip {
 			continue
 		}
-		tInit := time.Now()
-		t.Logf("Now testing %s ", test.message)
-		ses := gremlin.NewSession(handle.QuadStore, cfg.Timeout, true)
-		_, err := ses.Parse(test.query)
-		if err != nil {
-			t.Fatalf("Failed to parse benchmark gremlin %s: %v", test.message, err)
-		}
-		c := make(chan interface{}, 5)
-		go ses.Execute(test.query, c, 100)
-		var (
-			got      []interface{}
-			timedOut bool
-		)
-		for r := range c {
-			ses.Collate(r)
-			j, err := ses.Results()
-			if j == nil && err == nil {
-				continue
+		func() {
+			tInit := time.Now()
+			t.Logf("Now testing %s ", test.message)
+			ses := gremlin.NewSession(handle.QuadStore, true)
+			c := make(chan query.Result, 5)
+			ctx := context.Background()
+			if cfg.Timeout > 0 {
+				var cancel func()
+				ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
+				defer cancel()
 			}
-			if err == gremlin.ErrKillTimeout {
-				timedOut = true
-				continue
+			go ses.Execute(ctx, test.query, c, 100)
+			var got []interface{}
+			for r := range c {
+				if err := r.Err(); err != nil {
+					t.Error("Error:", err)
+					continue
+				}
+				ses.Collate(r)
+				j, err := ses.Results()
+				if j == nil && err == nil {
+					continue
+				}
+				got = append(got, j.([]interface{})...)
 			}
-			got = append(got, j.([]interface{})...)
-		}
+			t.Logf("(%v)\n", time.Since(tInit))
 
-		if timedOut {
-			t.Error("Query timed out: skipping validation.")
-			continue
-		}
-		t.Logf("(%v)\n", time.Since(tInit))
-
-		if len(got) != len(test.expect) {
-			t.Errorf("Unexpected number of results, got:%d expect:%d on %s.", len(got), len(test.expect), test.message)
-			continue
-		}
-		if unsortedEqual(got, test.expect) {
-			continue
-		}
-		t.Errorf("Unexpected results for %s:\n", test.message)
-		for i := range got {
-			t.Errorf("\n\tgot:%#v\n\texpect:%#v\n", got[i], test.expect[i])
-		}
+			if len(got) != len(test.expect) {
+				t.Errorf("Unexpected number of results, got:%d expect:%d on %s.", len(got), len(test.expect), test.message)
+				return
+			}
+			if unsortedEqual(got, test.expect) {
+				return
+			}
+			t.Errorf("Unexpected results for %s:\n", test.message)
+			for i := range got {
+				t.Errorf("\n\tgot:%#v\n\texpect:%#v\n", got[i], test.expect[i])
+			}
+		}()
 	}
 }
 
@@ -631,15 +630,21 @@ func runBench(n int, b *testing.B) {
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c := make(chan interface{}, 5)
-		ses := gremlin.NewSession(handle.QuadStore, cfg.Timeout, true)
-		// Do the parsing we know works.
-		ses.Parse(benchmarkQueries[n].query)
+		c := make(chan query.Result, 5)
+		ctx := context.Background()
+		var cancel func()
+		if cfg.Timeout > 0 {
+			ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
+		}
+		ses := gremlin.NewSession(handle.QuadStore, true)
 		b.StartTimer()
-		go ses.Execute(benchmarkQueries[n].query, c, 100)
-		for _ = range c {
+		go ses.Execute(ctx, benchmarkQueries[n].query, c, 100)
+		for range c {
 		}
 		b.StopTimer()
+		if cancel != nil {
+			cancel()
+		}
 	}
 }
 

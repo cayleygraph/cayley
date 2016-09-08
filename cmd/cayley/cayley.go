@@ -24,6 +24,8 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/cayleygraph/cayley/clog"
 	_ "github.com/cayleygraph/cayley/clog/glog"
 
@@ -42,6 +44,11 @@ import (
 
 	// Load writer registry
 	_ "github.com/cayleygraph/cayley/writer"
+
+	// Load supported query languages
+	_ "github.com/cayleygraph/cayley/query/gremlin"
+	_ "github.com/cayleygraph/cayley/query/mql"
+	_ "github.com/cayleygraph/cayley/query/sexp"
 )
 
 var (
@@ -260,7 +267,7 @@ func main() {
 			}
 		}
 
-		err = db.Repl(handle, *queryLanguage, cfg)
+		err = db.Repl(context.TODO(), handle, *queryLanguage, cfg.Timeout)
 
 		handle.Close()
 
