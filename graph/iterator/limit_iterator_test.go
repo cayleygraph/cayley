@@ -6,12 +6,13 @@ import (
 )
 
 func TestLimitIteratorBasics(t *testing.T) {
-	allIt := NewFixed(Identity)
-	allIt.Add(Int64Node(1))
-	allIt.Add(Int64Node(2))
-	allIt.Add(Int64Node(3))
-	allIt.Add(Int64Node(4))
-	allIt.Add(Int64Node(5))
+	allIt := NewFixed(Identity,
+		Int64Node(1),
+		Int64Node(2),
+		Int64Node(3),
+		Int64Node(4),
+		Int64Node(5),
+	)
 
 	u := NewLimit(allIt, 0)
 	expectSz, _ := allIt.Size()

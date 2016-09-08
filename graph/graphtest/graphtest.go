@@ -309,9 +309,10 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	})
 	it.Reset()
 
-	and := iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadsAllIterator())
-	and.AddSubIterator(it)
+	and := iterator.NewAnd(qs,
+		qs.QuadsAllIterator(),
+		it,
+	)
 
 	expectIteratedQuads(and, []quad.Quad{
 		quad.MakeRaw("C", "follows", "B", ""),
@@ -326,9 +327,10 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 		quad.MakeRaw("E", "follows", "F", ""),
 	})
 
-	and = iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
-	and.AddSubIterator(it)
+	and = iterator.NewAnd(qs,
+		qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))),
+		it,
+	)
 
 	expectIteratedQuads(and, []quad.Quad{
 		quad.MakeRaw("B", "follows", "F", ""),
@@ -354,9 +356,10 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	it.Reset()
 
 	// Order is important
-	and = iterator.NewAnd(qs)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
-	and.AddSubIterator(it)
+	and = iterator.NewAnd(qs,
+		qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))),
+		it,
+	)
 
 	expectIteratedQuads(and, []quad.Quad{
 		quad.MakeRaw("B", "status", "cool", "status_graph"),
@@ -364,9 +367,10 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	it.Reset()
 
 	// Order is important
-	and = iterator.NewAnd(qs)
-	and.AddSubIterator(it)
-	and.AddSubIterator(qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))))
+	and = iterator.NewAnd(qs,
+		it,
+		qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("B"))),
+	)
 
 	expectIteratedQuads(and, []quad.Quad{
 		quad.MakeRaw("B", "status", "cool", "status_graph"),
@@ -572,14 +576,13 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc) {
 
 	all := qs.NodesAllIterator()
 
-	innerAnd := iterator.NewAnd(qs)
-	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
+	innerAnd := iterator.NewAnd(qs,
+		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
+		iterator.NewLinksTo(qs, all, quad.Object),
+	)
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
-	outerAnd := iterator.NewAnd(qs)
-	outerAnd.AddSubIterator(fixed)
-	outerAnd.AddSubIterator(hasa)
+	outerAnd := iterator.NewAnd(qs, fixed, hasa)
 
 	require.True(t, outerAnd.Next(), "Expected one matching subtree")
 

@@ -118,14 +118,13 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 
 	all := qs.NodesAllIterator()
 
-	innerAnd := iterator.NewAnd(qs)
-	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, all, quad.Object))
+	innerAnd := iterator.NewAnd(qs,
+		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
+		iterator.NewLinksTo(qs, all, quad.Object),
+	)
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
-	outerAnd := iterator.NewAnd(qs)
-	outerAnd.AddSubIterator(fixed)
-	outerAnd.AddSubIterator(hasa)
+	outerAnd := iterator.NewAnd(qs, fixed, hasa)
 
 	if !outerAnd.Next() {
 		t.Error("Expected one matching subtree")
@@ -207,9 +206,10 @@ func TestRemoveQuad(t *testing.T) {
 	fixed2 := qs.FixedIterator()
 	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
 
-	innerAnd := iterator.NewAnd(qs)
-	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed, quad.Subject))
-	innerAnd.AddSubIterator(iterator.NewLinksTo(qs, fixed2, quad.Predicate))
+	innerAnd := iterator.NewAnd(qs,
+		iterator.NewLinksTo(qs, fixed, quad.Subject),
+		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
+	)
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Object)
 

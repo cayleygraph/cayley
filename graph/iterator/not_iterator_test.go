@@ -7,15 +7,17 @@ import (
 )
 
 func TestNotIteratorBasics(t *testing.T) {
-	allIt := NewFixed(Identity)
-	allIt.Add(Int64Node(1))
-	allIt.Add(Int64Node(2))
-	allIt.Add(Int64Node(3))
-	allIt.Add(Int64Node(4))
+	allIt := NewFixed(Identity,
+		Int64Node(1),
+		Int64Node(2),
+		Int64Node(3),
+		Int64Node(4),
+	)
 
-	toComplementIt := NewFixed(Identity)
-	toComplementIt.Add(Int64Node(2))
-	toComplementIt.Add(Int64Node(4))
+	toComplementIt := NewFixed(Identity,
+		Int64Node(2),
+		Int64Node(4),
+	)
 
 	not := NewNot(toComplementIt, allIt)
 

@@ -47,12 +47,16 @@ func Identity(a, b graph.Value) bool {
 }
 
 // Creates a new Fixed iterator with a custom comparator.
-func NewFixed(cmp Equality) *Fixed {
-	return &Fixed{
+func NewFixed(cmp Equality, vals ...graph.Value) *Fixed {
+	it := &Fixed{
 		uid:    NextUID(),
 		values: make([]graph.Value, 0, 20),
 		cmp:    cmp,
 	}
+	for _, v := range vals {
+		it.Add(v)
+	}
+	return it
 }
 
 func (it *Fixed) UID() uint64 {
@@ -82,10 +86,9 @@ func (it *Fixed) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Fixed) Clone() graph.Iterator {
-	out := NewFixed(it.cmp)
-	for _, val := range it.values {
-		out.Add(val)
-	}
+	vals := make([]graph.Value, len(it.values))
+	copy(vals, it.values)
+	out := NewFixed(it.cmp, vals...)
 	out.tags.CopyFrom(it)
 	return out
 }

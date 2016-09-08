@@ -32,15 +32,17 @@ func iterated(it graph.Iterator) []int {
 
 func TestOrIteratorBasics(t *testing.T) {
 	or := NewOr()
-	f1 := NewFixed(Identity)
-	f1.Add(Int64Node(1))
-	f1.Add(Int64Node(2))
-	f1.Add(Int64Node(3))
-	f2 := NewFixed(Identity)
-	f2.Add(Int64Node(3))
-	f2.Add(Int64Node(9))
-	f2.Add(Int64Node(20))
-	f2.Add(Int64Node(21))
+	f1 := NewFixed(Identity,
+		Int64Node(1),
+		Int64Node(2),
+		Int64Node(3),
+	)
+	f2 := NewFixed(Identity,
+		Int64Node(3),
+		Int64Node(9),
+		Int64Node(20),
+		Int64Node(21),
+	)
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
 
@@ -78,15 +80,17 @@ func TestOrIteratorBasics(t *testing.T) {
 func TestShortCircuitingOrBasics(t *testing.T) {
 	var or *Or
 
-	f1 := NewFixed(Identity)
-	f1.Add(Int64Node(1))
-	f1.Add(Int64Node(2))
-	f1.Add(Int64Node(3))
-	f2 := NewFixed(Identity)
-	f2.Add(Int64Node(3))
-	f2.Add(Int64Node(9))
-	f2.Add(Int64Node(20))
-	f2.Add(Int64Node(21))
+	f1 := NewFixed(Identity,
+		Int64Node(1),
+		Int64Node(2),
+		Int64Node(3),
+	)
+	f2 := NewFixed(Identity,
+		Int64Node(3),
+		Int64Node(9),
+		Int64Node(20),
+		Int64Node(21),
+	)
 
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
@@ -154,13 +158,13 @@ func TestOrIteratorErr(t *testing.T) {
 	wantErr := errors.New("unique")
 	orErr := newTestIterator(false, wantErr)
 
-	fix1 := NewFixed(Identity)
-	fix1.Add(Int64Node(1))
+	fix1 := NewFixed(Identity, Int64Node(1))
 
-	or := NewOr()
-	or.AddSubIterator(fix1)
-	or.AddSubIterator(orErr)
-	or.AddSubIterator(NewInt64(1, 5, true))
+	or := NewOr(
+		fix1,
+		orErr,
+		NewInt64(1, 5, true),
+	)
 
 	if !or.Next() {
 		t.Errorf("Failed to iterate Or correctly")
@@ -181,9 +185,10 @@ func TestShortCircuitOrIteratorErr(t *testing.T) {
 	wantErr := errors.New("unique")
 	orErr := newTestIterator(false, wantErr)
 
-	or := NewOr()
-	or.AddSubIterator(orErr)
-	or.AddSubIterator(NewInt64(1, 5, true))
+	or := NewOr(
+		orErr,
+		NewInt64(1, 5, true),
+	)
 
 	if or.Next() != false {
 		t.Errorf("Or iterator did not pass through underlying 'false'")
