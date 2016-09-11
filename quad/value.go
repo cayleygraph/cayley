@@ -2,10 +2,12 @@ package quad
 
 import (
 	"crypto/sha1"
+	"fmt"
 	"hash"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cayleygraph/cayley/voc"
@@ -368,3 +370,12 @@ type ByValueString []Value
 func (o ByValueString) Len() int           { return len(o) }
 func (o ByValueString) Less(i, j int) bool { return StringOf(o[i]) < StringOf(o[j]) }
 func (o ByValueString) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
+
+var (
+	bnode uint64
+)
+
+func NextBlankNode() BNode {
+	n := atomic.AddUint64(&bnode, 1)
+	return BNode(fmt.Sprintf("n%d", n))
+}
