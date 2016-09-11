@@ -36,6 +36,7 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 		conf = &Config{}
 	}
 	TestLoadOneQuad(t, gen)
+	TestDeleteQuad(t, gen)
 	if !conf.SkipIntHorizon {
 		TestHorizonInt(t, gen, conf)
 	}
@@ -101,10 +102,12 @@ func IteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Q
 	return res
 }
 
-func ExpectIteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator, exp []quad.Quad) {
-	//sort.Sort(quad.ByQuadString(exp))
+func ExpectIteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator, exp []quad.Quad, sortQuads bool) {
 	got := IteratedQuads(t, qs, it)
-	//sort.Sort(quad.ByQuadString(got))
+	if sortQuads {
+		sort.Sort(quad.ByQuadString(exp))
+		sort.Sort(quad.ByQuadString(got))
+	}
 	require.Equal(t, exp, got)
 }
 
@@ -297,7 +300,7 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	expectIteratedQuads := func(it graph.Iterator, exp []quad.Quad) {
-		ExpectIteratedQuads(t, qs, it, exp)
+		ExpectIteratedQuads(t, qs, it, exp, false)
 	}
 
 	// Subject iterator.
@@ -377,6 +380,40 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc) {
 	})
 }
 
+func TestDeleteQuad(t testing.TB, gen DatabaseFunc) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
+	ExpectIteratedQuads(t, qs, it, []quad.Quad{
+		quad.MakeRaw("E", "follows", "F", ""),
+	}, false)
+	it.Close()
+
+	w.RemoveQuad(quad.MakeRaw("E", "follows", "F", ""))
+
+	it = qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
+	ExpectIteratedQuads(t, qs, it, nil, false)
+	it.Close()
+
+	it = qs.QuadsAllIterator()
+	ExpectIteratedQuads(t, qs, it, []quad.Quad{
+		quad.MakeRaw("A", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "B", ""),
+		quad.MakeRaw("C", "follows", "D", ""),
+		quad.MakeRaw("D", "follows", "B", ""),
+		quad.MakeRaw("B", "follows", "F", ""),
+		quad.MakeRaw("F", "follows", "G", ""),
+		quad.MakeRaw("D", "follows", "G", ""),
+		quad.MakeRaw("B", "status", "cool", "status_graph"),
+		quad.MakeRaw("D", "status", "cool", "status_graph"),
+		quad.MakeRaw("G", "status", "cool", "status_graph"),
+	}, true)
+	it.Close()
+}
+
 func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc) {
 	qs, opts, closer := gen(t)
 	defer closer()
@@ -388,13 +425,13 @@ func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc) {
 
 	ExpectIteratedQuads(t, qs, it, []quad.Quad{
 		quad.MakeRaw("E", "follows", "F", ""),
-	})
+	}, false)
 
 	it.Reset()
 
 	w.RemoveQuad(quad.MakeRaw("E", "follows", "F", ""))
 
-	ExpectIteratedQuads(t, qs, it, nil)
+	ExpectIteratedQuads(t, qs, it, nil, false)
 }
 
 func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {

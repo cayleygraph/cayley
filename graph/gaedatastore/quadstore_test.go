@@ -129,7 +129,7 @@ func TestIterators(t *testing.T) {
 	}
 
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
-	graphtest.ExpectIteratedQuads(t, qs, it, expected)
+	graphtest.ExpectIteratedQuads(t, qs, it, expected, false)
 
 	// Test contains
 	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))
