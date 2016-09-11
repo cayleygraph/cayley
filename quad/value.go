@@ -7,6 +7,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cayleygraph/cayley/voc"
+	"github.com/cayleygraph/cayley/voc/schema"
 )
 
 // Value is a type used by all quad directions.
@@ -169,7 +172,7 @@ func (s TypedString) Native() interface{} {
 //
 // Error will be returned if the type was recognizes, but parsing failed.
 func (s TypedString) ParseValue() (Value, error) {
-	fnc := knownConversions[s.Type]
+	fnc := knownConversions[s.Type.Full()]
 	if fnc == nil {
 		return s, nil
 	}
@@ -191,6 +194,8 @@ func (s LangString) Native() interface{} { return s.Value.Native() }
 type IRI string
 
 func (s IRI) String() string      { return `<` + string(s) + `>` }
+func (s IRI) Short() IRI          { return IRI(voc.ShortIRI(string(s))) }
+func (s IRI) Full() IRI           { return IRI(voc.FullIRI(string(s))) }
 func (s IRI) Native() interface{} { return s }
 
 // BNode is an RDF Blank Node (ex: _:name).
@@ -206,8 +211,7 @@ func (s BNode) Native() interface{} { return s }
 type StringConversion func(string) (Value, error)
 
 const (
-	nsXSD    = `http://www.w3.org/2001/XMLSchema#`
-	nsSchema = `http://schema.org/`
+	nsXSD = `http://www.w3.org/2001/XMLSchema#`
 )
 
 var knownConversions = map[IRI]StringConversion{
@@ -230,6 +234,7 @@ var knownConversions = map[IRI]StringConversion{
 //
 // If fnc is nil, automatic conversion from selected type will be removed.
 func RegisterStringConversion(dataType IRI, fnc StringConversion) {
+	dataType = dataType.Full()
 	if fnc == nil {
 		delete(knownConversions, dataType)
 	} else {
@@ -271,11 +276,10 @@ func stringToTime(s string) (Value, error) {
 
 // TODO(dennwc): make these configurable
 const (
-	defaultNamespace     = nsSchema
-	defaultIntType   IRI = defaultNamespace + `Integer`
-	defaultFloatType IRI = defaultNamespace + `Float`
-	defaultBoolType  IRI = defaultNamespace + `Boolean`
-	defaultTimeType  IRI = defaultNamespace + `DateTime`
+	defaultIntType   IRI = schema.Integer
+	defaultFloatType IRI = schema.Float
+	defaultBoolType  IRI = schema.Boolean
+	defaultTimeType  IRI = schema.DateTime
 )
 
 // Int is a native wrapper for int64 type.
