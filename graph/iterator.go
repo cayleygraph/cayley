@@ -240,6 +240,7 @@ const (
 	Unique
 	Limit
 	Skip
+	Recursive
 )
 
 var (
@@ -264,6 +265,7 @@ var (
 		"unique",
 		"limit",
 		"skip",
+		"recursive",
 	}
 )
 
