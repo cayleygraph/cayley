@@ -15,6 +15,8 @@
 package path
 
 import (
+	"regexp"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -144,6 +146,12 @@ func (p *Path) Reverse() *Path {
 func (p *Path) Is(nodes ...quad.Value) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, isMorphism(nodes...))
+	return np
+}
+
+func (p *Path) Regex(pattern *regexp.Regexp) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, regexMorphism(pattern))
 	return np
 }
 
