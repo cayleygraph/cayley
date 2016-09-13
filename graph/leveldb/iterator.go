@@ -23,7 +23,6 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -117,47 +116,39 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) isLiveValue(val []byte) bool {
-	var entry proto.HistoryEntry
-	entry.Unmarshal(val)
-	return len(entry.History)%2 != 0
-}
-
 func (it *Iterator) Next() bool {
 	if it.iter == nil {
 		it.result = nil
 		return false
-	}
-	if !it.open {
+	} else if !it.open {
 		it.result = nil
 		return false
 	}
-	if !it.iter.Valid() {
-		it.result = nil
-		it.Close()
-		return false
-	}
-	if bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
-		if !it.isLiveValue(it.iter.Value()) {
-			ok := it.iter.Next()
-			if !ok {
+	for {
+		if !it.iter.Valid() {
+			it.result = nil
+			it.Close()
+			return false
+		}
+		if !bytes.HasPrefix(it.iter.Key(), it.nextPrefix) {
+			it.Close()
+			it.result = nil
+			return false
+		}
+		if !isLiveValue(it.iter.Value()) {
+			if !it.iter.Next() {
 				it.Close()
 				return false
 			}
-			return it.Next()
+			continue
 		}
-		out := make([]byte, len(it.iter.Key()))
-		copy(out, it.iter.Key())
-		it.result = Token(out)
+		it.result = Token(clone(it.iter.Key()))
 		ok := it.iter.Next()
 		if !ok {
 			it.Close()
 		}
 		return true
 	}
-	it.Close()
-	it.result = nil
-	return false
 }
 
 func (it *Iterator) Err() error {

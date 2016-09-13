@@ -6,12 +6,13 @@ import (
 )
 
 func TestUniqueIteratorBasics(t *testing.T) {
-	allIt := NewFixed(Identity)
-	allIt.Add(Int64Node(1))
-	allIt.Add(Int64Node(2))
-	allIt.Add(Int64Node(3))
-	allIt.Add(Int64Node(3))
-	allIt.Add(Int64Node(2))
+	allIt := NewFixed(Identity,
+		Int64Node(1),
+		Int64Node(2),
+		Int64Node(3),
+		Int64Node(3),
+		Int64Node(2),
+	)
 
 	u := NewUnique(allIt)
 

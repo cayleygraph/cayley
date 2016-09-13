@@ -96,12 +96,11 @@ func (it *AllIterator) Next() bool {
 			b := tx.Bucket(it.bucket)
 			cur := b.Cursor()
 			if last == nil {
-				k, _ := cur.First()
-				var out []byte
-				out = make([]byte, len(k))
-				copy(out, k)
-				it.buffer = append(it.buffer, out)
-				i++
+				k, v := cur.First()
+				if it.nodes || isLiveValue(v) {
+					it.buffer = append(it.buffer, clone(k))
+					i++
+				}
 			} else {
 				k, _ := cur.Seek(last)
 				if !bytes.Equal(k, last) {
@@ -109,15 +108,15 @@ func (it *AllIterator) Next() bool {
 				}
 			}
 			for i < bufferSize {
-				k, _ := cur.Next()
+				k, v := cur.Next()
 				if k == nil {
 					it.buffer = append(it.buffer, k)
 					break
 				}
-				var out []byte
-				out = make([]byte, len(k))
-				copy(out, k)
-				it.buffer = append(it.buffer, out)
+				if !it.nodes && !isLiveValue(v) {
+					continue
+				}
+				it.buffer = append(it.buffer, clone(k))
 				i++
 			}
 			return nil

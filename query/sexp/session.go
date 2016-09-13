@@ -23,27 +23,33 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 )
 
+const Name = "sexp"
+
+func init() {
+	query.RegisterLanguage(query.Language{
+		Name: Name,
+		Session: func(qs graph.QuadStore) query.Session {
+			return NewSession(qs)
+		},
+		REPL: func(qs graph.QuadStore) query.REPLSession {
+			return NewSession(qs)
+		},
+	})
+}
+
 type Session struct {
-	qs    graph.QuadStore
-	debug bool
+	qs graph.QuadStore
 }
 
 func NewSession(qs graph.QuadStore) *Session {
-	var s Session
-	s.qs = qs
-	return &s
+	return &Session{qs: qs}
 }
 
-func (s *Session) Debug(ok bool) {
-	s.debug = ok
-}
-
-func (s *Session) Parse(input string) (query.ParseResult, error) {
+func (s *Session) Parse(input string) error {
 	var parenDepth int
 	for i, x := range input {
 		if x == '(' {
@@ -56,33 +62,39 @@ func (s *Session) Parse(input string) (query.ParseResult, error) {
 				if (i - 10) > min {
 					min = i - 10
 				}
-				return query.ParseFail, fmt.Errorf("too many close parentheses at char %d: %s", i, input[min:i])
+				return fmt.Errorf("too many close parentheses at char %d: %s", i, input[min:i])
 			}
 		}
 	}
 	if parenDepth > 0 {
-		return query.ParseMore, nil
+		return query.ErrParseMore
 	}
 	if len(ParseString(input)) > 0 {
-		return query.Parsed, nil
+		return nil
 	}
-	return query.ParseFail, errors.New("invalid syntax")
+	return errors.New("invalid syntax")
 }
 
-func (s *Session) Execute(input string, out chan interface{}, limit int) {
+func (s *Session) Execute(ctx context.Context, input string, out chan query.Result, limit int) {
 	defer close(out)
 	it := BuildIteratorTreeForQuery(s.qs, input)
-	err := graph.Iterate(context.TODO(), it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
-		out <- &tags
+	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+		select {
+		case out <- query.TagMapResult(tags):
+		case <-ctx.Done():
+		}
 	})
 	if err != nil {
-		clog.Errorf("sexp: %v", err)
+		select {
+		case out <- query.ErrorResult(err):
+		case <-ctx.Done():
+		}
 	}
 }
 
-func (s *Session) Format(result interface{}) string {
+func (s *Session) FormatREPL(result query.Result) string {
 	out := fmt.Sprintln("****")
-	tags, ok := result.(map[string]graph.Value)
+	tags, ok := result.Result().(map[string]graph.Value)
 	if !ok {
 		return ""
 	}

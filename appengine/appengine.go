@@ -29,6 +29,10 @@ import (
 
 	_ "github.com/cayleygraph/cayley/graph/gaedatastore"
 	_ "github.com/cayleygraph/cayley/writer"
+
+	// Register supported query languages
+	_ "github.com/cayleygraph/cayley/query/gremlin"
+	_ "github.com/cayleygraph/cayley/query/mql"
 )
 
 var (

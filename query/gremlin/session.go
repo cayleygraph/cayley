@@ -15,12 +15,11 @@
 package gremlin
 
 import (
-	"errors"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/robertkrimen/otto"
+	"golang.org/x/net/context"
 	// Provide underscore JS library.
 	_ "github.com/robertkrimen/otto/underscore"
 
@@ -29,7 +28,28 @@ import (
 	"github.com/cayleygraph/cayley/query"
 )
 
-var ErrKillTimeout = errors.New("query timed out")
+const Name = "gremlin"
+
+func init() {
+	query.RegisterLanguage(query.Language{
+		Name: Name,
+		Session: func(qs graph.QuadStore) query.Session {
+			return NewSession(qs, false)
+		},
+		HTTP: func(qs graph.QuadStore) query.HTTP {
+			return NewSession(qs, false)
+		},
+		REPL: func(qs graph.QuadStore) query.REPLSession {
+			return NewSession(qs, true)
+		},
+	})
+}
+
+type errKilled struct {
+	Err error
+}
+
+func (e errKilled) Error() string { return e.Err.Error() }
 
 type Session struct {
 	qs graph.QuadStore
@@ -38,20 +58,17 @@ type Session struct {
 	script  *otto.Script
 	persist *otto.Otto
 
-	timeout time.Duration
-	kill    chan struct{}
+	kill chan struct{}
 
-	debug      bool
 	dataOutput []interface{}
 
 	err error
 }
 
-func NewSession(qs graph.QuadStore, timeout time.Duration, persist bool) *Session {
+func NewSession(qs graph.QuadStore, persist bool) *Session {
 	g := Session{
-		qs:      qs,
-		wk:      newWorker(qs),
-		timeout: timeout,
+		qs: qs,
+		wk: newWorker(qs),
 	}
 	if persist {
 		g.persist = g.wk.env
@@ -66,8 +83,18 @@ type Result struct {
 	actualResults map[string]graph.Value
 }
 
-func (s *Session) Debug(ok bool) {
-	s.debug = ok
+func (r *Result) Err() error { return r.err }
+func (r *Result) Result() interface{} {
+	if r.metaresult {
+		return nil
+	} else if r.val == nil {
+		if r.actualResults == nil {
+			return nil
+		}
+		return r.actualResults
+	} else {
+		return r.val
+	}
 }
 
 func (s *Session) ShapeOf(query string) (interface{}, error) {
@@ -80,22 +107,16 @@ func (s *Session) ShapeOf(query string) (interface{}, error) {
 	return out, nil
 }
 
-func (s *Session) Parse(input string) (query.ParseResult, error) {
-	script, err := s.wk.env.Compile("", input)
-	if err != nil {
-		return query.ParseFail, err
-	}
-	s.script = script
-	return query.Parsed, nil
-}
-
-func (s *Session) runUnsafe(input interface{}) (_ otto.Value, gerr error) {
+func (s *Session) runUnsafe(ctx context.Context, input interface{}) (_ otto.Value, gerr error) {
 	wk := s.wk
 	defer func() {
 		if r := recover(); r != nil {
-			if r == ErrKillTimeout {
-				s.err = ErrKillTimeout
+			if e, ok := r.(errKilled); ok {
+				s.err = e.Err
 				wk.env = s.persist
+				if gerr == nil {
+					gerr = e.Err
+				}
 				return
 			} else if err, ok := r.(error); ok {
 				gerr = err
@@ -112,22 +133,20 @@ func (s *Session) runUnsafe(input interface{}) (_ otto.Value, gerr error) {
 
 	done := make(chan struct{})
 	defer close(done)
-	if s.timeout >= 0 {
-		go func() {
-			select {
-			case <-done:
-			case <-time.After(s.timeout):
-				close(s.kill)
-				wk.Lock()
-				if wk.env != nil {
-					wk.env.Interrupt <- func() {
-						panic(ErrKillTimeout)
-					}
+	go func() {
+		select {
+		case <-done:
+		case <-ctx.Done(): // timeout or cancelled
+			close(s.kill)
+			wk.Lock()
+			if wk.env != nil {
+				wk.env.Interrupt <- func() {
+					panic(errKilled{ctx.Err()})
 				}
-				wk.Unlock()
 			}
-		}()
-	}
+			wk.Unlock()
+		}
+	}()
 
 	wk.Lock()
 	env := wk.env
@@ -135,16 +154,19 @@ func (s *Session) runUnsafe(input interface{}) (_ otto.Value, gerr error) {
 	return env.Run(input)
 }
 
-func (s *Session) Execute(input string, out chan interface{}, _ int) {
+func (s *Session) Execute(ctx context.Context, input string, out chan query.Result, _ int) {
+	// FIXME: use limit
 	defer close(out)
 	s.err = nil
 	s.wk.results = out
-	var err error
-	var value otto.Value
+	var (
+		err   error
+		value otto.Value
+	)
 	if s.script == nil {
-		value, err = s.runUnsafe(input)
+		value, err = s.runUnsafe(ctx, input)
 	} else {
-		value, err = s.runUnsafe(s.script)
+		value, err = s.runUnsafe(ctx, s.script)
 	}
 	out <- &Result{
 		metaresult: true,
@@ -158,7 +180,7 @@ func (s *Session) Execute(input string, out chan interface{}, _ int) {
 	s.wk.Unlock()
 }
 
-func (s *Session) Format(result interface{}) string {
+func (s *Session) FormatREPL(result query.Result) string {
 	data, ok := result.(*Result)
 	if !ok {
 		return fmt.Sprintf("Error: unexpected result type: %T\n", result)
@@ -212,34 +234,34 @@ func (s *Session) Format(result interface{}) string {
 }
 
 // Web stuff
-func (s *Session) Collate(result interface{}) {
+func (s *Session) Collate(result query.Result) {
 	data, ok := result.(*Result)
 	if !ok {
 		clog.Errorf("unexpected result type: %T", result)
 		return
+	} else if data.metaresult {
+		return
 	}
-	if !data.metaresult {
-		if data.val == nil {
-			obj := make(map[string]interface{})
-			tags := data.actualResults
-			var tagKeys []string
-			for k := range tags {
-				tagKeys = append(tagKeys, k)
-			}
-			sort.Strings(tagKeys)
-			for _, k := range tagKeys {
-				if name := s.qs.NameOf(tags[k]); name != nil {
-					obj[k] = quadValueToNative(name)
-				} else {
-					delete(obj, k)
-				}
-			}
-			if len(obj) != 0 {
-				s.dataOutput = append(s.dataOutput, obj)
-			}
+	if data.val != nil {
+		s.dataOutput = append(s.dataOutput, data.val)
+		return
+	}
+	obj := make(map[string]interface{})
+	tags := data.actualResults
+	var tagKeys []string
+	for k := range tags {
+		tagKeys = append(tagKeys, k)
+	}
+	sort.Strings(tagKeys)
+	for _, k := range tagKeys {
+		if name := s.qs.NameOf(tags[k]); name != nil {
+			obj[k] = quadValueToNative(name)
 		} else {
-			s.dataOutput = append(s.dataOutput, data.val)
+			delete(obj, k)
 		}
+	}
+	if len(obj) != 0 {
+		s.dataOutput = append(s.dataOutput, obj)
 	}
 }
 
@@ -248,12 +270,7 @@ func (s *Session) Results() (interface{}, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
-	select {
-	case <-s.kill:
-		return nil, ErrKillTimeout
-	default:
-		return s.dataOutput, nil
-	}
+	return s.dataOutput, nil
 }
 
 func (s *Session) Clear() {

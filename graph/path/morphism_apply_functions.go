@@ -143,9 +143,7 @@ func bothMorphism(tags []string, via ...interface{}) morphism {
 			path := buildViaPath(qs, via...)
 			inSide := inOutIterator(path, in, true, tags, ctx)
 			outSide := inOutIterator(path, in.Clone(), false, tags, ctx)
-			or := iterator.NewOr()
-			or.AddSubIterator(inSide)
-			or.AddSubIterator(outSide)
+			or := iterator.NewOr(inSide, outSide)
 			return or, ctx
 		},
 		tags: tags,
@@ -231,10 +229,7 @@ func orMorphism(p *Path) morphism {
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return orMorphism(p), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
 			itR := p.BuildIteratorOn(qs)
-
-			or := iterator.NewOr()
-			or.AddSubIterator(in)
-			or.AddSubIterator(itR)
+			or := iterator.NewOr(in, itR)
 			return or, ctx
 		},
 	}

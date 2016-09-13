@@ -21,11 +21,13 @@ import (
 	"sort"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/cayleygraph/cayley/graph"
+	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/cquads"
-
-	_ "github.com/cayleygraph/cayley/graph/memstore"
+	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
@@ -49,7 +51,7 @@ func makeTestSession(data []quad.Quad) *Session {
 	for _, t := range data {
 		w.AddQuad(t)
 	}
-	return NewSession(qs, -1, false)
+	return NewSession(qs, false)
 }
 
 var testQueries = []struct {
@@ -403,12 +405,12 @@ var testQueries = []struct {
 	},
 }
 
-func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) ([]string, error) {
+func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string, error) {
 	js := makeTestSession(g)
-	c := make(chan interface{}, 1)
+	c := make(chan query.Result, 1)
 	go func() {
 		defer rec()
-		js.Execute(query, c, -1)
+		js.Execute(context.TODO(), qu, c, -1)
 	}()
 
 	var results []string
@@ -494,7 +496,7 @@ var issue160TestGraph = []quad.Quad{
 }
 
 func TestIssue160(t *testing.T) {
-	query := `g.V().Tag('query').Out(raw('follows')).Out(raw('follows')).ForEach(function (item) { if (item.id !== item.query) g.Emit({ id: item.id }); })`
+	qu := `g.V().Tag('query').Out(raw('follows')).Out(raw('follows')).ForEach(function (item) { if (item.id !== item.query) g.Emit({ id: item.id }); })`
 	expect := []string{
 		"****\nid : alice\n",
 		"****\nid : bob\n",
@@ -503,8 +505,8 @@ func TestIssue160(t *testing.T) {
 	}
 
 	ses := makeTestSession(issue160TestGraph)
-	c := make(chan interface{}, 5)
-	go ses.Execute(query, c, 100)
+	c := make(chan query.Result, 5)
+	go ses.Execute(context.TODO(), qu, c, 100)
 	var got []string
 	for res := range c {
 		func() {
@@ -513,7 +515,7 @@ func TestIssue160(t *testing.T) {
 					t.Errorf("Unexpected panic: %v", r)
 				}
 			}()
-			got = append(got, ses.Format(res))
+			got = append(got, ses.FormatREPL(res))
 		}()
 	}
 	sort.Strings(got)

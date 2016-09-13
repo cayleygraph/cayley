@@ -24,7 +24,6 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -113,12 +112,6 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) isLiveValue(val []byte) bool {
-	var entry proto.HistoryEntry
-	entry.Unmarshal(val)
-	return len(entry.History)%2 != 0
-}
-
 func (it *Iterator) Next() bool {
 	if it.done {
 		return false
@@ -137,11 +130,8 @@ func (it *Iterator) Next() bool {
 			if last == nil {
 				k, v := cur.Seek(it.checkID)
 				if bytes.HasPrefix(k, it.checkID) {
-					if it.isLiveValue(v) {
-						var out []byte
-						out = make([]byte, len(k))
-						copy(out, k)
-						it.buffer = append(it.buffer, out)
+					if isLiveValue(v) {
+						it.buffer = append(it.buffer, clone(k))
 						i++
 					}
 				} else {
@@ -160,13 +150,10 @@ func (it *Iterator) Next() bool {
 					it.buffer = append(it.buffer, nil)
 					break
 				}
-				if !it.isLiveValue(v) {
+				if !isLiveValue(v) {
 					continue
 				}
-				var out []byte
-				out = make([]byte, len(k))
-				copy(out, k)
-				it.buffer = append(it.buffer, out)
+				it.buffer = append(it.buffer, clone(k))
 				i++
 			}
 			return nil
