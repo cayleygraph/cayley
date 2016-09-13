@@ -21,11 +21,13 @@ import (
 	"sort"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/codelingo/cayley/graph"
+	_ "github.com/codelingo/cayley/graph/memstore"
 	"github.com/codelingo/cayley/quad"
 	"github.com/codelingo/cayley/quad/cquads"
-
-	_ "github.com/codelingo/cayley/graph/memstore"
+	"github.com/codelingo/cayley/query"
 	_ "github.com/codelingo/cayley/writer"
 )
 
@@ -49,7 +51,7 @@ func makeTestSession(data []quad.Quad) *Session {
 	for _, t := range data {
 		w.AddQuad(t)
 	}
-	return NewSession(qs, -1, false)
+	return NewSession(qs, false)
 }
 
 var testQueries = []struct {
@@ -57,6 +59,7 @@ var testQueries = []struct {
 	query   string
 	tag     string
 	expect  []string
+	err     bool // TODO(dennwc): define error types for Gremlin and handle them
 }{
 	// Simple query tests.
 	{
@@ -353,7 +356,7 @@ var testQueries = []struct {
 	{
 		message: "issue #254",
 		query:   `g.V({"id":"<alice>"}).All()`,
-		expect:  nil,
+		expect:  nil, err: true,
 	},
 	{
 		message: "roundtrip values",
@@ -402,18 +405,20 @@ var testQueries = []struct {
 	},
 }
 
-func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []string {
+func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string, error) {
 	js := makeTestSession(g)
-	c := make(chan interface{}, 1)
+	c := make(chan query.Result, 1)
 	go func() {
 		defer rec()
-		js.Execute(query, c, -1)
+		js.Execute(context.TODO(), qu, c, -1)
 	}()
 
 	var results []string
 	for res := range c {
 		data := res.(*Result)
-		if data.val == nil {
+		if data.err != nil {
+			return results, data.err
+		} else if data.val == nil {
 			if val := data.actualResults[tag]; val != nil {
 				results = append(results, quadValueToString(js.qs.NameOf(val)))
 			}
@@ -424,8 +429,7 @@ func runQueryGetTag(rec func(), g []quad.Quad, query string, tag string) []strin
 			}
 		}
 	}
-
-	return results
+	return results, nil
 }
 
 func loadGraph(path string, t testing.TB) []quad.Quad {
@@ -462,7 +466,13 @@ func TestGremlin(t *testing.T) {
 			if test.tag == "" {
 				test.tag = TopResultTag
 			}
-			got := runQueryGetTag(rec, simpleGraph, test.query, test.tag)
+			got, err := runQueryGetTag(rec, simpleGraph, test.query, test.tag)
+			if err != nil {
+				if test.err {
+					return //expected
+				}
+				t.Errorf("unexpected error on %s: %v", test.message, err)
+			}
 			sort.Strings(got)
 			sort.Strings(test.expect)
 			t.Log("testing", test.message)
@@ -486,7 +496,7 @@ var issue160TestGraph = []quad.Quad{
 }
 
 func TestIssue160(t *testing.T) {
-	query := `g.V().Tag('query').Out(raw('follows')).Out(raw('follows')).ForEach(function (item) { if (item.id !== item.query) g.Emit({ id: item.id }); })`
+	qu := `g.V().Tag('query').Out(raw('follows')).Out(raw('follows')).ForEach(function (item) { if (item.id !== item.query) g.Emit({ id: item.id }); })`
 	expect := []string{
 		"****\nid : alice\n",
 		"****\nid : bob\n",
@@ -495,8 +505,8 @@ func TestIssue160(t *testing.T) {
 	}
 
 	ses := makeTestSession(issue160TestGraph)
-	c := make(chan interface{}, 5)
-	go ses.Execute(query, c, 100)
+	c := make(chan query.Result, 5)
+	go ses.Execute(context.TODO(), qu, c, 100)
 	var got []string
 	for res := range c {
 		func() {
@@ -505,7 +515,7 @@ func TestIssue160(t *testing.T) {
 					t.Errorf("Unexpected panic: %v", r)
 				}
 			}()
-			got = append(got, ses.Format(res))
+			got = append(got, ses.FormatREPL(res))
 		}()
 	}
 	sort.Strings(got)

@@ -27,6 +27,7 @@ import (
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/graph/path"
 	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
 )
 
 type worker struct {
@@ -34,7 +35,7 @@ type worker struct {
 	env *otto.Otto
 	sync.Mutex
 
-	results chan interface{}
+	results chan query.Result
 	shape   map[string]interface{}
 
 	count int
@@ -300,6 +301,12 @@ func toVia(via []interface{}) []interface{} {
 			return nil
 		} else if v, ok := via[0].([]interface{}); ok {
 			return toVia(v)
+		} else if v, ok := via[0].([]string); ok {
+			arr := make([]interface{}, 0, len(v))
+			for _, s := range v {
+				arr = append(arr, s)
+			}
+			return toVia(arr)
 		}
 	}
 	for i := range via {

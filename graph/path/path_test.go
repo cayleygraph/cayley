@@ -18,6 +18,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"testing"
 
@@ -147,6 +148,11 @@ func testSet(qs graph.QuadStore) []test {
 			message: "use in with filter",
 			path:    StartPath(qs, vBob).In(vFollows).Filter(iterator.CompareGT, quad.IRI("c")),
 			expect:  []quad.Value{vCharlie, vDani},
+		},
+		{
+			message: "use in with regex",
+			path:    StartPath(qs, vBob).In(vFollows).Regex(regexp.MustCompile("ar?li.*e")),
+			expect:  []quad.Value{vAlice, vCharlie},
 		},
 		{
 			message: "use path Out",
@@ -307,6 +313,16 @@ func testSet(qs graph.QuadStore) []test {
 			path:    StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
 			tag:     "statustag",
 			expect:  []quad.Value{vCool, vCool},
+		},
+		{
+			message: "composite paths (clone paths)",
+			path: func() *Path {
+				alice_path := StartPath(qs, vAlice)
+				_ = alice_path.Out(vFollows)
+
+				return alice_path
+			}(),
+			expect: []quad.Value{vAlice},
 		},
 	}
 }

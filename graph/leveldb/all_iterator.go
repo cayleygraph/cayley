@@ -102,23 +102,36 @@ func (it *AllIterator) Clone() graph.Iterator {
 }
 
 func (it *AllIterator) Next() bool {
-	if !it.open {
+	if it.iter == nil {
 		it.result = nil
 		return false
-	}
-	var out []byte
-	out = make([]byte, len(it.iter.Key()))
-	copy(out, it.iter.Key())
-	it.iter.Next()
-	if !it.iter.Valid() {
-		it.Close()
-	}
-	if !bytes.HasPrefix(out, it.prefix) {
+	} else if !it.open {
+		it.result = nil
+		return false
+	} else if !it.iter.Valid() {
+		it.result = nil
 		it.Close()
 		return false
 	}
-	it.result = Token(out)
-	return true
+	for {
+		out := clone(it.iter.Key())
+		live := it.nodes || isLiveValue(it.iter.Value())
+		if !it.iter.Next() {
+			it.Close()
+			if !live {
+				return false
+			}
+		}
+		if !bytes.HasPrefix(out, it.prefix) {
+			it.Close()
+			return false
+		}
+		if !live {
+			continue
+		}
+		it.result = Token(out)
+		return true
+	}
 }
 
 func (it *AllIterator) Err() error {

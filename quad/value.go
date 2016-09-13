@@ -12,6 +12,7 @@ import (
 // Value is a type used by all quad directions.
 type Value interface {
 	String() string
+	IsNode() bool
 	// Native converts Value to a closest native Go type.
 	//
 	// If type has no analogs in Go, Native return an object itself.
@@ -122,6 +123,7 @@ type Raw string
 
 func (s Raw) String() string      { return string(s) }
 func (s Raw) Native() interface{} { return s }
+func (s Raw) IsNode() bool        { return true }
 
 // String is an RDF string value (ex: "name").
 type String string
@@ -139,6 +141,7 @@ func (s String) String() string {
 	return `"` + escaper.Replace(string(s)) + `"`
 }
 func (s String) Native() interface{} { return string(s) }
+func (s String) IsNode() bool        { return true }
 
 // TypedString is an RDF value with type (ex: "name"^^<type>).
 type TypedString struct {
@@ -158,6 +161,8 @@ func (s TypedString) Native() interface{} {
 	}
 	return s
 }
+
+func (s TypedString) IsNode() bool { return true }
 
 // ParseValue will try to parse underlying string value using registered functions.
 //
@@ -182,18 +187,21 @@ func (s LangString) String() string {
 	return s.Value.String() + `@` + s.Lang
 }
 func (s LangString) Native() interface{} { return s.Value.Native() }
+func (s LangString) IsNode() bool        { return true }
 
 // IRI is an RDF Internationalized Resource Identifier (ex: <name>).
 type IRI string
 
 func (s IRI) String() string      { return `<` + string(s) + `>` }
 func (s IRI) Native() interface{} { return s }
+func (s IRI) IsNode() bool        { return true }
 
 // BNode is an RDF Blank Node (ex: _:name).
 type BNode string
 
 func (s BNode) String() string      { return `_:` + string(s) }
 func (s BNode) Native() interface{} { return s }
+func (s BNode) IsNode() bool        { return true }
 
 // Native support for basic types
 
@@ -283,6 +291,7 @@ func (s Int) String() string {
 	return `"` + strconv.Itoa(int(s)) + `"^^<` + string(defaultIntType) + `>`
 }
 func (s Int) Native() interface{} { return int(s) }
+func (s Int) IsNode() bool        { return true }
 
 // Float is a native wrapper for float64 type.
 //
@@ -293,6 +302,7 @@ func (s Float) String() string {
 	return `"` + strconv.FormatFloat(float64(s), 'E', -1, 64) + `"^^<` + string(defaultFloatType) + `>`
 }
 func (s Float) Native() interface{} { return float64(s) }
+func (s Float) IsNode() bool        { return true }
 
 // Bool is a native wrapper for bool type.
 //
@@ -306,6 +316,7 @@ func (s Bool) String() string {
 	return `"False"^^<` + string(defaultBoolType) + `>`
 }
 func (s Bool) Native() interface{} { return bool(s) }
+func (s Bool) IsNode() bool        { return true }
 
 var _ Equaler = Time{}
 
@@ -319,6 +330,7 @@ func (s Time) String() string {
 	return `"` + time.Time(s).Format(time.RFC3339) + `"^^<` + string(defaultTimeType) + `>`
 }
 func (s Time) Native() interface{} { return time.Time(s) }
+func (s Time) IsNode() bool        { return true }
 func (s Time) Equal(v Value) bool {
 	t, ok := v.(Time)
 	if !ok {

@@ -21,26 +21,35 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/query"
 )
 
+const Name = "mql"
+
+func init() {
+	query.RegisterLanguage(query.Language{
+		Name: Name,
+		Session: func(qs graph.QuadStore) query.Session {
+			return NewSession(qs)
+		},
+		HTTP: func(qs graph.QuadStore) query.HTTP {
+			return NewSession(qs)
+		},
+		REPL: func(qs graph.QuadStore) query.REPLSession {
+			return NewSession(qs)
+		},
+	})
+}
+
 type Session struct {
-	qs           graph.QuadStore
-	currentQuery *Query
-	debug        bool
+	qs    graph.QuadStore
+	query *Query
 }
 
 func NewSession(qs graph.QuadStore) *Session {
-	var m Session
-	m.qs = qs
-	return &m
-}
-
-func (s *Session) Debug(ok bool) {
-	s.debug = ok
+	return &Session{qs: qs}
 }
 
 func (s *Session) ShapeOf(query string) (interface{}, error) {
@@ -49,10 +58,10 @@ func (s *Session) ShapeOf(query string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.currentQuery = NewQuery(s)
-	s.currentQuery.BuildIteratorTree(mqlQuery)
+	s.query = NewQuery(s)
+	s.query.BuildIteratorTree(mqlQuery)
 	output := make(map[string]interface{})
-	iterator.OutputQueryShapeForIterator(s.currentQuery.it, s.qs, output)
+	iterator.OutputQueryShapeForIterator(s.query.it, s.qs, output)
 	nodes := make([]iterator.Node, 0)
 	for _, n := range output["nodes"].([]iterator.Node) {
 		n.Tags = nil
@@ -62,47 +71,51 @@ func (s *Session) ShapeOf(query string) (interface{}, error) {
 	return output, nil
 }
 
-func (s *Session) Parse(input string) (query.ParseResult, error) {
-	var x interface{}
-	err := json.Unmarshal([]byte(input), &x)
-	if err != nil {
-		return query.ParseFail, err
-	}
-	return query.Parsed, nil
-}
-
-func (s *Session) Execute(input string, c chan interface{}, limit int) {
+func (s *Session) Execute(ctx context.Context, input string, c chan query.Result, limit int) {
 	defer close(c)
 	var mqlQuery interface{}
-	err := json.Unmarshal([]byte(input), &mqlQuery)
-	if err != nil {
+	if err := json.Unmarshal([]byte(input), &mqlQuery); err != nil {
+		select {
+		case c <- query.ErrorResult(err):
+		case <-ctx.Done():
+		}
 		return
 	}
-	s.currentQuery = NewQuery(s)
-	s.currentQuery.BuildIteratorTree(mqlQuery)
-	if s.currentQuery.isError() {
+	s.query = NewQuery(s)
+	s.query.BuildIteratorTree(mqlQuery)
+	if s.query.isError() {
+		select {
+		case c <- query.ErrorResult(s.query.err):
+		case <-ctx.Done():
+		}
 		return
 	}
 
-	it := s.currentQuery.it
-	err = graph.Iterate(context.TODO(), it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
-		c <- tags
+	it := s.query.it
+	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+		select {
+		case c <- query.TagMapResult(tags):
+		case <-ctx.Done():
+		}
 	})
 	if err != nil {
-		clog.Errorf("mql: %v", err)
+		select {
+		case c <- query.ErrorResult(err):
+		case <-ctx.Done():
+		}
 	}
 }
 
-func (s *Session) Format(result interface{}) string {
-	tags, ok := result.(map[string]graph.Value)
+func (s *Session) FormatREPL(result query.Result) string {
+	tags, ok := result.Result().(map[string]graph.Value)
 	if !ok {
 		return ""
 	}
 	out := fmt.Sprintln("****")
 	tagKeys := make([]string, len(tags))
-	s.currentQuery.treeifyResult(tags)
-	s.currentQuery.buildResults()
-	r, _ := json.MarshalIndent(s.currentQuery.results, "", " ")
+	s.query.treeifyResult(tags)
+	s.query.buildResults()
+	r, _ := json.MarshalIndent(s.query.results, "", " ")
 	fmt.Println(string(r))
 	i := 0
 	for k := range tags {
@@ -119,20 +132,20 @@ func (s *Session) Format(result interface{}) string {
 	return out
 }
 
-func (s *Session) Collate(result interface{}) {
-	res, ok := result.(map[string]graph.Value)
+func (s *Session) Collate(result query.Result) {
+	res, ok := result.Result().(map[string]graph.Value)
 	if !ok {
 		return
 	}
-	s.currentQuery.treeifyResult(res)
+	s.query.treeifyResult(res)
 }
 
 func (s *Session) Results() (interface{}, error) {
-	s.currentQuery.buildResults()
-	if s.currentQuery.isError() {
-		return nil, s.currentQuery.err
+	s.query.buildResults()
+	if s.query.isError() {
+		return nil, s.query.err
 	}
-	return s.currentQuery.results, nil
+	return s.query.results, nil
 }
 
 func (s *Session) Clear() {

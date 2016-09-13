@@ -26,16 +26,13 @@ import (
 )
 
 func TestIteratorPromotion(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
 	all := NewInt64(1, 3, true)
-	fixed := NewFixed(Identity)
-	fixed.Add(Int64Node(3))
-	a := NewAnd(qs)
-	a.AddSubIterator(all)
-	a.AddSubIterator(fixed)
+	fixed := NewFixed(Identity, Int64Node(3))
+	a := NewAnd(qs, all, fixed)
 	all.Tagger().Add("a")
 	fixed.Tagger().Add("b")
 	a.Tagger().Add("c")
@@ -55,15 +52,13 @@ func TestIteratorPromotion(t *testing.T) {
 }
 
 func TestNullIteratorAnd(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
 	all := NewInt64(1, 3, true)
 	null := NewNull()
-	a := NewAnd(qs)
-	a.AddSubIterator(all)
-	a.AddSubIterator(null)
+	a := NewAnd(qs, all, null)
 	newIt, changed := a.Optimize()
 	if !changed {
 		t.Error("Didn't change")
@@ -74,7 +69,7 @@ func TestNullIteratorAnd(t *testing.T) {
 }
 
 func TestAllPromotion(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
@@ -106,19 +101,19 @@ func TestAllPromotion(t *testing.T) {
 }
 
 func TestReorderWithTag(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	all := NewFixed(Identity)
-	all.Add(Int64Node(3))
+	all := NewFixed(Identity, Int64Node(3))
 	all.Tagger().Add("good")
-	all2 := NewFixed(Identity)
+	all2 := NewFixed(Identity,
+		Int64Node(3),
+		Int64Node(4),
+		Int64Node(5),
+		Int64Node(6),
+	)
 	all2.Tagger().Add("slow")
-	all2.Add(Int64Node(3))
-	all2.Add(Int64Node(4))
-	all2.Add(Int64Node(5))
-	all2.Add(Int64Node(6))
 	a := NewAnd(qs)
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
@@ -145,7 +140,7 @@ func TestReorderWithTag(t *testing.T) {
 }
 
 func TestAndStatistics(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}

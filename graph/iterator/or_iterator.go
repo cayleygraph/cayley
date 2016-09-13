@@ -36,12 +36,16 @@ type Or struct {
 	err               error
 }
 
-func NewOr() *Or {
-	return &Or{
+func NewOr(sub ...graph.Iterator) *Or {
+	it := &Or{
 		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 		currentIterator:   -1,
 	}
+	for _, s := range sub {
+		it.AddSubIterator(s)
+	}
+	return it
 }
 
 func NewShortCircuitOr() *Or {

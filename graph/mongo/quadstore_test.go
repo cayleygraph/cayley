@@ -1,6 +1,9 @@
 package mongo
 
 import (
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/graphtest"
+	"github.com/codelingo/cayley/internal/dock"
 	"testing"
 
 	"github.com/codelingo/cayley/graph"

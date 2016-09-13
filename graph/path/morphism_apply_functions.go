@@ -17,7 +17,6 @@ package path
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
@@ -60,6 +59,16 @@ func isMorphism(nodes ...quad.Value) morphism {
 			// Anything with fixedIterators will usually have a much
 			// smaller result set, so join isNodes first here.
 			return join(qs, isNodes, in), ctx
+		},
+	}
+}
+
+func regexMorphism(pattern *regexp.Regexp) morphism {
+	return morphism{
+		Name:     "regex",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return regexMorphism(pattern), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			return iterator.NewRegex(in, pattern, qs), ctx
 		},
 	}
 }
@@ -240,9 +249,7 @@ func bothMorphism(tags []string, via ...interface{}) morphism {
 			path := buildViaPath(qs, via...)
 			inSide := inOutIterator(path, in, true, tags, ctx)
 			outSide := inOutIterator(path, in.Clone(), false, tags, ctx)
-			or := iterator.NewOr()
-			or.AddSubIterator(inSide)
-			or.AddSubIterator(outSide)
+			or := iterator.NewOr(inSide, outSide)
 			return or, ctx
 		},
 		tags: tags,
@@ -328,10 +335,7 @@ func orMorphism(p *Path) morphism {
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return orMorphism(p), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
 			itR := p.BuildIteratorOn(qs)
-
-			or := iterator.NewOr()
-			or.AddSubIterator(in)
-			or.AddSubIterator(itR)
+			or := iterator.NewOr(in, itR)
 			return or, ctx
 		},
 	}
@@ -343,6 +347,22 @@ func followMorphism(p *Path) morphism {
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return followMorphism(p.Reverse()), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
 			return p.Morphism()(qs, in), ctx
+		},
+	}
+}
+
+func followRecursiveMorphism(p *Path, depthTags []string) morphism {
+	return morphism{
+		Name: "follow_recursive",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
+			return followRecursiveMorphism(p.Reverse(), depthTags), ctx
+		},
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			it := iterator.NewRecursive(qs, in, p.Morphism())
+			for _, s := range depthTags {
+				it.AddDepthTag(s)
+			}
+			return it, ctx
 		},
 	}
 }

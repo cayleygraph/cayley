@@ -60,7 +60,7 @@ func findAssetsPath() string {
 		return ".."
 	}
 
-	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley")
+	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/codelingo/cayley")
 	if hasAssets(gopathPath) {
 		return gopathPath
 	}

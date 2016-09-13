@@ -19,9 +19,12 @@ import (
 	"reflect"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/codelingo/cayley/graph"
 	_ "github.com/codelingo/cayley/graph/memstore"
 	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
 	_ "github.com/codelingo/cayley/writer"
 )
 
@@ -167,10 +170,10 @@ var testQueries = []struct {
 	},
 }
 
-func runQuery(g []quad.Quad, query string) interface{} {
+func runQuery(g []quad.Quad, qu string) interface{} {
 	s := makeTestSession(g)
-	c := make(chan interface{}, 5)
-	go s.Execute(query, c, -1)
+	c := make(chan query.Result, 5)
+	go s.Execute(context.TODO(), qu, c, -1)
 	for result := range c {
 		s.Collate(result)
 	}

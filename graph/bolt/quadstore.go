@@ -63,6 +63,18 @@ func (t *Token) Key() interface{} {
 	return fmt.Sprint(t.bucket, t.key)
 }
 
+func clone(b []byte) []byte {
+	out := make([]byte, len(b))
+	copy(out, b)
+	return out
+}
+
+func isLiveValue(val []byte) bool {
+	var entry proto.HistoryEntry
+	entry.Unmarshal(val)
+	return len(entry.History)%2 != 0
+}
+
 type QuadStore struct {
 	db      *bolt.DB
 	path    string

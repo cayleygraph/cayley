@@ -24,9 +24,9 @@ import (
 )
 
 var (
-	simpleStore = &store{data: []string{"0", "1", "2", "3", "4", "5"}, parse: true}
-	stringStore = &store{data: []string{"foo", "bar", "baz", "echo"}, parse: true}
-	mixedStore  = &store{data: []string{"0", "1", "2", "3", "4", "5", "foo", "bar", "baz", "echo"}, parse: true}
+	simpleStore = &oldstore{data: []string{"0", "1", "2", "3", "4", "5"}, parse: true}
+	stringStore = &oldstore{data: []string{"foo", "bar", "baz", "echo"}, parse: true}
+	mixedStore  = &oldstore{data: []string{"0", "1", "2", "3", "4", "5", "foo", "bar", "baz", "echo"}, parse: true}
 )
 
 func simpleFixedIterator() *Fixed {

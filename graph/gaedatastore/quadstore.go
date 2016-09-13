@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build appengine
-
 package gaedatastore
 
 import (
@@ -24,8 +22,9 @@ import (
 
 	"github.com/codelingo/cayley/clog"
 
-	"appengine"
-	"appengine/datastore"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
@@ -44,7 +43,7 @@ var (
 )
 
 type QuadStore struct {
-	context appengine.Context
+	context context.Context
 }
 
 type MetadataEntry struct {
@@ -156,7 +155,7 @@ func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
 	return true, nil
 }
 
-func getContext(opts graph.Options) (appengine.Context, error) {
+func getContext(opts graph.Options) (context.Context, error) {
 	req := opts["HTTPRequest"].(*http.Request)
 	if req == nil {
 		err := errors.New("HTTP Request needed")
@@ -270,7 +269,7 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 	for i := 0; i < len(nodeDeltas); i += 5 {
 		j := int(math.Min(float64(len(nodeDeltas)-i), 5))
 		foundNodes := make([]NodeEntry, j)
-		err := datastore.RunInTransaction(qs.context, func(c appengine.Context) error {
+		err := datastore.RunInTransaction(qs.context, func(c context.Context) error {
 			err := datastore.GetMulti(c, keys[i:i+j], foundNodes)
 			// Sift through for errors
 			if me, ok := err.(appengine.MultiError); ok {
@@ -308,7 +307,7 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 	for i := 0; i < len(in); i += 5 {
 		// Find the closest batch of 5
 		j := int(math.Min(float64(len(in)-i), 5))
-		err := datastore.RunInTransaction(qs.context, func(c appengine.Context) error {
+		err := datastore.RunInTransaction(qs.context, func(c context.Context) error {
 			foundQuads := make([]QuadEntry, j)
 			// We don't process errors from GetMulti as they don't mean anything,
 			// we've handled existing quad conflicts above and we overwrite everything again anyways
@@ -343,7 +342,7 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 func (qs *QuadStore) updateMetadata(quadsAdded int64, nodesAdded int64) error {
 	key := qs.createKeyForMetadata()
 	foundMetadata := new(MetadataEntry)
-	err := datastore.RunInTransaction(qs.context, func(c appengine.Context) error {
+	err := datastore.RunInTransaction(qs.context, func(c context.Context) error {
 		err := datastore.Get(c, key, foundMetadata)
 		if err != nil && err != datastore.ErrNoSuchEntity {
 			clog.Errorf("Error: %v", err)

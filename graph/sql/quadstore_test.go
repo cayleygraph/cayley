@@ -1,6 +1,12 @@
 package sql
 
 import (
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/graphtest"
+	"github.com/codelingo/cayley/internal/dock"
+	"github.com/codelingo/cayley/quad"
+	"github.com/lib/pq"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"unicode/utf8"
 

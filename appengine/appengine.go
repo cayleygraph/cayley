@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build appengine
+// +build appengine appenginevm
 
 package main
 
@@ -29,6 +29,10 @@ import (
 
 	_ "github.com/codelingo/cayley/graph/gaedatastore"
 	_ "github.com/codelingo/cayley/writer"
+
+	// Register supported query languages
+	_ "github.com/codelingo/cayley/query/gremlin"
+	_ "github.com/codelingo/cayley/query/mql"
 )
 
 var (

@@ -3,7 +3,6 @@ package graph
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/quad"
 	"golang.org/x/net/context"

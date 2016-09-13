@@ -7,7 +7,7 @@ A container exposing the HTTP API of cayley is available.
 Container is configured to serve 30kmoviedata with BoltDB as a backend.
 
 ```
-docker run -p 64210:64210 -d quay.io/cayleygraph/cayley
+docker run -p 64210:64210 -d quay.io/codelingo/cayley
 ```
 
 Database will be available at http://localhost:64210.
@@ -21,7 +21,7 @@ mkdir data
 cp my_config.cfg data/cayley.cfg
 cp my_data.nq data/my_data.nq
 # initialize and serve database
-docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley -init -quads /data/my_data.nq
+docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/codelingo/cayley -init -quads /data/my_data.nq
 # serve existing database
-docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley
+docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/codelingo/cayley
 ```

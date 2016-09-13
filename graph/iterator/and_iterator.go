@@ -36,12 +36,16 @@ type And struct {
 
 // NewAnd creates an And iterator. `qs` is only required when needing a handle
 // for QuadStore-specific optimizations, otherwise nil is acceptable.
-func NewAnd(qs graph.QuadStore) *And {
-	return &And{
+func NewAnd(qs graph.QuadStore, sub ...graph.Iterator) *And {
+	it := &And{
 		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 		qs:                qs,
 	}
+	for _, s := range sub {
+		it.AddSubIterator(s)
+	}
+	return it
 }
 
 func (it *And) UID() uint64 {

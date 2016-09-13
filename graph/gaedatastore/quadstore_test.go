@@ -10,7 +10,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// +build appengine
 
 package gaedatastore
 
@@ -24,7 +23,7 @@ import (
 	"github.com/codelingo/cayley/writer"
 	"github.com/stretchr/testify/require"
 
-	"appengine/aetest"
+	"google.golang.org/appengine/aetest"
 )
 
 // This is a simple test graph.
@@ -130,7 +129,7 @@ func TestIterators(t *testing.T) {
 	}
 
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
-	graphtest.ExpectIteratedQuads(t, qs, it, expected)
+	graphtest.ExpectIteratedQuads(t, qs, it, expected, false)
 
 	// Test contains
 	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))

@@ -23,15 +23,13 @@ import (
 
 // Make sure that tags work on the And.
 func TestTag(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	fix1 := NewFixed(Identity)
-	fix1.Add(Int64Node(234))
+	fix1 := NewFixed(Identity, Int64Node(234))
 	fix1.Tagger().Add("foo")
-	and := NewAnd(qs)
-	and.AddSubIterator(fix1)
+	and := NewAnd(qs, fix1)
 	and.Tagger().Add("bar")
 	out := fix1.Tagger().Tags()
 	if len(out) != 1 {
@@ -60,22 +58,22 @@ func TestTag(t *testing.T) {
 
 // Do a simple itersection of fixed values.
 func TestAndAndFixedIterators(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	fix1 := NewFixed(Identity)
-	fix1.Add(Int64Node(1))
-	fix1.Add(Int64Node(2))
-	fix1.Add(Int64Node(3))
-	fix1.Add(Int64Node(4))
-	fix2 := NewFixed(Identity)
-	fix2.Add(Int64Node(3))
-	fix2.Add(Int64Node(4))
-	fix2.Add(Int64Node(5))
-	and := NewAnd(qs)
-	and.AddSubIterator(fix1)
-	and.AddSubIterator(fix2)
+	fix1 := NewFixed(Identity,
+		Int64Node(1),
+		Int64Node(2),
+		Int64Node(3),
+		Int64Node(4),
+	)
+	fix2 := NewFixed(Identity,
+		Int64Node(3),
+		Int64Node(4),
+		Int64Node(5),
+	)
+	and := NewAnd(qs, fix1, fix2)
 	// Should be as big as smallest subiterator
 	size, accurate := and.Size()
 	if size != 3 {
@@ -102,22 +100,22 @@ func TestAndAndFixedIterators(t *testing.T) {
 // If there's no intersection, the size should still report the same,
 // but there should be nothing to Next()
 func TestNonOverlappingFixedIterators(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
-	fix1 := NewFixed(Identity)
-	fix1.Add(Int64Node(1))
-	fix1.Add(Int64Node(2))
-	fix1.Add(Int64Node(3))
-	fix1.Add(Int64Node(4))
-	fix2 := NewFixed(Identity)
-	fix2.Add(Int64Node(5))
-	fix2.Add(Int64Node(6))
-	fix2.Add(Int64Node(7))
-	and := NewAnd(qs)
-	and.AddSubIterator(fix1)
-	and.AddSubIterator(fix2)
+	fix1 := NewFixed(Identity,
+		Int64Node(1),
+		Int64Node(2),
+		Int64Node(3),
+		Int64Node(4),
+	)
+	fix2 := NewFixed(Identity,
+		Int64Node(5),
+		Int64Node(6),
+		Int64Node(7),
+	)
+	and := NewAnd(qs, fix1, fix2)
 	// Should be as big as smallest subiterator
 	size, accurate := and.Size()
 	if size != 3 {
@@ -134,15 +132,13 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 }
 
 func TestAllIterators(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
 	all1 := NewInt64(1, 5, true)
 	all2 := NewInt64(4, 10, true)
-	and := NewAnd(qs)
-	and.AddSubIterator(all2)
-	and.AddSubIterator(all1)
+	and := NewAnd(qs, all2, all1)
 
 	if !and.Next() || and.Result().(Int64Node) != Int64Node(4) {
 		t.Error("Incorrect first value")
@@ -158,16 +154,17 @@ func TestAllIterators(t *testing.T) {
 }
 
 func TestAndIteratorErr(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{},
 		iter: NewFixed(Identity),
 	}
 	wantErr := errors.New("unique")
 	allErr := newTestIterator(false, wantErr)
 
-	and := NewAnd(qs)
-	and.AddSubIterator(allErr)
-	and.AddSubIterator(NewInt64(1, 5, true))
+	and := NewAnd(qs,
+		allErr,
+		NewInt64(1, 5, true),
+	)
 
 	if and.Next() != false {
 		t.Errorf("And iterator did not pass through initial 'false'")

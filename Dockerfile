@@ -2,7 +2,7 @@ FROM golang:latest
 MAINTAINER Barak Michener <me@barakmich.com>
 
 # Set up workdir
-WORKDIR /go/src/github.com/cayleygraph/cayley
+WORKDIR /go/src/github.com/codelingo/cayley
 
 # Restore vendored dependencies
 RUN sh -c "curl https://glide.sh/get | sh"

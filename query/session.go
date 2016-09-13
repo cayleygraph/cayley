@@ -12,33 +12,116 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package query defines the graph session interface general to all query languages.
 package query
 
-// Defines the graph session interface general to all query languages.
-
-type ParseResult int
-
-const (
-	Parsed ParseResult = iota
-	ParseMore
-	ParseFail
+import (
+	"errors"
+	"github.com/codelingo/cayley/graph"
+	"golang.org/x/net/context"
+	"io"
 )
 
-type Session interface {
-	// Return whether the string is a valid expression.
-	Parse(string) (ParseResult, error)
-	Execute(string, chan interface{}, int)
-	Format(interface{}) string
-	Debug(bool)
+var ErrParseMore = errors.New("query: more input required")
+
+type Result interface {
+	Result() interface{}
+	Err() error
 }
 
-type HTTP interface {
-	// Return whether the string is a valid expression.
-	Parse(string) (ParseResult, error)
+func ErrorResult(err error) Result {
+	return errResult{err: err}
+}
+
+type errResult struct {
+	err error
+}
+
+func (errResult) Result() interface{} { return nil }
+func (e errResult) Err() error        { return e.err }
+
+func TagMapResult(m map[string]graph.Value) Result {
+	return tagMap(m)
+}
+
+type tagMap map[string]graph.Value
+
+func (m tagMap) Result() interface{} { return map[string]graph.Value(m) }
+func (tagMap) Err() error            { return nil }
+
+type Session interface {
 	// Runs the query and returns individual results on the channel.
-	Execute(string, chan interface{}, int)
+	//
+	// Channel will be closed when function returns.
+	Execute(ctx context.Context, query string, out chan Result, limit int)
+}
+
+// TODO(dennwc): review HTTP interface (Collate is weird)
+// TODO(dennwc): specify exact type to return from ShapeOf
+// TODO(dennwc): add context to ShapeOf?
+
+type HTTP interface {
+	Session
 	ShapeOf(string) (interface{}, error)
-	Collate(interface{})
+	Collate(Result)
 	Results() (interface{}, error)
-	Clear()
+}
+
+type REPLSession interface {
+	Session
+	FormatREPL(Result) string
+}
+
+// ResponseWriter is a subset of http.ResponseWriter
+type ResponseWriter interface {
+	Write([]byte) (int, error)
+	WriteHeader(int)
+}
+
+// Language is a description of query language.
+type Language struct {
+	Name    string
+	Session func(graph.QuadStore) Session
+	REPL    func(graph.QuadStore) REPLSession
+	HTTP    func(graph.QuadStore) HTTP
+
+	// Custom HTTP handlers
+
+	HTTPQuery func(ctx context.Context, qs graph.QuadStore, w ResponseWriter, r io.Reader)
+	HTTPError func(w ResponseWriter, err error)
+}
+
+var languages = make(map[string]Language)
+
+// RegisterLanguage register a new query language.
+func RegisterLanguage(lang Language) {
+	languages[lang.Name] = lang
+}
+
+// NewSession creates a new session for specified query language.
+// It returns nil if language was not registered.
+func NewSession(qs graph.QuadStore, lang string) Session {
+	if l := languages[lang]; l.Session != nil {
+		return l.Session(qs)
+	}
+	return nil
+}
+
+// GetLanguage returns a query language description.
+// It returns nil if language was not registered.
+func GetLanguage(lang string) *Language {
+	l, ok := languages[lang]
+	if ok {
+		return &l
+	}
+	return nil
+}
+
+// Languages returns names of registered query languages.
+func Languages() []string {
+	out := make([]string, 0, len(languages))
+	for name := range languages {
+		out = append(out, name)
+	}
+	return out
 }
