@@ -241,6 +241,7 @@ const (
 	Limit
 	Skip
 	Regex
+	Recursive
 )
 
 var (
@@ -266,6 +267,7 @@ var (
 		"limit",
 		"skip",
 		"regex",
+		"recursive",
 	}
 )
 
