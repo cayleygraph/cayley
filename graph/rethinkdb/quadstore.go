@@ -107,13 +107,11 @@ type LogEntry struct {
 }
 
 type Quad struct {
-	ID        string   `json:"id"`
-	Subject   string   `json:"subject"`
-	Predicate string   `json:"predicate"`
-	Object    string   `json:"object"`
-	Label     string   `json:"label"`
-	Added     []string `json:"added"`
-	Deleted   []string `json:"deleted"`
+	ID        string `json:"id"`
+	Subject   string `json:"subject"`
+	Predicate string `json:"predicate"`
+	Object    string `json:"object"`
+	Label     string `json:"label"`
 }
 
 func ensureIndexes(session *gorethink.Session) (err error) {
@@ -141,6 +139,9 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 	if err = ensureIndex(gorethink.Table(nodeTableName), "type", session); err != nil {
 		return
 	}
+	if err = ensureIndex(gorethink.Table(nodeTableName), "size", session); err != nil {
+		return
+	}
 
 	// quads
 	if err = ensureTable(quadTableName, session); err != nil {
@@ -164,6 +165,16 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 		return
 	}
 	if err = ensureIndex(gorethink.Table(logTableName), "key", session); err != nil {
+		return
+	}
+
+	if err = gorethink.Table(nodeTableName).IndexWait().Exec(session); err != nil {
+		return
+	}
+	if err = gorethink.Table(quadTableName).IndexWait().Exec(session); err != nil {
+		return
+	}
+	if err = gorethink.Table(logTableName).IndexWait().Exec(session); err != nil {
 		return
 	}
 
@@ -231,27 +242,35 @@ func hashOf(s quad.Value) string {
 	return base64.StdEncoding.EncodeToString(quad.HashOf(s))
 }
 
-func newQuad(d quad.Quad) Quad {
+func getQuadIDAndHashes(d quad.Quad) (id string, subjectHash, predicateHash, objectHash, labelHash []byte) {
 	h := sha1.New()
-	sh := quad.HashOf(d.Subject)
-	h.Write(sh)
+	subjectHash = quad.HashOf(d.Subject)
+	h.Write(subjectHash)
 
-	ph := quad.HashOf(d.Predicate)
-	h.Write(ph)
+	predicateHash = quad.HashOf(d.Predicate)
+	h.Write(predicateHash)
 
-	oh := quad.HashOf(d.Object)
-	h.Write(oh)
+	objectHash = quad.HashOf(d.Object)
+	h.Write(objectHash)
 
-	var lh []byte
-	var lhs string
 	if d.Label != nil {
-		lh = quad.HashOf(d.Label)
+		labelHash = quad.HashOf(d.Label)
+		h.Write(labelHash)
+	}
+
+	id = base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return
+}
+
+func newQuad(d quad.Quad) Quad {
+	id, sh, ph, oh, lh := getQuadIDAndHashes(d)
+	var lhs string
+	if len(lh) > 0 {
 		lhs = base64.StdEncoding.EncodeToString(lh)
-		h.Write(lh)
 	}
 
 	return Quad{
-		ID:        base64.StdEncoding.EncodeToString(h.Sum(nil)),
+		ID:        id,
 		Subject:   base64.StdEncoding.EncodeToString(sh),
 		Predicate: base64.StdEncoding.EncodeToString(ph),
 		Object:    base64.StdEncoding.EncodeToString(oh),
@@ -259,10 +278,10 @@ func newQuad(d quad.Quad) Quad {
 	}
 }
 
-func newNode(id string, size int, v quad.Value) (n Node) {
+func newNode(id string, v quad.Value) (n Node) {
 	n = Node{
 		ID:   id,
-		Size: size,
+		Size: 1,
 	}
 
 	switch d := v.(type) {
@@ -314,29 +333,40 @@ func newNode(id string, size int, v quad.Value) (n Node) {
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	var (
-		logEntries []LogEntry
-		quads      []Quad
-		nodes      []Node
+		logEntries  []LogEntry
+		addQuads    []Quad
+		deleteQuads []interface{}
+		addNodes    map[string]Node
+		deleteNodes []interface{}
 	)
+
+	addNodes = make(map[string]Node)
+	addNode := func(n Node) {
+		if v, ok := addNodes[n.ID]; ok {
+			n.Size += v.Size
+		}
+		addNodes[n.ID] = n
+	}
 
 	for _, d := range deltas {
 		quad := newQuad(d.Quad)
 
-		var size int
 		if d.Action == graph.Add {
-			size = 1
-			quad.Added = []string{d.ID.String()}
+			addQuads = append(addQuads, quad)
+			addNode(newNode(quad.Subject, d.Quad.Subject))
+			addNode(newNode(quad.Predicate, d.Quad.Predicate))
+			addNode(newNode(quad.Object, d.Quad.Object))
+			if d.Quad.Label != nil {
+				addNode(newNode(quad.Label, d.Quad.Label))
+			}
 		} else {
-			quad.Deleted = []string{d.ID.String()}
-			size = -1
-		}
-
-		nodes = append(nodes, newNode(quad.Subject, size, d.Quad.Subject))
-		nodes = append(nodes, newNode(quad.Predicate, size, d.Quad.Predicate))
-		nodes = append(nodes, newNode(quad.Object, size, d.Quad.Object))
-
-		if d.Quad.Label != nil {
-			nodes = append(nodes, newNode(quad.Label, size, d.Quad.Label))
+			deleteQuads = append(deleteQuads, quad.ID)
+			deleteNodes = append(deleteNodes, quad.Subject)
+			deleteNodes = append(deleteNodes, quad.Predicate)
+			deleteNodes = append(deleteNodes, quad.Object)
+			if d.Quad.Label != nil {
+				deleteNodes = append(deleteNodes, quad.Label)
+			}
 		}
 
 		logEntries = append(logEntries, LogEntry{
@@ -345,35 +375,52 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			Timestamp: d.Timestamp.Unix(),
 			Action:    d.Action.String(),
 		})
-		quads = append(quads, quad)
 	}
 
-	// Bulk insert
+	// Delete quads
+	if len(deleteQuads) > 0 {
+		if err := gorethink.Table(quadTableName).GetAll(deleteQuads...).Delete().Exec(qs.session); err != nil {
+			clog.Errorf("Error deleting quads: %v", err)
+			return err
+		}
+
+		// Delete all "unused" nodes
+		if err := gorethink.Table(nodeTableName).GetAll(deleteNodes...).
+			Filter(gorethink.Row.Field("size").Le(1)).Delete().Exec(qs.session); err != nil {
+			clog.Errorf("Error deleting unsued nodes: %v", err)
+			return err
+		}
+	}
+
+	// Add quads
+	if len(addQuads) > 0 {
+		if err := gorethink.Table(quadTableName).Insert(addQuads, gorethink.InsertOpts{
+			Conflict: "replace",
+		}).Exec(qs.session); err != nil {
+			clog.Errorf("Error updating quads: %v", err)
+			return err
+		}
+
+		// Add nodes
+		var addNodesArr []Node
+		for _, n := range addNodes {
+			addNodesArr = append(addNodesArr, n)
+		}
+		if err := gorethink.Table(nodeTableName).Insert(addNodesArr, gorethink.InsertOpts{
+			Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
+				return newDoc.Merge(map[string]interface{}{
+					"size": oldDoc.Add(newDoc.Field("size")),
+				})
+			},
+		}).Exec(qs.session); err != nil {
+			clog.Errorf("Error updating nodes: %v", err)
+			return err
+		}
+	}
+
+	// Log entries
 	if err := gorethink.Table(logTableName).Insert(logEntries).Exec(qs.session); err != nil {
 		clog.Errorf("Error updating log: %v", err)
-		return err
-	}
-
-	if err := gorethink.Table(quadTableName).Insert(quads, gorethink.InsertOpts{
-		Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
-			return newDoc.Merge(map[string]interface{}{
-				"added":   oldDoc.Append(newDoc.Field("added")),
-				"deleted": oldDoc.Append(newDoc.Field("deleted")),
-			})
-		},
-	}).Exec(qs.session); err != nil {
-		clog.Errorf("Error updating quads: %v", err)
-		return err
-	}
-
-	if err := gorethink.Table(nodeTableName).Insert(nodes, gorethink.InsertOpts{
-		Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
-			return newDoc.Merge(map[string]interface{}{
-				"size": oldDoc.Add(newDoc.Field("size")),
-			})
-		},
-	}).Exec(qs.session); err != nil {
-		clog.Errorf("Error updating nodes: %v", err)
 		return err
 	}
 

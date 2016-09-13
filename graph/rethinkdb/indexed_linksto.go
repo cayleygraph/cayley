@@ -100,14 +100,11 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 func (it *LinksTo) Next() bool {
 	var result Quad
 	graph.NextLogIn(it)
-next:
+
 	for {
 		it.runstats.Next += 1
 		if it.nextIt != nil && it.nextIt.Next(&result) {
 			it.runstats.ContainsNext += 1
-			if it.table == quadTableName && len(result.Added) <= len(result.Deleted) {
-				continue next
-			}
 			it.result = QuadHash{
 				NodeHash(result.Subject),
 				NodeHash(result.Predicate),

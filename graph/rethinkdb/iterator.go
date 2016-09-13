@@ -132,9 +132,6 @@ func (it *Iterator) Next() bool {
 		}
 		return false
 	}
-	if it.table == quadTableName && len(result.Added) <= len(result.Deleted) {
-		return it.Next()
-	}
 	if it.table == quadTableName {
 		it.result = QuadHash{
 			NodeHash(result.Subject),
