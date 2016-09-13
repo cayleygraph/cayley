@@ -1,23 +1,63 @@
 package rethinkdb
 
 import (
+	"fmt"
+	"math/rand"
+	"runtime"
 	"testing"
 	"time"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/internal/dock"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
+func init() {
+	clog.SetV(3)
+}
+
 func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+
 	var conf dock.Config
 
 	conf.Image = "rethinkdb:latest"
 	conf.OpenStdin = true
 	conf.Tty = true
 
-	addr, closer := dock.Run(t, conf)
-	addr += ":28015"
+	var (
+		addr   string
+		closer func()
+	)
+
+	if runtime.GOOS == "linux" {
+		// Normal Linux bridged network mode
+		addr, closer = dock.Run(t, conf)
+		addr = fmt.Sprintf("%s:%d", addr, 28015)
+	} else {
+		// If running test on Mac (Mac for Docker) we need to bind ports to host
+		// See: https://docs.docker.com/docker-for-mac/networking/#/use-cases-and-workarounds
+		conf.ExposedPorts = map[docker.Port]struct{}{
+			"28015/tcp": {},
+		}
+
+		randPort := func() int {
+			rand.Seed(time.Now().Unix())
+			return rand.Intn(1000) + 45000
+		}()
+
+		conf.PortBindings = map[docker.Port][]docker.PortBinding{
+			"28015/tcp": []docker.PortBinding{
+				{
+					HostPort: fmt.Sprintf("%d", randPort),
+				},
+			},
+		}
+
+		_, closer = dock.Run(t, conf)
+		addr = fmt.Sprintf("%s:%d", "localhost", randPort)
+	}
 
 	// Retry connections, docker container might not be ready
 	var err error
@@ -51,7 +91,6 @@ func TestRethinkDBAll(t *testing.T) {
 		TimeRound:               true,
 		OptimizesComparison:     true,
 		SkipDeletedFromIterator: true,
-		SkipNodeDelAfterQuadDel: true,
 		SkipIntHorizon:          true,
 	})
 }
