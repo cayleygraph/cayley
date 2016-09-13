@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 // Skip iterator will skip certain number of values from primary iterator.

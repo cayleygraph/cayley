@@ -21,12 +21,12 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph/proto"
+	"github.com/codelingo/cayley/quad"
 )
 
 func init() {

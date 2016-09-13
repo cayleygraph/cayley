@@ -18,7 +18,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 // Make sure that tags work on the And.

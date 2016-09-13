@@ -16,7 +16,7 @@
 package iterator
 
 import (
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 // The And iterator. Consists of a number of subiterators, the primary of which will

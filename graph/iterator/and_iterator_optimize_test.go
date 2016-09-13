@@ -22,7 +22,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 func TestIteratorPromotion(t *testing.T) {

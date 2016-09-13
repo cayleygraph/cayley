@@ -21,17 +21,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cayleygraph/cayley/clog"
-	_ "github.com/cayleygraph/cayley/clog/glog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/config"
+	"github.com/codelingo/cayley/clog"
+	_ "github.com/codelingo/cayley/clog/glog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/internal/config"
 
 	// Load all supported backends.
 
-	_ "github.com/cayleygraph/cayley/graph/bolt"
-	_ "github.com/cayleygraph/cayley/graph/leveldb"
-	_ "github.com/cayleygraph/cayley/graph/memstore"
-	_ "github.com/cayleygraph/cayley/graph/mongo"
+	_ "github.com/codelingo/cayley/graph/bolt"
+	_ "github.com/codelingo/cayley/graph/leveldb"
+	_ "github.com/codelingo/cayley/graph/memstore"
+	_ "github.com/codelingo/cayley/graph/mongo"
 )
 
 var (

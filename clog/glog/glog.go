@@ -2,7 +2,7 @@ package glog
 
 import (
 	"fmt"
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/golang/glog"
 )
 

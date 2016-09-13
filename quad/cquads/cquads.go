@@ -30,7 +30,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 // AutoConvertTypedString allows to convert TypedString values to native

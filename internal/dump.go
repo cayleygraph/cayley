@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cayleygraph/cayley/exporter"
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/codelingo/cayley/exporter"
+	"github.com/codelingo/cayley/graph"
 )
 
 // Dump the content of the database into a file based

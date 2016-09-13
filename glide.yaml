@@ -1,4 +1,4 @@
-package: github.com/cayleygraph/cayley
+package: github.com/codelingo/cayley
 import:
 - package: github.com/badgerodon/peg
 - package: github.com/golang/glog

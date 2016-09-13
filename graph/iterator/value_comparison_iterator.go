@@ -27,8 +27,8 @@ package iterator
 // In MQL terms, this is the [{"age>=": 21}] concept.
 
 import (
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad"
 	"time"
 )
 

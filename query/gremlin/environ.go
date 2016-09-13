@@ -23,11 +23,11 @@ import (
 
 	"github.com/robertkrimen/otto"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/path"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/query"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph/path"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
 )
 
 type worker struct {

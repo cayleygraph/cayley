@@ -23,9 +23,9 @@ import (
 	// Provide underscore JS library.
 	_ "github.com/robertkrimen/otto/underscore"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/query"
 )
 
 const Name = "gremlin"

@@ -21,11 +21,11 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/graph"
-	_ "github.com/cayleygraph/cayley/graph/memstore"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/query"
-	_ "github.com/cayleygraph/cayley/writer"
+	"github.com/codelingo/cayley/graph"
+	_ "github.com/codelingo/cayley/graph/memstore"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
+	_ "github.com/codelingo/cayley/writer"
 )
 
 // This is a simple test graph.

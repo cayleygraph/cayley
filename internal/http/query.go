@@ -23,7 +23,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/query"
+	"github.com/codelingo/cayley/query"
 )
 
 type SuccessQueryWrapper struct {

@@ -22,12 +22,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/cayleygraph/cayley/internal"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/cquads"
+	"github.com/codelingo/cayley/internal"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/quad/cquads"
 )
 
 func ParseJSONToQuadList(jsonBody []byte) (out []quad.Quad, _ error) {

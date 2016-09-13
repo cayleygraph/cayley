@@ -11,7 +11,7 @@ Note: if you use a more recent version of Go locally, `goapp` get might
 accidentally copy the wrong files from the local `$GOPATH`.
 
 ```sh
-$ cd $GOPATH/src/github.com/cayleygraph/cayley/appengine
+$ cd $GOPATH/src/github.com/codelingo/cayley/appengine
 
 # check go version
 $ go version

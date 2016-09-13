@@ -3,8 +3,8 @@ package iterator
 import (
 	"math"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad"
 )
 
 // Recursive iterator takes a base iterator and a morphism to be applied recursively, for each result.

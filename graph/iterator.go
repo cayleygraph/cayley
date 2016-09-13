@@ -21,8 +21,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/quad"
 )
 
 type Tagger struct {
