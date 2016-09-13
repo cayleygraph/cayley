@@ -14,11 +14,6 @@
 
 package iterator
 
-// "Regex" is a unary operator -- a filter across the values in the relevant
-// subiterator. It works similarly to gremlin's filter{it.matches('exp')},
-// reducing the iterator set to values whose string representation passes a
-// regular expression test.
-
 import (
 	"regexp"
 
@@ -26,6 +21,10 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+// Regex is a unary operator -- a filter across the values in the relevant
+// subiterator. It works similarly to gremlin's filter{it.matches('exp')},
+// reducing the iterator set to values whose string representation passes a
+// regular expression test.
 type Regex struct {
 	uid    uint64
 	tags   graph.Tagger
@@ -70,6 +69,8 @@ func (it *Regex) Close() error {
 
 func (it *Regex) Reset() {
 	it.subIt.Reset()
+	it.err = nil
+	it.result = nil
 }
 
 func (it *Regex) Tagger() *graph.Tagger {
@@ -177,7 +178,7 @@ func (it *Regex) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Regex) Size() (int64, bool) {
-	return 0, true
+	return 0, false
 }
 
 var _ graph.Iterator = &Regex{}
