@@ -178,6 +178,8 @@ func RunTimeOp(a time.Time, op Operator, b time.Time) bool {
 
 func (it *Comparison) Reset() {
 	it.subIt.Reset()
+	it.err = nil
+	it.result = nil
 }
 
 func (it *Comparison) Tagger() *graph.Tagger {
@@ -285,7 +287,7 @@ func (it *Comparison) Stats() graph.IteratorStats {
 }
 
 func (it *Comparison) Size() (int64, bool) {
-	return 0, true
+	return 0, false
 }
 
 var _ graph.Iterator = &Comparison{}
