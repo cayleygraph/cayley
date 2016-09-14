@@ -15,6 +15,7 @@
 package memstore
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -93,6 +94,26 @@ type QuadStore struct {
 	size       int64
 	index      QuadDirectionIndex
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
+}
+
+// New creates a new in-memory quad store and loads provided quads.
+func New(quads ...quad.Quad) *QuadStore {
+	qs := newQuadStore()
+	for _, q := range quads {
+		h := qs.Horizon()
+		err := qs.AddDelta(graph.Delta{
+			ID:        h.Next(),
+			Quad:      q,
+			Action:    graph.Add,
+			Timestamp: time.Now(),
+		})
+		if graph.IsQuadExist(err) {
+			continue
+		} else if err != nil {
+			panic(fmt.Errorf("memstore failed to add delta: %v", err))
+		}
+	}
+	return qs
 }
 
 func newQuadStore() *QuadStore {
