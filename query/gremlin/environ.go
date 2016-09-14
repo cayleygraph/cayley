@@ -117,9 +117,22 @@ func cmpOpType(op iterator.Operator) func(call otto.FunctionCall) otto.Value {
 	}
 }
 
+func cmpRegexp(call otto.FunctionCall) otto.Value {
+	args := exportArgs(call.ArgumentList)
+	if len(args) != 1 {
+		return otto.NullValue()
+	}
+	s, ok := toString(args[0])
+	if !ok {
+		return otto.NullValue()
+	}
+	return outObj(call, cmpOperator{regex: true, val: quad.String(s)})
+}
+
 type cmpOperator struct {
-	op  iterator.Operator
-	val quad.Value
+	op    iterator.Operator
+	val   quad.Value
+	regex bool
 }
 
 var defaultEnv = map[string]func(call otto.FunctionCall) otto.Value{
@@ -135,10 +148,11 @@ var defaultEnv = map[string]func(call otto.FunctionCall) otto.Value{
 		return quad.TypedString{Value: quad.String(s), Type: quad.IRI(typ)}
 	}),
 
-	"lt":  cmpOpType(iterator.CompareLT),
-	"lte": cmpOpType(iterator.CompareLTE),
-	"gt":  cmpOpType(iterator.CompareGT),
-	"gte": cmpOpType(iterator.CompareGTE),
+	"lt":    cmpOpType(iterator.CompareLT),
+	"lte":   cmpOpType(iterator.CompareLTE),
+	"gt":    cmpOpType(iterator.CompareGT),
+	"gte":   cmpOpType(iterator.CompareGTE),
+	"regex": cmpRegexp,
 }
 
 func newWorker(qs graph.QuadStore) *worker {
@@ -220,6 +234,29 @@ func toInt(o interface{}) int {
 	default:
 		return 0
 	}
+}
+
+func toString(o interface{}) (string, bool) {
+	var s string
+	switch v := o.(type) {
+	case quadValue:
+		qs, ok := v.v.(quad.String)
+		if !ok {
+			return "", false
+		}
+		s = string(qs)
+	case quad.Value:
+		qs, ok := v.(quad.String)
+		if !ok {
+			return "", false
+		}
+		s = string(qs)
+	case string:
+		s = v
+	default:
+		return "", false
+	}
+	return s, true
 }
 
 // quadValue is a wrapper to prevent otto from converting value to native JS type.
@@ -338,4 +375,9 @@ func outObj(call otto.FunctionCall, o interface{}) otto.Value {
 	call.Otto.Set("out", o)
 	v, _ := call.Otto.Get("out")
 	return v
+}
+
+func throwErr(call otto.FunctionCall, err error) otto.Value {
+	// TODO(dennwc): find out how to throw errors properly
+	return otto.NullValue()
 }

@@ -112,6 +112,20 @@ var testQueries = []struct {
 		expect: []string{"<charlie>"},
 	},
 	{
+		message: "use .In() with .Filter(regex)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e")).All()
+		`,
+		expect: []string{"<alice>", "<charlie>"},
+	},
+	{
+		message: "use .In() with .Filter(regex,gt)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e"),gt(iri("c"))).All()
+		`,
+		expect: []string{"<charlie>"},
+	},
+	{
 		message: "use .Both()",
 		query: `
 			g.V("<fred>").Both("<follows>").All()

@@ -19,9 +19,12 @@ package gremlin
 import (
 	"github.com/robertkrimen/otto"
 
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
+	"github.com/cayleygraph/cayley/quad"
+	"regexp"
 )
 
 type pathObject struct {
@@ -250,7 +253,19 @@ func (p *pathObject) Filter(call otto.FunctionCall) otto.Value {
 		if !ok {
 			return otto.NullValue()
 		}
-		np = np.Filter(op.op, op.val)
+		if op.regex {
+			s, ok := op.val.(quad.String)
+			if !ok {
+				panic(fmt.Errorf("regexp from non-string value: %T", op.val))
+			}
+			re, err := regexp.Compile(string(s))
+			if err != nil {
+				return throwErr(call, err)
+			}
+			np = np.Regex(re)
+		} else {
+			np = np.Filter(op.op, op.val)
+		}
 	}
 	return outObj(call, p.new(np))
 }
