@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"gopkg.in/dancannon/gorethink.v2"
@@ -25,7 +26,6 @@ const (
 const (
 	nodeTableName     = "nodes"
 	quadTableName     = "quads"
-	logTableName      = "log"
 	metadataTableName = "metadata"
 	version           = 1
 )
@@ -63,10 +63,13 @@ func (q QuadHash) Get(d quad.Direction) NodeHash {
 }
 
 type QuadStore struct {
-	session   *gorethink.Session
-	ids       *lru.Cache
-	sizes     *lru.Cache
-	dbVersion int
+	session        *gorethink.Session
+	ids            *lru.Cache
+	sizes          *lru.Cache
+	dbVersion      int
+	durabilityMode string // See: https://www.rethinkdb.com/api/javascript/run/
+	batchSize      int    // See: https://www.rethinkdb.com/docs/troubleshooting/ (speed up batch writes)
+	readMode       string
 }
 
 type dbType int
@@ -99,19 +102,25 @@ type Node struct {
 	Size        int       `json:"size"`
 }
 
-type LogEntry struct {
-	ID        string `json:"id"`
-	Action    string `json:"action"`
-	Key       string `json:"key"`
-	Timestamp int64  `json:"ts"`
-}
-
 type Quad struct {
 	ID        string `json:"id"`
 	Subject   string `json:"subject"`
 	Predicate string `json:"predicate"`
 	Object    string `json:"object"`
 	Label     string `json:"label"`
+}
+
+var dirLinkIndexMap = map[[2]quad.Direction]string{
+	{quad.Subject, quad.Subject}:     "subject_subject",
+	{quad.Subject, quad.Predicate}:   "subject_predicate",
+	{quad.Subject, quad.Object}:      "subject_object",
+	{quad.Subject, quad.Label}:       "subject_label",
+	{quad.Predicate, quad.Predicate}: "predicate_predicate",
+	{quad.Predicate, quad.Object}:    "predicate_object",
+	{quad.Predicate, quad.Label}:     "predicate_label",
+	{quad.Object, quad.Object}:       "object_object",
+	{quad.Object, quad.Label}:        "object_label",
+	{quad.Label, quad.Label}:         "label_label",
 }
 
 func ensureIndexes(session *gorethink.Session) (err error) {
@@ -139,6 +148,43 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 	if err = ensureIndex(gorethink.Table(nodeTableName), "type", session); err != nil {
 		return
 	}
+	if err = ensureIndexFunc(gorethink.Table(nodeTableName), "val_string",
+		func(row gorethink.Term) interface{} {
+			return []interface{}{row.Field("type"), row.Field("val_string")}
+		}, session); err != nil {
+		return
+	}
+	if err = ensureIndexFunc(gorethink.Table(nodeTableName), "val_int",
+		func(row gorethink.Term) interface{} {
+			return []interface{}{row.Field("type"), row.Field("val_int")}
+		}, session); err != nil {
+		return
+	}
+	if err = ensureIndexFunc(gorethink.Table(nodeTableName), "val_float",
+		func(row gorethink.Term) interface{} {
+			return []interface{}{row.Field("type"), row.Field("val_float")}
+		}, session); err != nil {
+		return
+	}
+	if err = ensureIndexFunc(gorethink.Table(nodeTableName), "val_time",
+		func(row gorethink.Term) interface{} {
+			return []interface{}{row.Field("type"), row.Field("val_time")}
+		}, session); err != nil {
+		return
+	}
+	if err = ensureIndexFunc(gorethink.Table(nodeTableName), "val_bool",
+		func(row gorethink.Term) interface{} {
+			return []interface{}{row.Field("type"), row.Field("val_bool")}
+		}, session); err != nil {
+		return
+	}
+	if err = ensureIndexFunc(gorethink.Table(nodeTableName), "val_bytes",
+		func(row gorethink.Term) interface{} {
+			return []interface{}{row.Field("type"), row.Field("val_bytes")}
+		},
+		session); err != nil {
+		return
+	}
 	if err = ensureIndex(gorethink.Table(nodeTableName), "size", session); err != nil {
 		return
 	}
@@ -147,34 +193,26 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 	if err = ensureTable(quadTableName, session); err != nil {
 		return
 	}
-	if err = ensureIndex(gorethink.Table(quadTableName), "subject", session); err != nil {
-		return
+	for _, dir := range []string{quad.Subject.String(), quad.Predicate.String(), quad.Object.String(), quad.Label.String()} {
+		if err = ensureIndex(gorethink.Table(quadTableName), dir, session); err != nil {
+			return
+		}
 	}
-	if err = ensureIndex(gorethink.Table(quadTableName), "predicate", session); err != nil {
-		return
-	}
-	if err = ensureIndex(gorethink.Table(quadTableName), "object", session); err != nil {
-		return
-	}
-	if err = ensureIndex(gorethink.Table(quadTableName), "label", session); err != nil {
-		return
-	}
-
-	// log
-	if err = ensureTable(logTableName, session); err != nil {
-		return
-	}
-	if err = ensureIndex(gorethink.Table(logTableName), "key", session); err != nil {
-		return
+	for key, index := range dirLinkIndexMap {
+		if err = ensureIndexFunc(gorethink.Table(quadTableName), index,
+			func(row gorethink.Term) interface{} {
+				return []interface{}{row.Field(key[0].String()), row.Field(key[1].String())}
+			},
+			session); err != nil {
+			return
+		}
 	}
 
+	// wait for index
 	if err = gorethink.Table(nodeTableName).IndexWait().Exec(session); err != nil {
 		return
 	}
 	if err = gorethink.Table(quadTableName).IndexWait().Exec(session); err != nil {
-		return
-	}
-	if err = gorethink.Table(logTableName).IndexWait().Exec(session); err != nil {
 		return
 	}
 
@@ -196,7 +234,35 @@ func dialRethinkDB(addr string, options graph.Options) (session *gorethink.Sessi
 		dbName = val
 	}
 
-	session, err = openSession(addr, dbName)
+	var username string
+	if val, ok, err := options.StringKey("username"); err == nil && ok {
+		username = val
+	}
+
+	var password string
+	if val, ok, err := options.StringKey("password"); err == nil && ok {
+		password = val
+	}
+
+	maxConnections := 2
+	if val, ok, err := options.IntKey("max_connections"); err == nil && ok {
+		maxConnections = val
+	}
+
+	timeout := time.Duration(time.Second * 2)
+	if val, ok, err := options.IntKey("connection_timeout"); err == nil && ok {
+		timeout = time.Duration(time.Second * time.Duration(val))
+	}
+
+	session, err = openSession(gorethink.ConnectOpts{
+		Address:          addr,
+		Database:         dbName,
+		MaxOpen:          maxConnections,
+		HandshakeVersion: gorethink.HandshakeV1_0,
+		Username:         username,
+		Password:         password,
+		Timeout:          timeout,
+	}, timeout)
 	return
 }
 
@@ -226,11 +292,29 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		return
 	}
 
+	durabilityMode := "soft"
+	if val, ok, err := options.StringKey("durability_mode"); err == nil && ok {
+		durabilityMode = val
+	}
+
+	readMode := "single"
+	if val, ok, err := options.StringKey("read_mode"); err == nil && ok {
+		readMode = val
+	}
+
+	batchSize := 200
+	if val, ok, err := options.IntKey("batch_size"); err == nil && ok {
+		batchSize = val
+	}
+
 	qs = &QuadStore{
-		session:   session,
-		ids:       lru.New(1 << 16),
-		sizes:     lru.New(1 << 16),
-		dbVersion: dbVersion.Value,
+		session:        session,
+		ids:            lru.New(1 << 16),
+		sizes:          lru.New(1 << 16),
+		dbVersion:      dbVersion.Value,
+		durabilityMode: durabilityMode,
+		batchSize:      batchSize,
+		readMode:       readMode,
 	}
 	return
 }
@@ -333,19 +417,19 @@ func newNode(id string, v quad.Value) (n Node) {
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	var (
-		logEntries  []LogEntry
-		addQuads    []Quad
-		deleteQuads []interface{}
-		addNodes    map[string]Node
-		deleteNodes []interface{}
+		addQuads      []interface{}
+		addNodes      []interface{}
+		addNodesMap   map[string]Node
+		deleteQuadIds []interface{}
+		deleteNodeIds []interface{}
 	)
 
-	addNodes = make(map[string]Node)
+	addNodesMap = make(map[string]Node)
 	addNode := func(n Node) {
-		if v, ok := addNodes[n.ID]; ok {
+		if v, ok := addNodesMap[n.ID]; ok {
 			n.Size += v.Size
 		}
-		addNodes[n.ID] = n
+		addNodesMap[n.ID] = n
 	}
 
 	for _, d := range deltas {
@@ -360,67 +444,84 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				addNode(newNode(quad.Label, d.Quad.Label))
 			}
 		} else {
-			deleteQuads = append(deleteQuads, quad.ID)
-			deleteNodes = append(deleteNodes, quad.Subject)
-			deleteNodes = append(deleteNodes, quad.Predicate)
-			deleteNodes = append(deleteNodes, quad.Object)
+			deleteQuadIds = append(deleteQuadIds, quad.ID)
+			deleteNodeIds = append(deleteNodeIds, quad.Subject)
+			deleteNodeIds = append(deleteNodeIds, quad.Predicate)
+			deleteNodeIds = append(deleteNodeIds, quad.Object)
 			if d.Quad.Label != nil {
-				deleteNodes = append(deleteNodes, quad.Label)
+				deleteNodeIds = append(deleteNodeIds, quad.Label)
 			}
 		}
-
-		logEntries = append(logEntries, LogEntry{
-			ID:        d.ID.String(),
-			Key:       quad.ID,
-			Timestamp: d.Timestamp.Unix(),
-			Action:    d.Action.String(),
-		})
 	}
 
-	// Delete quads
-	if len(deleteQuads) > 0 {
-		if err := gorethink.Table(quadTableName).GetAll(deleteQuads...).Delete().Exec(qs.session); err != nil {
-			clog.Errorf("Error deleting quads: %v", err)
-			return err
+	// Node array
+	for _, n := range addNodesMap {
+		addNodes = append(addNodes, n)
+	}
+
+	// Batch the queries
+	var queries []gorethink.Term
+
+	// Batch delete quad queries
+	if len(deleteQuadIds) > 0 {
+		for _, batch := range sliceBatch(deleteQuadIds, qs.batchSize) {
+			queries = append(queries, gorethink.Table(quadTableName).GetAll(batch...).Delete())
 		}
 
-		// Delete all "unused" nodes
-		if err := gorethink.Table(nodeTableName).GetAll(deleteNodes...).
-			Filter(gorethink.Row.Field("size").Le(1)).Delete().Exec(qs.session); err != nil {
-			clog.Errorf("Error deleting unsued nodes: %v", err)
-			return err
+		for _, batch := range sliceBatch(deleteNodeIds, qs.batchSize) {
+			// Delete all "unused" nodes
+			queries = append(queries, gorethink.Table(nodeTableName).GetAll(batch...).
+				Filter(gorethink.Row.Field("size").Le(1)).Delete())
 		}
 	}
 
-	// Add quads
+	// Batch add quad queries
 	if len(addQuads) > 0 {
-		if err := gorethink.Table(quadTableName).Insert(addQuads, gorethink.InsertOpts{
-			Conflict: "replace",
-		}).Exec(qs.session); err != nil {
-			clog.Errorf("Error updating quads: %v", err)
-			return err
+		for _, batch := range sliceBatch(addQuads, qs.batchSize) {
+			queries = append(queries, gorethink.Table(quadTableName).Insert(batch, gorethink.InsertOpts{
+				Conflict: "replace",
+			}))
 		}
 
-		// Add nodes
-		var addNodesArr []Node
-		for _, n := range addNodes {
-			addNodesArr = append(addNodesArr, n)
-		}
-		if err := gorethink.Table(nodeTableName).Insert(addNodesArr, gorethink.InsertOpts{
-			Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
-				return newDoc.Merge(map[string]interface{}{
-					"size": oldDoc.Add(newDoc.Field("size")),
-				})
-			},
-		}).Exec(qs.session); err != nil {
-			clog.Errorf("Error updating nodes: %v", err)
-			return err
+		for _, batch := range sliceBatch(addNodes, qs.batchSize) {
+			// Insert nodes
+			queries = append(queries, gorethink.Table(nodeTableName).Insert(batch, gorethink.InsertOpts{
+				Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
+					return newDoc.Merge(map[string]interface{}{
+						"size": oldDoc.Add(newDoc.Field("size")),
+					})
+				},
+			}))
 		}
 	}
 
-	// Log entries
-	if err := gorethink.Table(logTableName).Insert(logEntries).Exec(qs.session); err != nil {
-		clog.Errorf("Error updating log: %v", err)
+	// Run the queries
+	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
+	doneCh := make(chan bool, 1)
+
+	wg.Add(len(queries))
+	for _, q := range queries {
+		go func(query gorethink.Term) {
+			if err := query.Exec(qs.session, gorethink.ExecOpts{
+				Durability: qs.durabilityMode,
+			}); err != nil {
+				errCh <- err
+			}
+			wg.Done()
+		}(q)
+	}
+
+	go func() {
+		wg.Wait()
+		close(doneCh)
+	}()
+
+	select {
+	case <-doneCh:
+	case err := <-errCh:
+		err = fmt.Errorf("Query failed: %v", err)
+		clog.Errorf("%s", err)
 		return err
 	}
 
@@ -479,7 +580,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return NewIterator(qs, quadTableName, d, val)
+	return NewDirectionalIterator(qs, quadTableName, d, val)
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
@@ -511,7 +612,9 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		clog.Infof("Running RDB query: %+v", query)
 	}
 
-	err := query.ReadOne(&node, qs.session)
+	err := query.ReadOne(&node, qs.session, gorethink.RunOpts{
+		ReadMode: qs.readMode,
+	})
 	switch err {
 	case nil: // do nothing
 	case gorethink.ErrEmptyResult:
@@ -535,12 +638,14 @@ func (qs *QuadStore) Size() int64 {
 		clog.Infof("Running RDB query: %+v", query)
 	}
 
-	var count int
-	if err := query.ReadOne(&count, qs.session); err != nil {
+	var count int64
+	if err := query.ReadOne(&count, qs.session, gorethink.RunOpts{
+		ReadMode: qs.readMode,
+	}); err != nil {
 		clog.Errorf("Error: Couldn't retrieve count: %v", err)
 		return 0
 	}
-	return int64(count)
+	return count
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
@@ -563,15 +668,10 @@ func (qs *QuadStore) Type() string {
 	return QuadStoreType
 }
 
-func (qs *QuadStore) getSize(table string, constraint *gorethink.Term) (size int64, err error) {
+func (qs *QuadStore) getSize(query gorethink.Term) (size int64, err error) {
 	size = -1
 
-	var query gorethink.Term
-	if constraint != nil {
-		query = gorethink.Table(table).Filter(*constraint).Count()
-	} else {
-		query = gorethink.Table(table).Count()
-	}
+	query = query.Count()
 
 	bytes, err := json.Marshal(query)
 	if err != nil {
@@ -589,7 +689,9 @@ func (qs *QuadStore) getSize(table string, constraint *gorethink.Term) (size int
 		clog.Infof("Running RDB query: %+v", query)
 	}
 
-	if err = query.ReadOne(&size, qs.session); err != nil {
+	if err = query.ReadOne(&size, qs.session, gorethink.RunOpts{
+		ReadMode: qs.readMode,
+	}); err != nil {
 		clog.Errorf("Failed to get size for iterator: %v", err)
 		return
 	}

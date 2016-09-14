@@ -19,6 +19,7 @@ func init() {
 type LinksTo struct {
 	uid       uint64
 	table     string
+	query     gorethink.Term
 	tags      graph.Tagger
 	qs        *QuadStore
 	primaryIt graph.Iterator
@@ -26,41 +27,60 @@ type LinksTo struct {
 	nextIt    *gorethink.Cursor
 	result    graph.Value
 	runstats  graph.IteratorStats
-	lset      []graph.Linkage
+	linkage   *graph.Linkage
 	err       error
 }
 
-func NewLinksTo(qs *QuadStore, it graph.Iterator, table string, d quad.Direction, lset []graph.Linkage) *LinksTo {
+func NewLinksTo(qs *QuadStore, it graph.Iterator, table string, d quad.Direction, linkage *graph.Linkage) *LinksTo {
 	return &LinksTo{
 		uid:       iterator.NextUID(),
 		qs:        qs,
 		primaryIt: it,
 		dir:       d,
 		nextIt:    nil,
-		lset:      lset,
+		linkage:   linkage,
 		table:     table,
 	}
 }
 
-func (it *LinksTo) buildConstraint() gorethink.Term {
-	constraint := gorethink.Row
-	for _, link := range it.lset {
-		constraint = constraint.Field(link.Dir.String()).Eq(link.Value)
+func mapToDirLinkIndex(lset [2]graph.Linkage) (string, interface{}) {
+	dir1 := lset[0].Dir
+	dir2 := lset[1].Dir
+
+	val1 := string(lset[0].Value.(NodeHash))
+	val2 := string(lset[1].Value.(NodeHash))
+
+	if index, ok := dirLinkIndexMap[[2]quad.Direction{dir1, dir2}]; ok {
+		return index, []interface{}{val1, val2}
 	}
-	return constraint
+
+	// reversed
+	if index, ok := dirLinkIndexMap[[2]quad.Direction{dir2, dir2}]; ok {
+		return index, []interface{}{val2, val1}
+	}
+
+	clog.Errorf("Unable to map dir links")
+	return "", nil
 }
 
 func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *gorethink.Cursor {
-	query := gorethink.Table(it.table).
-		GetAllByIndex(d.String(), string(val.(NodeHash))).
-		Filter(it.buildConstraint())
+	if it.linkage == nil {
+		it.query = gorethink.Table(it.table).GetAllByIndex(d.String(), string(val.(NodeHash)))
+	} else {
+		index, value := mapToDirLinkIndex([2]graph.Linkage{
+			graph.Linkage{Dir: d, Value: val},
+			*it.linkage,
+		})
+
+		it.query = gorethink.Table(it.table).GetAllByIndex(index, value)
+	}
 
 	if clog.V(5) {
 		// Debug
-		clog.Infof("Running RDB query: %+v", query)
+		clog.Infof("Running RDB query: %+v", it.query)
 	}
 
-	c, err := query.Run(it.qs.session)
+	c, err := it.query.Run(it.qs.session)
 	if err != nil {
 		clog.Errorf("Error: Couldn't build iterator for %v: %v", val, err)
 		return nil
@@ -102,9 +122,9 @@ func (it *LinksTo) Next() bool {
 	graph.NextLogIn(it)
 
 	for {
-		it.runstats.Next += 1
+		it.runstats.Next++
 		if it.nextIt != nil && it.nextIt.Next(&result) {
-			it.runstats.ContainsNext += 1
+			it.runstats.ContainsNext++
 			it.result = QuadHash{
 				NodeHash(result.Subject),
 				NodeHash(result.Predicate),
@@ -168,18 +188,18 @@ func (it *LinksTo) Type() graph.Type {
 }
 
 func (it *LinksTo) Clone() graph.Iterator {
-	m := NewLinksTo(it.qs, it.primaryIt.Clone(), it.table, it.dir, it.lset)
+	m := NewLinksTo(it.qs, it.primaryIt.Clone(), it.table, it.dir, it.linkage)
 	m.tags.CopyFrom(it)
 	return m
 }
 
 func (it *LinksTo) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
-	it.runstats.Contains += 1
+	it.runstats.Contains++
 
-	for _, link := range it.lset {
-		dval := it.qs.QuadDirection(val, link.Dir)
-		if dval != link.Value {
+	if it.linkage != nil {
+		dval := it.qs.QuadDirection(val, it.linkage.Dir)
+		if dval != it.linkage.Value {
 			return graph.ContainsLogOut(it, val, false)
 		}
 	}
@@ -221,8 +241,7 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 	nextConstant := int64(2)
 
 	size := fanoutFactor * subitStats.Size
-	constraint := it.buildConstraint()
-	csize, _ := it.qs.getSize(it.table, &constraint)
+	csize, _ := it.qs.getSize(it.query)
 	if size > csize {
 		size = csize
 	}

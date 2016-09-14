@@ -466,6 +466,10 @@ func prepare(t testing.TB) {
 		remote = true
 	case "rethinkdb":
 		cfg.DatabasePath = "localhost:28015"
+		cfg.DatabaseOptions = map[string]interface{}{
+			"database_name":   "cayley_test", // provide a default test database
+			"max_connections": 4,
+		}
 		remote = true
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)

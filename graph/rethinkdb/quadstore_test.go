@@ -7,19 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/internal/dock"
 	docker "github.com/fsouza/go-dockerclient"
 )
 
-func init() {
-	clog.SetV(3)
-}
-
 func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-
 	var conf dock.Config
 
 	conf.Image = "rethinkdb:latest"

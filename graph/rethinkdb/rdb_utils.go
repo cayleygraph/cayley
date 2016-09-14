@@ -1,35 +1,62 @@
 package rethinkdb
 
-import "gopkg.in/dancannon/gorethink.v2"
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"gopkg.in/dancannon/gorethink.v2"
+)
 
 // openSession initializes the rethink db session
-func openSession(address string, database string) (session *gorethink.Session, err error) {
+func openSession(opts gorethink.ConnectOpts, maxWait time.Duration) (session *gorethink.Session, err error) {
 	gorethink.SetTags("gorethink", "json")
 
-	session, err = gorethink.Connect(gorethink.ConnectOpts{
-		Address:  address,
-		Database: database,
-	})
-	if err != nil {
+	addr := opts.Address
+	if addr == "" && len(opts.Addresses) == 0 {
+		err = errors.New("Missing address")
 		return
+	}
+	if addr == "" {
+		addr = opts.Addresses[0]
+	}
+
+	if maxWait > 0 {
+		done := time.Now().Add(maxWait)
+		for time.Now().Before(done) {
+			session, err = gorethink.Connect(opts)
+			if err == nil {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		if err != nil {
+			err = fmt.Errorf("Failed to connect to %s for %v: %v", addr, maxWait, err)
+			return
+		}
+	} else {
+		session, err = gorethink.Connect(opts)
+		if err != nil {
+			err = fmt.Errorf("Failed to connect to %s: %v", addr, err)
+			return
+		}
 	}
 
 	// Create database if not already exists
-	exists, err := databaseExists(database, session)
+	exists, err := databaseExists(opts.Database, session)
 	if err != nil {
 		session.Close()
 		return
 	}
 
 	if !exists {
-		if err = gorethink.DBCreate(database).Exec(session); err != nil {
+		if err = gorethink.DBCreate(opts.Database).Exec(session); err != nil {
 			session.Close()
 			return
 		}
 	}
 
-	session.Use(database)
-
+	session.Use(opts.Database)
 	return
 }
 
@@ -119,4 +146,21 @@ func ensureIndexFunc(table gorethink.Term, index string, indexFunction interface
 	}
 
 	return table.IndexCreateFunc(index, indexFunction).Exec(s)
+}
+
+// sliceBatch splits a slice into batches of size
+func sliceBatch(slice []interface{}, size int) (b [][]interface{}) {
+	lena := len(slice)
+	lenb := lena/size + 1
+	b = make([][]interface{}, lenb)
+
+	for i := range b {
+		start := i * size
+		end := start + size
+		if end > lena {
+			end = lena
+		}
+		b[i] = slice[start:end]
+	}
+	return
 }

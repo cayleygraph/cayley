@@ -9,44 +9,53 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+type itType int
+
+const (
+	directional itType = iota
+	all
+	comparison
+)
+
 type Iterator struct {
-	uid        uint64
-	tags       graph.Tagger
-	qs         *QuadStore
-	dir        quad.Direction
-	iter       *gorethink.Cursor
-	hash       NodeHash
-	size       int64
-	isAll      bool
-	query      gorethink.Term
-	constraint *gorethink.Term
-	table      string
-	result     graph.Value
-	err        error
+	uid    uint64
+	tags   graph.Tagger
+	qs     *QuadStore
+	dir    quad.Direction
+	iter   *gorethink.Cursor
+	hash   NodeHash
+	size   int64
+	query  gorethink.Term
+	table  string
+	result graph.Value
+	err    error
+	typ    itType
 }
 
-func NewIterator(qs *QuadStore, table string, d quad.Direction, val graph.Value) *Iterator {
+func (it *Iterator) makeRDBIterator() (c *gorethink.Cursor) {
+	var err error
+	if c, err = it.query.Run(it.qs.session, gorethink.RunOpts{
+		ReadMode: it.qs.readMode,
+	}); err != nil {
+		clog.Errorf("Error: Couldn't make rdb cursor/iterator: %v", err)
+		return
+	}
+	return
+}
+
+func NewDirectionalIterator(qs *QuadStore, table string, d quad.Direction, val graph.Value) *Iterator {
 	h := val.(NodeHash)
 
 	return &Iterator{
 		uid:   iterator.NextUID(),
-		query: gorethink.Table(table).GetAllByIndex(d.String(), string(h)),
+		query: gorethink.Table(quadTableName).GetAllByIndex(d.String(), string(h)),
 		table: table,
 		qs:    qs,
 		dir:   d,
 		size:  -1,
 		hash:  h,
-		isAll: false,
+		typ:   directional,
 	}
-}
-
-func (it *Iterator) makeRDBIterator() (c *gorethink.Cursor) {
-	var err error
-	if c, err = it.query.Run(it.qs.session); err != nil {
-		clog.Errorf("Error: Couldn't make rdb cursor/iterator: %v", err)
-		return
-	}
-	return
 }
 
 func NewAllIterator(qs *QuadStore, table string) *Iterator {
@@ -54,25 +63,20 @@ func NewAllIterator(qs *QuadStore, table string) *Iterator {
 		uid:   iterator.NextUID(),
 		qs:    qs,
 		query: gorethink.Table(table),
-		dir:   quad.Any,
 		table: table,
 		size:  -1,
-		hash:  "",
-		isAll: true,
+		typ:   all,
 	}
 }
 
-func NewIteratorWithConstraints(qs *QuadStore, table string, constraint gorethink.Term) *Iterator {
+func NewComparisonIterator(qs *QuadStore, table string, query gorethink.Term) *Iterator {
 	return &Iterator{
 		uid:   iterator.NextUID(),
 		qs:    qs,
-		dir:   quad.Any,
-		query: gorethink.Table(table).Filter(constraint),
+		query: query,
 		table: table,
-		iter:  nil,
 		size:  -1,
-		hash:  "",
-		isAll: false,
+		typ:   comparison,
 	}
 }
 
@@ -109,10 +113,13 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 
 func (it *Iterator) Clone() graph.Iterator {
 	var m *Iterator
-	if it.isAll {
+	switch it.typ {
+	case directional:
+		m = NewDirectionalIterator(it.qs, it.table, it.dir, it.hash)
+	case all:
 		m = NewAllIterator(it.qs, it.table)
-	} else {
-		m = NewIterator(it.qs, it.table, it.dir, NodeHash(it.hash))
+	case comparison:
+		m = NewComparisonIterator(it.qs, it.table, it.query)
 	}
 	m.tags.CopyFrom(it)
 	return m
@@ -125,8 +132,7 @@ func (it *Iterator) Next() bool {
 	}
 	found := it.iter.Next(&result)
 	if !found {
-		err := it.iter.Err()
-		if err != nil {
+		if err := it.iter.Err(); err != nil {
 			it.err = err
 			clog.Errorf("Error Nexting Iterator: %v", err)
 		}
@@ -163,7 +169,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 
 func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
-	if it.isAll {
+	if it.typ == all {
 		it.result = v
 		return graph.ContainsLogOut(it, v, true)
 	}
@@ -178,7 +184,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 func (it *Iterator) Size() (int64, bool) {
 	if it.size == -1 {
 		var err error
-		it.size, err = it.qs.getSize(it.table, it.constraint)
+		it.size, err = it.qs.getSize(it.query)
 		if err != nil {
 			it.err = err
 		}
@@ -195,7 +201,7 @@ func init() {
 func Type() graph.Type { return rethinkDBType }
 
 func (it *Iterator) Type() graph.Type {
-	if it.isAll {
+	if it.typ == all {
 		return graph.All
 	}
 	return rethinkDBType

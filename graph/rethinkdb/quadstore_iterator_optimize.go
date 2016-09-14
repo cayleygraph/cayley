@@ -62,11 +62,9 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	}
 	stats := rethinkDBIt.Stats()
 
-	lset := []graph.Linkage{
-		{
-			Dir:   rethinkDBIt.dir,
-			Value: rethinkDBIt.hash,
-		},
+	linkage := &graph.Linkage{
+		Dir:   rethinkDBIt.dir,
+		Value: rethinkDBIt.hash,
 	}
 
 	n := 0
@@ -77,7 +75,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 			if (ltostats.ContainsCost+stats.NextCost)*stats.Size > (ltostats.NextCost+stats.ContainsCost)*ltostats.Size {
 				continue
 			}
-			newLto := NewLinksTo(qs, lto.SubIterators()[0], quadTableName, lto.Direction(), lset)
+			newLto := NewLinksTo(qs, lto.SubIterators()[0], quadTableName, lto.Direction(), linkage)
 			newAnd.AddSubIterator(newLto)
 			n++
 		}
@@ -121,51 +119,67 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 		return it, false
 	}
 	mit, ok := subs[0].(*Iterator)
-	if !ok || !mit.isAll {
+	if !ok || mit.typ != all {
 		return it, false
 	}
 
-	comparer := func(t gorethink.Term) func(args ...interface{}) gorethink.Term {
+	comparer := func(q gorethink.Term, index string, typ dbType, val interface{}) gorethink.Term {
+		v := []interface{}{typ, val}
+		vt := [2]interface{}{
+			typ,
+		}
 		switch it.Operator() {
 		case iterator.CompareGT:
-			return t.Gt
+			vt[1] = gorethink.MaxVal
+			q = q.Between(v, vt, gorethink.BetweenOpts{
+				Index:      index,
+				LeftBound:  "open",
+				RightBound: "closed",
+			})
 		case iterator.CompareGTE:
-			return t.Ge
+			vt[1] = gorethink.MaxVal
+			q = q.Between(v, vt, gorethink.BetweenOpts{
+				Index:      index,
+				LeftBound:  "closed",
+				RightBound: "closed",
+			})
 		case iterator.CompareLT:
-			return t.Lt
+			vt[1] = gorethink.MinVal
+			q = q.Between(vt, v, gorethink.BetweenOpts{
+				Index:      index,
+				RightBound: "open",
+				LeftBound:  "closed",
+			})
 		case iterator.CompareLTE:
-			return t.Le
+			vt[1] = gorethink.MinVal
+			q = q.Between(vt, v, gorethink.BetweenOpts{
+				Index:      index,
+				RightBound: "closed",
+				LeftBound:  "closed",
+			})
 		default:
 			clog.Errorf("Unknown operator: %v", it.Operator())
-			return t.Eq
 		}
+		return q
 	}
 
-	var constraint gorethink.Term
-
-	// TODO: Could possibly be optimized to use secondary indexes (explicitly).
+	q := gorethink.Table(mit.table)
 
 	switch v := it.Value().(type) {
 	case quad.String:
-		constraint = comparer(gorethink.Row.Field("val_string"))(string(v)).
-			And(gorethink.Row.Field("type").Eq(dbString))
+		q = comparer(q, "val_string", dbString, string(v))
 	case quad.IRI:
-		constraint = comparer(gorethink.Row.Field("val_string"))(string(v)).
-			And(gorethink.Row.Field("type").Eq(dbIRI))
+		q = comparer(q, "val_string", dbIRI, string(v))
 	case quad.BNode:
-		constraint = comparer(gorethink.Row.Field("val_string"))(string(v)).
-			And(gorethink.Row.Field("type").Eq(dbBNode))
+		q = comparer(q, "val_string", dbBNode, string(v))
 	case quad.Int:
-		constraint = comparer(gorethink.Row.Field("val_int"))(int64(v)).
-			And(gorethink.Row.Field("type").Eq(dbInt))
+		q = comparer(q, "val_int", dbInt, int64(v))
 	case quad.Float:
-		constraint = comparer(gorethink.Row.Field("val_float"))(float64(v)).
-			And(gorethink.Row.Field("type").Eq(dbFloat))
+		q = comparer(q, "val_float", dbFloat, float64(v))
 	case quad.Time:
-		constraint = comparer(gorethink.Row.Field("val_time"))(time.Time(v)).
-			And(gorethink.Row.Field("type").Eq(dbTime))
+		q = comparer(q, "val_time", dbTime, time.Time(v))
 	default:
 		return it, false
 	}
-	return NewIteratorWithConstraints(qs, mit.table, constraint), true
+	return NewComparisonIterator(qs, mit.table, q), true
 }
