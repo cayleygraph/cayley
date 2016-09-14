@@ -116,12 +116,26 @@ var testQueries = []struct {
 		query: `
 			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e")).All()
 		`,
+		expect: nil,
+	},
+	{
+		message: "use .In() with .Filter(regex with IRIs)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true)).All()
+		`,
 		expect: []string{"<alice>", "<charlie>"},
+	},
+	{
+		message: "use .In() with .Filter(regex with IRIs)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex(iri("ar?li.*e"))).All()
+		`,
+		err: true,
 	},
 	{
 		message: "use .In() with .Filter(regex,gt)",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e"),gt(iri("c"))).All()
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true),gt(iri("c"))).All()
 		`,
 		expect: []string{"<charlie>"},
 	},

@@ -18,6 +18,7 @@ package gremlin
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
@@ -119,20 +120,75 @@ func cmpOpType(op iterator.Operator) func(call otto.FunctionCall) otto.Value {
 
 func cmpRegexp(call otto.FunctionCall) otto.Value {
 	args := exportArgs(call.ArgumentList)
-	if len(args) != 1 {
+	if len(args) < 1 || len(args) > 2 {
 		return otto.NullValue()
 	}
-	s, ok := toString(args[0])
+	v, ok := toQuadValue(args[0])
 	if !ok {
 		return otto.NullValue()
 	}
-	return outObj(call, cmpOperator{regex: true, val: quad.String(s)})
+	allowRefs := false
+	if len(args) > 1 {
+		b, ok := args[1].(bool)
+		if !ok {
+			return otto.NullValue()
+		}
+		allowRefs = b
+	}
+	switch vt := v.(type) {
+	case quad.String:
+		if allowRefs {
+			v = quad.IRI(string(vt))
+		}
+	case quad.IRI:
+		if !allowRefs {
+			return otto.NullValue()
+		}
+	case quad.BNode:
+		if !allowRefs {
+			return otto.NullValue()
+		}
+	default:
+		return otto.NullValue()
+	}
+	return outObj(call, cmpOperator{regex: true, val: v})
 }
 
 type cmpOperator struct {
 	op    iterator.Operator
 	val   quad.Value
 	regex bool
+}
+
+func (op cmpOperator) apply(call otto.FunctionCall, p *path.Path) (*path.Path, error) {
+	if !op.regex {
+		p = p.Filter(op.op, op.val)
+		return p, nil
+	}
+	var (
+		s    string
+		refs bool
+	)
+	switch v := op.val.(type) {
+	case quad.String:
+		s = string(v)
+	case quad.IRI:
+		s, refs = string(v), true
+	case quad.BNode:
+		s, refs = string(v), true
+	default:
+		return p, fmt.Errorf("regexp from non-string value: %T", op.val)
+	}
+	re, err := regexp.Compile(string(s))
+	if err != nil {
+		return p, err
+	}
+	if refs {
+		p = p.RegexWithRefs(re)
+	} else {
+		p = p.Regex(re)
+	}
+	return p, nil
 }
 
 var defaultEnv = map[string]func(call otto.FunctionCall) otto.Value{

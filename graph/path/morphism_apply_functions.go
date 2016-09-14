@@ -63,12 +63,14 @@ func isMorphism(nodes ...quad.Value) morphism {
 	}
 }
 
-func regexMorphism(pattern *regexp.Regexp) morphism {
+func regexMorphism(pattern *regexp.Regexp, refs bool) morphism {
 	return morphism{
 		Name:     "regex",
-		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return regexMorphism(pattern), ctx },
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return regexMorphism(pattern, refs), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
-			return iterator.NewRegex(in, pattern, qs), ctx
+			it := iterator.NewRegex(in, pattern, qs)
+			it.AllowRefs(refs)
+			return it, ctx
 		},
 	}
 }

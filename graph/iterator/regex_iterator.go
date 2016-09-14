@@ -26,13 +26,14 @@ import (
 // reducing the iterator set to values whose string representation passes a
 // regular expression test.
 type Regex struct {
-	uid    uint64
-	tags   graph.Tagger
-	subIt  graph.Iterator
-	re     *regexp.Regexp
-	qs     graph.QuadStore
-	result graph.Value
-	err    error
+	uid       uint64
+	tags      graph.Tagger
+	subIt     graph.Iterator
+	re        *regexp.Regexp
+	qs        graph.QuadStore
+	result    graph.Value
+	err       error
+	allowRefs bool
 }
 
 func NewRegex(sub graph.Iterator, re *regexp.Regexp, qs graph.QuadStore) *Regex {
@@ -44,17 +45,40 @@ func NewRegex(sub graph.Iterator, re *regexp.Regexp, qs graph.QuadStore) *Regex 
 	}
 }
 
+// AllowRefs allows regexp iterator to match IRIs and BNodes.
+//
+// Consider using it carefully. In most cases it's better to reconsider
+// your graph structure instead of relying on slow unoptimizable regexp.
+//
+// An example of incorrect usage is to match IRIs:
+// 	<http://example.org/page>
+// 	<http://example.org/page/foo>
+// Via regexp like:
+//	http://example.org/page.*
+//
+// The right way is to explicitly link graph nodes and query them by this relation:
+// 	<http://example.org/page/foo> <type> <http://example.org/page>
+func (it *Regex) AllowRefs(v bool) {
+	it.allowRefs = v
+}
+
 func (it *Regex) testRegex(val graph.Value) bool {
 	// Type switch to avoid coercing and testing numeric types
-	switch tVal := it.qs.NameOf(val).(type) {
+	v := it.qs.NameOf(val)
+	switch v := v.(type) {
 	case quad.Raw:
-		return it.re.MatchString(string(tVal))
+		return it.re.MatchString(string(v))
 	case quad.String:
-		return it.re.MatchString(string(tVal))
-	case quad.BNode:
-		return it.re.MatchString(string(tVal))
-	case quad.IRI:
-		return it.re.MatchString(string(tVal))
+		return it.re.MatchString(string(v))
+	default:
+		if it.allowRefs {
+			switch v := v.(type) {
+			case quad.BNode:
+				return it.re.MatchString(string(v))
+			case quad.IRI:
+				return it.re.MatchString(string(v))
+			}
+		}
 	}
 	return false
 }

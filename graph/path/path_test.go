@@ -147,6 +147,11 @@ func testSet(qs graph.QuadStore) []test {
 		{
 			message: "use in with regex",
 			path:    StartPath(qs, vBob).In(vFollows).Regex(regexp.MustCompile("ar?li.*e")),
+			expect:  nil,
+		},
+		{
+			message: "use in with regex (include IRIs)",
+			path:    StartPath(qs, vBob).In(vFollows).RegexWithRefs(regexp.MustCompile("ar?li.*e")),
 			expect:  []quad.Value{vAlice, vCharlie},
 		},
 		{
