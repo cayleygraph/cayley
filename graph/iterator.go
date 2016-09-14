@@ -240,6 +240,7 @@ const (
 	Unique
 	Limit
 	Skip
+	Regex
 )
 
 var (
@@ -264,6 +265,7 @@ var (
 		"unique",
 		"limit",
 		"skip",
+		"regex",
 	}
 )
 
