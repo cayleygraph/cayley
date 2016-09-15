@@ -250,7 +250,11 @@ func (p *pathObject) Filter(call otto.FunctionCall) otto.Value {
 		if !ok {
 			return otto.NullValue()
 		}
-		np = np.Filter(op.op, op.val)
+		var err error
+		np, err = op.apply(call, np)
+		if err != nil {
+			return throwErr(call, err)
+		}
 	}
 	return outObj(call, p.new(np))
 }

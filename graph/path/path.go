@@ -15,6 +15,8 @@
 package path
 
 import (
+	"regexp"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -144,6 +146,33 @@ func (p *Path) Reverse() *Path {
 func (p *Path) Is(nodes ...quad.Value) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, isMorphism(nodes...))
+	return np
+}
+
+// Regex represents the nodes that are matching provided regexp pattern.
+// It will only include Raw and String values.
+func (p *Path) Regex(pattern *regexp.Regexp) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, regexMorphism(pattern, false))
+	return np
+}
+
+// RegexWithRefs is the same as Regex, but also matches IRIs and BNodes.
+//
+// Consider using it carefully. In most cases it's better to reconsider
+// your graph structure instead of relying on slow unoptimizable regexp.
+//
+// An example of incorrect usage is to match IRIs:
+// 	<http://example.org/page>
+// 	<http://example.org/page/foo>
+// Via regexp like:
+//	http://example.org/page.*
+//
+// The right way is to explicitly link graph nodes and query them by this relation:
+// 	<http://example.org/page/foo> <type> <http://example.org/page>
+func (p *Path) RegexWithRefs(pattern *regexp.Regexp) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, regexMorphism(pattern, true))
 	return np
 }
 

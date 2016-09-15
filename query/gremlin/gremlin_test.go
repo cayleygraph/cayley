@@ -112,6 +112,34 @@ var testQueries = []struct {
 		expect: []string{"<charlie>"},
 	},
 	{
+		message: "use .In() with .Filter(regex)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e")).All()
+		`,
+		expect: nil,
+	},
+	{
+		message: "use .In() with .Filter(regex with IRIs)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true)).All()
+		`,
+		expect: []string{"<alice>", "<charlie>"},
+	},
+	{
+		message: "use .In() with .Filter(regex with IRIs)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex(iri("ar?li.*e"))).All()
+		`,
+		err: true,
+	},
+	{
+		message: "use .In() with .Filter(regex,gt)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true),gt(iri("c"))).All()
+		`,
+		expect: []string{"<charlie>"},
+	},
+	{
 		message: "use .Both()",
 		query: `
 			g.V("<fred>").Both("<follows>").All()

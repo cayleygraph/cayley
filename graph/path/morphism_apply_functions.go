@@ -16,6 +16,7 @@ package path
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -58,6 +59,18 @@ func isMorphism(nodes ...quad.Value) morphism {
 			// Anything with fixedIterators will usually have a much
 			// smaller result set, so join isNodes first here.
 			return join(qs, isNodes, in), ctx
+		},
+	}
+}
+
+func regexMorphism(pattern *regexp.Regexp, refs bool) morphism {
+	return morphism{
+		Name:     "regex",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return regexMorphism(pattern, refs), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			it := iterator.NewRegex(in, pattern, qs)
+			it.AllowRefs(refs)
+			return it, ctx
 		},
 	}
 }
