@@ -30,16 +30,13 @@ func openSession(opts gorethink.ConnectOpts, maxWait time.Duration) (session *go
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
-		if err != nil {
-			err = fmt.Errorf("Failed to connect to %s for %v: %v", addr, maxWait, err)
-			return
-		}
 	} else {
 		session, err = gorethink.Connect(opts)
-		if err != nil {
-			err = fmt.Errorf("Failed to connect to %s: %v", addr, err)
-			return
-		}
+	}
+
+	if err != nil {
+		err = fmt.Errorf("Failed to connect to %s: %v", addr, err)
+		return
 	}
 
 	// Create database if not already exists
