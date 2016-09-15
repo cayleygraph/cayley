@@ -47,19 +47,8 @@ func mapToDirLinkIndex(lset [2]graph.Linkage) (string, interface{}) {
 	dir1 := lset[0].Dir
 	dir2 := lset[1].Dir
 
-	getHash := func(i int, dir quad.Direction) NodeHash {
-		switch v := lset[i].Value.(type) {
-		case QuadHash:
-			return v.Get(dir)
-		case NodeHash:
-			return v
-		default:
-			return ""
-		}
-	}
-
-	val1 := string(getHash(0, dir1))
-	val2 := string(getHash(1, dir2))
+	val1 := string(lset[0].Value.(QuadHash).Get(dir1))
+	val2 := string(lset[1].Value.(QuadHash).Get(dir2))
 
 	if index, ok := dirLinkIndexMap[[2]quad.Direction{dir1, dir2}]; ok {
 		return index, []interface{}{val1, val2}
@@ -75,13 +64,7 @@ func mapToDirLinkIndex(lset [2]graph.Linkage) (string, interface{}) {
 }
 
 func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *gorethink.Cursor {
-	var hash NodeHash
-	switch v := val.(type) {
-	case NodeHash:
-		hash = v
-	case QuadHash:
-		hash = NodeHash(v.Get(d))
-	}
+	hash := val.(QuadHash).Get(d)
 
 	index, value := mapToDirLinkIndex([2]graph.Linkage{
 		graph.Linkage{Dir: d, Value: hash},
