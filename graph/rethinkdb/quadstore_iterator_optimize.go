@@ -62,7 +62,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	}
 	stats := rethinkDBIt.Stats()
 
-	linkage := &graph.Linkage{
+	linkage := graph.Linkage{
 		Dir:   rethinkDBIt.dir,
 		Value: rethinkDBIt.hash,
 	}
@@ -93,7 +93,9 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		return it, false
 	}
 	primary := subs[0]
-	if primary.Type() == graph.Fixed {
+
+	switch primary.Type() {
+	case graph.Fixed:
 		size, _ := primary.Size()
 		if size == 1 {
 			if !primary.Next() {
@@ -110,6 +112,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			return newIt, true
 		}
 	}
+
 	return it, false
 }
 
@@ -178,7 +181,11 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 		q = comparer(q, "val_float", dbFloat, float64(v))
 	case quad.Time:
 		q = comparer(q, "val_time", dbTime, time.Time(v))
+	case quad.Raw:
+		clog.Errorf("Optimizing val_bytes with: %+v", it.Operator())
+		q = comparer(q, "val_bytes", dbRaw, []byte(v))
 	default:
+		clog.Errorf("Unknown type: %+v", v)
 		return it, false
 	}
 	return NewComparisonIterator(qs, mit.table, q), true

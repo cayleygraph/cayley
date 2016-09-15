@@ -19,19 +19,19 @@ func init() {
 type LinksTo struct {
 	uid       uint64
 	table     string
-	query     gorethink.Term
-	tags      graph.Tagger
+	tagger    graph.Tagger
 	qs        *QuadStore
 	primaryIt graph.Iterator
 	dir       quad.Direction
+	query     *gorethink.Term
 	nextIt    *gorethink.Cursor
 	result    graph.Value
 	runstats  graph.IteratorStats
-	linkage   *graph.Linkage
+	linkage   graph.Linkage
 	err       error
 }
 
-func NewLinksTo(qs *QuadStore, it graph.Iterator, table string, d quad.Direction, linkage *graph.Linkage) *LinksTo {
+func NewLinksTo(qs *QuadStore, it graph.Iterator, table string, d quad.Direction, linkage graph.Linkage) *LinksTo {
 	return &LinksTo{
 		uid:       iterator.NextUID(),
 		qs:        qs,
@@ -47,8 +47,19 @@ func mapToDirLinkIndex(lset [2]graph.Linkage) (string, interface{}) {
 	dir1 := lset[0].Dir
 	dir2 := lset[1].Dir
 
-	val1 := string(lset[0].Value.(NodeHash))
-	val2 := string(lset[1].Value.(NodeHash))
+	getHash := func(i int, dir quad.Direction) NodeHash {
+		switch v := lset[i].Value.(type) {
+		case QuadHash:
+			return v.Get(dir)
+		case NodeHash:
+			return v
+		default:
+			return ""
+		}
+	}
+
+	val1 := string(getHash(0, dir1))
+	val2 := string(getHash(1, dir2))
 
 	if index, ok := dirLinkIndexMap[[2]quad.Direction{dir1, dir2}]; ok {
 		return index, []interface{}{val1, val2}
@@ -64,21 +75,26 @@ func mapToDirLinkIndex(lset [2]graph.Linkage) (string, interface{}) {
 }
 
 func (it *LinksTo) buildIteratorFor(d quad.Direction, val graph.Value) *gorethink.Cursor {
-	if it.linkage == nil {
-		it.query = gorethink.Table(it.table).GetAllByIndex(d.String(), string(val.(NodeHash)))
-	} else {
-		index, value := mapToDirLinkIndex([2]graph.Linkage{
-			graph.Linkage{Dir: d, Value: val},
-			*it.linkage,
-		})
-
-		it.query = gorethink.Table(it.table).GetAllByIndex(index, value)
+	var hash NodeHash
+	switch v := val.(type) {
+	case NodeHash:
+		hash = v
+	case QuadHash:
+		hash = NodeHash(v.Get(d))
 	}
+
+	index, value := mapToDirLinkIndex([2]graph.Linkage{
+		graph.Linkage{Dir: d, Value: hash},
+		it.linkage,
+	})
+
+	query := gorethink.Table(it.table).GetAllByIndex(index, value)
 
 	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", it.query)
+		clog.Infof("Running RDB query: %s", query)
 	}
+
+	it.query = &query
 
 	c, err := it.query.Run(it.qs.session)
 	if err != nil {
@@ -93,7 +109,7 @@ func (it *LinksTo) UID() uint64 {
 }
 
 func (it *LinksTo) Tagger() *graph.Tagger {
-	return &it.tags
+	return &it.tagger
 }
 
 // Return the direction under consideration.
@@ -101,11 +117,11 @@ func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
 func (it *LinksTo) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
+	for _, tag := range it.tagger.Tags() {
 		dst[tag] = it.Result()
 	}
 
-	for tag, value := range it.tags.Fixed() {
+	for tag, value := range it.tagger.Fixed() {
 		dst[tag] = value
 	}
 
@@ -149,6 +165,7 @@ func (it *LinksTo) Next() bool {
 		if it.nextIt != nil {
 			it.nextIt.Close()
 		}
+
 		it.nextIt = it.buildIteratorFor(it.dir, it.primaryIt.Result())
 	}
 }
@@ -189,7 +206,7 @@ func (it *LinksTo) Type() graph.Type {
 
 func (it *LinksTo) Clone() graph.Iterator {
 	m := NewLinksTo(it.qs, it.primaryIt.Clone(), it.table, it.dir, it.linkage)
-	m.tags.CopyFrom(it)
+	m.tagger.CopyFrom(it)
 	return m
 }
 
@@ -197,11 +214,9 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains++
 
-	if it.linkage != nil {
-		dval := it.qs.QuadDirection(val, it.linkage.Dir)
-		if dval != it.linkage.Value {
-			return graph.ContainsLogOut(it, val, false)
-		}
+	dval := it.qs.QuadDirection(val, it.linkage.Dir)
+	if dval != it.linkage.Value {
+		return graph.ContainsLogOut(it, val, false)
 	}
 
 	node := it.qs.QuadDirection(val, it.dir)
@@ -241,9 +256,11 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 	nextConstant := int64(2)
 
 	size := fanoutFactor * subitStats.Size
-	csize, _ := it.qs.getSize(it.query)
-	if size > csize {
-		size = csize
+	if it.query != nil {
+		csize, _ := it.qs.getSize(*it.query)
+		if size > csize {
+			size = csize
+		}
 	}
 
 	return graph.IteratorStats{

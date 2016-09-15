@@ -12,14 +12,14 @@ import (
 type itType int
 
 const (
-	directional itType = iota
+	regular itType = iota
 	all
 	comparison
 )
 
 type Iterator struct {
 	uid    uint64
-	tags   graph.Tagger
+	tagger graph.Tagger
 	qs     *QuadStore
 	dir    quad.Direction
 	iter   *gorethink.Cursor
@@ -33,6 +33,10 @@ type Iterator struct {
 }
 
 func (it *Iterator) makeRDBIterator() (c *gorethink.Cursor) {
+	if clog.V(5) {
+		clog.Infof("Making RDB iterator: %v", it.query)
+	}
+
 	var err error
 	if c, err = it.query.Run(it.qs.session, gorethink.RunOpts{
 		ReadMode: it.qs.readMode,
@@ -43,7 +47,7 @@ func (it *Iterator) makeRDBIterator() (c *gorethink.Cursor) {
 	return
 }
 
-func NewDirectionalIterator(qs *QuadStore, table string, d quad.Direction, val graph.Value) *Iterator {
+func NewIterator(qs *QuadStore, table string, d quad.Direction, val graph.Value) *Iterator {
 	h := val.(NodeHash)
 
 	return &Iterator{
@@ -54,7 +58,7 @@ func NewDirectionalIterator(qs *QuadStore, table string, d quad.Direction, val g
 		dir:   d,
 		size:  -1,
 		hash:  h,
-		typ:   directional,
+		typ:   regular,
 	}
 }
 
@@ -98,15 +102,15 @@ func (it *Iterator) Close() error {
 }
 
 func (it *Iterator) Tagger() *graph.Tagger {
-	return &it.tags
+	return &it.tagger
 }
 
 func (it *Iterator) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
+	for _, tag := range it.tagger.Tags() {
 		dst[tag] = it.Result()
 	}
 
-	for tag, value := range it.tags.Fixed() {
+	for tag, value := range it.tagger.Fixed() {
 		dst[tag] = value
 	}
 }
@@ -114,14 +118,14 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 func (it *Iterator) Clone() graph.Iterator {
 	var m *Iterator
 	switch it.typ {
-	case directional:
-		m = NewDirectionalIterator(it.qs, it.table, it.dir, it.hash)
+	case regular:
+		m = NewIterator(it.qs, it.table, it.dir, it.hash)
 	case all:
 		m = NewAllIterator(it.qs, it.table)
 	case comparison:
 		m = NewComparisonIterator(it.qs, it.table, it.query)
 	}
-	m.tags.CopyFrom(it)
+	m.tagger.CopyFrom(it)
 	return m
 }
 
@@ -213,10 +217,12 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
-		UID:  it.UID(),
-		Name: string(it.hash),
-		Type: it.Type(),
-		Size: size,
+		UID:       it.UID(),
+		Name:      string(it.hash),
+		Type:      it.Type(),
+		Size:      size,
+		Tags:      it.tagger.Tags(),
+		Direction: it.dir,
 	}
 }
 

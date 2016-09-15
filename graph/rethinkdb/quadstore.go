@@ -3,7 +3,6 @@ package rethinkdb
 import (
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -580,7 +579,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return NewDirectionalIterator(qs, quadTableName, d, val)
+	return NewIterator(qs, quadTableName, d, val)
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
@@ -608,8 +607,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	query := gorethink.Table(nodeTableName).Get(string(hash))
 
 	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", query)
+		clog.Infof("Running RDB query: %s", query)
 	}
 
 	err := query.ReadOne(&node, qs.session, gorethink.RunOpts{
@@ -634,8 +632,7 @@ func (qs *QuadStore) Size() int64 {
 	query := gorethink.Table(quadTableName).Count()
 
 	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", query)
+		clog.Infof("Running RDB query: %s", query)
 	}
 
 	var count int64
@@ -673,20 +670,14 @@ func (qs *QuadStore) getSize(query gorethink.Term) (size int64, err error) {
 
 	query = query.Count()
 
-	bytes, err := json.Marshal(query)
-	if err != nil {
-		clog.Errorf("Couldn't marshal gorethink query: %v", err)
-		return
-	}
-	key := string(bytes)
+	key := string(query.String())
 	if val, ok := qs.sizes.Get(key); ok {
 		size = val.(int64)
 		return
 	}
 
 	if clog.V(5) {
-		// Debug
-		clog.Infof("Running RDB query: %+v", query)
+		clog.Infof("Running RDB query: %s", query)
 	}
 
 	if err = query.ReadOne(&size, qs.session, gorethink.RunOpts{
@@ -695,6 +686,11 @@ func (qs *QuadStore) getSize(query gorethink.Term) (size int64, err error) {
 		clog.Errorf("Failed to get size for iterator: %v", err)
 		return
 	}
+
+	if clog.V(5) {
+		clog.Infof("Got size for iterator: %d (%s)", size, key)
+	}
+
 	qs.sizes.Put(key, size)
 	return
 }
