@@ -1,29 +1,17 @@
 package rethinkdb
 
 import (
-	"flag"
 	"fmt"
 	"math/rand"
 	"runtime"
 	"testing"
 	"time"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/internal/dock"
 	docker "github.com/fsouza/go-dockerclient"
 )
-
-var debug = flag.Bool("debug", false, "clog debug output")
-
-func init() {
-	flag.Parse()
-
-	if *debug {
-		clog.SetV(5)
-	}
-}
 
 func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config

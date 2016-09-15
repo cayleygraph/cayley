@@ -182,7 +182,6 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 	case quad.Time:
 		q = comparer(q, "val_time", dbTime, time.Time(v))
 	case quad.Raw:
-		clog.Errorf("Optimizing val_bytes with: %+v", it.Operator())
 		q = comparer(q, "val_bytes", dbRaw, []byte(v))
 	default:
 		clog.Errorf("Unknown type: %+v", v)
