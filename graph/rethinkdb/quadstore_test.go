@@ -10,8 +10,8 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/internal/dock"
-	"github.com/cayleygraph/cayley/quad"
 	docker "github.com/fsouza/go-dockerclient"
 )
 
@@ -91,7 +91,7 @@ func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	}
 }
 
-/*func TestRethinkDBAll(t *testing.T) {
+func TestRethinkDBAll(t *testing.T) {
 	graphtest.TestAll(t, makeRethinkDB, &graphtest.Config{
 		TimeInMs:                true,
 		TimeRound:               true,
@@ -99,65 +99,4 @@ func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 		SkipDeletedFromIterator: true,
 		SkipIntHorizon:          true,
 	})
-}
-*/
-
-func makeQuadSet() []quad.Quad {
-	return []quad.Quad{
-		quad.Make("A", "follows", "B", nil),
-		quad.Make("C", "follows", "B", nil),
-		quad.Make("C", "follows", "D", nil),
-		quad.Make("D", "follows", "B", nil),
-		quad.Make("B", "follows", "F", nil),
-		quad.Make("F", "follows", "G", nil),
-		quad.Make("D", "follows", "G", nil),
-		quad.Make("E", "follows", "F", nil),
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
-	}
-}
-
-/*func TestIterator(t *testing.T) {
-	qs, opts, closer := makeRethinkDB(t)
-	defer closer()
-
-	expectIteratedQuads := func(it graph.Iterator, exp []quad.Quad) {
-		graphtest.ExpectIteratedQuads(t, qs, it, exp, false)
-	}
-
-	graphtest.MakeWriter(t, qs, opts, makeQuadSet()...)
-	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads in store")
-
-	it := NewIterator(qs.(*QuadStore), quadTableName, quad.Subject, qs.ValueOf(quad.String("D")))
-
-	expectIteratedQuads(it, []quad.Quad{
-		quad.Make("D", "follows", "B", nil),
-		quad.Make("D", "follows", "G", nil),
-		quad.Make("D", "status", "cool", "status_graph"),
-	})
-}*/
-
-func TestLinkToIterator(t *testing.T) {
-	/*qs, opts, closer := makeRethinkDB(t)
-	defer closer()
-
-	expectIteratedQuads := func(it graph.Iterator, exp []quad.Quad) {
-		graphtest.ExpectIteratedQuads(t, qs, it, exp, false)
-	}
-
-	graphtest.MakeWriter(t, qs, opts, makeQuadSet()...)
-	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads in store")
-
-	primaryIt := NewIterator(qs.(*QuadStore), quadTableName, quad.Subject, qs.ValueOf(quad.String("D")))
-
-	ltoIt := NewLinksTo(qs.(*QuadStore), primaryIt, quadTableName, quad.Subject, graph.Linkage{
-		Dir:   quad.Predicate,
-		Value: qs.ValueOf(quad.String("follows")).(NodeHash),
-	})
-
-	expectIteratedQuads(ltoIt, []quad.Quad{
-		quad.Make("D", "follows", "B", nil),
-		quad.Make("D", "follows", "G", nil),
-	})*/
 }
