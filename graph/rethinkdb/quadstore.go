@@ -69,6 +69,7 @@ type QuadStore struct {
 	durabilityMode string // See: https://www.rethinkdb.com/api/javascript/run/
 	batchSize      int    // See: https://www.rethinkdb.com/docs/troubleshooting/ (speed up batch writes)
 	readMode       string
+	maxConnections int
 }
 
 type dbType int
@@ -110,16 +111,12 @@ type Quad struct {
 }
 
 var dirLinkIndexMap = map[[2]quad.Direction]string{
-	{quad.Subject, quad.Subject}:     "subject_subject",
-	{quad.Subject, quad.Predicate}:   "subject_predicate",
-	{quad.Subject, quad.Object}:      "subject_object",
-	{quad.Subject, quad.Label}:       "subject_label",
-	{quad.Predicate, quad.Predicate}: "predicate_predicate",
-	{quad.Predicate, quad.Object}:    "predicate_object",
-	{quad.Predicate, quad.Label}:     "predicate_label",
-	{quad.Object, quad.Object}:       "object_object",
-	{quad.Object, quad.Label}:        "object_label",
-	{quad.Label, quad.Label}:         "label_label",
+	{quad.Subject, quad.Predicate}: "subject_predicate",
+	{quad.Subject, quad.Object}:    "subject_object",
+	{quad.Subject, quad.Label}:     "subject_label",
+	{quad.Predicate, quad.Object}:  "predicate_object",
+	{quad.Predicate, quad.Label}:   "predicate_label",
+	{quad.Object, quad.Label}:      "object_label",
 }
 
 func ensureIndexes(session *gorethink.Session) (err error) {
@@ -192,8 +189,8 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 	if err = ensureTable(quadTableName, session); err != nil {
 		return
 	}
-	for _, dir := range []string{quad.Subject.String(), quad.Predicate.String(), quad.Object.String(), quad.Label.String()} {
-		if err = ensureIndex(gorethink.Table(quadTableName), dir, session); err != nil {
+	for _, dir := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
+		if err = ensureIndex(gorethink.Table(quadTableName), dir.String(), session); err != nil {
 			return
 		}
 	}
@@ -306,6 +303,11 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		batchSize = val
 	}
 
+	maxConnections := 2
+	if val, ok, err := options.IntKey("max_connections"); err == nil && ok {
+		maxConnections = val
+	}
+
 	qs = &QuadStore{
 		session:        session,
 		ids:            lru.New(1 << 16),
@@ -314,6 +316,7 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		durabilityMode: durabilityMode,
 		batchSize:      batchSize,
 		readMode:       readMode,
+		maxConnections: maxConnections,
 	}
 	return
 }
@@ -494,37 +497,59 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		}
 	}
 
-	// Run the queries
-	var wg sync.WaitGroup
-	errCh := make(chan error, 1)
-	doneCh := make(chan bool, 1)
-
-	wg.Add(len(queries))
-	for _, q := range queries {
-		go func(query gorethink.Term) {
+	// Run the queries "normal" (no parallelization)
+	execNormal := func() error {
+		for _, query := range queries {
 			if err := query.Exec(qs.session, gorethink.ExecOpts{
 				Durability: qs.durabilityMode,
 			}); err != nil {
-				errCh <- err
+				err = fmt.Errorf("Query failed: %v", err)
+				clog.Errorf("%s", err)
+				return err
 			}
-			wg.Done()
-		}(q)
+		}
+		return nil
 	}
 
-	go func() {
-		wg.Wait()
-		close(doneCh)
-	}()
+	// Run the queries in parallel
+	execParallel := func() error {
+		var wg sync.WaitGroup
+		errCh := make(chan error, 1)
+		doneCh := make(chan bool, 1)
 
-	select {
-	case <-doneCh:
-	case err := <-errCh:
-		err = fmt.Errorf("Query failed: %v", err)
-		clog.Errorf("%s", err)
-		return err
+		wg.Add(len(queries))
+		for _, q := range queries {
+			go func(query gorethink.Term) {
+				defer wg.Done()
+				if err := query.Exec(qs.session, gorethink.ExecOpts{
+					Durability: qs.durabilityMode,
+				}); err != nil {
+					errCh <- err
+				}
+			}(q)
+		}
+
+		go func() {
+			wg.Wait()
+			close(doneCh)
+		}()
+
+		select {
+		case <-doneCh:
+		case err := <-errCh:
+			err = fmt.Errorf("Query failed: %v", err)
+			clog.Errorf("%s", err)
+			return err
+		}
+
+		return nil
 	}
 
-	return nil
+	if len(queries) > qs.maxConnections {
+		return execParallel()
+	}
+
+	return execNormal()
 }
 
 func (n Node) quadValue() quad.Value {
