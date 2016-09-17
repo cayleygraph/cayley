@@ -25,7 +25,6 @@ type Person struct {
 	Age     int      `quad:"ex:age"`  // or in a quad tag
 }
 
-// TODO: temporary workaround before formats PR merge
 type quadWriter struct {
 	w graph.QuadWriter
 }
@@ -56,6 +55,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	defer store.Close()
+	qw := quadWriter{store.QuadWriter} // TODO: temporary workaround before formats PR merge
 
 	// Save an object
 	bob := Person{
@@ -63,7 +63,7 @@ func main() {
 		Name: "Bob", Age: 32,
 	}
 	fmt.Printf("saving: %+v\n", bob)
-	id, err := schema.WriteAsQuads(quadWriter{store.QuadWriter}, bob)
+	id, err := schema.WriteAsQuads(qw, bob)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,4 +76,12 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("loaded: %+v\n", someone)
+
+	// Or get all objects of type Person
+	var people []Person
+	err = schema.SaveTo(nil, store, &people)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("loaded slice: %+v\n", people)
 }
