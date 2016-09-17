@@ -418,14 +418,16 @@ func keysEqual(v1, v2 graph.Value) bool {
 //
 // Dst can be of kind Struct, Slice or Chan.
 func SaveTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...quad.Value) error {
-	if len(ids) == 0 {
-		return nil
-	} else if dst == nil {
+	if dst == nil {
 		return fmt.Errorf("nil destination object")
 	}
-	it := qs.FixedIterator()
-	for _, id := range ids {
-		it.Add(qs.ValueOf(id))
+	var it graph.Iterator
+	if len(ids) != 0 {
+		fixed := qs.FixedIterator()
+		for _, id := range ids {
+			fixed.Add(qs.ValueOf(id))
+		}
+		it = fixed
 	}
 	var rv reflect.Value
 	if v, ok := dst.(reflect.Value); ok {
