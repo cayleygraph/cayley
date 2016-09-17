@@ -208,6 +208,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vCharlie},
 		},
 		{
+			message: "use Unique",
+			path:    StartPath(qs, vAlice, vBob, vCharlie).Out(vFollows).Unique(),
+			expect:  []quad.Value{vBob, vDani, vFred},
+		},
+		{
 			message: "show a simple save",
 			path:    StartPath(qs).Save(vStatus, "somecool"),
 			tag:     "somecool",
@@ -238,6 +243,11 @@ func testSet(qs graph.QuadStore) []test {
 			message: "use Skip and Limit",
 			path:    StartPath(qs).Has(vStatus, vCool).Skip(1).Limit(1),
 			expect:  []quad.Value{vDani},
+		},
+		{
+			message: "show Count",
+			path:    StartPath(qs).Has(vStatus).Count(),
+			expect:  []quad.Value{quad.Int(5)},
 		},
 		{
 			message: "show a double Has",

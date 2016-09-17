@@ -43,6 +43,12 @@ type Value interface {
 	IsNode() bool
 }
 
+// PreFetchedValue is an optional interface for graph.Value to indicate that
+// quadstore has already loaded a value into memory.
+type PreFetchedValue interface {
+	NameOf() quad.Value
+}
+
 // Keyer provides a method for comparing types that are not otherwise comparable.
 // The Key method must return a dynamic type that is comparable according to the
 // Go language specification. The returned value must be unique for each receiver

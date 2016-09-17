@@ -273,6 +273,17 @@ func exceptMorphism(p *Path) morphism {
 	}
 }
 
+// uniqueMorphism removes duplicate values from current path.
+func uniqueMorphism() morphism {
+	return morphism{
+		Name:     "unique",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return uniqueMorphism(), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			return iterator.NewUnique(in), ctx
+		},
+	}
+}
+
 func saveMorphism(via interface{}, tag string) morphism {
 	return morphism{
 		Name:     "save",
@@ -469,6 +480,17 @@ func limitMorphism(v int64) morphism {
 				return in, ctx
 			}
 			return iterator.NewLimit(in, v), ctx
+		},
+	}
+}
+
+// countMorphism will return count of values.
+func countMorphism() morphism {
+	return morphism{
+		Name:     "count",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return countMorphism(), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			return iterator.NewCount(in, qs), ctx
 		},
 	}
 }

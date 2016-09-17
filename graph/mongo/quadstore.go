@@ -487,6 +487,11 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
+	if v == nil {
+		return nil
+	} else if v, ok := v.(graph.PreFetchedValue); ok {
+		return v.NameOf()
+	}
 	hash := v.(NodeHash)
 	if hash == "" {
 		return nil

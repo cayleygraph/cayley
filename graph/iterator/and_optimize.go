@@ -352,18 +352,21 @@ func getStatsForSlice(its []graph.Iterator) graph.IteratorStats {
 	ContainsCost := primaryStats.ContainsCost
 	NextCost := primaryStats.NextCost
 	Size := primaryStats.Size
+	ExactSize := primaryStats.ExactSize
 	for _, sub := range its[1:] {
 		stats := sub.Stats()
 		NextCost += stats.ContainsCost * (1 + (primaryStats.Size / (stats.Size + 1)))
 		ContainsCost += stats.ContainsCost
 		if Size > stats.Size {
 			Size = stats.Size
+			ExactSize = stats.ExactSize
 		}
 	}
 	return graph.IteratorStats{
 		ContainsCost: ContainsCost,
 		NextCost:     NextCost,
 		Size:         Size,
+		ExactSize:    ExactSize,
 	}
 
 }
