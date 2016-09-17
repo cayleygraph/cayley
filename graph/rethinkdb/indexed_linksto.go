@@ -66,7 +66,7 @@ func mapToDirLinkIndex(lset [2]graph.Linkage) (string, interface{}) {
 	}
 
 	// reversed
-	if index, ok := dirLinkIndexMap[[2]quad.Direction{dir2, dir2}]; ok {
+	if index, ok := dirLinkIndexMap[[2]quad.Direction{dir2, dir1}]; ok {
 		return index, []interface{}{val2, val1}
 	}
 
