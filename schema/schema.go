@@ -635,6 +635,11 @@ func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value) (id quad.Value, 
 	return
 }
 
+// GenerateID gets called then each object without an ID field is saved.
+var GenerateID func() quad.Value = func() quad.Value {
+	return quad.NextBlankNode()
+}
+
 // WriteAsQuads writes a single value in form of quads into specified quad writer.
 //
 // It returns an identifier of the object in the output subgraph. If an object has
@@ -662,7 +667,7 @@ func WriteAsQuads(w quadWriter, o interface{}) (quad.Value, error) {
 		return nil, err
 	}
 	if id == nil {
-		id = quad.NextBlankNode()
+		id = GenerateID()
 	}
 	return writeValueAs(w, id, rv, "", rules)
 }
