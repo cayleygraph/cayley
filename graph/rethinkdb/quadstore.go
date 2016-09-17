@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"sync"
 	"time"
 
 	"gopkg.in/dancannon/gorethink.v2"
@@ -69,7 +68,6 @@ type QuadStore struct {
 	durabilityMode string // See: https://www.rethinkdb.com/api/javascript/run/
 	batchSize      int    // See: https://www.rethinkdb.com/docs/troubleshooting/ (speed up batch writes)
 	readMode       string
-	maxConnections int
 }
 
 type dbType int
@@ -303,11 +301,6 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		batchSize = val
 	}
 
-	maxConnections := 2
-	if val, ok, err := options.IntKey("max_connections"); err == nil && ok {
-		maxConnections = val
-	}
-
 	qs = &QuadStore{
 		session:        session,
 		ids:            lru.New(1 << 16),
@@ -316,7 +309,6 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		durabilityMode: durabilityMode,
 		batchSize:      batchSize,
 		readMode:       readMode,
-		maxConnections: maxConnections,
 	}
 	return
 }
@@ -497,59 +489,16 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		}
 	}
 
-	// Run the queries "normal" (no parallelization)
-	execNormal := func() error {
-		for _, query := range queries {
-			if err := query.Exec(qs.session, gorethink.ExecOpts{
-				Durability: qs.durabilityMode,
-			}); err != nil {
-				err = fmt.Errorf("Query failed: %v", err)
-				clog.Errorf("%s", err)
-				return err
-			}
-		}
-		return nil
-	}
-
-	// Run the queries in parallel
-	execParallel := func() error {
-		var wg sync.WaitGroup
-		errCh := make(chan error, 1)
-		doneCh := make(chan bool, 1)
-
-		wg.Add(len(queries))
-		for _, q := range queries {
-			go func(query gorethink.Term) {
-				defer wg.Done()
-				if err := query.Exec(qs.session, gorethink.ExecOpts{
-					Durability: qs.durabilityMode,
-				}); err != nil {
-					errCh <- err
-				}
-			}(q)
-		}
-
-		go func() {
-			wg.Wait()
-			close(doneCh)
-		}()
-
-		select {
-		case <-doneCh:
-		case err := <-errCh:
+	for _, query := range queries {
+		if err := query.Exec(qs.session, gorethink.ExecOpts{
+			Durability: qs.durabilityMode,
+		}); err != nil {
 			err = fmt.Errorf("Query failed: %v", err)
 			clog.Errorf("%s", err)
 			return err
 		}
-
-		return nil
 	}
-
-	if len(queries) > qs.maxConnections {
-		return execParallel()
-	}
-
-	return execNormal()
+	return nil
 }
 
 func (n Node) quadValue() quad.Value {
