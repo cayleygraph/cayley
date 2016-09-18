@@ -39,9 +39,11 @@ type idRule struct{}
 
 func (idRule) isRule() {}
 
+const iriType = quad.IRI(rdf.Type)
+
 func toIRI(s string) quad.IRI {
 	if s == "@type" {
-		return quad.IRI(rdf.Type)
+		return iriType
 	}
 	return quad.IRI(s)
 }
@@ -148,9 +150,36 @@ func iteratorForType(qs graph.QuadStore, root graph.Iterator, rt reflect.Type) (
 }
 
 var (
+	typesMu   sync.RWMutex
+	typeToIRI = make(map[reflect.Type]quad.IRI)
+	iriToType = make(map[quad.IRI]reflect.Type)
+
 	pathForTypeMu sync.RWMutex
 	pathForType   = make(map[reflect.Type]*path.Path)
 )
+
+func RegisterType(iri quad.IRI, obj interface{}) {
+	var rt reflect.Type
+	if t, ok := obj.(reflect.Type); ok {
+		rt = t
+	} else {
+		rt = reflect.TypeOf(obj)
+		if rt.Kind() == reflect.Ptr {
+			rt = rt.Elem()
+		}
+	}
+	full := iri.Full()
+	typesMu.Lock()
+	defer typesMu.Unlock()
+	if _, exists := typeToIRI[rt]; exists {
+		panic(fmt.Errorf("type %v is already registered", rt))
+	}
+	if _, exists := iriToType[full]; exists {
+		panic(fmt.Errorf("IRI %v is already registered", iri))
+	}
+	typeToIRI[rt] = iri
+	iriToType[full] = rt
+}
 
 func PathForType(rt reflect.Type) (*path.Path, error) {
 	for rt.Kind() == reflect.Ptr {
@@ -168,6 +197,12 @@ func PathForType(rt reflect.Type) (*path.Path, error) {
 	pathForTypeMu.RUnlock()
 
 	p := path.StartMorphism()
+	typesMu.RLock()
+	iri := typeToIRI[rt]
+	typesMu.RUnlock()
+	if iri != quad.IRI("") {
+		p = p.Has(iriType, iri)
+	}
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous { // TODO: handle anonymous fields
@@ -417,7 +452,7 @@ func keysEqual(v1, v2 graph.Value) bool {
 // SaveTo
 //
 // Dst can be of kind Struct, Slice or Chan.
-func SaveTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...quad.Value) error {
+func LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...quad.Value) error {
 	if dst == nil {
 		return fmt.Errorf("nil destination object")
 	}
@@ -564,7 +599,7 @@ func writeOneValReflect(w quadWriter, id quad.Value, pred quad.Value, rv reflect
 	if rev {
 		s, o = o, s
 	}
-	return w.WriteQuad(quad.Quad{s, pred, o, nil})
+	return w.AddQuad(quad.Quad{s, pred, o, nil})
 }
 
 func writeValueAs(w quadWriter, id quad.Value, rv reflect.Value, pref string, rules fieldRules) (quad.Value, error) {
@@ -572,6 +607,14 @@ func writeValueAs(w quadWriter, id quad.Value, rv reflect.Value, pref string, ru
 		rv = rv.Elem()
 	}
 	rt := rv.Type()
+	typesMu.RLock()
+	iri := typeToIRI[rt]
+	typesMu.RUnlock()
+	if iri != quad.IRI("") {
+		if err := w.AddQuad(quad.Quad{id, iriType, iri, nil}); err != nil {
+			return nil, err
+		}
+	}
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous {
@@ -586,7 +629,7 @@ func writeValueAs(w quadWriter, id quad.Value, rv reflect.Value, pref string, ru
 			if r.Rev {
 				s, o = o, s
 			}
-			if err := w.WriteQuad(quad.Quad{s, r.Pred, o, nil}); err != nil {
+			if err := w.AddQuad(quad.Quad{s, r.Pred, o, nil}); err != nil {
 				return nil, err
 			}
 		case saveRule:
@@ -605,13 +648,6 @@ func writeValueAs(w quadWriter, id quad.Value, rv reflect.Value, pref string, ru
 		}
 	}
 	return id, nil
-}
-
-// quadWriter is an interface to write quads.
-//
-// TODO(dennwc): replace when the same interface will be exposed in graph/quads
-type quadWriter interface {
-	WriteQuad(quad.Quad) error
 }
 
 func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value) (id quad.Value, err error) {
@@ -638,6 +674,13 @@ func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value) (id quad.Value, 
 // GenerateID gets called then each object without an ID field is saved.
 var GenerateID func() quad.Value = func() quad.Value {
 	return quad.NextBlankNode()
+}
+
+// quadWriter is an interface to write quads.
+//
+// TODO(dennwc): replace when the same interface will be exposed in graph/quads
+type quadWriter interface {
+	AddQuad(quad.Quad) error
 }
 
 // WriteAsQuads writes a single value in form of quads into specified quad writer.
