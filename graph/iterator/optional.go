@@ -160,6 +160,7 @@ func (it *Optional) Stats() graph.IteratorStats {
 		ContainsCost: subStats.ContainsCost,
 		NextCost:     int64(1 << 62),
 		Size:         subStats.Size,
+		ExactSize:    subStats.ExactSize,
 	}
 }
 

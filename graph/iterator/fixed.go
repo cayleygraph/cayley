@@ -184,11 +184,12 @@ func (it *Fixed) Size() (int64, bool) {
 // As we right now have to scan the entire list, Next and Contains are linear with the
 // size. However, a better data structure could remove these limits.
 func (it *Fixed) Stats() graph.IteratorStats {
-	s, _ := it.Size()
+	s, exact := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: s,
 		NextCost:     s,
 		Size:         s,
+		ExactSize:    exact,
 	}
 }
 

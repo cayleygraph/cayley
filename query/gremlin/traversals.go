@@ -220,6 +220,13 @@ func (p *pathObject) Except(call otto.FunctionCall) otto.Value {
 	np := p.clonePath().Except(ep.path)
 	return outObj(call, p.new(np))
 }
+func (p *pathObject) Unique(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) != 0 {
+		return otto.NullValue()
+	}
+	np := p.clonePath().Unique()
+	return outObj(call, p.new(np))
+}
 func (p *pathObject) Difference(call otto.FunctionCall) otto.Value {
 	return p.Except(call)
 }
@@ -266,5 +273,12 @@ func (p *pathObject) Limit(call otto.FunctionCall) otto.Value {
 func (p *pathObject) Skip(call otto.FunctionCall) otto.Value {
 	args := exportArgs(call.ArgumentList)
 	np := p.clonePath().Skip(int64(toInt(args[0])))
+	return outObj(call, p.new(np))
+}
+func (p *pathObject) Count(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) != 0 {
+		return otto.NullValue()
+	}
+	np := p.clonePath().Count()
 	return outObj(call, p.new(np))
 }

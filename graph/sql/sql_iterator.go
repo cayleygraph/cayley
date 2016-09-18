@@ -174,11 +174,12 @@ func (it *SQLIterator) Describe() graph.Description {
 }
 
 func (it *SQLIterator) Stats() graph.IteratorStats {
-	size, _ := it.Size()
+	size, exact := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: 1,
 		NextCost:     5,
 		Size:         size,
+		ExactSize:    exact,
 	}
 }
 

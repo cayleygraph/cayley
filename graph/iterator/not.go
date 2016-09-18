@@ -151,6 +151,7 @@ func (it *Not) Stats() graph.IteratorStats {
 		NextCost:     allStats.NextCost + primaryStats.ContainsCost,
 		ContainsCost: primaryStats.ContainsCost,
 		Size:         allStats.Size - primaryStats.Size,
+		ExactSize:    false,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 		ContainsNext: it.runstats.ContainsNext,
@@ -158,7 +159,8 @@ func (it *Not) Stats() graph.IteratorStats {
 }
 
 func (it *Not) Size() (int64, bool) {
-	return it.Stats().Size, false
+	st := it.Stats()
+	return st.Size, st.ExactSize
 }
 
 func (it *Not) Describe() graph.Description {

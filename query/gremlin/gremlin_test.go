@@ -15,6 +15,7 @@
 package gremlin
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -184,6 +185,14 @@ var testQueries = []struct {
 		expect: []string{"<alice>"},
 	},
 
+	{
+		message: "use Unique",
+		query: `
+			g.V("<alice>", "<bob>", "<charlie>").Out("<follows>").Unique().All()
+		`,
+		expect: []string{"<bob>", "<dani>", "<fred>"},
+	},
+
 	// Morphism tests.
 	{
 		message: "show simple morphism",
@@ -297,6 +306,21 @@ var testQueries = []struct {
 				g.V().Has("<status>", "cool_person").Skip(1).Limit(1).All()
 		`,
 		expect: []string{"<dani>"},
+	},
+
+	{
+		message: "show Count",
+		query: `
+				g.V().Has("<status>").Count().All()
+		`,
+		expect: []string{`"5"^^<http://schema.org/Integer>`},
+	},
+	{
+		message: "use Count value",
+		query: `
+				g.Emit(g.V().Has("<status>").Count().ToValue()+1)
+		`,
+		expect: []string{"6"},
 	},
 
 	// Tag tests.
@@ -454,6 +478,8 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string,
 			switch v := data.val.(type) {
 			case string:
 				results = append(results, v)
+			default:
+				results = append(results, fmt.Sprint(v))
 			}
 		}
 	}

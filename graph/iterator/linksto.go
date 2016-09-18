@@ -224,6 +224,7 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 		NextCost:     nextConstant + subitStats.NextCost,
 		ContainsCost: checkConstant + subitStats.ContainsCost,
 		Size:         fanoutFactor * subitStats.Size,
+		ExactSize:    false,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 		ContainsNext: it.runstats.ContainsNext,
@@ -231,7 +232,8 @@ func (it *LinksTo) Stats() graph.IteratorStats {
 }
 
 func (it *LinksTo) Size() (int64, bool) {
-	return it.Stats().Size, false
+	st := it.Stats()
+	return st.Size, st.ExactSize
 }
 
 var _ graph.Iterator = &LinksTo{}

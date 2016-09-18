@@ -308,6 +308,13 @@ func (p *Path) Except(path *Path) *Path {
 	return np
 }
 
+// Unique updates the current Path to contain only unique nodes.
+func (p *Path) Unique() *Path {
+	np := p.clone()
+	np.stack = append(np.stack, uniqueMorphism())
+	return np
+}
+
 // Follow allows you to stitch two paths together. The resulting path will start
 // from where the first path left off and continue iterating down the path given.
 func (p *Path) Follow(path *Path) *Path {
@@ -460,6 +467,12 @@ func (p *Path) Skip(v int64) *Path {
 // Limit will limit a number of values in result set.
 func (p *Path) Limit(v int64) *Path {
 	p.stack = append(p.stack, limitMorphism(v))
+	return p
+}
+
+// Count will count a number of results as it's own result set.
+func (p *Path) Count() *Path {
+	p.stack = append(p.stack, countMorphism())
 	return p
 }
 

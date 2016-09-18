@@ -214,6 +214,7 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		ContainsCost: int64(math.Log(float64(it.tree.Len()))) + 1,
 		NextCost:     1,
 		Size:         int64(it.tree.Len()),
+		ExactSize:    true,
 	}
 }
 

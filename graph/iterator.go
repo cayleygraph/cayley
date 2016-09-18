@@ -215,6 +215,7 @@ type IteratorStats struct {
 	ContainsCost int64
 	NextCost     int64
 	Size         int64
+	ExactSize    bool
 	Next         int64
 	Contains     int64
 	ContainsNext int64
@@ -241,6 +242,7 @@ const (
 	Limit
 	Skip
 	Regex
+	Count
 )
 
 var (

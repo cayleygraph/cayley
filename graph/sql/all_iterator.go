@@ -208,10 +208,11 @@ func (it *AllIterator) Describe() graph.Description {
 }
 
 func (it *AllIterator) Stats() graph.IteratorStats {
-	size, _ := it.Size()
+	size, exact := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: 1,
 		NextCost:     9999,
 		Size:         size,
+		ExactSize:    exact,
 	}
 }
