@@ -14,11 +14,15 @@ import (
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	switch it.Type() {
 	case graph.LinksTo:
-		return qs.optimizeLinksTo(it.(*iterator.LinksTo))
+		return qs.optimizeLinksToIterator(it.(*iterator.LinksTo))
 	case graph.And:
 		return qs.optimizeAndIterator(it.(*iterator.And))
 	case graph.Comparison:
-		return qs.optimizeComparison(it.(*iterator.Comparison))
+		return qs.optimizeComparisonIterator(it.(*iterator.Comparison))
+	case graph.Limit:
+		return qs.optimizeLimitIterator(it.(*iterator.Limit))
+		/*case graph.Skip:
+		  return qs.optimizeSkipIterator(it.(*iterator.Skip))*/
 	}
 	return it, false
 }
@@ -87,7 +91,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	return newAnd.Optimize()
 }
 
-func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
+func (qs *QuadStore) optimizeLinksToIterator(it *iterator.LinksTo) (graph.Iterator, bool) {
 	subs := it.SubIterators()
 	if len(subs) != 1 {
 		return it, false
@@ -116,7 +120,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 	return it, false
 }
 
-func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator, bool) {
+func (qs *QuadStore) optimizeComparisonIterator(it *iterator.Comparison) (graph.Iterator, bool) {
 	subs := it.SubIterators()
 	if len(subs) != 1 {
 		return it, false
@@ -188,4 +192,30 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 		return it, false
 	}
 	return NewComparisonIterator(qs, mit.table, q), true
+}
+
+func (qs *QuadStore) optimizeLimitIterator(it *iterator.Limit) (graph.Iterator, bool) {
+	subs := it.SubIterators()
+	if len(subs) != 1 {
+		return it, false
+	}
+	primaryIt, ok := subs[0].(*Iterator)
+	if !ok {
+		return it, false
+	}
+	primaryIt.query = primaryIt.query.Limit(it.Size())
+	return primaryIt, true
+}
+
+func (qs *QuadStore) optimizeSkipIterator(it *iterator.Skip) (graph.Iterator, bool) {
+	subs := it.SubIterators()
+	if len(subs) != 1 {
+		return it, false
+	}
+	primaryIt, ok := subs[0].(*Iterator)
+	if !ok {
+		return it, false
+	}
+	primaryIt.query = primaryIt.query.Skip(it.Size())
+	return primaryIt, true
 }
