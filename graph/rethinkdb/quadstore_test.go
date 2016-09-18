@@ -120,7 +120,12 @@ func TestLimitIterator(t *testing.T) {
 		return
 	}
 
-	it := iterator.NewLimit(qs.QuadsAllIterator(), 4)
+	limit := 4
+
+	allIt := qs.QuadsAllIterator()
+	allIt.Optimize()
+
+	it := iterator.NewLimit(allIt, int64(limit))
 	it.Optimize()
 
 	n := 0
@@ -128,7 +133,7 @@ func TestLimitIterator(t *testing.T) {
 		n++
 	}
 
-	require.Equal(t, 4, n, "Unexpected number of quads in iterator! Expected: %d,  actual: %d", 4, n)
+	require.Equal(t, limit, n, "Unexpected number of quads in iterator! Expected: %d,  actual: %d", limit, n)
 }
 
 func TestSkipIterator(t *testing.T) {
@@ -143,9 +148,15 @@ func TestSkipIterator(t *testing.T) {
 		return
 	}
 
-	skipIt := iterator.NewSkip(qs.QuadsAllIterator(), 4)
+	allIt := qs.QuadsAllIterator()
+	allIt.Optimize()
+
+	skip := 6
+	totalSize, _ := allIt.Size()
+
+	skipIt := iterator.NewSkip(allIt, int64(skip))
 	skipIt.Optimize()
-	limitIt := iterator.NewLimit(skipIt, 10)
+	limitIt := iterator.NewLimit(skipIt, totalSize)
 	limitIt.Optimize()
 
 	n := 0
@@ -153,5 +164,6 @@ func TestSkipIterator(t *testing.T) {
 		n++
 	}
 
-	require.Equal(t, 7, n, "Unexpected number of quads in iterator! Expected: %d,  actual: %d", 7, n)
+	expect := int(totalSize) - skip
+	require.Equal(t, expect, n, "Unexpected number of quads in iterator! Expected: %d,  actual: %d", expect, n)
 }
