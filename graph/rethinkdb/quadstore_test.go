@@ -82,7 +82,7 @@ func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	}
 }
 
-/*func TestRethinkDBAll(t *testing.T) {
+func TestRethinkDBAll(t *testing.T) {
 	graphtest.TestAll(t, makeRethinkDB, &graphtest.Config{
 		TimeInMs:                true,
 		TimeRound:               true,
@@ -90,7 +90,7 @@ func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 		SkipDeletedFromIterator: true,
 		SkipIntHorizon:          true,
 	})
-}*/
+}
 
 func makeQuadSet() []quad.Quad {
 	return []quad.Quad{
