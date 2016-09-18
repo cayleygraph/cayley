@@ -21,8 +21,8 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 		return qs.optimizeComparisonIterator(it.(*iterator.Comparison))
 	case graph.Limit:
 		return qs.optimizeLimitIterator(it.(*iterator.Limit))
-		/*case graph.Skip:
-		  return qs.optimizeSkipIterator(it.(*iterator.Skip))*/
+	case graph.Skip:
+		return qs.optimizeSkipIterator(it.(*iterator.Skip))
 	}
 	return it, false
 }
