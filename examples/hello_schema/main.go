@@ -33,14 +33,6 @@ type Coords struct {
 	Lng float64 `json:"ex:lng"`
 }
 
-type quadWriter struct {
-	w graph.QuadWriter
-}
-
-func (w quadWriter) WriteQuad(q quad.Quad) error {
-	return w.w.AddQuad(q)
-}
-
 func checkErr(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -51,6 +43,10 @@ func main() {
 	// Define an "ex:" prefix for IRIs that will be expanded to "http://example.org".
 	// "ex:name" will become "http://example.org/name"
 	voc.RegisterPrefix("ex:", "http://example.org/")
+
+	// Associate Go type with an IRI.
+	// All Coords objects will now generate a <id> <rdf:type> <ex:Coords> triple.
+	schema.RegisterType(quad.IRI("ex:Coords"), Coords{})
 
 	// Override a function to generate IDs. Can be changed to generate UUIDs, for example.
 	schema.GenerateID = func() quad.Value {
@@ -70,7 +66,6 @@ func main() {
 	store, err := cayley.NewGraph("bolt", tmpfile.Name(), nil)
 	checkErr(err)
 	defer store.Close()
-	qw := quadWriter{store.QuadWriter} // TODO: temporary workaround before formats PR merge
 
 	// Save an object
 	bob := Person{
@@ -78,19 +73,19 @@ func main() {
 		Name: "Bob", Age: 32,
 	}
 	fmt.Printf("saving: %+v\n", bob)
-	id, err := schema.WriteAsQuads(qw, bob)
+	id, err := schema.WriteAsQuads(store, bob)
 	checkErr(err)
 	fmt.Println("id for object:", id, "=", bob.ID) // should be equal
 
 	// Get object by id
 	var someone Person
-	err = schema.SaveTo(nil, store, &someone, id)
+	err = schema.LoadTo(nil, store, &someone, id)
 	checkErr(err)
 	fmt.Printf("loaded: %+v\n", someone)
 
 	// Or get all objects of type Person
 	var people []Person
-	err = schema.SaveTo(nil, store, &people)
+	err = schema.LoadTo(nil, store, &people)
 	checkErr(err)
 	fmt.Printf("people: %+v\n", people)
 
@@ -102,14 +97,14 @@ func main() {
 		{Lat: 39.7, Lng: 8.41},
 	}
 	for _, c := range coords {
-		id, err = schema.WriteAsQuads(qw, c)
+		id, err = schema.WriteAsQuads(store, c)
 		checkErr(err)
 		fmt.Println("generated id:", id)
 	}
 
 	// Get coords back
 	var newCoords []Coords
-	err = schema.SaveTo(nil, store, &newCoords)
+	err = schema.LoadTo(nil, store, &newCoords)
 	checkErr(err)
 	fmt.Printf("coords: %+v\n", newCoords)
 
