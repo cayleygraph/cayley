@@ -482,7 +482,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			queries = append(queries, gorethink.Table(nodeTableName).Insert(batch, gorethink.InsertOpts{
 				Conflict: func(_, oldDoc, newDoc gorethink.Term) interface{} {
 					return newDoc.Merge(map[string]interface{}{
-						"size": oldDoc.Add(newDoc.Field("size")),
+						"size": oldDoc.Field("size").Add(newDoc.Field("size")),
 					})
 				},
 			}))
