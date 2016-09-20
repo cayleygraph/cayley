@@ -110,7 +110,7 @@ Along the side are the various actions or views you can take. From the top, thes
 
 * Run Query (run the query)
 * Gremlin (a dropdown, to pick your query language, MPL is the other)
-  * [GremlinAPI.md](GremlinAPI.md]: This is the one of the two query languages used either via the REPL or HTTP interface.
+  * [GremlinAPI.md](GremlinAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.
   * [MQL.md](MQL.md): The *other* query language the interfaces support. 
 
 ----
