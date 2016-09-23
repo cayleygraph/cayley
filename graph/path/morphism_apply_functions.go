@@ -17,6 +17,7 @@ package path
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
