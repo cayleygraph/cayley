@@ -11,7 +11,6 @@ import (
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/internal/dock"
-	"github.com/cayleygraph/cayley/quad"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/require"
 )
@@ -94,29 +93,13 @@ func TestRethinkDBAll(t *testing.T) {
 	})
 }
 
-func makeQuadSet() []quad.Quad {
-	return []quad.Quad{
-		quad.Make("A", "follows", "B", nil),
-		quad.Make("C", "follows", "B", nil),
-		quad.Make("C", "follows", "D", nil),
-		quad.Make("D", "follows", "B", nil),
-		quad.Make("B", "follows", "F", nil),
-		quad.Make("F", "follows", "G", nil),
-		quad.Make("D", "follows", "G", nil),
-		quad.Make("E", "follows", "F", nil),
-		quad.Make("B", "status", "cool", "status_graph"),
-		quad.Make("D", "status", "cool", "status_graph"),
-		quad.Make("G", "status", "cool", "status_graph"),
-	}
-}
-
 func TestLimitIterator(t *testing.T) {
 	qs, opts, close := makeRethinkDB(t)
 	defer close()
 
 	w := graphtest.MakeWriter(t, qs, opts)
 
-	err := w.AddQuadSet(makeQuadSet())
+	err := w.AddQuadSet(graphtest.MakeQuadSet())
 	if err != nil {
 		t.Error(err)
 		return
@@ -125,10 +108,9 @@ func TestLimitIterator(t *testing.T) {
 	limit := 4
 
 	allIt := qs.QuadsAllIterator()
-	allIt.Optimize()
-
 	it := iterator.NewLimit(allIt, int64(limit))
-	it.Optimize()
+
+	qs.OptimizeIterator(it)
 
 	n := 0
 	for it.Next() {
@@ -136,36 +118,4 @@ func TestLimitIterator(t *testing.T) {
 	}
 
 	require.Equal(t, limit, n, "Unexpected number of quads in iterator! Expected: %d,  actual: %d", limit, n)
-}
-
-func TestSkipIterator(t *testing.T) {
-	qs, opts, close := makeRethinkDB(t)
-	defer close()
-
-	w := graphtest.MakeWriter(t, qs, opts)
-
-	err := w.AddQuadSet(makeQuadSet())
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	allIt := qs.QuadsAllIterator()
-	allIt.Optimize()
-
-	skip := 6
-	totalSize, _ := allIt.Size()
-
-	skipIt := iterator.NewSkip(allIt, int64(skip))
-	skipIt.Optimize()
-	limitIt := iterator.NewLimit(skipIt, totalSize)
-	limitIt.Optimize()
-
-	n := 0
-	for limitIt.Next() {
-		n++
-	}
-
-	expect := int(totalSize) - skip
-	require.Equal(t, expect, n, "Unexpected number of quads in iterator! Expected: %d,  actual: %d", expect, n)
 }

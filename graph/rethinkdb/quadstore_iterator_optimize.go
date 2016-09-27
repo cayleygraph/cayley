@@ -12,6 +12,9 @@ import (
 )
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
+	if clog.V(4) {
+		clog.Infof("Entering OptimizeIterator %v", it.UID())
+	}
 	switch it.Type() {
 	case graph.LinksTo:
 		return qs.optimizeLinksToIterator(it.(*iterator.LinksTo))
@@ -21,8 +24,6 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 		return qs.optimizeComparisonIterator(it.(*iterator.Comparison))
 	case graph.Limit:
 		return qs.optimizeLimitIterator(it.(*iterator.Limit))
-	case graph.Skip:
-		return qs.optimizeSkipIterator(it.(*iterator.Skip))
 	}
 	return it, false
 }
@@ -203,19 +204,7 @@ func (qs *QuadStore) optimizeLimitIterator(it *iterator.Limit) (graph.Iterator, 
 	if !ok {
 		return it, false
 	}
-	primaryIt.query = primaryIt.query.Limit(it.Size())
-	return primaryIt, true
-}
-
-func (qs *QuadStore) optimizeSkipIterator(it *iterator.Skip) (graph.Iterator, bool) {
-	subs := it.SubIterators()
-	if len(subs) != 1 {
-		return it, false
-	}
-	primaryIt, ok := subs[0].(*Iterator)
-	if !ok {
-		return it, false
-	}
-	primaryIt.query = primaryIt.query.Skip(it.Size())
+	limit, _ := it.Size()
+	primaryIt.query = primaryIt.query.Limit(limit)
 	return primaryIt, true
 }
