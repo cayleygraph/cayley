@@ -59,7 +59,9 @@ func makeRethinkDB(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	// Retry connections, docker container might not be ready
 	var err error
 	for i := 0; i < 10; i++ {
-		err = createNewRethinkDBGraph(addr, nil)
+		err = createNewRethinkDBGraph(addr, graph.Options{
+			"index_wait": true,
+		})
 		if err == nil {
 			break
 		}

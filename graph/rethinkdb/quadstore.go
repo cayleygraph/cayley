@@ -117,7 +117,7 @@ var dirLinkIndexMap = map[[2]quad.Direction]string{
 	{quad.Object, quad.Label}:      "object_label",
 }
 
-func ensureIndexes(session *gorethink.Session) (err error) {
+func ensureIndexes(session *gorethink.Session, indexWait bool) (err error) {
 	// version
 	if err = ensureTable(metadataTableName, session); err != nil {
 		return
@@ -202,14 +202,14 @@ func ensureIndexes(session *gorethink.Session) (err error) {
 		}
 	}
 
-	// wait for index
-	if err = gorethink.Table(nodeTableName).IndexWait().Exec(session); err != nil {
-		return
+	if indexWait {
+		if err = gorethink.Table(nodeTableName).IndexWait().Exec(session); err != nil {
+			return
+		}
+		if err = gorethink.Table(quadTableName).IndexWait().Exec(session); err != nil {
+			return
+		}
 	}
-	if err = gorethink.Table(quadTableName).IndexWait().Exec(session); err != nil {
-		return
-	}
-
 	return
 }
 
@@ -219,7 +219,13 @@ func createNewRethinkDBGraph(addr string, options graph.Options) error {
 		return err
 	}
 	defer session.Close()
-	return ensureIndexes(session)
+
+	indexWait := false
+	if val, ok, err := options.BoolKey("index_wait"); err == nil && ok {
+		indexWait = val
+	}
+
+	return ensureIndexes(session, indexWait)
 }
 
 func dialRethinkDB(addr string, options graph.Options) (session *gorethink.Session, err error) {
@@ -266,7 +272,12 @@ func newQuadStore(addr string, options graph.Options) (qs graph.QuadStore, err e
 		return
 	}
 
-	if err = ensureIndexes(session); err != nil {
+	indexWait := false
+	if val, ok, err := options.BoolKey("index_wait"); err == nil && ok {
+		indexWait = val
+	}
+
+	if err = ensureIndexes(session, indexWait); err != nil {
 		session.Close()
 		return
 	}
