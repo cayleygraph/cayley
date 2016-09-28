@@ -110,10 +110,11 @@ func TestLimitIterator(t *testing.T) {
 	allIt := qs.QuadsAllIterator()
 	it := iterator.NewLimit(allIt, int64(limit))
 
-	qs.OptimizeIterator(it)
+	optIt, ok := qs.OptimizeIterator(it)
+	require.True(t, ok, "Optimize returned false")
 
 	n := 0
-	for it.Next() {
+	for optIt.Next() {
 		n++
 	}
 
