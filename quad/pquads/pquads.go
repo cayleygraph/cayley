@@ -4,7 +4,7 @@ package pquads
 import (
 	"fmt"
 	"github.com/cayleygraph/cayley/quad"
-	pio "github.com/gogo/protobuf/io"
+	"github.com/cayleygraph/cayley/quad/pquads/pio"
 	"io"
 )
 
@@ -29,7 +29,7 @@ type Writer struct {
 
 // NewWriter creates protobuf quads encoder.
 func NewWriter(w io.Writer, compact bool) *Writer {
-	pw := pio.NewDelimitedWriter(w)
+	pw := pio.NewWriter(w)
 	err := pw.WriteMsg(&Header{Version: 1, Full: !compact})
 	return &Writer{pw: pw, err: err, comp: compact}
 }
@@ -68,6 +68,8 @@ type Reader struct {
 	s, p, o quad.Value
 }
 
+var _ quad.Skiper = (*Reader)(nil)
+
 // NewReader creates protobuf quads decoder.
 //
 // MaxSize argument limits maximal size of the buffer used to read quads.
@@ -75,7 +77,7 @@ func NewReader(r io.Reader, maxSize int) *Reader {
 	if maxSize <= 0 {
 		maxSize = DefaultMaxSize
 	}
-	pr := pio.NewDelimitedReader(r, maxSize)
+	pr := pio.NewReader(r, maxSize)
 	var h Header
 	qr := &Reader{pr: pr}
 	if err := pr.ReadMsg(&h); err != nil {
@@ -111,6 +113,17 @@ func (r *Reader) ReadQuad() (quad.Quad, error) {
 		r.o = q.Object
 	}
 	return q, nil
+}
+func (r *Reader) SkipQuad() error {
+	if r.err != nil {
+		return r.err
+	}
+	if r.comp {
+		_, err := r.ReadQuad()
+		return err
+	}
+	r.err = r.pr.SkipMsg()
+	return r.err
 }
 func (r *Reader) Close() error {
 	return r.pr.Close()

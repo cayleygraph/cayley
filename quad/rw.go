@@ -28,6 +28,13 @@ type Reader interface {
 	ReadQuad() (Quad, error)
 }
 
+// Skiper is an interface for quad reader that can skip quads efficiently without decoding them.
+//
+// It returns io.EOF if no quads are left.
+type Skiper interface {
+	SkipQuad() error
+}
+
 type ReadCloser interface {
 	Reader
 	io.Closer
