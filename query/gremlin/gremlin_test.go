@@ -99,9 +99,23 @@ var testQueries = []struct {
 		expect: []string{"<bob>"},
 	},
 	{
+		message: "use .Out() (any)",
+		query: `
+			g.V("<bob>").Out().All()
+		`,
+		expect: []string{"<fred>", "cool_person"},
+	},
+	{
 		message: "use .In()",
 		query: `
 			g.V("<bob>").In("<follows>").All()
+		`,
+		expect: []string{"<alice>", "<charlie>", "<dani>"},
+	},
+	{
+		message: "use .In() (any)",
+		query: `
+			g.V("<bob>").In().All()
 		`,
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
 	},

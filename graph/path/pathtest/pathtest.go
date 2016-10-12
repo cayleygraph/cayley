@@ -84,14 +84,22 @@ func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc) (graph.QuadStore, f
 	return qs, closer
 }
 
-func runTopLevel(qs graph.QuadStore, path *Path) []quad.Value {
-	out, _ := path.Iterate(context.TODO()).Paths(false).AllValues(qs)
+func runTopLevel(qs graph.QuadStore, path *Path, opt bool) []quad.Value {
+	pb := path.Iterate(context.TODO())
+	if !opt {
+		pb = pb.UnOptimized()
+	}
+	out, _ := pb.Paths(false).AllValues(qs)
 	return out
 }
 
-func runTag(qs graph.QuadStore, path *Path, tag string) []quad.Value {
+func runTag(qs graph.QuadStore, path *Path, tag string, opt bool) []quad.Value {
 	var out []quad.Value
-	_ = path.Iterate(context.TODO()).Paths(true).TagEach(func(tags map[string]graph.Value) {
+	pb := path.Iterate(context.TODO())
+	if !opt {
+		pb = pb.UnOptimized()
+	}
+	_ = pb.Paths(true).TagEach(func(tags map[string]graph.Value) {
 		if t, ok := tags[tag]; ok {
 			out = append(out, qs.NameOf(t))
 		}
@@ -139,6 +147,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vBob},
 		},
 		{
+			message: "use out (any)",
+			path:    StartPath(qs, vBob).Out(),
+			expect:  []quad.Value{vFred, vCool},
+		},
+		{
 			message: "use out (raw)",
 			path:    StartPath(qs, quad.Raw(vAlice.String())).Out(quad.Raw(vFollows.String())),
 			expect:  []quad.Value{vBob},
@@ -146,6 +159,11 @@ func testSet(qs graph.QuadStore) []test {
 		{
 			message: "use in",
 			path:    StartPath(qs, vBob).In(vFollows),
+			expect:  []quad.Value{vAlice, vCharlie, vDani},
+		},
+		{
+			message: "use in (any)",
+			path:    StartPath(qs, vBob).In(),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		{
@@ -352,15 +370,21 @@ func RunTestMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
 
 	for _, test := range testSet(qs) {
 		var got []quad.Value
-		if test.tag == "" {
-			got = runTopLevel(qs, test.path)
-		} else {
-			got = runTag(qs, test.path, test.tag)
-		}
-		sort.Sort(quad.ByValueString(got))
-		sort.Sort(quad.ByValueString(test.expect))
-		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("Failed to %s, got: %v(%d) expected: %v(%d)", test.message, got, len(got), test.expect, len(test.expect))
+		for _, opt := range []bool{true, false} {
+			if test.tag == "" {
+				got = runTopLevel(qs, test.path, opt)
+			} else {
+				got = runTag(qs, test.path, test.tag, opt)
+			}
+			sort.Sort(quad.ByValueString(got))
+			sort.Sort(quad.ByValueString(test.expect))
+			unopt := ""
+			if !opt {
+				unopt = " (unoptimized)"
+			}
+			if !reflect.DeepEqual(got, test.expect) {
+				t.Errorf("Failed to %s%s, got: %v(%d) expected: %v(%d)", test.message, unopt, got, len(got), test.expect, len(test.expect))
+			}
 		}
 	}
 }
