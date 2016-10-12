@@ -149,7 +149,7 @@ func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
 		return true, nil
 	}
 	if err != nil {
-		clog.Warningf("Error occured when getting quad/node %s %v", k, err)
+		clog.Warningf("Error occurred when getting quad/node %s %v", k, err)
 		return false, err
 	}
 	return true, nil
