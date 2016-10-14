@@ -125,6 +125,14 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 }
 
 func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
+	var conn *mgo.Session
+	connVal, ok := options["session"]
+	if ok {
+		conn, ok = connVal.(*mgo.Session)
+		if ok {
+			return conn, nil
+		}
+	}
 	var dialInfo mgo.DialInfo
 	dialInfo.Addrs = strings.Split(addr, ",")
 	user, ok, err := options.StringKey("username")
@@ -150,7 +158,7 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 		dbName = val
 	}
 	dialInfo.Database = dbName
-	conn, err := mgo.DialWithInfo(&dialInfo)
+	conn, err = mgo.DialWithInfo(&dialInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -173,16 +181,6 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	qs.ids = lru.New(1 << 16)
 	qs.sizes = lru.New(1 << 16)
 	return &qs, nil
-}
-
-func (qs *QuadStore) Copy() *QuadStore {
-	nqs := *qs
-	nqs.session = qs.session.Copy()
-	return &nqs
-}
-
-func (qs *QuadStore) Release() {
-	qs.session.Close()
 }
 
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
