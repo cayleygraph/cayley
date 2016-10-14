@@ -175,6 +175,16 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	return &qs, nil
 }
 
+func (qs *QuadStore) Copy() *QuadStore {
+	nqs := *qs
+	nqs.session = qs.session.Copy()
+	return &nqs
+}
+
+func (qs *QuadStore) Release() {
+	qs.session.Close()
+}
+
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	id := hashOf(t.Subject)
 	id += hashOf(t.Predicate)
