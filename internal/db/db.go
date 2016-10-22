@@ -22,7 +22,6 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal/config"
-	"github.com/cayleygraph/cayley/quad"
 )
 
 var ErrNotPersistent = errors.New("database type is not persistent")
@@ -65,27 +64,4 @@ func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, e
 	}
 
 	return w, nil
-}
-
-type batchLogger struct {
-	cnt int
-	quad.BatchWriter
-}
-
-func (w *batchLogger) WriteQuads(quads []quad.Quad) (int, error) {
-	n, err := w.BatchWriter.WriteQuads(quads)
-	if clog.V(2) {
-		w.cnt += n
-		clog.Infof("Wrote %d quads.", w.cnt)
-	}
-	return n, err
-}
-
-func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {
-	w := graph.NewWriter(qw)
-	_, err := quad.CopyBatch(&batchLogger{BatchWriter: w}, dec, cfg.LoadSize)
-	if err != nil {
-		return fmt.Errorf("db: failed to load data: %v", err)
-	}
-	return nil
 }

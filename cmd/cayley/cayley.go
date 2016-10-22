@@ -219,7 +219,7 @@ func main() {
 			if err != nil {
 				break
 			}
-			err = internal.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, *quadFile, *quadType)
 			if err != nil {
 				break
 			}
@@ -231,7 +231,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		err = internal.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
+		err = internal.Load(handle.QuadWriter, cfg.LoadSize, *quadFile, *quadType)
 		if err != nil {
 			break
 		}
@@ -244,7 +244,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = internal.Load(handle.QuadWriter, cfg, *quadFile, *quadType)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, *quadFile, *quadType)
 			if err != nil {
 				break
 			}
@@ -269,7 +269,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = internal.Load(handle.QuadWriter, cfg, "", *quadType)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "", *quadType)
 			if err != nil {
 				break
 			}
@@ -291,7 +291,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = internal.Load(handle.QuadWriter, cfg, "", *quadType)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "", *quadType)
 			if err != nil {
 				break
 			}

@@ -490,7 +490,7 @@ func prepare(t testing.TB) {
 		}
 
 		if needsLoad && !remote {
-			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", format)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "../data/30kmoviedata.nq.gz", format)
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -507,7 +507,7 @@ func deletePrepare(t testing.TB) {
 			if err != nil {
 				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
 			}
-			err = internal.Load(handle.QuadWriter, cfg, "", format)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "", format)
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -516,7 +516,7 @@ func deletePrepare(t testing.TB) {
 }
 
 func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
-	return internal.DecompressAndLoad(qw, cfg, path, typ, remove)
+	return internal.DecompressAndLoad(qw, cfg.LoadSize, path, typ, graph.NewRemover)
 }
 
 func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {

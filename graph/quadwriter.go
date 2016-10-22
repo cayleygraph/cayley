@@ -195,7 +195,7 @@ func (w *batchWriter) WriteQuads(quads []quad.Quad) (int, error) {
 func (w *batchWriter) Close() error { return nil }
 
 // NewRemover creates a quad writer for a given QuadStore which removes quads instead of adding them.
-func NewRemover(qs QuadWriter) quad.Writer {
+func NewRemover(qs QuadWriter) quad.BatchWriter {
 	return &removeWriter{qs: qs}
 }
 
@@ -205,6 +205,16 @@ type removeWriter struct {
 
 func (w *removeWriter) WriteQuad(q quad.Quad) error {
 	return w.qs.RemoveQuad(q)
+}
+func (w *removeWriter) WriteQuads(quads []quad.Quad) (int, error) {
+	tx := NewTransaction()
+	for _, q := range quads {
+		tx.RemoveQuad(q)
+	}
+	if err := w.qs.ApplyTransaction(tx); err != nil {
+		return 0, err
+	}
+	return len(quads), nil
 }
 func (w *removeWriter) Close() error { return nil }
 
