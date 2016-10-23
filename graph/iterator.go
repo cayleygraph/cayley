@@ -268,6 +268,7 @@ var (
 		"limit",
 		"skip",
 		"regex",
+		"count",
 	}
 )
 
