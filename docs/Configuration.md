@@ -2,19 +2,21 @@
 
 ## Overview
 
-Cayley expects, in the usual case, to be run with a configuration file, though it can also be run purely through configuration flags. The configuration file contains a JSON object with any of the documented parameters.
+Cayley expects, in the usual case, to be run with a configuration file, though it can also be run purely through configuration flags. The configuration file contains a YAML/JSON object with any of the documented parameters.
 
-Cayley looks in the following locations for the configuration file
+Cayley looks in the following locations for the configuration file (named `cayley.yml` or `cayley.json`):
 
   * Command line flag
   * The environment variable $CAYLEY_CFG
-  * /etc/cayley.cfg
+  * Current directory.
+  * $HOME/.cayley/
+  * /etc/
 
 All command line flags take precedence over the configuration file.
 
-## Main Options
+## Database Options
 
-#### **`database`**
+#### **`store.backend`**
 
   * Type: String
   * Default: "memstore"
@@ -27,52 +29,46 @@ All command line flags take precedence over the configuration file.
   * `mongo`: Stores the graph data and indices in a [MongoDB](http://mongodb.org) instance. Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
   * `sql`: Stores the graph data and indices in a [PostgreSQL](http://www.postgresql.org) instance.
 
-#### **`db_path`**
+#### **`store.address`**
 
   * Type: String
-  * Default: "/tmp/testdb"
+  * Default: ""
+  * Alias: `store.path`
 
   Where does the database actually live? Dependent on the type of database. For each datastore:
 
-  * `memstore`: Path to a quad file to automatically load.
+  * `memstore`: Path parameter is not supported.
   * `leveldb`: Directory to hold the LevelDB database files.
   * `bolt`: Path to the persistent single Bolt database file.
   * `mongo`: "hostname:port" of the desired MongoDB server.
   * `sql`: "postgres://[username:password@]host[:port]/database-name?sslmode=disable" of the desired PostgreSQL database and credentials. Sslmode is optional.
 
-#### **`listen_host`**
-
-  * Type: String
-  * Default: "127.0.0.1"
-
-  The hostname or IP address for Cayley's HTTP server to listen on. Defaults to localhost. If you need to have it available from other machines use either 0.0.0.0 to make it available on all interfaces or listen on a specific IP address.
-
-#### **`listen_port`**
-
-  * Type: String
-  * Default: "64210"
-
-  The port for Cayley's HTTP server to listen on.
-
-#### **`read_only`**
+#### **`store.read_only`**
 
   * Type: Boolean
   * Default: false
 
   If true, disables the ability to write to the database using the HTTP API (will return a 400 for any write request). Useful for testing or instances that shouldn't change.
 
-#### **`load_size`**
-
-  * Type: Integer
-  * Default: 10000
-
-  The number of quads to buffer from a loaded file before writing a block of quads to the database. Larger numbers are good for larger loads.
-
-#### **`db_options`**
+#### **`store.options`**
 
   * Type: Object
 
   See Per-Database Options, below.
+
+<!--#### **`listen_host`**-->
+
+  <!--* Type: String-->
+  <!--* Default: "127.0.0.1"-->
+
+  <!--The hostname or IP address for Cayley's HTTP server to listen on. Defaults to localhost. If you need to have it available from other machines use either 0.0.0.0 to make it available on all interfaces or listen on a specific IP address.-->
+
+<!--#### **`listen_port`**-->
+
+  <!--* Type: String-->
+  <!--* Default: "64210"-->
+
+  <!--The port for Cayley's HTTP server to listen on.-->
 
 ## Language Options
 
@@ -85,7 +81,7 @@ The maximum length of time the Javascript runtime should run until cancelling th
 
 ## Per-Database Options
 
-The `db_options` object in the main configuration file contains any of these following options that change the behavior of the datastore.
+The `store.options` object in the main configuration file contains any of these following options that change the behavior of the datastore.
 
 ### Memory
 
@@ -149,16 +145,23 @@ The `replication_options` object in the main configuration file contains any of 
 
 ### All
 
-#### **`ignore_missing`**
+#### **`load.ignore_missing`**
 
   * Type: Boolean
   * Default: false
 
 Optionally ignore missing quad on delete.
 
-#### **`ignore_duplicate`**
+#### **`load.ignore_duplicate`**
 
   * Type: Boolean
   * Default: false
 
 Optionally ignore duplicated quad on add.
+
+#### **`load.batch`**
+
+  * Type: Integer
+  * Default: 10000
+
+  The number of quads to buffer from a loaded file before writing a block of quads to the database. Larger numbers are good for larger loads.
