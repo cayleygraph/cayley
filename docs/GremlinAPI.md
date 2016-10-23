@@ -64,9 +64,9 @@ For these examples, suppose we have the following graph:
 Where every link is a "<follows>" relationship, and the nodes with an extra `#` in the name have an extra "<status>" link. As in,
 
 ```
-dani -- status --> cool_person
+<dani> -- <status> --> "cool_person"
 ```
-Perhaps these are the influencers in our community. So too are extra `*`s in the name -- these are our smart people, according to the `smart_graph` label, eg, the quad:
+Perhaps these are the influencers in our community. So too are extra `*`s in the name -- these are our smart people, according to the `<smart_graph>` label, eg, the quad:
 ```
 <greg> <status> "smart_person" <smart_graph> .
 ```
@@ -75,9 +75,9 @@ Perhaps these are the influencers in our community. So too are extra `*`s in the
 
 To load above graph into cayley and reproduce the following examples:
 
-`./cayley repl --dbpath=data/testdata.nq` for a REPL prompt, or 
+`./cayley repl -i data/testdata.nq` for a REPL prompt, or 
 
-`./cayley http --dbpath=data/testdata.nq` for the web frontend.
+`./cayley http -i data/testdata.nq` for the web frontend.
 
 ### Basic Traversals
 
@@ -109,7 +109,7 @@ g.V("<dani>").Out().All()
 // Result is bob, greg and cool_person
 g.V("<dani>").Out(["<follows>", "<status>"]).All()
 // Finds all things dani points at on the status linkage, given from a separate query path.
-// Result is {"id": cool_person, "pred": "<status>"}
+// Result is {"id": "cool_person", "pred": "<status>"}
 g.V("<dani>").Out(g.V("<status>"), "pred").All()
 ```
 

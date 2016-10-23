@@ -1,6 +1,6 @@
 # Running in a container
 
-A container exposing the HTTP API of cayley is available.
+A container exposing the HTTP API of Cayley is available.
 
 ## Running with default configuration
 
@@ -18,10 +18,17 @@ To run the container one must first setup a data directory that contains the con
 
 ```
 mkdir data
-cp my_config.cfg data/cayley.cfg
-cp my_data.nq data/my_data.nq
+cp cayley_example.yml data/cayley.yml
+cp data/testdata.nq data/my_data.nq
 # initialize and serve database
-docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley -init -quads /data/my_data.nq
+docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley --init -i /data/my_data.nq
 # serve existing database
 docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley
+```
+
+## Other commands
+
+Container runs `cayley http` command by default. To run any other Cayley command reset the entry point for container:
+```
+docker run -v $PWD/data:/data quay.io/cayleygraph/cayley --entrypoint=cayley version
 ```

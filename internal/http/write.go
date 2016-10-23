@@ -17,6 +17,7 @@ package http
 import (
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,7 +28,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal"
+	"github.com/cayleygraph/cayley/internal/decompressor"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/nquads"
 )
@@ -63,8 +64,14 @@ func (api *API) ServeV1Write(w http.ResponseWriter, r *http.Request, _ httproute
 	if api.config.ReadOnly {
 		return jsonResponse(w, 400, "Database is read-only.")
 	}
-	bodyBytes, err := ioutil.ReadAll(r.Body)
+	const maxSize = 1024 * 1024 // 1 MB
+	lr := io.LimitReader(r.Body, maxSize).(*io.LimitedReader)
+	// TODO: streaming reader
+	bodyBytes, err := ioutil.ReadAll(lr)
 	if err != nil {
+		if lr.N <= 0 {
+			return jsonResponse(w, 400, errors.New("json file is too large"))
+		}
 		return jsonResponse(w, 400, err)
 	}
 	quads, err := ParseJSONToQuadList(bodyBytes)
@@ -96,10 +103,10 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 
 	blockSize, blockErr := strconv.Atoi(r.URL.Query().Get("block_size"))
 	if blockErr != nil {
-		blockSize = api.config.LoadSize
+		blockSize = quad.DefaultBatch
 	}
 
-	quadReader, err := internal.Decompressor(formFile)
+	quadReader, err := decompressor.New(formFile)
 	// TODO(kortschak) Make this configurable from the web UI.
 	dec := nquads.NewReader(quadReader, false)
 
@@ -107,11 +114,11 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 	if err != nil {
 		return jsonResponse(w, 400, err)
 	}
-	n, err := quad.CopyBatch(graph.NewWriter(h), dec, blockSize)
+	qw := graph.NewWriter(h.QuadWriter)
+	n, err := quad.CopyBatch(qw, dec, blockSize)
 	if err != nil {
 		return jsonResponse(w, 400, err)
 	}
-
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d quads.\"}", n)
 	return 200
 }

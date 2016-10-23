@@ -27,14 +27,14 @@ You can set up a full [configuration file](Configuration.md) if you'd prefer, bu
 
 Examples for each backend:
 
-  * `leveldb`:  `./cayley init --db=leveldb --dbpath=/tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
-  * `bolt`:  `./cayley init --db=bolt --dbpath=/tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
-  * `mongo`: `./cayley init --db=mongo --dbpath="<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
-  * `sql`: `./cayley init --db=sql --dbpath="postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
+  * `leveldb`:  `./cayley init -d leveldb -a /tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
+  * `bolt`:  `./cayley init -d bolt -a /tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
+  * `mongo`: `./cayley init -d mongo -a "<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
+  * `sql`: `./cayley init -d sql -a "postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
 
-Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley.cfg.example` in the root directory.
+Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley_example.yml` in the root directory.
 
-You can repeat the `--db` and `--dbpath` flags from here forward instead of the config flag, but let's assume you created `cayley.cfg.overview`
+You can repeat the `--db (-i)` and `--dbpath (-a)` flags from here forward instead of the config flag, but let's assume you created `cayley_overview.yml`
 
 Note: when you specify parameters in the config file the config flags (command line arguments) are ignored.
 
@@ -43,13 +43,13 @@ Note: when you specify parameters in the config file the config flags (command l
 After the database is initialized we load the data.
 
 ```bash
-./cayley load --config=cayley.cfg.overview --quads=data/testdata.nq
+./cayley load -c cayley_overview.yml -i data/testdata.nq
 ```
 
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load --config=cayley.cfg.overview --quads=data/testdata.nq --alsologtostderr
+./cayley load -c cayley_overview.yml -i data/testdata.nq --alsologtostderr
 ```
 
 And watch the log output go by.
@@ -59,7 +59,7 @@ And watch the log output go by.
 Now it's loaded. We can use Cayley now to connect to the graph. As you might have guessed, that command is:
 
 ```bash
-./cayley repl --config=cayley.cfg.overview
+./cayley repl -c cayley_overview.yml
 ```
 
 Where you'll be given a `cayley>` prompt. It's expecting Gremlin/JS, but that can also be configured with a flag.
@@ -104,13 +104,13 @@ cayley> graph.Vertex("<dani>").Out("<follows>").All()
 Just as before:
 
 ```bash
-./cayley http --config=cayley.cfg.overview
+./cayley http -c cayley_overview.yml
 ```
 
 And you'll see a message not unlike
 
 ```bash
-Cayley now listening on 127.0.0.1:64210
+listening on :64210, web interface at http://localhost:64210
 ```
 
 If you visit that address (often, [http://localhost:64210](http://localhost:64210)) you'll see the full web interface and also have a graph ready to serve queries via the [HTTP API](HTTP.md)
@@ -198,10 +198,10 @@ graph.Vertex("Humphrey Bogart").All()
 g.V("Humphrey Bogart").All()
 
 // "Humphrey Bogart" is a name, but not an entity. Let's find the entities with this name in our dataset.
-// Follow links that are pointing In to our "Humphrey Bogart" node with the predicate "name".
+// Follow links that are pointing In to our "Humphrey Bogart" node with the predicate "<name>".
 g.V("Humphrey Bogart").In("<name>").All()
 
-// Notice that "name" is a generic predicate in our dataset.
+// Notice that "<name>" is a generic predicate in our dataset.
 // Starting with a movie gives a similar effect.
 g.V("Casablanca").In("<name>").All()
 

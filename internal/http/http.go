@@ -16,7 +16,6 @@ package http
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -34,7 +33,7 @@ import (
 
 type ResponseHandler func(http.ResponseWriter, *http.Request, httprouter.Params) int
 
-var assetsPath = flag.String("assets", "", "Explicit path to the HTTP assets.")
+var AssetsPath string
 var assetsDirs = []string{"templates", "static", "docs"}
 
 func hasAssets(path string) bool {
@@ -47,11 +46,11 @@ func hasAssets(path string) bool {
 }
 
 func findAssetsPath() string {
-	if *assetsPath != "" {
-		if hasAssets(*assetsPath) {
-			return *assetsPath
+	if AssetsPath != "" {
+		if hasAssets(AssetsPath) {
+			return AssetsPath
 		}
-		clog.Fatalf("Cannot find assets at", *assetsPath, ".")
+		clog.Fatalf("Cannot find assets at", AssetsPath, ".")
 	}
 
 	if hasAssets(".") {
@@ -202,14 +201,4 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	r.GET("/", root.ServeHTTP)
 	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(fmt.Sprint(assets, "/static/")))))
 	http.Handle("/", r)
-}
-
-func Serve(handle *graph.Handle, cfg *config.Config) {
-	SetupRoutes(handle, cfg)
-	clog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
-	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
-	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenHost, cfg.ListenPort), nil)
-	if err != nil {
-		clog.Fatalf("ListenAndServe: %v", err)
-	}
 }
