@@ -360,11 +360,12 @@ func (p *Path) FollowReverse(path *Path) *Path {
 // first time the result node was seen.
 //
 // This is a very expensive operation in practice. Be sure to use it wisely.
-
 func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
 	var path *Path
 	switch v := via.(type) {
 	case string:
+		path = StartMorphism().Out(v)
+	case quad.Value:
 		path = StartMorphism().Out(v)
 	case *Path:
 		path = v
