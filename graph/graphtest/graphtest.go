@@ -16,11 +16,12 @@ import (
 type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 
 type Config struct {
-	UnTyped   bool // converts all values to Raw representation
-	NoHashes  bool // cannot exchange raw values into typed ones
-	TimeInMs  bool
-	TimeInMcs bool
-	TimeRound bool
+	UnTyped       bool // converts all values to Raw representation
+	NoHashes      bool // cannot exchange raw values into typed ones
+	TimeInMs      bool
+	TimeInMcs     bool
+	TimeRound     bool
+	CustomHorizon bool // custom rules for transactions
 
 	OptimizesComparison bool
 
@@ -182,8 +183,10 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 
 	w := MakeWriter(t, qs, opts)
 
-	horizon := qs.Horizon()
-	require.Equal(t, int64(0), horizon.Int(), "Unexpected horizon value")
+	if conf == nil || !conf.CustomHorizon {
+		horizon := qs.Horizon()
+		require.Equal(t, int64(0), horizon.Int(), "Unexpected horizon value")
+	}
 
 	err := w.AddQuadSet(MakeQuadSet())
 	require.Nil(t, err)
@@ -194,8 +197,10 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 		require.Equal(t, int64(5), s, "Unexpected quadstore value size")
 	}
 
-	horizon = qs.Horizon()
-	require.Equal(t, int64(11), horizon.Int(), "Unexpected horizon value")
+	if conf == nil || !conf.CustomHorizon {
+		horizon := qs.Horizon()
+		require.Equal(t, int64(11), horizon.Int(), "Unexpected horizon value")
+	}
 
 	err = w.RemoveQuad(quad.MakeRaw(
 		"A",
@@ -291,6 +296,30 @@ func TestIterator(t testing.TB, gen DatabaseFunc) {
 		}
 	}
 	require.True(t, ok, "Failed to find %q during iteration, got:%q", q, set)
+
+	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.Raw("follows")))
+	var quads []quad.Quad
+	for it.Next() {
+		q := qs.Quad(it.Result())
+		quads = append(quads, q)
+	}
+	require.Nil(t, it.Err())
+	sort.Sort(quad.ByQuadString(quads))
+	expectQuads := []quad.Quad{
+		quad.MakeRaw("C", "follows", "D", ""),
+		quad.MakeRaw("D", "follows", "G", ""),
+		quad.MakeRaw("F", "follows", "G", ""),
+		quad.MakeRaw("C", "follows", "B", ""),
+		quad.MakeRaw("D", "follows", "B", ""),
+		quad.MakeRaw("A", "follows", "B", ""),
+		quad.MakeRaw("B", "follows", "F", ""),
+		quad.MakeRaw("E", "follows", "F", ""),
+	}
+	sort.Sort(quad.ByQuadString(expectQuads))
+	require.Equal(t, expectQuads, quads)
+
+	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.Raw("not existent")))
+	require.False(t, it.Next(), "unexpected quad in iterator")
 }
 
 func TestSetIterator(t testing.TB, gen DatabaseFunc) {
@@ -631,7 +660,11 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc) {
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, qs.NameOf(all.Result()).String())
+		r := all.Result()
+		require.NotNil(t, r, "nil result in All")
+		v := qs.NameOf(r)
+		require.NotNil(t, v, "%v", r)
+		got = append(got, quad.StringOf(v))
 		if !outerAnd.NextPath() {
 			break
 		}

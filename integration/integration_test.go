@@ -37,6 +37,7 @@ import (
 
 	// Load all supported backends.
 	_ "github.com/cayleygraph/cayley/graph/bolt"
+	_ "github.com/cayleygraph/cayley/graph/etcd"
 	_ "github.com/cayleygraph/cayley/graph/leveldb"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/graph/mongo"
@@ -462,6 +463,9 @@ func prepare(t testing.TB) {
 		remote = true
 	case "sql":
 		cfg.DatabasePath = "postgres://localhost/cayley_test"
+		remote = true
+	case "etcd":
+		cfg.DatabasePath = "http://localhost:2379"
 		remote = true
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
