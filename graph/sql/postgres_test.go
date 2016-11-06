@@ -23,6 +23,8 @@ func makePostgres(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	conf.Tty = true
 	conf.Env = []string{`POSTGRES_PASSWORD=postgres`}
 
+	opts := graph.Options{"flavor": flavorPostgres}
+
 	addr, closer := dock.RunAndWait(t, conf, func(addr string) bool {
 		conn, err := pq.Open(`postgres://postgres:postgres@` + addr + `/postgres?sslmode=disable`)
 		if err != nil {
@@ -32,11 +34,11 @@ func makePostgres(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 		return true
 	})
 	addr = `postgres://postgres:postgres@` + addr + `/postgres?sslmode=disable`
-	if err := createSQLTables(addr, nil); err != nil {
+	if err := createSQLTables(addr, opts); err != nil {
 		closer()
 		t.Fatal(err)
 	}
-	qs, err := newQuadStore(addr, nil)
+	qs, err := newQuadStore(addr, opts)
 	if err != nil {
 		closer()
 		t.Fatal(err)
@@ -59,7 +61,7 @@ func TestPostgresPaths(t *testing.T) {
 	pathtest.RunTestMorphisms(t, makePostgres)
 }
 
-func TestZeroRune(t *testing.T) {
+func TestPostgresZeroRune(t *testing.T) {
 	qs, opts, closer := makePostgres(t)
 	defer closer()
 
