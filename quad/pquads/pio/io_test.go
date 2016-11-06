@@ -38,7 +38,7 @@ import (
 	"time"
 )
 
-func iotest(writer io.WriteCloser, reader io.ReadCloser) error {
+func iotest(writer io.Writer, reader io.Reader) error {
 	size := 1000
 	msgs := make([]*test.NinOptNative, size)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -52,13 +52,10 @@ func iotest(writer io.WriteCloser, reader io.ReadCloser) error {
 		if i == 999 {
 			msgs[i] = &test.NinOptNative{}
 		}
-		err := writer.WriteMsg(msgs[i])
+		_, err := writer.WriteMsg(msgs[i])
 		if err != nil {
 			return err
 		}
-	}
-	if err := writer.Close(); err != nil {
-		return err
 	}
 	i := 0
 	for {
@@ -77,35 +74,15 @@ func iotest(writer io.WriteCloser, reader io.ReadCloser) error {
 	if i != size {
 		panic("not enough messages read")
 	}
-	if err := reader.Close(); err != nil {
-		return err
-	}
 	return nil
-}
-
-type buffer struct {
-	*bytes.Buffer
-	closed bool
-}
-
-func (this *buffer) Close() error {
-	this.closed = true
-	return nil
-}
-
-func newBuffer() *buffer {
-	return &buffer{bytes.NewBuffer(nil), false}
 }
 
 func TestVarintNormal(t *testing.T) {
-	buf := newBuffer()
+	buf := bytes.NewBuffer(nil)
 	writer := io.NewWriter(buf)
 	reader := io.NewReader(buf, 1024*1024)
 	if err := iotest(writer, reader); err != nil {
 		t.Error(err)
-	}
-	if !buf.closed {
-		t.Fatalf("did not close buffer")
 	}
 }
 
@@ -120,7 +97,7 @@ func TestVarintNoClose(t *testing.T) {
 
 //issue 32
 func TestVarintMaxSize(t *testing.T) {
-	buf := newBuffer()
+	buf := bytes.NewBuffer(nil)
 	writer := io.NewWriter(buf)
 	reader := io.NewReader(buf, 20)
 	if err := iotest(writer, reader); err != goio.ErrShortBuffer {
@@ -129,7 +106,7 @@ func TestVarintMaxSize(t *testing.T) {
 }
 
 func TestVarintError(t *testing.T) {
-	buf := newBuffer()
+	buf := bytes.NewBuffer(nil)
 	buf.Write([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f})
 	reader := io.NewReader(buf, 1024*1024)
 	msg := &test.NinOptNative{}

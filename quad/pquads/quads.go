@@ -36,7 +36,7 @@ func MakeValue(qv quad.Value) *Value {
 	case quad.Int:
 		return &Value{&Value_Int{int64(v)}}
 	case quad.Float:
-		return &Value{&Value_Float_{float64(v)}}
+		return &Value{&Value_Float{float64(v)}}
 	case quad.Bool:
 		return &Value{&Value_Boolean{bool(v)}}
 	case quad.Time:
@@ -98,8 +98,8 @@ func (m *Value) ToNative() (qv quad.Value) {
 		}
 	case *Value_Int:
 		return quad.Int(v.Int)
-	case *Value_Float_:
-		return quad.Float(v.Float_)
+	case *Value_Float:
+		return quad.Float(v.Float)
 	case *Value_Boolean:
 		return quad.Bool(v.Boolean)
 	case *Value_Time:
@@ -115,6 +115,21 @@ func (m *Value) ToNative() (qv quad.Value) {
 	}
 }
 
+// ToNative converts protobuf Value to quad.Value.
+func (m *StrictQuad_Ref) ToNative() (qv quad.Value) {
+	if m == nil {
+		return nil
+	}
+	switch v := m.Value.(type) {
+	case *StrictQuad_Ref_Iri:
+		return quad.IRI(v.Iri)
+	case *StrictQuad_Ref_BnodeLabel:
+		return quad.BNode(v.BnodeLabel)
+	default:
+		panic(fmt.Errorf("unsupported type: %T", m.Value))
+	}
+}
+
 // MakeQuad converts quad.Quad to its protobuf representation.
 func MakeQuad(q quad.Quad) *Quad {
 	return &Quad{
@@ -123,6 +138,46 @@ func MakeQuad(q quad.Quad) *Quad {
 		ObjectValue:    MakeValue(q.Object),
 		LabelValue:     MakeValue(q.Label),
 	}
+}
+
+func makeRef(v quad.Value) (*StrictQuad_Ref, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var sv isStrictQuad_Ref_Value
+	switch v := v.(type) {
+	case quad.BNode:
+		sv = &StrictQuad_Ref_BnodeLabel{BnodeLabel: string(v)}
+	case quad.IRI:
+		sv = &StrictQuad_Ref_Iri{Iri: string(v)}
+	default:
+		return nil, fmt.Errorf("unexpected type for ref: %T", v)
+	}
+	return &StrictQuad_Ref{Value: sv}, nil
+}
+
+func makeWireQuad(q quad.Quad) *WireQuad {
+	return &WireQuad{
+		Subject:   MakeValue(q.Subject),
+		Predicate: MakeValue(q.Predicate),
+		Object:    MakeValue(q.Object),
+		Label:     MakeValue(q.Label),
+	}
+}
+
+func makeStrictQuad(q quad.Quad) (sq *StrictQuad, err error) {
+	sq = new(StrictQuad)
+	if sq.Subject, err = makeRef(q.Subject); err != nil {
+		return nil, err
+	}
+	if sq.Predicate, err = makeRef(q.Predicate); err != nil {
+		return nil, err
+	}
+	sq.Object = MakeValue(q.Object)
+	if sq.Label, err = makeRef(q.Label); err != nil {
+		return nil, err
+	}
+	return sq, nil
 }
 
 // ToNative converts protobuf Quad to quad.Quad.
@@ -149,6 +204,46 @@ func (m *Quad) ToNative() (q quad.Quad) {
 		q.Label = m.LabelValue.ToNative()
 	} else if m.Label != "" {
 		q.Label = quad.Raw(m.Label)
+	}
+	return
+}
+
+// ToNative converts protobuf StrictQuad to quad.Quad.
+func (m *StrictQuad) ToNative() (q quad.Quad) {
+	if m == nil {
+		return
+	}
+	if m.Subject != nil {
+		q.Subject = m.Subject.ToNative()
+	}
+	if m.Predicate != nil {
+		q.Predicate = m.Predicate.ToNative()
+	}
+	if m.Object != nil {
+		q.Object = m.Object.ToNative()
+	}
+	if m.Label != nil {
+		q.Label = m.Label.ToNative()
+	}
+	return
+}
+
+// ToNative converts protobuf WireQuad to quad.Quad.
+func (m *WireQuad) ToNative() (q quad.Quad) {
+	if m == nil {
+		return
+	}
+	if m.Subject != nil {
+		q.Subject = m.Subject.ToNative()
+	}
+	if m.Predicate != nil {
+		q.Predicate = m.Predicate.ToNative()
+	}
+	if m.Object != nil {
+		q.Object = m.Object.ToNative()
+	}
+	if m.Label != nil {
+		q.Label = m.Label.ToNative()
 	}
 	return
 }

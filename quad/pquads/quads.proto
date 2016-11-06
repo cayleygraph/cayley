@@ -21,15 +21,42 @@ option (gogoproto.protosizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) =  true;
 
+// Quad is in internal representation of quad used by Cayley.
 message Quad {
-  string subject = 1;
-  string predicate = 2;
-  string object = 3;
-  string label = 4;
-  Value subject_value = 5;
+  // TODO(dennwc): get rid of legacy fields with first opportunity and bump version
+
+  string subject    = 1;
+  string predicate  = 2;
+  string object     = 3;
+  string label      = 4;
+
+  Value subject_value   = 5;
   Value predicate_value = 6;
-  Value object_value = 7;
-  Value label_value = 8;
+  Value object_value    = 7;
+  Value label_value     = 8;
+}
+
+// WireQuad is a quad that allows any value for it's directions.
+message WireQuad {
+  Value subject   = 1;
+  Value predicate = 2;
+  Value object    = 3;
+  Value label     = 4;
+}
+
+// StrictQuad is a quad as described by RDF spec.
+message StrictQuad {
+  message Ref {
+    reserved 1; // uint64 bnode = 1;
+    oneof value {
+      string bnode_label  = 2;
+      string iri          = 3;
+    }
+  }
+  Ref   subject   = 1;
+  Ref   predicate = 2;
+  Value object    = 3;
+  Ref   label     = 4;
 }
 
 message Value {
@@ -54,13 +81,16 @@ message Value {
     TypedString typed_str = 5;
     LangString  lang_str = 6;
     int64  int = 7;
-    double float_ = 8;
+    double float = 8;
     bool boolean = 9;
     Timestamp time = 10;
   }
 }
 
 message Header {
-  int64  version = 1;
-  bool   full    = 2;
+  // Full is set if encoder always writes every quad directions instead of
+  // skipping duplicated values on each direction (except label) for subsequent quads.
+  bool full = 1;
+  // NotStrict is set if encoder emits WireQuad instead of StrictQuad messages.
+  bool not_strict = 2;
 }

@@ -2,42 +2,75 @@
 package pquads
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
+
+	"github.com/gogo/protobuf/proto"
+
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads/pio"
-	"io"
 )
 
 var DefaultMaxSize = 1024 * 1024
+
+const currentVersion = 1
+
+var magic = [4]byte{0, 'p', 'q', 0}
 
 func init() {
 	quad.RegisterFormat(quad.Format{
 		Name:   "pquads",
 		Ext:    []string{".pq"},
 		Mime:   []string{"application/x-protobuf", "application/octet-stream"},
-		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w, true) },
+		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w, nil) },
 		Reader: func(r io.Reader) quad.ReadCloser { return NewReader(r, DefaultMaxSize) },
 	})
 }
 
 type Writer struct {
-	pw      pio.WriteCloser
+	pw      pio.Writer
+	max     int
 	err     error
-	comp    bool
+	opts    Options
 	s, p, o quad.Value
 }
 
+type Options struct {
+	// Full can be set to disable quad values compaction.
+	//
+	// This will increase files size, but skip will work faster by omitting unmarshal entirely.
+	Full bool
+	// Strict can be set to only marshal quads allowed by RDF spec.
+	Strict bool
+}
+
 // NewWriter creates protobuf quads encoder.
-func NewWriter(w io.Writer, compact bool) *Writer {
+func NewWriter(w io.Writer, opts *Options) *Writer {
+	// Write file magic and version
+	buf := make([]byte, 8)
+	copy(buf[:4], magic[:])
+	binary.LittleEndian.PutUint32(buf[4:], currentVersion)
+	if _, err := w.Write(buf); err != nil {
+		return &Writer{err: err}
+	}
 	pw := pio.NewWriter(w)
-	err := pw.WriteMsg(&Header{Version: 1, Full: !compact})
-	return &Writer{pw: pw, err: err, comp: compact}
+	if opts == nil {
+		opts = &Options{}
+	}
+	// Write options header
+	_, err := pw.WriteMsg(&Header{
+		Full:      opts.Full,
+		NotStrict: !opts.Strict,
+	})
+	return &Writer{pw: pw, err: err, opts: *opts}
 }
 func (w *Writer) WriteQuad(q quad.Quad) error {
 	if w.err != nil {
 		return w.err
 	}
-	if w.comp {
+	if !w.opts.Full {
 		if q.Subject == w.s {
 			q.Subject = nil
 		} else {
@@ -54,17 +87,35 @@ func (w *Writer) WriteQuad(q quad.Quad) error {
 			w.o = q.Object
 		}
 	}
-	w.err = w.pw.WriteMsg(MakeQuad(q))
+	var m proto.Message
+	if w.opts.Strict {
+		m, w.err = makeStrictQuad(q)
+		if w.err != nil {
+			return w.err
+		}
+	} else {
+		m = makeWireQuad(q)
+	}
+	var n int
+	n, w.err = w.pw.WriteMsg(m)
+	if n > w.max {
+		w.max = n
+	}
 	return w.err
 }
+
+// MaxSize returns a maximal message size written.
+func (w *Writer) MaxSize() int {
+	return w.max
+}
 func (w *Writer) Close() error {
-	return w.pw.Close()
+	return nil
 }
 
 type Reader struct {
-	pr      pio.ReadCloser
+	pr      pio.Reader
 	err     error
-	comp    bool
+	opts    Options
 	s, p, o quad.Value
 }
 
@@ -77,26 +128,50 @@ func NewReader(r io.Reader, maxSize int) *Reader {
 	if maxSize <= 0 {
 		maxSize = DefaultMaxSize
 	}
-	pr := pio.NewReader(r, maxSize)
-	var h Header
-	qr := &Reader{pr: pr}
-	if err := pr.ReadMsg(&h); err != nil {
+	qr := &Reader{}
+	buf := make([]byte, 8)
+	if _, err := io.ReadFull(r, buf); err != nil {
 		qr.err = err
-	} else if h.Version != 1 {
-		qr.err = fmt.Errorf("unsupported pquads version: %d", h.Version)
+		return qr
+	} else if bytes.Compare(magic[:], buf[:4]) != 0 {
+		qr.err = fmt.Errorf("not a pquads file")
+		return qr
 	}
-	qr.comp = !h.Full
+	vers := binary.LittleEndian.Uint32(buf[4:])
+	if vers != currentVersion {
+		qr.err = fmt.Errorf("unsupported pquads version: %d", vers)
+		return qr
+	}
+
+	qr.pr = pio.NewReader(r, maxSize)
+	var h Header
+	if err := qr.pr.ReadMsg(&h); err != nil {
+		qr.err = err
+	}
+	qr.opts = Options{
+		Full:   h.Full,
+		Strict: !h.NotStrict,
+	}
 	return qr
 }
 func (r *Reader) ReadQuad() (quad.Quad, error) {
 	if r.err != nil {
 		return quad.Quad{}, r.err
 	}
-	var pq Quad
-	if r.err = r.pr.ReadMsg(&pq); r.err != nil {
-		return quad.Quad{}, r.err
+	var q quad.Quad
+	if r.opts.Strict {
+		var pq StrictQuad
+		if r.err = r.pr.ReadMsg(&pq); r.err != nil {
+			return quad.Quad{}, r.err
+		}
+		q = pq.ToNative()
+	} else {
+		var pq WireQuad
+		if r.err = r.pr.ReadMsg(&pq); r.err != nil {
+			return quad.Quad{}, r.err
+		}
+		q = pq.ToNative()
 	}
-	q := pq.ToNative()
 	if q.Subject == nil {
 		q.Subject = r.s
 	} else {
@@ -115,10 +190,8 @@ func (r *Reader) ReadQuad() (quad.Quad, error) {
 	return q, nil
 }
 func (r *Reader) SkipQuad() error {
-	if r.err != nil {
-		return r.err
-	}
-	if r.comp {
+	if !r.opts.Full {
+		// TODO(dennwc): read pb fields as bytes and unmarshal them only if ReadQuad is called
 		_, err := r.ReadQuad()
 		return err
 	}
@@ -126,5 +199,5 @@ func (r *Reader) SkipQuad() error {
 	return r.err
 }
 func (r *Reader) Close() error {
-	return r.pr.Close()
+	return nil
 }
