@@ -46,7 +46,7 @@ func Dump(qs graph.QuadStore, outFile, typ string) error {
 	defer qw.Close()
 
 	//TODO: add possible support for exporting specific queries only
-	qr := graph.NewReader(qs, nil)
+	qr := graph.NewQuadStoreReader(qs)
 	defer qr.Close()
 
 	n, err := quad.Copy(qw, qr)

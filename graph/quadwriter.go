@@ -218,9 +218,18 @@ func (w *removeWriter) WriteQuads(quads []quad.Quad) (int, error) {
 }
 func (w *removeWriter) Close() error { return nil }
 
-// NewReader creates a quad reader for a given QuadStore and iterator.
+// NewResultReader creates a quad reader for a given QuadStore.
+func NewQuadStoreReader(qs QuadStore) quad.ReadSkipCloser {
+	return NewResultReader(qs, nil)
+}
+
+// NewResultReader creates a quad reader for a given QuadStore and iterator.
 // If iterator is nil QuadsAllIterator will be used.
-func NewReader(qs QuadStore, it Iterator) quad.ReadCloser {
+//
+// Only quads returned by iterator's Result will be used.
+//
+// Iterator will be closed with the reader.
+func NewResultReader(qs QuadStore, it Iterator) quad.ReadSkipCloser {
 	if it == nil {
 		it = qs.QuadsAllIterator()
 	}
@@ -241,5 +250,14 @@ func (r *quadReader) ReadQuad() (quad.Quad, error) {
 		err = io.EOF
 	}
 	return quad.Quad{}, err
+}
+func (r *quadReader) SkipQuad() error {
+	if r.it.Next() {
+		return nil
+	}
+	if err := r.it.Err(); err != nil {
+		return err
+	}
+	return io.EOF
 }
 func (r *quadReader) Close() error { return r.it.Close() }

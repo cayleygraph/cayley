@@ -119,7 +119,7 @@ type Reader struct {
 	s, p, o quad.Value
 }
 
-var _ quad.Skiper = (*Reader)(nil)
+var _ quad.Skipper = (*Reader)(nil)
 
 // NewReader creates protobuf quads decoder.
 //
