@@ -41,7 +41,7 @@ var (
 	errLargeValue  = errors.New("Value is Larger than 64 bits")
 )
 
-func NewWriter(w io.Writer) WriteCloser {
+func NewWriter(w io.Writer) Writer {
 	return &varintWriter{w: w, lenBuf: make([]byte, binary.MaxVarintLen64)}
 }
 
@@ -51,14 +51,14 @@ type varintWriter struct {
 	buffer []byte
 }
 
-func (w *varintWriter) WriteMsg(msg proto.Message) (err error) {
+func (w *varintWriter) WriteMsg(msg proto.Message) (_ int, err error) {
 	var data []byte
 	if m, ok := msg.(marshaler); ok {
 		n, ok := getSize(m)
 		if !ok {
 			data, err = proto.Marshal(msg)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 		if n >= len(w.buffer) {
@@ -66,84 +66,79 @@ func (w *varintWriter) WriteMsg(msg proto.Message) (err error) {
 		}
 		_, err = m.MarshalTo(w.buffer)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		data = w.buffer[:n]
 	} else {
 		data, err = proto.Marshal(msg)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 	length := uint64(len(data))
 	n := binary.PutUvarint(w.lenBuf, length)
-	_, err = w.w.Write(w.lenBuf[:n])
+	n, err = w.w.Write(w.lenBuf[:n])
 	if err != nil {
-		return err
+		return n, err
 	}
-	_, err = w.w.Write(data)
-	return err
+	nd, err := w.w.Write(data)
+	return n + nd, err
 }
 
-func (w *varintWriter) Close() error {
-	if closer, ok := w.w.(io.Closer); ok {
-		return closer.Close()
-	}
-	return nil
-}
-
-func NewReader(r io.Reader, maxSize int) ReadCloser {
-	var closer io.Closer
-	if c, ok := r.(io.Closer); ok {
-		closer = c
-	}
-	return &varintReader{r: bufio.NewReader(r), maxSize: maxSize, closer: closer}
+func NewReader(r io.Reader, maxSize int) Reader {
+	return &varintReader{r: bufio.NewReader(r), maxSize: maxSize}
 }
 
 type varintReader struct {
 	r       *bufio.Reader
 	buf     []byte
 	maxSize int
-	closer  io.Closer
+
+	readLen bool
+	len     int
 }
 
-func (r *varintReader) SkipMsg() error {
+func (r *varintReader) readLength() error {
+	if r.readLen {
+		return nil
+	}
 	length64, err := binary.ReadUvarint(r.r)
 	if err != nil {
 		return err
 	}
 	length := int(length64)
-	if length < 0 {
+	r.readLen, r.len = true, length
+	return nil
+}
+
+func (r *varintReader) SkipMsg() error {
+	if err := r.readLength(); err != nil {
+		return err
+	}
+	if r.len < 0 {
 		return io.ErrShortBuffer
 	}
-	if _, err = r.r.Discard(length); err != nil {
+	r.readLen = false
+	if _, err := r.r.Discard(r.len); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (r *varintReader) ReadMsg(msg proto.Message) error {
-	length64, err := binary.ReadUvarint(r.r)
-	if err != nil {
+	if err := r.readLength(); err != nil {
 		return err
 	}
-	length := int(length64)
-	if length < 0 || length > r.maxSize {
+	if r.len < 0 || r.len > r.maxSize {
 		return io.ErrShortBuffer
 	}
-	if len(r.buf) < length {
-		r.buf = make([]byte, length)
+	r.readLen = false
+	if len(r.buf) < r.len {
+		r.buf = make([]byte, r.len)
 	}
-	buf := r.buf[:length]
+	buf := r.buf[:r.len]
 	if _, err := io.ReadFull(r.r, buf); err != nil {
 		return err
 	}
 	return proto.Unmarshal(buf, msg)
-}
-
-func (r *varintReader) Close() error {
-	if r.closer != nil {
-		return r.closer.Close()
-	}
-	return nil
 }

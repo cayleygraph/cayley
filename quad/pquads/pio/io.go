@@ -30,26 +30,15 @@ package pio
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"io"
 )
 
 type Writer interface {
-	WriteMsg(proto.Message) error
-}
-
-type WriteCloser interface {
-	Writer
-	io.Closer
+	WriteMsg(proto.Message) (int, error)
 }
 
 type Reader interface {
 	ReadMsg(msg proto.Message) error
 	SkipMsg() error
-}
-
-type ReadCloser interface {
-	Reader
-	io.Closer
 }
 
 type marshaler interface {
