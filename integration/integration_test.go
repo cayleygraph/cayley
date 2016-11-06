@@ -48,8 +48,11 @@ import (
 
 const format = "cquad"
 
-var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
-var backendPath = flag.String("backend_path", "", "Path to the chosen backend. Will have sane testing defaults if not specified")
+var (
+	backend     = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
+	backendPath = flag.String("backend_path", "", "Path to the chosen backend. Will have sane testing defaults if not specified")
+	sqlFlavor   = flag.String("flavor", "postgres", "SQL flavour")
+)
 
 var benchmarkQueries = []struct {
 	message string
@@ -462,6 +465,9 @@ func prepare(t testing.TB) {
 		remote = true
 	case "sql":
 		cfg.DatabasePath = "postgres://localhost/cayley_test"
+		cfg.DatabaseOptions = map[string]interface{}{
+			"flavor": *sqlFlavor,
+		}
 		remote = true
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
@@ -550,6 +556,9 @@ func TestDeletedAndRecreatedQueries(t *testing.T) {
 }
 
 func checkQueries(t *testing.T) {
+	if handle == nil {
+		t.Fatal("not initialized")
+	}
 	for _, test := range benchmarkQueries {
 		if testing.Short() && test.long {
 			continue
