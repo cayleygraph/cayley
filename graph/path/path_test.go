@@ -20,7 +20,6 @@ import (
 	"github.com/codelingo/cayley/graph/path/pathtest"
 )
 
->>>>>>> df84ef8447d5f052528b3be7aca98486a0b2fcf1
 func TestMorphisms(t *testing.T) {
 	pathtest.RunTestMorphisms(t, nil)
 }
