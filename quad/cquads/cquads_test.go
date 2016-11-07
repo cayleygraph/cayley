@@ -702,7 +702,7 @@ func TestRDFWorkingGroupSuit(t *testing.T) {
 	// [1] Because we don't require literal quoting, we cannot
 	// distinguish quad terms without separating whitespace.
 	//
-	// [2] The cquads grammer accepts these because of its relaxation.
+	// [2] The cquads grammar accepts these because of its relaxation.
 	//
 	// [3] These tests pass because the parser does not perform
 	// semantic testing on the URI in the IRIRef as required by

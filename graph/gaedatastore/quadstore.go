@@ -149,7 +149,7 @@ func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
 		return true, nil
 	}
 	if err != nil {
-		clog.Warningf("Error occured when getting quad/node %s %v", k, err)
+		clog.Warningf("Error occurred when getting quad/node %s %v", k, err)
 		return false, err
 	}
 	return true, nil
@@ -415,6 +415,8 @@ func (qs *QuadStore) NameOf(val graph.Value) quad.Value {
 	if qs.context == nil {
 		clog.Errorf("Error in NameOf, context is nil, graph not correctly initialised")
 		return nil
+	} else if v, ok := val.(graph.PreFetchedValue); ok {
+		return v.NameOf()
 	}
 	var key *datastore.Key
 	if t, ok := val.(*Token); ok && t.Kind == nodeKind {

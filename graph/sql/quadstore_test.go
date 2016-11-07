@@ -1,14 +1,16 @@
 package sql
 
 import (
+	"testing"
+	"unicode/utf8"
+
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/graphtest"
+	"github.com/codelingo/cayley/graph/path/pathtest"
 	"github.com/codelingo/cayley/internal/dock"
 	"github.com/codelingo/cayley/quad"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"unicode/utf8"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/graphtest"
@@ -56,6 +58,10 @@ func TestPostgresAll(t *testing.T) {
 		TimeRound:               true,
 		SkipNodeDelAfterQuadDel: true,
 	})
+}
+
+func TestPostgresPaths(t *testing.T) {
+	pathtest.RunTestMorphisms(t, makePostgres)
 }
 
 func TestZeroRune(t *testing.T) {

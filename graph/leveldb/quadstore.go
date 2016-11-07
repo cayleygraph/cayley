@@ -476,6 +476,8 @@ func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
 			clog.Infof("k was nil")
 		}
 		return nil
+	} else if v, ok := k.(graph.PreFetchedValue); ok {
+		return v.NameOf()
 	}
 	v := qs.valueData(k.(Token))
 	return v.GetNativeValue()

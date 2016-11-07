@@ -79,10 +79,10 @@ cayley> x
 cayley> graph.Vertex().All()
 
 // See only dani.
-cayley> graph.Vertex("dani").All()
+cayley> graph.Vertex("<dani>").All()
 
 // See who dani follows.
-cayley> graph.Vertex("dani").Out("follows").All()
+cayley> graph.Vertex("<dani>").Out("<follows>").All()
 ```
 
 
@@ -110,7 +110,7 @@ Along the side are the various actions or views you can take. From the top, thes
 
 * Run Query (run the query)
 * Gremlin (a dropdown, to pick your query language, MPL is the other)
-  * [GremlinAPI.md](GremlinAPI.md]: This is the one of the two query languages used either via the REPL or HTTP interface.
+  * [GremlinAPI.md](GremlinAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.
   * [MQL.md](MQL.md): The *other* query language the interfaces support. 
 
 ----
@@ -147,7 +147,7 @@ Other keys are ignored. The upshot is that if you use the "Tag" functionality to
 
 ```
 // Visualize who dani follows.
-g.V("dani").Tag("source").Out("follows").Tag("target").All()
+g.V("<dani>").Tag("source").Out("<follows>").Tag("target").All()
 ```
 The visualizer expects to tag nodes as either "source" or "target."  Your source is represented as a blue node.
 While your target is represented as an orange node.
@@ -176,14 +176,14 @@ g.V("Humphrey Bogart").All()
 
 // "Humphrey Bogart" is a name, but not an entity. Let's find the entities with this name in our dataset.
 // Follow links that are pointing In to our "Humphrey Bogart" node with the predicate "name".
-g.V("Humphrey Bogart").In("name").All()
+g.V("Humphrey Bogart").In("<name>").All()
 
 // Notice that "name" is a generic predicate in our dataset.
 // Starting with a movie gives a similar effect.
-g.V("Casablanca").In("name").All()
+g.V("Casablanca").In("<name>").All()
 
 // Relatedly, we can ask the reverse; all ids with the name "Casablanca"
-g.V().Has("name", "Casablanca").All()
+g.V().Has("<name>", "Casablanca").All()
 ```
 
 
@@ -191,21 +191,21 @@ You may start to notice a pattern here: with Gremlin, the query lines tend to:
 
 Start somewhere in the graph | Follow a path | Run the query with "All" or "GetLimit"
 
-g.V("Casablanca") | .In("name") | .All()
+g.V("Casablanca") | .In("<name>") | .All()
 
 And these pipelines continue...
 
 ```javascript
 // Let's get the list of actors in the film
-g.V().Has("name","Casablanca")
-  .Out("/film/film/starring").Out("/film/performance/actor")
-  .Out("name").All()
+g.V().Has("<name>","Casablanca")
+  .Out("</film/film/starring>").Out("</film/performance/actor>")
+  .Out("<name>").All()
 
 // But this is starting to get long. Let's use a morphism -- a pre-defined path stored in a variable -- as our linkage
 
-var filmToActor = g.Morphism().Out("/film/film/starring").Out("/film/performance/actor")
+var filmToActor = g.Morphism().Out("</film/film/starring>").Out("</film/performance/actor>")
 
-g.V().Has("name", "Casablanca").Follow(filmToActor).Out("name").All()
+g.V().Has("<name>", "Casablanca").Follow(filmToActor).Out("<name>").All()
 
 ```
 

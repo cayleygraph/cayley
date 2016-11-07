@@ -323,11 +323,12 @@ func (it *Iterator) Describe() graph.Description {
 
 // TODO (panamafrancis) calculate costs
 func (it *Iterator) Stats() graph.IteratorStats {
-	size, _ := it.Size()
+	size, exact := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: 1,
 		NextCost:     5,
 		Size:         size,
+		ExactSize:    exact,
 	}
 }
 

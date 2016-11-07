@@ -174,11 +174,12 @@ func (it *Int64) Optimize() (graph.Iterator, bool) { return it, false }
 // Stats for an Int64 are simple. Super cheap to do any operation,
 // and as big as the range.
 func (it *Int64) Stats() graph.IteratorStats {
-	s, _ := it.Size()
+	s, exact := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: 1,
 		NextCost:     1,
 		Size:         s,
+		ExactSize:    exact,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 	}

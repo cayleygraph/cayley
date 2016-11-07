@@ -82,7 +82,7 @@ func (n *SQLNodeIterator) Type() sqlQueryType {
 }
 
 func (n *SQLNodeIterator) Size(qs *QuadStore) (int64, bool) {
-	return qs.Size() / 2, true
+	return qs.Size() / 2, false
 }
 
 func (n *SQLNodeIterator) Describe() string {

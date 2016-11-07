@@ -293,6 +293,7 @@ func (it *Or) Stats() graph.IteratorStats {
 	ContainsCost := int64(0)
 	NextCost := int64(0)
 	Size := int64(0)
+	Exact := true
 	for _, sub := range it.internalIterators {
 		stats := sub.Stats()
 		NextCost += stats.NextCost
@@ -300,15 +301,18 @@ func (it *Or) Stats() graph.IteratorStats {
 		if it.isShortCircuiting {
 			if Size < stats.Size {
 				Size = stats.Size
+				Exact = stats.ExactSize
 			}
 		} else {
 			Size += stats.Size
+			Exact = Exact && stats.ExactSize
 		}
 	}
 	return graph.IteratorStats{
 		ContainsCost: ContainsCost,
 		NextCost:     NextCost,
 		Size:         Size,
+		ExactSize:    Exact,
 	}
 
 }

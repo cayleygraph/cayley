@@ -256,6 +256,7 @@ func (it *HasA) Stats() graph.IteratorStats {
 		NextCost:     quadConstant + subitStats.NextCost,
 		ContainsCost: (fanoutFactor * nextConstant) * subitStats.ContainsCost,
 		Size:         faninFactor * subitStats.Size,
+		ExactSize:    false,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 		ContainsNext: it.runstats.ContainsNext,
@@ -281,7 +282,8 @@ func (it *HasA) Close() error {
 func (it *HasA) Type() graph.Type { return graph.HasA }
 
 func (it *HasA) Size() (int64, bool) {
-	return it.Stats().Size, false
+	st := it.Stats()
+	return st.Size, st.ExactSize
 }
 
 var _ graph.Iterator = &HasA{}

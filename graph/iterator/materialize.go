@@ -173,12 +173,13 @@ func (it *Materialize) Size() (int64, bool) {
 // putting it all up front.
 func (it *Materialize) Stats() graph.IteratorStats {
 	overhead := int64(2)
-	size, _ := it.Size()
+	size, exact := it.Size()
 	subitStats := it.subIt.Stats()
 	return graph.IteratorStats{
 		ContainsCost: overhead * subitStats.NextCost,
 		NextCost:     overhead * subitStats.NextCost,
 		Size:         size,
+		ExactSize:    exact,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 	}

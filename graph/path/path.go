@@ -149,9 +149,30 @@ func (p *Path) Is(nodes ...quad.Value) *Path {
 	return np
 }
 
+// Regex represents the nodes that are matching provided regexp pattern.
+// It will only include Raw and String values.
 func (p *Path) Regex(pattern *regexp.Regexp) *Path {
 	np := p.clone()
-	np.stack = append(np.stack, regexMorphism(pattern))
+	np.stack = append(np.stack, regexMorphism(pattern, false))
+	return np
+}
+
+// RegexWithRefs is the same as Regex, but also matches IRIs and BNodes.
+//
+// Consider using it carefully. In most cases it's better to reconsider
+// your graph structure instead of relying on slow unoptimizable regexp.
+//
+// An example of incorrect usage is to match IRIs:
+// 	<http://example.org/page>
+// 	<http://example.org/page/foo>
+// Via regexp like:
+//	http://example.org/page.*
+//
+// The right way is to explicitly link graph nodes and query them by this relation:
+// 	<http://example.org/page/foo> <type> <http://example.org/page>
+func (p *Path) RegexWithRefs(pattern *regexp.Regexp) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, regexMorphism(pattern, true))
 	return np
 }
 
@@ -284,6 +305,13 @@ func (p *Path) Or(path *Path) *Path {
 func (p *Path) Except(path *Path) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, exceptMorphism(path))
+	return np
+}
+
+// Unique updates the current Path to contain only unique nodes.
+func (p *Path) Unique() *Path {
+	np := p.clone()
+	np.stack = append(np.stack, uniqueMorphism())
 	return np
 }
 
@@ -479,6 +507,12 @@ func (p *Path) Skip(v int64) *Path {
 // Limit will limit a number of values in result set.
 func (p *Path) Limit(v int64) *Path {
 	p.stack = append(p.stack, limitMorphism(v))
+	return p
+}
+
+// Count will count a number of results as it's own result set.
+func (p *Path) Count() *Path {
+	p.stack = append(p.stack, countMorphism())
 	return p
 }
 

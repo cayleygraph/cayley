@@ -23,6 +23,7 @@ import (
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/graphtest"
 	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph/path/pathtest"
 	"github.com/codelingo/cayley/quad"
 	"github.com/codelingo/cayley/writer"
 )
@@ -200,4 +201,8 @@ func TestOptimize(t *testing.T) {
 	if !reflect.DeepEqual(newResults, oldResults) {
 		t.Errorf("Discordant tag results, new:%v old:%v", newResults, oldResults)
 	}
+}
+
+func TestBoltPaths(t *testing.T) {
+	pathtest.RunTestMorphisms(t, makeBolt)
 }

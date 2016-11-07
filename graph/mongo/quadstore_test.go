@@ -1,10 +1,12 @@
 package mongo
 
 import (
+	"testing"
+
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/graphtest"
+	"github.com/codelingo/cayley/graph/path/pathtest"
 	"github.com/codelingo/cayley/internal/dock"
-	"testing"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/graphtest"
@@ -43,4 +45,8 @@ func TestMongoAll(t *testing.T) {
 		SkipSizeCheckAfterDelete: true,
 		SkipNodeDelAfterQuadDel:  true,
 	})
+}
+
+func TestMongoPaths(t *testing.T) {
+	pathtest.RunTestMorphisms(t, makeMongo)
 }

@@ -15,6 +15,7 @@
 package gremlin
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -98,6 +99,13 @@ var testQueries = []struct {
 		expect: []string{"<bob>"},
 	},
 	{
+		message: "use .Out() (any)",
+		query: `
+			g.V("<bob>").Out().All()
+		`,
+		expect: []string{"<fred>", "cool_person"},
+	},
+	{
 		message: "use .In()",
 		query: `
 			g.V("<bob>").In("<follows>").All()
@@ -105,9 +113,44 @@ var testQueries = []struct {
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
 	},
 	{
+		message: "use .In() (any)",
+		query: `
+			g.V("<bob>").In().All()
+		`,
+		expect: []string{"<alice>", "<charlie>", "<dani>"},
+	},
+	{
 		message: "use .In() with .Filter()",
 		query: `
 			g.V("<bob>").In("<follows>").Filter(gt(iri("c")),lt(iri("d"))).All()
+		`,
+		expect: []string{"<charlie>"},
+	},
+	{
+		message: "use .In() with .Filter(regex)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e")).All()
+		`,
+		expect: nil,
+	},
+	{
+		message: "use .In() with .Filter(regex with IRIs)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true)).All()
+		`,
+		expect: []string{"<alice>", "<charlie>"},
+	},
+	{
+		message: "use .In() with .Filter(regex with IRIs)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex(iri("ar?li.*e"))).All()
+		`,
+		err: true,
+	},
+	{
+		message: "use .In() with .Filter(regex,gt)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true),gt(iri("c"))).All()
 		`,
 		expect: []string{"<charlie>"},
 	},
@@ -154,6 +197,14 @@ var testQueries = []struct {
 			g.V("<alice>", "<bob>", "<charlie>").Except(g.V("<bob>")).Except(g.V("<charlie>")).All()
 		`,
 		expect: []string{"<alice>"},
+	},
+
+	{
+		message: "use Unique",
+		query: `
+			g.V("<alice>", "<bob>", "<charlie>").Out("<follows>").Unique().All()
+		`,
+		expect: []string{"<bob>", "<dani>", "<fred>"},
 	},
 
 	// Morphism tests.
@@ -269,6 +320,21 @@ var testQueries = []struct {
 				g.V().Has("<status>", "cool_person").Skip(1).Limit(1).All()
 		`,
 		expect: []string{"<dani>"},
+	},
+
+	{
+		message: "show Count",
+		query: `
+				g.V().Has("<status>").Count().All()
+		`,
+		expect: []string{`"5"^^<http://schema.org/Integer>`},
+	},
+	{
+		message: "use Count value",
+		query: `
+				g.Emit(g.V().Has("<status>").Count().ToValue()+1)
+		`,
+		expect: []string{"6"},
 	},
 
 	// Tag tests.
@@ -426,6 +492,8 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string,
 			switch v := data.val.(type) {
 			case string:
 				results = append(results, v)
+			default:
+				results = append(results, fmt.Sprint(v))
 			}
 		}
 	}

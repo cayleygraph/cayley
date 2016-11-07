@@ -133,6 +133,7 @@ func (it *Unique) Stats() graph.IteratorStats {
 		NextCost:     subStats.NextCost * uniquenessFactor,
 		ContainsCost: subStats.ContainsCost,
 		Size:         subStats.Size / uniquenessFactor,
+		ExactSize:    false,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 		ContainsNext: it.runstats.ContainsNext,
@@ -140,7 +141,8 @@ func (it *Unique) Stats() graph.IteratorStats {
 }
 
 func (it *Unique) Size() (int64, bool) {
-	return it.Stats().Size, false
+	st := it.Stats()
+	return st.Size, st.ExactSize
 }
 
 func (it *Unique) Describe() graph.Description {

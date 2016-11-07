@@ -273,11 +273,12 @@ func (it *Iterator) Optimize() (graph.Iterator, bool) {
 }
 
 func (it *Iterator) Stats() graph.IteratorStats {
-	s, _ := it.Size()
+	s, exact := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: 1,
 		NextCost:     2,
 		Size:         s,
+		ExactSize:    exact,
 	}
 }
 

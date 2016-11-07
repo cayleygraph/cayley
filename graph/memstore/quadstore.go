@@ -278,6 +278,8 @@ func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
 func (qs *QuadStore) NameOf(id graph.Value) quad.Value {
 	if id == nil {
 		return nil
+	} else if v, ok := id.(graph.PreFetchedValue); ok {
+		return v.NameOf()
 	}
 	return qs.revIDMap[int64(id.(iterator.Int64Node))]
 }

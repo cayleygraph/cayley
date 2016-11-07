@@ -125,6 +125,14 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 }
 
 func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
+	var conn *mgo.Session
+	connVal, ok := options["session"]
+	if ok {
+		conn, ok = connVal.(*mgo.Session)
+		if ok {
+			return conn, nil
+		}
+	}
 	var dialInfo mgo.DialInfo
 	dialInfo.Addrs = strings.Split(addr, ",")
 	user, ok, err := options.StringKey("username")
@@ -150,7 +158,7 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 		dbName = val
 	}
 	dialInfo.Database = dbName
-	conn, err := mgo.DialWithInfo(&dialInfo)
+	conn, err = mgo.DialWithInfo(&dialInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -487,6 +495,11 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
+	if v == nil {
+		return nil
+	} else if v, ok := v.(graph.PreFetchedValue); ok {
+		return v.NameOf()
+	}
 	hash := v.(NodeHash)
 	if hash == "" {
 		return nil
