@@ -23,3 +23,7 @@ import (
 func TestMorphisms(t *testing.T) {
 	pathtest.RunTestMorphisms(t, nil)
 }
+
+func TestMorphismsTags(t *testing.T) {
+	pathtest.RunTestSystemMorphisms(t, nil)
+}
