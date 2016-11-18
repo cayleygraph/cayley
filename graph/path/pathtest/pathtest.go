@@ -61,27 +61,26 @@ func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc) (graph.QuadStore, f
 	return qs, closer
 }
 
-func runTopLevel(qs graph.QuadStore, path *Path, opt bool) []quad.Value {
+func runTopLevel(qs graph.QuadStore, path *Path, opt bool) ([]quad.Value, error) {
 	pb := path.Iterate(context.TODO())
 	if !opt {
 		pb = pb.UnOptimized()
 	}
-	out, _ := pb.Paths(false).AllValues(qs)
-	return out
+	return pb.Paths(false).AllValues(qs)
 }
 
-func runTag(qs graph.QuadStore, path *Path, tag string, opt bool) []quad.Value {
+func runTag(qs graph.QuadStore, path *Path, tag string, opt bool) ([]quad.Value, error) {
 	var out []quad.Value
 	pb := path.Iterate(context.TODO())
 	if !opt {
 		pb = pb.UnOptimized()
 	}
-	_ = pb.Paths(true).TagEach(func(tags map[string]graph.Value) {
+	err := pb.Paths(true).TagEach(func(tags map[string]graph.Value) {
 		if t, ok := tags[tag]; ok {
 			out = append(out, qs.NameOf(t))
 		}
 	})
-	return out
+	return out, err
 }
 
 type test struct {
@@ -350,19 +349,26 @@ func RunTestMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
 	defer closer()
 
 	for _, test := range testSet(qs) {
-		var got []quad.Value
+		var (
+			got []quad.Value
+			err error
+		)
 		for _, opt := range []bool{true, false} {
 			if test.tag == "" {
-				got = runTopLevel(qs, test.path, opt)
+				got, err = runTopLevel(qs, test.path, opt)
 			} else {
-				got = runTag(qs, test.path, test.tag, opt)
+				got, err = runTag(qs, test.path, test.tag, opt)
 			}
-			sort.Sort(quad.ByValueString(got))
-			sort.Sort(quad.ByValueString(test.expect))
 			unopt := ""
 			if !opt {
 				unopt = " (unoptimized)"
 			}
+			if err != nil {
+				t.Errorf("Failed to %s%s: %v", test.message, unopt, err)
+				continue
+			}
+			sort.Sort(quad.ByValueString(got))
+			sort.Sort(quad.ByValueString(test.expect))
 			eq := reflect.DeepEqual(got, test.expect)
 			if !eq && test.expectAlt != nil {
 				eq = reflect.DeepEqual(got, test.expectAlt)
