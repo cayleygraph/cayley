@@ -3,34 +3,29 @@ package internal
 import (
 	"fmt"
 	"io"
-	client "net/http"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/config"
-	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/cquads"
 	"github.com/cayleygraph/cayley/quad/nquads"
 )
 
 // Load loads a graph from the given path and write it to qw.  See
 // DecompressAndLoad for more information.
-func Load(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
-	return DecompressAndLoad(qw, cfg, path, typ, db.Load)
+func Load(qw graph.QuadWriter, batch int, path, typ string) error {
+	return DecompressAndLoad(qw, batch, path, typ, nil)
 }
 
 // DecompressAndLoad will load or fetch a graph from the given path, decompress
 // it, and then call the given load function to process the decompressed graph.
 // If no loadFn is provided, db.Load is called.
-func DecompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string, loadFn func(graph.QuadWriter, *config.Config, quad.Unmarshaler) error) error {
+func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerFunc func(graph.QuadWriter) quad.BatchWriter) error {
 	var r io.Reader
 
-	if path == "" {
-		path = cfg.DatabasePath
-	}
 	if path == "" {
 		return nil
 	}
@@ -48,7 +43,7 @@ func DecompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 		defer f.Close()
 		r = f
 	} else {
-		res, err := client.Get(path)
+		res, err := http.Get(path)
 		if err != nil {
 			return fmt.Errorf("could not get resource <%s>: %v", u, err)
 		}
@@ -64,19 +59,44 @@ func DecompressAndLoad(qw graph.QuadWriter, cfg *config.Config, path, typ string
 		return err
 	}
 
-	var dec quad.Unmarshaler
+	var qr quad.Reader
 	switch typ {
 	case "cquad":
-		dec = cquads.NewDecoder(r)
+		qr = nquads.NewReader(r, false)
 	case "nquad":
-		dec = nquads.NewDecoder(r)
+		qr = nquads.NewReader(r, true)
 	default:
-		return fmt.Errorf("unknown quad format %q", typ)
+		rf := quad.FormatByName(typ)
+		if rf == nil {
+			return fmt.Errorf("unknown quad format %q", typ)
+		} else if rf.Reader == nil {
+			return fmt.Errorf("decoding of %q is not supported", typ)
+		}
+		qr = rf.Reader(r)
 	}
 
-	if loadFn != nil {
-		return loadFn(qw, cfg, dec)
+	if writerFunc == nil {
+		writerFunc = graph.NewWriter
 	}
+	dest := writerFunc(qw)
 
-	return db.Load(qw, cfg, dec)
+	_, err = quad.CopyBatch(&batchLogger{BatchWriter: dest}, qr, batch)
+	if err != nil {
+		return fmt.Errorf("db: failed to load data: %v", err)
+	}
+	return nil
+}
+
+type batchLogger struct {
+	cnt int
+	quad.BatchWriter
+}
+
+func (w *batchLogger) WriteQuads(quads []quad.Quad) (int, error) {
+	n, err := w.BatchWriter.WriteQuads(quads)
+	if clog.V(2) {
+		w.cnt += n
+		clog.Infof("Wrote %d quads.", w.cnt)
+	}
+	return n, err
 }

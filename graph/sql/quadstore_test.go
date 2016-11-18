@@ -3,6 +3,7 @@ package sql
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/internal/dock"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/lib/pq"
@@ -49,6 +50,10 @@ func TestPostgresAll(t *testing.T) {
 		TimeRound:               true,
 		SkipNodeDelAfterQuadDel: true,
 	})
+}
+
+func TestPostgresPaths(t *testing.T) {
+	pathtest.RunTestMorphisms(t, makePostgres)
 }
 
 func TestZeroRune(t *testing.T) {

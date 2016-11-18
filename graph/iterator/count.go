@@ -78,8 +78,9 @@ func (it *Count) Next() bool {
 	}
 	size, exact := it.it.Size()
 	if !exact {
-		size = 0
-		for ; it.it.Next(); size++ {
+		for size = 0; it.it.Next(); size++ {
+			for ; it.it.NextPath(); size++ {
+			}
 		}
 	}
 	it.result = quad.Int(size)

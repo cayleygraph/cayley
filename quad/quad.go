@@ -118,6 +118,7 @@ func (q *Quad) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &rq); err != nil {
 		return err
 	}
+	// TODO(dennwc): parse nquads? or use StringToValue hack?
 	*q = MakeRaw(rq.Subject, rq.Predicate, rq.Object, rq.Label)
 	return nil
 }
@@ -218,10 +219,6 @@ func (q Quad) NQuad() string {
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)
 	}
 	return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
-}
-
-type Unmarshaler interface {
-	Unmarshal() (Quad, error)
 }
 
 type ByQuadString []Quad

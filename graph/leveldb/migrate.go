@@ -23,6 +23,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -108,7 +109,7 @@ func upgrade1To2(db *leveldb.DB) error {
 			}
 			node := proto.NodeData{
 				Size:  val.Size,
-				Value: proto.MakeValue(quad.Raw(val.Name)),
+				Value: pquads.MakeValue(quad.Raw(val.Name)),
 			}
 			nv, err := node.Marshal()
 			if err != nil {

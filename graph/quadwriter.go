@@ -23,6 +23,7 @@ package graph
 
 import (
 	"errors"
+	"io"
 	"time"
 
 	"github.com/cayleygraph/cayley/quad"
@@ -172,3 +173,91 @@ func WriterMethods() []string {
 	}
 	return t
 }
+
+// NewWriter creates a quad writer for a given QuadStore.
+func NewWriter(qs QuadWriter) quad.BatchWriter {
+	return &batchWriter{qs: qs}
+}
+
+type batchWriter struct {
+	qs QuadWriter
+}
+
+func (w *batchWriter) WriteQuad(q quad.Quad) error {
+	return w.qs.AddQuad(q)
+}
+func (w *batchWriter) WriteQuads(quads []quad.Quad) (int, error) {
+	if err := w.qs.AddQuadSet(quads); err != nil {
+		return 0, err
+	}
+	return len(quads), nil
+}
+func (w *batchWriter) Close() error { return nil }
+
+// NewRemover creates a quad writer for a given QuadStore which removes quads instead of adding them.
+func NewRemover(qs QuadWriter) quad.BatchWriter {
+	return &removeWriter{qs: qs}
+}
+
+type removeWriter struct {
+	qs QuadWriter
+}
+
+func (w *removeWriter) WriteQuad(q quad.Quad) error {
+	return w.qs.RemoveQuad(q)
+}
+func (w *removeWriter) WriteQuads(quads []quad.Quad) (int, error) {
+	tx := NewTransaction()
+	for _, q := range quads {
+		tx.RemoveQuad(q)
+	}
+	if err := w.qs.ApplyTransaction(tx); err != nil {
+		return 0, err
+	}
+	return len(quads), nil
+}
+func (w *removeWriter) Close() error { return nil }
+
+// NewResultReader creates a quad reader for a given QuadStore.
+func NewQuadStoreReader(qs QuadStore) quad.ReadSkipCloser {
+	return NewResultReader(qs, nil)
+}
+
+// NewResultReader creates a quad reader for a given QuadStore and iterator.
+// If iterator is nil QuadsAllIterator will be used.
+//
+// Only quads returned by iterator's Result will be used.
+//
+// Iterator will be closed with the reader.
+func NewResultReader(qs QuadStore, it Iterator) quad.ReadSkipCloser {
+	if it == nil {
+		it = qs.QuadsAllIterator()
+	}
+	return &quadReader{qs: qs, it: it}
+}
+
+type quadReader struct {
+	qs QuadStore
+	it Iterator
+}
+
+func (r *quadReader) ReadQuad() (quad.Quad, error) {
+	if r.it.Next() {
+		return r.qs.Quad(r.it.Result()), nil
+	}
+	err := r.it.Err()
+	if err == nil {
+		err = io.EOF
+	}
+	return quad.Quad{}, err
+}
+func (r *quadReader) SkipQuad() error {
+	if r.it.Next() {
+		return nil
+	}
+	if err := r.it.Err(); err != nil {
+		return err
+	}
+	return io.EOF
+}
+func (r *quadReader) Close() error { return r.it.Close() }

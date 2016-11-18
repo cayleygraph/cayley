@@ -26,9 +26,9 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 )
 
 const DefaultDBName = "cayley"
@@ -125,6 +125,14 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 }
 
 func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
+	var conn *mgo.Session
+	connVal, ok := options["session"]
+	if ok {
+		conn, ok = connVal.(*mgo.Session)
+		if ok {
+			return conn, nil
+		}
+	}
 	var dialInfo mgo.DialInfo
 	dialInfo.Addrs = strings.Split(addr, ",")
 	user, ok, err := options.StringKey("username")
@@ -150,7 +158,7 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 		dbName = val
 	}
 	dialInfo.Database = dbName
-	conn, err := mgo.DialWithInfo(&dialInfo)
+	conn, err = mgo.DialWithInfo(&dialInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -398,7 +406,7 @@ func toMongoValue(v quad.Value) value {
 		// (maybe add an option for this)
 		return time.Time(d)
 	default:
-		qv := proto.MakeValue(v)
+		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
@@ -449,7 +457,7 @@ func toQuadValue(v value) quad.Value {
 		}
 		return quad.String(s)
 	case []byte:
-		var p proto.Value
+		var p pquads.Value
 		if err := p.Unmarshal(d); err != nil {
 			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil

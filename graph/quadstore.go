@@ -180,7 +180,7 @@ type BulkLoader interface {
 	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the QuadStore.
 	// It returns ErrCannotBulkLoad if bulk loading is not possible. For example if
 	// you cannot load in bulk to a non-empty database, and the db is non-empty.
-	BulkLoad(quad.Unmarshaler) error
+	BulkLoad(quad.Reader) error
 }
 
 type NewStoreFunc func(string, Options) (QuadStore, error)

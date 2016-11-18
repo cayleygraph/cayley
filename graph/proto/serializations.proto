@@ -17,13 +17,14 @@ syntax = "proto3";
 package proto;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/cayleygraph/cayley/quad/pquads/quads.proto";
 option (gogoproto.protosizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) =  true;
 
 message LogDelta {
   uint64 ID = 1;
-  Quad Quad = 2;
+  pquads.Quad Quad = 2;
   int32 Action = 3;
   int64 Timestamp = 4;
 }
@@ -35,45 +36,5 @@ message HistoryEntry {
 message NodeData {
   string Name = 1;
   int64 Size = 2;
-  Value value = 3;
+  pquads.Value value = 3;
 }
-
-message Quad {
-  string subject = 1;
-  string predicate = 2;
-  string object = 3;
-  string label = 4;
-  Value subject_value = 5;
-  Value predicate_value = 6;
-  Value object_value = 7;
-  Value label_value = 8;
-}
-
-message Value {
-  message TypedString {
-    string value = 1;
-    string type = 2;
-  }
-  message LangString {
-    string value = 1;
-    string lang = 2;
-  }
-  // From https://github.com/golang/protobuf/blob/master/ptypes/timestamp/timestamp.proto
-  message Timestamp {
-    int64 seconds = 1;
-    int32 nanos = 2;
-  }
-  oneof value {
-    bytes  raw = 1;
-    string str = 2;
-    string iri = 3;
-    string bnode = 4;
-    TypedString typed_str = 5;
-    LangString  lang_str = 6;
-    int64  int = 7;
-    double float_ = 8;
-    bool boolean = 9;
-    Timestamp time = 10;
-  }
-}
-

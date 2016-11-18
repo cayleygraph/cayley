@@ -17,13 +17,11 @@ package db
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/cayleygraph/cayley/clog"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal/config"
-	"github.com/cayleygraph/cayley/quad"
 )
 
 var ErrNotPersistent = errors.New("database type is not persistent")
@@ -66,40 +64,4 @@ func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, e
 	}
 
 	return w, nil
-}
-
-func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
-	block := make([]quad.Quad, 0, cfg.LoadSize)
-	count := 0
-	for {
-		t, err := dec.Unmarshal()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		block = append(block, t)
-		if len(block) == cap(block) {
-			count += len(block)
-			err := qw.AddQuadSet(block)
-			if err != nil {
-				return fmt.Errorf("db: failed to load data: %v", err)
-			}
-			block = block[:0]
-			if clog.V(2) {
-				clog.Infof("Wrote %d quads.", count)
-			}
-		}
-	}
-	count += len(block)
-	err := qw.AddQuadSet(block)
-	if err != nil {
-		return fmt.Errorf("db: failed to load data: %v", err)
-	}
-	if clog.V(2) {
-		clog.Infof("Wrote %d quads.", count)
-	}
-
-	return nil
 }
