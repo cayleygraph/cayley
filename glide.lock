@@ -1,12 +1,12 @@
 hash: 9f97065297b799e148753f44bba710c39e270e2ba7a11b70ccd37830c6289266
-updated: 2016-08-31T11:24:09.723636473+02:00
+updated: 2016-11-18T13:36:09.869432339+01:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
 - name: github.com/boltdb/bolt
   version: 04a3e85793043e76d41164037d0d7f9d53eecae3
 - name: github.com/cenk/backoff
-  version: cdf48bbc1eb78d1349cbda326a4a037f7ba565c6
+  version: b02f2bbce11d7ea6b97f282ef1771b0fe2f65ef3
 - name: github.com/cznic/mathutil
   version: f9551431b78e71ee24939a1e9d8f49f43898b5cd
 - name: github.com/davecgh/go-spew
@@ -38,8 +38,10 @@ imports:
   version: eb879ae3e2b84e2a142af415b679ddeda47ec71c
 - name: github.com/fsouza/go-dockerclient
   version: 4efaf0ea3c8990e1648f68672d011289f0c0cb0a
+- name: github.com/go-sql-driver/mysql
+  version: 665b83488b90b902ce0a305ef6652e599771cdf9
 - name: github.com/gogo/protobuf
-  version: 50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61
+  version: ff05bbbb0ff143cc11fc3f8b700fc3a2864b884d
   subpackages:
   - proto
   - gogoproto
@@ -60,6 +62,8 @@ imports:
   version: 0dad96c0b94f8dee039aa40467f767467392a0af
   subpackages:
   - oid
+- name: github.com/linkeddata/gojsonld
+  version: a223ef39bb925d36d4c410d3e35b0e34e370cc31
 - name: github.com/opencontainers/runc
   version: 6df383c2f881fbdeb85060fd27d8bf61afedacd9
   subpackages:
@@ -114,7 +118,7 @@ imports:
   subpackages:
   - snappy
 - name: golang.org/x/crypto
-  version: b13fc1fd382d01861b16b2e6474487d3d4d27f20
+  version: 9477e0b78b9ac3d0b03822fd95422e2fe07627cd
   subpackages:
   - pbkdf2
 - name: golang.org/x/net
@@ -138,7 +142,7 @@ imports:
   - internal/log
   - internal/remote_api
 - name: gopkg.in/dancannon/gorethink.v2
-  version: e75f34b0817d1ed1a4b967975ccf5fac9535dbc2
+  version: 016a1d3b4d15951ab2e39bd3596718ba94d298ba
   subpackages:
   - encoding
   - ql2

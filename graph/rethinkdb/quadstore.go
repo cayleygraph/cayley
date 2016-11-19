@@ -11,9 +11,9 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 )
 
 const (
@@ -409,7 +409,7 @@ func newNode(id string, v quad.Value) (n Node) {
 		n.Type = dbTime
 		n.TimeValue = time.Time(d)
 	default:
-		data, err := proto.MakeValue(v).Marshal()
+		data, err := pquads.MakeValue(v).Marshal()
 		if err != nil {
 			clog.Errorf("Failed to marshal value: %v", err)
 			return
@@ -541,7 +541,7 @@ func (n Node) quadValue() quad.Value {
 	case dbTime:
 		return quad.Time(n.TimeValue)
 	case dbProto:
-		var p proto.Value
+		var p pquads.Value
 		if err := p.Unmarshal(n.BytesValue); err != nil {
 			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil
