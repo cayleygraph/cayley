@@ -39,3 +39,10 @@ import:
   - assert
   - require
 - package: gopkg.in/dancannon/gorethink.v2
+  subpackages:
+  - encoding
+  - ql2
+  - types
+- package: gopkg.in/fatih/pool.v2
+- package: github.com/cenk/backoff
+- package: github.com/linkeddata/gojsonld
