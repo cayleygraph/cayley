@@ -391,7 +391,10 @@ func buildSysSave(
 	if !ok || reverse || optional {
 		return nil
 	}
-	dir := iriToDir[iri]
+	dir, ok := iriToDir[iri]
+	if !ok {
+		return nil
+	}
 
 	allNodes := qs.NodesAllIterator()
 	allNodes.Tagger().Add(tag)
@@ -446,7 +449,10 @@ func inOutSysIterator(qs graph.QuadStore, via []interface{}, from graph.Iterator
 		return nil // TODO(dennwc): allow multiple directions
 	}
 	iri := iris[0]
-	dir := iriToDir[iri]
+	dir, ok := iriToDir[iri]
+	if !ok {
+		return nil
+	}
 	if inIterator {
 		return iterator.NewLinksTo(qs, from, dir)
 	}
