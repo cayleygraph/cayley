@@ -28,7 +28,7 @@ func TestBuildIntersect(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it.sql.buildSQL(true, nil)
+	s, v := it.sql.buildSQL(&Flavor{}, true, nil)
 	t.Log(s, v)
 }
 
@@ -44,7 +44,7 @@ func TestBuildHasa(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it2.sql.buildSQL(true, nil)
+	s, v := it2.sql.buildSQL(&Flavor{}, true, nil)
 	t.Log(s, v)
 }
 
@@ -64,7 +64,7 @@ func TestBuildLinksTo(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it3.sql.buildSQL(true, nil)
+	s, v := it3.sql.buildSQL(&Flavor{}, true, nil)
 	t.Log(s, v)
 }
 
@@ -114,7 +114,7 @@ func TestInterestingQuery(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it8.sql.buildSQL(true, nil)
+	s, v := it8.sql.buildSQL(&Flavor{}, true, nil)
 	it8.Tagger().Add("id")
 	t.Log(s, v)
 	for it8.Next() {

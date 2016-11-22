@@ -138,4 +138,14 @@ imports:
   - bson
   - internal/scram
   - sasl
+- name: gopkg.in/dancannon/gorethink.v2
+  version: 016a1d3b4d15951ab2e39bd3596718ba94d298ba
+  subpackages:
+  - encoding
+  - ql2
+  - types
+- name: gopkg.in/fatih/pool.v2
+  version: 20a0a429c5f93de45c90f5f09ea297c25e0929b3
+- name: github.com/cenk/backoff
+- name: github.com/linkeddata/gojsonld
 testImports: []
