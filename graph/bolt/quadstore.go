@@ -409,12 +409,13 @@ func (qs *QuadStore) WriteHorizonAndSize(tx *bolt.Tx) error {
 	return err
 }
 
-func (qs *QuadStore) Close() {
+func (qs *QuadStore) Close() error {
 	qs.db.Update(func(tx *bolt.Tx) error {
 		return qs.WriteHorizonAndSize(tx)
 	})
-	qs.db.Close()
+	err := qs.db.Close()
 	qs.open = false
+	return err
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {

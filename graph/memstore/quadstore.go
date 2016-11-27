@@ -334,7 +334,7 @@ func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 	return newNodesAllIterator(qs)
 }
 
-func (qs *QuadStore) Close() {}
+func (qs *QuadStore) Close() error { return nil }
 
 func (qs *QuadStore) Type() string {
 	return QuadStoreType

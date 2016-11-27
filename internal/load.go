@@ -23,7 +23,7 @@ func Load(qw graph.QuadWriter, batch int, path, typ string) error {
 // DecompressAndLoad will load or fetch a graph from the given path, decompress
 // it, and then call the given load function to process the decompressed graph.
 // If no loadFn is provided, db.Load is called.
-func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerFunc func(graph.QuadWriter) quad.BatchWriter) error {
+func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerFunc func(graph.QuadWriter) graph.BatchWriter) error {
 	var r io.Reader
 
 	if path == "" {
