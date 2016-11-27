@@ -1,6 +1,11 @@
+// Package schema contains helpers to map Go objects to quads and vise-versa.
+//
+// This package is not a full schema library. It will not save or force any
+// RDF schema constrains, it only provides a mapping.
 package schema
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -12,6 +17,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/voc"
 	"github.com/cayleygraph/cayley/voc/rdf"
 )
 
@@ -72,10 +78,19 @@ func fieldRule(fld reflect.StructField) (rule, error) {
 		return idRule{}, nil
 	}
 	opt := false
+	req := false
 	for _, s := range sub {
 		if s == "opt" || s == "optional" {
 			opt = true
 		}
+		if s == "req" || s == "required" {
+			req = true
+		}
+	}
+	if req {
+		opt = false
+	} else if fld.Type.Kind() == reflect.Slice {
+		opt = true
 	}
 
 	rev := strings.Contains(rule, ops)
@@ -127,7 +142,8 @@ func checkFieldType(ftp reflect.Type) error {
 	return nil
 }
 
-var Optimize bool
+// Optimize flags controls an optimization step performed before queries.
+var Optimize = true
 
 func iteratorFromPath(qs graph.QuadStore, root graph.Iterator, p *path.Path) (graph.Iterator, error) {
 	it := p.BuildIteratorOn(qs)
@@ -158,19 +174,30 @@ var (
 	pathForType   = make(map[reflect.Type]*path.Path)
 )
 
+// RegisterType associates an IRI with a given Go type.
+//
+// All queries and writes will require or add a type triple.
 func RegisterType(iri quad.IRI, obj interface{}) {
 	var rt reflect.Type
-	if t, ok := obj.(reflect.Type); ok {
-		rt = t
-	} else {
-		rt = reflect.TypeOf(obj)
-		if rt.Kind() == reflect.Ptr {
-			rt = rt.Elem()
+	if obj != nil {
+		if t, ok := obj.(reflect.Type); ok {
+			rt = t
+		} else {
+			rt = reflect.TypeOf(obj)
+			if rt.Kind() == reflect.Ptr {
+				rt = rt.Elem()
+			}
 		}
 	}
 	full := iri.Full()
 	typesMu.Lock()
 	defer typesMu.Unlock()
+	if obj == nil {
+		tp := iriToType[full]
+		delete(typeToIRI, tp)
+		delete(iriToType, full)
+		return
+	}
 	if _, exists := typeToIRI[rt]; exists {
 		panic(fmt.Errorf("type %v is already registered", rt))
 	}
@@ -181,6 +208,7 @@ func RegisterType(iri quad.IRI, obj interface{}) {
 	iriToType[full] = rt
 }
 
+// PathForType builds a path (morphism) for a given Go type.
 func PathForType(rt reflect.Type) (*path.Path, error) {
 	for rt.Kind() == reflect.Ptr {
 		rt = rt.Elem()
@@ -328,6 +356,15 @@ func (f ValueConverterFunc) SetValue(dst reflect.Value, src reflect.Value) error
 
 var DefaultConverter ValueConverter
 
+type ErrTypeConversionFailed struct {
+	From reflect.Type
+	To   reflect.Type
+}
+
+func (e ErrTypeConversionFailed) Error() string {
+	return fmt.Sprintf("cannot convert %v to %v", e.From, e.To)
+}
+
 func init() {
 	DefaultConverter = ValueConverterFunc(func(dst reflect.Value, src reflect.Value) error {
 		dt, st := dst.Type(), src.Type()
@@ -352,9 +389,19 @@ func init() {
 			dst.Set(reflect.Append(dst, v.Elem()))
 			return nil
 		}
-		return fmt.Errorf("cannot convert %v to %v", src.Type(), dst.Type())
+		return ErrTypeConversionFailed{From: src.Type(), To: dst.Type()}
 	})
 }
+
+// IsNotFound check if error is related to a missing object (either because of wrong ID or because of type constrains).
+func IsNotFound(err error) bool {
+	return err == errNotFound || err == errRequiredFieldIsMissing
+}
+
+var (
+	errNotFound               = errors.New("not found")
+	errRequiredFieldIsMissing = errors.New("required field is missing")
+)
 
 func saveToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m map[string][]graph.Value) error {
 	if ctx == nil {
@@ -376,6 +423,13 @@ func saveToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 			return err
 		}
 		fields = nfields
+	}
+	for name, field := range fields {
+		if r, ok := field.(saveRule); ok && !r.Opt {
+			if vals := m[name]; len(vals) == 0 {
+				return errRequiredFieldIsMissing
+			}
+		}
 	}
 	for i := 0; i < rt.NumField(); i++ {
 		select {
@@ -411,7 +465,10 @@ func saveToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 				sv = reflect.New(ft).Elem()
 				sit := qs.FixedIterator()
 				sit.Add(fv)
-				if err := SaveIteratorTo(ctx, qs, sv, sit); err != nil {
+				err := LoadIteratorTo(ctx, qs, sv, sit)
+				if err == errRequiredFieldIsMissing {
+					continue
+				} else if err != nil {
 					return err
 				}
 			} else {
@@ -421,7 +478,8 @@ func saveToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 				}
 				sv = reflect.ValueOf(fv)
 			}
-			if err := DefaultConverter.SetValue(dst.Field(i), sv); err != nil {
+			df := dst.Field(i)
+			if err := DefaultConverter.SetValue(df, sv); err != nil {
 				return fmt.Errorf("field %s: %v", f.Name, err)
 			}
 		}
@@ -449,9 +507,69 @@ func keysEqual(v1, v2 graph.Value) bool {
 	return v1 == v2
 }
 
-// SaveTo
+// LoadTo will load a sub-graph of objects starting from ids (or from any nodes, if empty)
+// to a destination Go object. Destination can be a struct, slice or channel.
 //
-// Dst can be of kind Struct, Slice or Chan.
+// Mapping to quads is done via Go struct tag "quad" or "json" as a fallback.
+//
+// A simplest mapping is an "@id" tag which saves node ID (subject of a quad) into tagged field.
+//
+//	type Node struct{
+//		ID quad.IRI `json:"@id"` // or `quad:"@id"`
+// 	}
+//
+// Field with an "@id" tag is omitted, but in case of Go->quads mapping new ID will be generated
+// using GenerateID callback, which can be changed to provide a custom mappings.
+//
+// All other tags are interpreted as a predicate name for a specific field:
+//
+//	type Person struct{
+//		ID quad.IRI `json:"@id"`
+//		Name string `json:"name"`
+// 	}
+//	p := Person{"bob","Bob"}
+//	// is equivalent to triple:
+//	// <bob> <name> "Bob"
+//
+// Predicate IRIs in RDF can have a long namespaces, but they can be written in short
+// form. They will be expanded automatically if namespace prefix is registered within
+// QuadStore or globally via "voc" package.
+// There is also a special predicate name "@type" which is mapped to "rdf:type" IRI.
+//
+//	voc.RegisterPrefix("ex:", "http://example.org/")
+//	type Person struct{
+//		ID quad.IRI `json:"@id"`
+//		Type quad.IRI `json:"@type"`
+//		Name string `json:"ex:name"` // will be expanded to http://example.org/name
+// 	}
+//	p := Person{"bob",quad.IRI("Person"),"Bob"}
+//	// is equivalent to triples:
+//	// <bob> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <Person>
+//	// <bob> <http://example.org/name> "Bob"
+//
+// Predicate link direction can be reversed with a special tag syntax (not available for "json" tag):
+//
+// 	type Person struct{
+//		ID quad.IRI `json:"@id"`
+//		Name string `json:"name"` // same as `quad:"name"` or `quad:"name > *"`
+//		Parents []quad.IRI `quad:"isParentOf < *"`
+// 	}
+//	p := Person{"bob","Bob",[]quad.IRI{"alice","fred"}}
+//	// is equivalent to triples:
+//	// <bob> <name> "Bob"
+//	// <alice> <isParentOf> <bob>
+//	// <fred> <isParentOf> <bob>
+//
+// All fields in structs are interpreted as required (except slices), thus struct will not be
+// loaded if one of fields is missing. An "optional" tag can be specified to relax this requirement.
+// Also, "required" can be specified for slices to alter default value.
+//
+//	type Person struct{
+//		ID quad.IRI `json:"@id"`
+//		Name string `json:"name"` // required field
+//		ThirdName string `quad:"thirdName,optional"` // can be empty
+//		FollowedBy []quad.IRI `quad:"follows"`
+// 	}
 func LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...quad.Value) error {
 	if dst == nil {
 		return fmt.Errorf("nil destination object")
@@ -470,13 +588,16 @@ func LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...qua
 	} else {
 		rv = reflect.ValueOf(dst)
 	}
-	return SaveIteratorTo(ctx, qs, rv, it)
+	return LoadIteratorTo(ctx, qs, rv, it)
 }
 
-// SaveIteratorTo
+// LoadIteratorTo is a lower level version of LoadTo.
 //
-// Dst can be of kind Struct, Slice or Chan.
-func SaveIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.Iterator) error {
+// It expects an iterator of nodes to be passed explicitly and
+// destination value to be obtained via reflect package manually.
+//
+// Nodes iterator can be nil, All iterator will be used in this case.
+func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.Iterator) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -539,6 +660,7 @@ func SaveIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 			if len(mp) == 0 {
 				continue
 			}
+			// TODO(dennwc): replace with more efficient
 			for k, v := range mp {
 				if sl, ok := mo[k]; !ok {
 					mo[k] = []graph.Value{v}
@@ -560,7 +682,13 @@ func SaveIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 				}
 			}
 		}
-		if err := saveToValue(ctx, qs, cur, mo); err != nil {
+		err := saveToValue(ctx, qs, cur, mo)
+		if err == errRequiredFieldIsMissing {
+			if !slice && !chanl {
+				return err
+			}
+			continue
+		} else if err != nil {
 			return err
 		}
 		if slice {
@@ -571,10 +699,22 @@ func SaveIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 			return nil
 		}
 	}
+	if !slice && !chanl {
+		if list.Type() != graph.All {
+			// distinguish between
+			list.Reset()
+			and := iterator.NewAnd(qs, list, qs.NodesAllIterator())
+			defer and.Close()
+			if and.Next() {
+				return errRequiredFieldIsMissing
+			}
+		}
+		return errNotFound
+	}
 	return nil
 }
 
-func writeOneValReflect(w quadWriter, id quad.Value, pred quad.Value, rv reflect.Value, rev bool) error {
+func writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflect.Value, rev bool) error {
 	if rv.Interface() == reflect.Zero(rv.Type()).Interface() { // TODO(dennwc): rewrite
 		return nil
 	}
@@ -599,10 +739,10 @@ func writeOneValReflect(w quadWriter, id quad.Value, pred quad.Value, rv reflect
 	if rev {
 		s, o = o, s
 	}
-	return w.AddQuad(quad.Quad{s, pred, o, nil})
+	return w.WriteQuad(quad.Quad{s, pred, o, nil})
 }
 
-func writeValueAs(w quadWriter, id quad.Value, rv reflect.Value, pref string, rules fieldRules) (quad.Value, error) {
+func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, rules fieldRules) error {
 	if rv.Kind() == reflect.Ptr {
 		rv = rv.Elem()
 	}
@@ -611,15 +751,15 @@ func writeValueAs(w quadWriter, id quad.Value, rv reflect.Value, pref string, ru
 	iri := typeToIRI[rt]
 	typesMu.RUnlock()
 	if iri != quad.IRI("") {
-		if err := w.AddQuad(quad.Quad{id, iriType, iri, nil}); err != nil {
-			return nil, err
+		if err := w.WriteQuad(quad.Quad{id, iriType, iri, nil}); err != nil {
+			return err
 		}
 	}
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous {
-			if _, err := writeValueAs(w, id, rv.Field(i), pref+f.Name+".", rules); err != nil {
-				return nil, err
+			if err := writeValueAs(w, id, rv.Field(i), pref+f.Name+".", rules); err != nil {
+				return err
 			}
 			continue
 		}
@@ -629,25 +769,25 @@ func writeValueAs(w quadWriter, id quad.Value, rv reflect.Value, pref string, ru
 			if r.Rev {
 				s, o = o, s
 			}
-			if err := w.AddQuad(quad.Quad{s, r.Pred, o, nil}); err != nil {
-				return nil, err
+			if err := w.WriteQuad(quad.Quad{s, r.Pred, o, nil}); err != nil {
+				return err
 			}
 		case saveRule:
 			if f.Type.Kind() == reflect.Slice {
 				sl := rv.Field(i)
 				for j := 0; j < sl.Len(); j++ {
 					if err := writeOneValReflect(w, id, r.Pred, sl.Index(j), r.Rev); err != nil {
-						return nil, err
+						return err
 					}
 				}
 			} else {
 				if err := writeOneValReflect(w, id, r.Pred, rv.Field(i), r.Rev); err != nil {
-					return nil, err
+					return err
 				}
 			}
 		}
 	}
-	return id, nil
+	return nil
 }
 
 func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value) (id quad.Value, err error) {
@@ -671,24 +811,19 @@ func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value) (id quad.Value, 
 	return
 }
 
-// GenerateID gets called then each object without an ID field is saved.
-var GenerateID func() quad.Value = func() quad.Value {
-	return quad.NextBlankNode()
-}
-
-// quadWriter is an interface to write quads.
-//
-// TODO(dennwc): replace when the same interface will be exposed in graph/quads
-type quadWriter interface {
-	AddQuad(quad.Quad) error
+// GenerateID is called when any object without an ID field is being saved.
+var GenerateID func(interface{}) quad.Value = func(_ interface{}) quad.Value {
+	return quad.RandomBlankNode()
 }
 
 // WriteAsQuads writes a single value in form of quads into specified quad writer.
 //
-// It returns an identifier of the object in the output subgraph. If an object has
+// It returns an identifier of the object in the output sub-graph. If an object has
 // an annotated ID field, it's value will be converted to quad.Value and returned.
-// Otherwise, a new BNode will be generated.
-func WriteAsQuads(w quadWriter, o interface{}) (quad.Value, error) {
+// Otherwise, a new BNode will be generated using GenerateID function.
+//
+// See LoadTo for a list of quads mapping rules.
+func WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) {
 	if v, ok := o.(quad.Value); ok {
 		return v, nil
 	}
@@ -710,7 +845,55 @@ func WriteAsQuads(w quadWriter, o interface{}) (quad.Value, error) {
 		return nil, err
 	}
 	if id == nil {
-		id = GenerateID()
+		id = GenerateID(o)
 	}
-	return writeValueAs(w, id, rv, "", rules)
+	if err = writeValueAs(w, id, rv, "", rules); err != nil {
+		return nil, err
+	}
+	return id, nil
+}
+
+type namespace struct {
+	_      struct{} `quad:"@type > cayley:namespace"`
+	Full   quad.IRI `quad:"@id"`
+	Prefix quad.IRI `quad:"cayley:prefix"`
+}
+
+// WriteNamespaces will writes namespaces list into graph.
+func WriteNamespaces(w quad.Writer, n *voc.Namespaces) error {
+	rules, err := rulesFor(reflect.TypeOf(namespace{}))
+	if err != nil {
+		return fmt.Errorf("can't load rules: %v", err)
+	}
+	for _, ns := range n.List() {
+		obj := namespace{
+			Full:   quad.IRI(ns.Full),
+			Prefix: quad.IRI(ns.Prefix),
+		}
+		rv := reflect.ValueOf(obj)
+		if err = writeValueAs(w, obj.Full, rv, "", rules); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// LoadNamespaces will load namespaces stored in graph to a specified list.
+// If destination list is empty, global namespace registry will be used.
+func LoadNamespaces(qs graph.QuadStore, dest *voc.Namespaces) error {
+	var list []namespace
+	if err := LoadTo(context.Background(), qs, &list); err != nil {
+		return err
+	}
+	register := dest.Register
+	if dest == nil {
+		register = voc.Register
+	}
+	for _, ns := range list {
+		register(voc.Namespace{
+			Prefix: string(ns.Prefix),
+			Full:   string(ns.Full),
+		})
+	}
+	return nil
 }

@@ -49,7 +49,7 @@ func main() {
 	schema.RegisterType(quad.IRI("ex:Coords"), Coords{})
 
 	// Override a function to generate IDs. Can be changed to generate UUIDs, for example.
-	schema.GenerateID = func() quad.Value {
+	schema.GenerateID = func(_ interface{}) quad.Value {
 		return quad.BNode(fmt.Sprintf("node%d", rand.Intn(1000)))
 	}
 

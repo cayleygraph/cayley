@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"hash"
+	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
@@ -199,6 +200,12 @@ func (s IRI) String() string      { return `<` + string(s) + `>` }
 func (s IRI) Short() IRI          { return IRI(voc.ShortIRI(string(s))) }
 func (s IRI) Full() IRI           { return IRI(voc.FullIRI(string(s))) }
 func (s IRI) Native() interface{} { return s }
+func (s IRI) ShortWith(n *voc.Namespaces) IRI {
+	return IRI(n.ShortIRI(string(s)))
+}
+func (s IRI) FullWith(n *voc.Namespaces) IRI {
+	return IRI(n.FullIRI(string(s)))
+}
 
 // BNode is an RDF Blank Node (ex: _:name).
 type BNode string
@@ -216,31 +223,47 @@ const (
 	nsXSD = `http://www.w3.org/2001/XMLSchema#`
 )
 
-var knownConversions = map[IRI]StringConversion{
-	defaultIntType:    stringToInt,
-	nsXSD + `integer`: stringToInt,
-	nsXSD + `long`:    stringToInt,
+// TODO(dennwc): make these configurable
+const (
+	defaultIntType   IRI = schema.Integer
+	defaultFloatType IRI = schema.Float
+	defaultBoolType  IRI = schema.Boolean
+	defaultTimeType  IRI = schema.DateTime
+)
 
-	defaultBoolType:   stringToBool,
-	nsXSD + `boolean`: stringToBool,
-
-	defaultFloatType: stringToFloat,
-	nsXSD + `double`: stringToFloat,
-
-	defaultTimeType:    stringToTime,
-	nsXSD + `dateTime`: stringToTime,
+func init() {
+	// int types
+	RegisterStringConversion(defaultIntType, stringToInt)
+	RegisterStringConversion(nsXSD+`integer`, stringToInt)
+	RegisterStringConversion(nsXSD+`long`, stringToInt)
+	// bool types
+	RegisterStringConversion(defaultBoolType, stringToBool)
+	RegisterStringConversion(nsXSD+`boolean`, stringToBool)
+	// float types
+	RegisterStringConversion(defaultFloatType, stringToFloat)
+	RegisterStringConversion(nsXSD+`double`, stringToFloat)
+	// time types
+	RegisterStringConversion(defaultTimeType, stringToTime)
+	RegisterStringConversion(nsXSD+`dateTime`, stringToTime)
 }
+
+var knownConversions = make(map[IRI]StringConversion)
 
 // RegisterStringConversion will register an automatic conversion of
 // TypedString values with provided type to a native equivalent such as Int, Time, etc.
 //
 // If fnc is nil, automatic conversion from selected type will be removed.
 func RegisterStringConversion(dataType IRI, fnc StringConversion) {
-	dataType = dataType.Full()
 	if fnc == nil {
 		delete(knownConversions, dataType)
 	} else {
 		knownConversions[dataType] = fnc
+		if short := dataType.Short(); short != dataType {
+			knownConversions[short] = fnc
+		}
+		if full := dataType.Full(); full != dataType {
+			knownConversions[full] = fnc
+		}
 	}
 }
 
@@ -275,14 +298,6 @@ func stringToTime(s string) (Value, error) {
 	}
 	return Time(v), nil
 }
-
-// TODO(dennwc): make these configurable
-const (
-	defaultIntType   IRI = schema.Integer
-	defaultFloatType IRI = schema.Float
-	defaultBoolType  IRI = schema.Boolean
-	defaultTimeType  IRI = schema.DateTime
-)
 
 // Int is a native wrapper for int64 type.
 //
@@ -371,11 +386,20 @@ func (o ByValueString) Len() int           { return len(o) }
 func (o ByValueString) Less(i, j int) bool { return StringOf(o[i]) < StringOf(o[j]) }
 func (o ByValueString) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
 
-var (
-	bnode uint64
-)
+// Sequence is an object to generate a sequence of Blank Nodes.
+type Sequence struct {
+	last uint64
+}
 
-func NextBlankNode() BNode {
-	n := atomic.AddUint64(&bnode, 1)
+// Next returns a new blank node. It's safe for concurrent use.
+func (s *Sequence) Next() BNode {
+	n := atomic.AddUint64(&s.last, 1)
 	return BNode(fmt.Sprintf("n%d", n))
+}
+
+var randSource = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// RandomBlankNode returns a randomly generated Blank Node.
+func RandomBlankNode() BNode {
+	return BNode(fmt.Sprintf("n%d", randSource.Int()))
 }

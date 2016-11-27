@@ -82,6 +82,23 @@ func MakeRaw(subject, predicate, object, label string) (q Quad) {
 	return
 }
 
+// MakeIRI creates a quad with provided IRI values.
+func MakeIRI(subject, predicate, object, label string) (q Quad) {
+	if subject != "" {
+		q.Subject = IRI(subject)
+	}
+	if predicate != "" {
+		q.Predicate = IRI(predicate)
+	}
+	if object != "" {
+		q.Object = IRI(object)
+	}
+	if label != "" {
+		q.Label = IRI(label)
+	}
+	return
+}
+
 var (
 	_ json.Marshaler   = Quad{}
 	_ json.Unmarshaler = (*Quad)(nil)
