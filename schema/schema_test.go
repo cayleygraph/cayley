@@ -295,44 +295,44 @@ var testFillValueCases = []struct {
 			{quad.BNode("1234"), iri("items"), iri("sub2"), nil},
 		},
 	},
-	//	{
-	//			struct {
-	//			rdfType struct{} `quad:"rdf:type > some:Type"`
-	//			item2
-	//			ID     quad.IRI `quad:"."`
-	//			Values []string `quad:"values"`
-	//		}{
-	//			item2:  item2{Name: "Sub 1", Spec: "special"},
-	//			ID:     "1234",
-	//			Values: []string{"val1", "val2"},
-	//		},
-	//		[]quad.Quad{
-	//			{iri("1234"), typeIRI, iri("some:Type"), nil},
-	//			{iri("1234"), iri("name"), quad.String("Sub 1"), nil},
-	//			{iri("1234"), iri("spec"), quad.String("special"), nil},
-	//			{iri("1234"), iri("values"), quad.String("val1"), nil},
-	//			{iri("1234"), iri("values"), quad.String("val2"), nil},
-	//		},
-	//	},
-	//	{
-	//			struct {
-	//			rdfType struct{} `quad:"@type > some:Type"`
-	//			item2
-	//			ID     quad.IRI `quad:"@id"`
-	//			Values []string `quad:"values"`
-	//		}{
-	//			item2:  item2{Name: "Sub 1", Spec: "special"},
-	//			ID:     "1234",
-	//			Values: []string{"val1", "val2"},
-	//		},
-	//		[]quad.Quad{
-	//			{iri("1234"), typeIRI, iri("some:Type"), nil},
-	//			{iri("1234"), iri("name"), quad.String("Sub 1"), nil},
-	//			{iri("1234"), iri("spec"), quad.String("special"), nil},
-	//			{iri("1234"), iri("values"), quad.String("val1"), nil},
-	//			{iri("1234"), iri("values"), quad.String("val2"), nil},
-	//		},
-	//	},
+	{
+		expect: struct {
+			rdfType struct{} `quad:"rdf:type > some:Type"`
+			item2
+			ID     quad.IRI `quad:"@id"`
+			Values []string `quad:"values"`
+		}{
+			item2:  item2{Name: "Sub 1", Spec: "special"},
+			ID:     "1234",
+			Values: []string{"val1", "val2"},
+		},
+		quads: []quad.Quad{
+			{iri("1234"), typeIRI, iri("some:Type"), nil},
+			{iri("1234"), iri("name"), quad.String("Sub 1"), nil},
+			{iri("1234"), iri("spec"), quad.String("special"), nil},
+			{iri("1234"), iri("values"), quad.String("val1"), nil},
+			{iri("1234"), iri("values"), quad.String("val2"), nil},
+		},
+	},
+	{
+		expect: struct {
+			rdfType struct{} `quad:"@type > some:Type"`
+			item2
+			ID     quad.IRI `quad:"@id"`
+			Values []string `quad:"values"`
+		}{
+			item2:  item2{Name: "Sub 1", Spec: "special"},
+			ID:     "1234",
+			Values: []string{"val1", "val2"},
+		},
+		quads: []quad.Quad{
+			{iri("1234"), typeIRI, iri("some:Type"), nil},
+			{iri("1234"), iri("name"), quad.String("Sub 1"), nil},
+			{iri("1234"), iri("spec"), quad.String("special"), nil},
+			{iri("1234"), iri("values"), quad.String("val1"), nil},
+			{iri("1234"), iri("values"), quad.String("val2"), nil},
+		},
+	},
 	{
 		expect: treeItem{
 			ID:   iri("n1"),
