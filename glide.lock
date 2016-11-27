@@ -1,5 +1,5 @@
-hash: 80622f54e5ee6819770a6d90324f90b5fc75790d8311d1e39d12be1bb00cd95b
-updated: 2016-08-26T17:11:12.108578825+07:00
+hash: e4b13b34ecdd7061170f867cb95cae46281e8be2dd7d81c2d49003e7ab3bba89
+updated: 2016-11-27T14:38:22.813599135+01:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
@@ -42,6 +42,10 @@ imports:
   - gogoproto
   - proto
   - protoc-gen-gogo/descriptor
+  - sortkeys
+  - test
+  - test/custom
+  - test/custom-dash-type
 - name: github.com/golang/glog
   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
@@ -56,6 +60,8 @@ imports:
   version: 0dad96c0b94f8dee039aa40467f767467392a0af
   subpackages:
   - oid
+- name: github.com/linkeddata/gojsonld
+  version: a223ef39bb925d36d4c410d3e35b0e34e370cc31
 - name: github.com/opencontainers/runc
   version: 6df383c2f881fbdeb85060fd27d8bf61afedacd9
   subpackages:

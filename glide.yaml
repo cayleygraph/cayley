@@ -38,3 +38,4 @@ import:
   subpackages:
   - assert
   - require
+- package: github.com/linkeddata/gojsonld
