@@ -208,21 +208,21 @@ func RegisterType(iri quad.IRI, obj interface{}) {
 	iriToType[full] = rt
 }
 
-// PathForType builds a path (morphism) for a given Go type.
-func PathForType(rt reflect.Type) (*path.Path, error) {
+func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 	for rt.Kind() == reflect.Ptr {
 		rt = rt.Elem()
 	}
 	if rt.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("expected struct, got %v", rt)
 	}
-
-	pathForTypeMu.RLock()
-	if p, ok := pathForType[rt]; ok {
+	if tagPref != "" {
+		pathForTypeMu.RLock()
+		if p, ok := pathForType[rt]; ok {
+			pathForTypeMu.RUnlock()
+			return p, nil
+		}
 		pathForTypeMu.RUnlock()
-		return p, nil
 	}
-	pathForTypeMu.RUnlock()
 
 	p := path.StartMorphism()
 	typesMu.RLock()
@@ -233,8 +233,13 @@ func PathForType(rt reflect.Type) (*path.Path, error) {
 	}
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
-		if f.Anonymous { // TODO: handle anonymous fields
-			return nil, fmt.Errorf("anonymous fields are not supported yet")
+		if f.Anonymous {
+			pa, err := makePathForType(f.Type, tagPref+f.Name+".")
+			if err != nil {
+				return nil, err
+			}
+			p = p.Follow(pa)
+			continue
 		}
 		name := f.Name
 		rule, err := fieldRule(f)
@@ -260,25 +265,33 @@ func PathForType(rt reflect.Type) (*path.Path, error) {
 				p = p.Has(rule.Pred, rule.Val)
 			}
 		case saveRule:
+			tag := tagPref + name
 			if rule.Opt {
 				if rule.Rev {
-					p = p.SaveOptionalReverse(rule.Pred, name)
+					p = p.SaveOptionalReverse(rule.Pred, tag)
 				} else {
-					p = p.SaveOptional(rule.Pred, name)
+					p = p.SaveOptional(rule.Pred, tag)
 				}
 			} else {
 				if rule.Rev {
-					p = p.SaveReverse(rule.Pred, name)
+					p = p.SaveReverse(rule.Pred, tag)
 				} else {
-					p = p.Save(rule.Pred, name)
+					p = p.Save(rule.Pred, tag)
 				}
 			}
 		}
 	}
-	pathForTypeMu.Lock()
-	pathForType[rt] = p
-	pathForTypeMu.Unlock()
+	if tagPref != "" {
+		pathForTypeMu.Lock()
+		pathForType[rt] = p
+		pathForTypeMu.Unlock()
+	}
 	return p, nil
+}
+
+// PathForType builds a path (morphism) for a given Go type.
+func PathForType(rt reflect.Type) (*path.Path, error) {
+	return makePathForType(rt, "")
 }
 
 func anonFieldType(fld reflect.StructField) (reflect.Type, bool) {
@@ -403,7 +416,7 @@ var (
 	errRequiredFieldIsMissing = errors.New("required field is missing")
 )
 
-func saveToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m map[string][]graph.Value) error {
+func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m map[string][]graph.Value, tagPref string) error {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -439,19 +452,23 @@ func saveToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 		}
 		f := rt.Field(i)
 		name := f.Name
-		rules := fields[name]
-		if rules == nil {
-			continue
-		}
 		if err := checkFieldType(f.Type); err != nil {
 			return err
 		}
-		arr, ok := m[name]
-		if !ok || len(arr) == 0 {
+		df := dst.Field(i)
+		if f.Anonymous {
+			if err := loadToValue(ctx, qs, df, m, tagPref+name+"."); err != nil {
+				return fmt.Errorf("load anonymous field %s failed: %v", f.Name, err)
+			}
 			continue
 		}
-		if f.Anonymous { // TODO(dennwc): handle anonymous fields
-			return fmt.Errorf("anonymous fields (namely: %s) are not supported (yet)", f.Name)
+		rules := fields[tagPref+name]
+		if rules == nil {
+			continue
+		}
+		arr, ok := m[tagPref+name]
+		if !ok || len(arr) == 0 {
+			continue
 		}
 		ft := f.Type
 		native := isNative(ft)
@@ -478,7 +495,6 @@ func saveToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 				}
 				sv = reflect.ValueOf(fv)
 			}
-			df := dst.Field(i)
 			if err := DefaultConverter.SetValue(df, sv); err != nil {
 				return fmt.Errorf("field %s: %v", f.Name, err)
 			}
@@ -682,7 +698,7 @@ func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 				}
 			}
 		}
-		err := saveToValue(ctx, qs, cur, mo)
+		err := loadToValue(ctx, qs, cur, mo, "")
 		if err == errRequiredFieldIsMissing {
 			if !slice && !chanl {
 				return err
@@ -699,19 +715,19 @@ func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 			return nil
 		}
 	}
-	if !slice && !chanl {
-		if list.Type() != graph.All {
-			// distinguish between
-			list.Reset()
-			and := iterator.NewAnd(qs, list, qs.NodesAllIterator())
-			defer and.Close()
-			if and.Next() {
-				return errRequiredFieldIsMissing
-			}
-		}
-		return errNotFound
+	if slice || chanl {
+		return nil
 	}
-	return nil
+	if list != nil && list.Type() != graph.All {
+		// distinguish between missing object and type constraints
+		list.Reset()
+		and := iterator.NewAnd(qs, list, qs.NodesAllIterator())
+		defer and.Close()
+		if and.Next() {
+			return errRequiredFieldIsMissing
+		}
+	}
+	return errNotFound
 }
 
 func writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflect.Value, rev bool) error {
