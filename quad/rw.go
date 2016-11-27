@@ -54,23 +54,30 @@ type BatchReader interface {
 	ReadQuads(buf []Quad) (int, error)
 }
 
-type sliceReader struct {
+type Quads struct {
 	s []Quad
-	n int
 }
 
-func (r *sliceReader) ReadQuad() (Quad, error) {
-	if r == nil || len(r.s) <= r.n {
+func (r *Quads) WriteQuad(q Quad) error {
+	r.s = append(r.s, q)
+	return nil
+}
+
+func (r *Quads) ReadQuad() (Quad, error) {
+	if r == nil || len(r.s) == 0 {
 		return Quad{}, io.EOF
 	}
-	q := r.s[r.n]
-	r.n++
+	q := r.s[0]
+	r.s = r.s[1:]
+	if len(r.s) == 0 {
+		r.s = nil
+	}
 	return q, nil
 }
 
 // NewReader creates a quad reader from a quad slice.
-func NewReader(quads []Quad) Reader {
-	return &sliceReader{s: quads}
+func NewReader(quads []Quad) *Quads {
+	return &Quads{s: quads}
 }
 
 // Copy will copy all quads from src to dst. It returns copied quads count and an error, if it failed.
@@ -145,10 +152,10 @@ func CopyBatch(dst BatchWriter, src Reader, batchSize int) (cnt int, err error) 
 // It returns a slice with all quads that were read and an error, if any.
 func ReadAll(r Reader) (arr []Quad, err error) {
 	switch rt := r.(type) {
-	case *sliceReader:
-		arr = make([]Quad, len(rt.s)-rt.n)
-		copy(arr, rt.s[rt.n:])
-		rt.n = len(rt.s)
+	case *Quads:
+		arr = make([]Quad, len(rt.s))
+		copy(arr, rt.s)
+		rt.s = nil
 		return
 	}
 	var q Quad

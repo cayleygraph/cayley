@@ -40,6 +40,8 @@ func init() {
 	})
 }
 
+var _ quad.Writer = (*QuadStore)(nil)
+
 func cmp(a, b int64) int {
 	return int(a - b)
 }
@@ -128,6 +130,16 @@ func newQuadStore() *QuadStore {
 		nextID:     1,
 		nextQuadID: 1,
 	}
+}
+
+func (qs *QuadStore) WriteQuad(q quad.Quad) error {
+	h := qs.Horizon()
+	return qs.AddDelta(graph.Delta{
+		ID:        h.Next(),
+		Quad:      q,
+		Action:    graph.Add,
+		Timestamp: time.Now(),
+	})
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {

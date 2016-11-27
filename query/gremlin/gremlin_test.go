@@ -325,7 +325,7 @@ var testQueries = []struct {
 		query: `
 				g.V().Has("<status>").Count().All()
 		`,
-		expect: []string{`"5"^^<http://schema.org/Integer>`},
+		expect: []string{`"5"^^<schema:Integer>`},
 	},
 	{
 		message: "use Count value",
