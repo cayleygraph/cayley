@@ -64,9 +64,10 @@ type IgnoreOpts struct {
 	IgnoreDup, IgnoreMissing bool
 }
 
-func (h *Handle) Close() {
+func (h *Handle) Close() error {
+	err := h.QuadWriter.Close()
 	h.QuadStore.Close()
-	h.QuadWriter.Close()
+	return err
 }
 
 var (

@@ -164,12 +164,13 @@ func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout ti
 
 			case ":a":
 				quad, err := nquads.Parse(args)
+				if err == nil {
+					err = h.QuadWriter.AddQuad(quad)
+				}
 				if err != nil {
 					fmt.Printf("Error: not a valid quad: %v\n", err)
 					continue
 				}
-
-				h.QuadWriter.AddQuad(quad)
 				continue
 
 			case ":d":
