@@ -50,7 +50,8 @@ func NewMemoryGraph() (*Handle, error) {
 	return NewGraph("memstore", "", nil)
 }
 
-func (h *Handle) Close() {
+func (h *Handle) Close() error {
+	err := h.QuadWriter.Close()
 	h.QuadStore.Close()
-	h.QuadWriter.Close()
+	return err
 }

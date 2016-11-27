@@ -388,7 +388,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leve
 	return nil
 }
 
-func (qs *QuadStore) Close() {
+func (qs *QuadStore) Close() error {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, order, qs.size)
 	if err == nil {
@@ -409,8 +409,9 @@ func (qs *QuadStore) Close() {
 	} else {
 		clog.Errorf("could not convert horizon before closing!")
 	}
-	qs.db.Close()
+	err = qs.db.Close()
 	qs.open = false
+	return err
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {

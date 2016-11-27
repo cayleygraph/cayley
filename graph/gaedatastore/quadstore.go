@@ -526,8 +526,9 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 	return nil, false
 }
 
-func (qs *QuadStore) Close() {
+func (qs *QuadStore) Close() error {
 	qs.context = nil
+	return nil
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Value, dir quad.Direction) graph.Value {

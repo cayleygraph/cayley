@@ -66,6 +66,7 @@ func main() {
 	store, err := cayley.NewGraph("bolt", tmpfile.Name(), nil)
 	checkErr(err)
 	defer store.Close()
+	qw := graph.NewWriter(store)
 
 	// Save an object
 	bob := Person{
@@ -73,7 +74,7 @@ func main() {
 		Name: "Bob", Age: 32,
 	}
 	fmt.Printf("saving: %+v\n", bob)
-	id, err := schema.WriteAsQuads(store, bob)
+	id, err := schema.WriteAsQuads(qw, bob)
 	checkErr(err)
 	fmt.Println("id for object:", id, "=", bob.ID) // should be equal
 
@@ -97,7 +98,7 @@ func main() {
 		{Lat: 39.7, Lng: 8.41},
 	}
 	for _, c := range coords {
-		id, err = schema.WriteAsQuads(store, c)
+		id, err = schema.WriteAsQuads(qw, c)
 		checkErr(err)
 		fmt.Println("generated id:", id)
 	}

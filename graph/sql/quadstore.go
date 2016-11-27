@@ -714,8 +714,8 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(iterator.Identity)
 }
 
-func (qs *QuadStore) Close() {
-	qs.db.Close()
+func (qs *QuadStore) Close() error {
+	return qs.db.Close()
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {

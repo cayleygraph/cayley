@@ -175,8 +175,13 @@ func WriterMethods() []string {
 	return t
 }
 
+type BatchWriter interface {
+	quad.Writer
+	quad.BatchWriter
+}
+
 // NewWriter creates a quad writer for a given QuadStore.
-func NewWriter(qs QuadWriter) quad.BatchWriter {
+func NewWriter(qs QuadWriter) BatchWriter {
 	return &batchWriter{qs: qs}
 }
 
@@ -196,7 +201,7 @@ func (w *batchWriter) WriteQuads(quads []quad.Quad) (int, error) {
 func (w *batchWriter) Close() error { return nil }
 
 // NewRemover creates a quad writer for a given QuadStore which removes quads instead of adding them.
-func NewRemover(qs QuadWriter) quad.BatchWriter {
+func NewRemover(qs QuadWriter) BatchWriter {
 	return &removeWriter{qs: qs}
 }
 

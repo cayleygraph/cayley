@@ -117,7 +117,7 @@ type QuadStore interface {
 
 	// Close the quad store and clean up. (Flush to disk, cleanly
 	// sever connections, etc)
-	Close()
+	Close() error
 
 	// Convenience function for speed. Given a quad token and a direction
 	// return the node token for that direction. Sometimes, a QuadStore
