@@ -1,0 +1,48 @@
+// Copyright 2016 The Cayley Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package graph;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) =  true;
+
+message Primitive {
+  uint64 ID = 1;
+  uint64 Subject = 2;
+  uint64 Predicate = 3;
+  uint64 Object = 4;
+  uint64 Label = 5;
+  uint64 SameAs = 6;
+  uint64 Replaces = 7;
+  google.protobuf.Timestamp Timestamp = 8 [(gogoproto.stdtime) = true];
+  ValueType ValueType = 9;
+  bytes Value = 10;
+}
+
+enum ValueType {
+  IRI = 0;
+  STRING = 1;
+  BNODE = 2;
+  TYPED_STR = 3;
+  LANG_STR = 4;
+  INT = 5;
+  FLOAT = 6;
+  BOOL = 7;
+  TIMESTAMP = 8;
+}
