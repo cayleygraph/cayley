@@ -339,3 +339,10 @@ func (qs *QuadStore) Close() error { return nil }
 func (qs *QuadStore) Type() string {
 	return QuadStoreType
 }
+
+func (qs *QuadStore) isNode(v graph.Value) bool {
+	if _, ok := v.(iterator.Int64Node); ok {
+		return true
+	}
+	return false
+}

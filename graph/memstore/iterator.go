@@ -166,7 +166,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if v == nil {
 		return graph.ContainsLogOut(it, v, false)
-	} else if it.nodes != v.IsNode() {
+	} else if it.nodes != it.qs.isNode(v) {
 		return graph.ContainsLogOut(it, v, false)
 	}
 	var vi int64
