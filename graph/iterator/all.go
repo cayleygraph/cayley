@@ -146,17 +146,19 @@ func (it *Int64) Size() (int64, bool) {
 	return Size, true
 }
 
+func valToInt64(v graph.Value) int64{
+	if v, ok := v.(Int64Node); ok{
+		return int64(v)
+	}
+	return int64(v.(Int64Quad))
+}
+
 // Contains() for an Int64 is merely seeing if the passed value is
 // within the range, assuming the value is an int64.
 func (it *Int64) Contains(tsv graph.Value) bool {
 	graph.ContainsLogIn(it, tsv)
 	it.runstats.Contains += 1
-	var v int64
-	if tsv.IsNode() {
-		v = int64(tsv.(Int64Node))
-	} else {
-		v = int64(tsv.(Int64Quad))
-	}
+	v := valToInt64(tsv)
 	if it.min <= v && v <= it.max {
 		it.result = v
 		return graph.ContainsLogOut(it, it.toValue(v), true)

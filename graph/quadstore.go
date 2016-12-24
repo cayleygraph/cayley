@@ -39,9 +39,7 @@ import (
 //
 // These must be comparable, or implement a Keyer interface
 // so that they may be stored in maps.
-type Value interface {
-	IsNode() bool
-}
+type Value interface{}
 
 // PreFetchedValue is an optional interface for graph.Value to indicate that
 // quadstore has already loaded a value into memory.
@@ -57,20 +55,10 @@ type Keyer interface {
 	Key() interface{}
 }
 
-type key struct {
-	Val  interface{}
-	Node bool
-}
-
-func (k key) IsNode() bool { return k.Node }
-
 // ToKey prepares Value to be stored inside maps, calling Key() if necessary.
 func ToKey(v Value) Value {
 	if k, ok := v.(Keyer); ok {
-		return key{
-			Val:  k.Key(),
-			Node: v.IsNode(),
-		}
+		return k.Key()
 	}
 	return v
 }
