@@ -1,4 +1,4 @@
-package main
+package examples_test
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-func main() {
+func ExampleMemoryGraph() {
 	// Create a brand new graph
 	store, err := cayley.NewMemoryGraph()
 	if err != nil {
@@ -30,4 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// Output: Hello World!
 }

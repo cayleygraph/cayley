@@ -1,4 +1,4 @@
-package main
+package examples
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-func main() {
+func ExampleTransaction() {
 	// To see how most of this works, see hello_world -- this just add in a transaction
 	store, err := cayley.NewMemoryGraph()
 	if err != nil {
@@ -38,4 +38,8 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// Output:
+	// cats are awesome
+	// cats are scary
 }

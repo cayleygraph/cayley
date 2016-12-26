@@ -1,9 +1,6 @@
-# Examples
+# Examples (Recipes)
 
-Each of the examples can be run with 
+In order to have more conversation around recipes, we have
+moved it for the time being to our discourse site:
 
-```go run hello_world/main.go```
-
-obviously changing **hello_world** to the one you want to run!
-
-The hello_bolt example requires `go get`.
+https://discourse.cayley.io/c/documentation/recipes

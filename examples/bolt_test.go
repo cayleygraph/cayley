@@ -1,4 +1,4 @@
-package main
+package examples
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-func main() {
+func ExampleBoltGraph() {
 	// File for your new BoltDB. Use path to regular file and not temporary in the real world
 	tmpfile, err := ioutil.TempFile("", "example")
 	if err != nil {
@@ -60,4 +60,6 @@ func main() {
 	if err := it.Err(); err != nil {
 		log.Fatalln(err)
 	}
+
+	// Output: Hello BoltDB!
 }
