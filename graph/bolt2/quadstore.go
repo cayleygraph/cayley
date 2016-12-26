@@ -18,10 +18,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
+	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
 
@@ -42,8 +42,6 @@ var (
 	errNoBucket = errors.New("bolt2: bucket is missing")
 )
 
-const localFillPercent = 0.7
-
 const (
 	QuadStoreType     = "bolt2"
 	latestDataVersion = 1
@@ -59,6 +57,8 @@ type QuadStore struct {
 	horizon       int64
 	sameAsHorizon int64
 	version       int64
+	mapBucket     map[string]map[uint64][]uint64
+	valueLRU      *lru.Cache
 }
 
 func createNewBolt(path string, _ graph.Options) error {
@@ -110,6 +110,7 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	if qs.version != latestDataVersion {
 		return nil, errors.New("bolt: data version is out of date. Run cayleyupgrade for your config to update the data.")
 	}
+	qs.valueLRU = lru.New(500)
 	return &qs, nil
 }
 
@@ -254,16 +255,6 @@ func (qs *QuadStore) getValFromLog(tx *bolt.Tx, k uint64) (quad.Value, error) {
 		return nil, err
 	}
 	return pquads.UnmarshalValue(p.Value)
-}
-
-func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (*graph.Primitive, error) {
-	p := &graph.Primitive{}
-	b := tx.Bucket(logIndex).Get(uint64toBytes(k))
-	if b == nil {
-		return p, fmt.Errorf("no such log entry")
-	}
-	err := p.Unmarshal(b)
-	return p, err
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {

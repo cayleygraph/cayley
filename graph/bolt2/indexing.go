@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -57,6 +58,8 @@ func (qs *QuadStore) createBuckets() error {
 				return fmt.Errorf("could not create bucket %s: %s", string(index), err)
 			}
 		}
+		tx.Bucket(logIndex).FillPercent = 0.8
+		tx.Bucket(valueIndex).FillPercent = 0.4
 		return nil
 	})
 }
@@ -69,7 +72,6 @@ func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
 		return err
 	}
 	b := tx.Bucket(metaBucket)
-	b.FillPercent = localFillPercent
 	werr := b.Put([]byte("size"), buf.Bytes())
 	if werr != nil {
 		clog.Errorf("Couldn't write size!")
@@ -143,6 +145,10 @@ nextDelta:
 			return err
 		}
 	}
+	err = qs.flushMapBucket(tx)
+	if err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
@@ -164,6 +170,7 @@ func (qs *QuadStore) indexNode(tx *bolt.Tx, p *graph.Primitive) error {
 	if err != nil {
 		return err
 	}
+	qs.valueLRU.Put(v.String(), p.ID)
 	return qs.addToLog(tx, p)
 }
 
@@ -190,14 +197,47 @@ func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket []byte, key, value uint6
 	if key == 0 {
 		return fmt.Errorf("trying to add to map bucket %s with key 0", bucket)
 	}
-	b := tx.Bucket(bucket)
-	k := uint64toBytes(key)
-	bytelist := b.Get(k)
-	add := uint64toBytes(value)
-	n := make([]byte, len(bytelist)+len(add))
-	copy(n[:len(bytelist)], bytelist)
-	copy(n[len(bytelist):], add)
-	return b.Put(k, n)
+	if qs.mapBucket == nil {
+		qs.mapBucket = make(map[string]map[uint64][]uint64)
+	}
+	if _, ok := qs.mapBucket[string(bucket)]; !ok {
+		qs.mapBucket[string(bucket)] = make(map[uint64][]uint64)
+	}
+
+	l := qs.mapBucket[string(bucket)][key]
+	qs.mapBucket[string(bucket)][key] = append(l, value)
+	return nil
+}
+
+func (qs *QuadStore) flushMapBucket(tx *bolt.Tx) error {
+	for bucket, m := range qs.mapBucket {
+		b := tx.Bucket([]byte(bucket))
+		keys := make(Int64Set, len(m))
+		i := 0
+		for k := range m {
+			keys[i] = k
+			i++
+		}
+		sort.Sort(keys)
+		for _, k := range keys {
+			l := m[k]
+			kbytes := uint64KeyBytes(k)
+			bytelist := b.Get(kbytes)
+			n := make([]byte, len(bytelist)+(binary.MaxVarintLen64*len(l)))
+			copy(n[:len(bytelist)], bytelist)
+			off := len(bytelist)
+			for _, x := range l {
+				n := binary.PutUvarint(n[off:], x)
+				off += n
+			}
+			err := b.Put(kbytes, n[:off])
+			if err != nil {
+				return err
+			}
+		}
+	}
+	qs.mapBucket = nil
+	return nil
 }
 
 func (qs *QuadStore) indexSchema(tx *bolt.Tx, p *graph.Primitive) error {
@@ -209,7 +249,7 @@ func (qs *QuadStore) addToLog(tx *bolt.Tx, p *graph.Primitive) error {
 	if err != nil {
 		return err
 	}
-	return tx.Bucket(logIndex).Put(uint64toBytes(p.ID), b)
+	return tx.Bucket(logIndex).Put(uint64KeyBytes(p.ID), b)
 }
 
 func (qs *QuadStore) createNodePrimitive(v quad.Value) (*graph.Primitive, error) {
@@ -225,6 +265,10 @@ func (qs *QuadStore) createNodePrimitive(v quad.Value) (*graph.Primitive, error)
 }
 
 func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
+	if x, ok := qs.valueLRU.Get(v.String()); ok {
+		return x.(uint64)
+	}
+
 	b := quad.HashOf(v)
 	val := tx.Bucket(valueIndex).Get(b)
 	if val == nil {
@@ -235,6 +279,7 @@ func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
 		clog.Errorf("Error reading value from Bolt")
 		return 0
 	}
+	qs.valueLRU.Put(v.String(), out)
 	return out
 }
 
@@ -247,3 +292,25 @@ func uint64toBytesAt(x uint64, bytes []byte) []byte {
 	n := binary.PutUvarint(bytes, x)
 	return bytes[:n]
 }
+
+func uint64KeyBytes(x uint64) []byte {
+	k := make([]byte, 8)
+	binary.BigEndian.PutUint64(k, x)
+	return k
+}
+
+func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (*graph.Primitive, error) {
+	p := &graph.Primitive{}
+	b := tx.Bucket(logIndex).Get(uint64KeyBytes(k))
+	if b == nil {
+		return p, fmt.Errorf("no such log entry")
+	}
+	err := p.Unmarshal(b)
+	return p, err
+}
+
+type Int64Set []uint64
+
+func (a Int64Set) Len() int           { return len(a) }
+func (a Int64Set) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Int64Set) Less(i, j int) bool { return a[i] < a[j] }
