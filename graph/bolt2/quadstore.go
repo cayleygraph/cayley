@@ -18,11 +18,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -51,12 +52,13 @@ const (
 )
 
 type QuadStore struct {
-	db      *bolt.DB
-	path    string
-	open    bool
-	size    int64
-	horizon int64
-	version int64
+	db            *bolt.DB
+	path          string
+	open          bool
+	size          int64
+	horizon       int64
+	sameAsHorizon int64
+	version       int64
 }
 
 func createNewBolt(path string, _ graph.Options) error {
@@ -142,10 +144,6 @@ func (qs *QuadStore) Close() error {
 	return err
 }
 
-func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(iterator.Identity)
-}
-
 func (qs *QuadStore) getMetadata() error {
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
@@ -154,6 +152,10 @@ func (qs *QuadStore) getMetadata() error {
 			return err
 		}
 		qs.version, err = getInt64ForMetaKey(tx, "version", nilDataVersion)
+		if err != nil {
+			return err
+		}
+		qs.sameAsHorizon, err = getInt64ForMetaKey(tx, "sameAsHorizon", 0)
 		if err != nil {
 			return err
 		}
@@ -190,76 +192,127 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 }
 
 func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
-	if v, ok := k.(Int64Node); ok {
+	if v, ok := k.(Int64Value); ok {
 		if v == 0 {
 			if clog.V(2) {
 				clog.Infof("k was 0")
 			}
 			return nil
 		}
-		panic("todo, lookup the value")
-	}
-	if v, ok := k.(Int64Link); ok {
-		if v == 0 {
-			if clog.V(2) {
-				clog.Infof("k was 0")
-			}
+		var val quad.Value
+		err := qs.db.View(func(tx *bolt.Tx) error {
+			var err error
+			val, err = qs.getValFromLog(tx, uint64(v))
+			return err
+		})
+		if err != nil {
+			clog.Errorf("error getting NameOf %d: %s", v, err)
 			return nil
 		}
-		panic("todo, lookup the link")
+		return val
 	}
 	panic("unknown type of graph.Value; not meant for this quadstore")
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
-	panic("todo")
+	var v quad.Quad
+	key := k.(Int64Value)
+	err := qs.db.View(func(tx *bolt.Tx) error {
+		var err error
+		v, err = qs.toQuad(tx, uint64(key))
+		return err
+	})
+	if err != nil {
+		clog.Errorf("error fetching quad %d: %s", key, err)
+	}
+	return v
+}
+
+func (qs *QuadStore) toQuad(tx *bolt.Tx, k uint64) (quad.Quad, error) {
+	var q quad.Quad
+	p, err := qs.getPrimitiveFromLog(tx, k)
+	if err != nil {
+		return q, err
+	}
+	for _, dir := range quad.Directions {
+		v := p.GetDirection(dir)
+		val, err := qs.getValFromLog(tx, v)
+		if err != nil {
+			return q, err
+		}
+		q.Set(dir, val)
+	}
+	return q, nil
+}
+
+func (qs *QuadStore) getValFromLog(tx *bolt.Tx, k uint64) (quad.Value, error) {
+	if k == 0 {
+		return nil, nil
+	}
+	p, err := qs.getPrimitiveFromLog(tx, k)
+	if err != nil {
+		return nil, err
+	}
+	return pquads.UnmarshalValue(p.Value)
+}
+
+func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (graph.Primitive, error) {
+	var p graph.Primitive
+	b := tx.Bucket(logIndex).Get(uint64toBytes(k))
+	if b == nil {
+		return p, fmt.Errorf("no such log entry")
+	}
+	err := p.Unmarshal(b)
+	return p, err
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	panic("todo")
+	var out Int64Value
+	qs.db.View(func(tx *bolt.Tx) error {
+		out = Int64Value(qs.resolveQuadValue(tx, s))
+		return nil
+	})
+	return out
+}
+
+func (qs *QuadStore) Type() string {
+	return QuadStoreType
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
-	p, ok := qs.getPrimitive(val)
+	p, ok := qs.getPrimitive(val.(Int64Value))
 	if !ok {
-		return Int64Node(0)
+		return Int64Value(0)
 	}
 	switch d {
 	case quad.Subject:
-		return Int64Node(p.Subject)
+		return Int64Value(p.Subject)
 	case quad.Predicate:
-		return Int64Node(p.Predicate)
+		return Int64Value(p.Predicate)
 	case quad.Object:
-		return Int64Node(p.Object)
+		return Int64Value(p.Object)
 	case quad.Label:
-		return Int64Node(p.Label)
+		return Int64Value(p.Label)
 	}
-	return Int64Node(0)
+	return Int64Value(0)
 }
 
-func (qs *QuadStore) getPrimitive(val graph.Value) (graph.Primitive, bool) {
+func (qs *QuadStore) getPrimitive(val Int64Value) (graph.Primitive, bool) {
 	var v graph.Primitive
-	index := valToUInt64(val)
-	if index == 0 {
+	if val == 0 {
 		return v, false
 	}
-	panic("todo:unmarshal")
+	var p graph.Primitive
+	err := qs.db.View(func(tx *bolt.Tx) error {
+		var err error
+		p, err = qs.getPrimitiveFromLog(tx, uint64(val))
+		return err
+	})
+	if err != nil {
+		clog.Errorf("error getting primitive %d: %s", val, err)
+		return p, false
+	}
+	return p, true
 }
 
-type Int64Node uint64
-
-func (Int64Node) IsNode() bool { return true }
-
-type Int64Link uint64
-
-func (Int64Link) IsNode() bool { return false }
-
-func valToUInt64(val graph.Value) uint64 {
-	if v, ok := val.(Int64Node); ok {
-		return uint64(v)
-	}
-	if v, ok := val.(Int64Link); ok {
-		return uint64(v)
-	}
-	return 0
-}
+type Int64Value uint64

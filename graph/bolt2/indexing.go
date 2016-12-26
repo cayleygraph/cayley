@@ -18,11 +18,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/quad/pquads"
 )
 
 var (
@@ -32,6 +34,7 @@ var (
 	objectIndex    = []byte{quad.Object.Prefix()}
 	sameAsIndex    = []byte("sameas")
 	sameNodesIndex = []byte("samenodes")
+	logIndex       = []byte("log")
 
 	// List of all buckets in the current version of the database.
 	buckets = [][]byte{
@@ -41,6 +44,7 @@ var (
 		objectIndex,
 		sameAsIndex,
 		sameNodesIndex,
+		logIndex,
 	}
 )
 
@@ -88,5 +92,152 @@ func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
-	panic("todo")
+	tx, err := qs.db.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+nextDelta:
+	for _, d := range deltas {
+		var link graph.Primitive
+		for _, dir := range quad.Directions {
+			val := d.Quad.Get(dir)
+			if val == nil {
+				continue
+			}
+			v := qs.resolveQuadValue(tx, val)
+			if v == 0 {
+				// Not found
+				if d.Action == graph.Delete {
+					if ignoreOpts.IgnoreMissing {
+						continue nextDelta
+					}
+					return fmt.Errorf("Deleting unknown quad: %s", d.Quad)
+				}
+				node, err := qs.createNodePrimitive(val)
+				if err != nil {
+					return err
+				}
+				qs.horizon++
+				node.ID = uint64(qs.horizon)
+				err = qs.index(tx, node)
+				if err != nil {
+					return err
+				}
+			}
+			link.SetDirection(dir, v)
+		}
+		qs.horizon++
+		link.ID = uint64(qs.horizon)
+		t := time.Now()
+		link.Timestamp = &t
+		if d.Action == graph.Delete {
+			// TODO(barakmich):
+			// * Lookup existing link
+			// * Add link.Replaces = existing
+		}
+		err = qs.index(tx, link)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (qs *QuadStore) index(tx *bolt.Tx, p graph.Primitive) error {
+	if p.IsNode() {
+		return qs.indexNode(tx, p)
+	}
+	return qs.indexLink(tx, p)
+}
+
+func (qs *QuadStore) indexNode(tx *bolt.Tx, p graph.Primitive) error {
+	v, err := pquads.UnmarshalValue(p.Value)
+	if err != nil {
+		return err
+	}
+	bucket := tx.Bucket(valueIndex)
+	err = bucket.Put(quad.HashOf(v), uint64toBytes(p.ID))
+	if err != nil {
+		return err
+	}
+	return qs.addToLog(tx, p)
+}
+
+func (qs *QuadStore) indexLink(tx *bolt.Tx, p graph.Primitive) error {
+	var err error
+	// Subject
+	err = qs.addToMapBucket(tx, subjectIndex, p.Subject, p.ID)
+	if err != nil {
+		return err
+	}
+	// Object
+	err = qs.addToMapBucket(tx, objectIndex, p.Object, p.ID)
+	if err != nil {
+		return err
+	}
+	err = qs.indexSchema(tx, p)
+	if err != nil {
+		return err
+	}
+	return qs.addToLog(tx, p)
+}
+
+func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket []byte, key, value uint64) error {
+	b := tx.Bucket(bucket)
+	k := uint64toBytes(key)
+	bytelist := b.Get(k)
+	add := uint64toBytes(value)
+	c := append(bytelist, add...)
+	return b.Put(k, c)
+}
+
+func (qs *QuadStore) indexSchema(tx *bolt.Tx, p graph.Primitive) error {
+	return nil
+}
+
+func (qs *QuadStore) addToLog(tx *bolt.Tx, p graph.Primitive) error {
+	b, err := p.Marshal()
+	if err != nil {
+		return err
+	}
+	return tx.Bucket(logIndex).Put(uint64toBytes(p.ID), b)
+}
+
+func (qs *QuadStore) createNodePrimitive(v quad.Value) (graph.Primitive, error) {
+	var p graph.Primitive
+	b, err := pquads.MarshalValue(v)
+	if err != nil {
+		return p, err
+	}
+	p.Value = b
+	t := time.Now()
+	p.Timestamp = &t
+	return p, nil
+}
+
+func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
+	b := quad.HashOf(v)
+	val := tx.Bucket(valueIndex).Get(b)
+	if val == nil {
+		return 0
+	}
+	out, read := binary.Uvarint(val)
+	if read <= 0 {
+		clog.Errorf("Error reading value from Bolt")
+		return 0
+	}
+	return out
+}
+
+func uint64toBytes(x uint64) []byte {
+	b := make([]byte, binary.MaxVarintLen64)
+	return uint64toBytesAt(x, b)
+}
+
+func uint64toBytesAt(x uint64, bytes []byte) []byte {
+	n := binary.PutUvarint(bytes, x)
+	return bytes[:n]
 }

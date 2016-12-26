@@ -28,21 +28,20 @@ message Primitive {
   uint64 Predicate = 3;
   uint64 Object = 4;
   uint64 Label = 5;
-  uint64 SameAs = 6;
-  uint64 Replaces = 7;
-  google.protobuf.Timestamp Timestamp = 8 [(gogoproto.stdtime) = true];
-  ValueType ValueType = 9;
-  bytes Value = 10;
+  uint64 Replaces = 6;
+  google.protobuf.Timestamp Timestamp = 7 [(gogoproto.stdtime) = true];
+  bytes Value = 8;
 }
 
-enum ValueType {
-  IRI = 0;
-  STRING = 1;
-  BNODE = 2;
-  TYPED_STR = 3;
-  LANG_STR = 4;
-  INT = 5;
-  FLOAT = 6;
-  BOOL = 7;
-  TIMESTAMP = 8;
+enum PrimitiveType {
+	LINK = 0;
+  IRI = 1;
+  STRING = 2;
+  BNODE = 3;
+  TYPED_STR = 4;
+  LANG_STR = 5;
+  INT = 6;
+  FLOAT = 7;
+  BOOL = 8;
+  TIMESTAMP = 9;
 }

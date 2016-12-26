@@ -204,6 +204,21 @@ func (q Quad) Get(d Direction) Value {
 	}
 }
 
+func (q Quad) Set(d Direction, v Value) {
+	switch d {
+	case Subject:
+		q.Subject = v
+	case Predicate:
+		q.Predicate = v
+	case Label:
+		q.Label = v
+	case Object:
+		q.Object = v
+	default:
+		panic(d.String())
+	}
+}
+
 // Per-field accessor for quads that returns strings instead of values.
 func (q Quad) GetString(d Direction) string {
 	switch d {

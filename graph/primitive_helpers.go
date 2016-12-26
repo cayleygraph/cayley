@@ -1,0 +1,34 @@
+package graph
+
+import "github.com/cayleygraph/cayley/quad"
+
+func (p Primitive) GetDirection(d quad.Direction) uint64 {
+	switch d {
+	case quad.Subject:
+		return p.Subject
+	case quad.Predicate:
+		return p.Predicate
+	case quad.Object:
+		return p.Object
+	case quad.Label:
+		return p.Label
+	}
+	panic("unknown direction")
+}
+
+func (p Primitive) SetDirection(d quad.Direction, v uint64) {
+	switch d {
+	case quad.Subject:
+		p.Subject = v
+	case quad.Predicate:
+		p.Predicate = v
+	case quad.Object:
+		p.Object = v
+	case quad.Label:
+		p.Label = v
+	}
+}
+
+func (p Primitive) IsNode() bool {
+	return len(p.Value) != 0
+}
