@@ -29,8 +29,8 @@ import (
 )
 
 var (
-	metaBucket     = []byte("meta")
-	valueIndex     = []byte("value")
+	metaBucket = []byte("meta")
+	//valueIndex     = []byte("value")
 	subjectIndex   = []byte{quad.Subject.Prefix()}
 	objectIndex    = []byte{quad.Object.Prefix()}
 	sameAsIndex    = []byte("sameas")
@@ -40,17 +40,18 @@ var (
 	// List of all buckets in the current version of the database.
 	buckets = [][]byte{
 		metaBucket,
-		valueIndex,
+		//	valueIndex,
 		subjectIndex,
 		objectIndex,
 		sameAsIndex,
 		sameNodesIndex,
 		logIndex,
 	}
+	hashBuf = make([]byte, quad.HashSize)
 )
 
 func (qs *QuadStore) createBuckets() error {
-	return qs.db.Update(func(tx *bolt.Tx) error {
+	err := qs.db.Update(func(tx *bolt.Tx) error {
 		var err error
 		for _, index := range buckets {
 			_, err = tx.CreateBucket(index)
@@ -58,10 +59,29 @@ func (qs *QuadStore) createBuckets() error {
 				return fmt.Errorf("could not create bucket %s: %s", string(index), err)
 			}
 		}
-		tx.Bucket(logIndex).FillPercent = 0.8
-		tx.Bucket(valueIndex).FillPercent = 0.4
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	return qs.db.Update(func(tx *bolt.Tx) error {
+		var err error
+		for i := 0; i < 256; i++ {
+			for j := 0; j < 256; j++ {
+				_, err = tx.CreateBucket(bucketFor(byte(i), byte(j)))
+				if err != nil {
+					return fmt.Errorf("could not create subbucket %d %d : %s", i, j, err)
+				}
+			}
+		}
+		tx.Bucket(logIndex).FillPercent = 0.8
+		//tx.Bucket(valueIndex).FillPercent = 0.4
+		return nil
+	})
+}
+
+func bucketFor(i, j byte) []byte {
+	return []byte{'v', 'a', 'l', i, j}
 }
 
 func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
@@ -123,7 +143,7 @@ nextDelta:
 				}
 				qs.horizon++
 				node.ID = uint64(qs.horizon)
-				err = qs.index(tx, node)
+				err = qs.index(tx, node, val)
 				if err != nil {
 					return err
 				}
@@ -140,7 +160,7 @@ nextDelta:
 			// * Lookup existing link
 			// * Add link.Replaces = existing
 		}
-		err = qs.index(tx, link)
+		err = qs.index(tx, link, nil)
 		if err != nil {
 			return err
 		}
@@ -153,24 +173,30 @@ nextDelta:
 	return tx.Commit()
 }
 
-func (qs *QuadStore) index(tx *bolt.Tx, p *graph.Primitive) error {
+func (qs *QuadStore) index(tx *bolt.Tx, p *graph.Primitive, val quad.Value) error {
 	if p.IsNode() {
-		return qs.indexNode(tx, p)
+		return qs.indexNode(tx, p, val)
 	}
 	return qs.indexLink(tx, p)
 }
 
-func (qs *QuadStore) indexNode(tx *bolt.Tx, p *graph.Primitive) error {
-	v, err := pquads.UnmarshalValue(p.Value)
+func (qs *QuadStore) indexNode(tx *bolt.Tx, p *graph.Primitive, val quad.Value) error {
+	var err error
+	if val == nil {
+		val, err = pquads.UnmarshalValue(p.Value)
+		if err != nil {
+			return err
+		}
+	}
+	quad.HashTo(val, hashBuf)
+	bucket := tx.Bucket(bucketFor(hashBuf[0], hashBuf[1]))
+	err = bucket.Put(hashBuf, uint64KeyBytes(p.ID))
 	if err != nil {
 		return err
 	}
-	bucket := tx.Bucket(valueIndex)
-	err = bucket.Put(quad.HashOf(v), uint64toBytes(p.ID))
-	if err != nil {
-		return err
+	if iri, ok := val.(quad.IRI); ok {
+		qs.valueLRU.Put(string(iri), p.ID)
 	}
-	qs.valueLRU.Put(v.String(), p.ID)
 	return qs.addToLog(tx, p)
 }
 
@@ -265,21 +291,27 @@ func (qs *QuadStore) createNodePrimitive(v quad.Value) (*graph.Primitive, error)
 }
 
 func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
-	if x, ok := qs.valueLRU.Get(v.String()); ok {
-		return x.(uint64)
+	var isIRI bool
+	if iri, ok := v.(quad.IRI); ok {
+		isIRI = true
+		if x, ok := qs.valueLRU.Get(string(iri)); ok {
+			return x.(uint64)
+		}
 	}
 
-	b := quad.HashOf(v)
-	val := tx.Bucket(valueIndex).Get(b)
+	quad.HashTo(v, hashBuf)
+	buck := tx.Bucket(bucketFor(hashBuf[0], hashBuf[1]))
+	if buck == nil {
+		return 0
+	}
+	val := buck.Get(hashBuf)
 	if val == nil {
 		return 0
 	}
-	out, read := binary.Uvarint(val)
-	if read <= 0 {
-		clog.Errorf("Error reading value from Bolt")
-		return 0
+	out := binary.BigEndian.Uint64(val)
+	if isIRI {
+		qs.valueLRU.Put(v.String(), out)
 	}
-	qs.valueLRU.Put(v.String(), out)
 	return out
 }
 
