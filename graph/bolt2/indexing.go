@@ -153,8 +153,7 @@ nextDelta:
 		}
 		qs.horizon++
 		link.ID = uint64(qs.horizon)
-		t := time.Now()
-		link.Timestamp = &t
+		link.Timestamp = time.Now().UnixNano()
 		if d.Action == graph.Delete {
 			// TODO(barakmich):
 			// * Lookup existing link
@@ -285,8 +284,7 @@ func (qs *QuadStore) createNodePrimitive(v quad.Value) (*graph.Primitive, error)
 		return p, err
 	}
 	p.Value = b
-	t := time.Now()
-	p.Timestamp = &t
+	p.Timestamp = time.Now().UnixNano()
 	return p, nil
 }
 
@@ -310,7 +308,7 @@ func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
 	}
 	out := binary.BigEndian.Uint64(val)
 	if isIRI {
-		qs.valueLRU.Put(v.String(), out)
+		qs.valueLRU.Put(string(v.(quad.IRI)), out)
 	}
 	return out
 }
