@@ -100,7 +100,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 
 nextDelta:
 	for _, d := range deltas {
-		var link graph.Primitive
+		link := &graph.Primitive{}
 		for _, dir := range quad.Directions {
 			val := d.Quad.Get(dir)
 			if val == nil {
@@ -125,6 +125,7 @@ nextDelta:
 				if err != nil {
 					return err
 				}
+				v = node.ID
 			}
 			link.SetDirection(dir, v)
 		}
@@ -146,14 +147,14 @@ nextDelta:
 	return tx.Commit()
 }
 
-func (qs *QuadStore) index(tx *bolt.Tx, p graph.Primitive) error {
+func (qs *QuadStore) index(tx *bolt.Tx, p *graph.Primitive) error {
 	if p.IsNode() {
 		return qs.indexNode(tx, p)
 	}
 	return qs.indexLink(tx, p)
 }
 
-func (qs *QuadStore) indexNode(tx *bolt.Tx, p graph.Primitive) error {
+func (qs *QuadStore) indexNode(tx *bolt.Tx, p *graph.Primitive) error {
 	v, err := pquads.UnmarshalValue(p.Value)
 	if err != nil {
 		return err
@@ -166,7 +167,7 @@ func (qs *QuadStore) indexNode(tx *bolt.Tx, p graph.Primitive) error {
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) indexLink(tx *bolt.Tx, p graph.Primitive) error {
+func (qs *QuadStore) indexLink(tx *bolt.Tx, p *graph.Primitive) error {
 	var err error
 	// Subject
 	err = qs.addToMapBucket(tx, subjectIndex, p.Subject, p.ID)
@@ -186,19 +187,24 @@ func (qs *QuadStore) indexLink(tx *bolt.Tx, p graph.Primitive) error {
 }
 
 func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket []byte, key, value uint64) error {
+	if key == 0 {
+		return fmt.Errorf("trying to add to map bucket %s with key 0", bucket)
+	}
 	b := tx.Bucket(bucket)
 	k := uint64toBytes(key)
 	bytelist := b.Get(k)
 	add := uint64toBytes(value)
-	c := append(bytelist, add...)
-	return b.Put(k, c)
+	n := make([]byte, len(bytelist)+len(add))
+	copy(n[:len(bytelist)], bytelist)
+	copy(n[len(bytelist):], add)
+	return b.Put(k, n)
 }
 
-func (qs *QuadStore) indexSchema(tx *bolt.Tx, p graph.Primitive) error {
+func (qs *QuadStore) indexSchema(tx *bolt.Tx, p *graph.Primitive) error {
 	return nil
 }
 
-func (qs *QuadStore) addToLog(tx *bolt.Tx, p graph.Primitive) error {
+func (qs *QuadStore) addToLog(tx *bolt.Tx, p *graph.Primitive) error {
 	b, err := p.Marshal()
 	if err != nil {
 		return err
@@ -206,8 +212,8 @@ func (qs *QuadStore) addToLog(tx *bolt.Tx, p graph.Primitive) error {
 	return tx.Bucket(logIndex).Put(uint64toBytes(p.ID), b)
 }
 
-func (qs *QuadStore) createNodePrimitive(v quad.Value) (graph.Primitive, error) {
-	var p graph.Primitive
+func (qs *QuadStore) createNodePrimitive(v quad.Value) (*graph.Primitive, error) {
+	p := &graph.Primitive{}
 	b, err := pquads.MarshalValue(v)
 	if err != nil {
 		return p, err

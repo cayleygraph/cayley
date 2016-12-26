@@ -204,7 +204,7 @@ func (q Quad) Get(d Direction) Value {
 	}
 }
 
-func (q Quad) Set(d Direction, v Value) {
+func (q *Quad) Set(d Direction, v Value) {
 	switch d {
 	case Subject:
 		q.Subject = v

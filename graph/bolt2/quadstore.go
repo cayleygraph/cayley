@@ -229,20 +229,20 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) toQuad(tx *bolt.Tx, k uint64) (quad.Quad, error) {
-	var q quad.Quad
+	q := &quad.Quad{}
 	p, err := qs.getPrimitiveFromLog(tx, k)
 	if err != nil {
-		return q, err
+		return *q, err
 	}
 	for _, dir := range quad.Directions {
 		v := p.GetDirection(dir)
 		val, err := qs.getValFromLog(tx, v)
 		if err != nil {
-			return q, err
+			return *q, err
 		}
 		q.Set(dir, val)
 	}
-	return q, nil
+	return *q, nil
 }
 
 func (qs *QuadStore) getValFromLog(tx *bolt.Tx, k uint64) (quad.Value, error) {
@@ -256,8 +256,8 @@ func (qs *QuadStore) getValFromLog(tx *bolt.Tx, k uint64) (quad.Value, error) {
 	return pquads.UnmarshalValue(p.Value)
 }
 
-func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (graph.Primitive, error) {
-	var p graph.Primitive
+func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (*graph.Primitive, error) {
+	p := &graph.Primitive{}
 	b := tx.Bucket(logIndex).Get(uint64toBytes(k))
 	if b == nil {
 		return p, fmt.Errorf("no such log entry")
@@ -297,12 +297,11 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	return Int64Value(0)
 }
 
-func (qs *QuadStore) getPrimitive(val Int64Value) (graph.Primitive, bool) {
-	var v graph.Primitive
+func (qs *QuadStore) getPrimitive(val Int64Value) (*graph.Primitive, bool) {
 	if val == 0 {
-		return v, false
+		return nil, false
 	}
-	var p graph.Primitive
+	var p *graph.Primitive
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
 		p, err = qs.getPrimitiveFromLog(tx, uint64(val))

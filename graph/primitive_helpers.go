@@ -16,7 +16,7 @@ func (p Primitive) GetDirection(d quad.Direction) uint64 {
 	panic("unknown direction")
 }
 
-func (p Primitive) SetDirection(d quad.Direction, v uint64) {
+func (p *Primitive) SetDirection(d quad.Direction, v uint64) {
 	switch d {
 	case quad.Subject:
 		p.Subject = v
