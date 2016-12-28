@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"sort"
 	"time"
 
@@ -29,8 +30,7 @@ import (
 )
 
 var (
-	metaBucket = []byte("meta")
-	//valueIndex     = []byte("value")
+	metaBucket     = []byte("meta")
 	subjectIndex   = []byte{quad.Subject.Prefix()}
 	objectIndex    = []byte{quad.Object.Prefix()}
 	sameAsIndex    = []byte("sameas")
@@ -40,7 +40,6 @@ var (
 	// List of all buckets in the current version of the database.
 	buckets = [][]byte{
 		metaBucket,
-		//	valueIndex,
 		subjectIndex,
 		objectIndex,
 		sameAsIndex,
@@ -159,6 +158,7 @@ nextDelta:
 			// * Lookup existing link
 			// * Add link.Replaces = existing
 		}
+		// TODO(barakmich): DO NOT MERGE Check if exists already
 		err = qs.index(tx, link, nil)
 		if err != nil {
 			return err
@@ -216,6 +216,70 @@ func (qs *QuadStore) indexLink(tx *bolt.Tx, p *graph.Primitive) error {
 		return err
 	}
 	return qs.addToLog(tx, p)
+}
+
+func (qs *QuadStore) getBucketIndex(tx *bolt.Tx, bucket []byte, key uint64) ([]uint64, error) {
+	b := tx.Bucket([]byte(bucket))
+	kbytes := uint64KeyBytes(key)
+	v := b.Get(kbytes)
+	r := bytes.NewBuffer(v)
+	var err error
+	var out []uint64
+	for x, err := binary.ReadUvarint(r); err == nil; {
+		out = append(out, x)
+	}
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *graph.Primitive) (bool, error) {
+	sub, err := qs.getBucketIndex(tx, subjectIndex, p.Subject)
+	if err != nil {
+		return false, err
+	}
+	obj, err := qs.getBucketIndex(tx, objectIndex, p.Object)
+	if err != nil {
+		return false, err
+	}
+	options := intersectSortedUint64(sub, obj)
+	for _, x := range options {
+		prim, err := qs.getPrimitiveFromLog(tx, x)
+		if err != nil {
+			return false, err
+		}
+		if prim.IsSameLink(p) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func intersectSortedUint64(a, b []uint64) []uint64 {
+	var c []uint64
+	boff := 0
+outer:
+	for _, x := range a {
+		for {
+			if boff >= len(b) {
+				break outer
+			}
+			if x > b[boff] {
+				boff++
+				continue
+			}
+			if x < b[boff] {
+				break
+			}
+			if x == b[boff] {
+				c = append(c, x)
+				boff++
+				break
+			}
+		}
+	}
+	return c
 }
 
 func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket []byte, key, value uint64) error {

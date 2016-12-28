@@ -17,6 +17,7 @@ package bolt2
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -35,6 +36,9 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 	}
 	primary := subs[0]
 	if primary.Type() == graph.Fixed {
+		if it.Direction() != quad.Subject && it.Direction() != quad.Object {
+			return it, false
+		}
 		size, _ := primary.Size()
 		if size == 1 {
 			if !primary.Next() {

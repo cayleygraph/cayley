@@ -32,3 +32,7 @@ func (p *Primitive) SetDirection(d quad.Direction, v uint64) {
 func (p Primitive) IsNode() bool {
 	return len(p.Value) != 0
 }
+
+func (p *Primitive) IsSameLink(q *Primitive) bool {
+	return p.Subject == q.Subject && p.Predicate == q.Predicate && p.Object == q.Object && p.Label == q.Label
+}

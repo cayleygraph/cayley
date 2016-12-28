@@ -7,17 +7,22 @@ import (
 )
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	panic("todo: nodesalliterator")
+	return NewAllIterator(true, qs)
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	panic("todo: quadsalliterator")
+	return NewAllIterator(false, qs)
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(iterator.Identity)
 }
 
-func (qs *QuadStore) QuadIterator(quad.Direction, graph.Value) graph.Iterator {
-	panic("todo: quaditerator")
+func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Value) graph.Iterator {
+	if dir != quad.Subject && dir != quad.Object {
+		f := qs.FixedIterator()
+		f.Add(v)
+		return iterator.NewLinksTo(qs, f, dir)
+	}
+	return NewQuadIterator(dir, v.(Int64Value), qs)
 }
