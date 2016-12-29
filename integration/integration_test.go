@@ -37,6 +37,7 @@ import (
 
 	// Load all supported backends.
 	_ "github.com/cayleygraph/cayley/graph/bolt"
+	_ "github.com/cayleygraph/cayley/graph/bolt2"
 	_ "github.com/cayleygraph/cayley/graph/leveldb"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/graph/mongo"
@@ -452,7 +453,7 @@ func prepare(t testing.TB) {
 	switch *backend {
 	case "memstore":
 		cfg.DatabasePath = "../data/30kmoviedata.nq.gz"
-	case "leveldb", "bolt":
+	case "leveldb", "bolt", "bolt2":
 		cfg.DatabasePath = "/tmp/cayley_test_" + *backend
 		cfg.DatabaseOptions = map[string]interface{}{
 			"nosync": true, // It's a test. If we need to load, do it fast.
