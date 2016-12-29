@@ -20,6 +20,14 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+var (
+	constrainedAllType graph.Type
+)
+
+func init() {
+	constrainedAllType = graph.RegisterIterator("bolt_constrained_all")
+}
+
 type AllIterator struct {
 	nodes   bool
 	id      uint64
@@ -28,16 +36,26 @@ type AllIterator struct {
 	qs      *QuadStore
 	err     error
 	uid     uint64
+	cons    *constraint
 }
 
 var _ graph.Iterator = &AllIterator{}
 
-func NewAllIterator(nodes bool, qs *QuadStore) *AllIterator {
+type constraint struct {
+	dir quad.Direction
+	val Int64Value
+}
+
+func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
+	if nodes && cons != nil {
+		panic("cannot use a bolt2 all iterator across nodes with a constraint")
+	}
 	return &AllIterator{
 		nodes:   nodes,
 		qs:      qs,
 		horizon: qs.horizon,
 		uid:     iterator.NextUID(),
+		cons:    cons,
 	}
 }
 
@@ -64,7 +82,7 @@ func (it *AllIterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *AllIterator) Clone() graph.Iterator {
-	out := NewAllIterator(it.nodes, it.qs)
+	out := NewAllIterator(it.nodes, it.qs, it.cons)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -103,7 +121,12 @@ func (it *AllIterator) Next() bool {
 			return true
 		}
 		if !p.IsNode() && !it.nodes {
-			return true
+			if it.cons == nil {
+				return true
+			}
+			if Int64Value(p.GetDirection(it.cons.dir)) == it.cons.val {
+				return true
+			}
 		}
 	}
 }
@@ -132,8 +155,13 @@ func (it *AllIterator) Describe() graph.Description {
 	}
 }
 
-func (it *AllIterator) Type() graph.Type { return graph.All }
-func (it *AllIterator) Sorted() bool     { return false }
+func (it *AllIterator) Type() graph.Type {
+	if it.cons != nil {
+		return constrainedAllType
+	}
+	return graph.All
+}
+func (it *AllIterator) Sorted() bool { return false }
 
 func (it *AllIterator) Optimize() (graph.Iterator, bool) {
 	return it, false

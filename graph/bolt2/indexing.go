@@ -58,25 +58,30 @@ func (qs *QuadStore) createBuckets() error {
 				return fmt.Errorf("could not create bucket %s: %s", string(index), err)
 			}
 		}
+		tx.Bucket(logIndex).FillPercent = 0.8
+		//tx.Bucket(valueIndex).FillPercent = 0.4
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	return qs.db.Update(func(tx *bolt.Tx) error {
-		var err error
-		for i := 0; i < 256; i++ {
+	for i := 0; i < 256; i++ {
+		err := qs.db.Update(func(tx *bolt.Tx) error {
+			var err error
 			for j := 0; j < 256; j++ {
 				_, err = tx.CreateBucket(bucketFor(byte(i), byte(j)))
 				if err != nil {
 					return fmt.Errorf("could not create subbucket %d %d : %s", i, j, err)
 				}
 			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
-		tx.Bucket(logIndex).FillPercent = 0.8
-		//tx.Bucket(valueIndex).FillPercent = 0.4
-		return nil
-	})
+	}
+
+	return nil
 }
 
 func bucketFor(i, j byte) []byte {
@@ -222,16 +227,36 @@ func (qs *QuadStore) getBucketIndex(tx *bolt.Tx, bucket []byte, key uint64) ([]u
 	b := tx.Bucket([]byte(bucket))
 	kbytes := uint64KeyBytes(key)
 	v := b.Get(kbytes)
-	r := bytes.NewBuffer(v)
+	return decodeIndex(v)
+}
+
+func decodeIndex(b []byte) ([]uint64, error) {
+	r := bytes.NewBuffer(b)
 	var err error
 	var out []uint64
-	for x, err := binary.ReadUvarint(r); err == nil; {
+	for {
+		var x uint64
+		x, err := binary.ReadUvarint(r)
+		if err != nil {
+			break
+		}
 		out = append(out, x)
 	}
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
 	return out, nil
+}
+
+func appendIndex(bytelist []byte, l []uint64) []byte {
+	b := make([]byte, len(bytelist)+(binary.MaxVarintLen64*len(l)))
+	copy(b[:len(bytelist)], bytelist)
+	off := len(bytelist)
+	for _, x := range l {
+		n := binary.PutUvarint(b[off:], x)
+		off += n
+	}
+	return b[:off]
 }
 
 func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *graph.Primitive) (bool, error) {
@@ -312,14 +337,8 @@ func (qs *QuadStore) flushMapBucket(tx *bolt.Tx) error {
 			l := m[k]
 			kbytes := uint64KeyBytes(k)
 			bytelist := b.Get(kbytes)
-			n := make([]byte, len(bytelist)+(binary.MaxVarintLen64*len(l)))
-			copy(n[:len(bytelist)], bytelist)
-			off := len(bytelist)
-			for _, x := range l {
-				n := binary.PutUvarint(n[off:], x)
-				off += n
-			}
-			err := b.Put(kbytes, n[:off])
+			bytes := appendIndex(bytelist, l)
+			err := b.Put(kbytes, bytes)
 			if err != nil {
 				return err
 			}

@@ -32,3 +32,20 @@ func TestIntersectSorted(t *testing.T) {
 		}
 	}
 }
+
+func TestIndexlist(t *testing.T) {
+	init := []uint64{5, 10, 2340, 32432, 3243366}
+	b := appendIndex(nil, init)
+	out, err := decodeIndex(b)
+	if err != nil {
+		t.Fatalf("couldn't decodeIndex: %s", err)
+	}
+	if len(out) != len(init) {
+		t.Fatalf("mismatched lengths. got %#v expected %#v", out, init)
+	}
+	for i := 0; i < len(out); i++ {
+		if out[i] != init[i] {
+			t.Fatalf("mismatched element %d. got %#v expected %#v", i, out, init)
+		}
+	}
+}
