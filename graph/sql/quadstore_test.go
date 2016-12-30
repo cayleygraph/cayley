@@ -1,6 +1,11 @@
+// +build docker
+
 package sql
 
 import (
+	"testing"
+	"unicode/utf8"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
@@ -8,8 +13,6 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"unicode/utf8"
 )
 
 func makePostgres(t testing.TB) (graph.QuadStore, graph.Options, func()) {

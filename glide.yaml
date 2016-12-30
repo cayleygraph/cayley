@@ -32,7 +32,6 @@ import:
 - package: golang.org/x/net
   subpackages:
   - context
-- package: github.com/fsouza/go-dockerclient
 - package: github.com/stretchr/testify
   version: v1.1.3
   subpackages:

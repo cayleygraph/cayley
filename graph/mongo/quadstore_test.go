@@ -1,11 +1,14 @@
+// +build docker
+
 package mongo
 
 import (
+	"testing"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/internal/dock"
-	"testing"
 )
 
 func makeMongo(t testing.TB) (graph.QuadStore, graph.Options, func()) {
