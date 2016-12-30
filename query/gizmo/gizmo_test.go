@@ -547,7 +547,6 @@ func TestIssue160(t *testing.T) {
 		"****\nid : alice\n",
 		"****\nid : bob\n",
 		"****\nid : bob\n",
-		"=> <nil>\n",
 	}
 
 	ses := makeTestSession(issue160TestGraph)
