@@ -11,31 +11,6 @@ imports:
   version: 2df174808ee097f90d259e432cc04442cf60be21
   subpackages:
   - spew
-- name: github.com/docker/docker
-  version: 282b0aff08030a2521adf7d64bdd333f0864b720
-  subpackages:
-  - opts
-  - pkg/archive
-  - pkg/fileutils
-  - pkg/homedir
-  - pkg/idtools
-  - pkg/ioutils
-  - pkg/longpath
-  - pkg/pools
-  - pkg/promise
-  - pkg/stdcopy
-  - pkg/system
-- name: github.com/docker/engine-api
-  version: c9fd33c91008b9c558a6ed1cb11a68dbe4db0493
-  subpackages:
-  - types/filters
-  - types/mount
-  - types/swarm
-  - types/versions
-- name: github.com/docker/go-units
-  version: eb879ae3e2b84e2a142af415b679ddeda47ec71c
-- name: github.com/fsouza/go-dockerclient
-  version: 4efaf0ea3c8990e1648f68672d011289f0c0cb0a
 - name: github.com/gogo/protobuf
   version: 50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61
   subpackages:
@@ -62,11 +37,6 @@ imports:
   - oid
 - name: github.com/linkeddata/gojsonld
   version: a223ef39bb925d36d4c410d3e35b0e34e370cc31
-- name: github.com/opencontainers/runc
-  version: 6df383c2f881fbdeb85060fd27d8bf61afedacd9
-  subpackages:
-  - libcontainer/system
-  - libcontainer/user
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/peterh/liner
