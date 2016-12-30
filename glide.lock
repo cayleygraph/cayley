@@ -1,5 +1,5 @@
 hash: 7ec9d3046faba0ce4a6f0bb7e09cf7637ad123c2ac8f8fb0860650c7e61f3e87
-updated: 2016-12-30T13:20:43.68677924+02:00
+updated: 2016-12-30T18:48:50.983085695+02:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
@@ -16,7 +16,7 @@ imports:
   subpackages:
   - syntax
 - name: github.com/dop251/goja
-  version: 64bfa769d0e37a31b1d6a8407a4816b1ee5dedba
+  version: 64f863c4eb0329df18ecd1dab1e03609556bfaca
   subpackages:
   - ast
   - file
