@@ -33,7 +33,7 @@ import (
 	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/gremlin"
+	"github.com/cayleygraph/cayley/query/gizmo"
 
 	// Load all supported backends.
 	_ "github.com/cayleygraph/cayley/graph/bolt"
@@ -560,7 +560,7 @@ func checkQueries(t *testing.T) {
 		func() {
 			tInit := time.Now()
 			t.Logf("Now testing %s ", test.message)
-			ses := gremlin.NewSession(handle.QuadStore, true)
+			ses := gizmo.NewSession(handle.QuadStore)
 			c := make(chan query.Result, 5)
 			ctx := context.Background()
 			if cfg.Timeout > 0 {
@@ -636,7 +636,7 @@ func runBench(n int, b *testing.B) {
 		if cfg.Timeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
 		}
-		ses := gremlin.NewSession(handle.QuadStore, true)
+		ses := gizmo.NewSession(handle.QuadStore)
 		b.StartTimer()
 		go ses.Execute(ctx, benchmarkQueries[n].query, c, 100)
 		for range c {

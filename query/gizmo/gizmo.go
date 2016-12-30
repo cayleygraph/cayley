@@ -46,16 +46,22 @@ func init() {
 }
 
 func NewSession(qs graph.QuadStore) *Session {
-	return &Session{
+	s := &Session{
 		qs: qs, limit: -1,
 	}
+	if err := s.buildEnv(); err != nil {
+		panic(err)
+	}
+	return s
 }
 
 type Session struct {
 	qs graph.QuadStore
 	vm *goja.Runtime
 
-	shape map[string]interface{}
+	last string
+	p    *goja.Program
+
 	out   chan query.Result
 	ctx   context.Context
 	limit int
@@ -64,6 +70,7 @@ type Session struct {
 	// used only to collate web results
 	dataOutput []interface{}
 	err        error
+	shape      map[string]interface{}
 }
 
 func (s *Session) context() context.Context {
@@ -76,10 +83,7 @@ func (s *Session) buildEnv() error {
 	}
 	s.vm = goja.New()
 	s.vm.Set("graph", &graphObject{s: s})
-	_, err := s.vm.RunString("g = graph")
-	if err != nil {
-		return err
-	}
+	s.vm.Set("g", s.vm.Get("graph"))
 	for name, val := range defaultEnv {
 		fnc := val
 		s.vm.Set(name, func(call goja.FunctionCall) goja.Value {
@@ -197,8 +201,18 @@ func (r *Result) Result() interface{} {
 }
 func (r *Result) Err() error { return nil }
 
-func (s *Session) run(qu string) (goja.Value, error) {
-	v, err := s.vm.RunString(qu)
+func (s *Session) run(qu string) (v goja.Value, err error) {
+	var p *goja.Program
+	if s.last == qu {
+		p = s.p
+	} else {
+		p, err = goja.Compile("", qu, false)
+		if err != nil {
+			return
+		}
+		s.last, s.p = qu, p
+	}
+	v, err = s.vm.RunProgram(p)
 	if e, ok := err.(*goja.Exception); ok && e.Value() != nil {
 		if er, ok := e.Value().Export().(error); ok {
 			err = er
@@ -208,35 +222,29 @@ func (s *Session) run(qu string) (goja.Value, error) {
 }
 func (s *Session) Execute(ctx context.Context, qu string, out chan query.Result, limit int) {
 	defer close(out)
-	if err := s.buildEnv(); err != nil {
+	s.out = out
+	s.limit = limit
+	s.count = 0
+	s.ctx = ctx
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		select {
+		case <-ctx.Done():
+			s.vm.Interrupt(ctx.Err())
+		case <-done:
+		}
+	}()
+	v, err := s.run(qu)
+	if err != nil {
 		select {
 		case <-ctx.Done():
 		case out <- query.ErrorResult(err):
 		}
 		return
 	}
-	s.out = out
-	s.limit = limit
-	s.count = 0
-	s.ctx = ctx
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		v, err := s.run(qu)
-		if err != nil {
-			select {
-			case <-ctx.Done():
-			case out <- query.ErrorResult(err):
-			}
-		} else {
-			s.send(ctx, &Result{Meta: true, Val: v.Export()})
-		}
-	}()
-	select {
-	case <-ctx.Done():
-		s.vm.Interrupt(ctx.Err())
-		<-done
-	case <-done:
+	if !goja.IsNull(v) && !goja.IsUndefined(v) {
+		s.send(ctx, &Result{Meta: true, Val: v.Export()})
 	}
 }
 
@@ -297,9 +305,6 @@ func (s *Session) FormatREPL(result query.Result) string {
 
 func (s *Session) ShapeOf(qu string) (interface{}, error) {
 	s.shape = make(map[string]interface{})
-	if err := s.buildEnv(); err != nil {
-		return nil, err
-	}
 	_, err := s.run(qu)
 	out := s.shape
 	s.shape = nil
