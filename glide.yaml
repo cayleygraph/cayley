@@ -38,3 +38,4 @@ import:
   - assert
   - require
 - package: github.com/linkeddata/gojsonld
+- package: github.com/dop251/goja

@@ -100,6 +100,7 @@ $(function() {
   }
 
   var defaultQueryStrings = {
+    "gizmo": "g.Emit('Hello World')",
     "gremlin": "g.Emit('Hello World')",
     "mql": "[{\n  \"id\": \"Hello World\"\n}]"
   }
@@ -113,6 +114,7 @@ $(function() {
   }
 
   var switchTo = function(type) {
+    if (type === "gizmo") { switchToGizmo()}
     if (type === "gremlin") { switchToGremlin()}
     if (type === "mql") { switchToMQL()}
     if (typeof(Storage) !== "undefined") {
@@ -123,6 +125,10 @@ $(function() {
     }
   }
 
+  var switchToGizmo = function () {
+    $("#selected-query-lang").html("Gizmo " + caretSpan)
+    selectedQueryLanguage = "gizmo"
+  }
 
   var switchToGremlin = function () {
     $("#selected-query-lang").html("Gremlin " + caretSpan)
@@ -134,7 +140,7 @@ $(function() {
     selectedQueryLanguage = "mql"
   }
 
-  selectedQueryLanguage = "gremlin"
+  selectedQueryLanguage = "gizmo"
   var caretSpan = " &nbsp <span class='caret'></span>"
 
   if (typeof(Storage) !== "undefined") {
@@ -148,12 +154,16 @@ $(function() {
     if (lang !== null) {
       switchTo(lang)
     } else {
-      switchTo("gremlin")
+      switchTo("gizmo")
     }
   } else {
-    switchTo("gremlin")
+    switchTo("gizmo")
   }
 
+
+  $("#gizmo-dropdown").click(function() {
+    switchTo("gizmo")
+  })
 
   $("#gremlin-dropdown").click(function() {
     switchTo("gremlin")
