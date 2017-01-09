@@ -27,6 +27,19 @@ import (
 // Since we're using an and iterator, it's a good idea to put the smallest result
 // set first so that Next() produces fewer values to check Contains().
 func join(qs graph.QuadStore, its ...graph.Iterator) graph.Iterator {
+	firstAll := false
+	for i, it := range its {
+		if it == nil {
+			continue
+		}
+		if it.Type() == graph.All {
+			if !firstAll {
+				firstAll = true
+				continue
+			}
+			its[i] = nil
+		}
+	}
 	and := iterator.NewAnd(qs)
 	for _, it := range its {
 		if it == nil {
