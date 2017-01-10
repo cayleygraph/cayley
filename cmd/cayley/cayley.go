@@ -269,7 +269,7 @@ func main() {
 			break
 		}
 		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "", *quadType)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, cfg.DatabasePath, *quadType)
 			if err != nil {
 				break
 			}
