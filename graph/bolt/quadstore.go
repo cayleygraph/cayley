@@ -459,7 +459,7 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 
 func (qs *QuadStore) valueData(t *Token) proto.NodeData {
 	var out proto.NodeData
-	if clog.V(3) {
+	if clog.V(4) {
 		clog.Infof("%s %v", string(t.bucket), t.key)
 	}
 	err := qs.db.View(func(tx *bolt.Tx) error {

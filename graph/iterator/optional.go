@@ -104,9 +104,8 @@ func (it *Optional) NextPath() bool {
 	return false
 }
 
-// No subiterators.
 func (it *Optional) SubIterators() []graph.Iterator {
-	return nil
+	return []graph.Iterator{it.subIt}
 }
 
 // Contains() is the real hack of this iterator. It always returns true, regardless
@@ -159,14 +158,14 @@ func (it *Optional) Stats() graph.IteratorStats {
 	return graph.IteratorStats{
 		ContainsCost: subStats.ContainsCost,
 		NextCost:     int64(1 << 62),
-		Size:         subStats.Size,
-		ExactSize:    subStats.ExactSize,
+		// If it's empty, pretend like it's not.
+		Size:      subStats.Size + 1,
+		ExactSize: subStats.ExactSize,
 	}
 }
 
-// If you're empty and you know it, clap your hands.
 func (it *Optional) Size() (int64, bool) {
-	return 0, true
+	return it.Stats().Size, false
 }
 
 var (
