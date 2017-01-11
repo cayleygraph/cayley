@@ -23,9 +23,13 @@ type Logger interface {
 	Warningf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
 	Fatalf(format string, args ...interface{})
+	V(int) bool
+	SetV(level int)
 }
 
-var logger Logger = stdlog{}
+var logger Logger = &stdlog{
+	verbosity: 0,
+}
 
 // SetLogger set the clog logging implementation.
 func SetLogger(l Logger) { logger = l }
@@ -33,10 +37,19 @@ func SetLogger(l Logger) { logger = l }
 var verbosity int
 
 // V returns whether the current clog verbosity is above the specified level.
-func V(level int) bool { return verbosity >= level }
+func V(level int) bool {
+	if logger == nil {
+		return false
+	}
+	return logger.V(level)
+}
 
 // SetV sets the clog verbosity level.
-func SetV(level int) { verbosity = level }
+func SetV(level int) {
+	if logger != nil {
+		logger.SetV(level)
+	}
+}
 
 // Infof logs information level messages.
 func Infof(format string, args ...interface{}) {
@@ -67,9 +80,13 @@ func Fatalf(format string, args ...interface{}) {
 }
 
 // stdlog wraps the standard library logger.
-type stdlog struct{}
+type stdlog struct {
+	verbosity int
+}
 
 func (stdlog) Infof(format string, args ...interface{})    { log.Printf(format, args...) }
 func (stdlog) Warningf(format string, args ...interface{}) { log.Printf("WARN: "+format, args...) }
 func (stdlog) Errorf(format string, args ...interface{})   { log.Printf("ERROR: "+format, args...) }
 func (stdlog) Fatalf(format string, args ...interface{})   { log.Fatalf("FATAL: "+format, args...) }
+func (s stdlog) V(level int) bool                          { return s.verbosity >= level }
+func (s *stdlog) SetV(level int)                           { s.verbosity = level }
