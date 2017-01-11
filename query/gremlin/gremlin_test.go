@@ -457,6 +457,20 @@ var testQueries = []struct {
 		expect: []string{"<alice>", "<charlie>"},
 	},
 	{
+		message: "show ForEach",
+		query: `
+			g.V("<bob>").In("<follows>").ForEach(function(o){g.Emit(o.id)});
+		`,
+		expect: []string{"<alice>", "<charlie>", "<dani>"},
+	},
+	{
+		message: "show ForEach with limit",
+		query: `
+			g.V("<bob>").In("<follows>").ForEach(2, function(o){g.Emit(o.id)});
+		`,
+		expect: []string{"<alice>", "<charlie>"},
+	},
+	{
 		message: "clone paths",
 		query: `
 			var alice = g.V('<alice>')
