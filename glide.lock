@@ -1,5 +1,5 @@
-hash: e4b13b34ecdd7061170f867cb95cae46281e8be2dd7d81c2d49003e7ab3bba89
-updated: 2016-11-27T14:38:22.813599135+01:00
+hash: 7ec9d3046faba0ce4a6f0bb7e09cf7637ad123c2ac8f8fb0860650c7e61f3e87
+updated: 2016-12-30T18:48:50.983085695+02:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
@@ -11,6 +11,17 @@ imports:
   version: 2df174808ee097f90d259e432cc04442cf60be21
   subpackages:
   - spew
+- name: github.com/dlclark/regexp2
+  version: 4009c9dc49dd8906bfd4d479c255470d6a477ce5
+  subpackages:
+  - syntax
+- name: github.com/dop251/goja
+  version: 64f863c4eb0329df18ecd1dab1e03609556bfaca
+  subpackages:
+  - ast
+  - file
+  - parser
+  - token
 - name: github.com/gogo/protobuf
   version: 50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61
   subpackages:
@@ -94,6 +105,17 @@ imports:
   version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
   subpackages:
   - unix
+- name: golang.org/x/text
+  version: 5a42fa2464759cbb7ee0af9de00b54d69f09a29c
+  subpackages:
+  - cases
+  - collate
+  - internal
+  - internal/colltab
+  - internal/tag
+  - language
+  - transform
+  - unicode/norm
 - name: google.golang.org/appengine
   version: 4f7eeb5305a4ba1966344836ba4af9996b7b4e05
   subpackages:
