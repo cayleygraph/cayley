@@ -68,14 +68,14 @@ var testQueries = []struct {
 				{"id": "<bob>"},
 				{"id": "<fred>"},
 				{"id": "<status>"},
-				{"id": "\"cool_person\""},
+				{"id": "cool_person"},
 				{"id": "<charlie>"},
 				{"id": "<dani>"},
 				{"id": "<greg>"},
 				{"id": "<emily>"},
 				{"id": "<predicates>"},
 				{"id": "<are>"},
-				{"id": "\"smart_person\""},
+				{"id": "smart_person"},
 				{"id": "<smart_graph>"}
 			]
 		`,
@@ -85,9 +85,9 @@ var testQueries = []struct {
 		query:   `[{"id": null, "<status>": "cool_person"}]`,
 		expect: `
 			[
-				{"id": "<bob>", "<status>": "\"cool_person\""},
-				{"id": "<dani>", "<status>": "\"cool_person\""},
-				{"id": "<greg>", "<status>": "\"cool_person\""}
+				{"id": "<bob>", "<status>": "cool_person"},
+				{"id": "<dani>", "<status>": "cool_person"},
+				{"id": "<greg>", "<status>": "cool_person"}
 			]
 		`,
 	},
@@ -96,7 +96,7 @@ var testQueries = []struct {
 		query:   `[{"id": "cool_person", "status": null}]`,
 		expect: `
 			[
-				{"id": "\"cool_person\"", "status": null}
+				{"id": "cool_person", "status": null}
 			]
 		`,
 	},
@@ -123,10 +123,10 @@ var testQueries = []struct {
 		query:   `[{"id": null, "<follows>": {"id": null, "<status>": "cool_person"}}]`,
 		expect: `
 			[
-				{"id": "<alice>", "<follows>": {"id": "<bob>", "<status>": "\"cool_person\""}},
-				{"id": "<charlie>", "<follows>": {"id": "<dani>", "<status>": "\"cool_person\""}},
-				{"id": "<dani>", "<follows>": {"id": "<greg>", "<status>": "\"cool_person\""}},
-				{"id": "<fred>", "<follows>": {"id": "<greg>", "<status>": "\"cool_person\""}}
+				{"id": "<alice>", "<follows>": {"id": "<bob>", "<status>": "cool_person"}},
+				{"id": "<charlie>", "<follows>": {"id": "<dani>", "<status>": "cool_person"}},
+				{"id": "<dani>", "<follows>": {"id": "<greg>", "<status>": "cool_person"}},
+				{"id": "<fred>", "<follows>": {"id": "<greg>", "<status>": "cool_person"}}
 			]
 		`,
 	},
@@ -135,9 +135,9 @@ var testQueries = []struct {
 		query:   `[{"id": null, "!<follows>": [{"id": null, "<status>" : "cool_person"}]}]`,
 		expect: `
 			[
-				{"id": "<fred>", "!<follows>": [{"id": "<bob>", "<status>": "\"cool_person\""}]},
-				{"id": "<bob>", "!<follows>": [{"id": "<dani>", "<status>": "\"cool_person\""}]},
-				{"id": "<greg>", "!<follows>": [{"id": "<dani>", "<status>": "\"cool_person\""}]}
+				{"id": "<fred>", "!<follows>": [{"id": "<bob>", "<status>": "cool_person"}]},
+				{"id": "<bob>", "!<follows>": [{"id": "<dani>", "<status>": "cool_person"}]},
+				{"id": "<greg>", "!<follows>": [{"id": "<dani>", "<status>": "cool_person"}]}
 			]
 		`,
 	},
