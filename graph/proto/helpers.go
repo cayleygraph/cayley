@@ -10,10 +10,10 @@ import (
 // GetNativeValue returns the value stored in Node.
 func (m *NodeData) GetNativeValue() quad.Value {
 	if m == nil {
-		return quad.Raw("")
+		return nil
 	} else if m.Value == nil {
 		if m.Name == "" {
-			return quad.Raw("")
+			return nil
 		}
 		return quad.Raw(m.Name)
 	}
