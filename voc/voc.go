@@ -97,6 +97,27 @@ func (p *Namespaces) Clone() *Namespaces {
 	return &p2
 }
 
+// CloneTo adds registered namespaces to a given list.
+func (p *Namespaces) CloneTo(p2 *Namespaces) {
+	if p == p2 {
+		return
+	}
+	if !p.Safe {
+		p.mu.RLock()
+		defer p.mu.RUnlock()
+	}
+	if !p2.Safe {
+		p2.mu.Lock()
+		defer p2.mu.Unlock()
+	}
+	if p2.prefixes == nil {
+		p2.prefixes = make(map[string]string, len(p.prefixes))
+	}
+	for pref, ns := range p.prefixes {
+		p2.prefixes[pref] = ns
+	}
+}
+
 var global Namespaces
 
 // Register adds namespace to a global registered list.
@@ -131,4 +152,9 @@ func List() []Namespace {
 // Clone makes a copy of global namespaces list.
 func Clone() *Namespaces {
 	return global.Clone()
+}
+
+// CloneTo adds all global namespaces to a given list.
+func CloneTo(p *Namespaces) {
+	global.CloneTo(p)
 }

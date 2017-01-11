@@ -28,6 +28,9 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
+
+	// register global namespace for tests
+	_ "github.com/cayleygraph/cayley/voc/rdf"
 )
 
 // This is a simple test graph used for testing
@@ -480,6 +483,22 @@ var testQueries = []struct {
 			g.Emit(alice.ToValue())
 		`,
 		expect: []string{"<alice>", "<bob>", "<alice>"},
+	},
+	{
+		message: "default namespaces",
+		query: `
+			g.AddDefaultNamespaces()
+			g.Emit(g.Uri('rdf:type'))
+		`,
+		expect: []string{"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"},
+	},
+	{
+		message: "add namespace",
+		query: `
+			g.AddNamespace('ex','http://example.net/')
+			g.Emit(g.Uri('ex:alice'))
+		`,
+		expect: []string{"<http://example.net/alice>"},
 	},
 }
 

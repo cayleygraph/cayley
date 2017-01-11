@@ -896,9 +896,9 @@ func WriteNamespaces(w quad.Writer, n *voc.Namespaces) error {
 
 // LoadNamespaces will load namespaces stored in graph to a specified list.
 // If destination list is empty, global namespace registry will be used.
-func LoadNamespaces(qs graph.QuadStore, dest *voc.Namespaces) error {
+func LoadNamespaces(ctx context.Context, qs graph.QuadStore, dest *voc.Namespaces) error {
 	var list []namespace
-	if err := LoadTo(context.Background(), qs, &list); err != nil {
+	if err := LoadTo(ctx, qs, &list); err != nil {
 		return err
 	}
 	register := dest.Register

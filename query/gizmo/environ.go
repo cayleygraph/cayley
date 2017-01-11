@@ -26,12 +26,26 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/schema"
+	"github.com/cayleygraph/cayley/voc"
 )
 
 type graphObject struct {
 	s *Session
 }
 
+func (g *graphObject) Uri(s string) quad.IRI {
+	return quad.IRI(g.s.ns.FullIRI(s))
+}
+func (g *graphObject) AddNamespace(pref, ns string) {
+	g.s.ns.Register(voc.Namespace{Prefix: pref + ":", Full: ns})
+}
+func (g *graphObject) AddDefaultNamespaces() {
+	voc.CloneTo(&g.s.ns)
+}
+func (g *graphObject) LoadNamespaces() error {
+	return schema.LoadNamespaces(g.s.ctx, g.s.qs, &g.s.ns)
+}
 func (g *graphObject) V(call goja.FunctionCall) goja.Value {
 	return g.Vertex(call)
 }

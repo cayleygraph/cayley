@@ -5,6 +5,8 @@ import (
 	"sort"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
@@ -451,7 +453,7 @@ func TestSaveNamespaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	var ns2 voc.Namespaces
-	err = schema.LoadNamespaces(qs, &ns2)
+	err = schema.LoadNamespaces(context.TODO(), qs, &ns2)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -26,6 +26,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/voc"
 )
 
 const Name = "gizmo"
@@ -58,6 +59,7 @@ func NewSession(qs graph.QuadStore) *Session {
 type Session struct {
 	qs graph.QuadStore
 	vm *goja.Runtime
+	ns voc.Namespaces
 
 	last string
 	p    *goja.Program
