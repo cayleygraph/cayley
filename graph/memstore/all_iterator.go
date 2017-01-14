@@ -42,14 +42,16 @@ func (it *nodesAllIterator) SubIterators() []graph.Iterator {
 }
 
 func (it *nodesAllIterator) Next() bool {
-	if !it.Int64.Next() {
-		return false
+	for {
+		if !it.Int64.Next() {
+			return false
+		}
+		_, ok := it.qs.revIDMap[int64(it.Int64.Result().(iterator.Int64Node))]
+		if !ok {
+			continue
+		}
+		return true
 	}
-	_, ok := it.qs.revIDMap[int64(it.Int64.Result().(iterator.Int64Node))]
-	if !ok {
-		return it.Next()
-	}
-	return true
 }
 
 func (it *nodesAllIterator) Err() error {
@@ -64,14 +66,19 @@ func newQuadsAllIterator(qs *QuadStore) *quadsAllIterator {
 }
 
 func (it *quadsAllIterator) Next() bool {
-	out := it.Int64.Next()
-	if out {
-		i64 := int64(it.Int64.Result().(iterator.Int64Quad))
-		if it.qs.log[i64].DeletedBy != 0 || it.qs.log[i64].Action == graph.Delete {
-			return it.Next()
+	for {
+		if !it.Int64.Next() {
+			return false
 		}
+		i64 := int64(it.Int64.Result().(iterator.Int64Quad))
+		if int(i64) >= len(it.qs.log) {
+			return false
+		}
+		if it.qs.log[i64].DeletedBy != 0 || it.qs.log[i64].Action == graph.Delete {
+			continue
+		}
+		return true
 	}
-	return out
 }
 
 // Override Optimize from it.Int64 - it will hide our Next implementation in other cases.
