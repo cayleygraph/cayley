@@ -41,7 +41,6 @@ func TestMongoAll(t *testing.T) {
 		OptimizesComparison:      true,
 		SkipDeletedFromIterator:  true,
 		SkipSizeCheckAfterDelete: true,
-		SkipNodeDelAfterQuadDel:  true,
 	})
 }
 

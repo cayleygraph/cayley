@@ -228,6 +228,15 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) error {
 	if err != nil {
 		clog.Errorf("Error updating node: %v", err)
 	}
+	if inc < 0 {
+		err = qs.db.C("nodes").Remove(bson.M{
+			"_id":  string(node.(NodeHash)),
+			"Size": 0,
+		})
+		if err != nil {
+			clog.Errorf("Error deleting empty node: %v", err)
+		}
+	}
 	return err
 }
 
