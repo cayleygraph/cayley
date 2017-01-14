@@ -176,7 +176,7 @@ func WriterMethods() []string {
 }
 
 type BatchWriter interface {
-	quad.Writer
+	quad.WriteCloser
 	quad.BatchWriter
 }
 
