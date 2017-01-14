@@ -1,3 +1,5 @@
+// +build docker
+
 package sql
 
 import (
@@ -15,7 +17,7 @@ import (
 func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config // TODO
 
-	conf.Image = "cockroachdb/cockroach:beta-20161103"
+	conf.Image = "cockroachdb/cockroach:beta-20170112"
 	conf.Cmd = []string{"start", "--insecure"}
 
 	opts := graph.Options{"flavor": flavorCockroach}

@@ -46,7 +46,7 @@ import (
 //            +--------+
 
 func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc) (graph.QuadStore, func()) {
-	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
+	simpleGraph := graphtest.LoadGraph(t, "data/testdata.nq")
 	var (
 		qs     graph.QuadStore
 		opts   graph.Options

@@ -2,6 +2,7 @@ package graphtest
 
 import (
 	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -66,9 +67,20 @@ func MakeWriter(t testing.TB, qs graph.QuadStore, opts graph.Options, data ...qu
 }
 
 func LoadGraph(t testing.TB, path string) []quad.Quad {
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("Failed to open %q: %v", path, err)
+	var (
+		f   *os.File
+		err error
+	)
+	const levels = 3
+	for i := 0; i < levels; i++ {
+		f, err = os.Open(path)
+		if i+1 < levels && os.IsNotExist(err) {
+			path = filepath.Join("../", path)
+		} else if err != nil {
+			t.Fatalf("Failed to open %q: %v", path, err)
+		} else {
+			break
+		}
 	}
 	defer f.Close()
 	dec := nquads.NewReader(f, false)
