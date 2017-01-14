@@ -82,6 +82,7 @@ func (qdi QuadDirectionIndex) Get(d quad.Direction, id int64) (*b.Tree, bool) {
 type LogEntry struct {
 	ID        int64
 	Quad      quad.Quad
+	IDs       [4]int64
 	Action    graph.Procedure
 	Timestamp time.Time
 	DeletedBy int64
@@ -231,9 +232,11 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 		ID:        d.ID.Int(),
 		Quad:      d.Quad,
 		Action:    d.Action,
-		Timestamp: d.Timestamp})
+		Timestamp: d.Timestamp,
+	})
 	qs.size++
 	qs.nextQuadID++
+	l := &qs.log[qid]
 
 	for dir := quad.Subject; dir <= quad.Label; dir++ {
 		sid := d.Quad.Get(dir)
@@ -241,14 +244,16 @@ func (qs *QuadStore) AddDelta(d graph.Delta) error {
 			continue
 		}
 		ssid := quad.StringOf(sid)
-		if _, ok := qs.idMap[ssid]; !ok {
-			qs.idMap[ssid] = qs.nextID
-			qs.revIDMap[qs.nextID] = sid
+		id, ok := qs.idMap[ssid]
+		if !ok {
+			id = qs.nextID
+			qs.idMap[ssid] = id
+			qs.revIDMap[id] = sid
 			qs.nextID++
 		}
-		id := qs.idMap[ssid]
 		tree := qs.index.Tree(dir, id)
 		tree.Set(qid, struct{}{})
+		l.IDs[int(dir)-1] = id
 	}
 
 	// TODO(barakmich): Add VIP indexing
@@ -266,11 +271,16 @@ func (qs *QuadStore) RemoveDelta(d graph.Delta) error {
 		ID:        d.ID.Int(),
 		Quad:      d.Quad,
 		Action:    d.Action,
-		Timestamp: d.Timestamp})
+		Timestamp: d.Timestamp,
+	})
 	qs.log[prevQuadID].DeletedBy = quadID
 	qs.size--
 	qs.nextQuadID++
 	return nil
+}
+
+func (qs *QuadStore) logEntry(index graph.Value) LogEntry {
+	return qs.log[index.(iterator.Int64Quad)]
 }
 
 func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
@@ -326,7 +336,11 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
-	name := qs.Quad(val).Get(d)
+	l := qs.logEntry(val)
+	if l.Action != graph.Delete {
+		return iterator.Int64Node(l.IDs[int(d)-1])
+	}
+	name := l.Quad.Get(d)
 	return qs.ValueOf(name)
 }
 
