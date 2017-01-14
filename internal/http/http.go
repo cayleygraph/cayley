@@ -15,6 +15,7 @@
 package http
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -86,7 +87,10 @@ func LogRequest(handler ResponseHandler) httprouter.Handle {
 }
 
 func jsonResponse(w http.ResponseWriter, code int, err interface{}) int {
-	http.Error(w, fmt.Sprintf("{\"error\" : \"%s\"}", err), code)
+	w.Header().Set("Content-Type", contentTypeJSON)
+	w.Write([]byte(`{"error": `))
+	json.NewEncoder(w).Encode(fmt.Sprint(err))
+	w.Write([]byte(`}`))
 	return code
 }
 
@@ -129,13 +133,27 @@ func (api *API) GetHandleForRequest(r *http.Request) (*graph.Handle, error) {
 	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
 }
 
+func (api *API) RWOnly(handler httprouter.Handle) httprouter.Handle {
+	if api.config.ReadOnly {
+		return func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+			jsonResponse(w, http.StatusForbidden, "Database is read-only.")
+		}
+	}
+	return handler
+}
+
 func (api *API) APIv1(r *httprouter.Router) {
 	r.POST("/api/v1/query/:query_lang", LogRequest(api.ServeV1Query))
 	r.POST("/api/v1/shape/:query_lang", LogRequest(api.ServeV1Shape))
-	r.POST("/api/v1/write", LogRequest(api.ServeV1Write))
-	r.POST("/api/v1/write/file/nquad", LogRequest(api.ServeV1WriteNQuad))
-	//TODO(barakmich): /write/text/nquad, which reads from request.body instead of HTML5 file form?
-	r.POST("/api/v1/delete", LogRequest(api.ServeV1Delete))
+	r.POST("/api/v1/write", api.RWOnly(LogRequest(api.ServeV1Write)))
+	r.POST("/api/v1/write/file/nquad", api.RWOnly(LogRequest(api.ServeV1WriteNQuad)))
+	r.POST("/api/v1/delete", api.RWOnly(LogRequest(api.ServeV1Delete)))
+}
+func (api *API) APIv2(r *httprouter.Router) {
+	r.POST("/api/v2/write", api.RWOnly(LogRequest(api.ServeV2Write)))
+	r.POST("/api/v2/delete", api.RWOnly(LogRequest(api.ServeV2Delete)))
+	r.POST("/api/v2/read", api.RWOnly(LogRequest(api.ServeV2Read)))
+	r.GET("/api/v2/read", api.RWOnly(LogRequest(api.ServeV2Read)))
 }
 
 func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
@@ -150,6 +168,7 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	docs := &DocRequestHandler{assets: assets}
 	api := &API{config: cfg, handle: handle}
 	api.APIv1(r)
+	api.APIv2(r)
 
 	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
 	//r.Handler("GET", "/static", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
