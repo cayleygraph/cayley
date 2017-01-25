@@ -1,7 +1,7 @@
 Various 3rd party APIs
 
 - **Clojure**: https://github.com/wgb/cayley-clj
-- **Javascript/NodeJS**:  https://github.com/villadora/cayley.js
+- **Javascript/NodeJS**: https://github.com/lnshi/node-cayley, https://github.com/villadora/cayley.js
 - **Ruby**: https://github.com/reneklacan/cayley-ruby
 - **PHP**: https://github.com/mcuadros/php-cayley
 - **Python**: https://github.com/ziyasal/pyley
