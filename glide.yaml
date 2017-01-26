@@ -39,3 +39,4 @@ import:
   - require
 - package: github.com/linkeddata/gojsonld
 - package: github.com/dop251/goja
+- package: github.com/go-sql-driver/mysql

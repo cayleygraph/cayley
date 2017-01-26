@@ -136,4 +136,6 @@ imports:
   - bson
   - internal/scram
   - sasl
+- name: github.com/go-sql-driver/mysql
+  version: 2e00b5cd70399450106cec6431c2e2ce3cae5034
 testImports: []
