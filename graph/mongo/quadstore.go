@@ -125,13 +125,14 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 }
 
 func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
-	var conn *mgo.Session
-	connVal, ok := options["session"]
-	if ok {
-		conn, ok = connVal.(*mgo.Session)
-		if ok {
+	if connVal, ok := options["session"]; ok {
+		if conn, ok := connVal.(*mgo.Session); ok {
 			return conn, nil
 		}
+	}
+	if strings.HasPrefix(addr, "mongodb://") || strings.ContainsAny(addr, `@/\`) {
+		// full mongodb url
+		return mgo.Dial(addr)
 	}
 	var dialInfo mgo.DialInfo
 	dialInfo.Addrs = strings.Split(addr, ",")
@@ -158,11 +159,7 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 		dbName = val
 	}
 	dialInfo.Database = dbName
-	conn, err = mgo.DialWithInfo(&dialInfo)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
+	return mgo.DialWithInfo(&dialInfo)
 }
 
 func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
