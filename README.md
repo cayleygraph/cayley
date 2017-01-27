@@ -7,6 +7,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 
 [![Build Status](https://travis-ci.org/cayleygraph/cayley.png?branch=master)](https://travis-ci.org/cayleygraph/cayley)
 [![Container Repository on Quay](https://quay.io/repository/cayleygraph/cayley/status "Container Repository on Quay")](https://quay.io/repository/cayleygraph/cayley)
+[![Slack Status](https://cayley-slackin.herokuapp.com/badge.svg)](https://cayley-slackin.herokuapp.com/)
 
 ## Features
 
@@ -36,9 +37,9 @@ Rough performance testing shows that, on 2014 consumer hardware and an average d
 ## Community
 
 * Website: [cayley.io](https://cayley.io)
+* Slack: [cayleygraph.slack.com](https://cayleygraph.slack.com) -- Invite [here](https://cayley-slackin.herokuapp.com/)
 * Discourse list: [discourse.cayley.io](https://discourse.cayley.io) (Also acts as mailing list, enable mailing list mode)
 * Twitter: [@cayleygraph](https://twitter.com/cayleygraph)
-* IRC: [#cayley on Freenode](http://webchat.freenode.net/?channels=%23cayley&uio=d4)
 
 ## Documentation
 
