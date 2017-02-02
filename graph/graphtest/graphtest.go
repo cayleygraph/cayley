@@ -49,6 +49,8 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 		TestDeletedFromIterator(t, gen)
 	}
 	TestLoadTypedQuads(t, gen, conf)
+	TestReadTimeQuadsViaIterator(t, gen, conf)
+	TestRemoveTimeQuadsViaIterator(t, gen, conf)
 	TestAddRemove(t, gen, conf)
 	TestIteratorsAndNextResultOrderA(t, gen)
 	if !conf.UnTyped {
@@ -524,6 +526,65 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 		}
 	}
 	require.Equal(t, int64(7), qs.Size(), "Unexpected quadstore size")
+}
+
+// Came across a bug where a time.Time quad returned by iterator.NewAnd could not be deleted even though it exists.
+// dennwc said that this has something to do with protobuf encoding dropping timezone info which is used in hash/node id generation.
+func TestReadTimeQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := MakeWriter(t, qs, opts)
+	now := time.Now()
+	subject := quad.String("timequad")
+	values := []quad.Quad{
+		{subject, quad.String("has_unixtime"), quad.Int(now.UnixNano()), nil},
+		{subject, quad.String("has_time"), quad.Time(now), nil},
+	}
+	err := w.AddQuadSet(values)
+	require.Nil(t, err)
+
+	for _, v := range values {
+		it := iterator.NewAnd(
+			qs,
+			qs.QuadIterator(quad.Subject, qs.ValueOf(subject)),
+			qs.QuadIterator(quad.Predicate, qs.ValueOf(v.Predicate)),
+		)
+
+		for it.Next() {
+			assert.Equal(t, v, qs.Quad(it.Result()), "Quads do not match")
+		}
+
+		it.Close()
+	}
+}
+
+// Came across a bug where a time.Time quad returned by iterator.NewAnd could not be deleted even though it exists.
+// dennwc said that this has something to do with protobuf encoding dropping timezone info which is used in hash/node id generation.
+func TestRemoveTimeQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := MakeWriter(t, qs, opts)
+	now := time.Now()
+	subject := quad.String("timequad")
+	values := []quad.Quad{
+		{subject, quad.String("has_unixtime"), quad.Int(now.UnixNano()), nil},
+		{subject, quad.String("has_time"), quad.Time(now), nil},
+	}
+	err := w.AddQuadSet(values)
+	require.Nil(t, err)
+
+	it := iterator.NewAnd(
+		qs,
+		qs.QuadIterator(quad.Subject, qs.ValueOf(subject)),
+	)
+	defer it.Close()
+	for it.Next() {
+		err := w.RemoveQuad(qs.Quad(it.Result()))
+		require.Nil(t, err)
+	}
+
 }
 
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
