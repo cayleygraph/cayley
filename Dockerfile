@@ -1,24 +1,34 @@
-FROM golang:latest
-MAINTAINER Barak Michener <me@barakmich.com>
+FROM alpine:3.5
 
-# Set up workdir
-WORKDIR /go/src/github.com/cayleygraph/cayley
+ENV INSTALL_PATH="/usr/local/bin"
 
-# Restore vendored dependencies
-RUN sh -c "curl https://glide.sh/get | sh"
-ADD glide.* ./
-RUN glide install
+ENV PKG="ca-certificates" \
+    PKG_TMP="g++ git go glide" \
+    PKG_CACHE="/var/cache/apk"
 
-# Add and install cayley
-ADD . .
-RUN go install -v ./cmd/cayley
+ENV BUILD_LIB="github.com/cayleygraph/cayley" \
+    BUILD_TAG="master"
 
-# Expose the port and volume for configuration and data persistence. If you're
-# using a backend like bolt, make sure the file is saved to this directory.
-RUN mkdir /data #VOLUME ["/data"]
-EXPOSE 64210
+ENV GOPATH="/go"
 
-RUN echo '{"database":"bolt","db_path":"/data/cayley","read_only":false}' > /data/cayley.cfg
-RUN cayley init -db bolt -dbpath /data/cayley -quads ./data/30kmoviedata.nq.gz
+# running all these steps together builds a smaller image
+RUN mkdir -p ${GOPATH} && \
+    apk update && \
+    apk add ${PKG} && \
+    apk add ${PKG_TMP} && \
+    go get ${BUILD_LIB} && \
+    cd ${GOPATH}/src/${BUILD_LIB} && \
+    git checkout ${BUILD_TAG} && \
+    glide install && \
+    go install -v ./cmd/cayley && \
+    cp -a ${GOPATH}/bin/* ${INSTALL_PATH} && \
+    rm -rf ${GOPATH} && \
+    rm -rf /root/.glide && \
+    apk del --purge ${PKG_TMP} && \
+    rm -rf ${PKG_CACHE}/*
 
-ENTRYPOINT ["cayley", "http", "-config", "/data/cayley.cfg", "-host", "0.0.0.0", "-port", "64210"]
+ENV PATH=${INSTALL_PATH}
+
+EXPOSE [ "64210" ]
+
+ENTRYPOINT [ "/usr/local/bin/cayley" ]
