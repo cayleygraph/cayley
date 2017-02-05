@@ -29,6 +29,6 @@ RUN mkdir -p ${GOPATH} && \
 
 ENV PATH=${INSTALL_PATH}
 
-EXPOSE [ "64210" ]
+EXPOSE 64210
 
 ENTRYPOINT [ "/usr/local/bin/cayley" ]
