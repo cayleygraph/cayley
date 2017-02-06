@@ -1,3 +1,7 @@
+LABEL maintainer "napalmbrain (psev)"
+LABEL email "github@napalmbrain.sugarush.io"
+LABEL github "github.com/sugarush"
+
 FROM alpine:3.5
 
 ENV INSTALL_PATH="/usr/local/bin"
@@ -26,8 +30,6 @@ RUN mkdir -p ${GOPATH} && \
     rm -rf /root/.glide && \
     apk del --purge ${PKG_TMP} && \
     rm -rf ${PKG_CACHE}/*
-
-ENV PATH=${INSTALL_PATH}
 
 EXPOSE 64210
 
