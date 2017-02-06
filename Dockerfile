@@ -24,7 +24,7 @@ RUN mkdir -p ${GOPATH} && \
     cd ${GOPATH}/src/${BUILD_LIB} && \
     git checkout ${BUILD_TAG} && \
     mkdir /assets && \
-    cp -a {docs,static,templates} /assets && \
+    sh -c "cp -a {docs,static,templates} /assets" && \
     glide install && \
     go install -v ./cmd/cayley && \
     cp -a ${GOPATH}/bin/* ${INSTALL_PATH} && \
