@@ -3,12 +3,12 @@ FROM sugarush/cayley
 LABEL maintainer "napalmbrain (psev)"
 LABEL email "github@napalmbrain.sugarush.io"
 LABEL github "github.com/sugarush"
-
-RUN mkdir /data
+LABEL twitter "@iamnapalmbrain"
 
 COPY data/30kmoviedata.nq.gz /tmp/30kmoviedata.nq.gz
 
-RUN echo '{"database":"bolt","db_path":"/data/cayley","read_only":false}' > /data/cayley.cfg && \
+RUN mkdir /data && \
+    echo '{"database":"bolt","db_path":"/data/cayley","read_only":false}' > /data/cayley.cfg && \
     cayley init -db bolt -dbpath /data/cayley -quads /tmp/30kmoviedata.nq.gz && \
     rm /tmp/30kmoviedata.nq.gz
 

@@ -3,6 +3,7 @@ FROM alpine:3.5
 LABEL maintainer "napalmbrain (psev)"
 LABEL email "github@napalmbrain.sugarush.io"
 LABEL github "github.com/sugarush"
+LABEL twitter "@iamnapalmbrain"
 
 ENV INSTALL_PATH="/usr/local/bin"
 
