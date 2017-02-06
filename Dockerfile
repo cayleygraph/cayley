@@ -36,4 +36,4 @@ RUN mkdir -p ${GOPATH} && \
     apk del --purge ${PKG_TMP} && \
     rm -rf ${PKG_CACHE}/*
 
-ENTRYPOINT [ "/usr/local/bin/cayley", "-assets", "/assets" ]
+ENTRYPOINT [ "/usr/local/bin/cayley" ]

@@ -15,4 +15,4 @@ RUN mkdir /data && \
 VOLUME [ "/data" ]
 EXPOSE 64210
 
-CMD [ "http", "-config", "/data/cayley.cfg", "-host", "0.0.0.0", "-port", "64210" ]
+CMD [ "http", "-assets", "/assets", "-config", "/data/cayley.cfg", "-host", "0.0.0.0", "-port", "64210" ]
