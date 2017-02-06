@@ -1,27 +1,75 @@
-# Running in a container
+# Docker Container
 
-A container exposing the HTTP API of cayley is available.
+## General Use Container
 
-## Running with default configuration
+*This container is for general use. It is approximately 40MB.*
 
-Container is configured to serve 30kmoviedata with BoltDB as a backend.
+### Build the Container
+
+*You don't need to build the container.*
 
 ```
-docker run -p 64210:64210 -d quay.io/cayleygraph/cayley
+cd <cayley source directory>
+docker build -t sugarush/cayley .
 ```
 
-Database will be available at http://localhost:64210.
+### Run the Container
 
-## Custom configuration
+To run the container:
 
-To run the container one must first setup a data directory that contains the configuration file and optionally contains persistent files (i.e. a boltdb database file).
+```
+docker run -it --rm sugarush/cayley <options/flags>
+```
+## Quickstart Container
+
+*This container is not for general use. It is approximately 500MB.*
+
+The quickstart container is configured to serve 30kmoviedata with BoltDB as a backend.
+
+### Build the Container
+
+*You don't need to build the container.*
+
+Make sure to build the general container first.
+
+```
+cd <cayley source directory>
+docker build -f Dockerfile-quickstart -t sugarush/cayley-quickstart .
+```
+
+### Run the Container
+
+To start a quickstart container prepopulated with 30kmoviedata, run:
+
+```
+docker run -it --rm -p 64210:64210 sugarush/cayley-quickstart
+```
+
+The database will be available at http://localhost:64210.
+
+### Docker Machine
+
+If you are using Docker Machine, on a Mac for example, your database will be available at the Docker hosts's IP. This can be found by running:
+
+```
+docker-machine env <your docker machine>
+```
+
+You'll then connect to your database at http://&lt;docker-machine ip&gt;:64210.
+
+### Persisting Data
+
+To persist data, the first step is to obtain the BoltDB data and Cayley configuration file.
 
 ```
 mkdir data
-cp my_config.cfg data/cayley.cfg
-cp my_data.nq data/my_data.nq
-# initialize and serve database
-docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley -init -quads /data/my_data.nq
-# serve existing database
-docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley
+docker run -it --rm -v $(pwd)/data:/tmp --entrypoint /bin/sh sugarush/cayley-quickstart
+cp -a /data/* /tmp
+exit
+```
+
+Then start the container with your data directory mounted.
+
+```
+docker run -it --rm -v $(pwd)/data:/data sugarush/cayley-quickstart
 ```
