@@ -11,7 +11,8 @@ COPY data/30kmoviedata.nq.gz /tmp/30kmoviedata.nq.gz
 RUN echo '{"database":"bolt","db_path":"/data/cayley","read_only":false}' > /data/cayley.cfg && \
     cayley init -db bolt -dbpath /data/cayley -quads /tmp/30kmoviedata.nq.gz && \
     rm /tmp/30kmoviedata.nq.gz
-    
+
 VOLUME [ "/data" ]
+EXPOSE 64210
 
 CMD [ "http", "-config", "/data/cayley.cfg", "-host", "0.0.0.0", "-port", "64210" ]
