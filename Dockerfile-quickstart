@@ -1,8 +1,8 @@
+FROM sugarush/cayley
+
 LABEL maintainer "napalmbrain (psev)"
 LABEL email "github@napalmbrain.sugarush.io"
 LABEL github "github.com/sugarush"
-
-FROM sugarush/cayley
 
 RUN mkdir /data
 VOLUME [ "/data" ]

@@ -1,8 +1,8 @@
+FROM alpine:3.5
+
 LABEL maintainer "napalmbrain (psev)"
 LABEL email "github@napalmbrain.sugarush.io"
 LABEL github "github.com/sugarush"
-
-FROM alpine:3.5
 
 ENV INSTALL_PATH="/usr/local/bin"
 
