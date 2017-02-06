@@ -23,6 +23,8 @@ RUN mkdir -p ${GOPATH} && \
     go get ${BUILD_LIB} && \
     cd ${GOPATH}/src/${BUILD_LIB} && \
     git checkout ${BUILD_TAG} && \
+    mkdir /assets && \
+    cp -a {docs,static,templates} /assets && \
     glide install && \
     go install -v ./cmd/cayley && \
     cp -a ${GOPATH}/bin/* ${INSTALL_PATH} && \
@@ -31,6 +33,4 @@ RUN mkdir -p ${GOPATH} && \
     apk del --purge ${PKG_TMP} && \
     rm -rf ${PKG_CACHE}/*
 
-EXPOSE 64210
-
-ENTRYPOINT [ "/usr/local/bin/cayley" ]
+ENTRYPOINT [ "/usr/local/bin/cayley", "-assets", "/assets" ]
