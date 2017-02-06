@@ -20,9 +20,20 @@ To run the container:
 ```
 docker run -it --rm sugarush/cayley <options/flags>
 ```
+
+### HTTP Interface
+
+If you intend to use the HTTP interface, you must include the _-assets /assets_ flag. Your command may look something like:
+
+```
+docker run -it --rm sugarush/cayley http -assets /assets <...>
+```
+
 ## Quickstart Container
 
 *This container is not for general use. It is approximately 500MB.*
+
+*You do not need to set the -assets flag when using the quickstart container.*
 
 The quickstart container is configured to serve 30kmoviedata with BoltDB as a backend.
 
