@@ -49,8 +49,7 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 		TestDeletedFromIterator(t, gen)
 	}
 	TestLoadTypedQuads(t, gen, conf)
-	TestReadTimeQuadsViaIterator(t, gen, conf)
-	TestRemoveTimeQuadsViaIterator(t, gen, conf)
+	TestRemoveQuadsViaIterator(t, gen, conf)
 	TestAddRemove(t, gen, conf)
 	TestIteratorsAndNextResultOrderA(t, gen)
 	if !conf.UnTyped {
@@ -513,8 +512,15 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 					pq = quad.Time(time.Unix(seconds, nanos).UTC())
 				}
 			}
+			// Right now it looks like only quad.Time has an Equaler interface.
 			if eq, ok := pq.(quad.Equaler); ok {
 				assert.True(t, eq.Equal(got), "Failed to roundtrip %q (%T), got %q (%T)", pq, pq, got, got)
+				
+				// Built-in time.Equal does not compare timezone values.
+				// Note that asserts.Equal is not being used here as it is causing a panic in the LevelDB backend.
+				if _, ok := pq.(quad.Time); ok {
+					assert.True(t, pq.Native().(time.Time) == got.Native().(time.Time), "Failed to roundtrip %q (%T), got %q (%T)", pq, pq, got, got)
+				}
 			} else {
 				assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
 				if !conf.NoHashes {
@@ -528,15 +534,17 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 	require.Equal(t, int64(7), qs.Size(), "Unexpected quadstore size")
 }
 
-// Came across a bug where a time.Time quad returned by iterator.NewAnd could not be deleted even though it exists.
+// Came across a bug where a time.Time quad could not be deleted even though it exists.
 // dennwc said that this has something to do with protobuf encoding dropping timezone info which is used in hash/node id generation.
-func TestReadTimeQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestRemoveQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
+	// Locals.
 	qs, opts, closer := gen(t)
 	defer closer()
 
+	// Create writer and test-value set.
 	w := MakeWriter(t, qs, opts)
 	now := time.Now()
-	subject := quad.String("timequad")
+	subject := quad.IRI("timequad")
 	values := []quad.Quad{
 		{subject, quad.String("has_unixtime"), quad.Int(now.UnixNano()), nil},
 		{subject, quad.String("has_time"), quad.Time(now), nil},
@@ -544,47 +552,20 @@ func TestReadTimeQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) 
 	err := w.AddQuadSet(values)
 	require.Nil(t, err)
 
-	for _, v := range values {
-		it := iterator.NewAnd(
-			qs,
-			qs.QuadIterator(quad.Subject, qs.ValueOf(subject)),
-			qs.QuadIterator(quad.Predicate, qs.ValueOf(v.Predicate)),
-		)
-
-		for it.Next() {
-			assert.Equal(t, v, qs.Quad(it.Result()), "Quads do not match")
-		}
-
-		it.Close()
-	}
-}
-
-// Came across a bug where a time.Time quad returned by iterator.NewAnd could not be deleted even though it exists.
-// dennwc said that this has something to do with protobuf encoding dropping timezone info which is used in hash/node id generation.
-func TestRemoveTimeQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
-
-	w := MakeWriter(t, qs, opts)
-	now := time.Now()
-	subject := quad.String("timequad")
-	values := []quad.Quad{
-		{subject, quad.String("has_unixtime"), quad.Int(now.UnixNano()), nil},
-		{subject, quad.String("has_time"), quad.Time(now), nil},
-	}
-	err := w.AddQuadSet(values)
-	require.Nil(t, err)
-
-	it := iterator.NewAnd(
-		qs,
-		qs.QuadIterator(quad.Subject, qs.ValueOf(subject)),
-	)
+	// Create iterator.
+	it := qs.QuadsAllIterator()
 	defer it.Close()
+	
+	// Check iterator size.
+	count, exact := it.Size()
+	assert.Equal(t, int64(len(values)), count, "Iterator and values lengths do not match: values.length: %s, it.length: %s", len(values), count)
+	assert.True(t, exact, "Iterator count is not exact")
+	
+	// Attempt to remove found quads.
 	for it.Next() {
 		err := w.RemoveQuad(qs.Quad(it.Result()))
 		require.Nil(t, err)
 	}
-
 }
 
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
