@@ -105,9 +105,9 @@ func (m *Value) ToNative() (qv quad.Value) {
 	case *Value_Time:
 		var t time.Time
 		if v.Time == nil {
-			t = time.Unix(0, 0).UTC()
+			t = time.Unix(0, 0)
 		} else {
-			t = time.Unix(v.Time.Seconds, int64(v.Time.Nanos)).UTC()
+			t = time.Unix(v.Time.Seconds, int64(v.Time.Nanos))
 		}
 		return quad.Time(t)
 	default:

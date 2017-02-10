@@ -512,15 +512,8 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 					pq = quad.Time(time.Unix(seconds, nanos).UTC())
 				}
 			}
-			// Right now it looks like only quad.Time has an Equaler interface.
 			if eq, ok := pq.(quad.Equaler); ok {
 				assert.True(t, eq.Equal(got), "Failed to roundtrip %q (%T), got %q (%T)", pq, pq, got, got)
-				
-				// Built-in time.Equal does not compare timezone values.
-				// Note that asserts.Equal is not being used here as it is causing a panic in the LevelDB backend.
-				if _, ok := pq.(quad.Time); ok {
-					assert.True(t, pq.Native().(time.Time) == got.Native().(time.Time), "Failed to roundtrip %q (%T), got %q (%T)", pq, pq, got, got)
-				}
 			} else {
 				assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
 				if !conf.NoHashes {
@@ -534,8 +527,6 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 	require.Equal(t, int64(7), qs.Size(), "Unexpected quadstore size")
 }
 
-// Came across a bug where a time.Time quad could not be deleted even though it exists.
-// dennwc said that this has something to do with protobuf encoding dropping timezone info which is used in hash/node id generation.
 func TestRemoveQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
 	// Locals.
 	qs, opts, closer := gen(t)
@@ -555,17 +546,18 @@ func TestRemoveQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
 	// Create iterator.
 	it := qs.QuadsAllIterator()
 	defer it.Close()
-	
-	// Check iterator size.
-	count, exact := it.Size()
-	assert.Equal(t, int64(len(values)), count, "Iterator and values lengths do not match: values.length: %s, it.length: %s", len(values), count)
-	assert.True(t, exact, "Iterator count is not exact")
-	
+
 	// Attempt to remove found quads.
+	var count = 0
 	for it.Next() {
+		require.Nil(t, it.Err())
 		err := w.RemoveQuad(qs.Quad(it.Result()))
 		require.Nil(t, err)
+		count = count + 1
 	}
+
+	// Check iterator size.
+	assert.Equal(t, len(values), count, "Iterator and values lengths do not match: values.length: %s, it.length: %s", len(values), count)
 }
 
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
