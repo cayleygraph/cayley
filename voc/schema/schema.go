@@ -45,3 +45,8 @@ const (
 	// A property, used to indicate attributes and relationships of some Thing; equivalent to rdf:Property.
 	Property = Prefix + "Property"
 )
+
+const (
+	// The name of the item.
+	Name = Prefix + `name`
+)

@@ -29,6 +29,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/internal/db"
+	"github.com/cayleygraph/cayley/internal/gephi"
 )
 
 type ResponseHandler func(http.ResponseWriter, *http.Request, httprouter.Params) int
@@ -170,6 +171,10 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	api := &API{config: cfg, handle: handle}
 	api.APIv1(r)
 	api.APIv2(r)
+	gs := &gephi.GraphStreamHandler{QS: handle.QuadStore}
+	const gephiPath = "/gephi/gs"
+	r.GET(gephiPath, gs.ServeHTTP)
+	fmt.Printf("Serving Gephi GraphStream at http://localhost:%s%s\n", cfg.ListenPort, gephiPath)
 
 	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
 	//r.Handler("GET", "/static", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
