@@ -179,7 +179,7 @@ func (it *AllIterator) Close() error {
 }
 
 func (it *AllIterator) Size() (int64, bool) {
-	return it.qs.size, true
+	return it.qs.Size(), true
 }
 
 func (it *AllIterator) Describe() graph.Description {

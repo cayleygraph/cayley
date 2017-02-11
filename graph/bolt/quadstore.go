@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
@@ -79,10 +80,11 @@ func isLiveValue(val []byte) bool {
 type QuadStore struct {
 	db      *bolt.DB
 	path    string
-	open    bool
+	version int64
+
+	mu      sync.RWMutex
 	size    int64
 	horizon int64
-	version int64
 }
 
 func createNewBolt(path string, _ graph.Options) error {
@@ -181,7 +183,10 @@ func setVersion(db *bolt.DB, version int64) error {
 }
 
 func (qs *QuadStore) Size() int64 {
-	return qs.size
+	qs.mu.RLock()
+	sz := qs.size
+	qs.mu.RUnlock()
+	return sz
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
@@ -236,6 +241,8 @@ func deltaToProto(delta graph.Delta) proto.LogDelta {
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	oldSize := qs.size
 	oldHorizon := qs.horizon
 	err := qs.db.Update(func(tx *bolt.Tx) error {
@@ -290,7 +297,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			}
 		}
 		qs.size += sizeChange
-		return qs.WriteHorizonAndSize(tx)
+		return qs.writeHorizonAndSize(tx)
 	})
 
 	if err != nil {
@@ -379,7 +386,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, tx *bolt.Tx
 	return err
 }
 
-func (qs *QuadStore) WriteHorizonAndSize(tx *bolt.Tx) error {
+func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, qs.size)
 	if err != nil {
@@ -410,12 +417,12 @@ func (qs *QuadStore) WriteHorizonAndSize(tx *bolt.Tx) error {
 }
 
 func (qs *QuadStore) Close() error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	qs.db.Update(func(tx *bolt.Tx) error {
-		return qs.WriteHorizonAndSize(tx)
+		return qs.writeHorizonAndSize(tx)
 	})
-	err := qs.db.Close()
-	qs.open = false
-	return err
+	return qs.db.Close()
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
@@ -516,7 +523,9 @@ func getInt64ForMetaKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
 }
 
 func (qs *QuadStore) getMetadata() error {
-	err := qs.db.View(func(tx *bolt.Tx) error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
+	return qs.db.View(func(tx *bolt.Tx) error {
 		var err error
 		qs.size, err = getInt64ForMetaKey(tx, "size", 0)
 		if err != nil {
@@ -529,7 +538,6 @@ func (qs *QuadStore) getMetadata() error {
 		qs.horizon, err = getInt64ForMetaKey(tx, "horizon", 0)
 		return err
 	})
-	return err
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
