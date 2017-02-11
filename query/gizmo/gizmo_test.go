@@ -163,6 +163,14 @@ var testQueries = []struct {
 		expect: []string{"<bob>", "<greg>", "<emily>"},
 	},
 	{
+		message: "use .Both() with tag",
+		query: `
+			g.V("<fred>").Both(null, "pred").All()
+		`,
+		tag:    "pred",
+		expect: []string{"<follows>", "<follows>", "<follows>"},
+	},
+	{
 		message: "use .Tag()-.Is()-.Back()",
 		query: `
 			g.V("<bob>").In("<follows>").Tag("foo").Out("<status>").Is("cool_person").Back("foo").All()

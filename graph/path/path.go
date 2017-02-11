@@ -251,6 +251,14 @@ func (p *Path) Both(via ...interface{}) *Path {
 	return np
 }
 
+// BothWithTags is exactly like Both, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) BothWithTags(tags []string, via ...interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, bothMorphism(tags, via...))
+	return np
+}
+
 // InPredicates updates this path to represent the nodes of the valid inbound
 // predicates from the current nodes.
 //

@@ -84,11 +84,11 @@ func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
 	return p.inout(call, false)
 }
 func (p *pathObject) Both(call goja.FunctionCall) goja.Value {
-	preds, _, ok := toViaData(exportArgs(call.Arguments))
+	preds, tags, ok := toViaData(exportArgs(call.Arguments))
 	if !ok {
 		return throwErr(p.s.vm, errNoVia)
 	}
-	np := p.clonePath().Both(preds...)
+	np := p.clonePath().BothWithTags(tags, preds...)
 	return p.newVal(np)
 }
 func (p *pathObject) follow(ep *pathObject, rev bool) *pathObject {
