@@ -1,5 +1,9 @@
 # HTTP Methods
 
+## Gephi
+
+Cayley supports streaming to Gephi via [GraphStream](GephiGraphStream.md).
+
 ## API v1
 
 Unless otherwise noted, all URIs take a POST command.

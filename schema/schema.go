@@ -54,6 +54,8 @@ func toIRI(s string) quad.IRI {
 	return quad.IRI(s)
 }
 
+var reflEmptyStruct = reflect.TypeOf(struct{}{})
+
 func fieldRule(fld reflect.StructField) (rule, error) {
 	tag := fld.Tag.Get("quad")
 	sub := strings.Split(tag, ",")
@@ -121,7 +123,7 @@ func fieldRule(fld reflect.StructField) (rule, error) {
 		return nil, fmt.Errorf("wrong quad format: '%s': no predicate", rule)
 	}
 	p := toIRI(ps)
-	if vs == "" || vs == any {
+	if vs == "" || vs == any && fld.Type != reflEmptyStruct {
 		return saveRule{Pred: p, Rev: rev, Opt: opt}, nil
 	} else {
 		return constraintRule{Pred: p, Val: toIRI(vs), Rev: rev}, nil
@@ -259,10 +261,14 @@ func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 		case idRule:
 			p = p.Tag(name)
 		case constraintRule:
+			var nodes []quad.Value
+			if rule.Val != "" {
+				nodes = []quad.Value{rule.Val}
+			}
 			if rule.Rev {
-				p = p.HasReverse(rule.Pred, rule.Val)
+				p = p.HasReverse(rule.Pred, nodes...)
 			} else {
-				p = p.Has(rule.Pred, rule.Val)
+				p = p.Has(rule.Pred, nodes...)
 			}
 		case saveRule:
 			tag := tagPref + name
