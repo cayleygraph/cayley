@@ -89,7 +89,8 @@ func LogRequest(handler ResponseHandler) httprouter.Handle {
 func jsonResponse(w http.ResponseWriter, code int, err interface{}) int {
 	w.Header().Set("Content-Type", contentTypeJSON)
 	w.Write([]byte(`{"error": `))
-	json.NewEncoder(w).Encode(fmt.Sprint(err))
+	data, _ := json.Marshal(fmt.Sprint(err))
+	w.Write(data)
 	w.Write([]byte(`}`))
 	return code
 }

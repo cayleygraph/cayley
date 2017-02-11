@@ -253,7 +253,7 @@ func (api *API) ServeV2Delete(w http.ResponseWriter, r *http.Request, _ httprout
 		return jsonResponse(w, http.StatusInternalServerError, err)
 	}
 	w.Header().Set(hdrContentType, contentTypeJSON)
-	fmt.Fprintf(w, `{"result": "Successfully wrote %d quads.", "count": %d}`+"\n", n, n)
+	fmt.Fprintf(w, `{"result": "Successfully deleted %d quads.", "count": %d}`+"\n", n, n)
 	return 200
 }
 
