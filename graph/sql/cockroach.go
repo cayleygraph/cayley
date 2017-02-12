@@ -181,108 +181,149 @@ func tryRunTxCockroach(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) erro
 		deleteTriple *sql.Stmt
 	)
 
-	var err error
-	for _, d := range in {
-		switch d.Action {
-		case graph.Add:
-			if insertQuad == nil {
-				insertQuad, err = tx.Prepare(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)` + end)
-				if err != nil {
-					return err
-				}
-				insertValue = make(map[int]*sql.Stmt)
-				inserted = make(map[NodeHash]struct{}, len(in))
-			}
-			var hs, hp, ho, hl NodeHash
-			for _, dir := range quad.Directions {
-				v := d.Quad.Get(dir)
-				if v == nil {
-					continue
-				}
-				h := hashOf(v)
-				switch dir {
-				case quad.Subject:
-					hs = h
-				case quad.Predicate:
-					hp = h
-				case quad.Object:
-					ho = h
-				case quad.Label:
-					hl = h
-				}
-				if !h.Valid() {
-					continue
-				} else if _, ok := inserted[h]; ok {
-					continue
-				}
-				nodeKey, values, err := nodeValues(h, v)
-				if err != nil {
-					return err
-				}
-				stmt, ok := insertValue[nodeKey]
-				if !ok {
-					var ph = make([]string, len(values)-1)
-					for i := range ph {
-						ph[i] = "$" + strconv.FormatInt(int64(i)+2, 10)
-					}
-					stmt, err = tx.Prepare(`INSERT INTO nodes(hash, ` +
-						strings.Join(nodeInsertColumns[nodeKey], ", ") +
-						`) VALUES ($1, ` +
-						strings.Join(ph, ", ") +
-						`) ON CONFLICT (hash) DO NOTHING;`)
+	runTx := func() error {
+		var err error
+		for _, d := range in {
+			switch d.Action {
+			case graph.Add:
+				if insertQuad == nil {
+					insertQuad, err = tx.Prepare(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)` + end)
 					if err != nil {
 						return err
 					}
-					insertValue[nodeKey] = stmt
+					insertValue = make(map[int]*sql.Stmt)
+					inserted = make(map[NodeHash]struct{}, len(in))
 				}
-				_, err = stmt.Exec(values...)
+				var hs, hp, ho, hl NodeHash
+				for _, dir := range quad.Directions {
+					v := d.Quad.Get(dir)
+					if v == nil {
+						continue
+					}
+					h := hashOf(v)
+					switch dir {
+					case quad.Subject:
+						hs = h
+					case quad.Predicate:
+						hp = h
+					case quad.Object:
+						ho = h
+					case quad.Label:
+						hl = h
+					}
+					if !h.Valid() {
+						continue
+					} else if _, ok := inserted[h]; ok {
+						continue
+					}
+					nodeKey, values, err := nodeValues(h, v)
+					if err != nil {
+						return err
+					}
+					stmt, ok := insertValue[nodeKey]
+					if !ok {
+						var ph = make([]string, len(values)-1)
+						for i := range ph {
+							ph[i] = "$" + strconv.FormatInt(int64(i)+2, 10)
+						}
+						stmt, err = tx.Prepare(`INSERT INTO nodes(hash, ` +
+							strings.Join(nodeInsertColumns[nodeKey], ", ") +
+							`) VALUES ($1, ` +
+							strings.Join(ph, ", ") +
+							`) ON CONFLICT (hash) DO NOTHING;`)
+						if err != nil {
+							return err
+						}
+						insertValue[nodeKey] = stmt
+					}
+					_, err = stmt.Exec(values...)
+					if err != nil {
+						clog.Errorf("couldn't exec INSERT statement: %v", err)
+						return err
+					}
+					inserted[h] = struct{}{}
+				}
+				_, err := insertQuad.Exec(
+					hs.toSQL(), hp.toSQL(), ho.toSQL(), hl.toSQL(),
+					d.ID.Int(),
+					d.Timestamp,
+				)
 				if err != nil {
 					clog.Errorf("couldn't exec INSERT statement: %v", err)
 					return err
 				}
-				inserted[h] = struct{}{}
-			}
-			_, err := insertQuad.Exec(
-				hs.toSQL(), hp.toSQL(), ho.toSQL(), hl.toSQL(),
-				d.ID.Int(),
-				d.Timestamp,
-			)
-			if err != nil {
-				clog.Errorf("couldn't exec INSERT statement: %v", err)
-				return err
-			}
-		case graph.Delete:
-			if deleteQuad == nil {
-				deleteQuad, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`)
+			case graph.Delete:
+				if deleteQuad == nil {
+					deleteQuad, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`)
+					if err != nil {
+						return err
+					}
+					deleteTriple, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash is null;`)
+					if err != nil {
+						return err
+					}
+				}
+				var result sql.Result
+				if d.Quad.Label == nil {
+					result, err = deleteTriple.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL())
+				} else {
+					result, err = deleteQuad.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL(), hashOf(d.Quad.Label).toSQL())
+				}
 				if err != nil {
+					clog.Errorf("couldn't exec DELETE statement: %v", err)
 					return err
 				}
-				deleteTriple, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash is null;`)
+				affected, err := result.RowsAffected()
 				if err != nil {
+					clog.Errorf("couldn't get DELETE RowsAffected: %v", err)
 					return err
 				}
+				if affected != 1 && !opts.IgnoreMissing {
+					return graph.ErrQuadNotExist
+				}
+			default:
+				panic("unknown action")
 			}
-			var result sql.Result
-			if d.Quad.Label == nil {
-				result, err = deleteTriple.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL())
-			} else {
-				result, err = deleteQuad.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL(), hashOf(d.Quad.Label).toSQL())
+		}
+		return nil
+	}
+
+	// Specify that we intend to retry this txn in case of CockroachDB retryable
+	// errors.
+	if _, err := tx.Exec("SAVEPOINT cockroach_restart"); err != nil {
+		return err
+	}
+
+	var (
+		err      error
+		released bool
+	)
+	for {
+		released = false
+
+		if err = runTx(); err == nil {
+			// RELEASE acts like COMMIT in CockroachDB. We use it since it gives us an
+			// opportunity to react to retryable errors, whereas tx.Commit() doesn't.
+			released = true
+			if _, err = tx.Exec("RELEASE SAVEPOINT cockroach_restart"); err == nil {
+				return nil
 			}
-			if err != nil {
-				clog.Errorf("couldn't exec DELETE statement: %v", err)
-				return err
+		}
+
+		// We got an error; let's see if it's a retryable one and, if so, restart. We look
+		// for either the standard PG errcode SerializationFailureError:40001 or the Cockroach extension
+		// errcode RetriableError:CR000. The Cockroach extension has been removed server-side, but support
+		// for it has been left here for now to maintain backwards compatibility.
+		pqErr, ok := err.(*pq.Error)
+		if retryable := ok && (pqErr.Code == "CR000" || pqErr.Code == "40001"); !retryable {
+			if released {
+				err = &AmbiguousCommitError{err}
 			}
-			affected, err := result.RowsAffected()
-			if err != nil {
-				clog.Errorf("couldn't get DELETE RowsAffected: %v", err)
-				return err
-			}
-			if affected != 1 && !opts.IgnoreMissing {
-				return graph.ErrQuadNotExist
-			}
-		default:
-			panic("unknown action")
+			clog.Errorf("couldn't execute transaction: %v", err)
+			return err
+		}
+		if _, err = tx.Exec("ROLLBACK TO SAVEPOINT cockroach_restart"); err != nil {
+			return err
 		}
 	}
-	return nil
 }
