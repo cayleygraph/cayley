@@ -52,9 +52,6 @@ func RegisterQuadStore(name string, register QuadStoreRegistration) {
 
 	// Also Register QuadStore with pkgPath
 	pkgPath := reflect.TypeOf(register.NewFunc).PkgPath()
-	if _, found := storeRegistry[pkgPath]; found {
-		panic(fmt.Sprintf("Already registered QuadStore \"%s\".", name))
-	}
 	storeRegistry[pkgPath] = register
 }
 
