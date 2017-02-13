@@ -88,6 +88,32 @@ func regexMorphism(pattern *regexp.Regexp, refs bool) morphism {
 	}
 }
 
+// isNodeMorphism represents all nodes passed in-- if there are none, this function
+// acts as a passthrough for the previous iterator.
+func isNodeMorphism(nodes ...graph.Value) morphism {
+	return morphism{
+		Name:     "is",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return isNodeMorphism(nodes...), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			if len(nodes) == 0 {
+				// Acting as a passthrough here is equivalent to
+				// building a NodesAllIterator to Next() or Contains()
+				// from here as in previous versions.
+				return in, ctx
+			}
+
+			isNodes := qs.FixedIterator()
+			for _, n := range nodes {
+				isNodes.Add(n)
+			}
+
+			// Anything with fixedIterators will usually have a much
+			// smaller result set, so join isNodes first here.
+			return join(qs, isNodes, in), ctx
+		},
+	}
+}
+
 // cmpMorphism is the set of nodes that passes comparison iterator with the same parameters.
 func cmpMorphism(op iterator.Operator, node quad.Value) morphism {
 	return morphism{
