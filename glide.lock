@@ -138,4 +138,6 @@ imports:
   - sasl
 - name: github.com/go-sql-driver/mysql
   version: 2e00b5cd70399450106cec6431c2e2ce3cae5034
+- name: github.com/dennwc/graphql
+  version: fd5c4aa13f2119414084f229600de0d73f174436
 testImports: []

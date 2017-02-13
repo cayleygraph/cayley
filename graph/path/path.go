@@ -91,6 +91,16 @@ func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 	}
 }
 
+// StartPathNodes creates a new Path from a set of nodes and an underlying QuadStore.
+func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
+	return &Path{
+		stack: []morphism{
+			isNodeMorphism(nodes...),
+		},
+		qs: qs,
+	}
+}
+
 func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 	return &Path{
 		stack: []morphism{
