@@ -8,6 +8,17 @@ Grab the latest [release binary](http://github.com/cayleygraph/cayley/releases) 
 
 If you prefer to build from source, see [Contributing.md](Contributing.md) which has instructions. 
 
+### Quick preview ###
+If you downloaded the correct binary the fastest way to have a peak into Cayley is to load one of the example data file in the ./data directory, and query them by the web interface.
+
+```bash
+./cayley http --dbpath=./data/30kmoviedata.nq.gz --host 0.0.0.0
+Cayley now listening on 0.0.0.0:64210
+  ```
+You can now open the web-interface on: [localhost:64210](http://localhost:64210/)
+
+Or you can directly configure a backend storage engine like defined below and create your own graph.
+
 ### Initialize A Graph
 
 Now that Cayley is downloaded (or built), let's create our database. `init` is the subcommand to set up a database and the right indices.
