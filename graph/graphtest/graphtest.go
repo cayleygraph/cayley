@@ -550,11 +550,11 @@ func TestRemoveQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
 	// Attempt to remove found quads.
 	var count = 0
 	for it.Next() {
-		require.Nil(t, it.Err())
 		err := w.RemoveQuad(qs.Quad(it.Result()))
 		require.Nil(t, err)
-		count = count + 1
+		count++
 	}
+	require.Nil(t, it.Err())
 
 	// Check iterator size.
 	assert.Equal(t, len(values), count, "Iterator and values lengths do not match: values.length: %s, it.length: %s", len(values), count)
