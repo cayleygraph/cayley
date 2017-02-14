@@ -132,10 +132,9 @@ var (
 
 func (d Options) IntKey(key string) (int, bool, error) {
 	if val, ok := d[key]; ok {
-		t := reflect.TypeOf(val)
-		if t.ConvertibleTo(typeInt) {
-			i := t.Convert(typeInt).Int()
-			return i, true, nil
+		if reflect.TypeOf(val).ConvertibleTo(typeInt) {
+			i := reflect.ValueOf(val).Convert(typeInt).Int()
+			return int(i), true, nil
 		}
 
 		return 0, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
