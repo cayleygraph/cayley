@@ -45,7 +45,7 @@ func RegisterQuadStore(name string, register QuadStoreRegistration) {
 
 	// Register QuadStore with friendly name
 	if _, found := storeRegistry[name]; found {
-		panic(fmt.Sprintf("Already registered QuadStore \"%s\".", name))
+		panic(fmt.Sprintf("Already registered QuadStore %q.", name))
 	}
 	storeRegistry[name] = register
 }
@@ -79,7 +79,8 @@ func UpgradeQuadStore(name string, dbpath string, opts Options) error {
 	}
 
 	if r.UpgradeFunc == nil {
-		return ErrOperationNotSupported
+		// return ErrOperationNotSupported
+		return nil
 	}
 
 	return r.UpgradeFunc(dbpath, opts)

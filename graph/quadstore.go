@@ -22,6 +22,7 @@ package graph
 // quad backing store we prefer.
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -126,13 +127,15 @@ type QuadStore interface {
 type Options map[string]interface{}
 
 var (
-	typeInt = reflect.TypeOf(0)
+	typeInt = reflect.TypeOf(int(0))
 )
 
 func (d Options) IntKey(key string) (int, bool, error) {
 	if val, ok := d[key]; ok {
-		if reflect.TypeOf(val).ConvertibleTo(typeInt) {
-			return val.(int), true, nil
+		t := reflect.TypeOf(val)
+		if t.ConvertibleTo(typeInt) {
+			i := t.Convert(typeInt).Int()
+			return i, true, nil
 		}
 
 		return 0, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
@@ -165,8 +168,8 @@ func (d Options) BoolKey(key string) (bool, bool, error) {
 	return false, false, nil
 }
 
-var ErrCannotBulkLoad = fmt.Errorf("quadstore: cannot bulk load")
-var ErrDatabaseExists = fmt.Errorf("quadstore: cannot init; database already exists")
+var ErrCannotBulkLoad = errors.New("quadstore: cannot bulk load")
+var ErrDatabaseExists = errors.New("quadstore: cannot init; database already exists")
 
 type BulkLoader interface {
 	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the QuadStore.
