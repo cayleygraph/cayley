@@ -21,7 +21,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 * Built-in query editor and visualizer
 * Multiple query languages:
   * JavaScript, with a [Gremlin](http://gremlindocs.com/)-inspired\* graph object.
-  * (simplified) [MQL](https://developers.google.com/freebase/v1/mql-overview), for Freebase fans
+  * (simplified) MQL, for [Freebase](https://en.wikipedia.org/wiki/Freebase) fans
 * Plays well with multiple backend stores:
   * [LevelDB](https://github.com/google/leveldb)
   * [Bolt](https://github.com/boltdb/bolt)
