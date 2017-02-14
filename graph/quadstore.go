@@ -22,8 +22,8 @@ package graph
 // quad backing store we prefer.
 
 import (
-	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -117,48 +117,56 @@ type QuadStore interface {
 	//  qs.ValueOf(qs.Quad(id).Get(dir))
 	//
 	QuadDirection(id Value, d quad.Direction) Value
+
+	// Get the type of QuadStore
+	//TODO replace this using reflection
+	Type() string
 }
 
 type Options map[string]interface{}
 
+var (
+	typeInt = reflect.TypeOf(0)
+)
+
 func (d Options) IntKey(key string) (int, bool, error) {
 	if val, ok := d[key]; ok {
-		switch vv := val.(type) {
-		case float64:
-			return int(vv), true, nil
-		default:
-			return 0, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
+		if reflect.TypeOf(val).ConvertibleTo(typeInt) {
+			return val.(int), true, nil
 		}
+
+		return 0, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 	}
+
 	return 0, false, nil
 }
 
 func (d Options) StringKey(key string) (string, bool, error) {
 	if val, ok := d[key]; ok {
-		switch vv := val.(type) {
-		case string:
-			return vv, true, nil
-		default:
-			return "", false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
+		if v, ok := val.(string); ok {
+			return v, true, nil
 		}
+
+		return "", false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 	}
+
 	return "", false, nil
 }
 
 func (d Options) BoolKey(key string) (bool, bool, error) {
 	if val, ok := d[key]; ok {
-		switch vv := val.(type) {
-		case bool:
-			return vv, true, nil
-		default:
-			return false, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
+		if v, ok := val.(bool); ok {
+			return v, true, nil
 		}
+
+		return false, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 	}
+
 	return false, false, nil
 }
 
-var ErrCannotBulkLoad = errors.New("quadstore: cannot bulk load")
-var ErrDatabaseExists = errors.New("quadstore: cannot init; database already exists")
+var ErrCannotBulkLoad = fmt.Errorf("quadstore: cannot bulk load")
+var ErrDatabaseExists = fmt.Errorf("quadstore: cannot init; database already exists")
 
 type BulkLoader interface {
 	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the QuadStore.

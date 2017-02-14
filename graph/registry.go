@@ -16,7 +16,6 @@ package graph
 
 import (
 	"fmt"
-	"reflect"
 )
 
 var (
@@ -49,10 +48,6 @@ func RegisterQuadStore(name string, register QuadStoreRegistration) {
 		panic(fmt.Sprintf("Already registered QuadStore \"%s\".", name))
 	}
 	storeRegistry[name] = register
-
-	// Also Register QuadStore with pkgPath
-	pkgPath := reflect.TypeOf(register.NewFunc).PkgPath()
-	storeRegistry[pkgPath] = register
 }
 
 func NewQuadStore(name string, dbpath string, opts Options) (QuadStore, error) {
@@ -65,8 +60,7 @@ func NewQuadStore(name string, dbpath string, opts Options) (QuadStore, error) {
 }
 
 func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
-	pkgPath := reflect.TypeOf(qs).PkgPath()
-	r, registered := storeRegistry[pkgPath]
+	r, registered := storeRegistry[qs.Type()]
 	if !registered {
 		return nil, ErrQuadStoreNotRegistred
 	}
