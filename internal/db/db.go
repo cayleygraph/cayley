@@ -49,7 +49,7 @@ func Open(cfg *config.Config) (*graph.Handle, error) {
 
 func OpenQuadStore(cfg *config.Config) (graph.QuadStore, error) {
 	clog.Infof("Opening quad store %q at %s", cfg.DatabaseType, cfg.DatabasePath)
-	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions);
+	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 
 	// override error to make it more informative
 	if os.IsNotExist(err) {
