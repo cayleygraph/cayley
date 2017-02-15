@@ -36,9 +36,11 @@ Those two options (db and dbpath) are always going to be present. If you feel li
 
 You can repeat the `--db` and `--dbpath` flags from here forward instead of the config flag, but let's assume you created `cayley.cfg.overview`
 
+Note: when you specify parameters in the config file the config flags (command line arguments) are ignored.
+
 ### Load Data Into A Graph
 
-First we load the data.
+After the database is initialized we load the data.
 
 ```bash
 ./cayley load --config=cayley.cfg.overview --quads=data/testdata.nq
@@ -113,6 +115,16 @@ Cayley now listening on 127.0.0.1:64210
 
 If you visit that address (often, [http://localhost:64210](http://localhost:64210)) you'll see the full web interface and also have a graph ready to serve queries via the [HTTP API](HTTP.md)
 
+#### Access from other machines ####
+When you want to reach the API or UI from another machine in the network you need to specify the host argument:
+```bash
+./cayley http --config=cayley.cfg.overview --host=0.0.0.0
+```
+This makes it listen on all interfaces. You can also give it the specific the IP address you want Cayley to bind to. 
+
+**Warning**: for security reasons you might not want to do this on a public accessible machine. 
+
+
 ## UI Overview
 
 ### Sidebar
@@ -144,11 +156,11 @@ For example:
 ```javascript
 [
 {
-  "source": "node1"
+  "source": "node1",
   "target": "node2"
 },
 {
-  "source": "node1"
+  "source": "node1",
   "target": "node3"
 },
 ]
