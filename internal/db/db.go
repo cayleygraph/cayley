@@ -22,6 +22,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal/config"
+	"os"
 )
 
 var ErrNotPersistent = errors.New("database type is not persistent")
@@ -48,7 +49,13 @@ func Open(cfg *config.Config) (*graph.Handle, error) {
 
 func OpenQuadStore(cfg *config.Config) (graph.QuadStore, error) {
 	clog.Infof("Opening quad store %q at %s", cfg.DatabaseType, cfg.DatabasePath)
-	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions);
+
+	// override error to make it more informative
+	if os.IsNotExist(err) {
+		err = errors.New(fmt.Sprintf("file does not exist: %s. Please use with --init or run ./cayley init when it is a new database (see docs for more information)", cfg.DatabasePath))
+	}
+
 	if err != nil {
 		return nil, err
 	}
