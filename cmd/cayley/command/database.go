@@ -20,6 +20,8 @@ const (
 	KeyPath     = "store.path"
 	KeyReadOnly = "store.read_only"
 	KeyOptions  = "store.options"
+
+	KeyLoadBatch = "load.batch"
 )
 
 const (
