@@ -40,6 +40,7 @@ var defaultInline = []quad.IRI{
 	rdf.Type,
 	rdfs.Label,
 	schema.Name,
+	schema.UrlProp,
 }
 
 type GraphStreamHandler struct {
@@ -234,6 +235,14 @@ func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream,
 	}
 }
 
+func shouldInline(v quad.Value) bool {
+	switch v.(type) {
+	case quad.Bool, quad.Int, quad.Float:
+		return true
+	}
+	return false
+}
+
 func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphStream, limit int) {
 	propsPath := path.NewPath(s.QS).Has(iriInlinePred, quad.Bool(true))
 
@@ -287,6 +296,8 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 			if _, ok := inline[q.Predicate]; ok {
 				props[q.Predicate] = q.Object
 				ignore[q.Object] = struct{}{}
+			} else if shouldInline(q.Object) {
+				props[q.Predicate] = q.Object
 			} else {
 				quad.HashTo(q.Object, oh[:])
 				o := gs.addNode(q.Object, oh, nil)
