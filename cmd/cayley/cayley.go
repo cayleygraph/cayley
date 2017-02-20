@@ -120,6 +120,7 @@ func init() {
 		command.NewReplCmd(),
 		command.NewHttpCmd(),
 		command.NewConvertCmd(),
+		command.NewDedupCommand(),
 	)
 	rootCmd.PersistentFlags().StringP("config", "c", "", "path to an explicit configuration file")
 
@@ -137,7 +138,7 @@ func init() {
 	viper.BindPFlag(command.KeyReadOnly, rootCmd.PersistentFlags().Lookup("read_only"))
 	viper.BindPFlag("load.ignore_duplicates", rootCmd.PersistentFlags().Lookup("dup"))
 	viper.BindPFlag("load.ignore_missing", rootCmd.PersistentFlags().Lookup("missing"))
-	viper.BindPFlag("load.batch", rootCmd.PersistentFlags().Lookup("batch"))
+	viper.BindPFlag(command.KeyLoadBatch, rootCmd.PersistentFlags().Lookup("batch"))
 
 	// make both store.path and store.address work
 	viper.RegisterAlias(command.KeyPath, command.KeyAddress)
