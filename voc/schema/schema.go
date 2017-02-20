@@ -48,5 +48,6 @@ const (
 
 const (
 	// The name of the item.
-	Name = Prefix + `name`
+	Name    = Prefix + `name`
+	UrlProp = Prefix + `url`
 )
