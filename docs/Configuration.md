@@ -45,7 +45,7 @@ All command line flags take precedence over the configuration file.
   * Type: String
   * Default: "127.0.0.1"
 
-  The hostname or IP address for Cayley's HTTP server to listen on. Defaults to all interfaces.
+  The hostname or IP address for Cayley's HTTP server to listen on. Defaults to localhost. If you need to have it available from other machines use either 0.0.0.0 to make it available on all interfaces or listen on a specific IP address.
 
 #### **`listen_port`**
 
