@@ -33,7 +33,7 @@ import (
 	"github.com/codelingo/cayley/internal/db"
 	"github.com/codelingo/cayley/quad"
 	"github.com/codelingo/cayley/query"
-	"github.com/codelingo/cayley/query/gremlin"
+	"github.com/codelingo/cayley/query/gizmo"
 
 	// Load all supported backends.
 	_ "github.com/codelingo/cayley/graph/bolt"
@@ -48,8 +48,11 @@ import (
 
 const format = "cquad"
 
-var backend = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
-var backendPath = flag.String("backend_path", "", "Path to the chosen backend. Will have sane testing defaults if not specified")
+var (
+	backend     = flag.String("backend", "memstore", "Which backend to test. Loads test data to /tmp if not present.")
+	backendPath = flag.String("backend_path", "", "Path to the chosen backend. Will have sane testing defaults if not specified")
+	sqlFlavor   = flag.String("flavor", "postgres", "SQL flavour")
+)
 
 var benchmarkQueries = []struct {
 	message string
@@ -462,6 +465,9 @@ func prepare(t testing.TB) {
 		remote = true
 	case "sql":
 		cfg.DatabasePath = "postgres://localhost/cayley_test"
+		cfg.DatabaseOptions = map[string]interface{}{
+			"flavor": *sqlFlavor,
+		}
 		remote = true
 	default:
 		t.Fatalf("Untestable backend store %s", *backend)
@@ -490,7 +496,7 @@ func prepare(t testing.TB) {
 		}
 
 		if needsLoad && !remote {
-			err = internal.Load(handle.QuadWriter, cfg, "../data/30kmoviedata.nq.gz", format)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "../data/30kmoviedata.nq.gz", format)
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -507,7 +513,7 @@ func deletePrepare(t testing.TB) {
 			if err != nil {
 				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
 			}
-			err = internal.Load(handle.QuadWriter, cfg, "", format)
+			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "", format)
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
 			}
@@ -516,12 +522,12 @@ func deletePrepare(t testing.TB) {
 }
 
 func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
-	return internal.DecompressAndLoad(qw, cfg, path, typ, remove)
+	return internal.DecompressAndLoad(qw, cfg.LoadSize, path, typ, graph.NewRemover)
 }
 
-func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
+func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {
 	for {
-		t, err := dec.Unmarshal()
+		t, err := dec.ReadQuad()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -550,6 +556,9 @@ func TestDeletedAndRecreatedQueries(t *testing.T) {
 }
 
 func checkQueries(t *testing.T) {
+	if handle == nil {
+		t.Fatal("not initialized")
+	}
 	for _, test := range benchmarkQueries {
 		if testing.Short() && test.long {
 			continue
@@ -560,7 +569,7 @@ func checkQueries(t *testing.T) {
 		func() {
 			tInit := time.Now()
 			t.Logf("Now testing %s ", test.message)
-			ses := gremlin.NewSession(handle.QuadStore, true)
+			ses := gizmo.NewSession(handle.QuadStore)
 			c := make(chan query.Result, 5)
 			ctx := context.Background()
 			if cfg.Timeout > 0 {
@@ -636,7 +645,7 @@ func runBench(n int, b *testing.B) {
 		if cfg.Timeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
 		}
-		ses := gremlin.NewSession(handle.QuadStore, true)
+		ses := gizmo.NewSession(handle.QuadStore)
 		b.StartTimer()
 		go ses.Execute(ctx, benchmarkQueries[n].query, c, 100)
 		for range c {

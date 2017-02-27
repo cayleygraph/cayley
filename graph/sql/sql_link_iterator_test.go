@@ -27,7 +27,7 @@ var postgres_path = flag.String("postgres_path", "", "Path to running DB")
 
 func TestSQLLink(t *testing.T) {
 	it := NewSQLLinkIterator(nil, quad.Object, quad.Raw("cool"))
-	s, v := it.sql.buildSQL(true, nil)
+	s, v := it.sql.buildSQL(&Flavor{}, true, nil)
 	t.Log(s, v)
 }
 
@@ -45,7 +45,7 @@ func TestSQLLinkIteration(t *testing.T) {
 		fmt.Println(it.Result())
 	}
 	it = NewSQLLinkIterator(qs, quad.Subject, quad.Raw("/en/casablanca_1942"))
-	s, v := it.sql.buildSQL(true, nil)
+	s, v := it.sql.buildSQL(&qs.flavor, true, nil)
 	t.Log(s, v)
 	c := 0
 	for it.Next() {
@@ -65,10 +65,11 @@ func TestSQLNodeIteration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	link := NewSQLLinkIterator(db.(*QuadStore), quad.Object, quad.Raw("/en/humphrey_bogart"))
+	qs := db.(*QuadStore)
+	link := NewSQLLinkIterator(qs, quad.Object, quad.Raw("/en/humphrey_bogart"))
 	it := &SQLIterator{
 		uid: iterator.NextUID(),
-		qs:  db.(*QuadStore),
+		qs:  qs,
 		sql: &SQLNodeIterator{
 			tableName: newTableName(),
 			linkIt: sqlItDir{
@@ -77,7 +78,7 @@ func TestSQLNodeIteration(t *testing.T) {
 			},
 		},
 	}
-	s, v := it.sql.buildSQL(true, nil)
+	s, v := it.sql.buildSQL(&qs.flavor, true, nil)
 	t.Log(s, v)
 	c := 0
 	for it.Next() {

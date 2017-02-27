@@ -31,6 +31,7 @@ import (
 	_ "github.com/codelingo/cayley/writer"
 
 	// Register supported query languages
+	_ "github.com/codelingo/cayley/query/graphql"
 	_ "github.com/codelingo/cayley/query/gremlin"
 	_ "github.com/codelingo/cayley/query/mql"
 )

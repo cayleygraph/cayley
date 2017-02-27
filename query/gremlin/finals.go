@@ -125,7 +125,7 @@ func (p *pathObject) ForEach(call otto.FunctionCall) otto.Value {
 	}
 	callback := call.Argument(len(call.ArgumentList) - 1)
 	args := exportArgs(call.ArgumentList[:len(call.ArgumentList)-1])
-	if len(args) > 1 {
+	if len(args) > 0 {
 		limit = toInt(args[0])
 	}
 	p.wk.runIteratorWithCallback(it, callback, call, limit)

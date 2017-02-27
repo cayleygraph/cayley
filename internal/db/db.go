@@ -17,13 +17,12 @@ package db
 import (
 	"errors"
 	"fmt"
-	"io"
+	"os"
 
 	"github.com/codelingo/cayley/clog"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/internal/config"
-	"github.com/codelingo/cayley/quad"
 )
 
 var ErrNotPersistent = errors.New("database type is not persistent")
@@ -51,6 +50,12 @@ func Open(cfg *config.Config) (*graph.Handle, error) {
 func OpenQuadStore(cfg *config.Config) (graph.QuadStore, error) {
 	clog.Infof("Opening quad store %q at %s", cfg.DatabaseType, cfg.DatabasePath)
 	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+
+	// override error to make it more informative
+	if os.IsNotExist(err) {
+		err = fmt.Errorf("file does not exist: %s. Please use with --init or run ./cayley init when it is a new database (see docs for more information)", cfg.DatabasePath)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -66,40 +71,4 @@ func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, e
 	}
 
 	return w, nil
-}
-
-func Load(qw graph.QuadWriter, cfg *config.Config, dec quad.Unmarshaler) error {
-	block := make([]quad.Quad, 0, cfg.LoadSize)
-	count := 0
-	for {
-		t, err := dec.Unmarshal()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		block = append(block, t)
-		if len(block) == cap(block) {
-			count += len(block)
-			err := qw.AddQuadSet(block)
-			if err != nil {
-				return fmt.Errorf("db: failed to load data: %v", err)
-			}
-			block = block[:0]
-			if clog.V(2) {
-				clog.Infof("Wrote %d quads.", count)
-			}
-		}
-	}
-	count += len(block)
-	err := qw.AddQuadSet(block)
-	if err != nil {
-		return fmt.Errorf("db: failed to load data: %v", err)
-	}
-	if clog.V(2) {
-		clog.Infof("Wrote %d quads.", count)
-	}
-
-	return nil
 }

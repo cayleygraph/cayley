@@ -47,9 +47,9 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			for _, tag := range primary.Tagger().Tags() {
 				nt.AddFixed(tag, val)
 			}
+			it.Close()
 			return newIt, true
 		}
 	}
-	it.Close()
 	return it, false
 }

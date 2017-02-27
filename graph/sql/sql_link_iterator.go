@@ -102,7 +102,7 @@ func (l *SQLLinkIterator) Size(qs *QuadStore) (int64, bool) {
 }
 
 func (l *SQLLinkIterator) Describe() string {
-	s, _ := l.buildSQL(true, nil)
+	s, _ := l.buildSQL(&Flavor{}, true, nil)
 	return fmt.Sprintf("SQL_LINK_QUERY: %s", s)
 }
 
@@ -144,10 +144,10 @@ func (l *SQLLinkIterator) buildResult(result []NodeHash, cols []string) map[stri
 	return m
 }
 
-func (l *SQLLinkIterator) getTables() []tableDef {
+func (l *SQLLinkIterator) getTables(fl *Flavor) []tableDef {
 	out := []tableDef{tableDef{table: "quads", name: l.tableName}}
 	for _, i := range l.nodeIts {
-		out = append(out, i.it.getTables()...)
+		out = append(out, i.it.getTables(fl)...)
 	}
 	return out
 }
@@ -217,7 +217,7 @@ func (l *SQLLinkIterator) tableID() tagDir {
 	}
 }
 
-func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs) {
+func (l *SQLLinkIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (string, sqlArgs) {
 	query := "SELECT "
 	t := []string{
 		fmt.Sprintf("%s.subject_hash AS subject", l.tableName),
@@ -226,13 +226,13 @@ func (l *SQLLinkIterator) buildSQL(next bool, val graph.Value) (string, sqlArgs)
 		fmt.Sprintf("%s.label_hash AS label", l.tableName),
 	}
 	for _, v := range l.getTags() {
-		t = append(t, v.String())
+		t = append(t, v.SQL(fl.FieldQuote))
 	}
 	query += strings.Join(t, ", ")
 	query += " FROM "
 	t = []string{}
 	var values sqlArgs
-	for _, k := range l.getTables() {
+	for _, k := range l.getTables(fl) {
 		values = append(values, k.values...)
 		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
 	}

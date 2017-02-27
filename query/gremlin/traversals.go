@@ -79,11 +79,11 @@ func (p *pathObject) Out(call otto.FunctionCall) otto.Value {
 	return p.inout(call, false)
 }
 func (p *pathObject) Both(call otto.FunctionCall) otto.Value {
-	preds, _, ok := toViaData(exportArgs(call.ArgumentList))
+	preds, tags, ok := toViaData(exportArgs(call.ArgumentList))
 	if !ok {
 		return otto.NullValue()
 	}
-	np := p.clonePath().Both(preds...)
+	np := p.clonePath().BothWithTags(tags, preds...)
 	return outObj(call, p.new(np))
 }
 func (p *pathObject) follow(call otto.FunctionCall, rev bool) otto.Value {

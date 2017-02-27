@@ -1,6 +1,8 @@
 package graphtest
 
 import (
+	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -8,6 +10,7 @@ import (
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/quad/nquads"
 	"github.com/codelingo/cayley/writer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,6 +64,31 @@ func MakeWriter(t testing.TB, qs graph.QuadStore, opts graph.Options, data ...qu
 		require.Nil(t, err)
 	}
 	return w
+}
+
+func LoadGraph(t testing.TB, path string) []quad.Quad {
+	var (
+		f   *os.File
+		err error
+	)
+	const levels = 3
+	for i := 0; i < levels; i++ {
+		f, err = os.Open(path)
+		if i+1 < levels && os.IsNotExist(err) {
+			path = filepath.Join("../", path)
+		} else if err != nil {
+			t.Fatalf("Failed to open %q: %v", path, err)
+		} else {
+			break
+		}
+	}
+	defer f.Close()
+	dec := nquads.NewReader(f, false)
+	quads, err := quad.ReadAll(dec)
+	if err != nil {
+		t.Fatalf("Failed to Unmarshal: %v", err)
+	}
+	return quads
 }
 
 // This is a simple test graph.

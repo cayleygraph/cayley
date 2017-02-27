@@ -120,22 +120,23 @@ func (it *Iterator) checkValid(index int64) bool {
 
 func (it *Iterator) Next() bool {
 	graph.NextLogIn(it)
-
 	if it.iter == nil {
 		return graph.NextLogOut(it, false)
 	}
-	result, _, err := it.iter.Next()
-	if err != nil {
-		if err != io.EOF {
-			it.err = err
+	for {
+		result, _, err := it.iter.Next()
+		if err != nil {
+			if err != io.EOF {
+				it.err = err
+			}
+			return graph.NextLogOut(it, false)
 		}
-		return graph.NextLogOut(it, false)
+		if !it.checkValid(result) {
+			continue
+		}
+		it.result = result
+		return graph.NextLogOut(it, true)
 	}
-	if !it.checkValid(result) {
-		return it.Next()
-	}
-	it.result = result
-	return graph.NextLogOut(it, true)
 }
 
 func (it *Iterator) Err() error {
@@ -166,7 +167,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if v == nil {
 		return graph.ContainsLogOut(it, v, false)
-	} else if it.nodes != v.IsNode() {
+	} else if it.nodes != it.qs.isNode(v) {
 		return graph.ContainsLogOut(it, v, false)
 	}
 	var vi int64

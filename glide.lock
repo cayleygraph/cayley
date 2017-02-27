@@ -1,10 +1,8 @@
-hash: 44a6aa9577494fc7ee591d2fa4de978680dbfa3857c30e29d278875d60979e60
-updated: 2016-10-02T09:16:23.028179983+13:00
+hash: 64bacf72cec63b59ee317501bdf90450dfd513355ca7781be1cb3172e7cc848c
+updated: 2017-02-27T18:21:05.390572997+13:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
-- name: github.com/barakmich/glog
-  version: fafcb6128a8a2e6360ff034091434d547397d54a
 - name: github.com/boltdb/bolt
   version: 04a3e85793043e76d41164037d0d7f9d53eecae3
 - name: github.com/cznic/mathutil
@@ -13,9 +11,25 @@ imports:
   version: 2df174808ee097f90d259e432cc04442cf60be21
   subpackages:
   - spew
-- name: github.com/docker/docker
-  version: 282b0aff08030a2521adf7d64bdd333f0864b720
+- name: github.com/dennwc/graphql
+  version: fd5c4aa13f2119414084f229600de0d73f174436
   subpackages:
+  - gqlerrors
+  - language/ast
+  - language/kinds
+  - language/lexer
+  - language/location
+  - language/parser
+  - language/source
+- name: github.com/dlclark/regexp2
+  version: 3f97b6a39134e6bd88a72d1388d1632e60d83ef6
+  subpackages:
+  - syntax
+- name: github.com/docker/docker
+  version: cc8b8ce0b3d2d6b3345687464d3a3b1c2c4971ef
+  subpackages:
+  - api/types/filters
+  - api/types/versions
   - opts
   - pkg/archive
   - pkg/fileutils
@@ -28,26 +42,37 @@ imports:
   - pkg/stdcopy
   - pkg/system
 - name: github.com/docker/engine-api
-  version: c9fd33c91008b9c558a6ed1cb11a68dbe4db0493
+  version: fa0eea948c32ababd784fc1ad76172d986617e56
   subpackages:
-  - types/filters
   - types/mount
   - types/swarm
-  - types/versions
 - name: github.com/docker/go-units
-  version: eb879ae3e2b84e2a142af415b679ddeda47ec71c
+  version: 9b001659dd36225e356b4467c465d732e745f53d
+- name: github.com/dop251/goja
+  version: 2acb68835db4513d6c68cf075a0be5780c162f66
+  subpackages:
+  - ast
+  - file
+  - parser
+  - token
 - name: github.com/fsouza/go-dockerclient
-  version: 4efaf0ea3c8990e1648f68672d011289f0c0cb0a
+  version: 2ce05b8e04b7475b63ae21c1aeaf72b8a5b05eb5
+- name: github.com/go-sql-driver/mysql
+  version: 0b58b37b664c21f3010e836f1b931e1d0b0b0685
 - name: github.com/gogo/protobuf
-  version: 58bbd41c1a2d1b7154f5d99a8d0d839b3093301a
+  version: fdc14ac22689d09f8639e603614593811bc1d81c
   subpackages:
   - gogoproto
   - proto
   - protoc-gen-gogo/descriptor
+  - sortkeys
+  - test
+  - test/custom
+  - test/custom-dash-type
 - name: github.com/golang/glog
   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
-  version: 888eb0692c857ec880338addf316bd662d5e630e
+  version: 98fa357170587e470c5f27d3c3ea0947b71eb455
   subpackages:
   - proto
 - name: github.com/hashicorp/go-cleanhttp
@@ -58,8 +83,10 @@ imports:
   version: 0dad96c0b94f8dee039aa40467f767467392a0af
   subpackages:
   - oid
+- name: github.com/linkeddata/gojsonld
+  version: a223ef39bb925d36d4c410d3e35b0e34e370cc31
 - name: github.com/opencontainers/runc
-  version: 6df383c2f881fbdeb85060fd27d8bf61afedacd9
+  version: 189a2ab2f7acc59043e457cea25b58f631443f08
   subpackages:
   - libcontainer/system
   - libcontainer/user
@@ -120,6 +147,16 @@ imports:
   version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
   subpackages:
   - unix
+- name: golang.org/x/text
+  version: 723492b65e225eafcba054e76ba18bb9c5ac1ea2
+  subpackages:
+  - cases
+  - collate
+  - collate/colltab
+  - internal/colltab
+  - language
+  - transform
+  - unicode/norm
 - name: google.golang.org/appengine
   version: 4f7eeb5305a4ba1966344836ba4af9996b7b4e05
   subpackages:
@@ -135,9 +172,9 @@ imports:
   - internal/user
   - user
 - name: gopkg.in/mgo.v2
-  version: c6a7dce14133ccac2dcac3793f1d6e2ef048503a
+  version: 01ee097136da162d1dd3c9b44fbdf3abf4fd6552
   subpackages:
   - bson
+  - internal/sasl
   - internal/scram
-  - sasl
 testImports: []

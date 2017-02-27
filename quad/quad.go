@@ -82,6 +82,23 @@ func MakeRaw(subject, predicate, object, label string) (q Quad) {
 	return
 }
 
+// MakeIRI creates a quad with provided IRI values.
+func MakeIRI(subject, predicate, object, label string) (q Quad) {
+	if subject != "" {
+		q.Subject = IRI(subject)
+	}
+	if predicate != "" {
+		q.Predicate = IRI(predicate)
+	}
+	if object != "" {
+		q.Object = IRI(object)
+	}
+	if label != "" {
+		q.Label = IRI(label)
+	}
+	return
+}
+
 var (
 	_ json.Marshaler   = Quad{}
 	_ json.Unmarshaler = (*Quad)(nil)
@@ -118,6 +135,7 @@ func (q *Quad) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &rq); err != nil {
 		return err
 	}
+	// TODO(dennwc): parse nquads? or use StringToValue hack?
 	*q = MakeRaw(rq.Subject, rq.Predicate, rq.Object, rq.Label)
 	return nil
 }
@@ -220,10 +238,6 @@ func (q Quad) NQuad() string {
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)
 	}
 	return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
-}
-
-type Unmarshaler interface {
-	Unmarshal() (Quad, error)
 }
 
 type ByQuadString []Quad

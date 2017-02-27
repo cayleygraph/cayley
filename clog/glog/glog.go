@@ -2,7 +2,9 @@ package glog
 
 import (
 	"fmt"
+
 	"github.com/codelingo/cayley/clog"
+
 	"github.com/golang/glog"
 )
 
@@ -23,4 +25,12 @@ func (Logger) Errorf(format string, args ...interface{}) {
 }
 func (Logger) Fatalf(format string, args ...interface{}) {
 	glog.FatalDepth(3, fmt.Sprintf(format, args...))
+}
+
+func (Logger) V(level int) bool {
+	return bool(glog.V(glog.Level(level)))
+}
+
+func (Logger) SetV(int) {
+	panic("unexposed in glog")
 }

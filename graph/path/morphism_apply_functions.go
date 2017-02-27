@@ -28,6 +28,19 @@ import (
 // Since we're using an and iterator, it's a good idea to put the smallest result
 // set first so that Next() produces fewer values to check Contains().
 func join(qs graph.QuadStore, its ...graph.Iterator) graph.Iterator {
+	firstAll := false
+	for i, it := range its {
+		if it == nil {
+			continue
+		}
+		if it.Type() == graph.All {
+			if !firstAll {
+				firstAll = true
+				continue
+			}
+			its[i] = nil
+		}
+	}
 	and := iterator.NewAnd(qs)
 	for _, it := range its {
 		if it == nil {
@@ -72,6 +85,32 @@ func regexMorphism(pattern *regexp.Regexp, refs bool) morphism {
 			it := iterator.NewRegex(in, pattern, qs)
 			it.AllowRefs(refs)
 			return it, ctx
+		},
+	}
+}
+
+// isNodeMorphism represents all nodes passed in-- if there are none, this function
+// acts as a passthrough for the previous iterator.
+func isNodeMorphism(nodes ...graph.Value) morphism {
+	return morphism{
+		Name:     "is",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return isNodeMorphism(nodes...), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			if len(nodes) == 0 {
+				// Acting as a passthrough here is equivalent to
+				// building a NodesAllIterator to Next() or Contains()
+				// from here as in previous versions.
+				return in, ctx
+			}
+
+			isNodes := qs.FixedIterator()
+			for _, n := range nodes {
+				isNodes.Add(n)
+			}
+
+			// Anything with fixedIterators will usually have a much
+			// smaller result set, so join isNodes first here.
+			return join(qs, isNodes, in), ctx
 		},
 	}
 }

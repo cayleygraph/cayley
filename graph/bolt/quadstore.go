@@ -19,14 +19,16 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/boltdb/bolt"
-	"github.com/codelingo/cayley/clog"
 
+	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/graph/proto"
 	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/quad/pquads"
 )
 
 func init() {
@@ -78,10 +80,11 @@ func isLiveValue(val []byte) bool {
 type QuadStore struct {
 	db      *bolt.DB
 	path    string
-	open    bool
+	version int64
+
+	mu      sync.RWMutex
 	size    int64
 	horizon int64
-	version int64
 }
 
 func createNewBolt(path string, _ graph.Options) error {
@@ -180,7 +183,10 @@ func setVersion(db *bolt.DB, version int64) error {
 }
 
 func (qs *QuadStore) Size() int64 {
-	return qs.size
+	qs.mu.RLock()
+	sz := qs.size
+	qs.mu.RUnlock()
+	return sz
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
@@ -230,11 +236,13 @@ func deltaToProto(delta graph.Delta) proto.LogDelta {
 	newd.ID = uint64(delta.ID.Int())
 	newd.Action = int32(delta.Action)
 	newd.Timestamp = delta.Timestamp.UnixNano()
-	newd.Quad = proto.MakeQuad(delta.Quad)
+	newd.Quad = pquads.MakeQuad(delta.Quad)
 	return newd
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	oldSize := qs.size
 	oldHorizon := qs.horizon
 	err := qs.db.Update(func(tx *bolt.Tx) error {
@@ -289,7 +297,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			}
 		}
 		qs.size += sizeChange
-		return qs.WriteHorizonAndSize(tx)
+		return qs.writeHorizonAndSize(tx)
 	})
 
 	if err != nil {
@@ -314,11 +322,9 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 	}
 
 	if isAdd && len(entry.History)%2 == 1 {
-		clog.Errorf("attempt to add existing quad %v: %#v", entry, q)
 		return graph.ErrQuadExists
 	}
 	if !isAdd && len(entry.History)%2 == 0 {
-		clog.Errorf("attempt to delete non-existent quad %v: %#v", entry, q)
 		return graph.ErrQuadNotExist
 	}
 
@@ -345,7 +351,7 @@ func (qs *QuadStore) buildQuadWrite(tx *bolt.Tx, q quad.Quad, id int64, isAdd bo
 
 func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, tx *bolt.Tx) error {
 	value := proto.NodeData{
-		Value: proto.MakeValue(name),
+		Value: pquads.MakeValue(name),
 		Size:  amount,
 	}
 	b := tx.Bucket(nodeBucket)
@@ -380,7 +386,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, tx *bolt.Tx
 	return err
 }
 
-func (qs *QuadStore) WriteHorizonAndSize(tx *bolt.Tx) error {
+func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, qs.size)
 	if err != nil {
@@ -410,12 +416,13 @@ func (qs *QuadStore) WriteHorizonAndSize(tx *bolt.Tx) error {
 	return err
 }
 
-func (qs *QuadStore) Close() {
+func (qs *QuadStore) Close() error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	qs.db.Update(func(tx *bolt.Tx) error {
-		return qs.WriteHorizonAndSize(tx)
+		return qs.writeHorizonAndSize(tx)
 	})
-	qs.db.Close()
-	qs.open = false
+	return qs.db.Close()
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
@@ -459,7 +466,7 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 
 func (qs *QuadStore) valueData(t *Token) proto.NodeData {
 	var out proto.NodeData
-	if clog.V(3) {
+	if clog.V(4) {
 		clog.Infof("%s %v", string(t.bucket), t.key)
 	}
 	err := qs.db.View(func(tx *bolt.Tx) error {
@@ -516,7 +523,9 @@ func getInt64ForMetaKey(tx *bolt.Tx, key string, empty int64) (int64, error) {
 }
 
 func (qs *QuadStore) getMetadata() error {
-	err := qs.db.View(func(tx *bolt.Tx) error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
+	return qs.db.View(func(tx *bolt.Tx) error {
 		var err error
 		qs.size, err = getInt64ForMetaKey(tx, "size", 0)
 		if err != nil {
@@ -529,7 +538,6 @@ func (qs *QuadStore) getMetadata() error {
 		qs.horizon, err = getInt64ForMetaKey(tx, "horizon", 0)
 		return err
 	})
-	return err
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {

@@ -1,3 +1,5 @@
+// +build docker
+
 package mongo
 
 import (
@@ -6,10 +8,6 @@ import (
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/graphtest"
 	"github.com/codelingo/cayley/graph/path/pathtest"
-	"github.com/codelingo/cayley/internal/dock"
-
-	"github.com/codelingo/cayley/graph"
-	"github.com/codelingo/cayley/graph/graphtest"
 	"github.com/codelingo/cayley/internal/dock"
 )
 
@@ -43,7 +41,6 @@ func TestMongoAll(t *testing.T) {
 		OptimizesComparison:      true,
 		SkipDeletedFromIterator:  true,
 		SkipSizeCheckAfterDelete: true,
-		SkipNodeDelAfterQuadDel:  true,
 	})
 }
 

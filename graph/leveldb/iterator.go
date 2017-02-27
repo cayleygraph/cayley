@@ -249,7 +249,7 @@ func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
 	return graph.Description{
 		UID:       it.UID(),
-		Name:      it.qs.NameOf(Token(it.checkID)).String(),
+		Name:      quad.StringOf(it.qs.NameOf(Token(it.checkID))),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      size,

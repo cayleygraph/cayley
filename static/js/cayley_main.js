@@ -100,8 +100,10 @@ $(function() {
   }
 
   var defaultQueryStrings = {
+    "gizmo": "g.Emit('Hello World')",
     "gremlin": "g.Emit('Hello World')",
-    "mql": "[{\n  \"id\": \"Hello World\"\n}]"
+    "mql": "[{\n  \"id\": \"Hello World\"\n}]",
+    "graphql": "{\n  nodes(first: 10){\n    id\n  }\n}"
   }
 
   var getLastQueryStringFor = function(type) {
@@ -113,8 +115,10 @@ $(function() {
   }
 
   var switchTo = function(type) {
+    if (type === "gizmo") { switchToGizmo()}
     if (type === "gremlin") { switchToGremlin()}
     if (type === "mql") { switchToMQL()}
+    if (type === "graphql") { switchToGraphQL()}
     if (typeof(Storage) !== "undefined") {
       localStorage.setItem("cayleyQueryLang", type);
     }
@@ -123,6 +127,10 @@ $(function() {
     }
   }
 
+  var switchToGizmo = function () {
+    $("#selected-query-lang").html("Gizmo " + caretSpan)
+    selectedQueryLanguage = "gizmo"
+  }
 
   var switchToGremlin = function () {
     $("#selected-query-lang").html("Gremlin " + caretSpan)
@@ -134,11 +142,16 @@ $(function() {
     selectedQueryLanguage = "mql"
   }
 
-  selectedQueryLanguage = "gremlin"
+  var switchToGraphQL = function() {
+    $("#selected-query-lang").html("GraphQL" + caretSpan)
+    selectedQueryLanguage = "graphql"
+  }
+
+  selectedQueryLanguage = "gizmo"
   var caretSpan = " &nbsp <span class='caret'></span>"
 
   if (typeof(Storage) !== "undefined") {
-    savedQueries = localStorage.getItem("cayleySavedQueriesmql");
+    savedQueries = localStorage.getItem("cayleySavedQueriesgraphql");
     if (savedQueries === null) {
       for (var key in defaultQueryStrings) {
         localStorage.setItem("cayleySavedQueries" + key, defaultQueryStrings[key])
@@ -148,12 +161,16 @@ $(function() {
     if (lang !== null) {
       switchTo(lang)
     } else {
-      switchTo("gremlin")
+      switchTo("gizmo")
     }
   } else {
-    switchTo("gremlin")
+    switchTo("gizmo")
   }
 
+
+  $("#gizmo-dropdown").click(function() {
+    switchTo("gizmo")
+  })
 
   $("#gremlin-dropdown").click(function() {
     switchTo("gremlin")
@@ -161,6 +178,10 @@ $(function() {
 
   $("#mql-dropdown").click(function() {
     switchTo("mql")
+  })
+
+  $("#graphql-dropdown").click(function() {
+    switchTo("graphql")
   })
 });
 

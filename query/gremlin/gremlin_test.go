@@ -16,8 +16,6 @@ package gremlin
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -25,9 +23,9 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/graphtest"
 	_ "github.com/codelingo/cayley/graph/memstore"
 	"github.com/codelingo/cayley/quad"
-	"github.com/codelingo/cayley/quad/cquads"
 	"github.com/codelingo/cayley/query"
 	_ "github.com/codelingo/cayley/writer"
 )
@@ -160,6 +158,14 @@ var testQueries = []struct {
 			g.V("<fred>").Both("<follows>").All()
 		`,
 		expect: []string{"<bob>", "<greg>", "<emily>"},
+	},
+	{
+		message: "use .Both() with tag",
+		query: `
+			g.V("<fred>").Both(null, "pred").All()
+		`,
+		tag:    "pred",
+		expect: []string{"<follows>", "<follows>", "<follows>"},
 	},
 	{
 		message: "use .Tag()-.Is()-.Back()",
@@ -327,7 +333,7 @@ var testQueries = []struct {
 		query: `
 				g.V().Has("<status>").Count().All()
 		`,
-		expect: []string{`"5"^^<http://schema.org/Integer>`},
+		expect: []string{`"5"^^<schema:Integer>`},
 	},
 	{
 		message: "use Count value",
@@ -459,6 +465,20 @@ var testQueries = []struct {
 		expect: []string{"<alice>", "<charlie>"},
 	},
 	{
+		message: "show ForEach",
+		query: `
+			g.V("<bob>").In("<follows>").ForEach(function(o){g.Emit(o.id)});
+		`,
+		expect: []string{"<alice>", "<charlie>", "<dani>"},
+	},
+	{
+		message: "show ForEach with limit",
+		query: `
+			g.V("<bob>").In("<follows>").ForEach(2, function(o){g.Emit(o.id)});
+		`,
+		expect: []string{"<alice>", "<charlie>"},
+	},
+	{
 		message: "clone paths",
 		query: `
 			var alice = g.V('<alice>')
@@ -500,29 +520,8 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string,
 	return results, nil
 }
 
-func loadGraph(path string, t testing.TB) []quad.Quad {
-	var r io.Reader
-	var simpleGraph []quad.Quad
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("Failed to open %q: %v", path, err)
-	}
-	defer f.Close()
-	r = f
-
-	dec := cquads.NewDecoder(r)
-	q1, err := dec.Unmarshal()
-	if err != nil {
-		t.Fatalf("Failed to Unmarshal: %v", err)
-	}
-	for ; err == nil; q1, err = dec.Unmarshal() {
-		simpleGraph = append(simpleGraph, q1)
-	}
-	return simpleGraph
-}
-
 func TestGremlin(t *testing.T) {
-	simpleGraph := loadGraph("../../data/testdata.nq", t)
+	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
 		func() {
 			rec := func() {

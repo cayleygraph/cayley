@@ -8,6 +8,8 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 [![Build Status](https://travis-ci.org/codelingo/cayley.png?branch=master)](https://travis-ci.org/codelingo/cayley)
 [![Container Repository on Quay](https://quay.io/repository/codelingo/cayley/status "Container Repository on Quay")](https://quay.io/repository/codelingo/cayley)
 
+[![Slack Status](https://cayley-slackin.herokuapp.com/badge.svg)](https://cayley-slackin.herokuapp.com/)
+
 ## Features
 
 * Community driven
@@ -19,7 +21,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 * Built-in query editor and visualizer
 * Multiple query languages:
   * JavaScript, with a [Gremlin](http://gremlindocs.com/)-inspired\* graph object.
-  * (simplified) [MQL](https://developers.google.com/freebase/v1/mql-overview), for Freebase fans
+  * (simplified) MQL, for [Freebase](https://en.wikipedia.org/wiki/Freebase) fans
 * Plays well with multiple backend stores:
   * [LevelDB](https://github.com/google/leveldb)
   * [Bolt](https://github.com/boltdb/bolt)
@@ -36,9 +38,9 @@ Rough performance testing shows that, on 2014 consumer hardware and an average d
 ## Community
 
 * Website: [cayley.io](https://cayley.io)
+* Slack: [cayleygraph.slack.com](https://cayleygraph.slack.com) -- Invite [here](https://cayley-slackin.herokuapp.com/)
 * Discourse list: [discourse.cayley.io](https://discourse.cayley.io) (Also acts as mailing list, enable mailing list mode)
 * Twitter: [@cayleygraph](https://twitter.com/cayleygraph)
-* IRC: [#cayley on Freenode](http://webchat.freenode.net/?channels=%23cayley&uio=d4)
 
 ## Documentation
 

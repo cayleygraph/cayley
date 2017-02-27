@@ -283,9 +283,14 @@ func (it *Iterator) Size() (int64, bool) {
 }
 
 func (it *Iterator) Describe() graph.Description {
+	nameOf := it.qs.NameOf(&Token{
+		nodes:  true,
+		bucket: it.bucket,
+		key:    it.checkID,
+	})
 	return graph.Description{
 		UID:       it.UID(),
-		Name:      it.qs.NameOf(&Token{true, it.bucket, it.checkID}).String(),
+		Name:      quad.StringOf(nameOf),
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      it.size,

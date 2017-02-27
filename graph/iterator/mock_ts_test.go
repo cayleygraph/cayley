@@ -140,7 +140,7 @@ func (qs *store) FixedIterator() graph.FixedIterator {
 	return NewFixed(Identity)
 }
 
-func (qs *store) Close() {}
+func (qs *store) Close() error { return nil }
 
 func (qs *store) Horizon() graph.PrimaryKey { return graph.NewSequentialKey(0) }
 

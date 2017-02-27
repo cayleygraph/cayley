@@ -15,6 +15,7 @@
 package mql
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/codelingo/cayley/graph"
@@ -28,7 +29,7 @@ func (q *Query) treeifyResult(tags map[string]graph.Value) map[ResultPath]string
 		if v == nil {
 			continue
 		}
-		results[Path(k)] = quad.StringOf(q.ses.qs.NameOf(v))
+		results[Path(k)] = quadValueToNative(q.ses.qs.NameOf(v))
 	}
 	resultPaths := make(map[ResultPath]string)
 	for k, v := range results {
@@ -116,4 +117,12 @@ func (q *Query) buildResults() {
 	for _, v := range q.resultOrder {
 		q.results = append(q.results, q.queryResult[""][v])
 	}
+}
+
+func quadValueToNative(v quad.Value) string {
+	out := v.Native()
+	if nv, ok := out.(quad.Value); ok && v == nv {
+		return quad.StringOf(v)
+	}
+	return fmt.Sprint(out)
 }

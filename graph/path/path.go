@@ -91,6 +91,16 @@ func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 	}
 }
 
+// StartPathNodes creates a new Path from a set of nodes and an underlying QuadStore.
+func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
+	return &Path{
+		stack: []morphism{
+			isNodeMorphism(nodes...),
+		},
+		qs: qs,
+	}
+}
+
 func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 	return &Path{
 		stack: []morphism{
@@ -248,6 +258,14 @@ func (p *Path) OutWithTags(tags []string, via ...interface{}) *Path {
 func (p *Path) Both(via ...interface{}) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, bothMorphism(nil, via...))
+	return np
+}
+
+// BothWithTags is exactly like Both, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) BothWithTags(tags []string, via ...interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, bothMorphism(tags, via...))
 	return np
 }
 

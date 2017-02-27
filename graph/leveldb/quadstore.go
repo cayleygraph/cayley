@@ -28,6 +28,7 @@ import (
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/graph/proto"
 	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/quad/pquads"
 )
 
 func init() {
@@ -246,7 +247,7 @@ func deltaToProto(delta graph.Delta) proto.LogDelta {
 	newd.ID = uint64(delta.ID.Int())
 	newd.Action = int32(delta.Action)
 	newd.Timestamp = delta.Timestamp.UnixNano()
-	newd.Quad = proto.MakeQuad(delta.Quad)
+	newd.Quad = pquads.MakeQuad(delta.Quad)
 	return newd
 }
 
@@ -320,11 +321,9 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 	}
 
 	if isAdd && len(entry.History)%2 == 1 {
-		clog.Errorf("attempt to add existing quad %v: %#v", entry, q)
 		return graph.ErrQuadExists
 	}
 	if !isAdd && len(entry.History)%2 == 0 {
-		clog.Errorf("attempt to delete non-existent quad %v: %#c", entry, q)
 		return graph.ErrQuadNotExist
 	}
 
@@ -346,7 +345,7 @@ func (qs *QuadStore) buildQuadWrite(batch *leveldb.Batch, q quad.Quad, id int64,
 
 func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leveldb.Batch) error {
 	value := proto.NodeData{
-		Value: proto.MakeValue(name),
+		Value: pquads.MakeValue(name),
 		Size:  amount,
 	}
 	key := createValueKeyFor(name)
@@ -389,7 +388,7 @@ func (qs *QuadStore) UpdateValueKeyBy(name quad.Value, amount int64, batch *leve
 	return nil
 }
 
-func (qs *QuadStore) Close() {
+func (qs *QuadStore) Close() error {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, order, qs.size)
 	if err == nil {
@@ -410,8 +409,9 @@ func (qs *QuadStore) Close() {
 	} else {
 		clog.Errorf("could not convert horizon before closing!")
 	}
-	qs.db.Close()
+	err = qs.db.Close()
 	qs.open = false
+	return err
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {

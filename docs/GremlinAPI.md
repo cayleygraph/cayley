@@ -61,14 +61,14 @@ For these examples, suppose we have the following graph:
             +--------+
 ```
 
-Where every link is a "follows" relationship, and the nodes with an extra `#` in the name have an extra `status` link. As in,
+Where every link is a "<follows>" relationship, and the nodes with an extra `#` in the name have an extra "<status>" link. As in,
 
 ```
 dani -- status --> cool_person
 ```
 Perhaps these are the influencers in our community. So too are extra `*`s in the name -- these are our smart people, according to the `smart_graph` label, eg, the quad:
 ```
-greg status smart_person smart_graph .
+<greg> <status> "smart_person" <smart_graph> .
 ```
 
 
@@ -100,17 +100,17 @@ Out is the work-a-day way to get between nodes, in the forward direction. Starti
 Example:
 ```javascript
 // The working set of this is bob and dani
-g.V("charlie").Out("follows")
+g.V("<charlie>").Out("<follows>").All()
 // The working set of this is fred, as alice follows bob and bob follows fred.
-g.V("alice").Out("follows").Out("follows")
+g.V("<alice>").Out("<follows>").Out("<follows>").All()
 // Finds all things dani points at. Result is bob, greg and cool_person
-g.V("dani").Out()
+g.V("<dani>").Out().All()
 // Finds all things dani points at on the status linkage.
 // Result is bob, greg and cool_person
-g.V("dani").Out(["follows", "status"])
+g.V("<dani>").Out(["<follows>", "<status>"]).All()
 // Finds all things dani points at on the status linkage, given from a separate query path.
-// Result is {"id": cool_person, "pred": "status"}
-g.V("dani").Out(g.V("status"), "pred")
+// Result is {"id": cool_person, "pred": "<status>"}
+g.V("<dani>").Out(g.V("<status>"), "pred").All()
 ```
 
 ####**`path.In([predicatePath], [tags])`**
@@ -131,12 +131,12 @@ Same as Out, but in the other direction.  Starting with the nodes in `path` on t
 
 Example:
 ```javascript
-// Find the cool people, bob, greg and dani
-g.V("cool_person").In("status")
+// Find the cool people, bob, dani and greg
+g.V("cool_person").In("<status>").All()
 // Find who follows bob, in this case, alice, charlie, and dani
-g.V("bob").In("follows")
-// Find who follows the people emily follows, namely, emily and bob
-g.V("emily").Out("follows").In("follows")
+g.V("<bob>").In("<follows>").All()
+// Find who follows the people emily follows, namely, bob and emily
+g.V("<emily>").Out("<follows>").In("<follows>").All()
 ```
 
 ####**`path.Both([predicatePath], [tags])`**
@@ -159,7 +159,7 @@ Note: Less efficient, for the moment, as it's implemented with an Or, but useful
 Example:
 ```javascript
 // Find all followers/followees of fred. Returns bob, emily and greg
-g.V("fred").Both("follows")
+g.V("<fred>").Both("<follows>").All()
 ```
 
 
@@ -174,8 +174,8 @@ Filter all paths to ones which, at this point, are on the given `node`.
 Example:
 ```javascript
 // Starting from all nodes in the graph, find the paths that follow bob.
-// Results in three paths for bob (from alice, charlie and dani)
-g.V().Out("follows").Is("bob")
+// Results in three paths for bob (from alice, charlie and dani).All()
+g.V().Out("<follows>").Is("<bob>").All()
 ```
 
 ####**`path.Has(predicate, object)`**
@@ -192,9 +192,9 @@ Usually useful for starting with all nodes, or limiting to a subset depending on
 Example:
 ```javascript
 // Start from all nodes that follow bob -- results in alice, charlie and dani
-g.V().Has("follows", "bob")
+g.V().Has("<follows>", "<bob>").All()
 // People charlie follows who then follow fred. Results in bob.
-g.V("charlie").Out("follows").Has("follows", "fred")
+g.V("<charlie>").Out("<follows>").Has("<follows>", "<fred>").All()
 ```
 
 ####**`path.LabelContext([labelPath], [tags])`**
@@ -215,11 +215,11 @@ Sets (or removes) the subgraph context to consider in the following traversals. 
 Example:
 ```javascript
 // Find the status of people Dani follows 
-g.V("dani").Out("follows").Out("status")
+g.V("<dani>").Out("<follows>").Out("<status>").All()
 // Find only the statuses provided by the smart_graph
-g.V("dani").Out("follows").LabelContext("smart_graph").Out("status")
+g.V("<dani>").Out("<follows>").LabelContext("<smart_graph>").Out("<status>").All()
 // Find all people followed by people with statuses in the smart_graph.
-g.V().LabelContext("smart_graph").In("status").LabelContext(null).In("follows")
+g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follows>").All()
 ```
 
 ####**`path.Limit(limit)`**
@@ -233,7 +233,7 @@ Limits a number of nodes for current path.
 Example:
 ```javascript
 // Start from all nodes that follow bob, and limit them to 2 nodes -- results in alice and charlie
-g.V().Has("follows", "bob").Limit(2)
+g.V().Has("<follows>", "<bob>").Limit(2).All()
 ```
 
 ####**`path.Skip(offset)`**
@@ -247,7 +247,7 @@ Skips a number of nodes for current path.
 Example:
 ```javascript
 // Start from all nodes that follow bob, and skip 2 nodes -- results in dani
-g.V().Has("follows", "bob").Skip(2)
+g.V().Has("<follows>", "<bob>").Skip(2).All()
 ```
 
 ####**`path.InPredicates()`**
@@ -256,9 +256,9 @@ Get the list of predicates that are pointing in to a node
 
 Example:
 ```javascript
-// bob only has "follows" predicates pointing inward
-// returns "follows"
-g.V("bob").InPredicates()
+// bob only has "<follows>" predicates pointing inward
+// returns "<follows>"
+g.V("<bob>").InPredicates().All()
 ```
 
 ####**`path.OutPredicates()`**
@@ -267,9 +267,9 @@ Get the list of predicates that are pointing out from a node
 
 Example:
 ```javascript
-// bob has "follows" and "status" edges pointing outwards
-// returns "follows", "status"
-g.V("bob").OutPredicates()
+// bob has "<follows>" and "<status>" edges pointing outwards
+// returns "<follows>", "<status>"
+g.V("<bob>").OutPredicates().All()
 ```
 
 ### Tagging
@@ -288,8 +288,13 @@ In order to save your work or learn more about how a path got to the end, we hav
 Example:
 ```javascript
 // Start from all nodes, save them into start, follow any status links, and return the result.
-// Results are: {"id": "cool_person", "start": "bob"}, {"id": "cool_person", "start": "greg"}, {"id": "cool_person", "start": "dani"}
-g.V().Tag("start").Out("status")
+// Results are:
+//   {"id": "cool_person", "start": "<bob>"},
+//   {"id": "cool_person", "start": "<dani>"},
+//   {"id": "cool_person", "start": "<greg>"},
+//   {"id": "smart_person", "start": "<emily>"},
+//   {"id": "smart_person", "start": "<greg>"}
+g.V().Tag("start").Out("<status>").All()
 ```
 
 
@@ -305,12 +310,15 @@ Example:
 ```javascript
 // Start from all nodes, save them into start, follow any status links, jump back to the starting node, and find who follows them. Return the result.
 // Results are:
-//   {"id": "alice", "start": "bob"},
-//   {"id": "charlie", "start": "bob"},
-//   {"id": "dani", "start": "bob"},
-//   {"id": "charlie", "start": "dani"},
-//   {"id": "dani", "start": "greg"}
-g.V().Tag("start").Out("status").Back("start").In("follows")
+//   {"id": "<alice>", "start": "<bob>"},
+//   {"id": "<charlie>", "start": "<bob>"},
+//   {"id": "<charlie>", "start": "<dani>"},
+//   {"id": "<dani>", "start": "<bob>"},
+//   {"id": "<dani>", "start": "<greg>"},
+//   {"id": "<dani>", "start": "<greg>"},
+//   {"id": "<fred>", "start": "<greg>"},
+//   {"id": "<fred>", "start": "<greg>"}
+g.V().Tag("start").Out("<status>").Back("start").In("<follows>").All()
 ```
 
 ####**`path.Save(predicate, tag)`**
@@ -326,10 +334,10 @@ Example:
 ```javascript
 // Start from dani and bob and save who they follow into "target"
 // Returns:
-//   {"id" : "dani", "target": "bob" },
-//   {"id" : "dani", "target": "greg" },
-//   {"id" : "bob", "target": "fred" },
-g.V("dani", "bob").Save("follows", "target")
+//   {"id" : "<bob>", "target": "<fred>" },
+//   {"id" : "<dani>", "target": "<bob>" },
+//   {"id" : "<dani>", "target": "<greg>" }
+g.V("<dani>", "<bob>").Save("<follows>", "target").All()
 ```
 
 ### Joining
@@ -347,11 +355,11 @@ Filters all paths by the result of another query path (efficiently computed).
 This is essentially a join where, at the stage of each path, a node is shared.
 Example:
 ```javascript
-var cFollows = g.V("charlie").Out("follows")
-var dFollows = g.V("dani").Out("follows")
+var cFollows = g.V("<charlie>").Out("<follows>")
+var dFollows = g.V("<dani>").Out("<follows>")
 // People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob.
-cFollows.Intersect(dFollows)
-// Equivalently, g.V("charlie").Out("follows").And(g.V("dani").Out("follows"))
+cFollows.Intersect(dFollows).All()
+// Equivalently, g.V("<charlie>").Out("<follows>").And(g.V("<dani>").Out("<follows>")).All()
 ```
 
 ####**`path.Union(query)`**
@@ -369,10 +377,10 @@ See also: `path.Tag()`
 
 Example:
 ```javascript
-var cFollows = g.V("charlie").Out("follows")
-var dFollows = g.V("dani").Out("follows")
-// People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob (from charlie), bob (from dani), dani and greg.
-cFollows.Union(dFollows)
+var cFollows = g.V("<charlie>").Out("<follows>")
+var dFollows = g.V("<dani>").Out("<follows>")
+// People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob (from charlie), dani, bob (from dani), and greg.
+cFollows.Union(dFollows).All()
 ```
 ####**`path.Except(query)`**
 
@@ -388,11 +396,11 @@ In a set-theoretic sense, this is (A - B). While `g.V().Except(path)` to achieve
 
 Example:
 ```javascript
-var cFollows = g.V("charlie").Out("follows")
-var dFollows = g.V("dani").Out("follows")
+var cFollows = g.V("<charlie>").Out("<follows>")
+var dFollows = g.V("<dani>").Out("<follows>")
 // People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob.
-cFollows.Except(dFollows)   // The set (dani) -- what charlie follows that dani does not also follow.
-// Equivalently, g.V("charlie").Out("follows").Except(g.V("dani").Out("follows"))
+cFollows.Except(dFollows).All()   // The set (dani) -- what charlie follows that dani does not also follow.
+// Equivalently, g.V("<charlie>").Out("<follows>").Except(g.V("<dani>").Out("<follows>")).All()
 ```
 
 
@@ -411,11 +419,11 @@ Starts as if at the g.M() and follows through the morphism path.
 
 Example:
 ```javascript:
-friendOfFriend = g.Morphism().Out("follows").Out("follows")
+var friendOfFriend = g.Morphism().Out("<follows>").Out("<follows>")
 // Returns the followed people of who charlie follows -- a simplistic "friend of my friend"
 // and whether or not they have a "cool" status. Potential for recommending followers abounds.
 // Returns bob and greg
-g.V("charlie").Follow(friendOfFriend).Has("status", "cool_person")
+g.V("<charlie>").Follow(friendOfFriend).Has("<status>", "cool_person").All()
 ```
 
 ####**`path.FollowR(morphism)`**
@@ -431,10 +439,10 @@ Starts at the end of the morphism and follows it backwards (with appropriate fli
 
 Example:
 ```javascript:
-friendOfFriend = g.Morphism().Out("follows").Out("follows")
+var friendOfFriend = g.Morphism().Out("<follows>").Out("<follows>")
 // Returns the third-tier of influencers -- people who follow people who follow the cool people.
-// Returns emily, bob, charlie (from bob) and charlie (from greg)
-g.V().Has("status", "cool_person").FollowR(friendOfFriend)
+// Returns charlie (from bob), charlie (from greg), bob and emily
+g.V().Has("<status>", "cool_person").FollowR(friendOfFriend).All()
 ```
 
 
@@ -470,7 +478,7 @@ Executes a query and returns the results at the end of the query path.
 Example:
 ```javascript
 // bobFollowers contains an Array of followers of bob (alice, charlie, dani).
-var bobFollowers = g.V("bob").In("follows").ToArray()
+var bobFollowers = g.V("<bob>").In("<follows>").ToArray()
 ```
 
 ####**`query.ToValue()`**
@@ -490,9 +498,9 @@ Returns: Array of string-to-string objects
 As `.ToArray` above, but instead of a list of top-level strings, returns an Array of tag-to-string dictionaries, much as `.All` would, except inside the Javascript environment.
 Example:
 ```javascript
-// bobFollowers contains an Array of followers of bob (alice, charlie, dani).
-var bobFollowers = g.V("bob").Tag("name").In("follows").ToArray()
-// nameValue should be the string "bob"
+// bobTags contains an Array of followers of bob (alice, charlie, dani).
+var bobTags = g.V("<bob>").Tag("name").In("<follows>").TagArray()
+// nameValue should be the string "<bob>"
 var nameValue = bobTags[0]["name"]
 ```
 
@@ -520,6 +528,6 @@ For each tag-to-string result retrieved, as in the `All` case, calls `callback(d
 
 Example:
 ```javascript
-// Simulate query.All()
-graph.V("foo").ForEach(function(d) { g.Emit(d) } )
+// Simulate query.All().All()
+graph.V("<alice>").ForEach(function(d) { g.Emit(d) } )
 ```

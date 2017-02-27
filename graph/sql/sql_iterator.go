@@ -40,14 +40,17 @@ type tagDir struct {
 	justLocal bool
 }
 
-func (t tagDir) String() string {
+func (t tagDir) String() string { return "" }
+func (t tagDir) SQL(c rune) string {
+	rs := string(c)
+	tag := rs + t.tag + rs
 	if t.dir == quad.Any {
 		if t.justLocal {
-			return fmt.Sprintf("%s.__execd as \"%s\"", t.table, t.tag)
+			return fmt.Sprintf("%s.__execd as %s", t.table, tag)
 		}
-		return fmt.Sprintf("%s.\"%s\" as \"%s\"", t.table, t.tag, t.tag)
+		return fmt.Sprintf("%s.%s as %s", t.table, tag, tag)
 	}
-	return fmt.Sprintf("%s.%s_hash as \"%s\"", t.table, t.dir, t.tag)
+	return fmt.Sprintf("%s.%s_hash as %s", t.table, t.dir, tag)
 }
 
 type tableDef struct {
@@ -59,8 +62,8 @@ type tableDef struct {
 type sqlIterator interface {
 	sqlClone() sqlIterator
 
-	buildSQL(next bool, val graph.Value) (string, sqlArgs)
-	getTables() []tableDef
+	buildSQL(fl *Flavor, next bool, val graph.Value) (string, sqlArgs)
+	getTables(fl *Flavor) []tableDef
 	getTags() []tagDir
 	buildWhere() (string, sqlArgs)
 	tableID() tagDir
@@ -349,8 +352,10 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 	}
 	var q string
 	var values sqlArgs
-	q, values = it.sql.buildSQL(next, value)
-	q = convertToPostgres(q, values)
+	q, values = it.sql.buildSQL(&it.qs.flavor, next, value)
+	if it.qs.flavor.Name == flavorPostgres || it.qs.flavor.Driver == flavorPostgres {
+		q = convertToPostgres(q, values)
+	}
 	cursor, err := it.qs.db.Query(q, values...)
 	if err != nil {
 		clog.Errorf("Couldn't get cursor from SQL database: %v", err)

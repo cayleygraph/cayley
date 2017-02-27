@@ -22,6 +22,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/graphtest"
 	_ "github.com/codelingo/cayley/graph/memstore"
 	"github.com/codelingo/cayley/quad"
 	"github.com/codelingo/cayley/query"
@@ -41,19 +42,6 @@ import (
 //          \-->|#D#|------------->+---+
 //              +---+
 //
-var simpleGraph = []quad.Quad{
-	quad.MakeRaw("A", "follows", "B", ""),
-	quad.MakeRaw("C", "follows", "B", ""),
-	quad.MakeRaw("C", "follows", "D", ""),
-	quad.MakeRaw("D", "follows", "B", ""),
-	quad.MakeRaw("B", "follows", "F", ""),
-	quad.MakeRaw("F", "follows", "G", ""),
-	quad.MakeRaw("D", "follows", "G", ""),
-	quad.MakeRaw("E", "follows", "F", ""),
-	quad.MakeRaw("B", "status", "cool", "status_graph"),
-	quad.MakeRaw("D", "status", "cool", "status_graph"),
-	quad.MakeRaw("G", "status", "cool", "status_graph"),
-}
 
 func makeTestSession(data []quad.Quad) *Session {
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
@@ -75,96 +63,99 @@ var testQueries = []struct {
 		query:   `[{"id": null}]`,
 		expect: `
 			[
-				{"id": "A"},
-				{"id": "follows"},
-				{"id": "B"},
-				{"id": "C"},
-				{"id": "D"},
-				{"id": "F"},
-				{"id": "G"},
-				{"id": "E"},
-				{"id": "status"},
-				{"id": "cool"},
-				{"id": "status_graph"}
+				{"id": "<alice>"},
+				{"id": "<follows>"},
+				{"id": "<bob>"},
+				{"id": "<fred>"},
+				{"id": "<status>"},
+				{"id": "cool_person"},
+				{"id": "<charlie>"},
+				{"id": "<dani>"},
+				{"id": "<greg>"},
+				{"id": "<emily>"},
+				{"id": "<predicates>"},
+				{"id": "<are>"},
+				{"id": "smart_person"},
+				{"id": "<smart_graph>"}
 			]
 		`,
 	},
 	{
 		message: "get nodes by status",
-		query:   `[{"id": null, "status": "cool"}]`,
+		query:   `[{"id": null, "<status>": "cool_person"}]`,
 		expect: `
 			[
-				{"id": "B", "status": "cool"},
-				{"id": "D", "status": "cool"},
-				{"id": "G", "status": "cool"}
+				{"id": "<bob>", "<status>": "cool_person"},
+				{"id": "<dani>", "<status>": "cool_person"},
+				{"id": "<greg>", "<status>": "cool_person"}
 			]
 		`,
 	},
 	{
 		message: "show correct null semantics",
-		query:   `[{"id": "cool", "status": null}]`,
+		query:   `[{"id": "cool_person", "status": null}]`,
 		expect: `
 			[
-				{"id": "cool", "status": null}
+				{"id": "cool_person", "status": null}
 			]
 		`,
 	},
 	{
 		message: "get correct follows list",
-		query:   `[{"id": "C", "follows": []}]`,
+		query:   `[{"id": "<charlie>", "<follows>": []}]`,
 		expect: `
 			[
-				{"id": "C", "follows": ["B", "D"]}
+				{"id": "<charlie>", "<follows>": ["<bob>", "<dani>"]}
 			]
 		`,
 	},
 	{
 		message: "get correct reverse follows list",
-		query:   `[{"id": "F", "!follows": []}]`,
+		query:   `[{"id": "<fred>", "!<follows>": []}]`,
 		expect: `
 			[
-				{"id": "F", "!follows": ["B", "E"]}
+				{"id": "<fred>", "!<follows>": ["<bob>", "<emily>"]}
 			]
 		`,
 	},
 	{
 		message: "get correct follows struct",
-		query:   `[{"id": null, "follows": {"id": null, "status": "cool"}}]`,
+		query:   `[{"id": null, "<follows>": {"id": null, "<status>": "cool_person"}}]`,
 		expect: `
 			[
-				{"id": "A", "follows": {"id": "B", "status": "cool"}},
-				{"id": "C", "follows": {"id": "D", "status": "cool"}},
-				{"id": "D", "follows": {"id": "G", "status": "cool"}},
-				{"id": "F", "follows": {"id": "G", "status": "cool"}}
+				{"id": "<alice>", "<follows>": {"id": "<bob>", "<status>": "cool_person"}},
+				{"id": "<charlie>", "<follows>": {"id": "<dani>", "<status>": "cool_person"}},
+				{"id": "<dani>", "<follows>": {"id": "<greg>", "<status>": "cool_person"}},
+				{"id": "<fred>", "<follows>": {"id": "<greg>", "<status>": "cool_person"}}
 			]
 		`,
 	},
 	{
 		message: "get correct reverse follows struct",
-		query:   `[{"id": null, "!follows": [{"id": null, "status" : "cool"}]}]`,
+		query:   `[{"id": null, "!<follows>": [{"id": null, "<status>" : "cool_person"}]}]`,
 		expect: `
 			[
-				{"id": "F", "!follows": [{"id": "B", "status": "cool"}]},
-				{"id": "B", "!follows": [{"id": "D", "status": "cool"}]},
-				{"id": "G", "!follows": [{"id": "D", "status": "cool"}]}
+				{"id": "<fred>", "!<follows>": [{"id": "<bob>", "<status>": "cool_person"}]},
+				{"id": "<bob>", "!<follows>": [{"id": "<dani>", "<status>": "cool_person"}]},
+				{"id": "<greg>", "!<follows>": [{"id": "<dani>", "<status>": "cool_person"}]}
 			]
 		`,
 	},
 	{
 		message: "get correct co-follows",
-		query:   `[{"id": null, "@A:follows": "B", "@B:follows": "D"}]`,
+		query:   `[{"id": null, "@A:<follows>": "<bob>", "@B:<follows>": "<dani>"}]`,
 		expect: `
 			[
-				{"id": "C", "@A:follows": "B", "@B:follows": "D"}
+				{"id": "<charlie>", "@A:<follows>": "<bob>", "@B:<follows>": "<dani>"}
 			]
 		`,
 	},
 	{
 		message: "get correct reverse co-follows",
-		query:   `[{"id": null, "!follows": {"id": "C"}, "@A:!follows": "D"}]`,
+		query:   `[{"id": null, "!<follows>": {"id": "<charlie>"}, "@A:!<follows>": "<dani>"}]`,
 		expect: `
 			[
-				{"id": "B", "!follows": {"id": "C"}, "@A:!follows": "D"}
+				{"id": "<bob>", "!<follows>": {"id": "<charlie>"}, "@A:!<follows>": "<dani>"}
 			]
 		`,
 	},
@@ -182,6 +173,7 @@ func runQuery(g []quad.Quad, qu string) interface{} {
 }
 
 func TestMQL(t *testing.T) {
+	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
 		got := runQuery(simpleGraph, test.query)
 		var expect interface{}

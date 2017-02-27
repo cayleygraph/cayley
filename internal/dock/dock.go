@@ -1,9 +1,12 @@
+// +build docker
+
 package dock
 
 import (
-	"github.com/fsouza/go-dockerclient"
 	"testing"
 	"time"
+
+	"github.com/fsouza/go-dockerclient"
 )
 
 var (

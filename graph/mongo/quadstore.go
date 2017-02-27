@@ -26,9 +26,9 @@ import (
 	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/iterator"
-	"github.com/codelingo/cayley/graph/proto"
 	"github.com/codelingo/cayley/internal/lru"
 	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/quad/pquads"
 )
 
 const DefaultDBName = "cayley"
@@ -125,13 +125,14 @@ func createNewMongoGraph(addr string, options graph.Options) error {
 }
 
 func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
-	var conn *mgo.Session
-	connVal, ok := options["session"]
-	if ok {
-		conn, ok = connVal.(*mgo.Session)
-		if ok {
+	if connVal, ok := options["session"]; ok {
+		if conn, ok := connVal.(*mgo.Session); ok {
 			return conn, nil
 		}
+	}
+	if strings.HasPrefix(addr, "mongodb://") || strings.ContainsAny(addr, `@/\`) {
+		// full mongodb url
+		return mgo.Dial(addr)
 	}
 	var dialInfo mgo.DialInfo
 	dialInfo.Addrs = strings.Split(addr, ",")
@@ -158,11 +159,7 @@ func dialMongo(addr string, options graph.Options) (*mgo.Session, error) {
 		dbName = val
 	}
 	dialInfo.Database = dbName
-	conn, err = mgo.DialWithInfo(&dialInfo)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
+	return mgo.DialWithInfo(&dialInfo)
 }
 
 func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
@@ -227,6 +224,15 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) error {
 	_, err := qs.db.C("nodes").UpsertId(node, upsert)
 	if err != nil {
 		clog.Errorf("Error updating node: %v", err)
+	}
+	if inc < 0 {
+		err = qs.db.C("nodes").Remove(bson.M{
+			"_id":  string(node.(NodeHash)),
+			"Size": 0,
+		})
+		if err != nil {
+			clog.Errorf("Error deleting empty node: %v", err)
+		}
 	}
 	return err
 }
@@ -406,7 +412,7 @@ func toMongoValue(v quad.Value) value {
 		// (maybe add an option for this)
 		return time.Time(d)
 	default:
-		qv := proto.MakeValue(v)
+		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
@@ -457,7 +463,7 @@ func toQuadValue(v value) quad.Value {
 		}
 		return quad.String(s)
 	case []byte:
-		var p proto.Value
+		var p pquads.Value
 		if err := p.Unmarshal(d); err != nil {
 			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil
@@ -545,8 +551,9 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(iterator.Identity)
 }
 
-func (qs *QuadStore) Close() {
+func (qs *QuadStore) Close() error {
 	qs.db.Session.Close()
+	return nil
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
