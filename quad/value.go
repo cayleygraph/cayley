@@ -18,7 +18,6 @@ import (
 // Value is a type used by all quad directions.
 type Value interface {
 	String() string
-	IsNode() bool
 	// Native converts Value to a closest native Go type.
 	//
 	// If type has no analogs in Go, Native return an object itself.
