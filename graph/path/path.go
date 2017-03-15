@@ -362,6 +362,7 @@ func (p *Path) FollowReverse(path *Path) *Path {
 // This is a very expensive operation in practice. Be sure to use it wisely.
 
 func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
+	np := p.clone()
 	var path *Path
 	switch v := via.(type) {
 	case string:
@@ -371,8 +372,8 @@ func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
 	default:
 		panic("did not pass a string predicate or a Path to FollowRecursive")
 	}
-	p.stack = append(p.stack, followRecursiveMorphism(path, depthTags))
-	return p
+	np.stack = append(np.stack, followRecursiveMorphism(path, depthTags))
+	return np
 }
 
 // Save will, from the current nodes in the path, retrieve the node
