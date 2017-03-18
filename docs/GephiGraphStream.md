@@ -19,18 +19,25 @@ Values less than 0 interpreted as "no limit".
 
 Sets streaming mode. Supported values:
 
-* `raw` (default) - all nodes and quads in database
+* `raw` (default) - all or selected quads
 * `nodes` - nodes with properties
 
 #### Raw mode
 
-Example URL: `/gephi/gs?mode=raw&limit=-1`
+In this mode Cayley directly streams selected quads to Gephi.
 
-In this mode Cayley streams all nodes and quads to Gephi.
+Example URLs:
 
-Limit corresponds to a number of quads returned.
+`/gephi/gs?mode=raw&pred=<follows>&limit=-1` (all quads)
 
-This mode may be useful to visualize small graphs, or graphs without metadata such as types and properties.
+`/gephi/gs?mode=raw&sub=<bob>&pred=<follows>,<status>&limit=-1` (links from `<bob>` via either `<follows>` or `<status>`)
+
+Parameters:
+
+* `limit` - maximal number of quads returned
+* `sub`,`pred`,`obj`,`label` - only show quads with specified values of Subject, Predicate, Object or Label
+
+This mode may be useful to visualize small subgraphs, or graphs without metadata such as types and properties.
 In case of later, large number of quads will be pointing to nodes describing common types or property names.
 For this kind of graphs `nodes` mode should be used.
 
