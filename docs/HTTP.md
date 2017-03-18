@@ -12,6 +12,12 @@ POST Body: Javascript source code of the query
 
 Response: JSON results, depending on the query.
 
+#### `/api/v1/query/graphql`
+
+POST Body: [GraphQL](GraphQL.md) query
+
+Response: JSON results, depending on the query.
+
 #### `/api/v1/query/mql`
 
 POST Body: JSON MQL query
