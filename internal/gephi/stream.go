@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
@@ -211,8 +212,28 @@ type graphStreamEvent struct {
 	DelEdges    map[string]streamEdge `json:"de,omitempty"`
 }
 
-func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, limit int) {
-	it := s.QS.QuadsAllIterator()
+func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, sub, pred, obj, label []quad.Value, limit int) {
+	var it graph.Iterator
+	if len(sub)+len(pred)+len(obj)+len(label) == 0 {
+		it = s.QS.QuadsAllIterator()
+	} else {
+		var subIt []graph.Iterator
+		linksTo := func(d quad.Direction, vals []quad.Value) {
+			if len(vals) == 0 {
+				return
+			}
+			fixed := s.QS.FixedIterator()
+			for _, v := range vals {
+				fixed.Add(s.QS.ValueOf(v))
+			}
+			subIt = append(subIt, iterator.NewLinksTo(s.QS, fixed, d))
+		}
+		linksTo(quad.Subject, sub)
+		linksTo(quad.Predicate, pred)
+		linksTo(quad.Object, obj)
+		linksTo(quad.Label, label)
+		it = iterator.NewAnd(s.QS, subIt...)
+	}
 	defer it.Close()
 
 	var sh, oh valHash
@@ -328,6 +349,18 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 	})
 }
 
+func valuesFromString(s string) []quad.Value {
+	if s == "" {
+		return nil
+	}
+	arr := strings.Split(s, ",")
+	out := make([]quad.Value, 0, len(arr))
+	for _, s := range arr {
+		out = append(out, quad.StringToValue(s))
+	}
+	return out
+}
+
 func (s *GraphStreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := context.TODO()
 	var limit int
@@ -348,7 +381,11 @@ func (s *GraphStreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, p
 	case "nodes":
 		s.serveNodesWithProps(ctx, gs, limit)
 	case "raw":
-		s.serveRawQuads(ctx, gs, limit)
+		sub := valuesFromString(r.FormValue("sub"))
+		pred := valuesFromString(r.FormValue("pred"))
+		obj := valuesFromString(r.FormValue("obj"))
+		label := valuesFromString(r.FormValue("label"))
+		s.serveRawQuads(ctx, gs, sub, pred, obj, label, limit)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		return
