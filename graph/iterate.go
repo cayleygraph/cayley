@@ -233,6 +233,21 @@ func (c *IterateChain) EachValue(qs QuadStore, fnc func(quad.Value)) error {
 	})
 }
 
+// EachValuePair is an analog of Each, but it will additionally call NameOf
+// for each graph.Value before passing it to a callback. Original value will be passed as well.
+func (c *IterateChain) EachValuePair(qs QuadStore, fnc func(Value, quad.Value)) error {
+	if qs != nil {
+		c.qs = qs
+	}
+	if c.qs == nil {
+		return errNoQuadStore
+	}
+	// TODO(dennwc): batch NameOf?
+	return c.Each(func(v Value) {
+		fnc(v, c.qs.NameOf(v))
+	})
+}
+
 // AllValues is an analog of All, but it will additionally call NameOf
 // for each graph.Value before returning the results slice.
 func (c *IterateChain) AllValues(qs QuadStore) ([]quad.Value, error) {

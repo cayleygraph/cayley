@@ -120,7 +120,7 @@ func (q *Query) buildResults() {
 }
 
 func quadValueToNative(v quad.Value) string {
-	out := v.Native()
+	out := quad.NativeOf(v)
 	if nv, ok := out.(quad.Value); ok && v == nv {
 		return quad.StringOf(v)
 	}

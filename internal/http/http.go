@@ -29,6 +29,7 @@ import (
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/internal/config"
 	"github.com/codelingo/cayley/internal/db"
+	"github.com/codelingo/cayley/internal/gephi"
 )
 
 type ResponseHandler func(http.ResponseWriter, *http.Request, httprouter.Params) int
@@ -143,18 +144,36 @@ func (api *API) RWOnly(handler httprouter.Handle) httprouter.Handle {
 	return handler
 }
 
-func (api *API) APIv1(r *httprouter.Router) {
-	r.POST("/api/v1/query/:query_lang", LogRequest(api.ServeV1Query))
-	r.POST("/api/v1/shape/:query_lang", LogRequest(api.ServeV1Shape))
-	r.POST("/api/v1/write", api.RWOnly(LogRequest(api.ServeV1Write)))
-	r.POST("/api/v1/write/file/nquad", api.RWOnly(LogRequest(api.ServeV1WriteNQuad)))
-	r.POST("/api/v1/delete", api.RWOnly(LogRequest(api.ServeV1Delete)))
+func CORSFunc(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	if origin := req.Header.Get("Origin"); origin != "" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers",
+			"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	}
 }
+
+func CORS(h httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		CORSFunc(w, req, params)
+		h(w, req, params)
+	}
+}
+
+func (api *API) APIv1(r *httprouter.Router) {
+	r.POST("/api/v1/query/:query_lang", CORS(LogRequest(api.ServeV1Query)))
+	r.POST("/api/v1/shape/:query_lang", CORS(LogRequest(api.ServeV1Shape)))
+	r.POST("/api/v1/write", CORS(api.RWOnly(LogRequest(api.ServeV1Write))))
+	r.POST("/api/v1/write/file/nquad", CORS(api.RWOnly(LogRequest(api.ServeV1WriteNQuad))))
+	r.POST("/api/v1/delete", CORS(api.RWOnly(LogRequest(api.ServeV1Delete))))
+}
+
 func (api *API) APIv2(r *httprouter.Router) {
-	r.POST("/api/v2/write", api.RWOnly(LogRequest(api.ServeV2Write)))
-	r.POST("/api/v2/delete", api.RWOnly(LogRequest(api.ServeV2Delete)))
-	r.POST("/api/v2/read", api.RWOnly(LogRequest(api.ServeV2Read)))
-	r.GET("/api/v2/read", api.RWOnly(LogRequest(api.ServeV2Read)))
+	r.POST("/api/v2/write", CORS(api.RWOnly(LogRequest(api.ServeV2Write))))
+	r.POST("/api/v2/delete", CORS(api.RWOnly(LogRequest(api.ServeV2Delete))))
+	r.POST("/api/v2/read", CORS(LogRequest(api.ServeV2Read)))
+	r.GET("/api/v2/read", CORS(LogRequest(api.ServeV2Read)))
+	r.GET("/api/v2/formats", CORS(LogRequest(api.ServeV2Formats)))
 }
 
 func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
@@ -168,8 +187,13 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	root := &TemplateRequestHandler{templates: templates}
 	docs := &DocRequestHandler{assets: assets}
 	api := &API{config: cfg, handle: handle}
+	r.OPTIONS("/*path", CORSFunc)
 	api.APIv1(r)
 	api.APIv2(r)
+	gs := &gephi.GraphStreamHandler{QS: handle.QuadStore}
+	const gephiPath = "/gephi/gs"
+	r.GET(gephiPath, gs.ServeHTTP)
+	fmt.Printf("Serving Gephi GraphStream at http://localhost:%s%s\n", cfg.ListenPort, gephiPath)
 
 	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
 	//r.Handler("GET", "/static", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))

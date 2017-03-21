@@ -22,7 +22,7 @@ import (
 const Name = "graphql"
 
 func init() {
-	lexer.AllowNameRunes = "/.:<>~"
+	lexer.AllowNameRunes = "/.:<>~-" // TODO(dennwc): change to anonymous function with full IRI charset
 
 	query.RegisterLanguage(query.Language{
 		Name: Name,
