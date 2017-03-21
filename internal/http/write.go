@@ -303,3 +303,26 @@ func (api *API) ServeV2Read(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 	return 200
 }
+
+func (api *API) ServeV2Formats(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+	type Format struct {
+		Id     string   `json:"id"`
+		Read   bool     `json:"read,omitempty"`
+		Write  bool     `json:"write,omitempty"`
+		Ext    []string `json:"ext,omitempty"`
+		Mime   []string `json:"mime,omitempty"`
+		Binary bool     `json:"binary,omitempty"`
+	}
+	formats := quad.Formats()
+	out := make([]Format, 0, len(formats))
+	for _, f := range formats {
+		out = append(out, Format{
+			Id:  f.Name,
+			Ext: f.Ext, Mime: f.Mime,
+			Read: f.Reader != nil, Write: f.Writer != nil,
+			Binary: f.Binary,
+		})
+	}
+	json.NewEncoder(w).Encode(out)
+	return 200
+}
