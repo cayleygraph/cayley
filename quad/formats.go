@@ -17,6 +17,8 @@ type Format struct {
 	Reader func(io.Reader) ReadCloser
 	// Writer is a function for creating format writer, that streams serialized data to io.Writer.
 	Writer func(io.Writer) WriteCloser
+	// Binary is set to true if format is not human-readable.
+	Binary bool
 }
 
 var (

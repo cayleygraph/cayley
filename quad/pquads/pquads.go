@@ -21,7 +21,7 @@ var magic = [4]byte{0, 'p', 'q', 0}
 
 func init() {
 	quad.RegisterFormat(quad.Format{
-		Name:   "pquads",
+		Name: "pquads", Binary: true,
 		Ext:    []string{".pq"},
 		Mime:   []string{"application/x-protobuf", "application/octet-stream"},
 		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w, nil) },
