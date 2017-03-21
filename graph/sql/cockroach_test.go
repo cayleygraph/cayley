@@ -59,6 +59,7 @@ func TestCockroachAll(t *testing.T) {
 	graphtest.TestAll(t, makeCockroach, &graphtest.Config{
 		TimeInMcs:               true,
 		TimeRound:               true,
+		OptimizesHasAToUnique:   true,
 		SkipIntHorizon:          true,
 		SkipNodeDelAfterQuadDel: true,
 	})

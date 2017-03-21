@@ -26,6 +26,8 @@ type Config struct {
 	TimeRound bool
 
 	OptimizesComparison bool
+	// TODO(dennwc): some stores return duplicates entries for HasA, some optimizes them to be unique
+	OptimizesHasAToUnique bool
 
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool
@@ -44,6 +46,7 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 		TestHorizonInt(t, gen, conf)
 	}
 	TestIterator(t, gen)
+	TestHasA(t, gen, conf)
 	TestSetIterator(t, gen)
 	if !conf.SkipDeletedFromIterator {
 		TestDeletedFromIterator(t, gen)
@@ -319,6 +322,36 @@ func TestIterator(t testing.TB, gen DatabaseFunc) {
 		}
 	}
 	require.True(t, ok, "Failed to find %q during iteration, got:%q", q, set)
+}
+
+func TestHasA(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	var it graph.Iterator = iterator.NewHasA(qs,
+		iterator.NewLinksTo(qs, qs.NodesAllIterator(), quad.Predicate),
+		quad.Predicate)
+	defer it.Close()
+
+	it, _ = it.Optimize()
+	it, _ = qs.OptimizeIterator(it)
+
+	if conf.OptimizesHasAToUnique {
+		ExpectIteratedValues(t, qs, it, []quad.Value{
+			quad.Raw("follows"), quad.Raw("status"),
+		})
+	} else {
+		var exp []quad.Value
+		for i := 0; i < 8; i++ {
+			exp = append(exp, quad.Raw("follows"))
+		}
+		for i := 0; i < 3; i++ {
+			exp = append(exp, quad.Raw("status"))
+		}
+		ExpectIteratedValues(t, qs, it, exp)
+	}
 }
 
 func TestSetIterator(t testing.TB, gen DatabaseFunc) {

@@ -192,7 +192,6 @@ func (n *SQLNodeIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (stri
 		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
 	}
 	query += strings.Join(t, ", ")
-	query += " WHERE "
 
 	constraint, wherevalues := n.buildWhere()
 	values = append(values, wherevalues...)
@@ -206,7 +205,9 @@ func (n *SQLNodeIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (stri
 		values = append(values, v.toSQL())
 	}
 
-	query += constraint
+	if constraint != "" {
+		query += " WHERE " + constraint
+	}
 	query += ";"
 
 	if clog.V(4) {

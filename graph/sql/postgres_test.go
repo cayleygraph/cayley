@@ -53,6 +53,7 @@ func TestPostgresAll(t *testing.T) {
 	graphtest.TestAll(t, makePostgres, &graphtest.Config{
 		TimeInMcs:               true,
 		TimeRound:               true,
+		OptimizesHasAToUnique:   true,
 		SkipNodeDelAfterQuadDel: true,
 	})
 }
