@@ -192,21 +192,31 @@ func (n *SQLNodeIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (stri
 		t = append(t, fmt.Sprintf("%s as %s", k.table, k.name))
 	}
 	query += strings.Join(t, ", ")
-	query += " WHERE "
 
+	// TODO(waigani) Wrapping the WHERE appendix in a if len(values) > 0 is a
+	// patch to avoid an iterator optimization error:
+	// ERROR: Couldn't get cursor from SQL database: pq: syntax error at or near ";"
+	// ERROR: Couldn't make query: pq: syntax error at or near ";"
+
+	// I don't have deep understanding of this code and I leave this comment
+	// as a BIG RED FLAG for anyone debugging in this area. As the code
+	// use to assume there would ALWAYS be values.
 	constraint, wherevalues := n.buildWhere()
 	values = append(values, wherevalues...)
+	if len(values) > 0 {
+		query += " WHERE "
 
-	if !next {
-		v := val.(NodeHash)
-		if constraint != "" {
-			constraint += " AND "
+		if !next {
+			v := val.(NodeHash)
+			if constraint != "" {
+				constraint += " AND "
+			}
+			constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
+			values = append(values, v.toSQL())
 		}
-		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, v.toSQL())
-	}
 
-	query += constraint
+		query += constraint
+	}
 	query += ";"
 
 	if clog.V(4) {
