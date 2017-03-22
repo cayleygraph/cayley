@@ -523,7 +523,7 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 }
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
-	return nil, false
+	return it, false
 }
 
 func (qs *QuadStore) Close() error {

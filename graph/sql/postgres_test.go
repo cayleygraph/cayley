@@ -53,6 +53,7 @@ func TestPostgresAll(t *testing.T) {
 	graphtest.TestAll(t, makePostgres, &graphtest.Config{
 		TimeInMcs:               true,
 		TimeRound:               true,
+		OptimizesHasAToUnique:   true,
 		SkipNodeDelAfterQuadDel: true,
 	})
 }
@@ -77,6 +78,6 @@ func TestPostgresZeroRune(t *testing.T) {
 		Predicate: quad.IRI("pred"),
 		Object:    obj,
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, obj, qs.NameOf(qs.ValueOf(quad.Raw(obj.String()))))
 }
