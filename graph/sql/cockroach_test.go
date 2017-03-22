@@ -81,7 +81,7 @@ func TestCockroachZeroRune(t *testing.T) {
 		Predicate: quad.IRI("pred"),
 		Object:    obj,
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, obj, qs.NameOf(qs.ValueOf(quad.Raw(obj.String()))))
 }
 

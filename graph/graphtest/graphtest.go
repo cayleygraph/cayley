@@ -61,10 +61,10 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 
 func MakeWriter(t testing.TB, qs graph.QuadStore, opts graph.Options, data ...quad.Quad) graph.QuadWriter {
 	w, err := writer.NewSingleReplication(qs, opts)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	if len(data) > 0 {
 		err = w.AddQuadSet(data)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	return w
 }
@@ -195,7 +195,7 @@ func TestLoadOneQuad(t testing.TB, gen DatabaseFunc) {
 		"Something Else",
 		"context",
 	))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
 		got := quad.StringOf(qs.NameOf(qs.ValueOf(quad.Raw(pq))))
 		require.Equal(t, pq, got, "Failed to roundtrip %q", pq)
@@ -217,7 +217,7 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 	require.Equal(t, int64(0), horizon.Int(), "Unexpected horizon value")
 
 	err := w.AddQuadSet(MakeQuadSet())
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, int64(11), qs.Size(), "Unexpected quadstore size")
 
 	if qss, ok := qs.(ValueSizer); ok {
@@ -234,7 +234,7 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 		"B",
 		"",
 	))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	if !conf.SkipSizeCheckAfterDelete {
 		require.Equal(t, int64(10), qs.Size(), "Unexpected quadstore size after RemoveQuad")
 	} else {
@@ -521,7 +521,7 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 		{values[0], values[1], values[10], nil},
 		{values[0], values[1], values[11], nil},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	for _, pq := range values {
 		got := qs.NameOf(qs.ValueOf(pq))
 		if !conf.UnTyped {
@@ -773,7 +773,7 @@ func TestCompareTypedValues(t testing.TB, gen DatabaseFunc, conf *Config) {
 		{quad.Int(100), quad.Int(112), quad.Int(110), quad.Int(20)},
 		{quad.Time(t1), quad.Time(t2), quad.Time(t3), quad.Time(t4)},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	for _, c := range casesCompare {
 		it := iterator.NewComparison(qs.NodesAllIterator(), c.op, c.val, qs)
