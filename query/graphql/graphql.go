@@ -173,6 +173,8 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 	// load object ids and flat keys
 	it, _ := p.BuildIterator().Optimize()
 	it, _ = qs.OptimizeIterator(it)
+	defer it.Close()
+
 	var results []object
 	for i := 0; limit < 0 || i < limit; i++ {
 		select {
