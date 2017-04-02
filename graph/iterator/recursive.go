@@ -96,7 +96,7 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 		dst[tag] = value
 	}
 	if it.containsValue != nil {
-		m := it.pathMap[it.containsValue][it.pathIndex]
+		m := it.pathMap[graph.ToKey(it.containsValue)][it.pathIndex]
 		for k, v := range m {
 			dst[k] = v
 		}
@@ -123,11 +123,12 @@ func (it *Recursive) Next() bool {
 			it.depthCache = append(it.depthCache, it.subIt.Result())
 			tags := make(map[string]graph.Value)
 			it.subIt.TagResults(tags)
-			it.pathMap[res] = append(it.pathMap[res], tags)
+			key := graph.ToKey(res)
+			it.pathMap[key] = append(it.pathMap[key], tags)
 			for it.subIt.NextPath() {
 				tags := make(map[string]graph.Value)
 				it.subIt.TagResults(tags)
-				it.pathMap[res] = append(it.pathMap[res], tags)
+				it.pathMap[key] = append(it.pathMap[key], tags)
 			}
 		}
 	}
@@ -150,10 +151,11 @@ func (it *Recursive) Next() bool {
 		val := it.nextIt.Result()
 		results := make(map[string]graph.Value)
 		it.nextIt.TagResults(results)
-		if _, ok := it.seen[val]; ok {
+		key := graph.ToKey(val)
+		if _, ok := it.seen[key]; ok {
 			continue
 		}
-		it.seen[val] = seenAt{
+		it.seen[key] = seenAt{
 			val:   results["__base_recursive"],
 			depth: it.depth,
 		}
@@ -177,14 +179,14 @@ func (it *Recursive) Result() graph.Value {
 func (it *Recursive) getBaseValue(val graph.Value) graph.Value {
 	var at seenAt
 	var ok bool
-	if at, ok = it.seen[val]; !ok {
+	if at, ok = it.seen[graph.ToKey(val)]; !ok {
 		panic("trying to getBaseValue of something unseen")
 	}
 	for at.depth != 1 {
 		if at.depth == 0 {
 			panic("seen chain is broken")
 		}
-		at = it.seen[at.val]
+		at = it.seen[graph.ToKey(at.val)]
 	}
 	return at.val
 }
@@ -192,7 +194,7 @@ func (it *Recursive) getBaseValue(val graph.Value) graph.Value {
 func (it *Recursive) Contains(val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.pathIndex = 0
-	if at, ok := it.seen[val]; ok {
+	if at, ok := it.seen[graph.ToKey(val)]; ok {
 		it.containsValue = it.getBaseValue(val)
 		it.result.depth = at.depth
 		it.result.val = val
@@ -207,7 +209,7 @@ func (it *Recursive) Contains(val graph.Value) bool {
 }
 
 func (it *Recursive) NextPath() bool {
-	if len(it.pathMap[it.containsValue]) <= it.pathIndex+1 {
+	if len(it.pathMap[graph.ToKey(it.containsValue)]) <= it.pathIndex+1 {
 		return false
 	}
 	it.pathIndex++
