@@ -508,6 +508,20 @@ var testQueries = []struct {
 		`,
 		expect: []string{"<http://example.net/alice>"},
 	},
+	{
+		message: "recursive follow",
+		query: `
+			g.V("<charlie>").FollowRecursive("<follows>").All();
+		`,
+		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
+	},
+	{
+		message: "recursive follow path",
+		query: `
+			g.V("<charlie>").FollowRecursive(g.V().Out("<follows>")).All();
+		`,
+		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
+	},
 }
 
 func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string, error) {
