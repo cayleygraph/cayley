@@ -445,6 +445,24 @@ var friendOfFriend = g.Morphism().Out("<follows>").Out("<follows>")
 g.V().Has("<status>", "cool_person").FollowR(friendOfFriend).All()
 ```
 
+####**`path.FollowRecursive(morphism)`**
+
+Arguments:
+
+  * `morphism`: A morphism path to follow
+
+Same as `Follow` but follows the chain recursively.
+
+Starts as if at the g.M() and follows through the morphism path multiple times, returning all nodes encountered.
+
+Example:
+```javascript:
+var friend = g.Morphism().Out("<follows>")
+// Returns all people in Charlie's network.
+// Returns bob and dani (from charlie), fred (from bob) and greg (from dani).
+g.V("<charlie>").FollowRecursive(friend).All()
+```
+
 
 ## Query objects (finals)
 
