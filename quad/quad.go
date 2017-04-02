@@ -225,8 +225,6 @@ func (q Quad) String() string {
 	return fmt.Sprintf("%v -- %v -> %v", q.Subject, q.Predicate, q.Object)
 }
 
-func (q Quad) IsNode() bool { return false }
-
 func (q Quad) IsValid() bool {
 	return q.Subject != nil && q.Predicate != nil && q.Object != nil &&
 		q.Subject.String() != "" && q.Predicate.String() != "" && q.Object.String() != ""

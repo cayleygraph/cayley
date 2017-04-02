@@ -95,7 +95,7 @@ func (qs *oldstore) FixedIterator() graph.FixedIterator {
 	return NewFixed(Identity)
 }
 
-func (qs *oldstore) Close() {}
+func (qs *oldstore) Close() error { return nil }
 
 func (qs *oldstore) QuadDirection(graph.Value, quad.Direction) graph.Value { return Int64Node(0) }
 
