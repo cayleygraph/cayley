@@ -22,6 +22,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 
+	"github.com/qedus/nds"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
@@ -141,7 +142,7 @@ func (qs *QuadStore) createKeyFromToken(t *Token) *datastore.Key {
 
 func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
 	var q quad.Quad
-	err := datastore.Get(qs.context, k, &q)
+	err := nds.Get(qs.context, k, &q)
 	if err == datastore.ErrNoSuchEntity {
 		return false, nil
 	}
@@ -269,8 +270,8 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 	for i := 0; i < len(nodeDeltas); i += 5 {
 		j := int(math.Min(float64(len(nodeDeltas)-i), 5))
 		foundNodes := make([]NodeEntry, j)
-		err := datastore.RunInTransaction(qs.context, func(c context.Context) error {
-			err := datastore.GetMulti(c, keys[i:i+j], foundNodes)
+		err := nds.RunInTransaction(qs.context, func(c context.Context) error {
+			err := nds.GetMulti(c, keys[i:i+j], foundNodes)
 			// Sift through for errors
 			if me, ok := err.(appengine.MultiError); ok {
 				for _, merr := range me {
@@ -281,12 +282,12 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 				}
 			}
 			// Carry forward the sizes of the nodes from the datastore
-			for k, _ := range foundNodes {
+			for k := range foundNodes {
 				if foundNodes[k].Name != "" {
 					tempNodes[i+k].Size += foundNodes[k].Size
 				}
 			}
-			_, err = datastore.PutMulti(c, keys[i:i+j], tempNodes[i:i+j])
+			_, err = nds.PutMulti(c, keys[i:i+j], tempNodes[i:i+j])
 			return err
 		}, &datastore.TransactionOptions{XG: true})
 		if err != nil {
@@ -307,12 +308,12 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 	for i := 0; i < len(in); i += 5 {
 		// Find the closest batch of 5
 		j := int(math.Min(float64(len(in)-i), 5))
-		err := datastore.RunInTransaction(qs.context, func(c context.Context) error {
+		err := nds.RunInTransaction(qs.context, func(c context.Context) error {
 			foundQuads := make([]QuadEntry, j)
 			// We don't process errors from GetMulti as they don't mean anything,
 			// we've handled existing quad conflicts above and we overwrite everything again anyways
-			datastore.GetMulti(c, keys, foundQuads)
-			for k, _ := range foundQuads {
+			nds.GetMulti(c, keys, foundQuads)
+			for k := range foundQuads {
 				x := i + k
 				foundQuads[k].Hash = keys[x].StringID()
 				foundQuads[k].Subject = in[x].Quad.Subject.String()
@@ -329,7 +330,7 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 					quadCount -= 1
 				}
 			}
-			_, err := datastore.PutMulti(c, keys[i:i+j], foundQuads)
+			_, err := nds.PutMulti(c, keys[i:i+j], foundQuads)
 			return err
 		}, &datastore.TransactionOptions{XG: true})
 		if err != nil {
@@ -342,15 +343,15 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 func (qs *QuadStore) updateMetadata(quadsAdded int64, nodesAdded int64) error {
 	key := qs.createKeyForMetadata()
 	foundMetadata := new(MetadataEntry)
-	err := datastore.RunInTransaction(qs.context, func(c context.Context) error {
-		err := datastore.Get(c, key, foundMetadata)
+	err := nds.RunInTransaction(qs.context, func(c context.Context) error {
+		err := nds.Get(c, key, foundMetadata)
 		if err != nil && err != datastore.ErrNoSuchEntity {
 			clog.Errorf("Error: %v", err)
 			return err
 		}
 		foundMetadata.QuadCount += quadsAdded
 		foundMetadata.NodeCount += nodesAdded
-		_, err = datastore.Put(c, key, foundMetadata)
+		_, err = nds.Put(c, key, foundMetadata)
 		if err != nil {
 			clog.Errorf("Error: %v", err)
 		}
@@ -387,7 +388,7 @@ func (qs *QuadStore) updateLog(in []graph.Delta) error {
 		logKeys = append(logKeys, qs.createKeyForLog(d.ID))
 	}
 
-	_, err := datastore.PutMulti(qs.context, logKeys, logEntries)
+	_, err := nds.PutMulti(qs.context, logKeys, logEntries)
 	if err != nil {
 		clog.Errorf("Error updating log: %v", err)
 	}
@@ -429,7 +430,7 @@ func (qs *QuadStore) NameOf(val graph.Value) quad.Value {
 	// TODO (panamafrancis) implement a cache
 
 	node := new(NodeEntry)
-	err := datastore.Get(qs.context, key, node)
+	err := nds.Get(qs.context, key, node)
 	if err != nil {
 		clog.Errorf("Error: %v", err)
 		return nil
@@ -451,7 +452,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	}
 
 	q := new(QuadEntry)
-	err := datastore.Get(qs.context, key, q)
+	err := nds.Get(qs.context, key, q)
 	if err != nil {
 		// Red herring error : ErrFieldMismatch can happen when a quad exists but a field is empty
 		if _, ok := err.(*datastore.ErrFieldMismatch); !ok {
@@ -473,7 +474,7 @@ func (qs *QuadStore) Size() int64 {
 	}
 	key := qs.createKeyForMetadata()
 	foundMetadata := new(MetadataEntry)
-	err := datastore.Get(qs.context, key, foundMetadata)
+	err := nds.Get(qs.context, key, foundMetadata)
 	if err != nil {
 		clog.Warningf("Error: %v", err)
 		return 0
@@ -488,7 +489,7 @@ func (qs *QuadStore) NodeSize() int64 {
 	}
 	key := qs.createKeyForMetadata()
 	foundMetadata := new(MetadataEntry)
-	err := datastore.Get(qs.context, key, foundMetadata)
+	err := nds.Get(qs.context, key, foundMetadata)
 	if err != nil {
 		clog.Warningf("Error: %v", err)
 		return 0
