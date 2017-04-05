@@ -22,6 +22,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 
 	"github.com/cayleygraph/cayley/clog"
+	"github.com/qedus/nds"
 	"google.golang.org/appengine/datastore"
 )
 
@@ -69,7 +70,7 @@ func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Value) *It
 	// The number of references to this node is held in the nodes entity
 	key := qs.createKeyFromToken(t)
 	foundNode := new(NodeEntry)
-	err := datastore.Get(qs.context, key, foundNode)
+	err := nds.Get(qs.context, key, foundNode)
 	if err != nil && err != datastore.ErrNoSuchEntity {
 		clog.Errorf("Error: %v", err)
 		return &Iterator{done: true}
