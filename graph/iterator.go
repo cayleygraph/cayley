@@ -211,6 +211,12 @@ type FixedIterator interface {
 	Add(Value)
 }
 
+type VariableIterator interface {
+	Iterator
+	Use(*VarUser)
+	Bind(*VarBinder, Iterator)
+}
+
 type IteratorStats struct {
 	ContainsCost int64
 	NextCost     int64
@@ -234,6 +240,7 @@ const (
 	LinksTo
 	Comparison
 	Null
+	Variable
 	Fixed
 	Not
 	Optional
@@ -355,7 +362,7 @@ func ContainsLogOut(it Iterator, val Value, good bool) bool {
 	return good
 }
 
-func NextLogIn(it Iterator) {
+	func NextLogIn(it Iterator) {
 	if clog.V(4) {
 		clog.Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
 	}

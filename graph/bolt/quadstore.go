@@ -139,6 +139,10 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	return &qs, nil
 }
 
+func (qs *QuadStore) VariableIterator() graph.VariableIterator {
+	return iterator.NewVariable(iterator.Identity)
+}
+
 func (qs *QuadStore) createBuckets() error {
 	return qs.db.Update(func(tx *bolt.Tx) error {
 		var err error

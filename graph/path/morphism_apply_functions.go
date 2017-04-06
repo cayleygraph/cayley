@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"reflect"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -88,6 +90,30 @@ func regexMorphism(pattern *regexp.Regexp, refs bool) morphism {
 	}
 }
 
+// func bindVarMorphism(vb *graph.VarBinder) morphism {
+// 	return morphism{
+// 		Name:     "bindVar",
+// 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return bindVarMorphism(vb), ctx },
+// 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+// 			bindVarIterator := qs.VariableIterator()
+// 			bindVarIterator.Bind(vb)
+// 			return bindVarIterator, ctx
+// 		},
+// 	}
+// }
+
+// func useVarMorphism(vu *graph.VarUser) morphism {
+// 	return morphism{
+// 		Name:     "useVar",
+// 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return useVarMorphism(vu), ctx },
+// 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+// 			useVarIterator := qs.VariableIterator()
+// 			useVarIterator.Use(vu)
+// 			return useVarIterator, ctx
+// 		},
+// 	}
+// }
+
 // isNodeMorphism represents all nodes passed in-- if there are none, this function
 // acts as a passthrough for the previous iterator.
 func isNodeMorphism(nodes ...graph.Value) morphism {
@@ -132,7 +158,17 @@ func hasMorphism(via interface{}, nodes ...quad.Value) morphism {
 		Name:     "has",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasMorphism(via, nodes...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
-			return buildHas(qs, via, in, false, nodes), ctx
+			return buildHas(qs, via, in, false, nodes...), ctx
+		},
+	}
+}
+
+func hasVarMorphism(via interface{}, variable interface{}) morphism {
+	return morphism{
+		Name:     "has",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasVarMorphism(via, variable), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			return buildHasVar(qs, via, in, false, variable), ctx
 		},
 	}
 }
@@ -142,7 +178,7 @@ func hasReverseMorphism(via interface{}, nodes ...quad.Value) morphism {
 		Name:     "hasr",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasMorphism(via, nodes...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
-			return buildHas(qs, via, in, true, nodes), ctx
+			return buildHas(qs, via, in, true, nodes...), ctx
 		},
 	}
 }
@@ -383,10 +419,11 @@ func saveOptionalReverseMorphism(via interface{}, tag string) morphism {
 	}
 }
 
-func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bool, nodes []quad.Value) graph.Iterator {
+func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bool, nodes ...quad.Value) graph.Iterator {
 	viaIter := buildViaPath(qs, via).
 		BuildIterator()
 	ends := func() graph.Iterator {
+
 		if len(nodes) == 0 {
 			return qs.NodesAllIterator()
 		}
@@ -415,6 +452,39 @@ func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bo
 		has := iterator.NewHasA(qs, route, start)
 		return join(qs, in, has)
 	}
+
+	// This looks backwards. That's OK-- see the note above.
+	route := join(qs, dest, trail)
+	has := iterator.NewHasA(qs, route, start)
+	return join(qs, has, in)
+}
+
+func buildHasVar(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bool, variable interface{}) graph.Iterator {
+	viaIter := buildViaPath(qs, via).
+		BuildIterator()
+	ends := func() graph.Iterator {
+		switch v := variable.(type) {
+		case *graph.VarUser:
+			varIt := qs.VariableIterator()
+			varIt.Use(v)
+			return varIt
+		case *graph.VarBinder:
+			varIt := qs.VariableIterator()
+			varIt.Bind(v, qs.NodesAllIterator())
+			return varIt
+		}
+		fmt.Println(reflect.TypeOf(variable))
+		panic("You should be getting a real iterator back from this.")
+		return nil
+	}()
+
+	start, goal := quad.Subject, quad.Object
+	if reverse {
+		start, goal = goal, start
+	}
+
+	trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
+	dest := iterator.NewLinksTo(qs, ends, goal)
 
 	// This looks backwards. That's OK-- see the note above.
 	route := join(qs, dest, trail)
@@ -494,6 +564,10 @@ func buildViaPath(qs graph.QuadStore, via ...interface{}) *Path {
 			return p
 		case quad.Value:
 			return StartPath(qs, p)
+			// case graph.VarUser:
+			// 	return StartPathUseVar(qs, p)
+			// case graph.VarBinder:
+			// 	return StartPathBindVar(qs, p)
 		}
 	}
 	nodes := make([]quad.Value, 0, len(via))

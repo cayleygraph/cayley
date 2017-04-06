@@ -95,6 +95,8 @@ type QuadStore interface {
 	// The last replicated transaction ID that this quadstore has verified.
 	Horizon() PrimaryKey
 
+	VariableIterator() VariableIterator
+
 	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator
 
