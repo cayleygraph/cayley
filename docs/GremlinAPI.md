@@ -18,7 +18,7 @@ Returns: Query object
 
 Starts a query path at the given vertex/vertices. No ids means "all vertices".
 
-####**`graph.Morphism()`**
+#### **`graph.Morphism()`**
 
 Alias: `graph.M`
 
@@ -34,7 +34,7 @@ var shorterPath = graph.Morphism().Out("foo").Out("bar")
 
 is the common use case. See also: `path.Follow()`, `path.FollowR()`
 
-####**`graph.Emit(data)`**
+#### **`graph.Emit(data)`**
 
 Arguments:
 
@@ -81,7 +81,7 @@ To load above graph into cayley and reproduce the following examples:
 
 ### Basic Traversals
 
-####**`path.Out([predicatePath], [tags])`**
+#### **`path.Out([predicatePath], [tags])`**
 
 Arguments:
 
@@ -113,7 +113,7 @@ g.V("<dani>").Out(["<follows>", "<status>"]).All()
 g.V("<dani>").Out(g.V("<status>"), "pred").All()
 ```
 
-####**`path.In([predicatePath], [tags])`**
+#### **`path.In([predicatePath], [tags])`**
 
 Arguments:
 
@@ -139,7 +139,7 @@ g.V("<bob>").In("<follows>").All()
 g.V("<emily>").Out("<follows>").In("<follows>").All()
 ```
 
-####**`path.Both([predicatePath], [tags])`**
+#### **`path.Both([predicatePath], [tags])`**
 
 Arguments:
 
@@ -163,7 +163,7 @@ g.V("<fred>").Both("<follows>").All()
 ```
 
 
-####**`path.Is(node, [node..])`**
+#### **`path.Is(node, [node..])`**
 
 Arguments:
 
@@ -178,7 +178,7 @@ Example:
 g.V().Out("<follows>").Is("<bob>").All()
 ```
 
-####**`path.Has(predicate, object)`**
+#### **`path.Has(predicate, object)`**
 
 Arguments:
 
@@ -197,7 +197,7 @@ g.V().Has("<follows>", "<bob>").All()
 g.V("<charlie>").Out("<follows>").Has("<follows>", "<fred>").All()
 ```
 
-####**`path.LabelContext([labelPath], [tags])`**
+#### **`path.LabelContext([labelPath], [tags])`**
 
 Arguments:
 
@@ -222,7 +222,7 @@ g.V("<dani>").Out("<follows>").LabelContext("<smart_graph>").Out("<status>").All
 g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follows>").All()
 ```
 
-####**`path.Limit(limit)`**
+#### **`path.Limit(limit)`**
 
 Arguments:
 
@@ -236,7 +236,7 @@ Example:
 g.V().Has("<follows>", "<bob>").Limit(2).All()
 ```
 
-####**`path.Skip(offset)`**
+#### **`path.Skip(offset)`**
 
 Arguments:
 
@@ -250,7 +250,7 @@ Example:
 g.V().Has("<follows>", "<bob>").Skip(2).All()
 ```
 
-####**`path.InPredicates()`**
+#### **`path.InPredicates()`**
 
 Get the list of predicates that are pointing in to a node
 
@@ -261,7 +261,7 @@ Example:
 g.V("<bob>").InPredicates().All()
 ```
 
-####**`path.OutPredicates()`**
+#### **`path.OutPredicates()`**
 
 Get the list of predicates that are pointing out from a node
 
@@ -274,7 +274,7 @@ g.V("<bob>").OutPredicates().All()
 
 ### Tagging
 
-####**`path.Tag(tag)`**
+#### **`path.Tag(tag)`**
 
 Alias: `path.As`
 
@@ -298,7 +298,7 @@ g.V().Tag("start").Out("<status>").All()
 ```
 
 
-####**`path.Back(tag)`**
+#### **`path.Back(tag)`**
 
 Arguments:
 
@@ -321,7 +321,7 @@ Example:
 g.V().Tag("start").Out("<status>").Back("start").In("<follows>").All()
 ```
 
-####**`path.Save(predicate, tag)`**
+#### **`path.Save(predicate, tag)`**
 
 Arguments:
 
@@ -342,7 +342,7 @@ g.V("<dani>", "<bob>").Save("<follows>", "target").All()
 
 ### Joining
 
-####**`path.Intersect(query)`**
+#### **`path.Intersect(query)`**
 
 Alias: `path.And`
 
@@ -362,7 +362,7 @@ cFollows.Intersect(dFollows).All()
 // Equivalently, g.V("<charlie>").Out("<follows>").And(g.V("<dani>").Out("<follows>")).All()
 ```
 
-####**`path.Union(query)`**
+#### **`path.Union(query)`**
 
 Alias: `path.Or`
 
@@ -382,7 +382,7 @@ var dFollows = g.V("<dani>").Out("<follows>")
 // People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob (from charlie), dani, bob (from dani), and greg.
 cFollows.Union(dFollows).All()
 ```
-####**`path.Except(query)`**
+#### **`path.Except(query)`**
 
 Alias: `path.Difference`
 
@@ -406,7 +406,7 @@ cFollows.Except(dFollows).All()   // The set (dani) -- what charlie follows that
 
 ### Using Morphisms
 
-####**`path.Follow(morphism)`**
+#### **`path.Follow(morphism)`**
 
 Arguments:
 
@@ -426,7 +426,7 @@ var friendOfFriend = g.Morphism().Out("<follows>").Out("<follows>")
 g.V("<charlie>").Follow(friendOfFriend).Has("<status>", "cool_person").All()
 ```
 
-####**`path.FollowR(morphism)`**
+#### **`path.FollowR(morphism)`**
 
 Arguments:
 
@@ -445,7 +445,7 @@ var friendOfFriend = g.Morphism().Out("<follows>").Out("<follows>")
 g.V().Has("<status>", "cool_person").FollowR(friendOfFriend).All()
 ```
 
-####**`path.FollowRecursive(morphism)`**
+#### **`path.FollowRecursive(morphism)`**
 
 Arguments:
 
@@ -468,7 +468,7 @@ g.V("<charlie>").FollowRecursive(friend).All()
 
 Only `.Vertex()` objects -- that is, queries that have somewhere to start -- can be turned into queries. To actually execute the queries, an output step must be applied.
 
-####**`query.All()`**
+#### **`query.All()`**
 
 Arguments: None
 
@@ -476,7 +476,7 @@ Returns: undefined
 
 Executes the query and adds the results, with all tags, as a string-to-string (tag to node) map in the output set, one for each path that a traversal could take.
 
-####**`query.GetLimit(size)`**
+#### **`query.GetLimit(size)`**
 
 Arguments:
 
@@ -486,7 +486,7 @@ Arguments:
 
 Same as all, but limited to the first `size` unique nodes at the end of the path, and each of their possible traversals.
 
-####**`query.ToArray()`**
+#### **`query.ToArray()`**
 
 Arguments: None
 
@@ -499,7 +499,7 @@ Example:
 var bobFollowers = g.V("<bob>").In("<follows>").ToArray()
 ```
 
-####**`query.ToValue()`**
+#### **`query.ToValue()`**
 
 Arguments: None
 
@@ -507,7 +507,7 @@ Returns: String
 
 As `.ToArray` above, but limited to one result node -- a string. Like `.Limit(1)` for the above case (alice).
 
-####**`query.TagArray()`**
+#### **`query.TagArray()`**
 
 Arguments: None
 
@@ -522,7 +522,7 @@ var bobTags = g.V("<bob>").Tag("name").In("<follows>").TagArray()
 var nameValue = bobTags[0]["name"]
 ```
 
-####**`query.TagValue()`**
+#### **`query.TagValue()`**
 
 Arguments: None
 
@@ -531,7 +531,7 @@ Returns: A single string-to-string object
 As `.TagArray` above, but limited to one result node -- a string. Like `.Limit(1)` for the above case. Returns a tag-to-string map.
 
 
-####**`query.ForEach(callback), query.ForEach(limit, callback)`**
+#### **`query.ForEach(callback), query.ForEach(limit, callback)`**
 
 Alias: `query.Map`
 
