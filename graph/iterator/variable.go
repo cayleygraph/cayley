@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/codelingo/cayley/graph"
-	"github.com/codelingo/cayley/quad"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 // A Variable iterator consists of a reference to a variable containing a changing value,

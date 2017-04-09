@@ -101,24 +101,6 @@ func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
 	}
 }
 
-// func StartPathBindVar(qs graph.QuadStore, bv graph.VarBinder) *Path {
-// 	return &Path{
-// 		stack: []morphism{
-// 			bindVarMorphism(bv),
-// 		},
-// 		qs: qs,
-// 	}
-// }
-
-// func StartPathUseVar(qs graph.QuadStore, bv graph.VarBinder) *Path {
-// 	return &Path{
-// 		stack: []morphism{
-// 			useVarMorphism(bv),
-// 		},
-// 		qs: qs,
-// 	}
-// }
-
 func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 	return &Path{
 		stack: []morphism{
@@ -441,20 +423,6 @@ func (p *Path) HasVar(via interface{}, variable interface{}) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, hasVarMorphism(via, variable))
 	return np
-}
-
-// HasRegex limits the paths to be ones where the current nodes have some linkage
-// to a node satisfying a regular expression.
-func (p *Path) HasRegex(via interface{}, pattern string) *Path {
-	p.stack = append(p.stack, hasRegexMorphism(via, pattern))
-	return p
-}
-
-// HasComparison limits the paths to be ones where the current nodes have some linkage
-// to a node satisfying a numeric comparison.
-func (p *Path) HasComparison(via interface{}, operator string, number float64) *Path {
-	p.stack = append(p.stack, hasComparisonMorphism(via, operator, number))
-	return p
 }
 
 // HasReverse limits the paths to be ones where some known node have some linkage
