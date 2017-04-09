@@ -552,6 +552,9 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 					assert.Equal(t, pq, qs.NameOf(qs.ValueOf(quad.Raw(pq.String()))), "Failed to exchange raw value %q (%T)", pq, pq)
 				}
 			}
+			// check if we can get received value again (hash roundtrip)
+			got2 := qs.NameOf(qs.ValueOf(got))
+			assert.Equal(t, got, got2, "Failed to use returned value to get it again")
 		} else {
 			assert.Equal(t, quad.StringOf(pq), quad.StringOf(got), "Failed to roundtrip raw %q (%T)", pq, pq)
 		}
