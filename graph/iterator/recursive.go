@@ -196,7 +196,7 @@ func (it *Recursive) getBaseValue(val graph.Value) graph.Value {
 	return at.val
 }
 
-func (it *Recursive) Contains(val graph.Value) bool {
+func (it *Recursive) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.pathIndex = 0
 	key := graph.ToKey(val)

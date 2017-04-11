@@ -70,8 +70,8 @@ func (it *Skip) Result() graph.Value {
 	return it.primaryIt.Result()
 }
 
-func (it *Skip) Contains(val graph.Value) bool {
-	return it.primaryIt.Contains(val) // FIXME(dennwc): will not skip anything in this case
+func (it *Skip) Contains(ctx *graph.IterationContext, val graph.Value) bool {
+	return it.primaryIt.Contains(ctx, val) // FIXME(dennwc): will not skip anything in this case
 }
 
 // NextPath checks whether there is another path. It will skip first paths

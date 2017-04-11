@@ -143,7 +143,7 @@ func (it *HasA) Describe() graph.Description {
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "quads that have `val` in our direction", given to us by the quad store,
 // and then Next() values out of that iterator and Contains() them against our subiterator.
-func (it *HasA) Contains(val graph.Value) bool {
+func (it *HasA) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	if clog.V(4) {
@@ -154,7 +154,7 @@ func (it *HasA) Contains(val graph.Value) bool {
 		it.resultIt.Close()
 	}
 	it.resultIt = it.qs.QuadIterator(it.dir, val)
-	ok := it.NextContains()
+	ok := it.NextContains(ctx)
 	if it.err != nil {
 		return false
 	}
@@ -164,7 +164,7 @@ func (it *HasA) Contains(val graph.Value) bool {
 // NextContains() is shared code between Contains() and GetNextResult() -- calls next on the
 // result iterator (a quad iterator based on the last checked value) and returns true if
 // another match is made.
-func (it *HasA) NextContains() bool {
+func (it *HasA) NextContains(ctx *graph.IterationContext) bool {
 	if it.resultIt == nil {
 		return false
 	}
@@ -174,7 +174,7 @@ func (it *HasA) NextContains() bool {
 		if clog.V(4) {
 			clog.Infof("Quad is %v", it.qs.Quad(link))
 		}
-		if it.primaryIt.Contains(link) {
+		if it.primaryIt.Contains(ctx, link) {
 			it.result = it.qs.QuadDirection(link, it.dir)
 			return true
 		}

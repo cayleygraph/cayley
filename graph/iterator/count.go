@@ -87,7 +87,7 @@ func (it *Count) Result() graph.Value {
 	return graph.PreFetched(it.result)
 }
 
-func (it *Count) Contains(val graph.Value) bool {
+func (it *Count) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	if !it.done {
 		it.Next(nil)
 	}

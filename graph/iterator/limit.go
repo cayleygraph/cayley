@@ -69,8 +69,8 @@ func (it *Limit) Result() graph.Value {
 	return it.primaryIt.Result()
 }
 
-func (it *Limit) Contains(val graph.Value) bool {
-	return it.primaryIt.Contains(val) // FIXME(dennwc): limit is ignored in this case
+func (it *Limit) Contains(ctx *graph.IterationContext, val graph.Value) bool {
+	return it.primaryIt.Contains(ctx, val) // FIXME(dennwc): limit is ignored in this case
 }
 
 // NextPath checks whether there is another path. Will call primary iterator

@@ -95,11 +95,11 @@ func (it *Not) Result() graph.Value {
 // Contains checks whether the passed value is part of the primary iterator's
 // complement. For a valid value, it updates the Result returned by the iterator
 // to the value itself.
-func (it *Not) Contains(val graph.Value) bool {
+func (it *Not) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 
-	if it.primaryIt.Contains(val) {
+	if it.primaryIt.Contains(ctx, val) {
 		return graph.ContainsLogOut(it, val, false)
 	}
 

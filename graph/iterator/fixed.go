@@ -121,8 +121,8 @@ func (it *Fixed) Describe() graph.Description {
 // Register this iterator as a Fixed iterator.
 func (it *Fixed) Type() graph.Type { return graph.Fixed }
 
-// Check if the passed value is equal to one of the values stored in the iterator.
-func (it *Fixed) Contains(v graph.Value) bool {
+// Contains checks if the passed value is equal to one of the values stored in the iterator.
+func (it *Fixed) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.

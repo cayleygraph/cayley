@@ -226,7 +226,7 @@ func (it *Materialize) Err() error {
 	return it.err
 }
 
-func (it *Materialize) Contains(v graph.Value) bool {
+func (it *Materialize) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	it.runstats.Contains += 1
 	if !it.hasRun {
@@ -236,7 +236,7 @@ func (it *Materialize) Contains(v graph.Value) bool {
 		return false
 	}
 	if it.aborted {
-		return it.subIt.Contains(v)
+		return it.subIt.Contains(ctx, v)
 	}
 	key := graph.ToKey(v)
 	if i, ok := it.containsMap[key]; ok {

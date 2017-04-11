@@ -111,11 +111,11 @@ func (it *LinksTo) Describe() graph.Description {
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
-func (it *LinksTo) Contains(val graph.Value) bool {
+func (it *LinksTo) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	node := it.qs.QuadDirection(val, it.dir)
-	if it.primaryIt.Contains(node) {
+	if it.primaryIt.Contains(ctx, node) {
 		it.result = val
 		return graph.ContainsLogOut(it, val, true)
 	}

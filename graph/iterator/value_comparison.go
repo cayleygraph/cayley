@@ -231,11 +231,11 @@ func (it *Comparison) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.subIt}
 }
 
-func (it *Comparison) Contains(val graph.Value) bool {
+func (it *Comparison) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	if !it.doComparison(val) {
 		return false
 	}
-	ok := it.subIt.Contains(val)
+	ok := it.subIt.Contains(ctx, val)
 	if !ok {
 		it.err = it.subIt.Err()
 	}

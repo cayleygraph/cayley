@@ -146,7 +146,7 @@ func (it *And) Next(ctx *graph.IterationContext) bool {
 	it.runstats.Next += 1
 	for it.primaryIt.Next(ctx) {
 		curr := it.primaryIt.Result()
-		if it.subItsContain(curr, nil) {
+		if it.subItsContain(ctx, curr, nil) {
 			it.result = curr
 			return graph.NextLogOut(it, true)
 		}
@@ -164,14 +164,14 @@ func (it *And) Result() graph.Value {
 }
 
 // Checks a value against the non-primary iterators, in order.
-func (it *And) subItsContain(val graph.Value, lastResult graph.Value) bool {
+func (it *And) subItsContain(ctx *graph.IterationContext, val graph.Value, lastResult graph.Value) bool {
 	var subIsGood = true
 	for i, sub := range it.internalIterators {
-		subIsGood = sub.Contains(val)
+		subIsGood = sub.Contains(ctx, val)
 		if !subIsGood {
 			if lastResult != nil {
 				for j := 0; j < i; j++ {
-					it.internalIterators[j].Contains(lastResult)
+					it.internalIterators[j].Contains(ctx, lastResult)
 				}
 			}
 			break
@@ -180,10 +180,10 @@ func (it *And) subItsContain(val graph.Value, lastResult graph.Value) bool {
 	return subIsGood
 }
 
-func (it *And) checkContainsList(val graph.Value, lastResult graph.Value) bool {
+func (it *And) checkContainsList(ctx *graph.IterationContext, val graph.Value, lastResult graph.Value) bool {
 	ok := true
 	for i, c := range it.checkList {
-		ok = c.Contains(val)
+		ok = c.Contains(ctx, val)
 		if !ok {
 			it.err = c.Err()
 			if it.err != nil {
@@ -199,7 +199,7 @@ func (it *And) checkContainsList(val graph.Value, lastResult graph.Value) bool {
 					// seeking back exactly one -- so we check all the prior iterators
 					// with the (already verified) result and throw away the result,
 					// which will be 'true'
-					it.checkList[j].Contains(lastResult)
+					it.checkList[j].Contains(ctx, lastResult)
 
 					it.err = it.checkList[j].Err()
 					if it.err != nil {
@@ -217,23 +217,23 @@ func (it *And) checkContainsList(val graph.Value, lastResult graph.Value) bool {
 }
 
 // Check a value against the entire iterator, in order.
-func (it *And) Contains(val graph.Value) bool {
+func (it *And) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	lastResult := it.result
 	if it.checkList != nil {
-		return it.checkContainsList(val, lastResult)
+		return it.checkContainsList(ctx, val, lastResult)
 	}
-	mainGood := it.primaryIt.Contains(val)
+	mainGood := it.primaryIt.Contains(ctx, val)
 	if mainGood {
-		othersGood := it.subItsContain(val, lastResult)
+		othersGood := it.subItsContain(ctx, val, lastResult)
 		if othersGood {
 			it.result = val
 			return graph.ContainsLogOut(it, val, true)
 		}
 	}
 	if lastResult != nil {
-		it.primaryIt.Contains(lastResult)
+		it.primaryIt.Contains(ctx, lastResult)
 	}
 	return graph.ContainsLogOut(it, val, false)
 }

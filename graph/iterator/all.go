@@ -159,7 +159,7 @@ func valToInt64(v graph.Value) int64 {
 
 // Contains() for an Int64 is merely seeing if the passed value is
 // within the range, assuming the value is an int64.
-func (it *Int64) Contains(tsv graph.Value) bool {
+func (it *Int64) Contains(ctx *graph.IterationContext, tsv graph.Value) bool {
 	graph.ContainsLogIn(it, tsv)
 	it.runstats.Contains += 1
 	v := valToInt64(tsv)

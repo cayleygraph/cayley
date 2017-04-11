@@ -93,10 +93,10 @@ func (it *Unique) Result() graph.Value {
 
 // Contains checks whether the passed value is part of the primary iterator,
 // which is irrelevant for uniqueness.
-func (it *Unique) Contains(val graph.Value) bool {
+func (it *Unique) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
-	return graph.ContainsLogOut(it, val, it.subIt.Contains(val))
+	return graph.ContainsLogOut(it, val, it.subIt.Contains(ctx, val))
 }
 
 // NextPath for unique always returns false. If we were to return multiple
