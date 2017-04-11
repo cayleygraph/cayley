@@ -49,14 +49,14 @@ func (it *Skip) SubIterators() []graph.Iterator {
 
 // Next advances the Skip iterator. It will skip all initial values
 // before returning actual result.
-func (it *Skip) Next() bool {
+func (it *Skip) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	for ; it.skipped < it.skip; it.skipped++ {
-		if !it.primaryIt.Next() {
+		if !it.primaryIt.Next(ctx) {
 			return graph.NextLogOut(it, false)
 		}
 	}
-	if it.primaryIt.Next() {
+	if it.primaryIt.Next(ctx) {
 		return graph.NextLogOut(it, true)
 	}
 	return graph.NextLogOut(it, false)

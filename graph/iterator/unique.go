@@ -66,11 +66,11 @@ func (it *Unique) SubIterators() []graph.Iterator {
 
 // Next advances the subiterator, continuing until it returns a value which it
 // has not previously seen.
-func (it *Unique) Next() bool {
+func (it *Unique) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for it.subIt.Next() {
+	for it.subIt.Next(ctx) {
 		curr := it.subIt.Result()
 		key := graph.ToKey(curr)
 		if ok := it.seen[key]; !ok {

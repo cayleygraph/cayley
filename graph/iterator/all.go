@@ -104,7 +104,7 @@ func (it *Int64) Describe() graph.Description {
 
 // Next() on an Int64 all iterator is a simple incrementing counter.
 // Return the next integer, and mark it as the result.
-func (it *Int64) Next() bool {
+func (it *Int64) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	if it.at == -1 {

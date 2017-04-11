@@ -92,7 +92,7 @@ type Iterator interface {
 	// the Result method. It returns false if no further advancement is possible, or if an
 	// error was encountered during iteration.  Err should be consulted to distinguish
 	// between the two cases.
-	Next() bool
+	Next(*IterationContext) bool
 
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
@@ -115,7 +115,7 @@ type Iterator interface {
 	NextPath() bool
 
 	// Contains returns whether the value is within the set held by the iterator.
-	Contains(Value) bool
+	Contains(*IterationContext, Value) bool
 
 	// Err returns any error that was encountered by the Iterator.
 	Err() error
@@ -201,6 +201,22 @@ func Height(it Iterator, until Type) int {
 		}
 	}
 	return maxDepth + 1
+}
+
+// IterationContext keeps state for a given iteration.  Currently it stores the values of variables.
+type IterationContext struct {
+	values map[string]Value
+}
+
+// GetValue gets the value of the variable of name key
+func (c *IterationContext) GetValue(key string) Value {
+	// TODO(BlakeMScurr) Mutex
+	return c.values[key]
+}
+
+// SetValue sets the value of the variable of name key
+func (c *IterationContext) SetValue(key string, val Value) {
+	c.values[key] = val
 }
 
 // FixedIterator wraps iterators that are modifiable by addition of fixed value sets.

@@ -49,12 +49,12 @@ func (it *Limit) SubIterators() []graph.Iterator {
 }
 
 // Next advances the Limit iterator. It will stop iteration if limit was reached.
-func (it *Limit) Next() bool {
+func (it *Limit) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	if it.limit > 0 && it.count >= it.limit {
 		return graph.NextLogOut(it, false)
 	}
-	if it.primaryIt.Next() {
+	if it.primaryIt.Next(ctx) {
 		it.count++
 		return graph.NextLogOut(it, true)
 	}

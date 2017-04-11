@@ -65,7 +65,7 @@ func (it *AllIterator) ok(p *primitive) bool {
 	return false
 }
 
-func (it *AllIterator) Next() bool {
+func (it *AllIterator) Next(ctx *graph.IterationContext) bool {
 	it.cur = nil
 	if it.done {
 		return false

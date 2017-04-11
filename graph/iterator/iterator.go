@@ -89,7 +89,7 @@ func (it *Null) Describe() graph.Description {
 	}
 }
 
-func (it *Null) Next() bool {
+func (it *Null) Next(ctx *graph.IterationContext) bool {
 	return false
 }
 

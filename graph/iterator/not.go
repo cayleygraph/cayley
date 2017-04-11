@@ -69,11 +69,11 @@ func (it *Not) SubIterators() []graph.Iterator {
 // Next advances the Not iterator. It returns whether there is another valid
 // new value. It fetches the next value of the all iterator which is not
 // contained by the primary iterator.
-func (it *Not) Next() bool {
+func (it *Not) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for it.allIt.Next() {
+	for it.allIt.Next(ctx) {
 		if curr := it.allIt.Result(); !it.primaryIt.Contains(curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1

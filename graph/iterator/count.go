@@ -60,13 +60,13 @@ func (it *Count) SubIterators() []graph.Iterator {
 }
 
 // Next counts a number of results in underlying iterator.
-func (it *Count) Next() bool {
+func (it *Count) Next(ctx *graph.IterationContext) bool {
 	if it.done {
 		return false
 	}
 	size, exact := it.it.Size()
 	if !exact {
-		for size = 0; it.it.Next(); size++ {
+		for size = 0; it.it.Next(ctx); size++ {
 			for ; it.it.NextPath(); size++ {
 			}
 		}
@@ -89,7 +89,7 @@ func (it *Count) Result() graph.Value {
 
 func (it *Count) Contains(val graph.Value) bool {
 	if !it.done {
-		it.Next()
+		it.Next(nil)
 	}
 	if v, ok := val.(graph.PreFetchedValue); ok {
 		return v.NameOf() == it.result

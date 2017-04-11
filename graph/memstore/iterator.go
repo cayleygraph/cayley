@@ -84,7 +84,7 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Next() bool {
+func (it *Iterator) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	if it.iter == nil {
 		it.iter, it.err = it.tree.SeekFirst()
@@ -96,7 +96,7 @@ func (it *Iterator) Next() bool {
 		}
 	}
 	for {
-		_, p, err := it.iter.Next()
+		_, p, err := it.iter.Next(ctx)
 		if err != nil {
 			if err != io.EOF {
 				it.err = err

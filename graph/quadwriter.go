@@ -296,7 +296,7 @@ type quadReader struct {
 }
 
 func (r *quadReader) ReadQuad() (quad.Quad, error) {
-	if r.it.Next() {
+	if r.it.Next(nil) {
 		return r.qs.Quad(r.it.Result()), nil
 	}
 	err := r.it.Err()
@@ -306,7 +306,7 @@ func (r *quadReader) ReadQuad() (quad.Quad, error) {
 	return quad.Quad{}, err
 }
 func (r *quadReader) SkipQuad() error {
-	if r.it.Next() {
+	if r.it.Next(nil) {
 		return nil
 	}
 	if err := r.it.Err(); err != nil {

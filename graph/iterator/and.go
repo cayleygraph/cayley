@@ -141,10 +141,10 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 // subiterators, it must choose one subiterator to produce a candidate, and check
 // this value against the subiterators. A productive choice of primary iterator
 // is therefore very important.
-func (it *And) Next() bool {
+func (it *And) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
-	for it.primaryIt.Next() {
+	for it.primaryIt.Next(ctx) {
 		curr := it.primaryIt.Result()
 		if it.subItsContain(curr, nil) {
 			it.result = curr

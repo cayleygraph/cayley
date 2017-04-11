@@ -126,7 +126,7 @@ func (it *Or) AddSubIterator(sub graph.Iterator) {
 // Next advances the Or graph.iterator. Because the Or is the union of its
 // subiterators, it must produce from all subiterators -- unless it it
 // shortcircuiting, in which case, it is the first one that returns anything.
-func (it *Or) Next() bool {
+func (it *Or) Next(ctx *graph.IterationContext) bool {
 	if it.currentIterator >= len(it.internalIterators) {
 		return false
 	}
@@ -139,7 +139,7 @@ func (it *Or) Next() bool {
 		}
 		curIt := it.internalIterators[it.currentIterator]
 
-		if curIt.Next() {
+		if curIt.Next(ctx) {
 			it.result = curIt.Result()
 			return graph.NextLogOut(it, true)
 		}

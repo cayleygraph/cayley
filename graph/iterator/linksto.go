@@ -150,11 +150,11 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 }
 
 // Next()ing a LinksTo operates as described above.
-func (it *LinksTo) Next() bool {
+func (it *LinksTo) Next(ctx *graph.IterationContext) bool {
 	for {
 		graph.NextLogIn(it)
 		it.runstats.Next += 1
-		if it.nextIt.Next() {
+		if it.nextIt.Next(ctx) {
 			it.runstats.ContainsNext += 1
 			it.result = it.nextIt.Result()
 			return graph.NextLogOut(it, true)
@@ -167,7 +167,7 @@ func (it *LinksTo) Next() bool {
 		}
 
 		// Subiterator is empty, get another one
-		if !it.primaryIt.Next() {
+		if !it.primaryIt.Next(ctx) {
 			// Possibly save error
 			it.err = it.primaryIt.Err()
 

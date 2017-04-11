@@ -82,7 +82,7 @@ func (it *Optional) Result() graph.Value {
 }
 
 // Optional iterator cannot be Next()'ed.
-func (it *Optional) Next() bool {
+func (it *Optional) Next(ctx *graph.IterationContext) bool {
 	clog.Errorf("Nexting an un-nextable iterator: %T", it)
 	return false
 }

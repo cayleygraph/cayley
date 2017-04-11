@@ -109,8 +109,8 @@ func (it *Regex) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Regex) Next() bool {
-	for it.subIt.Next() {
+func (it *Regex) Next(ctx *graph.IterationContext) bool {
+	for it.subIt.Next(ctx) {
 		val := it.subIt.Result()
 		if it.testRegex(val) {
 			it.result = val

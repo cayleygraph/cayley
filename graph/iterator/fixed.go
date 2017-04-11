@@ -137,7 +137,7 @@ func (it *Fixed) Contains(v graph.Value) bool {
 }
 
 // Next advances the iterator.
-func (it *Fixed) Next() bool {
+func (it *Fixed) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	if it.lastIndex == len(it.values) {
 		return graph.NextLogOut(it, false)

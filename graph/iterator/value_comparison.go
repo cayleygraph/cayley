@@ -192,8 +192,8 @@ func (it *Comparison) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Comparison) Next() bool {
-	for it.subIt.Next() {
+func (it *Comparison) Next(ctx *graph.IterationContext) bool {
+	for it.subIt.Next(ctx) {
 		val := it.subIt.Result()
 		if it.doComparison(val) {
 			it.result = val
