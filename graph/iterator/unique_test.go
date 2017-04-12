@@ -27,7 +27,7 @@ func TestUniqueIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{1, 2, 3} {
-		if !u.Contains(Int64Node(v)) {
+		if !u.Contains(nil, Int64Node(v)) {
 			t.Errorf("Failed to find a correct value in the unique iterator.")
 		}
 	}

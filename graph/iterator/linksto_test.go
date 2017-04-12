@@ -35,7 +35,7 @@ func TestLinksTo(t *testing.T) {
 	}
 	fixed.Add(val)
 	lto := NewLinksTo(qs, fixed, quad.Object)
-	if !lto.Next() {
+	if !lto.Next(nil) {
 		t.Error("At least one quad matches the fixed object")
 	}
 	val = lto.Result()

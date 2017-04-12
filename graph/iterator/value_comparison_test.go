@@ -143,7 +143,7 @@ func TestValueComparison(t *testing.T) {
 		vc := NewComparison(test.iterator(), test.operator, test.operand, qs)
 
 		var got []quad.Value
-		for vc.Next() {
+		for vc.Next(nil) {
 			got = append(got, qs.NameOf(vc.Result()))
 		}
 		if !reflect.DeepEqual(got, test.expect) {
@@ -229,7 +229,7 @@ var vciContainsTests = []struct {
 func TestVCIContains(t *testing.T) {
 	for _, test := range vciContainsTests {
 		vc := NewComparison(test.iterator(), test.operator, test.val, test.qs)
-		if vc.Contains(test.check) != test.expect {
+		if vc.Contains(nil, test.check) != test.expect {
 			t.Errorf("Failed to show %s", test.message)
 		}
 	}
@@ -259,7 +259,7 @@ func TestComparisonIteratorErr(t *testing.T) {
 	for _, test := range comparisonIteratorTests {
 		vc := NewComparison(errIt, CompareLT, test.val, test.qs)
 
-		if vc.Next() != false {
+		if vc.Next(nil) != false {
 			t.Errorf("Comparison iterator did not pass through initial 'false': %s", test.message)
 		}
 		if vc.Err() != wantErr {

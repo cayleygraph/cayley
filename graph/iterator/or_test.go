@@ -25,7 +25,7 @@ import (
 
 func iterated(it graph.Iterator) []int {
 	var res []int
-	for it.Next() {
+	for it.Next(nil) {
 		res = append(res, int(it.Result().(Int64Node)))
 	}
 	return res
@@ -66,13 +66,13 @@ func TestOrIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{2, 3, 21} {
-		if !or.Contains(Int64Node(v)) {
+		if !or.Contains(nil, Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as true", v)
 		}
 	}
 
 	for _, v := range []int{22, 5, 0} {
-		if or.Contains(Int64Node(v)) {
+		if or.Contains(nil, Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as false", v)
 		}
 	}
@@ -127,12 +127,12 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
 	for _, v := range []int{2, 3, 21} {
-		if !or.Contains(Int64Node(v)) {
+		if !or.Contains(nil, Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as true", v)
 		}
 	}
 	for _, v := range []int{22, 5, 0} {
-		if or.Contains(Int64Node(v)) {
+		if or.Contains(nil, Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as false", v)
 		}
 	}
@@ -167,14 +167,14 @@ func TestOrIteratorErr(t *testing.T) {
 		NewInt64(1, 5, true),
 	)
 
-	if !or.Next() {
+	if !or.Next(nil) {
 		t.Errorf("Failed to iterate Or correctly")
 	}
 	if got := or.Result(); got.(Int64Node) != 1 {
 		t.Errorf("Failed to iterate Or correctly, got:%v expect:1", got)
 	}
 
-	if or.Next() != false {
+	if or.Next(nil) != false {
 		t.Errorf("Or iterator did not pass through underlying 'false'")
 	}
 	if or.Err() != wantErr {
@@ -191,7 +191,7 @@ func TestShortCircuitOrIteratorErr(t *testing.T) {
 		NewInt64(1, 5, true),
 	)
 
-	if or.Next() != false {
+	if or.Next(nil) != false {
 		t.Errorf("Or iterator did not pass through underlying 'false'")
 	}
 	if or.Err() != wantErr {

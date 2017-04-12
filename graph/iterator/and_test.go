@@ -41,7 +41,7 @@ func TestTag(t *testing.T) {
 		t.Errorf("Cannot get tag back, got %s", out[0])
 	}
 
-	if !and.Next() {
+	if !and.Next(nil) {
 		t.Errorf("And did not next")
 	}
 	val := and.Result()
@@ -85,22 +85,22 @@ func TestAndAndFixedIterators(t *testing.T) {
 		t.Error("not accurate")
 	}
 
-	if !and.Next() || and.Result().(Int64Node) != 3 {
+	if !and.Next(nil) || and.Result().(Int64Node) != 3 {
 		t.Error("Incorrect first value")
 	}
 
-	if !and.Next() || and.Result().(Int64Node) != 4 {
+	if !and.Next(nil) || and.Result().(Int64Node) != 4 {
 		t.Error("Incorrect second value")
 	}
 
-	if and.Next() {
+	if and.Next(nil) {
 		t.Error("Too many values")
 	}
 
 }
 
 // If there's no intersection, the size should still report the same,
-// but there should be nothing to Next()
+// but there should be nothing to Next(nil)
 func TestNonOverlappingFixedIterators(t *testing.T) {
 	qs := &graphmock.Oldstore{
 		Data: []string{},
@@ -127,7 +127,7 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 		t.Error("not accurate")
 	}
 
-	if and.Next() {
+	if and.Next(nil) {
 		t.Error("Too many values")
 	}
 
@@ -142,15 +142,15 @@ func TestAllIterators(t *testing.T) {
 	all2 := NewInt64(4, 10, true)
 	and := NewAnd(qs, all2, all1)
 
-	if !and.Next() || and.Result().(Int64Node) != Int64Node(4) {
+	if !and.Next(nil) || and.Result().(Int64Node) != Int64Node(4) {
 		t.Error("Incorrect first value")
 	}
 
-	if !and.Next() || and.Result().(Int64Node) != Int64Node(5) {
+	if !and.Next(nil) || and.Result().(Int64Node) != Int64Node(5) {
 		t.Error("Incorrect second value")
 	}
 
-	if and.Next() {
+	if and.Next(nil) {
 		t.Error("Too many values")
 	}
 }
@@ -168,7 +168,7 @@ func TestAndIteratorErr(t *testing.T) {
 		NewInt64(1, 5, true),
 	)
 
-	if and.Next() != false {
+	if and.Next(nil) != false {
 		t.Errorf("And iterator did not pass through initial 'false'")
 	}
 	if and.Err() != wantErr {

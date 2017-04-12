@@ -29,7 +29,7 @@ func TestHasAIteratorErr(t *testing.T) {
 	// TODO(andrew-d): pass a non-nil quadstore
 	hasa := NewHasA(nil, errIt, quad.Subject)
 
-	if hasa.Next() != false {
+	if hasa.Next(nil) != false {
 		t.Errorf("HasA iterator did not pass through initial 'false'")
 	}
 	if hasa.Err() != wantErr {

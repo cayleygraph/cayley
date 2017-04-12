@@ -29,7 +29,7 @@ func TestMaterializeIteratorError(t *testing.T) {
 	// underlying iterator returns an error.
 	mIt := NewMaterialize(errIt)
 
-	if mIt.Next() != false {
+	if mIt.Next(nil) != false {
 		t.Errorf("Materialize iterator did not pass through underlying 'false'")
 	}
 	if mIt.Err() != wantErr {
@@ -53,7 +53,7 @@ func TestMaterializeIteratorErrorAbort(t *testing.T) {
 
 	// We should get all the underlying values...
 	for i := 0; i < MaterializeLimit+1; i++ {
-		if !mIt.Next() {
+		if !mIt.Next(nil) {
 			t.Errorf("Materialize iterator returned spurious 'false' on iteration %d", i)
 			return
 		}
@@ -64,7 +64,7 @@ func TestMaterializeIteratorErrorAbort(t *testing.T) {
 	}
 
 	// ... and then the error value.
-	if mIt.Next() != false {
+	if mIt.Next(nil) != false {
 		t.Errorf("Materialize iterator did not pass through underlying 'false'")
 	}
 	if mIt.Err() != wantErr {

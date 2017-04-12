@@ -36,13 +36,13 @@ func TestNotIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{1, 3} {
-		if !not.Contains(Int64Node(v)) {
+		if !not.Contains(nil, Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as true", v)
 		}
 	}
 
 	for _, v := range []int{2, 4} {
-		if not.Contains(Int64Node(v)) {
+		if not.Contains(nil, Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as false", v)
 		}
 	}
@@ -56,7 +56,7 @@ func TestNotIteratorErr(t *testing.T) {
 
 	not := NewNot(toComplementIt, allIt)
 
-	if not.Next() != false {
+	if not.Next(nil) != false {
 		t.Errorf("Not iterator did not pass through initial 'false'")
 	}
 	if not.Err() != wantErr {

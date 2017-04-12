@@ -58,7 +58,7 @@ func TestRecursiveNext(t *testing.T) {
 	expected := []string{"bob", "charlie", "dani", "emily"}
 
 	var got []string
-	for r.Next() {
+	for r.Next(nil) {
 		got = append(got, qs.NameOf(r.Result()).String())
 	}
 	sort.Strings(expected)
@@ -77,7 +77,7 @@ func TestRecursiveContains(t *testing.T) {
 	expected := []bool{true, true, false}
 
 	for i, v := range values {
-		ok := r.Contains(qs.ValueOf(quad.Raw(v)))
+		ok := r.Contains(nil, qs.ValueOf(quad.Raw(v)))
 		if expected[i] != ok {
 			t.Errorf("Failed to %s, value: %s, got: %v, expected: %v", "check basic recursive contains", v, ok, expected[i])
 		}
@@ -98,7 +98,7 @@ func TestRecursiveNextPath(t *testing.T) {
 
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string
-	for r.Next() {
+	for r.Next(nil) {
 		res := make(map[string]graph.Value)
 		r.TagResults(res)
 		got = append(got, qs.NameOf(res["person"]).String())
