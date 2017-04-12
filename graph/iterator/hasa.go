@@ -202,7 +202,7 @@ func (it *HasA) NextPath() bool {
 		return false
 	}
 
-	result := it.NextContains() // Sets it.err if there's an error
+	result := it.NextContains(nil) // Sets it.err if there's an error
 	if it.err != nil {
 		return false
 	}

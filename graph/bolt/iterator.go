@@ -105,7 +105,7 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Next() bool {
+func (it *Iterator) Next(ctx *graph.IterationContext) bool {
 	if it.done {
 		return false
 	}
@@ -250,7 +250,7 @@ func PositionOf(tok *Token, d quad.Direction, qs *QuadStore) int {
 	panic("unreachable")
 }
 
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *Iterator) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	val := v.(*Token)
 	if bytes.Equal(val.bucket, nodeBucket) {
 		return false

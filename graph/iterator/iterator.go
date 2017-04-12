@@ -69,7 +69,7 @@ func (it *Null) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Null) Contains(ctx *graph.IterationContext, graph.Value) bool {
+func (it *Null) Contains(*graph.IterationContext, graph.Value) bool {
 	return false
 }
 

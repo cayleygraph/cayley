@@ -74,7 +74,7 @@ func (it *Not) Next(ctx *graph.IterationContext) bool {
 	it.runstats.Next += 1
 
 	for it.allIt.Next(ctx) {
-		if curr := it.allIt.Result(); !it.primaryIt.Contains(curr) {
+		if curr := it.allIt.Result(); !it.primaryIt.Contains(ctx, curr) {
 			it.result = curr
 			it.runstats.ContainsNext += 1
 			return graph.NextLogOut(it, true)

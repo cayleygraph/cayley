@@ -37,7 +37,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
-			if !primary.Next() {
+			if !primary.Next(nil) {
 				panic("unexpected size during optimize")
 			}
 			val := primary.Result()

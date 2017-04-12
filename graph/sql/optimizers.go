@@ -170,7 +170,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			return iterator.NewNull(), true
 		}
 		if size == 1 {
-			if !primary.Next() {
+			if !primary.Next(nil) {
 				panic("sql: unexpected size during optimize")
 			}
 			val := primary.Result()
@@ -184,7 +184,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			return newIt, true
 		} else if size > 1 {
 			var vals []NodeHash
-			for primary.Next() {
+			for primary.Next(nil) {
 				vals = append(vals, primary.Result().(NodeHash))
 			}
 			lsql := &SQLLinkIterator{
@@ -286,7 +286,7 @@ func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 				continue
 			}
 			changed = true
-			for subit.Next() {
+			for subit.Next(nil) {
 				nodeit.fixedSet = append(nodeit.fixedSet, qs.NameOf(subit.Result()))
 			}
 		}

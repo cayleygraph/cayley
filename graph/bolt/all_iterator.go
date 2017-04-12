@@ -80,7 +80,7 @@ func (it *AllIterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *AllIterator) Next() bool {
+func (it *AllIterator) Next(ctx *graph.IterationContext) bool {
 	if it.done {
 		return false
 	}
@@ -166,7 +166,7 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *AllIterator) Contains(v graph.Value) bool {
+func (it *AllIterator) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	it.result = v.(*Token)
 	return true
 }

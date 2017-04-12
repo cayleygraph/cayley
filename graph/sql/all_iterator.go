@@ -127,7 +127,7 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *AllIterator) Next() bool {
+func (it *AllIterator) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	if it.cursor == nil {
 		it.makeCursor()
@@ -169,7 +169,7 @@ func (it *AllIterator) Next() bool {
 	return graph.NextLogOut(it, true)
 }
 
-func (it *AllIterator) Contains(v graph.Value) bool {
+func (it *AllIterator) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	it.result = v
 	return graph.ContainsLogOut(it, v, true)

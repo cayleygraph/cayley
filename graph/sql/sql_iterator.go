@@ -189,7 +189,7 @@ func (it *SQLIterator) NextPath() bool {
 	return true
 }
 
-func (it *SQLIterator) Next() bool {
+func (it *SQLIterator) Next(ctx *graph.IterationContext) bool {
 	var err error
 	graph.NextLogIn(it)
 	if it.cursor == nil {
@@ -269,7 +269,7 @@ func (it *SQLIterator) Next() bool {
 	return graph.NextLogOut(it, true)
 }
 
-func (it *SQLIterator) Contains(v graph.Value) bool {
+func (it *SQLIterator) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	var err error
 	if ok, res := it.sql.quickContains(v); ok {
 		return res
