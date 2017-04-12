@@ -3,8 +3,8 @@ package iterator
 import (
 	"math"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad"
 )
 
 // Recursive iterator takes a base iterator and a morphism to be applied recursively, for each result.
@@ -206,7 +206,7 @@ func (it *Recursive) Contains(ctx *graph.IterationContext, val graph.Value) bool
 		it.result.val = val
 		return graph.ContainsLogOut(it, val, true)
 	}
-	for it.Next(nil) {
+	for it.Next(ctx) {
 		if graph.ToKey(it.Result()) == key {
 			return graph.ContainsLogOut(it, val, true)
 		}
