@@ -205,18 +205,30 @@ func Height(it Iterator, until Type) int {
 
 // IterationContext keeps state for a given iteration.  Currently it stores the values of variables.
 type IterationContext struct {
-	values map[string]Value
+	values  map[string]Value
+	isBound map[string]bool
 }
 
-// GetValue gets the value of the variable of name key
-func (c *IterationContext) GetValue(key string) Value {
-	// TODO(BlakeMScurr) Mutex
-	return c.values[key]
+// SetValue sets the value of a given variable.
+// TODO(BlakeMScurr) Mutex
+func (c *IterationContext) SetValue(varName string, val Value) {
+	c.values[varName] = val
 }
 
-// SetValue sets the value of the variable of name key
-func (c *IterationContext) SetValue(key string, val Value) {
-	c.values[key] = val
+// BindVariable binds a variable if it has not already been bound.
+// TODO(BlakeMScurr) Mutex
+func (c *IterationContext) BindVariable(varName string) bool {
+	if c.isBound[varName] {
+		return false
+	}
+	c.isBound[varName] = true
+	return true
+}
+
+// CurrentValue gets the value of the variable of name varName
+// TODO(BlakeMScurr) Mutex
+func (c *IterationContext) CurrentValue(varName string) Value {
+	return c.values[varName]
 }
 
 // FixedIterator wraps iterators that are modifiable by addition of fixed value sets.
@@ -258,6 +270,7 @@ const (
 	Regex       = Type("regexp")
 	Count       = Type("count")
 	Recursive   = Type("recursive")
+	Variable    = Type("variable")
 )
 
 // String returns a string representation of the Type.
