@@ -209,6 +209,13 @@ type IterationContext struct {
 	isBound map[string]bool
 }
 
+func NewIterationContext() *IterationContext {
+	return &IterationContext{
+		values:  map[string]Value{},
+		isBound: map[string]bool{},
+	}
+}
+
 // SetValue sets the value of a given variable.
 // TODO(BlakeMScurr) Mutex
 func (c *IterationContext) SetValue(varName string, val Value) {
@@ -218,7 +225,7 @@ func (c *IterationContext) SetValue(varName string, val Value) {
 // BindVariable binds a variable if it has not already been bound.
 // TODO(BlakeMScurr) Mutex
 func (c *IterationContext) BindVariable(varName string) bool {
-	if c.isBound[varName] {
+	if val, ok := c.isBound[varName]; ok && val {
 		return false
 	}
 	c.isBound[varName] = true

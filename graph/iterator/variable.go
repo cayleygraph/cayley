@@ -30,24 +30,21 @@ import (
 // A Variable iterator consists of it's values, an index (where it is in the process of Next()ing) and
 // an equality function.
 type Variable struct {
-	uid        uint64
-	tags       graph.Tagger
-	values     []graph.Value
-	varName    string
-	lastIndex  int
-	subIt      graph.Iterator
-	cmp        Equality
-	result     graph.Value
-	lastResult graph.Value
-	isBinder   bool
-	qs         graph.QuadStore
+	uid       uint64
+	tags      graph.Tagger
+	values    []graph.Value
+	varName   string
+	lastIndex int
+	subIt     graph.Iterator
+	result    graph.Value
+	isBinder  bool
+	qs        graph.QuadStore
 }
 
 // NewVariable creates a new Variable iterator with a custom comparator.
-func NewVariable(cmp Equality, qs graph.QuadStore, name string) *Variable {
+func NewVariable(qs graph.QuadStore, name string) *Variable {
 	it := &Variable{
 		uid:     NextUID(),
-		cmp:     cmp,
 		varName: name,
 		qs:      qs,
 	}
@@ -83,7 +80,7 @@ func (it *Variable) TagResults(dst map[string]graph.Value) {
 func (it *Variable) Clone() graph.Iterator {
 	// The cloned variable will just be a user, not a binder, so we don't need to passed
 	// the it.values
-	out := NewVariable(it.cmp, it.qs, it.varName)
+	out := NewVariable(it.qs, it.varName)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -133,10 +130,11 @@ func (it *Variable) Next(ctx *graph.IterationContext) bool {
 	}
 
 	newValue := ctx.CurrentValue(it.varName)
-	if newValue == it.lastResult {
+	if newValue == it.result {
+		it.result = nil
 		return graph.NextLogOut(it, false)
 	}
-	it.lastResult = newValue
+	it.result = newValue
 	return graph.NextLogOut(it, true)
 }
 
