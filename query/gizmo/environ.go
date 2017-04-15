@@ -14,7 +14,7 @@
 
 package gizmo
 
-// Builds a new Gremlin environment pointing at a session.
+// Builds a new Gizmo environment pointing at a session.
 
 import (
 	"fmt"

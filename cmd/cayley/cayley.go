@@ -53,7 +53,6 @@ import (
 	// Load supported query languages
 	_ "github.com/cayleygraph/cayley/query/gizmo"
 	_ "github.com/cayleygraph/cayley/query/graphql"
-	_ "github.com/cayleygraph/cayley/query/gremlin"
 	_ "github.com/cayleygraph/cayley/query/mql"
 	_ "github.com/cayleygraph/cayley/query/sexp"
 )
