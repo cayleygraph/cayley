@@ -61,7 +61,7 @@ var testQueries = []struct {
 	query   string
 	tag     string
 	expect  []string
-	err     bool // TODO(dennwc): define error types for Gremlin and handle them
+	err     bool // TODO(dennwc): define error types for Gizmo and handle them
 }{
 	// Simple query tests.
 	{
@@ -285,7 +285,7 @@ var testQueries = []struct {
 		expect: []string{"<fred>", "<bob>", "<greg>", "<dani>"},
 	},
 
-	// Gremlin Has tests.
+	// Has tests.
 	{
 		message: "show a simple Has",
 		query: `
@@ -308,7 +308,7 @@ var testQueries = []struct {
 		expect: []string{"<bob>"},
 	},
 
-	// Gremlin Skip/Limit tests.
+	// Skip/Limit tests.
 	{
 		message: "use Limit",
 		query: `

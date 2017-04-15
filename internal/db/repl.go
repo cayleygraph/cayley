@@ -73,7 +73,7 @@ func Run(ctx context.Context, qu string, ses query.REPLSession) error {
 }
 
 const (
-	defaultLanguage = "gremlin"
+	defaultLanguage = "gizmo"
 
 	ps1 = "cayley> "
 	ps2 = "...     "

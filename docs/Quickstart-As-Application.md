@@ -62,7 +62,7 @@ Now it's loaded. We can use Cayley now to connect to the graph. As you might hav
 ./cayley repl -c cayley_overview.yml
 ```
 
-Where you'll be given a `cayley>` prompt. It's expecting Gremlin/JS, but that can also be configured with a flag.
+Where you'll be given a `cayley>` prompt. It's expecting Gizmo/JS, but that can also be configured with a flag.
 
 New nodes and links can be added with the following command:
 
@@ -132,8 +132,8 @@ This makes it listen on all interfaces. You can also give it the specific the IP
 Along the side are the various actions or views you can take. From the top, these are:
 
 * Run Query (run the query)
-* Gremlin (a dropdown, to pick your query language, MQL is the other)
-  * [GremlinAPI.md](GremlinAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.
+* Gizmo (a dropdown, to pick your query language, MQL is the other)
+  * [GizmoAPI.md](GizmoAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.
   * [MQL.md](MQL.md): The *other* query language the interfaces support. 
 
 ----
@@ -210,7 +210,7 @@ g.V().Has("<name>", "Casablanca").All()
 ```
 
 
-You may start to notice a pattern here: with Gremlin, the query lines tend to:
+You may start to notice a pattern here: with Gizmo, the query lines tend to:
 
 Start somewhere in the graph | Follow a path | Run the query with "All" or "GetLimit"
 

@@ -64,7 +64,7 @@ func NewReplCmd() *cobra.Command {
 	}
 	langs := query.Languages()
 	cmd.Flags().Bool("init", false, "initialize the database before using it")
-	cmd.Flags().StringP("lang", "l", "gremlin", `query language to use ("`+strings.Join(langs, `", "`)+`")`)
+	cmd.Flags().StringP("lang", "l", "gizmo", `query language to use ("`+strings.Join(langs, `", "`)+`")`)
 	cmd.Flags().DurationP("timeout", "t", 30*time.Second, "elapsed time until an individual query times out")
 	registerLoadFlags(cmd)
 	return cmd
