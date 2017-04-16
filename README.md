@@ -1,3 +1,4 @@
+# Cayley - An open-source graph database
 <p align="center">
   <img src="static/branding/cayley_side.png?raw=true" alt="Cayley" />
 </p>
