@@ -1,7 +1,7 @@
-*.swp
-main
-*.test
 *.peg.go
+*.swp
+*.test
+cayley
 cayley.cfg
 cayley.yml
 cayley.json
