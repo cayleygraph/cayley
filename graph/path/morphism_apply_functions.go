@@ -120,6 +120,8 @@ func hasMorphism(via interface{}, nodes ...quad.Value) morphism {
 			var node shape.Shape
 			if len(nodes) == 0 {
 				node = shape.AllNodes{}
+			} else if v, ok := nodes[0].(graph.Var); ok {
+				node = shape.Variable(v.String())
 			} else {
 				node = shape.Lookup(nodes)
 			}

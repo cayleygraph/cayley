@@ -1,11 +1,12 @@
 package shape
 
 import (
+	"regexp"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
-	"regexp"
 )
 
 // Shape represent a query tree shape.
@@ -1109,4 +1110,14 @@ func (s Optional) Optimize(r Optimizer) (Shape, bool) {
 		return ns, opt || nopt
 	}
 	return s, opt
+}
+
+type Variable string
+
+func (s Variable) BuildIterator(qs graph.QuadStore) graph.Iterator {
+	return iterator.NewVariable(qs, string(s))
+}
+
+func (s Variable) Optimize(r Optimizer) (Shape, bool) {
+	return s, false
 }
