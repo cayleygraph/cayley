@@ -28,7 +28,9 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
   * [LevelDB](https://github.com/google/leveldb)
   * [Bolt](https://github.com/boltdb/bolt)
   * [PostgreSQL](http://www.postgresql.org)
+  * [MySQL](https://www.mysql.com)
   * [MongoDB](https://www.mongodb.org) for distributed stores
+  * [CockroachDB](https://www.cockroachlabs.com)
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
 * Good test coverage
