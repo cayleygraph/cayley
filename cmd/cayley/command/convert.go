@@ -72,8 +72,9 @@ func (r *multiReader) Close() error {
 
 func NewConvertCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "conv",
-		Short: "Convert quad files between supported formats.",
+		Use:     "convert",
+		Aliases: []string{"conv"},
+		Short:   "Convert quad files between supported formats.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dump, _ := cmd.Flags().GetString(flagDump)
 			dumpf, _ := cmd.Flags().GetString(flagDumpFormat)
