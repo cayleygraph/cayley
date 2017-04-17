@@ -21,12 +21,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"flag"
 
 	"github.com/cayleygraph/cayley/cmd/cayley/command"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/cayleygraph/cayley/clog"
+	_ "github.com/cayleygraph/cayley/clog/glog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/version"
@@ -99,6 +101,12 @@ var (
 	}
 )
 
+type pFlag struct {
+	flag.Value
+}
+
+func (pFlag) Type() string { return "string" }
+
 func init() {
 	// set config names and paths
 	viper.SetConfigName("cayley")
@@ -146,6 +154,31 @@ func init() {
 	viper.RegisterAlias("db_path", command.KeyAddress)
 	viper.RegisterAlias("read_only", command.KeyReadOnly)
 	viper.RegisterAlias("db_options", command.KeyOptions)
+
+	{ // re-register standard Go flags to cobra
+		rf := rootCmd.PersistentFlags()
+		flag.CommandLine.VisitAll(func(f *flag.Flag) {
+			switch f.Name {
+			case "v": // glog.v
+				rf.VarP(pFlag{f.Value}, "verbose", "v", f.Usage)
+			case "vmodule": // glog.vmodule
+				rf.Var(pFlag{f.Value}, "vmodule", f.Usage)
+			case "log_backtrace_at": // glog.log_backtrace_at
+				rf.Var(pFlag{f.Value}, "backtrace", f.Usage)
+			case "stderrthreshold": // glog.stderrthreshold
+				rf.VarP(pFlag{f.Value}, "log", "l", f.Usage)
+			case "alsologtostderr": // glog.alsologtostderr
+				f.Value.Set("true")
+			case "logtostderr": // glog.logtostderr
+				rf.Var(pFlag{f.Value}, f.Name, f.Usage)
+			case "log_dir": // glog.log_dir
+				rf.Var(pFlag{f.Value}, "logs", f.Usage)
+			}
+		})
+		// make sure flags parsed flag is set - parse empty args
+		flag.CommandLine = flag.NewFlagSet("", flag.ContinueOnError)
+		flag.CommandLine.Parse([]string{""})
+	}
 }
 
 func main() {
