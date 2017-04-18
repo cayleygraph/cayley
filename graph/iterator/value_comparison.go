@@ -212,9 +212,9 @@ func (it *Comparison) Result() graph.Value {
 	return it.result
 }
 
-func (it *Comparison) NextPath() bool {
+func (it *Comparison) NextPath(ctx *graph.IterationContext) bool {
 	for {
-		hasNext := it.subIt.NextPath()
+		hasNext := it.subIt.NextPath(ctx)
 		if !hasNext {
 			it.err = it.subIt.Err()
 			return false

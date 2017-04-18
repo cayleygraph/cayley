@@ -207,7 +207,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 		for k, v := range tags {
 			obj.fields[k] = []graph.Value{v}
 		}
-		for it.NextPath() {
+		for it.NextPath(nil) {
 			select {
 			case <-ctx.Done():
 				return out, ctx.Err()

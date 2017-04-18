@@ -102,7 +102,7 @@ type Iterator interface {
 	//  for graph.Next(it) {
 	//  	val := it.Result()
 	//  	... do things with val.
-	//  	for it.NextPath() {
+	//  	for it.NextPath(ctx) {
 	//  		... find other paths to iterate
 	//  	}
 	//  }

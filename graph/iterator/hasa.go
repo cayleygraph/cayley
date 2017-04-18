@@ -184,7 +184,7 @@ func (it *HasA) NextContains(ctx *graph.IterationContext) bool {
 }
 
 // Get the next result that matches this branch.
-func (it *HasA) NextPath() bool {
+func (it *HasA) NextPath(ctx *graph.IterationContext) bool {
 	// Order here is important. If the subiterator has a NextPath, then we
 	// need do nothing -- there is a next result, and we shouldn't move forward.
 	// However, we then need to get the next result from our last Contains().
@@ -194,7 +194,7 @@ func (it *HasA) NextPath() bool {
 	if clog.V(4) {
 		clog.Infof("HASA %v NextPath", it.UID())
 	}
-	if it.primaryIt.NextPath() {
+	if it.primaryIt.NextPath(ctx) {
 		return true
 	}
 	it.err = it.primaryIt.Err()
@@ -202,7 +202,7 @@ func (it *HasA) NextPath() bool {
 		return false
 	}
 
-	result := it.NextContains(nil) // Sets it.err if there's an error
+	result := it.NextContains(ctx) // Sets it.err if there's an error
 	if it.err != nil {
 		return false
 	}

@@ -257,8 +257,8 @@ func (it *And) Size() (int64, bool) {
 // An And has no NextPath of its own -- that is, there are no other values
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively.
-func (it *And) NextPath() bool {
-	if it.primaryIt.NextPath() {
+func (it *And) NextPath(ctx *graph.IterationContext) bool {
+	if it.primaryIt.NextPath(ctx) {
 		return true
 	}
 	it.err = it.primaryIt.Err()
@@ -266,7 +266,7 @@ func (it *And) NextPath() bool {
 		return false
 	}
 	for _, sub := range it.internalIterators {
-		if sub.NextPath() {
+		if sub.NextPath(ctx) {
 			return true
 		}
 

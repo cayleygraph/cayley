@@ -139,7 +139,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	)
 	for {
 		got = append(got, quad.StringOf(qs.NameOf(all.Result())))
-		if !outerAnd.NextPath() {
+		if !outerAnd.NextPath(nil) {
 			break
 		}
 	}

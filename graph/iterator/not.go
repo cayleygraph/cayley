@@ -115,7 +115,7 @@ func (it *Not) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 
 // NextPath checks whether there is another path. Not applicable, hence it will
 // return false.
-func (it *Not) NextPath() bool {
+func (it *Not) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

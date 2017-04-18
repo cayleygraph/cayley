@@ -102,7 +102,7 @@ func (it *Unique) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 // NextPath for unique always returns false. If we were to return multiple
 // paths, we'd no longer be a unique result, so we have to choose only the first
 // path that got us here. Unique is serious on this point.
-func (it *Unique) NextPath() bool {
+func (it *Unique) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

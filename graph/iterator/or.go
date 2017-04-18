@@ -233,10 +233,10 @@ func (it *Or) Size() (int64, bool) {
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively. In the case of
 // shortcircuiting, only allow new results from the currently checked graph.iterator
-func (it *Or) NextPath() bool {
+func (it *Or) NextPath(ctx *graph.IterationContext) bool {
 	if it.currentIterator != -1 {
 		currIt := it.internalIterators[it.currentIterator]
-		ok := currIt.NextPath()
+		ok := currIt.NextPath(ctx)
 		if !ok {
 			it.err = currIt.Err()
 		}

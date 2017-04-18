@@ -102,7 +102,7 @@ func TestRecursiveNextPath(t *testing.T) {
 		res := make(map[string]graph.Value)
 		r.TagResults(res)
 		got = append(got, qs.NameOf(res["person"]).String())
-		for r.NextPath() {
+		for r.NextPath(nil) {
 			res := make(map[string]graph.Value)
 			r.TagResults(res)
 			got = append(got, qs.NameOf(res["person"]).String())

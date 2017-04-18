@@ -75,11 +75,11 @@ func (it *Limit) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 
 // NextPath checks whether there is another path. Will call primary iterator
 // if limit is not reached yet.
-func (it *Limit) NextPath() bool {
+func (it *Limit) NextPath(ctx *graph.IterationContext) bool {
 	if it.limit > 0 && it.count >= it.limit {
 		return false
 	}
-	if it.primaryIt.NextPath() {
+	if it.primaryIt.NextPath(ctx) {
 		it.count++
 		return true
 	}

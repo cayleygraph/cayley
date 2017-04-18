@@ -67,7 +67,7 @@ func (it *Count) Next(ctx *graph.IterationContext) bool {
 	size, exact := it.it.Size()
 	if !exact {
 		for size = 0; it.it.Next(ctx); size++ {
-			for ; it.it.NextPath(); size++ {
+			for ; it.it.NextPath(ctx); size++ {
 			}
 		}
 	}
@@ -100,7 +100,7 @@ func (it *Count) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	return false
 }
 
-func (it *Count) NextPath() bool {
+func (it *Count) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

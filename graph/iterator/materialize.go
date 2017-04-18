@@ -247,7 +247,7 @@ func (it *Materialize) Contains(ctx *graph.IterationContext, v graph.Value) bool
 	return graph.ContainsLogOut(it, v, false)
 }
 
-func (it *Materialize) NextPath() bool {
+func (it *Materialize) NextPath(ctx *graph.IterationContext) bool {
 	if !it.hasRun {
 		it.materializeSet()
 	}
@@ -255,7 +255,7 @@ func (it *Materialize) NextPath() bool {
 		return false
 	}
 	if it.aborted {
-		return it.subIt.NextPath()
+		return it.subIt.NextPath(ctx)
 	}
 
 	it.subindex++
@@ -290,7 +290,7 @@ func (it *Materialize) materializeSet() {
 		}
 		it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		it.actualSize += 1
-		for it.subIt.NextPath() {
+		for it.subIt.NextPath(nil) {
 			i++
 			if i > MaterializeLimit {
 				it.aborted = true

@@ -180,7 +180,7 @@ func (it *SQLIterator) Stats() graph.IteratorStats {
 	}
 }
 
-func (it *SQLIterator) NextPath() bool {
+func (it *SQLIterator) NextPath(ctx *graph.IterationContext) bool {
 	it.resultIndex += 1
 	if it.resultIndex >= len(it.resultList) {
 		return false

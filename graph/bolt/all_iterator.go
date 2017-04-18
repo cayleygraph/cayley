@@ -157,7 +157,7 @@ func (it *AllIterator) Result() graph.Value {
 	return &Token{nodes: it.nodes, bucket: it.bucket, key: it.buffer[it.offset]}
 }
 
-func (it *AllIterator) NextPath() bool {
+func (it *AllIterator) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

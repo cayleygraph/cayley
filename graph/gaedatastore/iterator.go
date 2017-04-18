@@ -199,7 +199,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	return m
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

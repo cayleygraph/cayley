@@ -171,7 +171,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

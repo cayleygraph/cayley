@@ -119,7 +119,7 @@ func (it *Iterator) Result() graph.Value {
 	return qprim{p: it.cur}
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

@@ -142,7 +142,7 @@ func (it *AllIterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *AllIterator) NextPath() bool {
+func (it *AllIterator) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

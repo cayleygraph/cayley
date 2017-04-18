@@ -76,13 +76,13 @@ func (it *Skip) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 
 // NextPath checks whether there is another path. It will skip first paths
 // according to iterator parameter.
-func (it *Skip) NextPath() bool {
+func (it *Skip) NextPath(ctx *graph.IterationContext) bool {
 	for ; it.skipped < it.skip; it.skipped++ {
-		if !it.primaryIt.NextPath() {
+		if !it.primaryIt.NextPath(ctx) {
 			return false
 		}
 	}
-	return it.primaryIt.NextPath()
+	return it.primaryIt.NextPath(ctx)
 }
 
 // Close closes the primary and all iterators.  It closes all subiterators

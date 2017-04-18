@@ -93,9 +93,9 @@ func (it *Optional) NoNext() {}
 // An optional iterator only has a next result if, (a) last time we checked
 // we had any results whatsoever, and (b) there was another subresult in our
 // optional subbranch.
-func (it *Optional) NextPath() bool {
+func (it *Optional) NextPath(ctx *graph.IterationContext) bool {
 	if it.lastCheck {
-		ok := it.subIt.NextPath()
+		ok := it.subIt.NextPath(ctx)
 		if !ok {
 			it.err = it.subIt.Err()
 		}

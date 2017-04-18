@@ -134,7 +134,7 @@ func (it *Int64) Result() graph.Value {
 	return it.toValue(it.result)
 }
 
-func (it *Int64) NextPath() bool {
+func (it *Int64) NextPath(ctx *graph.IterationContext) bool {
 	return false
 }
 

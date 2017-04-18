@@ -168,8 +168,8 @@ func (it *LinksTo) Close() error {
 	return err
 }
 
-func (it *LinksTo) NextPath() bool {
-	ok := it.primaryIt.NextPath()
+func (it *LinksTo) NextPath(ctx *graph.IterationContext) bool {
+	ok := it.primaryIt.NextPath(ctx)
 	if !ok {
 		it.err = it.primaryIt.Err()
 	}
