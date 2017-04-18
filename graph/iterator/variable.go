@@ -108,9 +108,19 @@ func (it *Variable) Type() graph.Type { return graph.Variable }
 func (it *Variable) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	// TODO(BlakeMScurr) If we make the IterationContext values a slice for each possible
 	graph.ContainsLogIn(it, v)
-	if it.isBinder {
-		return graph.ContainsLogOut(it, v, true)
+	if ctx.BindVariable(it.varName) {
+		it.subIt = it.qs.NodesAllIterator()
+		it.isBinder = true
 	}
+
+	if it.isBinder {
+		if it.subIt.Contains(ctx, v) {
+			ctx.SetValue(it.varName, v)
+			return graph.ContainsLogOut(it, v, true)
+		}
+		return graph.ContainsLogOut(it, v, false)
+	}
+
 	if v == ctx.CurrentValue(it.varName) {
 		return graph.ContainsLogOut(it, v, true)
 	}

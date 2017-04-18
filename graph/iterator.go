@@ -112,7 +112,7 @@ type Iterator interface {
 	//
 	// NextPath() advances iterators that may have more than one valid result,
 	// from the bottom up.
-	NextPath() bool
+	NextPath(*IterationContext) bool
 
 	// Contains returns whether the value is within the set held by the iterator.
 	Contains(*IterationContext, Value) bool
