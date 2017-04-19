@@ -1,5 +1,5 @@
-hash: 7ec9d3046faba0ce4a6f0bb7e09cf7637ad123c2ac8f8fb0860650c7e61f3e87
-updated: 2016-12-30T18:48:50.983085695+02:00
+hash: e1c2185977aeaff7d69e5b9ddf540b09a0a4231654babb5a30e331ce9c785b5e
+updated: 2017-04-20T01:22:06.226595356+03:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
@@ -11,6 +11,16 @@ imports:
   version: 2df174808ee097f90d259e432cc04442cf60be21
   subpackages:
   - spew
+- name: github.com/dennwc/graphql
+  version: fd5c4aa13f2119414084f229600de0d73f174436
+  subpackages:
+  - gqlerrors
+  - language/ast
+  - language/kinds
+  - language/lexer
+  - language/location
+  - language/parser
+  - language/source
 - name: github.com/dlclark/regexp2
   version: 4009c9dc49dd8906bfd4d479c255470d6a477ce5
   subpackages:
@@ -22,6 +32,10 @@ imports:
   - file
   - parser
   - token
+- name: github.com/fsnotify/fsnotify
+  version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
+- name: github.com/go-sql-driver/mysql
+  version: 2e00b5cd70399450106cec6431c2e2ce3cae5034
 - name: github.com/gogo/protobuf
   version: 50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61
   subpackages:
@@ -40,6 +54,17 @@ imports:
   - proto
 - name: github.com/hashicorp/go-cleanhttp
   version: ad28ea4487f05916463e2423a55166280e8254b5
+- name: github.com/hashicorp/hcl
+  version: eb6f65b2d77ed5078887f960ff570fbddbbeb49d
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
 - name: github.com/julienschmidt/httprouter
   version: b59a38004596b696aca7aa2adccfa68760864d86
 - name: github.com/lib/pq
@@ -48,8 +73,16 @@ imports:
   - oid
 - name: github.com/linkeddata/gojsonld
   version: a223ef39bb925d36d4c410d3e35b0e34e370cc31
+- name: github.com/magiconair/properties
+  version: b3b15ef068fd0b17ddf408a23669f20811d194d2
+- name: github.com/mitchellh/mapstructure
+  version: ed105d635dfa9ea7133f7c79f1eb36203fc3a156
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
+- name: github.com/pelletier/go-buffruneio
+  version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
+- name: github.com/pelletier/go-toml
+  version: a1f048ba24490f9b0674a67e1ce995d685cddf4a
 - name: github.com/peterh/liner
   version: 1bb0d1c1a25ed393d8feb09bab039b2b1b1fbced
 - name: github.com/pmezard/go-difflib
@@ -59,12 +92,6 @@ imports:
 - name: github.com/robertkrimen/otto
   version: d1b4d8ef0e0e4b088c8328c95ca63ab9ebd8fc9d
   subpackages:
-  - ast
-  - dbg
-  - file
-  - parser
-  - registry
-  - token
   - underscore
 - name: github.com/russross/blackfriday
   version: 17bb7999de6cfb791d4f8986cc00b3309b370cdb
@@ -72,6 +99,20 @@ imports:
   version: 8e87604bec3c645a4eeaee97dfec9f25811ff20d
 - name: github.com/Sirupsen/logrus
   version: 08a8a7c27e3d058a8989316a850daad1c10bf4ab
+- name: github.com/spf13/afero
+  version: 72b31426848c6ef12a7a8e216708cb0d1530f074
+  subpackages:
+  - mem
+- name: github.com/spf13/cast
+  version: 56a7ecbeb18dde53c6db4bd96b541fd9741b8d44
+- name: github.com/spf13/cobra
+  version: b655df6ce84126fe9272a3cd4d70555a3a4cfed4
+- name: github.com/spf13/jwalterweatherman
+  version: fa7ca7e836cf3a8bb4ebf799f472c12d7e903d66
+- name: github.com/spf13/pflag
+  version: 01665e1eb3d0533dca0e5acffdff9eec1fcb886f
+- name: github.com/spf13/viper
+  version: 0967fc9aceab2ce9da34061253ac10fb99bba5b2
 - name: github.com/stretchr/testify
   version: f390dcf405f7b83c997eac1b06768bb9f44dec18
   subpackages:
@@ -136,8 +177,6 @@ imports:
   - bson
   - internal/scram
   - sasl
-- name: github.com/go-sql-driver/mysql
-  version: 2e00b5cd70399450106cec6431c2e2ce3cae5034
-- name: github.com/dennwc/graphql
-  version: fd5c4aa13f2119414084f229600de0d73f174436
+- name: gopkg.in/yaml.v2
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []
