@@ -168,7 +168,7 @@ func (it *HasA) NextContains(ctx *graph.IterationContext) bool {
 	if it.resultIt == nil {
 		return false
 	}
-	for it.resultIt.Next(nil) {
+	for it.resultIt.Next(ctx) {
 		it.runstats.ContainsNext += 1
 		link := it.resultIt.Result()
 		if clog.V(4) {

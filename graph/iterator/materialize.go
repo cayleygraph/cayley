@@ -203,7 +203,7 @@ func (it *Materialize) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	if !it.hasRun {
-		it.materializeSet()
+		it.materializeSet(ctx)
 	}
 	if it.err != nil {
 		return false
@@ -230,7 +230,7 @@ func (it *Materialize) Contains(ctx *graph.IterationContext, v graph.Value) bool
 	graph.ContainsLogIn(it, v)
 	it.runstats.Contains += 1
 	if !it.hasRun {
-		it.materializeSet()
+		it.materializeSet(ctx)
 	}
 	if it.err != nil {
 		return false
@@ -249,7 +249,7 @@ func (it *Materialize) Contains(ctx *graph.IterationContext, v graph.Value) bool
 
 func (it *Materialize) NextPath(ctx *graph.IterationContext) bool {
 	if !it.hasRun {
-		it.materializeSet()
+		it.materializeSet(ctx)
 	}
 	if it.err != nil {
 		return false
@@ -267,10 +267,10 @@ func (it *Materialize) NextPath(ctx *graph.IterationContext) bool {
 	return true
 }
 
-func (it *Materialize) materializeSet() {
+func (it *Materialize) materializeSet(ctx *graph.IterationContext) {
 	i := 0
 	mn := 0
-	for it.subIt.Next(nil) {
+	for it.subIt.Next(ctx) {
 		i++
 		if i > MaterializeLimit {
 			it.aborted = true

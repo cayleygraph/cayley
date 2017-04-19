@@ -89,7 +89,7 @@ func (it *Count) Result() graph.Value {
 
 func (it *Count) Contains(ctx *graph.IterationContext, val graph.Value) bool {
 	if !it.done {
-		it.Next(nil)
+		it.Next(ctx)
 	}
 	if v, ok := val.(graph.PreFetchedValue); ok {
 		return v.NameOf() == it.result

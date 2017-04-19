@@ -22,6 +22,7 @@ package iterator
 // opaque Quad store value, may not answer to ==.
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/codelingo/cayley/graph"
@@ -108,24 +109,33 @@ func (it *Variable) Type() graph.Type { return graph.Variable }
 func (it *Variable) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	// TODO(BlakeMScurr) If we make the IterationContext values a slice for each possible
 	graph.ContainsLogIn(it, v)
+	// return graph.ContainsLogOut(it, v, true)
+	if ctx.BindVariable(it.varName) {
+		it.subIt = it.qs.NodesAllIterator()
+		it.isBinder = true
+	}
 
-	// if ctx.BindVariable(it.varName) {
-	// 	it.subIt = it.qs.NodesAllIterator()
-	// 	it.isBinder = true
-	// }
+	if it.isBinder {
+		if it.subIt.Contains(ctx, v) {
+			fmt.Println("set value to" + it.qs.NameOf(v).String())
+			if it.qs.NameOf(v).String() == "\"b\"" {
+				fmt.Println("It's b!")
+			}
+			ctx.SetValue(it.varName, v)
+			return graph.ContainsLogOut(it, v, true)
+		}
+		return graph.ContainsLogOut(it, v, false)
+	}
 
-	// if it.isBinder {
-	// 	if it.subIt.Contains(ctx, v) {
-	// 		ctx.SetValue(it.varName, v)
-	// 		return graph.ContainsLogOut(it, v, true)
-	// 	}
-	// 	return graph.ContainsLogOut(it, v, false)
-	// }
+	fmt.Println(it.qs.NameOf(v).String())
+	return graph.ContainsLogOut(it, v, true)
 
 	if v == ctx.CurrentValue(it.varName) {
-		// fmt.Println(it.qs.NameOf(v).String())
+		fmt.Println(it.qs.NameOf(v).String())
 		return graph.ContainsLogOut(it, v, true)
 	}
+	fmt.Println("f - " + it.qs.NameOf(v).String())
+	fmt.Println("Actual value - " + it.qs.NameOf(ctx.CurrentValue(it.varName)).String())
 	return graph.ContainsLogOut(it, v, false)
 }
 
