@@ -111,6 +111,8 @@ type Flavor struct {
 	Error       func(error) error
 	Estimated   func(table string) string
 	RunTx       func(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error
+	// CreateSQLTables for a flavor specific creation of tables
+	CreateSQLTables *func(conn *sql.DB, options graph.Options) error
 }
 
 var flavors = make(map[string]Flavor)
@@ -183,6 +185,11 @@ func createSQLTables(addr string, options graph.Options) error {
 		return err
 	}
 	defer conn.Close()
+
+	if fl.CreateSQLTables != nil {
+		return (*fl.CreateSQLTables)(conn, options)
+	}
+
 	tx, err := conn.Begin()
 	if err != nil {
 		clog.Errorf("Couldn't begin creation transaction: %s", err)
