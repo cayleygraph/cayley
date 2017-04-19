@@ -1,0 +1,33 @@
+build:
+  - platform: src
+  - platform: linux
+    arch:
+      - amd64
+      - arm64
+      - arm
+      - "386"
+  - platform: darwin
+    arch:
+      - "386"
+      - amd64
+  - platform: windows
+    arch:
+      - "386"
+      - amd64
+ld:
+  versionPath: "github.com/cayleygraph/cayley/version.Version"
+  buildDatePath: "github.com/cayleygraph/cayley/version.BuildDate"
+  gitHashPath: "github.com/cayleygraph/cayley/version.GitHash"
+mains:
+  - "./cmd/cayley"
+include:
+  - README.md
+  - LICENSE
+  - AUTHORS
+  - CONTRIBUTORS
+  - docs
+  - static
+  - templates
+  - cayley_example.yml
+  - data
+outputDir: "$GOPATH/bin"

@@ -106,6 +106,17 @@ func (p *pathObject) Follow(ep *pathObject) *pathObject {
 func (p *pathObject) FollowR(ep *pathObject) *pathObject {
 	return p.follow(ep, true)
 }
+func (p *pathObject) FollowRecursive(call goja.FunctionCall) goja.Value {
+	preds, tags, ok := toViaData(exportArgs(call.Arguments))
+	if !ok || len(preds) == 0 {
+		return throwErr(p.s.vm, errNoVia)
+	} else if len(preds) != 1 {
+		return throwErr(p.s.vm, fmt.Errorf("expected one predicate or path for recursive follow"))
+	}
+	np := p.clonePath()
+	np = np.FollowRecursive(preds[0], tags)
+	return p.newVal(np)
+}
 func (p *pathObject) And(ep *pathObject) *pathObject {
 	np := p.clonePath().And(ep.path)
 	return p.new(np)

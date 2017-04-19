@@ -1,14 +1,24 @@
 # HTTP Methods
 
+## Gephi
+
+Cayley supports streaming to Gephi via [GraphStream](GephiGraphStream.md).
+
 ## API v1
 
 Unless otherwise noted, all URIs take a POST command.
 
 ### Queries and Results
 
-#### `/api/v1/query/gremlin`
+#### `/api/v1/query/gizmo`
 
 POST Body: Javascript source code of the query
+
+Response: JSON results, depending on the query.
+
+#### `/api/v1/query/graphql`
+
+POST Body: [GraphQL](GraphQL.md) query
 
 Response: JSON results, depending on the query.
 
@@ -54,7 +64,7 @@ Result form:
 }
 ```
 
-#### `/api/v1/shape/gremlin`
+#### `/api/v1/shape/gizmo`
 
 POST Body: Javascript source code of the query
 

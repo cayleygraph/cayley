@@ -93,7 +93,7 @@ func createInstance() (aetest.Instance, graph.Options, error) {
 
 func makeGAE(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	inst, opts, err := createInstance()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	qs, err := newQuadStore("", opts)
 	if err != nil {
 		inst.Close()

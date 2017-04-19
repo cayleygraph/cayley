@@ -243,6 +243,7 @@ const (
 	Skip
 	Regex
 	Count
+	Recursive
 )
 
 var (
@@ -269,6 +270,7 @@ var (
 		"skip",
 		"regex",
 		"count",
+		"recursive",
 	}
 )
 

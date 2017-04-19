@@ -38,5 +38,8 @@ import:
   - assert
   - require
 - package: github.com/linkeddata/gojsonld
+- package: github.com/spf13/viper
+- package: github.com/spf13/cobra
 - package: github.com/dop251/goja
 - package: github.com/go-sql-driver/mysql
+- package: github.com/dennwc/graphql

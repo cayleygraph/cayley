@@ -10,7 +10,7 @@ go:
 install:
   # Install our tracked dependencies
   - go get -t ./...
-  - curl -L https://github.com/Masterminds/glide/releases/download/v0.11.1/glide-v0.11.1-linux-amd64.tar.gz -o /tmp/glide.tar.gz
+  - curl -L https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-linux-amd64.tar.gz -o /tmp/glide.tar.gz
   - mkdir ../glide && cd ../glide && tar -xzf /tmp/glide.tar.gz && export PATH=$PATH:$PWD/linux-amd64/ && cd ../cayley
   - glide install
 

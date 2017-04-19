@@ -91,6 +91,16 @@ func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 	}
 }
 
+// StartPathNodes creates a new Path from a set of nodes and an underlying QuadStore.
+func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
+	return &Path{
+		stack: []morphism{
+			isNodeMorphism(nodes...),
+		},
+		qs: qs,
+	}
+}
+
 func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 	return &Path{
 		stack: []morphism{
@@ -337,6 +347,33 @@ func (p *Path) FollowReverse(path *Path) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, followMorphism(path.Reverse()))
 	return np
+}
+
+// FollowRecursive will repeatedly follow the given string predicate or Path
+// object starting from the given node(s), through the morphism or pattern
+// provided, ignoring loops. For example, this turns "parent" into "all
+// ancestors", by repeatedly following the "parent" connection on the result of
+// the parent nodes.
+//
+// The second argument, "depthTags" is a set of tags that will return strings of
+// numeric values relating to how many applications of the path were applied the
+// first time the result node was seen.
+//
+// This is a very expensive operation in practice. Be sure to use it wisely.
+func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
+	var path *Path
+	switch v := via.(type) {
+	case string:
+		path = StartMorphism().Out(v)
+	case quad.Value:
+		path = StartMorphism().Out(v)
+	case *Path:
+		path = v
+	default:
+		panic("did not pass a string predicate or a Path to FollowRecursive")
+	}
+	p.stack = append(p.stack, followRecursiveMorphism(path, depthTags))
+	return p
 }
 
 // Save will, from the current nodes in the path, retrieve the node

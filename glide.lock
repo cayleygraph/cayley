@@ -4,7 +4,7 @@ imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
 - name: github.com/boltdb/bolt
-  version: 04a3e85793043e76d41164037d0d7f9d53eecae3
+  version: a705895fdad108f053eae7ee011ed94a0541ee13
 - name: github.com/cznic/mathutil
   version: f9551431b78e71ee24939a1e9d8f49f43898b5cd
 - name: github.com/davecgh/go-spew
@@ -138,4 +138,6 @@ imports:
   - sasl
 - name: github.com/go-sql-driver/mysql
   version: 2e00b5cd70399450106cec6431c2e2ce3cae5034
+- name: github.com/dennwc/graphql
+  version: fd5c4aa13f2119414084f229600de0d73f174436
 testImports: []

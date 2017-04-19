@@ -11,14 +11,14 @@ RUN glide install
 
 # Add and install cayley
 ADD . .
-RUN go install -v ./cmd/cayley
+RUN go install -ldflags="-X github.com/cayleygraph/cayley/version.GitHash=$(git rev-parse HEAD | cut -c1-12)" -v ./cmd/cayley
 
 # Expose the port and volume for configuration and data persistence. If you're
 # using a backend like bolt, make sure the file is saved to this directory.
 RUN mkdir /data #VOLUME ["/data"]
 EXPOSE 64210
 
-RUN echo '{"database":"bolt","db_path":"/data/cayley","read_only":false}' > /data/cayley.cfg
-RUN cayley init -db bolt -dbpath /data/cayley -quads ./data/30kmoviedata.nq.gz
+RUN echo '{"store":{"backend":"bolt","address":"/data/cayley"}}' > /data/cayley.json
+RUN cayley load --init --config /data/cayley.json -i ./data/30kmoviedata.nq.gz
 
-ENTRYPOINT ["cayley", "http", "-config", "/data/cayley.cfg", "-host", "0.0.0.0", "-port", "64210"]
+ENTRYPOINT ["cayley", "http", "--config", "/data/cayley.json", "--host", ":64210"]
