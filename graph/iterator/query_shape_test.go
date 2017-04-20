@@ -38,7 +38,7 @@ func hasaWithTag(qs graph.QuadStore, tag string, target string) *HasA {
 }
 
 func TestQueryShape(t *testing.T) {
-	qs := &store{
+	qs := &oldstore{
 		data: []string{
 			1: "cool",
 			2: "status",

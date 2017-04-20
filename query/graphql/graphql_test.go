@@ -173,7 +173,7 @@ func TestExecute(t *testing.T) {
 	qw := graphtest.MakeWriter(t, qs, nil)
 	quads := graphtest.LoadGraph(t, "../../data/testdata.nq")
 	err := qw.AddQuadSet(quads)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	for i, c := range casesExecute {
 		q, err := Parse(strings.NewReader(c.query))

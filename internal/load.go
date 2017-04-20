@@ -7,9 +7,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/internal/decompressor"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/nquads"
 )
@@ -20,17 +22,33 @@ func Load(qw graph.QuadWriter, batch int, path, typ string) error {
 	return DecompressAndLoad(qw, batch, path, typ, nil)
 }
 
-// DecompressAndLoad will load or fetch a graph from the given path, decompress
-// it, and then call the given load function to process the decompressed graph.
-// If no loadFn is provided, db.Load is called.
-func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerFunc func(graph.QuadWriter) graph.BatchWriter) error {
-	var r io.Reader
+type readCloser struct {
+	quad.ReadCloser
+	close func() error
+}
 
-	if path == "" {
-		return nil
+func (r readCloser) Close() error {
+	err := r.ReadCloser.Close()
+	if r.close != nil {
+		r.close()
 	}
-	u, err := url.Parse(path)
-	if err != nil || u.Scheme == "file" || u.Scheme == "" {
+	return err
+}
+
+type nopCloser struct {
+	quad.Reader
+}
+
+func (r nopCloser) Close() error { return nil }
+
+func QuadReaderFor(path, typ string) (quad.ReadCloser, error) {
+	var (
+		r io.Reader
+		c io.Closer
+	)
+	if path == "-" {
+		r = os.Stdin
+	} else if u, err := url.Parse(path); err != nil || u.Scheme == "file" || u.Scheme == "" {
 		// Don't alter relative URL path or non-URL path parameter.
 		if u.Scheme != "" && err == nil {
 			// Recovery heuristic for mistyping "file://path/to/file".
@@ -38,42 +56,80 @@ func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerF
 		}
 		f, err := os.Open(path)
 		if err != nil {
-			return fmt.Errorf("could not open file %q: %v", path, err)
+			return nil, fmt.Errorf("could not open file %q: %v", path, err)
 		}
-		defer f.Close()
-		r = f
+		r, c = f, f
 	} else {
 		res, err := http.Get(path)
 		if err != nil {
-			return fmt.Errorf("could not get resource <%s>: %v", u, err)
+			return nil, fmt.Errorf("could not get resource <%s>: %v", u, err)
 		}
-		defer res.Body.Close()
-		r = res.Body
+		// TODO(dennwc): save content type for format auto-detection
+		r, c = res.Body, res.Body
 	}
 
-	r, err = Decompressor(r)
+	r, err := decompressor.New(r)
 	if err != nil {
-		if err == io.EOF {
-			return nil
+		if c != nil {
+			c.Close()
 		}
-		return err
+		if err == io.EOF {
+			return nopCloser{quad.NewReader(nil)}, nil
+		}
+		return nil, err
 	}
 
-	var qr quad.Reader
+	var qr quad.ReadCloser
 	switch typ {
 	case "cquad":
 		qr = nquads.NewReader(r, false)
 	case "nquad":
 		qr = nquads.NewReader(r, true)
 	default:
-		rf := quad.FormatByName(typ)
-		if rf == nil {
-			return fmt.Errorf("unknown quad format %q", typ)
-		} else if rf.Reader == nil {
-			return fmt.Errorf("decoding of %q is not supported", typ)
+		var format *quad.Format
+		if typ == "" {
+			name := filepath.Base(path)
+			name = strings.TrimSuffix(name, ".gz")
+			name = strings.TrimSuffix(name, ".bz2")
+			format = quad.FormatByExt(filepath.Ext(name))
+			if format == nil {
+				typ = "nquads"
+			}
 		}
-		qr = rf.Reader(r)
+		if format == nil {
+			format = quad.FormatByName(typ)
+		}
+		if format == nil {
+			err = fmt.Errorf("unknown quad format %q", typ)
+		} else if format.Reader == nil {
+			err = fmt.Errorf("decoding of %q is not supported", typ)
+		}
+		if err != nil {
+			if c != nil {
+				c.Close()
+			}
+			return nil, err
+		}
+		qr = format.Reader(r)
 	}
+	if c != nil {
+		return readCloser{ReadCloser: qr, close: c.Close}, nil
+	}
+	return qr, nil
+}
+
+// DecompressAndLoad will load or fetch a graph from the given path, decompress
+// it, and then call the given load function to process the decompressed graph.
+// If no loadFn is provided, db.Load is called.
+func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerFunc func(graph.QuadWriter) graph.BatchWriter) error {
+	if path == "" {
+		return nil
+	}
+	qr, err := QuadReaderFor(path, typ)
+	if err != nil {
+		return err
+	}
+	defer qr.Close()
 
 	if writerFunc == nil {
 		writerFunc = graph.NewWriter

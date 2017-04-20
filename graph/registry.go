@@ -55,20 +55,26 @@ func NewQuadStore(name string, dbpath string, opts Options) (QuadStore, error) {
 	if !registered {
 		return nil, ErrQuadStoreNotRegistred
 	}
-
 	return r.NewFunc(dbpath, opts)
+}
+
+func InitQuadStore(name string, dbpath string, opts Options) error {
+	r, registered := storeRegistry[name]
+	if !registered {
+		return ErrQuadStoreNotRegistred
+	} else if r.InitFunc == nil {
+		return ErrOperationNotSupported
+	}
+	return r.InitFunc(dbpath, opts)
 }
 
 func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
 	r, registered := storeRegistry[qs.Type()]
 	if !registered {
 		return nil, ErrQuadStoreNotRegistred
-	}
-
-	if r.NewForRequestFunc == nil {
+	} else if r.NewForRequestFunc == nil {
 		return nil, ErrOperationNotSupported
 	}
-
 	return r.NewForRequestFunc(qs, opts)
 }
 
@@ -76,28 +82,16 @@ func UpgradeQuadStore(name string, dbpath string, opts Options) error {
 	r, registered := storeRegistry[name]
 	if !registered {
 		return ErrQuadStoreNotRegistred
-	}
-
-	if r.UpgradeFunc == nil {
+	} else if r.UpgradeFunc == nil {
 		// return ErrOperationNotSupported
 		return nil
 	}
-
 	return r.UpgradeFunc(dbpath, opts)
 }
 
-func InitQuadStore(name string, dbpath string, opts Options) error {
-	r, registered := storeRegistry[name]
-	if !registered {
-		return ErrQuadStoreNotRegistred
-
-	}
-
-	if r.InitFunc == nil {
-		return ErrOperationNotSupported
-	}
-
-	return r.InitFunc(dbpath, opts)
+func IsRegistered(name string) bool {
+	_, ok := storeRegistry[name]
+	return ok
 }
 
 func IsPersistent(name string) bool {

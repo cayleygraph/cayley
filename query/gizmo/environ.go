@@ -14,7 +14,7 @@
 
 package gizmo
 
-// Builds a new Gremlin environment pointing at a session.
+// Builds a new Gizmo environment pointing at a session.
 
 import (
 	"fmt"
@@ -30,25 +30,49 @@ import (
 	"github.com/cayleygraph/cayley/voc"
 )
 
+// graphObject is a root graph object.
+//
+// Name: `graph`, Alias: `g`
+//
+// This is the only special object in the environment, generates the query objects.
+// Under the hood, they're simple objects that get compiled to a Go iterator tree when executed.
 type graphObject struct {
 	s *Session
 }
 
+// Uri creates an IRI values from a given string.
 func (g *graphObject) Uri(s string) quad.IRI {
 	return quad.IRI(g.s.ns.FullIRI(s))
 }
+
+// AddNamespace associates prefix with a given IRI namespace.
 func (g *graphObject) AddNamespace(pref, ns string) {
 	g.s.ns.Register(voc.Namespace{Prefix: pref + ":", Full: ns})
 }
+
+// AddDefaultNamespaces register all default namespaces for automatic IRI resolution.
 func (g *graphObject) AddDefaultNamespaces() {
 	voc.CloneTo(&g.s.ns)
 }
+
+// LoadNamespaces loads all namespaces saved to graph.
 func (g *graphObject) LoadNamespaces() error {
 	return schema.LoadNamespaces(g.s.ctx, g.s.qs, &g.s.ns)
 }
+
+// V is a shorthand for Vertex.
 func (g *graphObject) V(call goja.FunctionCall) goja.Value {
 	return g.Vertex(call)
 }
+
+// Vertex starts a query path at the given vertex/vertices. No ids means "all vertices".
+// Signature: ([nodeId],[nodeId]...)
+//
+// Arguments:
+//
+// * `nodeId` (Optional): A string or list of strings representing the starting vertices.
+//
+// Returns: Path object
 func (g *graphObject) Vertex(call goja.FunctionCall) goja.Value {
 	qv, err := toQuadValues(exportArgs(call.Arguments))
 	if err != nil {
@@ -60,15 +84,30 @@ func (g *graphObject) Vertex(call goja.FunctionCall) goja.Value {
 		path:   path.StartMorphism(qv...),
 	})
 }
-func (g *graphObject) M(call goja.FunctionCall) goja.Value {
-	return g.Morphism(call)
+
+// M is a shorthand for Morphism.
+func (g *graphObject) M() *pathObject {
+	return g.Morphism()
 }
-func (g *graphObject) Morphism(call goja.FunctionCall) goja.Value {
-	return g.s.vm.ToValue(&pathObject{
+
+// Morphism creates a morphism path object. Unqueryable on it's own, defines one end of the path.
+// Saving these to variables with
+//
+//	// javascript
+//	var shorterPath = graph.Morphism().Out("foo").Out("bar")
+//
+// is the common use case. See also: path.Follow(), path.FollowR().
+func (g *graphObject) Morphism() *pathObject {
+	return &pathObject{
 		s:    g.s,
 		path: path.StartMorphism(),
-	})
+	}
 }
+
+// Emit adds data programmatically to the JSON result list. Can be any JSON type.
+//
+//	// javascript
+//	g.Emit({name:"bob"}) // push {"name":"bob"} as a result
 func (g *graphObject) Emit(call goja.FunctionCall) goja.Value {
 	value := call.Argument(0)
 	if !goja.IsNull(value) && !goja.IsUndefined(value) {

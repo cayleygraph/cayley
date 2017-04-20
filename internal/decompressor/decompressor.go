@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package decompressor
 
 import (
 	"bufio"
@@ -27,9 +27,9 @@ const (
 	b2zipMagic = "BZh"
 )
 
-// Decompressor detects the file type of an io.Reader between
+// New detects the file type of an io.Reader between
 // bzip, gzip, or raw quad file.
-func Decompressor(r io.Reader) (io.Reader, error) {
+func New(r io.Reader) (io.Reader, error) {
 	br := bufio.NewReader(r)
 	buf, err := br.Peek(3)
 	if err != nil {

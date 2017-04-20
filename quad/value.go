@@ -375,7 +375,7 @@ func (s Time) Equal(v Value) bool {
 func (s Time) TypedString() TypedString {
 	return TypedString{
 		// TODO(dennwc): this is used to compute hash, thus we might want to include nanos
-		Value: String(time.Time(s).Format(time.RFC3339)),
+		Value: String(time.Time(s).UTC().Format(time.RFC3339)),
 		Type:  defaultTimeType,
 	}
 }

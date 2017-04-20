@@ -297,6 +297,22 @@ func followMorphism(p *Path) morphism {
 	}
 }
 
+func followRecursiveMorphism(p *Path, depthTags []string) morphism {
+	return morphism{
+		Name: "follow_recursive",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
+			return followRecursiveMorphism(p.Reverse(), depthTags), ctx
+		},
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			it := iterator.NewRecursive(qs, in, p.Morphism())
+			for _, s := range depthTags {
+				it.AddDepthTag(s)
+			}
+			return it, ctx
+		},
+	}
+}
+
 // exceptMorphism removes all results on p.(*Path) from the current iterators.
 func exceptMorphism(p *Path) morphism {
 	return morphism{

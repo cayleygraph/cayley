@@ -341,6 +341,11 @@ func testSet(qs graph.QuadStore) []test {
 			}(),
 			expect: []quad.Value{vAlice},
 		},
+		{
+			message: "follow recursive",
+			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, nil),
+			expect:  []quad.Value{vBob, vDani, vFred, vGreg},
+		},
 	}
 }
 
