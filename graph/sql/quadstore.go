@@ -101,18 +101,17 @@ type QuadStore struct {
 }
 
 type Flavor struct {
-	Name        string
-	Driver      string
-	NodesTable  string
-	QuadsTable  string
-	FieldQuote  rune
-	Placeholder func(int) string
-	Indexes     func(graph.Options) []string
-	Error       func(error) error
-	Estimated   func(table string) string
-	RunTx       func(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error
-	// CreateSQLTables for a flavor specific creation of tables
-	CreateSQLTables *func(conn *sql.DB, options graph.Options) error
+	Name                string
+	Driver              string
+	NodesTable          string
+	QuadsTable          string
+	FieldQuote          rune
+	Placeholder         func(int) string
+	Indexes             func(graph.Options) []string
+	Error               func(error) error
+	Estimated           func(table string) string
+	RunTx               func(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error
+	NoSchemaChangesInTx bool
 }
 
 var flavors = make(map[string]Flavor)
@@ -186,8 +185,26 @@ func createSQLTables(addr string, options graph.Options) error {
 	}
 	defer conn.Close()
 
-	if fl.CreateSQLTables != nil {
-		return (*fl.CreateSQLTables)(conn, options)
+	if fl.NoSchemaChangesInTx {
+		_, err = conn.Exec(fl.NodesTable)
+		if err != nil {
+			err = fl.Error(err)
+			clog.Errorf("Cannot create nodes table: %v", err)
+			return err
+		}
+		_, err = conn.Exec(fl.QuadsTable)
+		if err != nil {
+			err = fl.Error(err)
+			clog.Errorf("Cannot create quad table: %v", err)
+			return err
+		}
+		for _, index := range fl.Indexes(options) {
+			if _, err = conn.Exec(index); err != nil {
+				clog.Errorf("Cannot create index: %v", err)
+				return err
+			}
+		}
+		return nil
 	}
 
 	tx, err := conn.Begin()

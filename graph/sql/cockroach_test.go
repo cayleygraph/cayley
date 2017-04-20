@@ -3,11 +3,7 @@
 package sql
 
 import (
-	"fmt"
-	"math/rand"
-	"runtime"
 	"testing"
-	"time"
 	"unicode/utf8"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -15,7 +11,6 @@ import (
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/internal/dock"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/fsouza/go-dockerclient"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 )
@@ -28,50 +23,15 @@ func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 	opts := graph.Options{"flavor": flavorCockroach}
 
-	var (
-		host   string
-		port   int
-		closer func()
-	)
-
-	if runtime.GOOS == "darwin" {
-		port = func() int {
-			rand.Seed(time.Now().Unix())
-			return rand.Intn(1000) + 45000
-		}()
-
-		conf.PortBindings = map[docker.Port][]docker.PortBinding{
-			"26257/tcp": []docker.PortBinding{
-				{
-					HostPort: fmt.Sprintf("%d", port),
-				},
-			},
+	addr, closer := dock.RunAndWait(t, conf, func(addr string) bool {
+		conn, err := pq.Open(`postgresql://root@` + addr + `:26257?sslmode=disable`)
+		if err != nil {
+			return false
 		}
-
-		host = "localhost"
-		_, closer = dock.RunAndWait(t, conf, func(string) bool {
-			conn, err := pq.Open(fmt.Sprintf("postgresql://root@%s:%d?sslmode=disable", "localhost", port))
-			if err != nil {
-				return false
-			}
-			conn.Close()
-			return true
-		})
-	} else {
-		port = 26257
-		host, closer = dock.RunAndWait(t, conf, func(host string) bool {
-			conn, err := pq.Open(fmt.Sprintf("postgresql://root@%s:%d?sslmode=disable", host, port))
-			if err != nil {
-				return false
-			}
-			conn.Close()
-			return true
-		})
-	}
-
-	addr := fmt.Sprintf("postgresql://root@%s:%d/cayley?sslmode=disable", host, port)
-
-	db, err := connect(addr, flavorPostgres, nil)
+		conn.Close()
+		return true
+	})
+	db, err := connect(`postgresql://root@`+addr+`:26257?sslmode=disable`, flavorPostgres, nil)
 	if err != nil {
 		closer()
 		t.Fatal(err)
@@ -80,7 +40,7 @@ func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 		t.Fatal(err)
 	}
 	db.Close()
-
+	addr = `postgresql://root@` + addr + `:26257/cayley?sslmode=disable`
 	if err := createSQLTables(addr, opts); err != nil {
 		closer()
 		t.Fatal(err)

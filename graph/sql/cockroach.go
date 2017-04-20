@@ -15,97 +15,65 @@ import (
 const flavorCockroach = "cockroach"
 
 func init() {
-	nodesTable := `CREATE TABLE nodes (
-		hash BYTEA PRIMARY KEY,
-		value BYTEA,
-		value_string TEXT,
-		datatype TEXT,
-		language TEXT,
-		iri BOOLEAN,
-		bnode BOOLEAN,
-		value_int BIGINT,
-		value_bool BOOLEAN,
-		value_float double precision,
-		value_time timestamp with time zone,
-		FAMILY fhash (hash),
-		FAMILY fvalue (value, value_string, datatype, language, iri, bnode,
-			value_int, value_bool, value_float, value_time)
-	);`
-
-	quadsTable := `CREATE TABLE quads (
-		horizon BIGSERIAL PRIMARY KEY,
-		subject_hash BYTEA NOT NULL,
-		predicate_hash BYTEA NOT NULL,
-		object_hash BYTEA NOT NULL,
-		label_hash BYTEA,
-		id BIGINT,
-		ts timestamp
-	);`
-
-	indexes := func(options graph.Options) []string {
-		return []string{
-			`CREATE UNIQUE INDEX spol_unique ON quads (subject_hash, predicate_hash, object_hash, label_hash);`,
-			`CREATE UNIQUE INDEX spo_unique ON quads (subject_hash, predicate_hash, object_hash);`,
-			`CREATE INDEX spo_index ON quads (subject_hash);`,
-			`CREATE INDEX pos_index ON quads (predicate_hash);`,
-			`CREATE INDEX osp_index ON quads (object_hash);`,
-			//`ALTER TABLE quads ADD CONSTRAINT subject_hash_fk FOREIGN KEY (subject_hash) REFERENCES nodes (hash);`,
-			//`ALTER TABLE quads ADD CONSTRAINT predicate_hash_fk FOREIGN KEY (predicate_hash) REFERENCES nodes (hash);`,
-			//`ALTER TABLE quads ADD CONSTRAINT object_hash_fk FOREIGN KEY (object_hash) REFERENCES nodes (hash);`,
-			//`ALTER TABLE quads ADD CONSTRAINT label_hash_fk FOREIGN KEY (label_hash) REFERENCES nodes (hash);`,
-		}
-	}
-
-	cockroachError := func(err error) error {
-		e, ok := err.(*pq.Error)
-		if !ok {
-			return err
-		}
-		switch e.Code {
-		case "42P07":
-			return graph.ErrDatabaseExists
-		}
-		return err
-	}
-
-	// Schema changes within transactions are restricted in CockroachDB
-	// See: https://www.cockroachlabs.com/docs/beta-20170413.html#sql-language-changes
-	createSQLTables := func(conn *sql.DB, options graph.Options) (err error) {
-		_, err = conn.Exec(nodesTable)
-		if err != nil {
-			err = cockroachError(err)
-			clog.Errorf("Cannot create nodes table: %v", err)
-			return err
-		}
-		_, err = conn.Exec(quadsTable)
-		if err != nil {
-			err = cockroachError(err)
-			clog.Errorf("Cannot create quad table: %v", err)
-			return err
-		}
-		for _, index := range indexes(options) {
-			if _, err = conn.Exec(index); err != nil {
-				clog.Errorf("Cannot create index: %v", err)
-				return err
-			}
-		}
-		return nil
-	}
-
 	RegisterFlavor(Flavor{
-		Name:        flavorCockroach,
-		Driver:      flavorPostgres,
-		NodesTable:  nodesTable,
-		QuadsTable:  quadsTable,
+		Name:   flavorCockroach,
+		Driver: flavorPostgres,
+		NodesTable: `CREATE TABLE nodes (
+	hash BYTEA PRIMARY KEY,
+	value BYTEA,
+	value_string TEXT,
+	datatype TEXT,
+	language TEXT,
+	iri BOOLEAN,
+	bnode BOOLEAN,
+	value_int BIGINT,
+	value_bool BOOLEAN,
+	value_float double precision,
+	value_time timestamp with time zone,
+	FAMILY fhash (hash),
+	FAMILY fvalue (value, value_string, datatype, language, iri, bnode,
+		value_int, value_bool, value_float, value_time)
+);`,
+		QuadsTable: `CREATE TABLE quads (
+	horizon BIGSERIAL PRIMARY KEY,
+	subject_hash BYTEA NOT NULL,
+	predicate_hash BYTEA NOT NULL,
+	object_hash BYTEA NOT NULL,
+	label_hash BYTEA,
+	id BIGINT,
+	ts timestamp
+);`,
 		FieldQuote:  '"',
 		Placeholder: func(n int) string { return fmt.Sprintf("$%d", n) },
-		Indexes:     indexes,
-		Error:       cockroachError,
+		Indexes: func(options graph.Options) []string {
+			return []string{
+				`CREATE UNIQUE INDEX spol_unique ON quads (subject_hash, predicate_hash, object_hash, label_hash);`,
+				`CREATE UNIQUE INDEX spo_unique ON quads (subject_hash, predicate_hash, object_hash);`,
+				`CREATE INDEX spo_index ON quads (subject_hash);`,
+				`CREATE INDEX pos_index ON quads (predicate_hash);`,
+				`CREATE INDEX osp_index ON quads (object_hash);`,
+				//`ALTER TABLE quads ADD CONSTRAINT subject_hash_fk FOREIGN KEY (subject_hash) REFERENCES nodes (hash);`,
+				//`ALTER TABLE quads ADD CONSTRAINT predicate_hash_fk FOREIGN KEY (predicate_hash) REFERENCES nodes (hash);`,
+				//`ALTER TABLE quads ADD CONSTRAINT object_hash_fk FOREIGN KEY (object_hash) REFERENCES nodes (hash);`,
+				//`ALTER TABLE quads ADD CONSTRAINT label_hash_fk FOREIGN KEY (label_hash) REFERENCES nodes (hash);`,
+			}
+		},
+		Error: func(err error) error {
+			e, ok := err.(*pq.Error)
+			if !ok {
+				return err
+			}
+			switch e.Code {
+			case "42P07":
+				return graph.ErrDatabaseExists
+			}
+			return err
+		},
 		//Estimated: func(table string) string{
 		//	return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='"+table+"';"
 		//},
-		RunTx:           runTxCockroach,
-		CreateSQLTables: &createSQLTables,
+		RunTx:               runTxCockroach,
+		NoSchemaChangesInTx: true,
 	})
 }
 
