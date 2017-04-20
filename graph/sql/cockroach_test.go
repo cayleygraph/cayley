@@ -3,6 +3,9 @@
 package sql
 
 import (
+	"testing"
+	"unicode/utf8"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
@@ -10,14 +13,12 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"unicode/utf8"
 )
 
 func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config // TODO
 
-	conf.Image = "cockroachdb/cockroach:beta-20170112"
+	conf.Image = "cockroachdb/cockroach:beta-20170413"
 	conf.Cmd = []string{"start", "--insecure"}
 
 	opts := graph.Options{"flavor": flavorCockroach}

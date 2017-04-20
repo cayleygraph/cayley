@@ -72,7 +72,8 @@ func init() {
 		//Estimated: func(table string) string{
 		//	return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='"+table+"';"
 		//},
-		RunTx: runTxCockroach,
+		RunTx:               runTxCockroach,
+		NoSchemaChangesInTx: true,
 	})
 }
 
