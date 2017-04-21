@@ -60,7 +60,7 @@ func NewHttpCmd() *cobra.Command {
 			return http.ListenAndServe(host, nil)
 		},
 	}
-	cmd.Flags().String("host", ":64210", "host:port to listen on")
+	cmd.Flags().String("host", "127.0.0.1:64210", "host:port to listen on")
 	cmd.Flags().Bool("init", false, "initialize the database before using it")
 	cmd.Flags().DurationP("timeout", "t", 30*time.Second, "elapsed time until an individual query times out")
 	cmd.Flags().StringVar(&chttp.AssetsPath, "assets", "", "explicit path to the HTTP assets")
