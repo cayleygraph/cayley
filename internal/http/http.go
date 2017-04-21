@@ -26,6 +26,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/http"
 	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/internal/gephi"
@@ -116,19 +117,17 @@ type API struct {
 }
 
 func (api *API) GetHandleForRequest(r *http.Request) (*graph.Handle, error) {
-	if !api.config.RequiresHTTPRequestContext {
+	g, ok := api.handle.QuadStore.(httpgraph.QuadStore)
+	if !ok {
 		return api.handle, nil
 	}
-
-	opts := make(graph.Options)
-	opts["HTTPRequest"] = r
-
-	qs, err := graph.NewQuadStoreForRequest(api.handle.QuadStore, opts)
+	qs, err := g.ForRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	qw, err := db.OpenQuadWriter(qs, api.config)
 	if err != nil {
+		qs.Close()
 		return nil, err
 	}
 	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil

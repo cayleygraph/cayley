@@ -28,14 +28,12 @@ var storeRegistry = make(map[string]QuadStoreRegistration)
 type NewStoreFunc func(string, Options) (QuadStore, error)
 type InitStoreFunc func(string, Options) error
 type UpgradeStoreFunc func(string, Options) error
-type NewStoreForRequestFunc func(QuadStore, Options) (QuadStore, error)
 
 type QuadStoreRegistration struct {
-	NewFunc           NewStoreFunc
-	NewForRequestFunc NewStoreForRequestFunc
-	UpgradeFunc       UpgradeStoreFunc
-	InitFunc          InitStoreFunc
-	IsPersistent      bool
+	NewFunc      NewStoreFunc
+	UpgradeFunc  UpgradeStoreFunc
+	InitFunc     InitStoreFunc
+	IsPersistent bool
 }
 
 func RegisterQuadStore(name string, register QuadStoreRegistration) {
@@ -66,16 +64,6 @@ func InitQuadStore(name string, dbpath string, opts Options) error {
 		return ErrOperationNotSupported
 	}
 	return r.InitFunc(dbpath, opts)
-}
-
-func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
-	r, registered := storeRegistry[qs.Type()]
-	if !registered {
-		return nil, ErrQuadStoreNotRegistred
-	} else if r.NewForRequestFunc == nil {
-		return nil, ErrOperationNotSupported
-	}
-	return r.NewForRequestFunc(qs, opts)
 }
 
 func UpgradeQuadStore(name string, dbpath string, opts Options) error {

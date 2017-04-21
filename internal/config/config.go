@@ -24,31 +24,29 @@ import (
 
 // Config defines the behavior of cayley database instances.
 type Config struct {
-	DatabaseType               string
-	DatabasePath               string
-	DatabaseOptions            map[string]interface{}
-	ReplicationType            string
-	ReplicationOptions         map[string]interface{}
-	ListenHost                 string
-	ListenPort                 string
-	ReadOnly                   bool
-	Timeout                    time.Duration
-	LoadSize                   int
-	RequiresHTTPRequestContext bool
+	DatabaseType       string
+	DatabasePath       string
+	DatabaseOptions    map[string]interface{}
+	ReplicationType    string
+	ReplicationOptions map[string]interface{}
+	ListenHost         string
+	ListenPort         string
+	ReadOnly           bool
+	Timeout            time.Duration
+	LoadSize           int
 }
 
 type config struct {
-	DatabaseType               string                 `json:"database"`
-	DatabasePath               string                 `json:"db_path"`
-	DatabaseOptions            map[string]interface{} `json:"db_options"`
-	ReplicationType            string                 `json:"replication"`
-	ReplicationOptions         map[string]interface{} `json:"replication_options"`
-	ListenHost                 string                 `json:"listen_host"`
-	ListenPort                 string                 `json:"listen_port"`
-	ReadOnly                   bool                   `json:"read_only"`
-	Timeout                    duration               `json:"timeout"`
-	LoadSize                   int                    `json:"load_size"`
-	RequiresHTTPRequestContext bool                   `json:"http_request_context"`
+	DatabaseType       string                 `json:"database"`
+	DatabasePath       string                 `json:"db_path"`
+	DatabaseOptions    map[string]interface{} `json:"db_options"`
+	ReplicationType    string                 `json:"replication"`
+	ReplicationOptions map[string]interface{} `json:"replication_options"`
+	ListenHost         string                 `json:"listen_host"`
+	ListenPort         string                 `json:"listen_port"`
+	ReadOnly           bool                   `json:"read_only"`
+	Timeout            duration               `json:"timeout"`
+	LoadSize           int                    `json:"load_size"`
 }
 
 func (c *Config) UnmarshalJSON(data []byte) error {
@@ -58,17 +56,16 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*c = Config{
-		DatabaseType:               t.DatabaseType,
-		DatabasePath:               t.DatabasePath,
-		DatabaseOptions:            t.DatabaseOptions,
-		ReplicationType:            t.ReplicationType,
-		ReplicationOptions:         t.ReplicationOptions,
-		ListenHost:                 t.ListenHost,
-		ListenPort:                 t.ListenPort,
-		ReadOnly:                   t.ReadOnly,
-		Timeout:                    time.Duration(t.Timeout),
-		LoadSize:                   t.LoadSize,
-		RequiresHTTPRequestContext: t.RequiresHTTPRequestContext,
+		DatabaseType:       t.DatabaseType,
+		DatabasePath:       t.DatabasePath,
+		DatabaseOptions:    t.DatabaseOptions,
+		ReplicationType:    t.ReplicationType,
+		ReplicationOptions: t.ReplicationOptions,
+		ListenHost:         t.ListenHost,
+		ListenPort:         t.ListenPort,
+		ReadOnly:           t.ReadOnly,
+		Timeout:            time.Duration(t.Timeout),
+		LoadSize:           t.LoadSize,
 	}
 	return nil
 }
