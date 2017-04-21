@@ -26,10 +26,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/http"
 	"github.com/cayleygraph/cayley/internal/config"
-	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/internal/gephi"
+	"github.com/cayleygraph/cayley/server/http"
 )
 
 var AssetsPath string
@@ -97,7 +96,7 @@ func LogRequest(handler httprouter.Handle) httprouter.Handle {
 }
 
 func jsonResponse(w http.ResponseWriter, code int, err interface{}) {
-	w.Header().Set("Content-Type", contentTypeJSON)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write([]byte(`{"error": `))
 	data, _ := json.Marshal(fmt.Sprint(err))
@@ -126,20 +125,7 @@ type API struct {
 }
 
 func (api *API) GetHandleForRequest(r *http.Request) (*graph.Handle, error) {
-	g, ok := api.handle.QuadStore.(httpgraph.QuadStore)
-	if !ok {
-		return api.handle, nil
-	}
-	qs, err := g.ForRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	qw, err := db.OpenQuadWriter(qs, api.config)
-	if err != nil {
-		qs.Close()
-		return nil, err
-	}
-	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
+	return cayleyhttp.HandleForRequest(api.handle, api.config.ReplicationType, api.config.ReplicationOptions, r)
 }
 
 func (api *API) RWOnly(handler httprouter.Handle) httprouter.Handle {
@@ -175,14 +161,6 @@ func (api *API) APIv1(r *httprouter.Router) {
 	r.POST("/api/v1/delete", CORS(api.RWOnly(LogRequest(api.ServeV1Delete))))
 }
 
-func (api *API) APIv2(r *httprouter.Router) {
-	r.POST("/api/v2/write", CORS(api.RWOnly(LogRequest(api.ServeV2Write))))
-	r.POST("/api/v2/delete", CORS(api.RWOnly(LogRequest(api.ServeV2Delete))))
-	r.POST("/api/v2/read", CORS(LogRequest(api.ServeV2Read)))
-	r.GET("/api/v2/read", CORS(LogRequest(api.ServeV2Read)))
-	r.GET("/api/v2/formats", CORS(LogRequest(api.ServeV2Formats)))
-}
-
 func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	r := httprouter.New()
 	assets := findAssetsPath()
@@ -196,7 +174,10 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	api := &API{config: cfg, handle: handle}
 	r.OPTIONS("/*path", CORSFunc)
 	api.APIv1(r)
-	api.APIv2(r)
+
+	api2 := cayleyhttp.NewAPIv2Writer(handle, cfg.ReplicationType, cfg.ReplicationOptions)
+	api2.RegisterOn(r, CORS, LogRequest)
+
 	gs := &gephi.GraphStreamHandler{QS: handle.QuadStore}
 	const gephiPath = "/gephi/gs"
 	r.GET(gephiPath, gs.ServeHTTP)

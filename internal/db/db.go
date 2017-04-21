@@ -40,7 +40,7 @@ func Open(cfg *config.Config) (*graph.Handle, error) {
 	if err != nil {
 		return nil, err
 	}
-	qw, err := OpenQuadWriter(qs, cfg)
+	qw, err := graph.NewQuadWriter(cfg.ReplicationType, qs, cfg.ReplicationOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -61,14 +61,4 @@ func OpenQuadStore(cfg *config.Config) (graph.QuadStore, error) {
 	}
 
 	return qs, nil
-}
-
-func OpenQuadWriter(qs graph.QuadStore, cfg *config.Config) (graph.QuadWriter, error) {
-	clog.Infof("Opening replication method %q", cfg.ReplicationType)
-	w, err := graph.NewQuadWriter(cfg.ReplicationType, qs, cfg.ReplicationOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	return w, nil
 }
