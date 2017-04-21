@@ -10,7 +10,6 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/internal"
-	"github.com/cayleygraph/cayley/internal/config"
 	chttp "github.com/cayleygraph/cayley/internal/http"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -42,12 +41,14 @@ func NewHttpCmd() *cobra.Command {
 			if load, _ := cmd.Flags().GetString(flagLoad); load != "" {
 				typ, _ := cmd.Flags().GetString(flagLoadFormat)
 				// TODO: check read-only flag in config before that?
+				start := time.Now()
 				if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
 					return err
 				}
+				clog.Infof("loaded %q in %v", load, time.Since(start))
 			}
 
-			chttp.SetupRoutes(h, &config.Config{
+			chttp.SetupRoutes(h, &chttp.Config{
 				Timeout:  timeout,
 				ReadOnly: ro,
 			})

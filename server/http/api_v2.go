@@ -98,6 +98,7 @@ func (api *APIv2) RegisterDataOn(r *httprouter.Router, wrappers ...HandlerWrappe
 }
 func (api *APIv2) RegisterQueryOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
 	r.POST("/api/v2/query", wrap(api.ServeQuery, wrappers))
+	r.GET("/api/v2/query", wrap(api.ServeQuery, wrappers))
 }
 func (api *APIv2) RegisterOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
 	api.RegisterDataOn(r, wrappers...)
@@ -323,13 +324,13 @@ func defaultErrorFunc(w query.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write([]byte(`{"error": `))
 	w.Write(data)
-	w.Write([]byte(`}`))
+	w.Write([]byte("}\n"))
 }
 
 func writeResults(w io.Writer, r interface{}) {
 	w.Write([]byte(`{"result": `))
 	json.NewEncoder(w).Encode(r)
-	w.Write([]byte(`}`))
+	w.Write([]byte("}\n"))
 }
 
 const maxQuerySize = 1024 * 1024 // 1 MB
@@ -345,7 +346,8 @@ func readLimit(r io.Reader) ([]byte, error) {
 func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := api.queryContext(r)
 	defer cancel()
-	lang := r.FormValue("lang")
+	vals := r.URL.Query()
+	lang := vals.Get("lang")
 	if lang == "" {
 		jsonResponse(w, http.StatusBadRequest, "query language not specified")
 		return
@@ -382,7 +384,7 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 	ses := l.HTTP(h.QuadStore)
 	var qu string
 	if r.Method == "GET" {
-		qu = r.FormValue("qu")
+		qu = vals.Get("qu")
 	} else {
 		data, err := readLimit(r.Body)
 		if err != nil {
@@ -390,6 +392,13 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		qu = string(data)
+	}
+	if qu == "" {
+		jsonResponse(w, http.StatusBadRequest, "query is empty")
+		return
+	}
+	if clog.V(1) {
+		clog.Infof("query: %s: %q", lang, qu)
 	}
 
 	c := make(chan query.Result, 5)

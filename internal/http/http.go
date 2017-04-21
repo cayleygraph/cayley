@@ -26,7 +26,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/internal/gephi"
 	"github.com/cayleygraph/cayley/server/http"
 )
@@ -88,10 +87,9 @@ func LogRequest(handler httprouter.Handle) httprouter.Handle {
 		}
 		code := 200
 		rw := &statusWriter{ResponseWriter: w, code: &code}
-		clog.Infof("Started %s %s for %s", req.Method, req.URL.Path, addr)
+		clog.Infof("started %s %s for %s", req.Method, req.URL.Path, addr)
 		handler(rw, req, params)
-		clog.Infof("Completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
-
+		clog.Infof("completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
 	}
 }
 
@@ -120,12 +118,12 @@ func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 type API struct {
-	config *config.Config
+	config *Config
 	handle *graph.Handle
 }
 
 func (api *API) GetHandleForRequest(r *http.Request) (*graph.Handle, error) {
-	return cayleyhttp.HandleForRequest(api.handle, api.config.ReplicationType, api.config.ReplicationOptions, r)
+	return cayleyhttp.HandleForRequest(api.handle, "single", nil, r)
 }
 
 func (api *API) RWOnly(handler httprouter.Handle) httprouter.Handle {
@@ -161,7 +159,13 @@ func (api *API) APIv1(r *httprouter.Router) {
 	r.POST("/api/v1/delete", CORS(api.RWOnly(LogRequest(api.ServeV1Delete))))
 }
 
-func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
+type Config struct {
+	ReadOnly bool
+	Timeout  time.Duration
+	Batch    int
+}
+
+func SetupRoutes(handle *graph.Handle, cfg *Config) {
 	r := httprouter.New()
 	assets := findAssetsPath()
 	if clog.V(2) {
@@ -175,19 +179,16 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	r.OPTIONS("/*path", CORSFunc)
 	api.APIv1(r)
 
-	api2 := cayleyhttp.NewAPIv2Writer(handle, cfg.ReplicationType, cfg.ReplicationOptions)
+	api2 := cayleyhttp.NewAPIv2(handle)
 	api2.SetReadOnly(cfg.ReadOnly)
-	api2.SetBatchSize(cfg.LoadSize)
+	api2.SetBatchSize(cfg.Batch)
 	api2.SetQueryTimeout(cfg.Timeout)
 	api2.RegisterOn(r, CORS, LogRequest)
 
 	gs := &gephi.GraphStreamHandler{QS: handle.QuadStore}
 	const gephiPath = "/gephi/gs"
 	r.GET(gephiPath, gs.ServeHTTP)
-	fmt.Printf("Serving Gephi GraphStream at http://localhost:%s%s\n", cfg.ListenPort, gephiPath)
 
-	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
-	//r.Handler("GET", "/static", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
 	r.GET("/docs/:docpage", docs.ServeHTTP)
 	r.GET("/ui/:ui_type", root.ServeHTTP)
 	r.GET("/", root.ServeHTTP)

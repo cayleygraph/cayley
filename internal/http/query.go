@@ -37,13 +37,13 @@ type ErrorQueryWrapper struct {
 
 func WriteError(w io.Writer, err error) error {
 	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
+	//enc.SetIndent("", " ")
 	return enc.Encode(ErrorQueryWrapper{err.Error()})
 }
 
 func WriteResult(w io.Writer, result interface{}) error {
 	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
+	//enc.SetIndent("", " ")
 	return enc.Encode(SuccessQueryWrapper{result})
 }
 
