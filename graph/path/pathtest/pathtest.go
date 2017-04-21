@@ -384,3 +384,58 @@ func RunTestMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
 		}
 	}
 }
+
+type sysTest struct {
+	message string
+	path    *Path
+	expect  []map[string]quad.Value
+}
+
+const (
+	vSubject = quad.IRI("rdf:subject")
+	vPred    = quad.IRI("rdf:predicate")
+	vObject  = quad.IRI("rdf:object")
+	vLabel   = quad.IRI("rdf:label")
+)
+
+func testSysSet(qs graph.QuadStore) []sysTest {
+	return []sysTest{
+		{
+			message: "in and out of quad directions",
+			path:    StartPath(qs, vBob).In(vSubject).Out(vObject).Tag("o"),
+			expect: []map[string]quad.Value{
+				{"o": vFred}, {"o": vCool},
+			},
+		},
+		{
+			message: "save full triple",
+			path: StartPath(qs, vBob).In(vSubject).
+				Save(quad.IRI("rdf:subject"), "s").
+				Save(quad.IRI("rdf:predicate"), "p").
+				Save(quad.IRI("rdf:object"), "o"),
+			expect: []map[string]quad.Value{
+				{"s": vBob, "p": vFollows, "o": vFred},
+				{"s": vBob, "p": vStatus, "o": vCool},
+			},
+		},
+	}
+}
+
+func RunTestSystemMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
+	qs, closer := makeTestStore(t, fnc)
+	defer closer()
+
+	for _, test := range testSysSet(qs) {
+		t.Log("now testing", test.message)
+		var got []map[string]quad.Value
+		err := test.path.Iterate(nil).TagValues(qs, func(m map[string]quad.Value) {
+			got = append(got, m)
+		})
+		if err != nil {
+			t.Errorf("Failed to %s: %v", test.message, err)
+			continue
+		} else if !reflect.DeepEqual(test.expect, got) {
+			t.Errorf("Failed to %s, got: %v(%d) expected: %v(%d)", test.message, got, len(got), test.expect, len(test.expect))
+		}
+	}
+}

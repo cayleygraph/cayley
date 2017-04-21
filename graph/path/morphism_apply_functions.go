@@ -167,6 +167,9 @@ func outMorphism(tags []string, via ...interface{}) morphism {
 		Name:     "out",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return inMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			if it := inOutSysIterator(qs, via, in, false, ctx); it != nil {
+				return it, ctx
+			}
 			path := buildViaPath(qs, via...)
 			return inOutIterator(path, in, false, tags, ctx), ctx
 		},
@@ -180,6 +183,9 @@ func inMorphism(tags []string, via ...interface{}) morphism {
 		Name:     "in",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return outMorphism(tags, via...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			if it := inOutSysIterator(qs, via, in, true, ctx); it != nil {
+				return it, ctx
+			}
 			path := buildViaPath(qs, via...)
 			return inOutIterator(path, in, true, tags, ctx), ctx
 		},
@@ -344,6 +350,9 @@ func saveMorphism(via interface{}, tag string) morphism {
 		Name:     "save",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveMorphism(via, tag), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			if it := buildSysSave(qs, via, tag, in, false, false); it != nil {
+				return it, ctx
+			}
 			return buildSave(qs, via, tag, in, false, false), ctx
 		},
 		tags: []string{tag},
@@ -422,6 +431,36 @@ func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bo
 	return join(qs, has, in)
 }
 
+var iriToDir = map[quad.IRI]quad.Direction{
+	"rdf:subject":   quad.Subject,
+	"rdf:predicate": quad.Predicate,
+	"rdf:object":    quad.Object,
+	"rdf:label":     quad.Label,
+}
+
+func buildSysSave(
+	qs graph.QuadStore, via interface{},
+	tag string, from graph.Iterator, reverse bool, optional bool,
+) graph.Iterator {
+	iri, ok := via.(quad.IRI)
+	if !ok || reverse || optional {
+		return nil
+	}
+	dir, ok := iriToDir[iri]
+	if !ok {
+		return nil
+	}
+
+	allNodes := qs.NodesAllIterator()
+	allNodes.Tagger().Add(tag)
+
+	save := graph.Iterator(iterator.NewLinksTo(qs, allNodes, dir))
+	if optional {
+		save = iterator.NewOptional(save)
+	}
+	return join(qs, from, save)
+}
+
 func buildSave(
 	qs graph.QuadStore, via interface{},
 	tag string, from graph.Iterator, reverse bool, optional bool,
@@ -447,6 +486,32 @@ func buildSave(
 		save = iterator.NewOptional(save)
 	}
 	return join(qs, from, save)
+}
+
+func inOutSysIterator(qs graph.QuadStore, via []interface{}, from graph.Iterator, inIterator bool, ctx *pathContext) graph.Iterator {
+	if len(via) == 0 {
+		return nil
+	}
+	var iris []quad.IRI
+	for _, v := range via {
+		iri, ok := v.(quad.IRI)
+		if !ok {
+			return nil
+		}
+		iris = append(iris, iri)
+	}
+	if len(iris) != 1 {
+		return nil // TODO(dennwc): allow multiple directions
+	}
+	iri := iris[0]
+	dir, ok := iriToDir[iri]
+	if !ok {
+		return nil
+	}
+	if inIterator {
+		return iterator.NewLinksTo(qs, from, dir)
+	}
+	return iterator.NewHasA(qs, from, dir)
 }
 
 func inOutIterator(viaPath *Path, from graph.Iterator, inIterator bool, tags []string, ctx *pathContext) graph.Iterator {
