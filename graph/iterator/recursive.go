@@ -123,7 +123,9 @@ func (it *Recursive) SubIterators() []graph.Iterator {
 func (it *Recursive) Next(ctx *graph.IterationContext) bool {
 	it.pathIndex = 0
 	if it.depth == 0 {
+		i := 0
 		for it.subIt.Next(ctx) {
+			i++
 			res := it.subIt.Result()
 			it.depthCache = append(it.depthCache, it.subIt.Result())
 			tags := make(map[string]graph.Value)
@@ -136,6 +138,7 @@ func (it *Recursive) Next(ctx *graph.IterationContext) bool {
 				it.pathMap[key] = append(it.pathMap[key], tags)
 			}
 		}
+		_ = i
 	}
 	for {
 		ok := it.nextIt.Next(ctx)
@@ -211,6 +214,7 @@ func (it *Recursive) Contains(ctx *graph.IterationContext, val graph.Value) bool
 			return graph.ContainsLogOut(it, val, true)
 		}
 	}
+	_ = i
 	return graph.ContainsLogOut(it, val, false)
 }
 

@@ -203,6 +203,15 @@ func Height(it Iterator, until Type) int {
 	return maxDepth + 1
 }
 
+// DescribeIteratorTree prints a tree representation an iterator
+// and its descendants
+func DescribeIteratorTree(it Iterator, indentation string) {
+	fmt.Println(indentation + it.Type().String() + "\t" + it.Describe().Name)
+	for _, subIt := range it.SubIterators() {
+		DescribeIteratorTree(subIt, indentation+"  ")
+	}
+}
+
 // IterationContext keeps state for a given iteration.  Currently it stores the values of variables.
 type IterationContext struct {
 	values  map[string]Value

@@ -144,7 +144,9 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 func (it *And) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
+	i := 0
 	for it.primaryIt.Next(ctx) {
+		i++
 		curr := it.primaryIt.Result()
 		if it.subItsContain(ctx, curr, nil) {
 			it.result = curr
@@ -152,6 +154,7 @@ func (it *And) Next(ctx *graph.IterationContext) bool {
 		}
 	}
 	it.err = it.primaryIt.Err()
+	_ = i
 	return graph.NextLogOut(it, false)
 }
 
@@ -167,6 +170,7 @@ func (it *And) Result() graph.Value {
 func (it *And) subItsContain(ctx *graph.IterationContext, val graph.Value, lastResult graph.Value) bool {
 	var subIsGood = true
 	for i, sub := range it.internalIterators {
+		i++
 		subIsGood = sub.Contains(ctx, val)
 		if !subIsGood {
 			if lastResult != nil {
@@ -301,5 +305,13 @@ func (it *And) Close() error {
 
 // Register this as an "and" iterator.
 func (it *And) Type() graph.Type { return graph.And }
+
+func (it *And) MakePrimary(i int) {
+	if i != 0 {
+		tmp := it.primaryIt
+		it.primaryIt = it.internalIterators[i-1]
+		it.internalIterators[i-1] = tmp
+	}
+}
 
 var _ graph.Iterator = &And{}

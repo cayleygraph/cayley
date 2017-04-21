@@ -1,17 +1,14 @@
 package graph
 
-import (
-	"github.com/twinj/uuid"
-)
-
 type Var struct {
 	name string
 }
 
 // NewVar creates a variable that can be used in place of a graph.Value
-func NewVar() Var {
+func NewVar(name string) Var {
 	return Var{
-		name: string(uuid.NewV4()),
+		// name: string(uuid.NewV4()),
+		name: name,
 	}
 }
 

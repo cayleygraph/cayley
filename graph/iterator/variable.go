@@ -107,36 +107,52 @@ func (it *Variable) Type() graph.Type { return graph.Variable }
 
 // Contains checks if the passed value is equal to one of the values stored in the iterator.
 func (it *Variable) Contains(ctx *graph.IterationContext, v graph.Value) bool {
+	graph.DescribeIteratorTree(it, "")
 	// TODO(BlakeMScurr) If we make the IterationContext values a slice for each possible
 	graph.ContainsLogIn(it, v)
 	// return graph.ContainsLogOut(it, v, true)
 	if ctx.BindVariable(it.varName) {
-		it.subIt = it.qs.NodesAllIterator()
-		it.isBinder = true
+		panic("You need to reorderIteratorTree for variable iterators")
 	}
+	currVar := ctx.CurrentValue(it.varName)
 
-	if it.isBinder {
-		if it.subIt.Contains(ctx, v) {
-			fmt.Println("set value to" + it.qs.NameOf(v).String())
-			if it.qs.NameOf(v).String() == "\"b\"" {
-				fmt.Println("It's b!")
-			}
-			ctx.SetValue(it.varName, v)
-			return graph.ContainsLogOut(it, v, true)
-		}
-		return graph.ContainsLogOut(it, v, false)
-	}
-
-	fmt.Println(it.qs.NameOf(v).String())
-	return graph.ContainsLogOut(it, v, true)
-
-	if v == ctx.CurrentValue(it.varName) {
-		fmt.Println(it.qs.NameOf(v).String())
+	if v == currVar {
+		fmt.Println("contains" + it.qs.NameOf(v).String())
 		return graph.ContainsLogOut(it, v, true)
 	}
 	fmt.Println("f - " + it.qs.NameOf(v).String())
 	fmt.Println("Actual value - " + it.qs.NameOf(ctx.CurrentValue(it.varName)).String())
 	return graph.ContainsLogOut(it, v, false)
+
+	// if it.isBinder {
+	// 	if it.subIt.Contains(ctx, v) {
+	// 		fmt.Println("set value to" + it.qs.NameOf(v).String())
+	// 		if it.qs.NameOf(v).String() == "\"b\"" {
+	// 			fmt.Println("It's b!")
+	// 		}
+	// 		if it.qs.NameOf(v).String() == "\"c\"" {
+	// 			fmt.Println("It's c!")
+	// 		}
+	// 		it.result = v
+	// 		ctx.SetValue(it.varName, v)
+	// 		return graph.ContainsLogOut(it, v, true)
+	// 	}
+	// 	return graph.ContainsLogOut(it, v, false)
+	// }
+	// currVar := ctx.CurrentValue(it.varName)
+	// // currVar := it.qs.ValueOf(quad.String("a"))
+	// fmt.Println(it.qs.NameOf(v).String())
+	// fmt.Println("Argument" + it.qs.NameOf(v).String())
+	// fmt.Println("current value" + it.qs.NameOf(currVar).String())
+	// // return graph.ContainsLogOut(it, v, true)
+	// // it.qs.ValueOf(quad.String("a"))
+	// if v == currVar {
+	// 	fmt.Println(it.qs.NameOf(v).String())
+	// 	return graph.ContainsLogOut(it, v, true)
+	// }
+	// fmt.Println("f - " + it.qs.NameOf(v).String())
+	// fmt.Println("Actual value - " + it.qs.NameOf(ctx.CurrentValue(it.varName)).String())
+	// return graph.ContainsLogOut(it, v, false)
 }
 
 // Next advances the iterator.
@@ -150,7 +166,11 @@ func (it *Variable) Next(ctx *graph.IterationContext) bool {
 	if it.isBinder {
 		if it.subIt.Next(ctx) {
 			it.result = it.subIt.Result()
+			fmt.Println("bind" + it.qs.NameOf(it.result).String())
 			ctx.SetValue(it.varName, it.result)
+			if it.qs.NameOf(it.result).String() == "\"2_12\"^^<key>" {
+				fmt.Println("b")
+			}
 			return graph.NextLogOut(it, true)
 		}
 		ctx.SetValue(it.varName, nil)
@@ -163,6 +183,10 @@ func (it *Variable) Next(ctx *graph.IterationContext) bool {
 		return graph.NextLogOut(it, false)
 	}
 	it.result = newValue
+	fmt.Println("user" + it.qs.NameOf(newValue).String())
+	if it.qs.NameOf(newValue).String() != "\".\"" && it.qs.NameOf(newValue).String() != "\".lingo\"" {
+		fmt.Println("C!")
+	}
 	return graph.NextLogOut(it, true)
 }
 
@@ -180,7 +204,7 @@ func (it *Variable) NextPath(ctx *graph.IterationContext) bool {
 
 // No sub-iterators.
 func (it *Variable) SubIterators() []graph.Iterator {
-	return nil
+	return []graph.Iterator{it.subIt}
 }
 
 // Optimize() for a Variable iterator is simple. Returns a Null iterator if it's empty
