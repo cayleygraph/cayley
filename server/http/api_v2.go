@@ -20,13 +20,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
@@ -35,7 +39,7 @@ func NewAPIv2(h *graph.Handle) *APIv2 {
 }
 
 func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options) *APIv2 {
-	api := &APIv2{h: h, wtyp: wtype, wopt: wopts}
+	api := &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: 100}
 	api.r = httprouter.New()
 	api.RegisterOn(api.r)
 	return api
@@ -46,8 +50,14 @@ type APIv2 struct {
 	r     *httprouter.Router
 	ro    bool
 	batch int
-	wtyp  string
-	wopt  graph.Options
+
+	// replication
+	wtyp string
+	wopt graph.Options
+
+	// query
+	timeout time.Duration
+	limit   int
 }
 
 func (api *APIv2) SetReadOnly(ro bool) {
@@ -55,6 +65,12 @@ func (api *APIv2) SetReadOnly(ro bool) {
 }
 func (api *APIv2) SetBatchSize(n int) {
 	api.batch = n
+}
+func (api *APIv2) SetQueryTimeout(dt time.Duration) {
+	api.timeout = dt
+}
+func (api *APIv2) SetQueryLimit(n int) {
+	api.limit = n
 }
 func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	api.r.ServeHTTP(w, r)
@@ -71,7 +87,7 @@ func wrap(h http.HandlerFunc, arr []HandlerWrapper) httprouter.Handle {
 	}
 	return wh
 }
-func (api *APIv2) RegisterOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
+func (api *APIv2) RegisterDataOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
 	if !api.ro {
 		r.POST("/api/v2/write", wrap(api.ServeWrite, wrappers))
 		r.POST("/api/v2/delete", wrap(api.ServeDelete, wrappers))
@@ -79,6 +95,13 @@ func (api *APIv2) RegisterOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
 	r.POST("/api/v2/read", wrap(api.ServeRead, wrappers))
 	r.GET("/api/v2/read", wrap(api.ServeRead, wrappers))
 	r.GET("/api/v2/formats", wrap(api.ServeFormats, wrappers))
+}
+func (api *APIv2) RegisterQueryOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
+	r.POST("/api/v2/query", wrap(api.ServeQuery, wrappers))
+}
+func (api *APIv2) RegisterOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
+	api.RegisterDataOn(r, wrappers...)
+	api.RegisterQueryOn(r, wrappers...)
 }
 
 const (
@@ -146,6 +169,10 @@ func (api *APIv2) handleForRequest(r *http.Request) (*graph.Handle, error) {
 
 func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	if api.ro {
+		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
+		return
+	}
 	format := getFormat(r, "", hdrContentType)
 	if format == nil || format.Reader == nil {
 		jsonResponse(w, http.StatusBadRequest, errors.New("format is not supported for reading data"))
@@ -177,6 +204,10 @@ func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 
 func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	if api.ro {
+		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
+		return
+	}
 	format := getFormat(r, "", hdrContentType)
 	if format == nil || format.Reader == nil {
 		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
@@ -275,4 +306,109 @@ func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set(hdrContentType, contentTypeJSON)
 	json.NewEncoder(w).Encode(out)
+}
+
+func (api *APIv2) queryContext(r *http.Request) (ctx context.Context, cancel func()) {
+	ctx = context.TODO() // TODO(dennwc): get from request
+	if api.timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, api.timeout)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
+	return ctx, cancel
+}
+
+func defaultErrorFunc(w query.ResponseWriter, err error) {
+	data, _ := json.Marshal(err.Error())
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte(`{"error": `))
+	w.Write(data)
+	w.Write([]byte(`}`))
+}
+
+func writeResults(w io.Writer, r interface{}) {
+	w.Write([]byte(`{"result": `))
+	json.NewEncoder(w).Encode(r)
+	w.Write([]byte(`}`))
+}
+
+const maxQuerySize = 1024 * 1024 // 1 MB
+func readLimit(r io.Reader) ([]byte, error) {
+	lr := io.LimitReader(r, maxQuerySize).(*io.LimitedReader)
+	data, err := ioutil.ReadAll(lr)
+	if err != nil && lr.N <= 0 {
+		err = errors.New("request is too large")
+	}
+	return data, err
+}
+
+func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := api.queryContext(r)
+	defer cancel()
+	lang := r.FormValue("lang")
+	if lang == "" {
+		jsonResponse(w, http.StatusBadRequest, "query language not specified")
+		return
+	}
+	l := query.GetLanguage(lang)
+	if l == nil {
+		jsonResponse(w, http.StatusBadRequest, "unknown query language")
+		return
+	}
+	errFunc := defaultErrorFunc
+	if l.HTTPError != nil {
+		errFunc = l.HTTPError
+	}
+	select {
+	case <-ctx.Done():
+		errFunc(w, ctx.Err())
+		return
+	default:
+	}
+	h, err := api.handleForRequest(r)
+	if err != nil {
+		errFunc(w, err)
+		return
+	}
+	if l.HTTPQuery != nil {
+		defer r.Body.Close()
+		l.HTTPQuery(ctx, h.QuadStore, w, r.Body)
+		return
+	}
+	if l.HTTP == nil {
+		errFunc(w, errors.New("HTTP interface is not supported for this query language"))
+		return
+	}
+	ses := l.HTTP(h.QuadStore)
+	var qu string
+	if r.Method == "GET" {
+		qu = r.FormValue("qu")
+	} else {
+		data, err := readLimit(r.Body)
+		if err != nil {
+			errFunc(w, err)
+			return
+		}
+		qu = string(data)
+	}
+
+	c := make(chan query.Result, 5)
+	go ses.Execute(ctx, qu, c, api.limit)
+
+	for res := range c {
+		if err := res.Err(); err != nil {
+			if err == nil {
+				continue // wait for results channel to close
+			}
+			errFunc(w, err)
+			return
+		}
+		ses.Collate(res)
+	}
+	output, err := ses.Results()
+	if err != nil {
+		errFunc(w, err)
+		return
+	}
+	writeResults(w, output)
 }

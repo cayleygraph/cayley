@@ -176,6 +176,9 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	api.APIv1(r)
 
 	api2 := cayleyhttp.NewAPIv2Writer(handle, cfg.ReplicationType, cfg.ReplicationOptions)
+	api2.SetReadOnly(cfg.ReadOnly)
+	api2.SetBatchSize(cfg.LoadSize)
+	api2.SetQueryTimeout(cfg.Timeout)
 	api2.RegisterOn(r, CORS, LogRequest)
 
 	gs := &gephi.GraphStreamHandler{QS: handle.QuadStore}
