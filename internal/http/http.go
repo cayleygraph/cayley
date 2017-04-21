@@ -32,8 +32,6 @@ import (
 	"github.com/cayleygraph/cayley/internal/gephi"
 )
 
-type ResponseHandler func(http.ResponseWriter, *http.Request, httprouter.Params) int
-
 var AssetsPath string
 var assetsDirs = []string{"templates", "static", "docs"}
 
@@ -70,7 +68,16 @@ func findAssetsPath() string {
 	panic("cannot reach")
 }
 
-func LogRequest(handler ResponseHandler) httprouter.Handle {
+type statusWriter struct {
+	http.ResponseWriter
+	code *int
+}
+
+func (w *statusWriter) WriteHeader(code int) {
+	*(w.code) = code
+}
+
+func LogRequest(handler httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		start := time.Now()
 		addr := req.Header.Get("X-Real-IP")
@@ -80,20 +87,22 @@ func LogRequest(handler ResponseHandler) httprouter.Handle {
 				addr = req.RemoteAddr
 			}
 		}
+		code := 200
+		rw := &statusWriter{ResponseWriter: w, code: &code}
 		clog.Infof("Started %s %s for %s", req.Method, req.URL.Path, addr)
-		code := handler(w, req, params)
+		handler(rw, req, params)
 		clog.Infof("Completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
 
 	}
 }
 
-func jsonResponse(w http.ResponseWriter, code int, err interface{}) int {
+func jsonResponse(w http.ResponseWriter, code int, err interface{}) {
 	w.Header().Set("Content-Type", contentTypeJSON)
+	w.WriteHeader(code)
 	w.Write([]byte(`{"error": `))
 	data, _ := json.Marshal(fmt.Sprint(err))
 	w.Write(data)
 	w.Write([]byte(`}`))
-	return code
 }
 
 type TemplateRequestHandler struct {

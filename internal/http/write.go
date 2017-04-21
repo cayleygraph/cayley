@@ -60,44 +60,55 @@ func ParseJSONToQuadList(jsonBody []byte) (out []quad.Quad, _ error) {
 	return out, nil
 }
 
-func (api *API) ServeV1Write(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
-	if api.config.ReadOnly {
-		return jsonResponse(w, 400, "Database is read-only.")
+const maxQuerySize = 1024 * 1024 // 1 MB
+func readLimit(r io.Reader) ([]byte, error) {
+	lr := io.LimitReader(r, maxQuerySize).(*io.LimitedReader)
+	data, err := ioutil.ReadAll(lr)
+	if err != nil && lr.N <= 0 {
+		err = errors.New("request is too large")
 	}
-	const maxSize = 1024 * 1024 // 1 MB
-	lr := io.LimitReader(r.Body, maxSize).(*io.LimitedReader)
+	return data, err
+}
+
+func (api *API) ServeV1Write(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if api.config.ReadOnly {
+		jsonResponse(w, 400, "Database is read-only.")
+		return
+	}
 	// TODO: streaming reader
-	bodyBytes, err := ioutil.ReadAll(lr)
+	bodyBytes, err := readLimit(r.Body)
 	if err != nil {
-		if lr.N <= 0 {
-			return jsonResponse(w, 400, errors.New("json file is too large"))
-		}
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	quads, err := ParseJSONToQuadList(bodyBytes)
 	if err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	if err = h.QuadWriter.AddQuadSet(quads); err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d quads.\"}", len(quads))
-	return 200
 }
 
-func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	if api.config.ReadOnly {
-		return jsonResponse(w, 400, "Database is read-only.")
+		jsonResponse(w, 400, "Database is read-only.")
+		return
 	}
 
 	formFile, _, err := r.FormFile("NQuadFile")
 	if err != nil {
 		clog.Errorf("%v", err)
-		return jsonResponse(w, 500, "Couldn't read file: "+err.Error())
+		jsonResponse(w, 500, "Couldn't read file: "+err.Error())
+		return
 	}
 	defer formFile.Close()
 
@@ -112,41 +123,46 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	qw := graph.NewWriter(h.QuadWriter)
 	n, err := quad.CopyBatch(qw, dec, blockSize)
 	if err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d quads.\"}", n)
-	return 200
 }
 
-func (api *API) ServeV1Delete(w http.ResponseWriter, r *http.Request, params httprouter.Params) int {
+func (api *API) ServeV1Delete(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	if api.config.ReadOnly {
-		return jsonResponse(w, 400, "Database is read-only.")
+		jsonResponse(w, 400, "Database is read-only.")
+		return
 	}
-	bodyBytes, err := ioutil.ReadAll(r.Body)
+	bodyBytes, err := readLimit(r.Body)
 	if err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	quads, err := ParseJSONToQuadList(bodyBytes)
 	if err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
-		return jsonResponse(w, 400, err)
+		jsonResponse(w, 400, err)
+		return
 	}
 	for _, q := range quads {
 		err = h.QuadWriter.RemoveQuad(q)
 		if err != nil && !graph.IsQuadNotExist(err) {
-			return jsonResponse(w, 400, err)
+			jsonResponse(w, 400, err)
+			return
 		}
 	}
 	fmt.Fprintf(w, "{\"result\": \"Successfully deleted %d quads.\"}", len(quads))
-	return 200
 }
 
 const (
@@ -208,60 +224,66 @@ func writerFrom(w http.ResponseWriter, r *http.Request, acceptName string) io.Wr
 	return nopWriteCloser{Writer: w}
 }
 
-func (api *API) ServeV2Write(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+func (api *API) ServeV2Write(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	defer r.Body.Close()
 	format := getFormat(r, "", hdrContentType)
 	if format == nil || format.Reader == nil {
-		return jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
+		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
+		return
 	}
 	rd, err := readerFrom(r, hdrContentEncoding)
 	if err != nil {
-		return jsonResponse(w, http.StatusBadRequest, err)
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
 	}
 	defer rd.Close()
 	qr := format.Reader(rd)
 	defer qr.Close()
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
-		return jsonResponse(w, http.StatusBadRequest, err)
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
 	}
 	qw := graph.NewWriter(h.QuadWriter)
 	defer qw.Close()
 	n, err := quad.CopyBatch(qw, qr, api.config.LoadSize)
 	if err != nil {
-		return jsonResponse(w, http.StatusInternalServerError, err)
+		jsonResponse(w, http.StatusInternalServerError, err)
+		return
 	}
 	w.Header().Set(hdrContentType, contentTypeJSON)
 	fmt.Fprintf(w, `{"result": "Successfully wrote %d quads.", "count": %d}`+"\n", n, n)
-	return 200
 }
 
-func (api *API) ServeV2Delete(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+func (api *API) ServeV2Delete(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	defer r.Body.Close()
 	format := getFormat(r, "", hdrContentType)
 	if format == nil || format.Reader == nil {
-		return jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
+		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
+		return
 	}
 	rd, err := readerFrom(r, hdrContentEncoding)
 	if err != nil {
-		return jsonResponse(w, http.StatusBadRequest, err)
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
 	}
 	defer rd.Close()
 	qr := format.Reader(r.Body)
 	defer qr.Close()
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
-		return jsonResponse(w, http.StatusBadRequest, err)
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
 	}
 	qw := graph.NewRemover(h.QuadWriter)
 	defer qw.Close()
 	n, err := quad.CopyBatch(qw, qr, api.config.LoadSize)
 	if err != nil {
-		return jsonResponse(w, http.StatusInternalServerError, err)
+		jsonResponse(w, http.StatusInternalServerError, err)
+		return
 	}
 	w.Header().Set(hdrContentType, contentTypeJSON)
 	fmt.Fprintf(w, `{"result": "Successfully deleted %d quads.", "count": %d}`+"\n", n, n)
-	return 200
 }
 
 type checkWriter struct {
@@ -274,14 +296,16 @@ func (w *checkWriter) Write(p []byte) (int, error) {
 	return w.w.Write(p)
 }
 
-func (api *API) ServeV2Read(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+func (api *API) ServeV2Read(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	format := getFormat(r, "format", hdrAccept)
 	if format == nil || format.Writer == nil {
-		return jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
+		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
+		return
 	}
 	h, err := api.GetHandleForRequest(r)
 	if err != nil {
-		return jsonResponse(w, http.StatusBadRequest, err)
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
 	}
 	qr := graph.NewQuadStoreReader(h.QuadStore)
 	defer qr.Close()
@@ -301,17 +325,16 @@ func (api *API) ServeV2Read(w http.ResponseWriter, r *http.Request, _ httprouter
 		_, err = quad.Copy(qw, qr)
 	}
 	if err != nil && !cw.written {
-		return jsonResponse(w, http.StatusInternalServerError, err)
+		jsonResponse(w, http.StatusInternalServerError, err)
+		return
 	} else if err != nil {
 		// can do nothing here, since first byte (and header) was written
 		// TODO: check if client just gone away
 		clog.Errorf("read quads error: %v", err)
-		return 500
 	}
-	return 200
 }
 
-func (api *API) ServeV2Formats(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+func (api *API) ServeV2Formats(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	type Format struct {
 		Id     string   `json:"id"`
 		Read   bool     `json:"read,omitempty"`
@@ -331,5 +354,4 @@ func (api *API) ServeV2Formats(w http.ResponseWriter, r *http.Request, _ httprou
 		})
 	}
 	json.NewEncoder(w).Encode(out)
-	return 200
 }
