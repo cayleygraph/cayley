@@ -1,3 +1,7 @@
+# Running in Kubernetes
+
+To run Cayley in K8S check [this docs section](./k8s/k8s.md).
+
 # Running in a container
 
 A container exposing the HTTP API of Cayley is available.

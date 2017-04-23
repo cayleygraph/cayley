@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cayleygraph/cayley/clog"
+	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"
 	chttp "github.com/cayleygraph/cayley/internal/http"
 	"github.com/cayleygraph/cayley/quad"
@@ -27,7 +28,9 @@ func NewHttpCmd() *cobra.Command {
 			if init, err := cmd.Flags().GetBool("init"); err != nil {
 				return err
 			} else if init {
-				if err = initDatabase(); err != nil {
+				if err = initDatabase(); err == graph.ErrDatabaseExists {
+					clog.Infof("database already initialized, skipping init")
+				} else if err != nil {
 					return err
 				}
 			}
