@@ -135,7 +135,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("dbpath", "a", "", "path or address string for database")
 	rootCmd.PersistentFlags().Bool("read_only", false, "open database in read-only mode")
 
-	rootCmd.PersistentFlags().Bool("dup", false, "don't stop loading on duplicated on add")
+	rootCmd.PersistentFlags().Bool("dup", true, "don't stop loading on duplicated on add")
 	rootCmd.PersistentFlags().Bool("missing", false, "don't stop loading on missing key on delete")
 	rootCmd.PersistentFlags().Int("batch", quad.DefaultBatch, "size of quads batch to load at once")
 

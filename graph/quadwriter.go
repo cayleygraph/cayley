@@ -119,7 +119,7 @@ func IsInvalidAction(err error) bool {
 var (
 	// IgnoreDuplicates specifies whether duplicate quads
 	// cause an error during loading or are ignored.
-	IgnoreDuplicates = false
+	IgnoreDuplicates = true
 
 	// IgnoreMissing specifies whether missing quads
 	// cause an error during deletion or are ignored.
