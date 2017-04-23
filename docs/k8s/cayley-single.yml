@@ -1,0 +1,73 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: cayley
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cayley
+  namespace: cayley
+spec:
+  selector:
+    app: cayley
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: http
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: cayley-pvc
+  namespace: cayley
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cayley
+  namespace: cayley
+spec:
+  replicas: 1 # cannot be really scaled because of local backend
+  template:
+    metadata:
+      namespace: cayley
+      labels:
+        app: cayley
+    spec:
+      initContainers:
+      - name: cayley-init
+        image: quay.io/cayleygraph/cayley:v0.7.0-alpha
+        command:
+        - cayley
+        - init
+        - -c=/etc/cayley.json
+        volumeMounts:
+        - mountPath: /data
+          name: database
+      containers:
+      - name: cayley
+        image: quay.io/cayleygraph/cayley:v0.7.0-alpha
+        command:
+        - cayley
+        - http
+        - --init # TODO: remove once initContainers is out of beta
+        - -c=/etc/cayley.json
+        - --host=:64210
+        ports:
+        - name: http
+          containerPort: 64210
+        volumeMounts:
+        - mountPath: /data
+          name: database
+      volumes:
+      - name: database
+        persistentVolumeClaim:
+          claimName: cayley-pvc

@@ -1,0 +1,114 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: cayley
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: cayley
+  labels:
+    name: mongo
+spec:
+  ports:
+  - name: mgo
+    port: 27017
+    targetPort: mgo
+  clusterIP: None
+  selector:
+    role: mongo
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: cayley
+spec:
+  serviceName: "mongo"
+  replicas: 3
+  template:
+    metadata:
+      namespace: cayley
+      labels:
+        role: mongo
+        environment: test
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: mongo
+          image: mongo:3
+          command:
+            - mongod
+            - "--replSet"
+            - rs0
+            - "--smallfiles"
+            - "--noprealloc"
+          ports:
+            - name: mgo
+              containerPort: 27017
+          volumeMounts:
+            - name: mongo-pvc
+              mountPath: /data/db
+        - name: mongo-sidecar
+          image: cvallance/mongo-k8s-sidecar
+          env:
+            - name: MONGO_SIDECAR_POD_LABELS
+              value: "role=mongo,environment=test"
+  volumeClaimTemplates:
+  - metadata:
+      name: mongo-pvc
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 20Gi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cayley
+  namespace: cayley
+spec:
+  selector:
+    app: cayley
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: http
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cayley
+  namespace: cayley
+spec:
+  replicas: 1
+  template:
+    metadata:
+      namespace: cayley
+      labels:
+        app: cayley
+    spec:
+      initContainers:
+      - name: cayley-init
+        image: quay.io/cayleygraph/cayley:v0.7.0-alpha
+        command:
+        - cayley
+        - init
+        - -d=mongo
+        - -a=mongo
+      containers:
+      - name: cayley
+        image: quay.io/cayleygraph/cayley:v0.7.0-alpha
+        command:
+        - cayley
+        - http
+        - --init # TODO: remove once initContainers works properly
+        - -d=mongo
+        - -a=mongo
+        - --host=:64210
+        ports:
+        - name: http
+          containerPort: 64210
