@@ -15,10 +15,12 @@ RUN go install -ldflags="-X github.com/cayleygraph/cayley/version.GitHash=$(git 
 
 # Expose the port and volume for configuration and data persistence. If you're
 # using a backend like bolt, make sure the file is saved to this directory.
-RUN mkdir /data #VOLUME ["/data"]
+RUN mkdir /data
+#VOLUME ["/data"]
+
 EXPOSE 64210
 
-RUN echo '{"store":{"backend":"bolt","address":"/data/cayley"}}' > /data/cayley.json
-RUN cayley load --init --config /data/cayley.json -i ./data/30kmoviedata.nq.gz
+RUN echo '{"store":{"backend":"bolt","address":"/data/cayley.db"}}' > /etc/cayley.json
+RUN cayley init --config /etc/cayley.json
 
-ENTRYPOINT ["cayley", "http", "--config", "/data/cayley.json", "--host", ":64210"]
+ENTRYPOINT ["cayley", "http", "--host", ":64210"]
