@@ -522,6 +522,13 @@ var testQueries = []struct {
 		`,
 		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
 	},
+	{
+		message: "find non-existent",
+		query: `
+			g.V('<not-existing>').ForEach(function(d){ g.Emit(d); })
+		`,
+		expect: nil,
+	},
 }
 
 func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string, error) {
