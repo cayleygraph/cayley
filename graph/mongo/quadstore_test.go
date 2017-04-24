@@ -4,21 +4,21 @@ package mongo
 
 import (
 	"testing"
+	"math/rand"
+	"sync"
+	"bytes"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/internal/dock"
-	"bytes"
-	"math/rand"
-	"sync"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 func makeMongo(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config
 
-	conf.Image = "mongo:3.2.12"
+	conf.Image = "mongo:3"
 	conf.OpenStdin = true
 	conf.Tty = true
 

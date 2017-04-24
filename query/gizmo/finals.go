@@ -162,6 +162,9 @@ func quadValueToString(v quad.Value) string {
 }
 
 func quadValueToNative(v quad.Value) interface{} {
+	if v == nil {
+		return nil
+	}
 	out := v.Native()
 	if nv, ok := out.(quad.Value); ok && v == nv {
 		return quad.StringOf(v)
