@@ -203,6 +203,14 @@ func (s *Session) runIterator(it graph.Iterator) error {
 	return err
 }
 
+func (s *Session) countResults(it graph.Iterator) (int64, error) {
+	if s.shape != nil {
+		iterator.OutputQueryShapeForIterator(it, s.qs, s.shape)
+		return 0, nil
+	}
+	return graph.Iterate(s.context(), it).Paths(true).Count()
+}
+
 type Result struct {
 	Meta bool
 	Val  interface{}

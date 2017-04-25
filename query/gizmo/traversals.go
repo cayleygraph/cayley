@@ -595,9 +595,3 @@ func (p *pathObject) Skip(offset int) *pathObject {
 	np := p.clonePath().Skip(int64(offset))
 	return p.new(np)
 }
-
-// Count returns a number of results.
-func (p *pathObject) Count() *pathObject {
-	np := p.clonePath().Count()
-	return p.new(np)
-}

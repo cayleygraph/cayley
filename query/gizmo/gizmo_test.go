@@ -334,14 +334,14 @@ var testQueries = []struct {
 	{
 		message: "show Count",
 		query: `
-				g.V().Has("<status>").Count().All()
+				g.V().Has("<status>").Count()
 		`,
-		expect: []string{`"5"^^<schema:Integer>`},
+		expect: []string{"5"},
 	},
 	{
 		message: "use Count value",
 		query: `
-				g.Emit(g.V().Has("<status>").Count().ToValue()+1)
+				g.Emit(g.V().Has("<status>").Count()+1)
 		`,
 		expect: []string{"6"},
 	},

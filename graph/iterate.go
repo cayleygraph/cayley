@@ -139,6 +139,38 @@ func (c *IterateChain) Each(fnc func(Value)) error {
 }
 
 // All will return all results of an iterator.
+func (c *IterateChain) Count() (int64, error) {
+	c.start()
+	defer c.end()
+	if err := c.it.Err(); err != nil {
+		return 0, err
+	}
+	if size, exact := c.it.Size(); exact {
+		return size, nil
+	}
+	done := c.ctx.Done()
+	var cnt int64
+iteration:
+	for c.next() {
+		select {
+		case <-done:
+			break iteration
+		default:
+		}
+		cnt++
+		for c.nextPath() {
+			select {
+			case <-done:
+				break iteration
+			default:
+			}
+			cnt++
+		}
+	}
+	return cnt, c.it.Err()
+}
+
+// All will return all results of an iterator.
 func (c *IterateChain) All() ([]Value, error) {
 	c.start()
 	defer c.end()

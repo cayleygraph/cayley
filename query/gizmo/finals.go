@@ -154,6 +154,12 @@ func (p *pathObject) ForEach(call goja.FunctionCall) goja.Value {
 	return goja.Null()
 }
 
+// Count returns a number of results.
+func (p *pathObject) Count() (int64, error) {
+	it := p.buildIteratorTree()
+	return p.s.countResults(it)
+}
+
 func quadValueToString(v quad.Value) string {
 	if s, ok := v.(quad.String); ok {
 		return string(s)
