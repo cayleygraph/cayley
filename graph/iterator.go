@@ -208,7 +208,9 @@ func Height(it Iterator, until Type) int {
 func DescribeIteratorTree(it Iterator, indentation string) {
 	fmt.Println(indentation + it.Type().String() + "\t" + it.Describe().Name)
 	for _, subIt := range it.SubIterators() {
-		DescribeIteratorTree(subIt, indentation+"  ")
+		if subIt != nil {
+			DescribeIteratorTree(subIt, indentation+"  ")
+		}
 	}
 }
 
@@ -216,12 +218,14 @@ func DescribeIteratorTree(it Iterator, indentation string) {
 type IterationContext struct {
 	values  map[string]Value
 	isBound map[string]bool
+	subIts  map[string]Iterator
 }
 
 func NewIterationContext() *IterationContext {
 	return &IterationContext{
 		values:  map[string]Value{},
 		isBound: map[string]bool{},
+		subIts:  map[string]Iterator{},
 	}
 }
 
@@ -233,18 +237,36 @@ func (c *IterationContext) SetValue(varName string, val Value) {
 
 // BindVariable binds a variable if it has not already been bound.
 // TODO(BlakeMScurr) Mutex
-func (c *IterationContext) BindVariable(varName string) bool {
+func (c *IterationContext) BindVariable(qs QuadStore, varName string) bool {
 	if val, ok := c.isBound[varName]; ok && val {
 		return false
 	}
 	c.isBound[varName] = true
+	c.subIts[varName] = qs.NodesAllIterator()
 	return true
 }
 
 // CurrentValue gets the value of the variable of name varName
 // TODO(BlakeMScurr) Mutex
 func (c *IterationContext) CurrentValue(varName string) Value {
-	return c.values[varName]
+	return c.subIts[varName].Result()
+}
+
+// Next calls next on the subiterator that provides the value source for the variable
+// of name varName
+func (c *IterationContext) Next(varName string) bool {
+	if !c.isBound[varName] {
+		panic("You shouldn't be calling next on a variable iterator before binding it.")
+	}
+	if c.subIts[varName].Next(c) {
+		c.values[varName] = c.subIts[varName].Result()
+		if c.subIts[varName].Result() == nil {
+			panic("should not be nil if next is true")
+		}
+		return true
+	}
+	c.values[varName] = nil
+	return false
 }
 
 // FixedIterator wraps iterators that are modifiable by addition of fixed value sets.

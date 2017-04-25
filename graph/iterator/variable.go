@@ -22,7 +22,6 @@ package iterator
 // opaque Quad store value, may not answer to ==.
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/codelingo/cayley/graph"
@@ -107,21 +106,21 @@ func (it *Variable) Type() graph.Type { return graph.Variable }
 
 // Contains checks if the passed value is equal to one of the values stored in the iterator.
 func (it *Variable) Contains(ctx *graph.IterationContext, v graph.Value) bool {
-	graph.DescribeIteratorTree(it, "")
+	// panic("You need to reorderIteratorTree for variable iterators")
+	// graph.DescribeIteratorTree(it, "")
 	// TODO(BlakeMScurr) If we make the IterationContext values a slice for each possible
 	graph.ContainsLogIn(it, v)
 	// return graph.ContainsLogOut(it, v, true)
-	if ctx.BindVariable(it.varName) {
-		panic("You need to reorderIteratorTree for variable iterators")
-	}
+	ctx.BindVariable(it.qs, it.varName)
+
 	currVar := ctx.CurrentValue(it.varName)
 
 	if v == currVar {
-		fmt.Println("contains" + it.qs.NameOf(v).String())
+		// fmt.Println("contains" + it.qs.NameOf(v).String())
 		return graph.ContainsLogOut(it, v, true)
 	}
-	fmt.Println("f - " + it.qs.NameOf(v).String())
-	fmt.Println("Actual value - " + it.qs.NameOf(ctx.CurrentValue(it.varName)).String())
+	// fmt.Println("f - " + it.qs.NameOf(v).String())
+	// fmt.Println("Actual value - " + it.qs.NameOf(ctx.CurrentValue(it.varName)).String())
 	return graph.ContainsLogOut(it, v, false)
 
 	// if it.isBinder {
@@ -158,37 +157,107 @@ func (it *Variable) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 // Next advances the iterator.
 func (it *Variable) Next(ctx *graph.IterationContext) bool {
 	graph.NextLogIn(it)
-	if ctx.BindVariable(it.varName) {
-		it.subIt = it.qs.NodesAllIterator()
+
+	if ctx.BindVariable(it.qs, it.varName) {
 		it.isBinder = true
+		ctx.Next(it.varName)
 	}
 
 	if it.isBinder {
-		if it.subIt.Next(ctx) {
-			it.result = it.subIt.Result()
-			fmt.Println("bind" + it.qs.NameOf(it.result).String())
-			ctx.SetValue(it.varName, it.result)
-			if it.qs.NameOf(it.result).String() == "\"2_12\"^^<key>" {
-				fmt.Println("b")
-			}
+		if ctx.Next(it.varName) {
+			it.result = ctx.CurrentValue(it.varName)
+			// fmt.Println("1")
+			// fmt.Println(it.qs.NameOf(it.result).String())
+			// if it.qs.NameOf(it.result).String() == "\"2_13\"^^<key>" {
+			// 	fmt.Println("b func_decl")
+			// }
 			return graph.NextLogOut(it, true)
 		}
-		ctx.SetValue(it.varName, nil)
-		return graph.NextLogOut(it, false)
-	}
-
-	newValue := ctx.CurrentValue(it.varName)
-	if newValue == it.result {
+		// fmt.Println("2")
 		it.result = nil
 		return graph.NextLogOut(it, false)
 	}
-	it.result = newValue
-	fmt.Println("user" + it.qs.NameOf(newValue).String())
-	if it.qs.NameOf(newValue).String() != "\".\"" && it.qs.NameOf(newValue).String() != "\".lingo\"" {
-		fmt.Println("C!")
-	}
-	return graph.NextLogOut(it, true)
+
+	newRes := ctx.CurrentValue(it.varName)
+	b := it.result != newRes
+	it.result = newRes
+
+	// fmt.Println(it.qs.NameOf(newRes))
+	// s := strconv.FormatBool(b)
+	// fmt.Println("3" + s)
+	// if !b {
+	// 	fmt.Println("true")
+	// } else {
+	// 	fmt.Println("returning false")
+	// }
+	return graph.NextLogOut(it, b)
 }
+
+// // Next advances the iterator.
+// func (it *Variable) Next(ctx *graph.IterationContext) bool {
+// 	graph.NextLogIn(it)
+
+// 	var newValue graph.Value
+// 	if !ctx.BindVariable(it.qs, it.varName) {
+// 		newValue = ctx.CurrentValue(it.varName)
+// 	} else {
+// 		newValue = nil
+// 	}
+
+// 	if newValue == it.result {
+// 		if ctx.Next(it.varName) {
+// 			it.result = ctx.CurrentValue(it.varName)
+// 			fmt.Println("1")
+// 			return graph.NextLogOut(it, true)
+// 		}
+// 		fmt.Println("2")
+// 		return graph.NextLogOut(it, false)
+// 	}
+
+// 	it.result = newValue
+// 	b := it.result == nil
+
+// 	s := strconv.FormatBool(b)
+// 	fmt.Println("3" + s)
+// 	if !b {
+// 		fmt.Println("not b")
+// 	}
+// 	return graph.NextLogOut(it, !b)
+// }
+
+// func (it *Variable) Next(ctx *graph.IterationContext) bool {
+// 	graph.NextLogIn(it)
+// 	if ctx.BindVariable(it.varName) {
+// 		it.subIt = it.qs.NodesAllIterator()
+// 		it.isBinder = true
+// 	}
+
+// 	if it.isBinder {
+// 		if it.subIt.Next(ctx) {
+// 			it.result = it.subIt.Result()
+// 			fmt.Println("bind" + it.qs.NameOf(it.result).String())
+// 			ctx.SetValue(it.varName, it.result)
+// 			return graph.NextLogOut(it, true)
+// 		}
+// 		ctx.SetValue(it.varName, nil)
+// 		return graph.NextLogOut(it, false)
+// 	}
+
+// 	newValue := ctx.CurrentValue(it.varName)
+// 	if newValue == it.result {
+// 		// it.result = nil
+// 		return graph.NextLogOut(it, true)
+// 	}
+// 	it.result = newValue
+// 	fmt.Println("user" + it.qs.NameOf(newValue).String())
+// 	if it.qs.NameOf(newValue).String() != "\".\"" && it.qs.NameOf(newValue).String() != "\".lingo\"" {
+// 		fmt.Println("C!")
+// 	}
+// 	if newValue == nil {
+// 		return graph.NextLogOut(it, false)
+// 	}
+// 	return graph.NextLogOut(it, true)
+// }
 
 func (it *Variable) Err() error {
 	return nil
