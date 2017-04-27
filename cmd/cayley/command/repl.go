@@ -21,6 +21,8 @@ func NewReplCmd() *cobra.Command {
 		Short: "Drop into a REPL of the given query language.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			printBackendInfo()
+			p := mustSetupProfile(cmd)
+			defer mustFinishProfile(p)
 			timeout, err := cmd.Flags().GetDuration("timeout")
 			if err != nil {
 				return err
