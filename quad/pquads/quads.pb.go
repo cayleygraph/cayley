@@ -177,7 +177,7 @@ func (*StrictQuad_Ref) Descriptor() ([]byte, []int) { return fileDescriptorQuads
 type isStrictQuad_Ref_Value interface {
 	isStrictQuad_Ref_Value()
 	MarshalTo([]byte) (int, error)
-	ProtoSize() int
+	Size() int
 }
 
 type StrictQuad_Ref_BnodeLabel struct {
@@ -300,7 +300,7 @@ func (*Value) Descriptor() ([]byte, []int) { return fileDescriptorQuads, []int{3
 type isValue_Value interface {
 	isValue_Value()
 	MarshalTo([]byte) (int, error)
-	ProtoSize() int
+	Size() int
 }
 
 type Value_Raw struct {
@@ -676,80 +676,80 @@ func init() {
 	proto.RegisterType((*Value_Timestamp)(nil), "pquads.Value.Timestamp")
 	proto.RegisterType((*Header)(nil), "pquads.Header")
 }
-func (m *Quad) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *Quad) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Quad) MarshalTo(data []byte) (int, error) {
+func (m *Quad) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Subject) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Subject)))
-		i += copy(data[i:], m.Subject)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Subject)))
+		i += copy(dAtA[i:], m.Subject)
 	}
 	if len(m.Predicate) > 0 {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Predicate)))
-		i += copy(data[i:], m.Predicate)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Predicate)))
+		i += copy(dAtA[i:], m.Predicate)
 	}
 	if len(m.Object) > 0 {
-		data[i] = 0x1a
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Object)))
-		i += copy(data[i:], m.Object)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Object)))
+		i += copy(dAtA[i:], m.Object)
 	}
 	if len(m.Label) > 0 {
-		data[i] = 0x22
+		dAtA[i] = 0x22
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Label)))
-		i += copy(data[i:], m.Label)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Label)))
+		i += copy(dAtA[i:], m.Label)
 	}
 	if m.SubjectValue != nil {
-		data[i] = 0x2a
+		dAtA[i] = 0x2a
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.SubjectValue.ProtoSize()))
-		n1, err := m.SubjectValue.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.SubjectValue.Size()))
+		n1, err := m.SubjectValue.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n1
 	}
 	if m.PredicateValue != nil {
-		data[i] = 0x32
+		dAtA[i] = 0x32
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.PredicateValue.ProtoSize()))
-		n2, err := m.PredicateValue.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.PredicateValue.Size()))
+		n2, err := m.PredicateValue.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n2
 	}
 	if m.ObjectValue != nil {
-		data[i] = 0x3a
+		dAtA[i] = 0x3a
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.ObjectValue.ProtoSize()))
-		n3, err := m.ObjectValue.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.ObjectValue.Size()))
+		n3, err := m.ObjectValue.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n3
 	}
 	if m.LabelValue != nil {
-		data[i] = 0x42
+		dAtA[i] = 0x42
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.LabelValue.ProtoSize()))
-		n4, err := m.LabelValue.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.LabelValue.Size()))
+		n4, err := m.LabelValue.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -758,56 +758,56 @@ func (m *Quad) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *WireQuad) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *WireQuad) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *WireQuad) MarshalTo(data []byte) (int, error) {
+func (m *WireQuad) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Subject != nil {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Subject.ProtoSize()))
-		n5, err := m.Subject.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Subject.Size()))
+		n5, err := m.Subject.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n5
 	}
 	if m.Predicate != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Predicate.ProtoSize()))
-		n6, err := m.Predicate.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Predicate.Size()))
+		n6, err := m.Predicate.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n6
 	}
 	if m.Object != nil {
-		data[i] = 0x1a
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Object.ProtoSize()))
-		n7, err := m.Object.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Object.Size()))
+		n7, err := m.Object.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n7
 	}
 	if m.Label != nil {
-		data[i] = 0x22
+		dAtA[i] = 0x22
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Label.ProtoSize()))
-		n8, err := m.Label.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Label.Size()))
+		n8, err := m.Label.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -816,56 +816,56 @@ func (m *WireQuad) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *StrictQuad) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *StrictQuad) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *StrictQuad) MarshalTo(data []byte) (int, error) {
+func (m *StrictQuad) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Subject != nil {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Subject.ProtoSize()))
-		n9, err := m.Subject.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Subject.Size()))
+		n9, err := m.Subject.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n9
 	}
 	if m.Predicate != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Predicate.ProtoSize()))
-		n10, err := m.Predicate.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Predicate.Size()))
+		n10, err := m.Predicate.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n10
 	}
 	if m.Object != nil {
-		data[i] = 0x1a
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Object.ProtoSize()))
-		n11, err := m.Object.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Object.Size()))
+		n11, err := m.Object.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n11
 	}
 	if m.Label != nil {
-		data[i] = 0x22
+		dAtA[i] = 0x22
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Label.ProtoSize()))
-		n12, err := m.Label.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Label.Size()))
+		n12, err := m.Label.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -874,23 +874,23 @@ func (m *StrictQuad) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *StrictQuad_Ref) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *StrictQuad_Ref) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *StrictQuad_Ref) MarshalTo(data []byte) (int, error) {
+func (m *StrictQuad_Ref) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Value != nil {
-		nn13, err := m.Value.MarshalTo(data[i:])
+		nn13, err := m.Value.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -899,39 +899,39 @@ func (m *StrictQuad_Ref) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *StrictQuad_Ref_BnodeLabel) MarshalTo(data []byte) (int, error) {
+func (m *StrictQuad_Ref_BnodeLabel) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintQuads(data, i, uint64(len(m.BnodeLabel)))
-	i += copy(data[i:], m.BnodeLabel)
+	i = encodeVarintQuads(dAtA, i, uint64(len(m.BnodeLabel)))
+	i += copy(dAtA[i:], m.BnodeLabel)
 	return i, nil
 }
-func (m *StrictQuad_Ref_Iri) MarshalTo(data []byte) (int, error) {
+func (m *StrictQuad_Ref_Iri) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintQuads(data, i, uint64(len(m.Iri)))
-	i += copy(data[i:], m.Iri)
+	i = encodeVarintQuads(dAtA, i, uint64(len(m.Iri)))
+	i += copy(dAtA[i:], m.Iri)
 	return i, nil
 }
-func (m *Value) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *Value) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Value) MarshalTo(data []byte) (int, error) {
+func (m *Value) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Value != nil {
-		nn14, err := m.Value.MarshalTo(data[i:])
+		nn14, err := m.Value.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -940,47 +940,47 @@ func (m *Value) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Value_Raw) MarshalTo(data []byte) (int, error) {
+func (m *Value_Raw) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.Raw != nil {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Raw)))
-		i += copy(data[i:], m.Raw)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Raw)))
+		i += copy(dAtA[i:], m.Raw)
 	}
 	return i, nil
 }
-func (m *Value_Str) MarshalTo(data []byte) (int, error) {
+func (m *Value_Str) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintQuads(data, i, uint64(len(m.Str)))
-	i += copy(data[i:], m.Str)
+	i = encodeVarintQuads(dAtA, i, uint64(len(m.Str)))
+	i += copy(dAtA[i:], m.Str)
 	return i, nil
 }
-func (m *Value_Iri) MarshalTo(data []byte) (int, error) {
+func (m *Value_Iri) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintQuads(data, i, uint64(len(m.Iri)))
-	i += copy(data[i:], m.Iri)
+	i = encodeVarintQuads(dAtA, i, uint64(len(m.Iri)))
+	i += copy(dAtA[i:], m.Iri)
 	return i, nil
 }
-func (m *Value_Bnode) MarshalTo(data []byte) (int, error) {
+func (m *Value_Bnode) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x22
+	dAtA[i] = 0x22
 	i++
-	i = encodeVarintQuads(data, i, uint64(len(m.Bnode)))
-	i += copy(data[i:], m.Bnode)
+	i = encodeVarintQuads(dAtA, i, uint64(len(m.Bnode)))
+	i += copy(dAtA[i:], m.Bnode)
 	return i, nil
 }
-func (m *Value_TypedStr) MarshalTo(data []byte) (int, error) {
+func (m *Value_TypedStr) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.TypedStr != nil {
-		data[i] = 0x2a
+		dAtA[i] = 0x2a
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.TypedStr.ProtoSize()))
-		n15, err := m.TypedStr.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.TypedStr.Size()))
+		n15, err := m.TypedStr.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -988,13 +988,13 @@ func (m *Value_TypedStr) MarshalTo(data []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *Value_LangStr) MarshalTo(data []byte) (int, error) {
+func (m *Value_LangStr) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.LangStr != nil {
-		data[i] = 0x32
+		dAtA[i] = 0x32
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.LangStr.ProtoSize()))
-		n16, err := m.LangStr.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.LangStr.Size()))
+		n16, err := m.LangStr.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -1002,39 +1002,39 @@ func (m *Value_LangStr) MarshalTo(data []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *Value_Int) MarshalTo(data []byte) (int, error) {
+func (m *Value_Int) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x38
+	dAtA[i] = 0x38
 	i++
-	i = encodeVarintQuads(data, i, uint64(m.Int))
+	i = encodeVarintQuads(dAtA, i, uint64(m.Int))
 	return i, nil
 }
-func (m *Value_Float) MarshalTo(data []byte) (int, error) {
+func (m *Value_Float) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x41
+	dAtA[i] = 0x41
 	i++
-	i = encodeFixed64Quads(data, i, uint64(math.Float64bits(float64(m.Float))))
+	i = encodeFixed64Quads(dAtA, i, uint64(math.Float64bits(float64(m.Float))))
 	return i, nil
 }
-func (m *Value_Boolean) MarshalTo(data []byte) (int, error) {
+func (m *Value_Boolean) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x48
+	dAtA[i] = 0x48
 	i++
 	if m.Boolean {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	return i, nil
 }
-func (m *Value_Time) MarshalTo(data []byte) (int, error) {
+func (m *Value_Time) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.Time != nil {
-		data[i] = 0x52
+		dAtA[i] = 0x52
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Time.ProtoSize()))
-		n17, err := m.Time.MarshalTo(data[i:])
+		i = encodeVarintQuads(dAtA, i, uint64(m.Time.Size()))
+		n17, err := m.Time.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -1042,160 +1042,160 @@ func (m *Value_Time) MarshalTo(data []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *Value_TypedString) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *Value_TypedString) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Value_TypedString) MarshalTo(data []byte) (int, error) {
+func (m *Value_TypedString) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Value) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Value)))
-		i += copy(data[i:], m.Value)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Value)))
+		i += copy(dAtA[i:], m.Value)
 	}
 	if len(m.Type) > 0 {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Type)))
-		i += copy(data[i:], m.Type)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Type)))
+		i += copy(dAtA[i:], m.Type)
 	}
 	return i, nil
 }
 
-func (m *Value_LangString) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *Value_LangString) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Value_LangString) MarshalTo(data []byte) (int, error) {
+func (m *Value_LangString) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Value) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Value)))
-		i += copy(data[i:], m.Value)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Value)))
+		i += copy(dAtA[i:], m.Value)
 	}
 	if len(m.Lang) > 0 {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintQuads(data, i, uint64(len(m.Lang)))
-		i += copy(data[i:], m.Lang)
+		i = encodeVarintQuads(dAtA, i, uint64(len(m.Lang)))
+		i += copy(dAtA[i:], m.Lang)
 	}
 	return i, nil
 }
 
-func (m *Value_Timestamp) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *Value_Timestamp) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Value_Timestamp) MarshalTo(data []byte) (int, error) {
+func (m *Value_Timestamp) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Seconds != 0 {
-		data[i] = 0x8
+		dAtA[i] = 0x8
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Seconds))
+		i = encodeVarintQuads(dAtA, i, uint64(m.Seconds))
 	}
 	if m.Nanos != 0 {
-		data[i] = 0x10
+		dAtA[i] = 0x10
 		i++
-		i = encodeVarintQuads(data, i, uint64(m.Nanos))
+		i = encodeVarintQuads(dAtA, i, uint64(m.Nanos))
 	}
 	return i, nil
 }
 
-func (m *Header) Marshal() (data []byte, err error) {
-	size := m.ProtoSize()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+func (m *Header) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Header) MarshalTo(data []byte) (int, error) {
+func (m *Header) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Full {
-		data[i] = 0x8
+		dAtA[i] = 0x8
 		i++
 		if m.Full {
-			data[i] = 1
+			dAtA[i] = 1
 		} else {
-			data[i] = 0
+			dAtA[i] = 0
 		}
 		i++
 	}
 	if m.NotStrict {
-		data[i] = 0x10
+		dAtA[i] = 0x10
 		i++
 		if m.NotStrict {
-			data[i] = 1
+			dAtA[i] = 1
 		} else {
-			data[i] = 0
+			dAtA[i] = 0
 		}
 		i++
 	}
 	return i, nil
 }
 
-func encodeFixed64Quads(data []byte, offset int, v uint64) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
-	data[offset+4] = uint8(v >> 32)
-	data[offset+5] = uint8(v >> 40)
-	data[offset+6] = uint8(v >> 48)
-	data[offset+7] = uint8(v >> 56)
+func encodeFixed64Quads(dAtA []byte, offset int, v uint64) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
+	dAtA[offset+4] = uint8(v >> 32)
+	dAtA[offset+5] = uint8(v >> 40)
+	dAtA[offset+6] = uint8(v >> 48)
+	dAtA[offset+7] = uint8(v >> 56)
 	return offset + 8
 }
-func encodeFixed32Quads(data []byte, offset int, v uint32) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
+func encodeFixed32Quads(dAtA []byte, offset int, v uint32) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
 	return offset + 4
 }
-func encodeVarintQuads(data []byte, offset int, v uint64) int {
+func encodeVarintQuads(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
-		data[offset] = uint8(v&0x7f | 0x80)
+		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
-	data[offset] = uint8(v)
+	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *Quad) ProtoSize() (n int) {
+func (m *Quad) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Subject)
@@ -1215,101 +1215,101 @@ func (m *Quad) ProtoSize() (n int) {
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.SubjectValue != nil {
-		l = m.SubjectValue.ProtoSize()
+		l = m.SubjectValue.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.PredicateValue != nil {
-		l = m.PredicateValue.ProtoSize()
+		l = m.PredicateValue.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.ObjectValue != nil {
-		l = m.ObjectValue.ProtoSize()
+		l = m.ObjectValue.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.LabelValue != nil {
-		l = m.LabelValue.ProtoSize()
+		l = m.LabelValue.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	return n
 }
 
-func (m *WireQuad) ProtoSize() (n int) {
+func (m *WireQuad) Size() (n int) {
 	var l int
 	_ = l
 	if m.Subject != nil {
-		l = m.Subject.ProtoSize()
+		l = m.Subject.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.Predicate != nil {
-		l = m.Predicate.ProtoSize()
+		l = m.Predicate.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.Object != nil {
-		l = m.Object.ProtoSize()
+		l = m.Object.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.Label != nil {
-		l = m.Label.ProtoSize()
+		l = m.Label.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	return n
 }
 
-func (m *StrictQuad) ProtoSize() (n int) {
+func (m *StrictQuad) Size() (n int) {
 	var l int
 	_ = l
 	if m.Subject != nil {
-		l = m.Subject.ProtoSize()
+		l = m.Subject.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.Predicate != nil {
-		l = m.Predicate.ProtoSize()
+		l = m.Predicate.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.Object != nil {
-		l = m.Object.ProtoSize()
+		l = m.Object.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	if m.Label != nil {
-		l = m.Label.ProtoSize()
+		l = m.Label.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	return n
 }
 
-func (m *StrictQuad_Ref) ProtoSize() (n int) {
+func (m *StrictQuad_Ref) Size() (n int) {
 	var l int
 	_ = l
 	if m.Value != nil {
-		n += m.Value.ProtoSize()
+		n += m.Value.Size()
 	}
 	return n
 }
 
-func (m *StrictQuad_Ref_BnodeLabel) ProtoSize() (n int) {
+func (m *StrictQuad_Ref_BnodeLabel) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.BnodeLabel)
 	n += 1 + l + sovQuads(uint64(l))
 	return n
 }
-func (m *StrictQuad_Ref_Iri) ProtoSize() (n int) {
+func (m *StrictQuad_Ref_Iri) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Iri)
 	n += 1 + l + sovQuads(uint64(l))
 	return n
 }
-func (m *Value) ProtoSize() (n int) {
+func (m *Value) Size() (n int) {
 	var l int
 	_ = l
 	if m.Value != nil {
-		n += m.Value.ProtoSize()
+		n += m.Value.Size()
 	}
 	return n
 }
 
-func (m *Value_Raw) ProtoSize() (n int) {
+func (m *Value_Raw) Size() (n int) {
 	var l int
 	_ = l
 	if m.Raw != nil {
@@ -1318,73 +1318,73 @@ func (m *Value_Raw) ProtoSize() (n int) {
 	}
 	return n
 }
-func (m *Value_Str) ProtoSize() (n int) {
+func (m *Value_Str) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Str)
 	n += 1 + l + sovQuads(uint64(l))
 	return n
 }
-func (m *Value_Iri) ProtoSize() (n int) {
+func (m *Value_Iri) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Iri)
 	n += 1 + l + sovQuads(uint64(l))
 	return n
 }
-func (m *Value_Bnode) ProtoSize() (n int) {
+func (m *Value_Bnode) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Bnode)
 	n += 1 + l + sovQuads(uint64(l))
 	return n
 }
-func (m *Value_TypedStr) ProtoSize() (n int) {
+func (m *Value_TypedStr) Size() (n int) {
 	var l int
 	_ = l
 	if m.TypedStr != nil {
-		l = m.TypedStr.ProtoSize()
+		l = m.TypedStr.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	return n
 }
-func (m *Value_LangStr) ProtoSize() (n int) {
+func (m *Value_LangStr) Size() (n int) {
 	var l int
 	_ = l
 	if m.LangStr != nil {
-		l = m.LangStr.ProtoSize()
+		l = m.LangStr.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	return n
 }
-func (m *Value_Int) ProtoSize() (n int) {
+func (m *Value_Int) Size() (n int) {
 	var l int
 	_ = l
 	n += 1 + sovQuads(uint64(m.Int))
 	return n
 }
-func (m *Value_Float) ProtoSize() (n int) {
+func (m *Value_Float) Size() (n int) {
 	var l int
 	_ = l
 	n += 9
 	return n
 }
-func (m *Value_Boolean) ProtoSize() (n int) {
+func (m *Value_Boolean) Size() (n int) {
 	var l int
 	_ = l
 	n += 2
 	return n
 }
-func (m *Value_Time) ProtoSize() (n int) {
+func (m *Value_Time) Size() (n int) {
 	var l int
 	_ = l
 	if m.Time != nil {
-		l = m.Time.ProtoSize()
+		l = m.Time.Size()
 		n += 1 + l + sovQuads(uint64(l))
 	}
 	return n
 }
-func (m *Value_TypedString) ProtoSize() (n int) {
+func (m *Value_TypedString) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Value)
@@ -1398,7 +1398,7 @@ func (m *Value_TypedString) ProtoSize() (n int) {
 	return n
 }
 
-func (m *Value_LangString) ProtoSize() (n int) {
+func (m *Value_LangString) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Value)
@@ -1412,7 +1412,7 @@ func (m *Value_LangString) ProtoSize() (n int) {
 	return n
 }
 
-func (m *Value_Timestamp) ProtoSize() (n int) {
+func (m *Value_Timestamp) Size() (n int) {
 	var l int
 	_ = l
 	if m.Seconds != 0 {
@@ -1424,7 +1424,7 @@ func (m *Value_Timestamp) ProtoSize() (n int) {
 	return n
 }
 
-func (m *Header) ProtoSize() (n int) {
+func (m *Header) Size() (n int) {
 	var l int
 	_ = l
 	if m.Full {
@@ -1449,8 +1449,8 @@ func sovQuads(x uint64) (n int) {
 func sozQuads(x uint64) (n int) {
 	return sovQuads(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *Quad) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Quad) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1462,7 +1462,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1490,7 +1490,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1505,7 +1505,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Subject = string(data[iNdEx:postIndex])
+			m.Subject = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -1519,7 +1519,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1534,7 +1534,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Predicate = string(data[iNdEx:postIndex])
+			m.Predicate = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -1548,7 +1548,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1563,7 +1563,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Object = string(data[iNdEx:postIndex])
+			m.Object = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -1577,7 +1577,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1592,7 +1592,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Label = string(data[iNdEx:postIndex])
+			m.Label = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -1606,7 +1606,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1623,7 +1623,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if m.SubjectValue == nil {
 				m.SubjectValue = &Value{}
 			}
-			if err := m.SubjectValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.SubjectValue.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1639,7 +1639,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1656,7 +1656,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if m.PredicateValue == nil {
 				m.PredicateValue = &Value{}
 			}
-			if err := m.PredicateValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.PredicateValue.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1672,7 +1672,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1689,7 +1689,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if m.ObjectValue == nil {
 				m.ObjectValue = &Value{}
 			}
-			if err := m.ObjectValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectValue.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1705,7 +1705,7 @@ func (m *Quad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1722,13 +1722,13 @@ func (m *Quad) Unmarshal(data []byte) error {
 			if m.LabelValue == nil {
 				m.LabelValue = &Value{}
 			}
-			if err := m.LabelValue.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.LabelValue.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1747,8 +1747,8 @@ func (m *Quad) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *WireQuad) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *WireQuad) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1760,7 +1760,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1788,7 +1788,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1805,7 +1805,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 			if m.Subject == nil {
 				m.Subject = &Value{}
 			}
-			if err := m.Subject.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Subject.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1821,7 +1821,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1838,7 +1838,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 			if m.Predicate == nil {
 				m.Predicate = &Value{}
 			}
-			if err := m.Predicate.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Predicate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1854,7 +1854,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1871,7 +1871,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 			if m.Object == nil {
 				m.Object = &Value{}
 			}
-			if err := m.Object.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1887,7 +1887,7 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1904,13 +1904,13 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 			if m.Label == nil {
 				m.Label = &Value{}
 			}
-			if err := m.Label.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Label.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1929,8 +1929,8 @@ func (m *WireQuad) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *StrictQuad) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *StrictQuad) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1942,7 +1942,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1970,7 +1970,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1987,7 +1987,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 			if m.Subject == nil {
 				m.Subject = &StrictQuad_Ref{}
 			}
-			if err := m.Subject.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Subject.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2003,7 +2003,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2020,7 +2020,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 			if m.Predicate == nil {
 				m.Predicate = &StrictQuad_Ref{}
 			}
-			if err := m.Predicate.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Predicate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2036,7 +2036,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2053,7 +2053,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 			if m.Object == nil {
 				m.Object = &Value{}
 			}
-			if err := m.Object.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2069,7 +2069,7 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2086,13 +2086,13 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 			if m.Label == nil {
 				m.Label = &StrictQuad_Ref{}
 			}
-			if err := m.Label.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Label.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2111,8 +2111,8 @@ func (m *StrictQuad) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *StrictQuad_Ref) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *StrictQuad_Ref) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2124,7 +2124,7 @@ func (m *StrictQuad_Ref) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2152,7 +2152,7 @@ func (m *StrictQuad_Ref) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2167,7 +2167,7 @@ func (m *StrictQuad_Ref) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = &StrictQuad_Ref_BnodeLabel{string(data[iNdEx:postIndex])}
+			m.Value = &StrictQuad_Ref_BnodeLabel{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2181,7 +2181,7 @@ func (m *StrictQuad_Ref) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2196,11 +2196,11 @@ func (m *StrictQuad_Ref) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = &StrictQuad_Ref_Iri{string(data[iNdEx:postIndex])}
+			m.Value = &StrictQuad_Ref_Iri{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2219,8 +2219,8 @@ func (m *StrictQuad_Ref) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Value) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Value) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2232,7 +2232,7 @@ func (m *Value) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2260,7 +2260,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2275,7 +2275,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			v := make([]byte, postIndex-iNdEx)
-			copy(v, data[iNdEx:postIndex])
+			copy(v, dAtA[iNdEx:postIndex])
 			m.Value = &Value_Raw{v}
 			iNdEx = postIndex
 		case 2:
@@ -2290,7 +2290,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2305,7 +2305,7 @@ func (m *Value) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = &Value_Str{string(data[iNdEx:postIndex])}
+			m.Value = &Value_Str{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2319,7 +2319,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2334,7 +2334,7 @@ func (m *Value) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = &Value_Iri{string(data[iNdEx:postIndex])}
+			m.Value = &Value_Iri{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -2348,7 +2348,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2363,7 +2363,7 @@ func (m *Value) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = &Value_Bnode{string(data[iNdEx:postIndex])}
+			m.Value = &Value_Bnode{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -2377,7 +2377,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2392,7 +2392,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			v := &Value_TypedString{}
-			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			m.Value = &Value_TypedStr{v}
@@ -2409,7 +2409,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2424,7 +2424,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			v := &Value_LangString{}
-			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			m.Value = &Value_LangStr{v}
@@ -2441,7 +2441,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2458,14 +2458,14 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			iNdEx += 8
-			v = uint64(data[iNdEx-8])
-			v |= uint64(data[iNdEx-7]) << 8
-			v |= uint64(data[iNdEx-6]) << 16
-			v |= uint64(data[iNdEx-5]) << 24
-			v |= uint64(data[iNdEx-4]) << 32
-			v |= uint64(data[iNdEx-3]) << 40
-			v |= uint64(data[iNdEx-2]) << 48
-			v |= uint64(data[iNdEx-1]) << 56
+			v = uint64(dAtA[iNdEx-8])
+			v |= uint64(dAtA[iNdEx-7]) << 8
+			v |= uint64(dAtA[iNdEx-6]) << 16
+			v |= uint64(dAtA[iNdEx-5]) << 24
+			v |= uint64(dAtA[iNdEx-4]) << 32
+			v |= uint64(dAtA[iNdEx-3]) << 40
+			v |= uint64(dAtA[iNdEx-2]) << 48
+			v |= uint64(dAtA[iNdEx-1]) << 56
 			m.Value = &Value_Float{float64(math.Float64frombits(v))}
 		case 9:
 			if wireType != 0 {
@@ -2479,7 +2479,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2500,7 +2500,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2515,14 +2515,14 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			v := &Value_Timestamp{}
-			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			m.Value = &Value_Time{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2541,8 +2541,8 @@ func (m *Value) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Value_TypedString) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Value_TypedString) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2554,7 +2554,7 @@ func (m *Value_TypedString) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2582,7 +2582,7 @@ func (m *Value_TypedString) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2597,7 +2597,7 @@ func (m *Value_TypedString) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = string(data[iNdEx:postIndex])
+			m.Value = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -2611,7 +2611,7 @@ func (m *Value_TypedString) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2626,11 +2626,11 @@ func (m *Value_TypedString) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Type = string(data[iNdEx:postIndex])
+			m.Type = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2649,8 +2649,8 @@ func (m *Value_TypedString) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Value_LangString) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Value_LangString) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2662,7 +2662,7 @@ func (m *Value_LangString) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2690,7 +2690,7 @@ func (m *Value_LangString) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2705,7 +2705,7 @@ func (m *Value_LangString) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = string(data[iNdEx:postIndex])
+			m.Value = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -2719,7 +2719,7 @@ func (m *Value_LangString) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2734,11 +2734,11 @@ func (m *Value_LangString) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Lang = string(data[iNdEx:postIndex])
+			m.Lang = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2757,8 +2757,8 @@ func (m *Value_LangString) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Value_Timestamp) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Value_Timestamp) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2770,7 +2770,7 @@ func (m *Value_Timestamp) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2798,7 +2798,7 @@ func (m *Value_Timestamp) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.Seconds |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2817,7 +2817,7 @@ func (m *Value_Timestamp) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.Nanos |= (int32(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2826,7 +2826,7 @@ func (m *Value_Timestamp) Unmarshal(data []byte) error {
 			}
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2845,8 +2845,8 @@ func (m *Value_Timestamp) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Header) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Header) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2858,7 +2858,7 @@ func (m *Header) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2886,7 +2886,7 @@ func (m *Header) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2906,7 +2906,7 @@ func (m *Header) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2916,7 +2916,7 @@ func (m *Header) Unmarshal(data []byte) error {
 			m.NotStrict = bool(v != 0)
 		default:
 			iNdEx = preIndex
-			skippy, err := skipQuads(data[iNdEx:])
+			skippy, err := skipQuads(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2935,8 +2935,8 @@ func (m *Header) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func skipQuads(data []byte) (n int, err error) {
-	l := len(data)
+func skipQuads(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		var wire uint64
@@ -2947,7 +2947,7 @@ func skipQuads(data []byte) (n int, err error) {
 			if iNdEx >= l {
 				return 0, io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2965,7 +2965,7 @@ func skipQuads(data []byte) (n int, err error) {
 					return 0, io.ErrUnexpectedEOF
 				}
 				iNdEx++
-				if data[iNdEx-1] < 0x80 {
+				if dAtA[iNdEx-1] < 0x80 {
 					break
 				}
 			}
@@ -2982,7 +2982,7 @@ func skipQuads(data []byte) (n int, err error) {
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				length |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3005,7 +3005,7 @@ func skipQuads(data []byte) (n int, err error) {
 					if iNdEx >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
-					b := data[iNdEx]
+					b := dAtA[iNdEx]
 					iNdEx++
 					innerWire |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -3016,7 +3016,7 @@ func skipQuads(data []byte) (n int, err error) {
 				if innerWireType == 4 {
 					break
 				}
-				next, err := skipQuads(data[start:])
+				next, err := skipQuads(dAtA[start:])
 				if err != nil {
 					return 0, err
 				}
@@ -3043,44 +3043,45 @@ var (
 func init() { proto.RegisterFile("quads.proto", fileDescriptorQuads) }
 
 var fileDescriptorQuads = []byte{
-	// 620 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x94, 0x54, 0xcd, 0x6e, 0xd3, 0x40,
-	0x10, 0xc6, 0xb1, 0x9d, 0xd8, 0xe3, 0x14, 0xd0, 0x0a, 0x15, 0x63, 0x41, 0x05, 0x41, 0x08, 0x24,
-	0xa8, 0x5b, 0x15, 0x28, 0x48, 0xbd, 0xf5, 0x54, 0x41, 0x2f, 0x18, 0x04, 0xc7, 0x6a, 0x1d, 0x6f,
-	0x82, 0x91, 0xb3, 0x1b, 0xec, 0x35, 0x88, 0x17, 0xe1, 0xcc, 0x03, 0xf0, 0x04, 0x3c, 0x01, 0x47,
-	0x9e, 0x01, 0xde, 0x82, 0x13, 0xbb, 0xb3, 0x8e, 0xf3, 0x7f, 0xe0, 0x10, 0x69, 0xbf, 0x99, 0xf9,
-	0x66, 0xbf, 0x99, 0x7c, 0x5e, 0x08, 0x3e, 0xd6, 0x34, 0xab, 0xe2, 0x69, 0x29, 0xa4, 0x20, 0xdd,
-	0x29, 0xa2, 0x68, 0x7f, 0x9c, 0xcb, 0xf7, 0x75, 0x1a, 0x0f, 0xc5, 0xe4, 0x60, 0x2c, 0xc6, 0xe2,
-	0x00, 0xd3, 0x69, 0x3d, 0x42, 0x84, 0x00, 0x4f, 0x86, 0x36, 0xf8, 0xd1, 0x01, 0xe7, 0x95, 0x22,
-	0x92, 0x10, 0x7a, 0x55, 0x9d, 0x7e, 0x60, 0x43, 0x19, 0x5a, 0xb7, 0xad, 0x07, 0x7e, 0x32, 0x83,
-	0xe4, 0x26, 0xf8, 0xd3, 0x92, 0x65, 0xf9, 0x90, 0x4a, 0x16, 0x76, 0x30, 0x37, 0x0f, 0x90, 0x5d,
-	0xe8, 0x0a, 0x43, 0xb3, 0x31, 0xd5, 0x20, 0x72, 0x0d, 0xdc, 0x82, 0xa6, 0xac, 0x08, 0x1d, 0x0c,
-	0x1b, 0x40, 0x8e, 0x60, 0xa7, 0x69, 0x7b, 0xf1, 0x89, 0x16, 0x35, 0x0b, 0x5d, 0x95, 0x0d, 0x8e,
-	0x76, 0x62, 0xa3, 0x3e, 0x7e, 0xab, 0x83, 0x49, 0xbf, 0xa9, 0x41, 0x44, 0x8e, 0xe1, 0x4a, 0x7b,
-	0x5d, 0xc3, 0xea, 0x6e, 0x62, 0x5d, 0x6e, 0xab, 0x0c, 0xef, 0x10, 0xfa, 0x62, 0xf1, 0xaa, 0xde,
-	0x26, 0x52, 0x20, 0x16, 0x6e, 0x8a, 0x21, 0x40, 0x99, 0x0d, 0xc1, 0xdb, 0x44, 0x00, 0xac, 0xc0,
-	0xf3, 0xe0, 0xbb, 0x05, 0xde, 0xbb, 0xbc, 0x64, 0xb8, 0xc0, 0xfb, 0xcb, 0x0b, 0x5c, 0x23, 0xb6,
-	0xfb, 0x7c, 0xb8, 0xba, 0xcf, 0xb5, 0xd2, 0x85, 0xf5, 0xde, 0x5b, 0x5a, 0xef, 0x5a, 0xe5, 0x6c,
-	0xdb, 0x77, 0x17, 0xb7, 0xbd, 0x56, 0x65, 0x72, 0x83, 0xaf, 0x1d, 0x80, 0xd7, 0xb2, 0xcc, 0x87,
-	0x12, 0x05, 0x1f, 0xae, 0x0a, 0xde, 0x9d, 0xb1, 0xe6, 0x45, 0x71, 0xc2, 0x46, 0x73, 0xe5, 0x4f,
-	0xd6, 0x95, 0x6f, 0xe3, 0xfc, 0xff, 0x08, 0x8f, 0x96, 0x47, 0xd8, 0xd6, 0xd8, 0x14, 0x45, 0x2f,
-	0xc1, 0x56, 0x88, 0xdc, 0x81, 0x20, 0xe5, 0x22, 0x63, 0x17, 0x86, 0x8a, 0xee, 0x3c, 0xbb, 0x94,
-	0x00, 0x06, 0xcf, 0xd1, 0x72, 0x04, 0xec, 0xbc, 0xcc, 0x8d, 0x3b, 0x55, 0x4a, 0x83, 0xd3, 0x1e,
-	0xb8, 0xf8, 0x17, 0xbf, 0x70, 0x3c, 0xeb, 0x6a, 0x67, 0xf0, 0xd7, 0x06, 0xd7, 0x38, 0x40, 0x15,
-	0x97, 0xf4, 0x33, 0xee, 0xa3, 0xaf, 0x8b, 0x15, 0xd0, 0xb1, 0x4a, 0x96, 0x6d, 0x6f, 0x0d, 0x36,
-	0x35, 0x55, 0x5f, 0x82, 0x8b, 0xd7, 0x1a, 0xc7, 0xab, 0xa8, 0x81, 0xe4, 0x39, 0xf8, 0xf2, 0xcb,
-	0x94, 0x65, 0x17, 0xba, 0x8b, 0xf1, 0xfb, 0x8d, 0xa5, 0x15, 0xc4, 0x6f, 0x74, 0x5a, 0xcf, 0xc9,
-	0xc7, 0x8a, 0xe6, 0xc9, 0x06, 0x92, 0xa7, 0xe0, 0x15, 0x94, 0x8f, 0x91, 0x68, 0x2c, 0x1f, 0x2e,
-	0x13, 0xcf, 0x55, 0xb6, 0xe5, 0xf5, 0x0a, 0x83, 0x50, 0x1c, 0x97, 0xe8, 0x77, 0x1b, 0xc5, 0x71,
-	0xa9, 0xc5, 0x8d, 0x0a, 0x41, 0x25, 0x9a, 0xda, 0xd2, 0xe2, 0x10, 0x92, 0x08, 0x7a, 0xa9, 0x10,
-	0x05, 0xa3, 0x3c, 0xf4, 0x55, 0xc6, 0xd3, 0x7d, 0x9a, 0x00, 0xd9, 0x07, 0x47, 0xe6, 0x13, 0x16,
-	0x02, 0x5e, 0x7d, 0x7d, 0x45, 0xb3, 0xca, 0x54, 0x92, 0x4e, 0xa6, 0x8a, 0x81, 0x65, 0xd1, 0x33,
-	0x08, 0x16, 0x06, 0xd1, 0x0f, 0x80, 0xf9, 0x8c, 0xcc, 0x73, 0x62, 0x80, 0xd2, 0xe6, 0xe8, 0xf1,
-	0x9a, 0x77, 0x04, 0xcf, 0xd1, 0x31, 0xc0, 0x7c, 0x90, 0xed, 0x3c, 0x3d, 0xde, 0x8c, 0xa7, 0xcf,
-	0xd1, 0x09, 0xf8, 0xad, 0x0a, 0x7c, 0xbf, 0xd8, 0x50, 0xf0, 0xac, 0x42, 0xa2, 0x9d, 0xcc, 0xa0,
-	0x6e, 0xc8, 0x29, 0x17, 0x15, 0x72, 0xdd, 0xc4, 0x80, 0xd6, 0x02, 0x83, 0x13, 0xe8, 0x9e, 0x31,
-	0x9a, 0x31, 0xbd, 0x37, 0x67, 0x54, 0x17, 0x05, 0xf2, 0xbd, 0x04, 0xcf, 0xe4, 0x16, 0x00, 0x17,
-	0x52, 0xff, 0x03, 0xca, 0x84, 0xd8, 0xc1, 0x4b, 0x7c, 0x15, 0x31, 0xae, 0x3c, 0xed, 0xff, 0xfc,
-	0xbd, 0x67, 0xfd, 0x52, 0xbf, 0x6f, 0x7f, 0xf6, 0xac, 0xb4, 0x8b, 0x6f, 0xea, 0xe3, 0x7f, 0x01,
-	0x00, 0x00, 0xff, 0xff, 0xd8, 0x36, 0x01, 0x85, 0x99, 0x05, 0x00, 0x00,
+	// 629 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x94, 0x54, 0xdd, 0x6e, 0xd3, 0x30,
+	0x14, 0x6e, 0x9a, 0xfe, 0x24, 0x27, 0x1d, 0x20, 0x0b, 0x8d, 0x10, 0xc1, 0x34, 0x8a, 0x10, 0x93,
+	0x60, 0xd9, 0x34, 0x60, 0x20, 0xed, 0x6e, 0x57, 0x11, 0xec, 0x06, 0x83, 0xe0, 0x72, 0x72, 0x12,
+	0x37, 0x04, 0xa5, 0x76, 0x49, 0x1c, 0x26, 0x5e, 0x84, 0xa7, 0xe0, 0x09, 0x78, 0x02, 0x2e, 0x79,
+	0x04, 0xb4, 0xc7, 0xe0, 0x0a, 0xf9, 0x38, 0x4d, 0xdb, 0xb5, 0xbb, 0xe0, 0xce, 0x9f, 0x7d, 0xbe,
+	0xe3, 0xef, 0x7c, 0xf9, 0x62, 0xf0, 0xbe, 0xd4, 0x2c, 0xad, 0xc2, 0x59, 0x29, 0x95, 0x24, 0x83,
+	0x19, 0xa2, 0x60, 0x3f, 0xcb, 0xd5, 0xa7, 0x3a, 0x0e, 0x13, 0x39, 0x3d, 0xc8, 0x64, 0x26, 0x0f,
+	0xf0, 0x38, 0xae, 0x27, 0x88, 0x10, 0xe0, 0xca, 0xd0, 0xc6, 0x3f, 0xbb, 0xd0, 0x7b, 0x5b, 0xb3,
+	0x94, 0xf8, 0x30, 0xac, 0xea, 0xf8, 0x33, 0x4f, 0x94, 0x6f, 0xed, 0x5a, 0x7b, 0x2e, 0x9d, 0x43,
+	0x72, 0x0f, 0xdc, 0x59, 0xc9, 0xd3, 0x3c, 0x61, 0x8a, 0xfb, 0x5d, 0x3c, 0x5b, 0x6c, 0x90, 0x6d,
+	0x18, 0x48, 0x43, 0xb3, 0xf1, 0xa8, 0x41, 0xe4, 0x36, 0xf4, 0x0b, 0x16, 0xf3, 0xc2, 0xef, 0xe1,
+	0xb6, 0x01, 0xe4, 0x08, 0xb6, 0x9a, 0xb6, 0xe7, 0x5f, 0x59, 0x51, 0x73, 0xbf, 0xbf, 0x6b, 0xed,
+	0x79, 0x47, 0x5b, 0xa1, 0x51, 0x1f, 0x7e, 0xd0, 0x9b, 0x74, 0xd4, 0xd4, 0x20, 0x22, 0xc7, 0x70,
+	0xb3, 0xbd, 0xae, 0x61, 0x0d, 0x36, 0xb1, 0x6e, 0xb4, 0x55, 0x86, 0x77, 0x08, 0x23, 0xb9, 0x7c,
+	0xd5, 0x70, 0x13, 0xc9, 0x93, 0x4b, 0x37, 0x85, 0xe0, 0xa1, 0xcc, 0x86, 0xe0, 0x6c, 0x22, 0x00,
+	0x56, 0xe0, 0x7a, 0xfc, 0xc3, 0x02, 0xe7, 0x63, 0x5e, 0x72, 0x34, 0xf0, 0xf1, 0xaa, 0x81, 0x6b,
+	0xc4, 0xd6, 0xcf, 0x27, 0x57, 0xfd, 0x5c, 0x2b, 0x5d, 0xb2, 0xf7, 0xd1, 0x8a, 0xbd, 0x6b, 0x95,
+	0x73, 0xb7, 0x1f, 0x2e, 0xbb, 0xbd, 0x56, 0x65, 0xce, 0xc6, 0xdf, 0xbb, 0x00, 0xef, 0x54, 0x99,
+	0x27, 0x0a, 0x05, 0x1f, 0x5e, 0x15, 0xbc, 0x3d, 0x67, 0x2d, 0x8a, 0x42, 0xca, 0x27, 0x0b, 0xe5,
+	0xcf, 0xd7, 0x95, 0x5f, 0xc7, 0xf9, 0xff, 0x11, 0x9e, 0xae, 0x8e, 0x70, 0x5d, 0x63, 0x53, 0x14,
+	0xbc, 0x01, 0x9b, 0xf2, 0x09, 0x79, 0x00, 0x5e, 0x2c, 0x64, 0xca, 0xcf, 0x0d, 0x15, 0xd3, 0x19,
+	0x75, 0x28, 0xe0, 0xe6, 0x19, 0x46, 0x8e, 0x80, 0x9d, 0x97, 0xb9, 0x49, 0x67, 0xd4, 0xa1, 0x1a,
+	0x9c, 0x0e, 0xa1, 0x8f, 0x9f, 0xf8, 0x75, 0xcf, 0xb1, 0x6e, 0x75, 0xc7, 0x7f, 0x6d, 0xe8, 0x9b,
+	0x04, 0x10, 0xb0, 0x4b, 0x76, 0x81, 0x7e, 0x8c, 0x74, 0x71, 0xc9, 0x2e, 0xf4, 0x5e, 0xa5, 0xca,
+	0xb6, 0xb7, 0x06, 0x9b, 0x9a, 0x92, 0x6d, 0xe8, 0xe3, 0xb5, 0x26, 0xf1, 0x51, 0x87, 0x1a, 0x48,
+	0x5e, 0x81, 0xab, 0xbe, 0xcd, 0x78, 0x7a, 0xae, 0xbb, 0x98, 0xbc, 0xdf, 0x5d, 0xb1, 0x20, 0x7c,
+	0xaf, 0x8f, 0xf5, 0x9c, 0x22, 0x8b, 0x3a, 0xd4, 0x51, 0x0d, 0x24, 0x2f, 0xc0, 0x29, 0x98, 0xc8,
+	0x90, 0x68, 0x22, 0xef, 0xaf, 0x12, 0xcf, 0x98, 0xc8, 0x5a, 0xde, 0xb0, 0x30, 0x08, 0xc5, 0x09,
+	0x85, 0x79, 0xb7, 0x51, 0x9c, 0x50, 0x5a, 0xdc, 0xa4, 0x90, 0x4c, 0x61, 0xa8, 0x2d, 0x2d, 0x0e,
+	0x21, 0x09, 0x60, 0x18, 0x4b, 0x59, 0x70, 0x26, 0x7c, 0x77, 0xd7, 0xda, 0x73, 0x74, 0x9f, 0x66,
+	0x83, 0xec, 0x43, 0x4f, 0xe5, 0x53, 0xee, 0x03, 0x5e, 0x7d, 0xe7, 0x8a, 0xe6, 0x7c, 0xca, 0x2b,
+	0xc5, 0xa6, 0xb3, 0xa8, 0x43, 0xb1, 0x2c, 0x78, 0x09, 0xde, 0xd2, 0x20, 0xfa, 0x01, 0x30, 0xbf,
+	0x91, 0x79, 0x4e, 0x0c, 0x20, 0x04, 0x7a, 0x7a, 0xbc, 0xe6, 0x1d, 0xc1, 0x75, 0x70, 0x0c, 0xb0,
+	0x18, 0xe4, 0x7a, 0x9e, 0x1e, 0x6f, 0xce, 0xd3, 0xeb, 0xe0, 0x04, 0xdc, 0x56, 0x05, 0xbe, 0x5f,
+	0x3c, 0x91, 0x22, 0xad, 0x90, 0x68, 0xd3, 0x39, 0xd4, 0x0d, 0x05, 0x13, 0xb2, 0x42, 0x6e, 0x9f,
+	0x1a, 0xd0, 0x46, 0x60, 0x7c, 0x02, 0x83, 0x88, 0xb3, 0x94, 0x6b, 0xdf, 0x7a, 0x93, 0xba, 0x28,
+	0x90, 0xef, 0x50, 0x5c, 0x93, 0xfb, 0x00, 0x42, 0x2a, 0xfd, 0x05, 0xf2, 0x44, 0x61, 0x07, 0x87,
+	0xba, 0x42, 0x2a, 0x93, 0xca, 0xd3, 0xd1, 0xaf, 0xcb, 0x1d, 0xeb, 0xf7, 0xe5, 0x8e, 0xf5, 0xe7,
+	0x72, 0xc7, 0x8a, 0x07, 0xf8, 0xa6, 0x3e, 0xfb, 0x17, 0x00, 0x00, 0xff, 0xff, 0xe8, 0x5e, 0xec,
+	0x74, 0x99, 0x05, 0x00, 0x00,
 }

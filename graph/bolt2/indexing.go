@@ -25,6 +25,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
 )
@@ -126,7 +127,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 
 nextDelta:
 	for _, d := range deltas {
-		link := &graph.Primitive{}
+		link := &proto.Primitive{}
 		mustBeNew := false
 		for _, dir := range quad.Directions {
 			val := d.Quad.Get(dir)
@@ -196,14 +197,14 @@ nextDelta:
 	return tx.Commit()
 }
 
-func (qs *QuadStore) index(tx *bolt.Tx, p *graph.Primitive, val quad.Value) error {
+func (qs *QuadStore) index(tx *bolt.Tx, p *proto.Primitive, val quad.Value) error {
 	if p.IsNode() {
 		return qs.indexNode(tx, p, val)
 	}
 	return qs.indexLink(tx, p)
 }
 
-func (qs *QuadStore) indexNode(tx *bolt.Tx, p *graph.Primitive, val quad.Value) error {
+func (qs *QuadStore) indexNode(tx *bolt.Tx, p *proto.Primitive, val quad.Value) error {
 	var err error
 	if val == nil {
 		val, err = pquads.UnmarshalValue(p.Value)
@@ -223,7 +224,7 @@ func (qs *QuadStore) indexNode(tx *bolt.Tx, p *graph.Primitive, val quad.Value) 
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) indexLink(tx *bolt.Tx, p *graph.Primitive) error {
+func (qs *QuadStore) indexLink(tx *bolt.Tx, p *proto.Primitive) error {
 	var err error
 	// Subject
 	err = qs.addToMapBucket(tx, subjectIndex, p.Subject, p.ID)
@@ -278,7 +279,7 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 	return b[:off]
 }
 
-func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *graph.Primitive) (uint64, error) {
+func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *proto.Primitive) (uint64, error) {
 	sub, err := qs.getBucketIndex(tx, subjectIndex, p.Subject)
 	if err != nil {
 		return 0, err
@@ -367,11 +368,11 @@ func (qs *QuadStore) flushMapBucket(tx *bolt.Tx) error {
 	return nil
 }
 
-func (qs *QuadStore) indexSchema(tx *bolt.Tx, p *graph.Primitive) error {
+func (qs *QuadStore) indexSchema(tx *bolt.Tx, p *proto.Primitive) error {
 	return nil
 }
 
-func (qs *QuadStore) addToLog(tx *bolt.Tx, p *graph.Primitive) error {
+func (qs *QuadStore) addToLog(tx *bolt.Tx, p *proto.Primitive) error {
 	b, err := p.Marshal()
 	if err != nil {
 		return err
@@ -379,8 +380,8 @@ func (qs *QuadStore) addToLog(tx *bolt.Tx, p *graph.Primitive) error {
 	return tx.Bucket(logIndex).Put(uint64KeyBytes(p.ID), b)
 }
 
-func (qs *QuadStore) createNodePrimitive(v quad.Value) (*graph.Primitive, error) {
-	p := &graph.Primitive{}
+func (qs *QuadStore) createNodePrimitive(v quad.Value) (*proto.Primitive, error) {
+	p := &proto.Primitive{}
 	b, err := pquads.MarshalValue(v)
 	if err != nil {
 		return p, err
@@ -431,8 +432,8 @@ func uint64KeyBytes(x uint64) []byte {
 	return k
 }
 
-func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (*graph.Primitive, error) {
-	p := &graph.Primitive{}
+func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (*proto.Primitive, error) {
+	p := &proto.Primitive{}
 	b := tx.Bucket(logIndex).Get(uint64KeyBytes(k))
 	if b == nil {
 		return p, fmt.Errorf("no such log entry")

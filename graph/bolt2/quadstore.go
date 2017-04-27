@@ -21,6 +21,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
+	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
@@ -287,11 +288,11 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	return Int64Value(0)
 }
 
-func (qs *QuadStore) getPrimitive(val Int64Value) (*graph.Primitive, bool) {
+func (qs *QuadStore) getPrimitive(val Int64Value) (*proto.Primitive, bool) {
 	if val == 0 {
 		return nil, false
 	}
-	var p *graph.Primitive
+	var p *proto.Primitive
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
 		p, err = qs.getPrimitiveFromLog(tx, uint64(val))
