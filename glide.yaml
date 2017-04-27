@@ -1,4 +1,6 @@
 package: github.com/cayleygraph/cayley
+excludeDirs:
+- internal/dock
 import:
 - package: github.com/badgerodon/peg
 - package: github.com/golang/glog
