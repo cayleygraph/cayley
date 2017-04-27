@@ -30,11 +30,10 @@ import (
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc:           newQuadStore,
-		NewForRequestFunc: nil,
-		UpgradeFunc:       nil,
-		InitFunc:          createNewBolt,
-		IsPersistent:      true,
+		NewFunc:      newQuadStore,
+		UpgradeFunc:  nil,
+		InitFunc:     createNewBolt,
+		IsPersistent: true,
 	})
 }
 
