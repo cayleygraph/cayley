@@ -17,8 +17,9 @@ package gaedatastore
 
 import (
 	"errors"
-	"testing"
 	"net/http"
+	"testing"
+	"time"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
@@ -55,7 +56,11 @@ type pair struct {
 }
 
 func createInstance() (aetest.Instance, *http.Request, error) {
-	inst, err := aetest.NewInstance(&aetest.Options{"", true})
+	inst, err := aetest.NewInstance(&aetest.Options{
+		AppID: "",
+		StronglyConsistentDatastore: true,
+		StartupTimeout:              15 * time.Second,
+	})
 	if err != nil {
 		return nil, nil, errors.New("Creation of new instance failed")
 	}
