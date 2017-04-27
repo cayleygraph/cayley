@@ -14,10 +14,10 @@
 
 syntax = "proto3";
 
-package graph;
+package proto;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "google/protobuf/timestamp.proto";
+//import "google/protobuf/timestamp.proto";
 option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) =  true;
@@ -31,10 +31,11 @@ message Primitive {
   uint64 Replaces = 6;
   int64 Timestamp = 7;
   bytes Value = 8;
+  bool Deleted = 9;
 }
 
 enum PrimitiveType {
-	LINK = 0;
+  LINK = 0;
   IRI = 1;
   STRING = 2;
   BNODE = 3;

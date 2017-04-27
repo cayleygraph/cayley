@@ -1,4 +1,4 @@
-package graph
+package proto
 
 import "github.com/cayleygraph/cayley/quad"
 
