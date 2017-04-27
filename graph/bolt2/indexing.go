@@ -85,7 +85,7 @@ func (qs *QuadStore) createBuckets() error {
 }
 
 func bucketFor(i, j byte) []byte {
-	return []byte{'v', 'a', 'l', i, j}
+	return []byte{'v', i, j}
 }
 
 func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
@@ -127,6 +127,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 nextDelta:
 	for _, d := range deltas {
 		link := &graph.Primitive{}
+		mustBeNew := false
 		for _, dir := range quad.Directions {
 			val := d.Quad.Get(dir)
 			if val == nil {
@@ -148,6 +149,7 @@ nextDelta:
 				qs.horizon++
 				node.ID = uint64(qs.horizon)
 				err = qs.index(tx, node, val)
+				mustBeNew = true
 				if err != nil {
 					return err
 				}
@@ -159,11 +161,28 @@ nextDelta:
 		link.ID = uint64(qs.horizon)
 		link.Timestamp = time.Now().UnixNano()
 		if d.Action == graph.Delete {
+			id, err := qs.hasPrimitive(tx, link)
+			if err != nil {
+				return err
+			}
 			// TODO(barakmich):
 			// * Lookup existing link
 			// * Add link.Replaces = existing
 		}
-		// TODO(barakmich): DO NOT MERGE Check if exists already
+
+		// Check if it already exists.
+		if !mustBeNew {
+			id, err := qs.hasPrimitive(tx, link)
+			if err != nil {
+				return err
+			}
+			if id != 0 {
+				if ignoreOpts.IgnoreDup {
+					continue
+				}
+				return fmt.Errorf("adding duplicate link %v", d)
+			}
+		}
 		err = qs.index(tx, link, nil)
 		if err != nil {
 			return err
@@ -259,26 +278,26 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 	return b[:off]
 }
 
-func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *graph.Primitive) (bool, error) {
+func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *graph.Primitive) (uint64, error) {
 	sub, err := qs.getBucketIndex(tx, subjectIndex, p.Subject)
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	obj, err := qs.getBucketIndex(tx, objectIndex, p.Object)
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	options := intersectSortedUint64(sub, obj)
 	for _, x := range options {
 		prim, err := qs.getPrimitiveFromLog(tx, x)
 		if err != nil {
-			return false, err
+			return 0, err
 		}
 		if prim.IsSameLink(p) {
-			return true, nil
+			return prim.ID, nil
 		}
 	}
-	return false, nil
+	return 0, nil
 }
 
 func intersectSortedUint64(a, b []uint64) []uint64 {
