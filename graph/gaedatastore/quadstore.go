@@ -131,7 +131,7 @@ func (qs *QuadStore) createKeyFromToken(t *Token) *datastore.Key {
 }
 
 func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
-	var q quad.Quad
+	var q QuadEntry
 	err := datastore.Get(qs.context, k, &q)
 	if err == datastore.ErrNoSuchEntity {
 		return false, nil
@@ -142,6 +142,10 @@ func (qs *QuadStore) checkValid(k *datastore.Key) (bool, error) {
 	if err != nil {
 		clog.Warningf("Error occurred when getting quad/node %s %v", k, err)
 		return false, err
+	}
+	// a deleted node should not be returned as found.
+	if len(q.Deleted) >= len(q.Added) {
+		return false, nil
 	}
 	return true, nil
 }
