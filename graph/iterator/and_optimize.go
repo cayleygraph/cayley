@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -71,8 +72,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// And now, without changing any of the iterators, we reorder them. it_list is
 	// now a permutation of itself, but the contents are unchanged.
 	its = it.optimizeOrder(its)
-
-	its = materializeIts(its)
+	// its = materializeIts(its)
 
 	// Okay! At this point we have an optimized order.
 
@@ -87,7 +87,9 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	// Move the tags hanging on us (like any good replacement).
 	newAnd.tags.CopyFrom(it)
-
+	if newAnd.primaryIt == nil {
+		fmt.Println("We have a problem")
+	}
 	newAnd.optimizeContains()
 	if clog.V(3) {
 		clog.Infof("%v become %v", it.UID(), newAnd.UID())
@@ -193,7 +195,9 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 		}
 	}
 	if clog.V(3) {
-		clog.Infof("And: %v Choosing: %v Best: %v", it.UID(), best.UID(), bestCost)
+		if best != nil {
+			clog.Infof("And: %v Choosing: %v Best: %v", it.UID(), best.UID(), bestCost)
+		}
 	}
 
 	// TODO(barakmich): Optimization of order need not stop here. Picking a smart
@@ -201,9 +205,11 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	// useful (fail faster).
 
 	// Put the best iterator (the one we wish to Next()) at the front...
-	out = append(out, best)
-
+	if best != nil {
+		out = append(out, best)
+	}
 	// ... push everyone else after...
+
 	for _, it := range its {
 		if !graph.CanNext(it) {
 			continue
@@ -214,7 +220,9 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	}
 
 	// ...and finally, the difficult children on the end.
-	return append(out, bad...)
+	iterators := append(out, bad...)
+
+	return iterators
 }
 
 type byCost []graph.Iterator

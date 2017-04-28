@@ -2,6 +2,7 @@ package iterator
 
 import (
 	"math"
+	"reflect"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/quad"
@@ -27,6 +28,7 @@ type Recursive struct {
 	depthTags     graph.Tagger
 	depthCache    []graph.Value
 	baseIt        graph.FixedIterator
+	vars          map[string]graph.Value
 }
 
 type seenAt struct {
@@ -199,7 +201,20 @@ func (it *Recursive) getBaseValue(val graph.Value) graph.Value {
 	return at.val
 }
 
+func (it *Recursive) ResetIfVarsUpdated(ctx *graph.IterationContext) {
+	newVars := ctx.Values()
+	// sucks to be using reflect, and we should also not be throwing all this
+	// information away, it could be useful if we have the same var value at a
+	// later point.
+	if !reflect.DeepEqual(newVars, it.vars) {
+		it.Reset()
+		it.vars = newVars
+	}
+}
+
 func (it *Recursive) Contains(ctx *graph.IterationContext, val graph.Value) bool {
+	it.ResetIfVarsUpdated(ctx)
+
 	graph.ContainsLogIn(it, val)
 	it.pathIndex = 0
 	key := graph.ToKey(val)

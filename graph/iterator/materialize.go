@@ -290,7 +290,7 @@ func (it *Materialize) materializeSet(ctx *graph.IterationContext) {
 		}
 		it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		it.actualSize += 1
-		for it.subIt.NextPath(nil) {
+		for it.subIt.NextPath(ctx) {
 			i++
 			if i > MaterializeLimit {
 				it.aborted = true

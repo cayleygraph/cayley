@@ -246,6 +246,15 @@ func (c *IterationContext) BindVariable(qs QuadStore, varName string) bool {
 	return true
 }
 
+// Values returns the current values of all the variables in this context
+func (c *IterationContext) Values() map[string]Value {
+	varNames := map[string]Value{}
+	for varName := range c.subIts {
+		varNames[varName] = c.CurrentValue(varName)
+	}
+	return varNames
+}
+
 // CurrentValue gets the value of the variable of name varName
 // TODO(BlakeMScurr) Mutex
 func (c *IterationContext) CurrentValue(varName string) Value {

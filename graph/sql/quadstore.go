@@ -441,7 +441,15 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	} else if v, ok := v.(graph.PreFetchedValue); ok {
 		return v.NameOf()
 	}
-	hash := v.(NodeHash)
+
+	var hash NodeHash
+	switch val := v.(type) {
+	case NodeHash:
+		hash = val
+	case QuadHashes:
+		hash = val[2]
+	}
+
 	if !hash.Valid() {
 		if clog.V(2) {
 			clog.Infof("NameOf was nil")

@@ -270,8 +270,10 @@ func (it *SQLIterator) Next(ctx *graph.IterationContext) bool {
 }
 
 func (it *SQLIterator) Contains(ctx *graph.IterationContext, v graph.Value) bool {
+	fmt.Println(it.qs.NameOf(v))
 	var err error
 	if ok, res := it.sql.quickContains(v); ok {
+		_ = res
 		return res
 	}
 	err = it.makeCursor(false, v)

@@ -22,6 +22,7 @@ package iterator
 // opaque Quad store value, may not answer to ==.
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/codelingo/cayley/graph"
@@ -35,7 +36,6 @@ type Variable struct {
 	values    []graph.Value
 	varName   string
 	lastIndex int
-	subIt     graph.Iterator
 	result    graph.Value
 	isBinder  bool
 	qs        graph.QuadStore
@@ -111,16 +111,33 @@ func (it *Variable) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	// TODO(BlakeMScurr) If we make the IterationContext values a slice for each possible
 	graph.ContainsLogIn(it, v)
 	// return graph.ContainsLogOut(it, v, true)
-	ctx.BindVariable(it.qs, it.varName)
+	if ctx.BindVariable(it.qs, it.varName) || it.isBinder {
+		panic("Reorder iterator tree for variables. Contains should not bind a variable.")
+	}
 
 	currVar := ctx.CurrentValue(it.varName)
-
+	nameOfCurr := it.qs.NameOf(currVar).String()
+	nameOfArg := it.qs.NameOf(v).String()
+	fmt.Println("current value is " + nameOfCurr)
+	if nameOfCurr != "\"string\"" {
+		fmt.Println("not string")
+	} else {
+		fmt.Println("is string")
+	}
 	if v == currVar {
-		// fmt.Println("contains" + it.qs.NameOf(v).String())
+		if nameOfCurr == "\"a\"" {
+			fmt.Println("probably in loop")
+		}
+		fmt.Println("contains" + nameOfCurr)
 		return graph.ContainsLogOut(it, v, true)
 	}
 	// fmt.Println("f - " + it.qs.NameOf(v).String())
 	// fmt.Println("Actual value - " + it.qs.NameOf(ctx.CurrentValue(it.varName)).String())
+	fmt.Println("does not contain" + nameOfArg)
+	if nameOfArg == "\"2_32\"^^<key>" {
+		fmt.Println("last")
+	}
+
 	return graph.ContainsLogOut(it, v, false)
 
 	// if it.isBinder {
@@ -166,10 +183,14 @@ func (it *Variable) Next(ctx *graph.IterationContext) bool {
 	if it.isBinder {
 		if ctx.Next(it.varName) {
 			it.result = ctx.CurrentValue(it.varName)
-			// fmt.Println("1")
-			// fmt.Println(it.qs.NameOf(it.result).String())
-			// if it.qs.NameOf(it.result).String() == "\"2_13\"^^<key>" {
-			// 	fmt.Println("b func_decl")
+			fmt.Println("1")
+			name := it.qs.NameOf(it.result).String()
+			fmt.Println(name)
+			if name == "\"b\"" {
+				fmt.Println("We have b")
+			}
+			// if name != "\"b\"" && name != "\"a\"" {
+			// 	return it.Next(ctx)
 			// }
 			return graph.NextLogOut(it, true)
 		}
@@ -177,19 +198,11 @@ func (it *Variable) Next(ctx *graph.IterationContext) bool {
 		it.result = nil
 		return graph.NextLogOut(it, false)
 	}
-
+	panic("query should be reordered so that only binders call next")
 	newRes := ctx.CurrentValue(it.varName)
 	b := it.result != newRes
 	it.result = newRes
 
-	// fmt.Println(it.qs.NameOf(newRes))
-	// s := strconv.FormatBool(b)
-	// fmt.Println("3" + s)
-	// if !b {
-	// 	fmt.Println("true")
-	// } else {
-	// 	fmt.Println("returning false")
-	// }
 	return graph.NextLogOut(it, b)
 }
 
@@ -273,17 +286,12 @@ func (it *Variable) NextPath(ctx *graph.IterationContext) bool {
 
 // No sub-iterators.
 func (it *Variable) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.subIt}
+	return []graph.Iterator{}
 }
 
-// Optimize() for a Variable iterator is simple. Returns a Null iterator if it's empty
-// (so that other iterators upstream can treat this as null) or there is no
-// optimization.
+// There is no (apparent) optimization for a variable iterator, because most of its information is stored
+// in the iteration context.
 func (it *Variable) Optimize() (graph.Iterator, bool) {
-	if len(it.values) == 1 && it.values[0] == nil {
-		return &Null{}, true
-	}
-
 	return it, false
 }
 

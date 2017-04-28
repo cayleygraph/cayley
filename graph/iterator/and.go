@@ -148,6 +148,7 @@ func (it *And) Next(ctx *graph.IterationContext) bool {
 	for it.primaryIt.Next(ctx) {
 		i++
 		curr := it.primaryIt.Result()
+		// fmt.Println(it.qs.NameOf(curr).String())
 		if it.subItsContain(ctx, curr, nil) {
 			it.result = curr
 			return graph.NextLogOut(it, true)
