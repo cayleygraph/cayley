@@ -178,10 +178,8 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			if err != nil {
 				return err
 			}
-			if found {
-				if !ignoreOpts.IgnoreDup {
-					return graph.ErrQuadExists
-				}
+			if found && !ignoreOpts.IgnoreDup {
+				return graph.ErrQuadExists
 			} else {
 				keep = true
 			}
