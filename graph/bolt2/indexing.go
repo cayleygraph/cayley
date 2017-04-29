@@ -166,9 +166,10 @@ nextDelta:
 			if err != nil {
 				return err
 			}
-			// TODO(barakmich):
-			// * Lookup existing link
-			// * Add link.Replaces = existing
+			err = qs.markAsDead(tx, id)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Check if it already exists.
@@ -240,6 +241,15 @@ func (qs *QuadStore) indexLink(tx *bolt.Tx, p *proto.Primitive) error {
 	if err != nil {
 		return err
 	}
+	return qs.addToLog(tx, p)
+}
+
+func (qs *QuadStore) markAsDead(tx *bolt.Tx, id uint64) error {
+	p, err := qs.getPrimitiveFromLog(tx, id)
+	if err != nil {
+		return err
+	}
+	p.Deleted = true
 	return qs.addToLog(tx, p)
 }
 

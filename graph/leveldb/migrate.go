@@ -108,7 +108,7 @@ func upgrade1To2(db *leveldb.DB) error {
 				return err
 			}
 			node := proto.NodeData{
-				Size:  val.Size,
+				Size_: val.Size,
 				Value: pquads.MakeValue(quad.Raw(val.Name)),
 			}
 			nv, err := node.Marshal()
