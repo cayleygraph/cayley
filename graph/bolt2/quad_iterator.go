@@ -47,6 +47,8 @@ type QuadIterator struct {
 
 var _ graph.Iterator = &QuadIterator{}
 
+func Type() graph.Type { return boltType }
+
 func NewQuadIterator(dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
 	return &QuadIterator{
 		qs:      qs,

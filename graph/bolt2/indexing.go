@@ -170,6 +170,8 @@ nextDelta:
 			if err != nil {
 				return err
 			}
+			qs.size--
+			continue
 		}
 
 		// Check if it already exists.
@@ -189,6 +191,7 @@ nextDelta:
 		if err != nil {
 			return err
 		}
+		qs.size++
 	}
 	err = qs.flushMapBucket(tx)
 	if err != nil {
@@ -250,6 +253,7 @@ func (qs *QuadStore) markAsDead(tx *bolt.Tx, id uint64) error {
 		return err
 	}
 	p.Deleted = true
+	//TODO(barakmich): Add tombstone?
 	return qs.addToLog(tx, p)
 }
 
