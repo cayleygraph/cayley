@@ -15,13 +15,14 @@
 package bolt2
 
 import (
+	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -34,15 +35,17 @@ func init() {
 }
 
 type QuadIterator struct {
-	qs      *QuadStore
-	err     error
-	uid     uint64
-	tags    graph.Tagger
-	horizon int64
-	off     int
-	ids     []uint64
-	v       Int64Value
-	dir     quad.Direction
+	qs        *QuadStore
+	err       error
+	uid       uint64
+	tags      graph.Tagger
+	horizon   int64
+	off       int
+	ids       []uint64
+	v         Int64Value
+	dir       quad.Direction
+	prim      *proto.Primitive
+	contained bool
 }
 
 var _ graph.Iterator = &QuadIterator{}
@@ -101,16 +104,29 @@ func (it *QuadIterator) Result() graph.Value {
 	if it.off == -1 {
 		return nil
 	}
-	return Int64Value(it.ids[it.off])
+	return it.prim
 }
 
 func (it *QuadIterator) Next() bool {
+	it.contained = false
 	it.ensureIDs()
-	it.off++
-	if it.off >= len(it.ids) {
-		return false
+	for {
+		it.off++
+		if it.off >= len(it.ids) {
+			return false
+		}
+		prim, ok := it.qs.getPrimitive(Int64Value(it.ids[it.off]))
+		if !ok {
+			it.err = errors.New("couldn't get underlying primitive")
+			it.prim = nil
+			return false
+		}
+		if prim.Deleted {
+			continue
+		}
+		it.prim = prim
+		return true
 	}
-	return true
 }
 
 func (it *QuadIterator) NextPath() bool {
@@ -118,14 +134,12 @@ func (it *QuadIterator) NextPath() bool {
 }
 
 func (it *QuadIterator) Contains(v graph.Value) bool {
-	it.ensureIDs()
-	x := uint64(v.(Int64Value))
-	n := sort.Search(len(it.ids), func(i int) bool { return it.ids[i] >= x })
-	if n < len(it.ids) && x == it.ids[n] {
-		it.off = n
+	it.contained = true
+	p := v.(*proto.Primitive)
+	if p.GetDirection(it.dir) == uint64(it.v) {
+		it.prim = p
 		return true
 	}
-	it.off = -1
 	return false
 }
 

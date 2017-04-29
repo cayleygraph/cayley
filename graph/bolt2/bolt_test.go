@@ -77,6 +77,7 @@ func makeBolt(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 func TestBoltAll(t *testing.T) {
 	graphtest.TestAll(t, makeBolt, &graphtest.Config{
 		SkipNodeDelAfterQuadDel: true,
+		SkipIntHorizon:          true,
 	})
 }
 

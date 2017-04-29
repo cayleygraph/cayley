@@ -158,9 +158,6 @@ nextDelta:
 			}
 			link.SetDirection(dir, v)
 		}
-		qs.horizon++
-		link.ID = uint64(qs.horizon)
-		link.Timestamp = time.Now().UnixNano()
 		if d.Action == graph.Delete {
 			id, err := qs.hasPrimitive(tx, link)
 			if err != nil {
@@ -187,6 +184,9 @@ nextDelta:
 				return fmt.Errorf("adding duplicate link %v", d)
 			}
 		}
+		qs.horizon++
+		link.ID = uint64(qs.horizon)
+		link.Timestamp = time.Now().UnixNano()
 		err = qs.index(tx, link, nil)
 		if err != nil {
 			return err

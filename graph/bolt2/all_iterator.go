@@ -17,6 +17,7 @@ package bolt2
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -31,6 +32,7 @@ func init() {
 type AllIterator struct {
 	nodes   bool
 	id      uint64
+	prim    *proto.Primitive
 	horizon int64
 	tags    graph.Tagger
 	qs      *QuadStore
@@ -99,7 +101,10 @@ func (it *AllIterator) Result() graph.Value {
 	if it.id > uint64(it.horizon) {
 		return nil
 	}
-	return Int64Value(it.id)
+	if it.nodes {
+		return Int64Value(it.id)
+	}
+	return it.prim
 }
 
 // No subiterators.
@@ -114,8 +119,12 @@ func (it *AllIterator) Next() bool {
 			return false
 		}
 		p, ok := it.qs.getPrimitive(Int64Value(it.id))
+		it.prim = p
 		if !ok {
 			return false
+		}
+		if p.Deleted {
+			continue
 		}
 		if p.IsNode() && it.nodes {
 			return true
@@ -136,12 +145,23 @@ func (it *AllIterator) NextPath() bool {
 }
 
 func (it *AllIterator) Contains(v graph.Value) bool {
-	it.id = uint64(v.(Int64Value))
-	return it.id <= uint64(it.horizon)
+	if it.nodes {
+		it.id = uint64(v.(Int64Value))
+		return it.id <= uint64(it.horizon)
+	}
+	it.prim = v.(*proto.Primitive)
+	it.id = it.prim.ID
+	if it.cons == nil {
+		return true
+	}
+	if Int64Value(it.prim.GetDirection(it.cons.dir)) != it.cons.val {
+		return false
+	}
+	return true
 }
 
 func (it *AllIterator) Size() (int64, bool) {
-	return it.horizon, false
+	return it.qs.Size(), false
 }
 
 func (it *AllIterator) Describe() graph.Description {

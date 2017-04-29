@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
@@ -193,6 +194,11 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 }
 
 func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
+	if k == nil {
+		return nil
+	} else if v, ok := k.(graph.PreFetchedValue); ok {
+		return v.NameOf()
+	}
 	if v, ok := k.(Int64Value); ok {
 		if v == 0 {
 			if clog.V(2) {
@@ -212,15 +218,15 @@ func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
 		}
 		return val
 	}
-	panic("unknown type of graph.Value; not meant for this quadstore")
+	panic("unknown type of graph.Value; not meant for this quadstore. apparently a " + fmt.Sprintf("%#v", k))
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	var v quad.Quad
-	key := k.(Int64Value)
+	key := k.(*proto.Primitive)
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
-		v, err = qs.toQuad(tx, uint64(key))
+		v, err = qs.primitiveToQuad(tx, key)
 		return err
 	})
 	if err != nil {
@@ -229,12 +235,8 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	return v
 }
 
-func (qs *QuadStore) toQuad(tx *bolt.Tx, k uint64) (quad.Quad, error) {
+func (qs *QuadStore) primitiveToQuad(tx *bolt.Tx, p *proto.Primitive) (quad.Quad, error) {
 	q := &quad.Quad{}
-	p, err := qs.getPrimitiveFromLog(tx, k)
-	if err != nil {
-		return *q, err
-	}
 	for _, dir := range quad.Directions {
 		v := p.GetDirection(dir)
 		val, err := qs.getValFromLog(tx, v)
@@ -271,7 +273,7 @@ func (qs *QuadStore) Type() string {
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
-	p, ok := qs.getPrimitive(val.(Int64Value))
+	p, ok := val.(*proto.Primitive)
 	if !ok {
 		return Int64Value(0)
 	}
