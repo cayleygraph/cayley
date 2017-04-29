@@ -88,6 +88,8 @@ func NewLoadDatabaseCmd() *cobra.Command {
 		Short: "Bulk-load a quad file into the database.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			printBackendInfo()
+			p := mustSetupProfile(cmd)
+			defer mustFinishProfile(p)
 			load, _ := cmd.Flags().GetString(flagLoad)
 			if load == "" {
 				return errors.New("quads file must be specified")

@@ -19,6 +19,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
@@ -62,8 +64,16 @@ type QuadStore struct {
 	valueLRU      *lru.Cache
 }
 
+func getBoltFile(cfgpath string) string {
+	return filepath.Join(cfgpath, "indexes.bolt")
+}
+
 func createNewBolt(path string, _ graph.Options) error {
-	db, err := bolt.Open(path, 0600, nil)
+	err := os.Mkdir(path, 0700)
+	if err != nil {
+		return err
+	}
+	db, err := bolt.Open(getBoltFile(path), 0600, nil)
 	if err != nil {
 		clog.Errorf("Error: couldn't create Bolt database: %v", err)
 		return err
@@ -91,7 +101,7 @@ func createNewBolt(path string, _ graph.Options) error {
 func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	var qs QuadStore
 	var err error
-	db, err := bolt.Open(path, 0600, nil)
+	db, err := bolt.Open(getBoltFile(path), 0600, nil)
 	if err != nil {
 		clog.Errorf("Error, couldn't open! %v", err)
 		return nil, err
