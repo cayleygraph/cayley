@@ -1,5 +1,5 @@
-hash: abcc89d709b9eaae7aa73a4725604701ae8fd2d26a9e3b8b930486a33edcee89
-updated: 2017-04-27T13:46:00.998037104-07:00
+hash: 4b101ef8e679e7244213b145345c40c7ea60ea87b514157ef7f91c9162d8f9c0
+updated: 2017-04-28T23:58:33.876694576-07:00
 imports:
 - name: github.com/badgerodon/peg
   version: 9e5f7f4d07ca576562618c23e8abadda278b684f
@@ -35,7 +35,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/go-sql-driver/mysql
-  version: 15dbaaedd46b79251eaa9c8ed5f280d28978bb3f
+  version: 147bd02c2c516cf9a8878cb75898ee8a9eea0228
 - name: github.com/gogo/protobuf
   version: 30433562cfbf487fe1df7cd26c7bab168d2f14d0
   subpackages:
@@ -45,7 +45,7 @@ imports:
 - name: github.com/golang/glog
   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
-  version: 2bba0603135d7d7f5cb73b2125beeda19c09f4ef
+  version: 18c9bb3261723cd5401db4d0c9fbc5c3b6c70fe8
   subpackages:
   - proto
 - name: github.com/golang/snappy
@@ -133,6 +133,8 @@ imports:
   version: 156a073208e131d7d2e212cb749feae7c339e846
   subpackages:
   - snappy
+- name: github.com/tylertreat/BoomFilters
+  version: b282640b93f349cd208f8d5921df2cfaf5780ee2
 - name: golang.org/x/net
   version: da118f7b8e5954f39d0d2130ab35d4bf0e3cb344
   subpackages:
@@ -157,9 +159,9 @@ imports:
   subpackages:
   - datastore
   - internal
-  - internal/datastore
   - internal/app_identity
   - internal/modules
+  - internal/datastore
   - internal/base
   - internal/log
   - internal/remote_api

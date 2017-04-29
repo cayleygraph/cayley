@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"runtime"
 	"sort"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
+	boom "github.com/tylertreat/BoomFilters"
 )
 
 var (
@@ -47,7 +49,8 @@ var (
 		sameNodesIndex,
 		logIndex,
 	}
-	hashBuf = make([]byte, quad.HashSize)
+	hashBuf  = make([]byte, quad.HashSize)
+	bloomBuf = make([]byte, 3*8)
 )
 
 func (qs *QuadStore) createBuckets() error {
@@ -59,7 +62,7 @@ func (qs *QuadStore) createBuckets() error {
 				return fmt.Errorf("could not create bucket %s: %s", string(index), err)
 			}
 		}
-		tx.Bucket(logIndex).FillPercent = 0.8
+		tx.Bucket(logIndex).FillPercent = 0.9
 		//tx.Bucket(valueIndex).FillPercent = 0.4
 		return nil
 	})
@@ -120,6 +123,7 @@ func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	tx, err := qs.db.Begin(true)
+	tx.Bucket(logIndex).FillPercent = 0.9
 	if err != nil {
 		return err
 	}
@@ -127,7 +131,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 
 nextDelta:
 	for _, d := range deltas {
-		link := &proto.Primitive{}
+		link := proto.Primitive{}
 		mustBeNew := false
 		for _, dir := range quad.Directions {
 			val := d.Quad.Get(dir)
@@ -159,7 +163,7 @@ nextDelta:
 			link.SetDirection(dir, v)
 		}
 		if d.Action == graph.Delete {
-			id, err := qs.hasPrimitive(tx, link)
+			id, err := qs.hasPrimitive(tx, &link)
 			if err != nil {
 				return err
 			}
@@ -167,13 +171,15 @@ nextDelta:
 			if err != nil {
 				return err
 			}
+			writePrimToBuf(&link)
+			qs.exists.TestAndRemove(bloomBuf)
 			qs.size--
 			continue
 		}
 
 		// Check if it already exists.
 		if !mustBeNew {
-			id, err := qs.hasPrimitive(tx, link)
+			id, err := qs.hasPrimitive(tx, &link)
 			if err != nil {
 				return err
 			}
@@ -187,7 +193,9 @@ nextDelta:
 		qs.horizon++
 		link.ID = uint64(qs.horizon)
 		link.Timestamp = time.Now().UnixNano()
-		err = qs.index(tx, link, nil)
+		err = qs.index(tx, &link, nil)
+		writePrimToBuf(&link)
+		qs.exists.Add(bloomBuf)
 		if err != nil {
 			return err
 		}
@@ -218,7 +226,7 @@ func (qs *QuadStore) indexNode(tx *bolt.Tx, p *proto.Primitive, val quad.Value) 
 	}
 	quad.HashTo(val, hashBuf)
 	bucket := tx.Bucket(bucketFor(hashBuf[0], hashBuf[1]))
-	err = bucket.Put(hashBuf, uint64KeyBytes(p.ID))
+	err = bucket.Put(hashBuf, uint64toBytes(p.ID))
 	if err != nil {
 		return err
 	}
@@ -231,12 +239,12 @@ func (qs *QuadStore) indexNode(tx *bolt.Tx, p *proto.Primitive, val quad.Value) 
 func (qs *QuadStore) indexLink(tx *bolt.Tx, p *proto.Primitive) error {
 	var err error
 	// Subject
-	err = qs.addToMapBucket(tx, subjectIndex, p.Subject, p.ID)
+	err = qs.addToMapBucket(tx, "sub", p.Subject, p.ID)
 	if err != nil {
 		return err
 	}
 	// Object
-	err = qs.addToMapBucket(tx, objectIndex, p.Object, p.ID)
+	err = qs.addToMapBucket(tx, "obj", p.Object, p.ID)
 	if err != nil {
 		return err
 	}
@@ -294,6 +302,9 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 }
 
 func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *proto.Primitive) (uint64, error) {
+	if !qs.testBloom(p) {
+		return 0, nil
+	}
 	sub, err := qs.getBucketIndex(tx, subjectIndex, p.Subject)
 	if err != nil {
 		return 0, err
@@ -341,25 +352,31 @@ outer:
 	return c
 }
 
-func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket []byte, key, value uint64) error {
+func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket string, key, value uint64) error {
 	if key == 0 {
 		return fmt.Errorf("trying to add to map bucket %s with key 0", bucket)
 	}
 	if qs.mapBucket == nil {
 		qs.mapBucket = make(map[string]map[uint64][]uint64)
 	}
-	if _, ok := qs.mapBucket[string(bucket)]; !ok {
-		qs.mapBucket[string(bucket)] = make(map[uint64][]uint64)
+	if _, ok := qs.mapBucket[bucket]; !ok {
+		qs.mapBucket[bucket] = make(map[uint64][]uint64)
 	}
 
-	l := qs.mapBucket[string(bucket)][key]
-	qs.mapBucket[string(bucket)][key] = append(l, value)
+	l := qs.mapBucket[bucket][key]
+	qs.mapBucket[bucket][key] = append(l, value)
 	return nil
 }
 
 func (qs *QuadStore) flushMapBucket(tx *bolt.Tx) error {
+	kbytes := make([]byte, 8)
 	for bucket, m := range qs.mapBucket {
-		b := tx.Bucket([]byte(bucket))
+		var b *bolt.Bucket
+		if bucket == "sub" {
+			b = tx.Bucket(subjectIndex)
+		} else if bucket == "obj" {
+			b = tx.Bucket(objectIndex)
+		}
 		keys := make(Int64Set, len(m))
 		i := 0
 		for k := range m {
@@ -369,7 +386,7 @@ func (qs *QuadStore) flushMapBucket(tx *bolt.Tx) error {
 		sort.Sort(keys)
 		for _, k := range keys {
 			l := m[k]
-			kbytes := uint64KeyBytes(k)
+			binary.BigEndian.PutUint64(kbytes, k)
 			bytelist := b.Get(kbytes)
 			bytes := appendIndex(bytelist, l)
 			err := b.Put(kbytes, bytes)
@@ -423,7 +440,7 @@ func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
 	if val == nil {
 		return 0
 	}
-	out := binary.BigEndian.Uint64(val)
+	out, _ := binary.Uvarint(val)
 	if isIRI {
 		qs.valueLRU.Put(string(v.(quad.IRI)), out)
 	}
@@ -454,6 +471,45 @@ func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (*proto.Primitiv
 	}
 	err := p.Unmarshal(b)
 	return p, err
+}
+
+func (qs *QuadStore) initBloomFilter() error {
+	m := &runtime.MemStats{}
+	runtime.ReadMemStats(m)
+	before := m.Alloc
+	qs.exists = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
+	runtime.ReadMemStats(m)
+	clog.Infof("Using a bloom filter of %d bytes", m.Alloc-before)
+	return qs.db.View(func(tx *bolt.Tx) error {
+		p := proto.Primitive{}
+		b := tx.Bucket(logIndex)
+		return b.ForEach(func(k, v []byte) error {
+			err := p.Unmarshal(v)
+			if err != nil {
+				return err
+			}
+			if p.IsNode() {
+				return nil
+			}
+			if p.Deleted {
+				return nil
+			}
+			writePrimToBuf(&p)
+			qs.exists.Add(bloomBuf)
+			return nil
+		})
+	})
+}
+
+func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
+	writePrimToBuf(p)
+	return qs.exists.Test(bloomBuf)
+}
+
+func writePrimToBuf(p *proto.Primitive) {
+	binary.BigEndian.PutUint64(bloomBuf[0:8], p.Subject)
+	binary.BigEndian.PutUint64(bloomBuf[8:16], p.Predicate)
+	binary.BigEndian.PutUint64(bloomBuf[16:24], p.Object)
 }
 
 type Int64Set []uint64

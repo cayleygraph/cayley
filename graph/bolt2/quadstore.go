@@ -28,6 +28,7 @@ import (
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
+	boom "github.com/tylertreat/BoomFilters"
 
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -62,6 +63,7 @@ type QuadStore struct {
 	version       int64
 	mapBucket     map[string]map[uint64][]uint64
 	valueLRU      *lru.Cache
+	exists        *boom.DeletableBloomFilter
 }
 
 func getBoltFile(cfgpath string) string {
@@ -112,6 +114,9 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	if qs.db.NoSync {
+		clog.Infof("Running in nosync mode")
+	}
 	err = qs.getMetadata()
 	if err == errNoBucket {
 		return nil, errors.New("bolt: quadstore has not been initialised")
@@ -121,7 +126,8 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	if qs.version != latestDataVersion {
 		return nil, errors.New("bolt: data version is out of date. Run cayleyupgrade for your config to update the data.")
 	}
-	qs.valueLRU = lru.New(500)
+	qs.valueLRU = lru.New(2000)
+	qs.initBloomFilter()
 	return &qs, nil
 }
 
