@@ -3,6 +3,7 @@ package graph
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/quad"
 	"golang.org/x/net/context"
@@ -138,6 +139,38 @@ func (c *IterateChain) Each(fnc func(Value)) error {
 }
 
 // All will return all results of an iterator.
+func (c *IterateChain) Count() (int64, error) {
+	c.start()
+	defer c.end()
+	if err := c.it.Err(); err != nil {
+		return 0, err
+	}
+	if size, exact := c.it.Size(); exact {
+		return size, nil
+	}
+	done := c.ctx.Done()
+	var cnt int64
+iteration:
+	for c.next() {
+		select {
+		case <-done:
+			break iteration
+		default:
+		}
+		cnt++
+		for c.nextPath() {
+			select {
+			case <-done:
+				break iteration
+			default:
+			}
+			cnt++
+		}
+	}
+	return cnt, c.it.Err()
+}
+
+// All will return all results of an iterator.
 func (c *IterateChain) All() ([]Value, error) {
 	c.start()
 	defer c.end()
@@ -229,7 +262,9 @@ func (c *IterateChain) EachValue(qs QuadStore, fnc func(quad.Value)) error {
 	}
 	// TODO(dennwc): batch NameOf?
 	return c.Each(func(v Value) {
-		fnc(c.qs.NameOf(v))
+		if nv := c.qs.NameOf(v); nv != nil {
+			fnc(nv)
+		}
 	})
 }
 
@@ -244,7 +279,9 @@ func (c *IterateChain) EachValuePair(qs QuadStore, fnc func(Value, quad.Value)) 
 	}
 	// TODO(dennwc): batch NameOf?
 	return c.Each(func(v Value) {
-		fnc(v, c.qs.NameOf(v))
+		if nv := c.qs.NameOf(v); nv != nil {
+			fnc(v, nv)
+		}
 	})
 }
 
@@ -270,17 +307,25 @@ func (c *IterateChain) SendValues(qs QuadStore, out chan<- quad.Value) error {
 	c.start()
 	defer c.end()
 	done := c.ctx.Done()
-	for c.next() {
+	send := func(v Value) error {
+		nv := c.qs.NameOf(c.it.Result())
+		if nv == nil {
+			return nil
+		}
 		select {
 		case <-done:
 			return c.ctx.Err()
 		case out <- c.qs.NameOf(c.it.Result()):
 		}
+		return nil
+	}
+	for c.next() {
+		if err := send(c.it.Result()); err != nil {
+			return err
+		}
 		for c.nextPath() {
-			select {
-			case <-done:
-				return c.ctx.Err()
-			case out <- c.qs.NameOf(c.it.Result()):
+			if err := send(c.it.Result()); err != nil {
+				return err
 			}
 		}
 	}

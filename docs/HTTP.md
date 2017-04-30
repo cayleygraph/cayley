@@ -10,7 +10,7 @@ Unless otherwise noted, all URIs take a POST command.
 
 ### Queries and Results
 
-#### `/api/v1/query/gremlin`
+#### `/api/v1/query/gizmo`
 
 POST Body: Javascript source code of the query
 
@@ -64,7 +64,7 @@ Result form:
 }
 ```
 
-#### `/api/v1/shape/gremlin`
+#### `/api/v1/shape/gizmo`
 
 POST Body: Javascript source code of the query
 

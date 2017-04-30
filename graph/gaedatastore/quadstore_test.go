@@ -17,12 +17,13 @@ package gaedatastore
 
 import (
 	"errors"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/codelingo/cayley/graph"
 	"github.com/codelingo/cayley/graph/graphtest"
 	"github.com/codelingo/cayley/quad"
-	"github.com/codelingo/cayley/writer"
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/appengine/aetest"
@@ -54,31 +55,12 @@ type pair struct {
 	value int64
 }
 
-func makeTestStore(data []quad.Quad, opts graph.Options) (graph.QuadStore, graph.QuadWriter, []pair) {
-	seen := make(map[quad.Value]struct{})
-
-	qs, _ := newQuadStore("", opts)
-	qs, _ = newQuadStoreForRequest(qs, opts)
-	var (
-		val int64
-		ind []pair
-	)
-	writer, _ := writer.NewSingleReplication(qs, nil)
-	for _, t := range data {
-		for _, qp := range []quad.Value{t.Subject, t.Predicate, t.Object, t.Label} {
-			if _, ok := seen[qp]; !ok && qp != nil {
-				val++
-				ind = append(ind, pair{qp.String(), val})
-				seen[qp] = struct{}{}
-			}
-		}
-	}
-	writer.AddQuadSet(data)
-	return qs, writer, ind
-}
-
-func createInstance() (aetest.Instance, graph.Options, error) {
-	inst, err := aetest.NewInstance(&aetest.Options{"", true})
+func createInstance() (aetest.Instance, *http.Request, error) {
+	inst, err := aetest.NewInstance(&aetest.Options{
+		AppID: "",
+		StronglyConsistentDatastore: true,
+		StartupTimeout:              15 * time.Second,
+	})
 	if err != nil {
 		return nil, nil, errors.New("Creation of new instance failed")
 	}
@@ -86,25 +68,23 @@ func createInstance() (aetest.Instance, graph.Options, error) {
 	if err != nil {
 		return nil, nil, errors.New("Creation of new request failed")
 	}
-	opts := make(graph.Options)
-	opts["HTTPRequest"] = req1
-	return inst, opts, nil
+	return inst, req1, nil
 }
 
 func makeGAE(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-	inst, opts, err := createInstance()
+	inst, r, err := createInstance()
 	require.NoError(t, err)
-	qs, err := newQuadStore("", opts)
+	qs, err := newQuadStore("", nil)
 	if err != nil {
 		inst.Close()
 		t.Fatal(err)
 	}
-	qs, err = newQuadStoreForRequest(qs, opts)
+	qs, err = qs.(*QuadStore).ForRequest(r)
 	if err != nil {
 		inst.Close()
 		t.Fatal(err)
 	}
-	return qs, opts, func() {
+	return qs, nil, func() {
 		qs.Close()
 		inst.Close()
 	}

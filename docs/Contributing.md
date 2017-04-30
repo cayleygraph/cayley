@@ -19,12 +19,12 @@ go build ./cmd/cayley
 
 Then `cd` to the directory and give it a quick test with:
 ```
-./cayley repl --dbpath=data/testdata.nq
+./cayley repl -i data/testdata.nq
 ```
 
 To run the web frontend, replace the "repl" command with "http"
 ```
-./cayley http --dbpath=data/testdata.nq
+./cayley http -i data/testdata.nq
 ```
 
 

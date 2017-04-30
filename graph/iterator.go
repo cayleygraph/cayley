@@ -244,6 +244,7 @@ const (
 	Regex
 	Recursive
 	Count
+	Recursive
 )
 
 var (
@@ -271,6 +272,7 @@ var (
 		"regex",
 		"recursive",
 		"count",
+		"recursive",
 	}
 )
 

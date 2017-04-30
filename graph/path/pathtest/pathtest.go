@@ -45,8 +45,10 @@ import (
 //        \-->| #dani# |------------>+--------+
 //            +--------+
 
-func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc) (graph.QuadStore, func()) {
-	simpleGraph := graphtest.LoadGraph(t, "data/testdata.nq")
+func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc, quads ...quad.Quad) (graph.QuadStore, func()) {
+	if len(quads) == 0 {
+		quads = graphtest.LoadGraph(t, "data/testdata.nq")
+	}
 	var (
 		qs     graph.QuadStore
 		opts   graph.Options
@@ -57,7 +59,7 @@ func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc) (graph.QuadStore, f
 	} else {
 		qs, _ = graph.NewQuadStore("memstore", "", nil)
 	}
-	_ = graphtest.MakeWriter(t, qs, opts, simpleGraph...)
+	_ = graphtest.MakeWriter(t, qs, opts, quads...)
 	return qs, closer
 }
 
@@ -341,10 +343,25 @@ func testSet(qs graph.QuadStore) []test {
 			}(),
 			expect: []quad.Value{vAlice},
 		},
+		{
+			message: "follow recursive",
+			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, nil),
+			expect:  []quad.Value{vBob, vDani, vFred, vGreg},
+		},
+		{
+			message: "find non-existent",
+			path:    StartPath(qs, quad.IRI("<not-existing>")),
+			expect:  nil,
+		},
 	}
 }
 
 func RunTestMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
+	for _, ftest := range []func(testing.TB, graphtest.DatabaseFunc){
+		testFollowRecursive,
+	} {
+		ftest(t, fnc)
+	}
 	qs, closer := makeTestStore(t, fnc)
 	defer closer()
 
@@ -376,6 +393,43 @@ func RunTestMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
 			if !eq {
 				t.Errorf("Failed to %s%s, got: %v(%d) expected: %v(%d)", test.message, unopt, got, len(got), test.expect, len(test.expect))
 			}
+		}
+	}
+}
+
+func testFollowRecursive(t testing.TB, fnc graphtest.DatabaseFunc) {
+	qs, closer := makeTestStore(t, fnc, []quad.Quad{
+		quad.MakeIRI("a", "parent", "b", ""),
+		quad.MakeIRI("b", "parent", "c", ""),
+		quad.MakeIRI("c", "parent", "d", ""),
+		quad.MakeIRI("c", "labels", "tag", ""),
+		quad.MakeIRI("d", "parent", "e", ""),
+		quad.MakeIRI("d", "labels", "tag", ""),
+	}...)
+	defer closer()
+
+	qu := StartPath(qs, quad.IRI("a")).FollowRecursive(
+		StartMorphism().Out(quad.IRI("parent")), nil,
+	).Has(quad.IRI("labels"), quad.IRI("tag"))
+
+	expect := []quad.Value{quad.IRI("c"), quad.IRI("d")}
+
+	const msg = "follows recursive order"
+
+	for _, opt := range []bool{true, false} {
+		got, err := runTopLevel(qs, qu, opt)
+		unopt := ""
+		if !opt {
+			unopt = " (unoptimized)"
+		}
+		if err != nil {
+			t.Errorf("Failed to check %s%s: %v", msg, unopt, err)
+			continue
+		}
+		sort.Sort(quad.ByValueString(got))
+		sort.Sort(quad.ByValueString(expect))
+		if !reflect.DeepEqual(got, expect) {
+			t.Errorf("Failed to %s%s, got: %v(%d) expected: %v(%d)", msg, unopt, got, len(got), expect, len(expect))
 		}
 	}
 }

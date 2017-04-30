@@ -98,7 +98,12 @@ func (s *Session) buildEnv() error {
 func (s *Session) tagsToValueMap(m map[string]graph.Value) map[string]interface{} {
 	outputMap := make(map[string]interface{})
 	for k, v := range m {
-		outputMap[k] = quadValueToNative(s.qs.NameOf(v))
+		if o := quadValueToNative(s.qs.NameOf(v)); o != nil {
+			outputMap[k] = o
+		}
+	}
+	if len(outputMap) == 0 {
+		return nil
 	}
 	return outputMap
 }
@@ -107,7 +112,11 @@ func (s *Session) runIteratorToArray(it graph.Iterator, limit int) ([]map[string
 
 	output := make([]map[string]interface{}, 0)
 	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
-		output = append(output, s.tagsToValueMap(tags))
+		tm := s.tagsToValueMap(tags)
+		if tm == nil {
+			return
+		}
+		output = append(output, tm)
 	})
 	if err != nil {
 		return nil, err
@@ -120,7 +129,9 @@ func (s *Session) runIteratorToArrayNoTags(it graph.Iterator, limit int) ([]inte
 
 	output := make([]interface{}, 0)
 	err := graph.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(s.qs, func(v quad.Value) {
-		output = append(output, quadValueToNative(v))
+		if o := quadValueToNative(v); o != nil {
+			output = append(output, o)
+		}
 	})
 	if err != nil {
 		return nil, err
@@ -137,8 +148,11 @@ func (s *Session) runIteratorWithCallback(it graph.Iterator, callback goja.Value
 	defer cancel()
 	var gerr error
 	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
-		m := s.vm.ToValue(s.tagsToValueMap(tags))
-		if _, err := fnc(this.This, m); err != nil {
+		tm := s.tagsToValueMap(tags)
+		if tm == nil {
+			return
+		}
+		if _, err := fnc(this.This, s.vm.ToValue(tm)); err != nil {
 			gerr = err
 			cancel()
 		}
@@ -187,6 +201,14 @@ func (s *Session) runIterator(it graph.Iterator) error {
 		err = nil
 	}
 	return err
+}
+
+func (s *Session) countResults(it graph.Iterator) (int64, error) {
+	if s.shape != nil {
+		iterator.OutputQueryShapeForIterator(it, s.qs, s.shape)
+		return 0, nil
+	}
+	return graph.Iterate(s.context(), it).Paths(true).Count()
 }
 
 type Result struct {

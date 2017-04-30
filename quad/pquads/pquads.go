@@ -19,11 +19,13 @@ const currentVersion = 1
 
 var magic = [4]byte{0, 'p', 'q', 0}
 
+const ContentType = "application/x-protobuf"
+
 func init() {
 	quad.RegisterFormat(quad.Format{
 		Name: "pquads", Binary: true,
 		Ext:    []string{".pq"},
-		Mime:   []string{"application/x-protobuf", "application/octet-stream"},
+		Mime:   []string{ContentType, "application/octet-stream"},
 		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w, nil) },
 		Reader: func(r io.Reader) quad.ReadCloser { return NewReader(r, DefaultMaxSize) },
 	})
@@ -35,6 +37,7 @@ type Writer struct {
 	err     error
 	opts    Options
 	s, p, o quad.Value
+	cl      io.Closer
 }
 
 type Options struct {
@@ -108,7 +111,13 @@ func (w *Writer) WriteQuad(q quad.Quad) error {
 func (w *Writer) MaxSize() int {
 	return w.max
 }
+func (w *Writer) SetCloser(c io.Closer) {
+	w.cl = c
+}
 func (w *Writer) Close() error {
+	if w.cl != nil {
+		return w.cl.Close()
+	}
 	return nil
 }
 
@@ -117,6 +126,11 @@ type Reader struct {
 	err     error
 	opts    Options
 	s, p, o quad.Value
+	cl      io.Closer
+}
+
+func (r *Reader) SetCloser(c io.Closer) {
+	r.cl = c
 }
 
 var _ quad.Skipper = (*Reader)(nil)
@@ -199,5 +213,8 @@ func (r *Reader) SkipQuad() error {
 	return r.err
 }
 func (r *Reader) Close() error {
+	if r.cl != nil {
+		return r.cl.Close()
+	}
 	return nil
 }

@@ -101,7 +101,6 @@ $(function() {
 
   var defaultQueryStrings = {
     "gizmo": "g.Emit('Hello World')",
-    "gremlin": "g.Emit('Hello World')",
     "mql": "[{\n  \"id\": \"Hello World\"\n}]",
     "graphql": "{\n  nodes(first: 10){\n    id\n  }\n}"
   }
@@ -116,7 +115,6 @@ $(function() {
 
   var switchTo = function(type) {
     if (type === "gizmo") { switchToGizmo()}
-    if (type === "gremlin") { switchToGremlin()}
     if (type === "mql") { switchToMQL()}
     if (type === "graphql") { switchToGraphQL()}
     if (typeof(Storage) !== "undefined") {
@@ -130,11 +128,6 @@ $(function() {
   var switchToGizmo = function () {
     $("#selected-query-lang").html("Gizmo " + caretSpan)
     selectedQueryLanguage = "gizmo"
-  }
-
-  var switchToGremlin = function () {
-    $("#selected-query-lang").html("Gremlin " + caretSpan)
-    selectedQueryLanguage = "gremlin"
   }
 
   var switchToMQL = function() {
@@ -170,10 +163,6 @@ $(function() {
 
   $("#gizmo-dropdown").click(function() {
     switchTo("gizmo")
-  })
-
-  $("#gremlin-dropdown").click(function() {
-    switchTo("gremlin")
   })
 
   $("#mql-dropdown").click(function() {

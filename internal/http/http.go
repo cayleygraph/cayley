@@ -16,7 +16,6 @@ package http
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -27,14 +26,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/codelingo/cayley/graph"
-	"github.com/codelingo/cayley/internal/config"
-	"github.com/codelingo/cayley/internal/db"
 	"github.com/codelingo/cayley/internal/gephi"
+	"github.com/codelingo/cayley/server/http"
 )
 
-type ResponseHandler func(http.ResponseWriter, *http.Request, httprouter.Params) int
-
-var assetsPath = flag.String("assets", "", "Explicit path to the HTTP assets.")
+var AssetsPath string
 var assetsDirs = []string{"templates", "static", "docs"}
 
 func hasAssets(path string) bool {
@@ -47,11 +43,11 @@ func hasAssets(path string) bool {
 }
 
 func findAssetsPath() string {
-	if *assetsPath != "" {
-		if hasAssets(*assetsPath) {
-			return *assetsPath
+	if AssetsPath != "" {
+		if hasAssets(AssetsPath) {
+			return AssetsPath
 		}
-		clog.Fatalf("Cannot find assets at", *assetsPath, ".")
+		clog.Fatalf("Cannot find assets at", AssetsPath, ".")
 	}
 
 	if hasAssets(".") {
@@ -70,7 +66,16 @@ func findAssetsPath() string {
 	panic("cannot reach")
 }
 
-func LogRequest(handler ResponseHandler) httprouter.Handle {
+type statusWriter struct {
+	http.ResponseWriter
+	code *int
+}
+
+func (w *statusWriter) WriteHeader(code int) {
+	*(w.code) = code
+}
+
+func LogRequest(handler httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		start := time.Now()
 		addr := req.Header.Get("X-Real-IP")
@@ -80,20 +85,21 @@ func LogRequest(handler ResponseHandler) httprouter.Handle {
 				addr = req.RemoteAddr
 			}
 		}
-		clog.Infof("Started %s %s for %s", req.Method, req.URL.Path, addr)
-		code := handler(w, req, params)
-		clog.Infof("Completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
-
+		code := 200
+		rw := &statusWriter{ResponseWriter: w, code: &code}
+		clog.Infof("started %s %s for %s", req.Method, req.URL.Path, addr)
+		handler(rw, req, params)
+		clog.Infof("completed %v %s %s in %v", code, http.StatusText(code), req.URL.Path, time.Since(start))
 	}
 }
 
-func jsonResponse(w http.ResponseWriter, code int, err interface{}) int {
-	w.Header().Set("Content-Type", contentTypeJSON)
+func jsonResponse(w http.ResponseWriter, code int, err interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 	w.Write([]byte(`{"error": `))
 	data, _ := json.Marshal(fmt.Sprint(err))
 	w.Write(data)
 	w.Write([]byte(`}`))
-	return code
 }
 
 type TemplateRequestHandler struct {
@@ -112,27 +118,12 @@ func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 type API struct {
-	config *config.Config
+	config *Config
 	handle *graph.Handle
 }
 
 func (api *API) GetHandleForRequest(r *http.Request) (*graph.Handle, error) {
-	if !api.config.RequiresHTTPRequestContext {
-		return api.handle, nil
-	}
-
-	opts := make(graph.Options)
-	opts["HTTPRequest"] = r
-
-	qs, err := graph.NewQuadStoreForRequest(api.handle.QuadStore, opts)
-	if err != nil {
-		return nil, err
-	}
-	qw, err := db.OpenQuadWriter(qs, api.config)
-	if err != nil {
-		return nil, err
-	}
-	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
+	return cayleyhttp.HandleForRequest(api.handle, "single", nil, r)
 }
 
 func (api *API) RWOnly(handler httprouter.Handle) httprouter.Handle {
@@ -168,15 +159,13 @@ func (api *API) APIv1(r *httprouter.Router) {
 	r.POST("/api/v1/delete", CORS(api.RWOnly(LogRequest(api.ServeV1Delete))))
 }
 
-func (api *API) APIv2(r *httprouter.Router) {
-	r.POST("/api/v2/write", CORS(api.RWOnly(LogRequest(api.ServeV2Write))))
-	r.POST("/api/v2/delete", CORS(api.RWOnly(LogRequest(api.ServeV2Delete))))
-	r.POST("/api/v2/read", CORS(LogRequest(api.ServeV2Read)))
-	r.GET("/api/v2/read", CORS(LogRequest(api.ServeV2Read)))
-	r.GET("/api/v2/formats", CORS(LogRequest(api.ServeV2Formats)))
+type Config struct {
+	ReadOnly bool
+	Timeout  time.Duration
+	Batch    int
 }
 
-func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
+func SetupRoutes(handle *graph.Handle, cfg *Config) {
 	r := httprouter.New()
 	assets := findAssetsPath()
 	if clog.V(2) {
@@ -189,27 +178,20 @@ func SetupRoutes(handle *graph.Handle, cfg *config.Config) {
 	api := &API{config: cfg, handle: handle}
 	r.OPTIONS("/*path", CORSFunc)
 	api.APIv1(r)
-	api.APIv2(r)
+
+	api2 := cayleyhttp.NewAPIv2(handle)
+	api2.SetReadOnly(cfg.ReadOnly)
+	api2.SetBatchSize(cfg.Batch)
+	api2.SetQueryTimeout(cfg.Timeout)
+	api2.RegisterOn(r, CORS, LogRequest)
+
 	gs := &gephi.GraphStreamHandler{QS: handle.QuadStore}
 	const gephiPath = "/gephi/gs"
 	r.GET(gephiPath, gs.ServeHTTP)
-	fmt.Printf("Serving Gephi GraphStream at http://localhost:%s%s\n", cfg.ListenPort, gephiPath)
 
-	//m.Use(martini.Static("static", martini.StaticOptions{Prefix: "/static", SkipLogging: true}))
-	//r.Handler("GET", "/static", http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
 	r.GET("/docs/:docpage", docs.ServeHTTP)
 	r.GET("/ui/:ui_type", root.ServeHTTP)
 	r.GET("/", root.ServeHTTP)
 	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(fmt.Sprint(assets, "/static/")))))
 	http.Handle("/", r)
-}
-
-func Serve(handle *graph.Handle, cfg *config.Config) {
-	SetupRoutes(handle, cfg)
-	clog.Infof("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
-	fmt.Printf("Cayley now listening on %s:%s\n", cfg.ListenHost, cfg.ListenPort)
-	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenHost, cfg.ListenPort), nil)
-	if err != nil {
-		clog.Fatalf("ListenAndServe: %v", err)
-	}
 }

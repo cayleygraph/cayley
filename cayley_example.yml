@@ -1,0 +1,14 @@
+store:
+  # backend to use
+  backend: bolt
+  # address or path for the database
+  address: "./cayley.db"
+  # open database in read-only mode
+  read_only: false
+  # backend-specific options
+  options:
+    nosync: false
+load:
+  ignore_duplicates: false
+  ignore_missing: false
+  batch: 10000

@@ -37,7 +37,6 @@ const QuadStoreType = "mongo"
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
 		NewFunc:           newQuadStore,
-		NewForRequestFunc: nil,
 		UpgradeFunc:       nil,
 		InitFunc:          createNewMongoGraph,
 		IsPersistent:      true,
@@ -328,6 +327,18 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				}
 			}
 		}
+		var dn int
+		if d.Action == graph.Add {
+			dn = 1
+		} else {
+			dn = -1
+		}
+		ids[d.Quad.Subject] += dn
+		ids[d.Quad.Object] += dn
+		ids[d.Quad.Predicate] += dn
+		if d.Quad.Label != nil {
+			ids[d.Quad.Label] += dn
+		}
 	}
 	if clog.V(2) {
 		clog.Infof("Existence verified. Proceeding.")
@@ -338,28 +349,18 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			return &graph.DeltaError{Delta: d, Err: err}
 		}
 	}
-	for _, d := range deltas {
-		err := qs.updateQuad(d.Quad, d.ID.Int(), d.Action)
-		if err != nil {
-			return &graph.DeltaError{Delta: d, Err: err}
-		}
-		var countdelta int
-		if d.Action == graph.Add {
-			countdelta = 1
-		} else {
-			countdelta = -1
-		}
-		ids[d.Quad.Subject] += countdelta
-		ids[d.Quad.Object] += countdelta
-		ids[d.Quad.Predicate] += countdelta
-		if d.Quad.Label != nil {
-			ids[d.Quad.Label] += countdelta
-		}
-	}
+	// make sure to create all nodes before writing any quads
+	// concurrent reads may observe broken quads in other case
 	for k, v := range ids {
 		err := qs.updateNodeBy(k, v)
 		if err != nil {
 			return err
+		}
+	}
+	for _, d := range deltas {
+		err := qs.updateQuad(d.Quad, d.ID.Int(), d.Action)
+		if err != nil {
+			return &graph.DeltaError{Delta: d, Err: err}
 		}
 	}
 	qs.session.SetSafe(&mgo.Safe{})

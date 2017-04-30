@@ -360,20 +360,20 @@ func (p *Path) FollowReverse(path *Path) *Path {
 // first time the result node was seen.
 //
 // This is a very expensive operation in practice. Be sure to use it wisely.
-
 func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
-	np := p.clone()
 	var path *Path
 	switch v := via.(type) {
 	case string:
+		path = StartMorphism().Out(v)
+	case quad.Value:
 		path = StartMorphism().Out(v)
 	case *Path:
 		path = v
 	default:
 		panic("did not pass a string predicate or a Path to FollowRecursive")
 	}
-	np.stack = append(np.stack, followRecursiveMorphism(path, depthTags))
-	return np
+	p.stack = append(p.stack, followRecursiveMorphism(path, depthTags))
+	return p
 }
 
 // Save will, from the current nodes in the path, retrieve the node

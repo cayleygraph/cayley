@@ -1,6 +1,0 @@
-{
-	"Arch": "arm amd64 386",
-	"Os": "linux darwin windows",
-	"ResourcesInclude": "README.md,static,templates,LICENSE,AUTHORS,CONTRIBUTORS,docs,cayley.cfg.example,data",
-	"ConfigVersion": "0.9"
-}

@@ -61,7 +61,7 @@ var testQueries = []struct {
 	query   string
 	tag     string
 	expect  []string
-	err     bool // TODO(dennwc): define error types for Gremlin and handle them
+	err     bool // TODO(dennwc): define error types for Gizmo and handle them
 }{
 	// Simple query tests.
 	{
@@ -285,7 +285,7 @@ var testQueries = []struct {
 		expect: []string{"<fred>", "<bob>", "<greg>", "<dani>"},
 	},
 
-	// Gremlin Has tests.
+	// Has tests.
 	{
 		message: "show a simple Has",
 		query: `
@@ -308,7 +308,7 @@ var testQueries = []struct {
 		expect: []string{"<bob>"},
 	},
 
-	// Gremlin Skip/Limit tests.
+	// Skip/Limit tests.
 	{
 		message: "use Limit",
 		query: `
@@ -334,14 +334,14 @@ var testQueries = []struct {
 	{
 		message: "show Count",
 		query: `
-				g.V().Has("<status>").Count().All()
+				g.V().Has("<status>").Count()
 		`,
-		expect: []string{`"5"^^<schema:Integer>`},
+		expect: []string{"5"},
 	},
 	{
 		message: "use Count value",
 		query: `
-				g.Emit(g.V().Has("<status>").Count().ToValue()+1)
+				g.Emit(g.V().Has("<status>").Count()+1)
 		`,
 		expect: []string{"6"},
 	},
@@ -507,6 +507,27 @@ var testQueries = []struct {
 			g.Emit(g.Uri('ex:alice'))
 		`,
 		expect: []string{"<http://example.net/alice>"},
+	},
+	{
+		message: "recursive follow",
+		query: `
+			g.V("<charlie>").FollowRecursive("<follows>").All();
+		`,
+		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
+	},
+	{
+		message: "recursive follow path",
+		query: `
+			g.V("<charlie>").FollowRecursive(g.V().Out("<follows>")).All();
+		`,
+		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
+	},
+	{
+		message: "find non-existent",
+		query: `
+			g.V('<not-existing>').ForEach(function(d){ g.Emit(d); })
+		`,
+		expect: nil,
 	},
 }
 

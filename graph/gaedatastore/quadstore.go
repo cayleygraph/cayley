@@ -27,9 +27,12 @@ import (
 	"google.golang.org/appengine/datastore"
 
 	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/http"
 	"github.com/codelingo/cayley/graph/iterator"
 	"github.com/codelingo/cayley/quad"
 )
+
+var _ httpgraph.QuadStore = (*QuadStore)(nil)
 
 const (
 	QuadStoreType = "gaedatastore"
@@ -82,11 +85,10 @@ type LogEntry struct {
 
 func init() {
 	graph.RegisterQuadStore("gaedatastore", graph.QuadStoreRegistration{
-		NewFunc:           newQuadStore,
-		NewForRequestFunc: newQuadStoreForRequest,
-		UpgradeFunc:       nil,
-		InitFunc:          initQuadStore,
-		IsPersistent:      true,
+		NewFunc:      newQuadStore,
+		UpgradeFunc:  nil,
+		InitFunc:     initQuadStore,
+		IsPersistent: true,
 	})
 }
 
@@ -96,18 +98,7 @@ func initQuadStore(_ string, _ graph.Options) error {
 }
 
 func newQuadStore(_ string, options graph.Options) (graph.QuadStore, error) {
-	var qs QuadStore
-	return &qs, nil
-}
-
-func newQuadStoreForRequest(qs graph.QuadStore, options graph.Options) (graph.QuadStore, error) {
-	newQs, err := newQuadStore("", options)
-	if err != nil {
-		return nil, err
-	}
-	t := newQs.(*QuadStore)
-	t.context, err = getContext(options)
-	return newQs, err
+	return &QuadStore{}, nil
 }
 
 func (qs *QuadStore) createKeyForQuad(q quad.Quad) *datastore.Key {
@@ -163,6 +154,10 @@ func getContext(opts graph.Options) (context.Context, error) {
 		return nil, err
 	}
 	return appengine.NewContext(req), nil
+}
+
+func (qs *QuadStore) ForRequest(r *http.Request) (graph.QuadStore, error) {
+	return &QuadStore{context: appengine.NewContext(r)}, nil
 }
 
 func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {

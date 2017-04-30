@@ -28,14 +28,12 @@ var storeRegistry = make(map[string]QuadStoreRegistration)
 type NewStoreFunc func(string, Options) (QuadStore, error)
 type InitStoreFunc func(string, Options) error
 type UpgradeStoreFunc func(string, Options) error
-type NewStoreForRequestFunc func(QuadStore, Options) (QuadStore, error)
 
 type QuadStoreRegistration struct {
-	NewFunc           NewStoreFunc
-	NewForRequestFunc NewStoreForRequestFunc
-	UpgradeFunc       UpgradeStoreFunc
-	InitFunc          InitStoreFunc
-	IsPersistent      bool
+	NewFunc      NewStoreFunc
+	UpgradeFunc  UpgradeStoreFunc
+	InitFunc     InitStoreFunc
+	IsPersistent bool
 }
 
 func RegisterQuadStore(name string, register QuadStoreRegistration) {
@@ -55,49 +53,33 @@ func NewQuadStore(name string, dbpath string, opts Options) (QuadStore, error) {
 	if !registered {
 		return nil, ErrQuadStoreNotRegistred
 	}
-
 	return r.NewFunc(dbpath, opts)
-}
-
-func NewQuadStoreForRequest(qs QuadStore, opts Options) (QuadStore, error) {
-	r, registered := storeRegistry[qs.Type()]
-	if !registered {
-		return nil, ErrQuadStoreNotRegistred
-	}
-
-	if r.NewForRequestFunc == nil {
-		return nil, ErrOperationNotSupported
-	}
-
-	return r.NewForRequestFunc(qs, opts)
-}
-
-func UpgradeQuadStore(name string, dbpath string, opts Options) error {
-	r, registered := storeRegistry[name]
-	if !registered {
-		return ErrQuadStoreNotRegistred
-	}
-
-	if r.UpgradeFunc == nil {
-		// return ErrOperationNotSupported
-		return nil
-	}
-
-	return r.UpgradeFunc(dbpath, opts)
 }
 
 func InitQuadStore(name string, dbpath string, opts Options) error {
 	r, registered := storeRegistry[name]
 	if !registered {
 		return ErrQuadStoreNotRegistred
-
-	}
-
-	if r.InitFunc == nil {
+	} else if r.InitFunc == nil {
 		return ErrOperationNotSupported
 	}
-
 	return r.InitFunc(dbpath, opts)
+}
+
+func UpgradeQuadStore(name string, dbpath string, opts Options) error {
+	r, registered := storeRegistry[name]
+	if !registered {
+		return ErrQuadStoreNotRegistred
+	} else if r.UpgradeFunc == nil {
+		// return ErrOperationNotSupported
+		return nil
+	}
+	return r.UpgradeFunc(dbpath, opts)
+}
+
+func IsRegistered(name string) bool {
+	_, ok := storeRegistry[name]
+	return ok
 }
 
 func IsPersistent(name string) bool {

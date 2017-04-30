@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package decompressor
 
 import (
 	"bytes"
@@ -77,7 +77,7 @@ var testDecompressor = []struct {
 
 func TestDecompressor(t *testing.T) {
 	for _, test := range testDecompressor {
-		r, err := Decompressor(test.input)
+		r, err := New(test.input)
 		if err != test.err {
 			t.Fatalf("Unexpected error for %s, got:%v expect:%v", test.message, err, test.err)
 		}
