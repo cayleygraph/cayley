@@ -244,7 +244,6 @@ const (
 	Regex
 	Recursive
 	Count
-	Recursive
 )
 
 var (
