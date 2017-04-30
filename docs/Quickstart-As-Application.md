@@ -49,7 +49,7 @@ After the database is initialized we load the data.
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load -c cayley_overview.yml -i data/testdata.nq --logtostderr=true
+./cayley load -c cayley_overview.yml -i data/testdata.nq --alsologtostderr=true
 ```
 
 And watch the log output go by.

@@ -168,7 +168,7 @@ func init() {
 			case "stderrthreshold": // glog.stderrthreshold
 				rf.VarP(pFlag{f.Value}, "log", "l", f.Usage)
 			case "alsologtostderr": // glog.alsologtostderr
-				f.Value.Set("true")
+				rf.Var(pFlag{f.Value}, f.Name, f.Usage)
 			case "logtostderr": // glog.logtostderr
 				rf.Var(pFlag{f.Value}, f.Name, f.Usage)
 			case "log_dir": // glog.log_dir
