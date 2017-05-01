@@ -229,14 +229,7 @@ func NewIterationContext() *IterationContext {
 	}
 }
 
-// SetValue sets the value of a given variable.
-// TODO(BlakeMScurr) Mutex
-func (c *IterationContext) SetValue(varName string, val Value) {
-	c.values[varName] = val
-}
-
 // BindVariable binds a variable if it has not already been bound.
-// TODO(BlakeMScurr) Mutex
 func (c *IterationContext) BindVariable(qs QuadStore, varName string) bool {
 	if val, ok := c.isBound[varName]; ok && val {
 		return false
@@ -256,7 +249,6 @@ func (c *IterationContext) Values() map[string]Value {
 }
 
 // CurrentValue gets the value of the variable of name varName
-// TODO(BlakeMScurr) Mutex
 func (c *IterationContext) CurrentValue(varName string) Value {
 	return c.subIts[varName].Result()
 }
@@ -264,14 +256,8 @@ func (c *IterationContext) CurrentValue(varName string) Value {
 // Next calls next on the subiterator that provides the value source for the variable
 // of name varName
 func (c *IterationContext) Next(varName string) bool {
-	if !c.isBound[varName] {
-		panic("You shouldn't be calling next on a variable iterator before binding it.")
-	}
 	if c.subIts[varName].Next(c) {
 		c.values[varName] = c.subIts[varName].Result()
-		if c.subIts[varName].Result() == nil {
-			panic("should not be nil if next is true")
-		}
 		return true
 	}
 	c.values[varName] = nil

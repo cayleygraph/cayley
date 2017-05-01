@@ -7,7 +7,6 @@ type Var struct {
 // NewVar creates a variable that can be used in place of a graph.Value
 func NewVar(name string) Var {
 	return Var{
-		// name: string(uuid.NewV4()),
 		name: name,
 	}
 }

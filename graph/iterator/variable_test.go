@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/codelingo/cayley/graph"
@@ -38,19 +39,14 @@ func TestSimpleVariableIterator(t *testing.T) {
 		checkUserAgainstBinder(t, ctx, user1, binder)
 		checkUserAgainstBinder(t, ctx, user2, binder)
 	}
-
+	fmt.Println(count)
 	if count != 4 {
 		t.Error("Variable binder should iterate over all nodes")
 	}
 }
 
 func checkUserAgainstBinder(t *testing.T, ctx *graph.IterationContext, user, binder *Variable) {
-	user.Next(ctx)
-	if user.Result() != binder.Result() {
-		t.Error("Variables of the same name should point to the same value.")
-	}
-	user.Next(ctx)
-	if user.Result() != nil {
-		t.Error("Variable users should return nil if the underlying value is not updated between calls to Next()")
+	if !user.Contains(ctx, binder.Result()) {
+		t.Error("User should represent the current result of the binder.")
 	}
 }

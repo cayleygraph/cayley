@@ -15,7 +15,6 @@
 package iterator
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -87,9 +86,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	// Move the tags hanging on us (like any good replacement).
 	newAnd.tags.CopyFrom(it)
-	if newAnd.primaryIt == nil {
-		fmt.Println("We have a problem")
-	}
+
 	newAnd.optimizeContains()
 	if clog.V(3) {
 		clog.Infof("%v become %v", it.UID(), newAnd.UID())
@@ -209,7 +206,6 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 		out = append(out, best)
 	}
 	// ... push everyone else after...
-
 	for _, it := range its {
 		if !graph.CanNext(it) {
 			continue
@@ -220,9 +216,7 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	}
 
 	// ...and finally, the difficult children on the end.
-	iterators := append(out, bad...)
-
-	return iterators
+	return append(out, bad...)
 }
 
 type byCost []graph.Iterator

@@ -23,8 +23,8 @@ package iterator
 // Next() is not available to users because there is no guarantee of consistency when multiple
 // iterators can update the variable's value.
 
-// Iterator trees with variable iterators have to be reorder to make sure users never have
-// Next() called on them. This being the case, Contains() is undefined on binders to ensure
+// Iterator trees with variable iterators have to be reordered to make sure users never have
+// their Next() method called. This being the case, Contains() is undefined on binders to ensure
 // that the different types of iterators keep their proper place in the tree. However, Contains()
 // on binders should be easy to implement should the need arise.
 
@@ -39,13 +39,12 @@ import (
 // A Variable iterator consists of a name and an indication of whether it is a binder or a user.
 // The other state necessary for iteration is handled by the iteration context.
 type Variable struct {
-	uid       uint64
-	tags      graph.Tagger
-	varName   string
-	lastIndex int
-	result    graph.Value
-	isBinder  bool
-	qs        graph.QuadStore
+	uid      uint64
+	tags     graph.Tagger
+	varName  string
+	result   graph.Value
+	isBinder bool
+	qs       graph.QuadStore
 }
 
 func NewVariable(qs graph.QuadStore, name string) *Variable {
@@ -61,9 +60,8 @@ func (it *Variable) UID() uint64 {
 	return it.uid
 }
 
-func (it *Variable) Reset() {
-	it.lastIndex = 0
-}
+// TODO(BlakeMScurr) Allow resetting on the iteration context.
+func (it *Variable) Reset() {}
 
 func (it *Variable) Close() error {
 	return nil
@@ -109,6 +107,7 @@ func (it *Variable) Describe() graph.Description {
 func (it *Variable) Type() graph.Type { return graph.Variable }
 
 // Contains checks if the passed value is equal to the current value of the variable.
+// Contains is not defined for a bind variable.
 func (it *Variable) Contains(ctx *graph.IterationContext, v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if ctx.BindVariable(it.qs, it.varName) || it.isBinder {
@@ -129,7 +128,6 @@ func (it *Variable) Next(ctx *graph.IterationContext) bool {
 
 	if ctx.BindVariable(it.qs, it.varName) {
 		it.isBinder = true
-		ctx.Next(it.varName)
 	}
 
 	if it.isBinder {
@@ -162,7 +160,7 @@ func (it *Variable) SubIterators() []graph.Iterator {
 }
 
 // There is no (apparent) optimization for a variable iterator, because most of its information is stored
-// in the iteration context.
+// in the iteration context, which doesn't exists until iteration.
 func (it *Variable) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
@@ -172,8 +170,6 @@ func (it *Variable) Size() (int64, bool) {
 	return int64(0), true
 }
 
-// As we right now have to scan the entire list, Next and Contains are linear with the
-// size. However, a better data structure could remove these limits.
 func (it *Variable) Stats() graph.IteratorStats {
 	s, exact := it.Size()
 	return graph.IteratorStats{

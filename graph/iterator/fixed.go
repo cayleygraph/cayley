@@ -172,6 +172,7 @@ func (it *Fixed) Optimize() (graph.Iterator, bool) {
 	if len(it.values) == 1 && it.values[0] == nil {
 		return &Null{}, true
 	}
+
 	return it, false
 }
 
