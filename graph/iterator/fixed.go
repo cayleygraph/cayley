@@ -172,10 +172,6 @@ func (it *Fixed) Optimize() (graph.Iterator, bool) {
 	if len(it.values) == 1 && it.values[0] == nil {
 		return &Null{}, true
 	}
-	fmt.Println(it.values)
-	for _, v := range it.values {
-		fmt.Println(v)
-	}
 	return it, false
 }
 

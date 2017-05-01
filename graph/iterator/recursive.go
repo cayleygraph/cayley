@@ -202,13 +202,15 @@ func (it *Recursive) getBaseValue(val graph.Value) graph.Value {
 }
 
 func (it *Recursive) ResetIfVarsUpdated(ctx *graph.IterationContext) {
-	newVars := ctx.Values()
-	// sucks to be using reflect, and we should also not be throwing all this
-	// information away, it could be useful if we have the same var value at a
-	// later point.
-	if !reflect.DeepEqual(newVars, it.vars) {
-		it.Reset()
-		it.vars = newVars
+	if ctx != nil {
+		newVars := ctx.Values()
+		// Using reflect is not ideal, and we should also not be throwing all this
+		// information away, it could be useful if we have the same var value at a
+		// later point.
+		if !reflect.DeepEqual(newVars, it.vars) {
+			it.Reset()
+			it.vars = newVars
+		}
 	}
 }
 

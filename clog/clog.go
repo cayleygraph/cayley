@@ -28,7 +28,7 @@ type Logger interface {
 }
 
 var logger Logger = &stdlog{
-	verbosity: 3,
+	verbosity: 0,
 }
 
 // SetLogger set the clog logging implementation.
