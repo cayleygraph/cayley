@@ -30,18 +30,18 @@ import (
 //var _ graphtest.ValueSizer = (*QuadStore)(nil)
 
 func TestCreateDatabase(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "cayley_test")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "cayley_test_bolt2")
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)
 	}
-	t.Log(tmpFile)
+	t.Log(tmpDir)
 
-	err = createNewBolt(tmpFile.Name(), nil)
+	err = createNewBolt(tmpDir, nil)
 	if err != nil {
-		t.Fatal("Failed to create LevelDB database.")
+		t.Fatal("Failed to create Bolt database.")
 	}
 
-	qs, err := newQuadStore(tmpFile.Name(), nil)
+	qs, err := newQuadStore(tmpDir, nil)
 	if qs == nil || err != nil {
 		t.Error("Failed to create bolt QuadStore.")
 	}
@@ -50,27 +50,27 @@ func TestCreateDatabase(t *testing.T) {
 	}
 	qs.Close()
 
-	os.RemoveAll(tmpFile.Name())
+	os.RemoveAll(tmpDir)
 }
 
 func makeBolt(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "cayley_test")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "cayley_test_bolt2")
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)
 	}
-	err = createNewBolt(tmpFile.Name(), nil)
+	err = createNewBolt(tmpDir, nil)
 	if err != nil {
-		os.RemoveAll(tmpFile.Name())
+		os.RemoveAll(tmpDir)
 		t.Fatal("Failed to create Bolt database.", err)
 	}
-	qs, err := newQuadStore(tmpFile.Name(), nil)
+	qs, err := newQuadStore(tmpDir, nil)
 	if qs == nil || err != nil {
-		os.RemoveAll(tmpFile.Name())
+		os.RemoveAll(tmpDir)
 		t.Fatal("Failed to create Bolt QuadStore.")
 	}
 	return qs, nil, func() {
 		qs.Close()
-		os.RemoveAll(tmpFile.Name())
+		os.RemoveAll(tmpDir)
 	}
 }
 
@@ -80,90 +80,6 @@ func TestBoltAll(t *testing.T) {
 		SkipIntHorizon:          true,
 	})
 }
-
-//func TestLoadDatabase(t *testing.T) {
-//tmpFile, err := ioutil.TempFile(os.TempDir(), "cayley_test")
-//if err != nil {
-//t.Fatalf("Could not create working directory: %v", err)
-//}
-//defer os.RemoveAll(tmpFile.Name())
-//t.Log(tmpFile.Name())
-
-//err = createNewBolt(tmpFile.Name(), nil)
-//if err != nil {
-//t.Fatal("Failed to create Bolt database.", err)
-//}
-
-//qs, err := newQuadStore(tmpFile.Name(), nil)
-//if qs == nil || err != nil {
-//t.Error("Failed to create Bolt QuadStore.")
-//}
-
-//w, _ := writer.NewSingleReplication(qs, nil)
-//w.AddQuad(quad.MakeRaw(
-//"Something",
-//"points_to",
-//"Something Else",
-//"context",
-//))
-//for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
-//if got := qs.NameOf(qs.ValueOf(quad.Raw(pq))).String(); got != pq {
-//t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)
-//}
-//}
-//if s := qs.Size(); s != 1 {
-//t.Errorf("Unexpected quadstore size, got:%d expect:1", s)
-//}
-//qs.Close()
-
-//err = createNewBolt(tmpFile.Name(), nil)
-//if err != graph.ErrDatabaseExists {
-//t.Fatal("Failed to create Bolt database.", err)
-//}
-//qs, err = newQuadStore(tmpFile.Name(), nil)
-//if qs == nil || err != nil {
-//t.Error("Failed to create Bolt QuadStore.")
-//}
-//w, _ = writer.NewSingleReplication(qs, nil)
-
-////ts2, didConvert := qs.(*QuadStore)
-////if !didConvert {
-////t.Errorf("Could not convert from generic to Bolt QuadStore")
-////}
-
-////Test horizon
-//horizon := qs.Horizon()
-//if horizon.Int() != 1 {
-//t.Errorf("Unexpected horizon value, got:%d expect:1", horizon.Int())
-//}
-
-//w.AddQuadSet(graphtest.MakeQuadSet())
-//if s := qs.Size(); s != 12 {
-//t.Errorf("Unexpected quadstore size, got:%d expect:12", s)
-//}
-////if s := ts2.SizeOf(qs.ValueOf(quad.Raw("B"))); s != 5 {
-////t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
-////}
-//horizon = qs.Horizon()
-//if horizon.Int() != 12 {
-//t.Errorf("Unexpected horizon value, got:%d expect:12", horizon.Int())
-//}
-
-//w.RemoveQuad(quad.MakeRaw(
-//"A",
-//"follows",
-//"B",
-//"",
-//))
-//if s := qs.Size(); s != 11 {
-//t.Errorf("Unexpected quadstore size after RemoveQuad, got:%d expect:11", s)
-//}
-////if s := ts2.SizeOf(qs.ValueOf(quad.Raw("B"))); s != 4 {
-////t.Errorf("Unexpected quadstore size, got:%d expect:4", s)
-////}
-
-//qs.Close()
-//}
 
 func TestOptimize(t *testing.T) {
 	qs, opts, closer := makeBolt(t)
