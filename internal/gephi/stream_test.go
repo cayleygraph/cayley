@@ -2,9 +2,10 @@ package gephi
 
 import (
 	"bytes"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/codelingo/cayley/quad"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStreamEncoder(t *testing.T) {

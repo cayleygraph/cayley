@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/graph/graphtest"
-	"github.com/cayleygraph/cayley/graph/memstore"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph/graphtest"
+	"github.com/codelingo/cayley/graph/memstore"
+	"github.com/codelingo/cayley/quad"
 )
 
 var casesParse = []struct {

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/pquads"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/quad/pquads"
 )
 
 func New(addr string) *Client {

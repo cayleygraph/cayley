@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cayleygraph/cayley/voc"
-	"github.com/cayleygraph/cayley/voc/schema"
+	"github.com/codelingo/cayley/voc"
+	"github.com/codelingo/cayley/voc/schema"
 )
 
 // Value is a type used by all quad directions.
@@ -132,6 +132,7 @@ type Raw string
 
 func (s Raw) String() string      { return string(s) }
 func (s Raw) Native() interface{} { return s }
+func (s Raw) IsNode() bool        { return true }
 
 // String is an RDF string value (ex: "name").
 type String string
@@ -149,6 +150,7 @@ func (s String) String() string {
 	return `"` + escaper.Replace(string(s)) + `"`
 }
 func (s String) Native() interface{} { return string(s) }
+func (s String) IsNode() bool        { return true }
 
 // TypedString is an RDF value with type (ex: "name"^^<type>).
 type TypedString struct {
@@ -168,6 +170,8 @@ func (s TypedString) Native() interface{} {
 	}
 	return s
 }
+
+func (s TypedString) IsNode() bool { return true }
 
 // ParseValue will try to parse underlying string value using registered functions.
 //
@@ -192,6 +196,7 @@ func (s LangString) String() string {
 	return s.Value.String() + `@` + s.Lang
 }
 func (s LangString) Native() interface{} { return s.Value.Native() }
+func (s LangString) IsNode() bool        { return true }
 
 // IRI is an RDF Internationalized Resource Identifier (ex: <name>).
 type IRI string
@@ -200,6 +205,7 @@ func (s IRI) String() string      { return `<` + string(s) + `>` }
 func (s IRI) Short() IRI          { return IRI(voc.ShortIRI(string(s))) }
 func (s IRI) Full() IRI           { return IRI(voc.FullIRI(string(s))) }
 func (s IRI) Native() interface{} { return s }
+
 func (s IRI) ShortWith(n *voc.Namespaces) IRI {
 	return IRI(n.ShortIRI(string(s)))
 }
@@ -212,6 +218,7 @@ type BNode string
 
 func (s BNode) String() string      { return `_:` + string(s) }
 func (s BNode) Native() interface{} { return s }
+func (s BNode) IsNode() bool        { return true }
 
 // Native support for basic types
 
@@ -308,6 +315,7 @@ func (s Int) String() string {
 	return s.TypedString().String()
 }
 func (s Int) Native() interface{} { return int(s) }
+
 func (s Int) TypedString() TypedString {
 	return TypedString{
 		Value: String(strconv.Itoa(int(s))),
@@ -365,6 +373,7 @@ func (s Time) String() string {
 	return s.TypedString().String()
 }
 func (s Time) Native() interface{} { return time.Time(s) }
+func (s Time) IsNode() bool        { return true }
 func (s Time) Equal(v Value) bool {
 	t, ok := v.(Time)
 	if !ok {

@@ -9,10 +9,10 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/internal"
-	"github.com/cayleygraph/cayley/internal/db"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/query"
+	"github.com/codelingo/cayley/internal"
+	"github.com/codelingo/cayley/internal/db"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
 )
 
 func NewReplCmd() *cobra.Command {

@@ -2,7 +2,7 @@
 package core
 
 import (
-	_ "github.com/cayleygraph/cayley/voc/rdf"
-	_ "github.com/cayleygraph/cayley/voc/rdfs"
-	_ "github.com/cayleygraph/cayley/voc/schema"
+	_ "github.com/codelingo/cayley/voc/rdf"
+	_ "github.com/codelingo/cayley/voc/rdfs"
+	_ "github.com/codelingo/cayley/voc/schema"
 )

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/cayleygraph/cayley"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley"
+	"github.com/codelingo/cayley/quad"
 )
 
 func main() {
@@ -42,13 +42,13 @@ func main() {
 To use other backends, you can empty-import them, eg
 
 ```go
-import _ "github.com/cayleygraph/cayley/graph/bolt"
+import _ "github.com/codelingo/cayley/graph/bolt"
 ```
 
 And use them with a call like
 
 ```go
-import "github.com/cayleygraph/cayley/graph"
+import "github.com/codelingo/cayley/graph"
 
 func open() {
   // Initialize the database

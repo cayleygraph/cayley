@@ -21,8 +21,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/quad"
 )
 
 type Tagger struct {
@@ -242,8 +242,8 @@ const (
 	Limit
 	Skip
 	Regex
-	Count
 	Recursive
+	Count
 )
 
 var (
@@ -269,6 +269,7 @@ var (
 		"limit",
 		"skip",
 		"regex",
+		"recursive",
 		"count",
 		"recursive",
 	}

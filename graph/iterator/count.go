@@ -1,8 +1,8 @@
 package iterator
 
 import (
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad"
 )
 
 var (

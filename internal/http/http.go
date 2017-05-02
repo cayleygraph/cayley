@@ -22,12 +22,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/gephi"
-	"github.com/cayleygraph/cayley/server/http"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/internal/gephi"
+	"github.com/codelingo/cayley/server/http"
 )
 
 var AssetsPath string
@@ -58,7 +58,7 @@ func findAssetsPath() string {
 		return ".."
 	}
 
-	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley")
+	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/codelingo/cayley")
 	if hasAssets(gopathPath) {
 		return gopathPath
 	}

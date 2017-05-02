@@ -22,15 +22,15 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphtest"
-	_ "github.com/cayleygraph/cayley/graph/memstore"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/query"
-	_ "github.com/cayleygraph/cayley/writer"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/graphtest"
+	_ "github.com/codelingo/cayley/graph/memstore"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
+	_ "github.com/codelingo/cayley/writer"
 
 	// register global namespace for tests
-	_ "github.com/cayleygraph/cayley/voc/rdf"
+	_ "github.com/codelingo/cayley/voc/rdf"
 )
 
 // This is a simple test graph used for testing

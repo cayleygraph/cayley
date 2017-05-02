@@ -1,4 +1,4 @@
-package: github.com/cayleygraph/cayley
+package: github.com/codelingo/cayley
 excludeDirs:
 - internal/dock
 import:

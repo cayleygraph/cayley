@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	packageName = flag.String("pck", "github.com/cayleygraph/cayley/query/gizmo", "")
+	packageName = flag.String("pck", "github.com/codelingo/cayley/query/gizmo", "")
 	out         = flag.String("o", "-", "output file")
 	in          = flag.String("i", "", "input file")
 )

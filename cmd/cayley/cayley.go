@@ -17,46 +17,46 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"flag"
 
-	"github.com/cayleygraph/cayley/cmd/cayley/command"
+	"github.com/codelingo/cayley/cmd/cayley/command"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cayleygraph/cayley/clog"
-	_ "github.com/cayleygraph/cayley/clog/glog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/version"
+	"github.com/codelingo/cayley/clog"
+	_ "github.com/codelingo/cayley/clog/glog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/version"
 
 	// Load supported backends
-	_ "github.com/cayleygraph/cayley/graph/bolt"
-	_ "github.com/cayleygraph/cayley/graph/leveldb"
-	_ "github.com/cayleygraph/cayley/graph/memstore"
-	_ "github.com/cayleygraph/cayley/graph/mongo"
-	_ "github.com/cayleygraph/cayley/graph/sql"
+	_ "github.com/codelingo/cayley/graph/bolt"
+	_ "github.com/codelingo/cayley/graph/leveldb"
+	_ "github.com/codelingo/cayley/graph/memstore"
+	_ "github.com/codelingo/cayley/graph/mongo"
+	_ "github.com/codelingo/cayley/graph/sql"
 
 	// Load all supported quad formats.
-	_ "github.com/cayleygraph/cayley/quad/dot"
-	_ "github.com/cayleygraph/cayley/quad/gml"
-	_ "github.com/cayleygraph/cayley/quad/graphml"
-	_ "github.com/cayleygraph/cayley/quad/json"
-	_ "github.com/cayleygraph/cayley/quad/jsonld"
-	_ "github.com/cayleygraph/cayley/quad/nquads"
-	_ "github.com/cayleygraph/cayley/quad/pquads"
+	_ "github.com/codelingo/cayley/quad/dot"
+	_ "github.com/codelingo/cayley/quad/gml"
+	_ "github.com/codelingo/cayley/quad/graphml"
+	_ "github.com/codelingo/cayley/quad/json"
+	_ "github.com/codelingo/cayley/quad/jsonld"
+	_ "github.com/codelingo/cayley/quad/nquads"
+	_ "github.com/codelingo/cayley/quad/pquads"
 
 	// Load writer registry
-	_ "github.com/cayleygraph/cayley/writer"
+	_ "github.com/codelingo/cayley/writer"
 
 	// Load supported query languages
-	_ "github.com/cayleygraph/cayley/query/gizmo"
-	_ "github.com/cayleygraph/cayley/query/graphql"
-	_ "github.com/cayleygraph/cayley/query/mql"
-	_ "github.com/cayleygraph/cayley/query/sexp"
+	_ "github.com/codelingo/cayley/query/gizmo"
+	_ "github.com/codelingo/cayley/query/graphql"
+	_ "github.com/codelingo/cayley/query/mql"
+	_ "github.com/codelingo/cayley/query/sexp"
 )
 
 var (

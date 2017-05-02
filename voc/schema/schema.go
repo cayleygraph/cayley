@@ -1,7 +1,7 @@
 // Package schema contains constants of the Schema.org vocabulary.
 package schema
 
-import "github.com/cayleygraph/cayley/voc"
+import "github.com/codelingo/cayley/voc"
 
 func init() {
 	voc.RegisterPrefix(Prefix, NS)

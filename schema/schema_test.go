@@ -7,12 +7,12 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/memstore"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/schema"
-	"github.com/cayleygraph/cayley/voc"
-	"github.com/cayleygraph/cayley/voc/rdf"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/memstore"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/schema"
+	"github.com/codelingo/cayley/voc"
+	"github.com/codelingo/cayley/voc/rdf"
 )
 
 type item struct {

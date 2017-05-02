@@ -19,10 +19,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/config"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/internal/config"
 )
 
 var ErrNotPersistent = errors.New("database type is not persistent")

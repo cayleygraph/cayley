@@ -21,12 +21,12 @@ import (
 	"github.com/dop251/goja"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/voc"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
+	"github.com/codelingo/cayley/voc"
 )
 
 const Name = "gizmo"

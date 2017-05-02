@@ -23,11 +23,11 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/path"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/schema"
-	"github.com/cayleygraph/cayley/voc"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/graph/path"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/schema"
+	"github.com/codelingo/cayley/voc"
 )
 
 // graphObject is a root graph object.

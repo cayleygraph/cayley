@@ -21,19 +21,19 @@ import (
 	"os"
 	"time"
 
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 
-	"github.com/cayleygraph/cayley/internal/config"
-	"github.com/cayleygraph/cayley/internal/db"
-	"github.com/cayleygraph/cayley/internal/http"
+	"github.com/codelingo/cayley/internal/config"
+	"github.com/codelingo/cayley/internal/db"
+	"github.com/codelingo/cayley/internal/http"
 
-	_ "github.com/cayleygraph/cayley/graph/gaedatastore"
-	_ "github.com/cayleygraph/cayley/writer"
+	_ "github.com/codelingo/cayley/graph/gaedatastore"
+	_ "github.com/codelingo/cayley/writer"
 
 	// Register supported query languages
-	_ "github.com/cayleygraph/cayley/query/gizmo"
-	_ "github.com/cayleygraph/cayley/query/graphql"
-	_ "github.com/cayleygraph/cayley/query/mql"
+	_ "github.com/codelingo/cayley/query/gizmo"
+	_ "github.com/codelingo/cayley/query/graphql"
+	_ "github.com/codelingo/cayley/query/mql"
 )
 
 var (

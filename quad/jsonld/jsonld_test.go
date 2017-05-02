@@ -3,11 +3,12 @@ package jsonld
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/cayleygraph/cayley/quad"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/codelingo/cayley/quad"
 )
 
 var testReadCases = []struct {

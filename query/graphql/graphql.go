@@ -13,10 +13,10 @@ import (
 	"github.com/dennwc/graphql/language/parser"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/path"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/query"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/path"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/query"
 )
 
 const Name = "graphql"

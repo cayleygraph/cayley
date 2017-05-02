@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 var postgres_path = flag.String("postgres_path", "", "Path to running DB")

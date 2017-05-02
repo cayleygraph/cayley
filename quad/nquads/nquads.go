@@ -32,7 +32,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 //go:generate ragel -Z -G2 typed.rl

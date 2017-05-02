@@ -17,8 +17,8 @@ package iterator
 import (
 	"regexp"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad"
 )
 
 // Regex is a unary operator -- a filter across the values in the relevant

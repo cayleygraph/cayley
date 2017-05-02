@@ -6,8 +6,8 @@ Cayley is an open-source graph inspired by the graph database behind [Freebase](
 
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
-[![Build Status](https://travis-ci.org/cayleygraph/cayley.png?branch=master)](https://travis-ci.org/cayleygraph/cayley)
-[![Container Repository on Quay](https://quay.io/repository/cayleygraph/cayley/status "Container Repository on Quay")](https://quay.io/repository/cayleygraph/cayley)
+[![Build Status](https://travis-ci.org/codelingo/cayley.png?branch=master)](https://travis-ci.org/codelingo/cayley)
+[![Container Repository on Quay](https://quay.io/repository/codelingo/cayley/status "Container Repository on Quay")](https://quay.io/repository/codelingo/cayley)
 
 [![Slack Status](https://cayley-slackin.herokuapp.com/badge.svg)](https://cayley-slackin.herokuapp.com/)
 

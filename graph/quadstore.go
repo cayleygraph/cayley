@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 // Value defines an opaque "quad store value" type. However the backend wishes
@@ -68,6 +68,7 @@ type QuadStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.
 	ApplyDeltas([]Delta, IgnoreOpts) error
+	ApplyDeltaStream(<-chan Delta, IgnoreOpts) error
 
 	// Given an opaque token, returns the quad for that token from the store.
 	Quad(Value) quad.Quad

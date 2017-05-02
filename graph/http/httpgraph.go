@@ -1,8 +1,9 @@
 package httpgraph
 
 import (
-	"github.com/cayleygraph/cayley/graph"
 	"net/http"
+
+	"github.com/codelingo/cayley/graph"
 )
 
 type QuadStore interface {

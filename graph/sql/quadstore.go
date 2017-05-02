@@ -8,22 +8,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/internal/lru"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/pquads"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/internal/lru"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/quad/pquads"
 )
 
 const QuadStoreType = "sql"
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc:           newQuadStore,
-		UpgradeFunc:       nil,
-		InitFunc:          createSQLTables,
-		IsPersistent:      true,
+		NewFunc:      newQuadStore,
+		UpgradeFunc:  nil,
+		InitFunc:     createSQLTables,
+		IsPersistent: true,
 	})
 }
 
@@ -110,6 +110,7 @@ type Flavor struct {
 	Error               func(error) error
 	Estimated           func(table string) string
 	RunTx               func(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error
+	RunChanTx           func(tx *sql.Tx, tx2 *sql.Tx, in <-chan graph.Delta, opts graph.IgnoreOpts) error
 	NoSchemaChangesInTx bool
 }
 
@@ -259,6 +260,7 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	qs.db = conn
 	qs.flavor = fl
 	qs.size = -1
@@ -350,6 +352,31 @@ func nodeValues(h NodeHash, v quad.Value) (int, []interface{}, error) {
 		values = append(values, p)
 	}
 	return nodeKey, values, nil
+}
+
+func (qs *QuadStore) ApplyDeltaStream(in <-chan graph.Delta, opts graph.IgnoreOpts) error {
+	tx, err := qs.db.Begin()
+	if err != nil {
+		clog.Errorf("couldn't begin write transaction: %v", err)
+		return err
+	}
+
+	tx2, err := qs.db.Begin()
+	if err != nil {
+		clog.Errorf("couldn't begin write transaction: %v", err)
+		return err
+	}
+
+	err = qs.flavor.RunChanTx(tx, tx2, in, opts)
+	if err != nil {
+		tx.Rollback()
+		tx2.Rollback()
+		panic(err)
+		return err
+	}
+
+	qs.size = -1 // TODO(barakmich): Sync size with writes.
+	return nil
 }
 
 func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error {

@@ -4,9 +4,10 @@ package jsonld
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/linkeddata/gojsonld"
 	"io"
+
+	"github.com/codelingo/cayley/quad"
+	"github.com/linkeddata/gojsonld"
 )
 
 // AutoConvertTypedString allows to convert TypedString values to native

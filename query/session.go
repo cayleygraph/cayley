@@ -17,7 +17,7 @@ package query
 
 import (
 	"errors"
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 	"golang.org/x/net/context"
 	"io"
 )

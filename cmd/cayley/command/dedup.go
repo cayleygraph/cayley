@@ -12,11 +12,11 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/path"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/voc/rdf"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/path"
+	"github.com/codelingo/cayley/quad"
+	"github.com/codelingo/cayley/voc/rdf"
 )
 
 func iriFlag(s string, err error) (quad.IRI, error) {

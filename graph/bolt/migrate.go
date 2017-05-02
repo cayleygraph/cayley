@@ -19,9 +19,9 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/proto"
 )
 
 const latestDataVersion = 3

@@ -28,10 +28,10 @@ import (
 	"github.com/peterh/liner"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad/nquads"
-	"github.com/cayleygraph/cayley/query"
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad/nquads"
+	"github.com/codelingo/cayley/query"
 )
 
 func trace(s string) (string, time.Time) {

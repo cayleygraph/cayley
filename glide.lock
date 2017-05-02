@@ -25,6 +25,29 @@ imports:
   version: 902a5ce7a7812e2ba9f73b9d96c09d5136df39cd
   subpackages:
   - syntax
+- name: github.com/docker/docker
+  version: cc8b8ce0b3d2d6b3345687464d3a3b1c2c4971ef
+  subpackages:
+  - api/types/filters
+  - api/types/versions
+  - opts
+  - pkg/archive
+  - pkg/fileutils
+  - pkg/homedir
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/longpath
+  - pkg/pools
+  - pkg/promise
+  - pkg/stdcopy
+  - pkg/system
+- name: github.com/docker/engine-api
+  version: fa0eea948c32ababd784fc1ad76172d986617e56
+  subpackages:
+  - types/mount
+  - types/swarm
+- name: github.com/docker/go-units
+  version: 9b001659dd36225e356b4467c465d732e745f53d
 - name: github.com/dop251/goja
   version: dafe23d0fc0ad58765f3ad1f8eb1d70af43ed148
   subpackages:

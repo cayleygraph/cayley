@@ -17,11 +17,11 @@ package sql
 import (
 	"database/sql"
 
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 type AllIterator struct {

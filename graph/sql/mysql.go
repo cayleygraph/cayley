@@ -3,11 +3,12 @@ package sql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
-	_ "github.com/go-sql-driver/mysql"
 	"strings"
+
+	"github.com/codelingo/cayley/clog"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/quad"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const flavorMysql = "mysql"

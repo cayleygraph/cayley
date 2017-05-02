@@ -7,8 +7,8 @@ import (
 	"github.com/dennwc/graphql/gqlerrors"
 	"golang.org/x/net/context"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/query"
 )
 
 type httpResult struct {

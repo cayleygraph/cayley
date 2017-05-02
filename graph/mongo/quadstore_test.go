@@ -3,16 +3,16 @@
 package mongo
 
 import (
-	"testing"
+	"bytes"
 	"math/rand"
 	"sync"
-	"bytes"
+	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphtest"
-	"github.com/cayleygraph/cayley/graph/path/pathtest"
-	"github.com/cayleygraph/cayley/internal/dock"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/graphtest"
+	"github.com/codelingo/cayley/graph/path/pathtest"
+	"github.com/codelingo/cayley/internal/dock"
+	"github.com/codelingo/cayley/quad"
 )
 
 func makeMongo(t testing.TB) (graph.QuadStore, graph.Options, func()) {

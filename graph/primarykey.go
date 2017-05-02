@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/cayleygraph/cayley/clog"
+	"github.com/codelingo/cayley/clog"
 	"github.com/pborman/uuid"
 )
 

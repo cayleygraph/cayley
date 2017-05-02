@@ -1,7 +1,7 @@
 // Package rdf contains constants of the RDF Concepts Vocabulary (RDF)
 package rdf
 
-import "github.com/cayleygraph/cayley/voc"
+import "github.com/codelingo/cayley/voc"
 
 func init() {
 	voc.RegisterPrefix(Prefix, NS)

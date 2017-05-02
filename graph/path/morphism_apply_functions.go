@@ -17,10 +17,11 @@ package path
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/iterator"
+	"github.com/codelingo/cayley/quad"
 )
 
 // join puts two iterators together by intersecting their result sets with an AND
@@ -143,6 +144,101 @@ func hasReverseMorphism(via interface{}, nodes ...quad.Value) morphism {
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasMorphism(via, nodes...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
 			return buildHas(qs, via, in, true, nodes), ctx
+		},
+	}
+}
+
+func hasRegexMorphism(via interface{}, pattern string) morphism {
+	return morphism{
+		Name:     "hasregex",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasRegexMorphism(via, pattern), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			viaIter := buildViaPath(qs, via).
+				BuildIterator()
+
+			ends := func() graph.Iterator {
+				re := regexp.MustCompile(pattern)
+				out := inOutIterator(buildViaPath(qs, via), in, false, nil, ctx)
+
+				// Transfer dest nodes from 'all outbound' to fixed queue if they
+				// pass the regex.
+				fixed := qs.FixedIterator()
+				for out.Next() {
+					n := out.Result()
+					if re.MatchString(qs.NameOf(n).String()) {
+						fixed.Add(n)
+					}
+				}
+				// Even though out isn't used again, it holds 'in' as a sub-iterator and
+				// therefore needs to be reset
+				out.Reset()
+
+				return fixed
+			}()
+
+			trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
+			dest := iterator.NewLinksTo(qs, ends, quad.Object)
+
+			route := join(qs, dest, trail)
+			has := iterator.NewHasA(qs, route, quad.Subject)
+			return join(qs, has, in), ctx
+		},
+	}
+}
+
+func hasComparisonMorphism(via interface{}, operator string, number float64) morphism {
+	return morphism{
+		Name: "hascomparison",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
+			return hasComparisonMorphism(via, operator, number), ctx
+		},
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			viaIter := buildViaPath(qs, via).
+				BuildIterator()
+
+			ends := func() graph.Iterator {
+				var compare func(float64, float64) bool
+				switch operator {
+				case "==":
+					compare = func(lhs, rhs float64) bool { return lhs == rhs }
+				case "<":
+					compare = func(lhs, rhs float64) bool { return lhs < rhs }
+				case "<=":
+					compare = func(lhs, rhs float64) bool { return lhs <= rhs }
+				case ">":
+					compare = func(lhs, rhs float64) bool { return lhs > rhs }
+				case ">=":
+					compare = func(lhs, rhs float64) bool { return lhs >= rhs }
+				}
+
+				out := inOutIterator(buildViaPath(qs, via), in, false, nil, ctx)
+
+				// Transfer dest nodes from 'all outbound' to fixed queue if they
+				// pass the comparison.
+				fixed := qs.FixedIterator()
+				for out.Next() {
+					n := out.Result()
+					fl, err := strconv.ParseFloat(qs.NameOf(n).String(), 64)
+					if err != nil {
+						fl = 0
+					}
+					if compare(fl, number) {
+						fixed.Add(n)
+					}
+				}
+				// Even though out isn't used again, it holds 'in' as a sub-iterator and
+				// therefore needs to be reset
+				out.Reset()
+
+				return fixed
+			}()
+
+			trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
+			dest := iterator.NewLinksTo(qs, ends, quad.Object)
+
+			route := join(qs, dest, trail)
+			has := iterator.NewHasA(qs, route, quad.Subject)
+			return join(qs, has, in), ctx
 		},
 	}
 }

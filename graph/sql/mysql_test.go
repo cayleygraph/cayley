@@ -3,14 +3,15 @@
 package sql
 
 import (
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphtest"
-	"github.com/cayleygraph/cayley/graph/path/pathtest"
-	"github.com/cayleygraph/cayley/internal/dock"
-	_ "github.com/go-sql-driver/mysql"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/codelingo/cayley/graph"
+	"github.com/codelingo/cayley/graph/graphtest"
+	"github.com/codelingo/cayley/graph/path/pathtest"
+	"github.com/codelingo/cayley/internal/dock"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func makeMysql(t testing.TB) (graph.QuadStore, graph.Options, func()) {

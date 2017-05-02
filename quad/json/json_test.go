@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/codelingo/cayley/quad"
 )
 
 var readTests = []struct {

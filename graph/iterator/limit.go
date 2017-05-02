@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/codelingo/cayley/graph"
 )
 
 // Limit iterator will stop iterating if certain a number of values were encountered.
