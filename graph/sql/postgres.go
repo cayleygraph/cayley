@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/codelingo/cayley/clog"
 	"github.com/codelingo/cayley/graph"
@@ -74,8 +76,175 @@ func init() {
 		Estimated: func(table string) string {
 			return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='" + table + "';"
 		},
-		RunTx: runTxPostgres,
+		RunTx:     runTxPostgres,
+		RunChanTx: runChanTxPostgres,
 	})
+}
+
+func runChanTxPostgres(tx *sql.Tx, tx2 *sql.Tx, in <-chan graph.Delta, opts graph.IgnoreOpts) error {
+
+	type quadValue struct {
+		hs, hp, ho, hl NodeHash
+		id             graph.PrimaryKey
+		timestamp      time.Time
+	}
+
+	quads := make(chan quadValue)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		_, err := tx2.Exec("CREATE TEMP TABLE IF NOT EXISTS quads_copy (LIKE quads INCLUDING ALL);")
+		if err != nil {
+			panic(err)
+		}
+
+		quadStmt, err := tx2.Prepare(pq.CopyIn("quads_copy", "subject_hash", "predicate_hash", "object_hash", "label_hash", "id", "ts"))
+		if err != nil {
+			panic(err)
+			clog.Errorf("couldn't prepare COPY statement: %v", err)
+		}
+
+		for quValue := range quads {
+			_, err = quadStmt.Exec(
+				quValue.hs.toSQL(),
+				quValue.hp.toSQL(),
+				quValue.ho.toSQL(),
+				quValue.hl.toSQL(),
+				quValue.id.Int(),
+				quValue.timestamp,
+			)
+			err = convInsertErrorPG(err)
+			if err != nil {
+				panic(err)
+				clog.Errorf("couldn't exec COPY statement: %v", err)
+			}
+		}
+
+		// flush
+		_, err = quadStmt.Exec()
+		if err != nil {
+			err = convInsertErrorPG(err)
+			panic(err)
+		}
+		_ = quadStmt.Close() // COPY will be closed on last Exec, this will return non-nil error in all cases
+
+		wg.Done()
+	}()
+
+	go func() {
+		_, err := tx.Exec("CREATE TEMP TABLE IF NOT EXISTS nodes_copy (LIKE nodes INCLUDING ALL);")
+		if err != nil {
+			panic(err)
+		}
+
+		inserted := make(map[NodeHash]struct{}) // tracks already inserted values
+		nodeStmt, err := tx.Prepare(pq.CopyIn("nodes_copy", nodesColumns...))
+		if err != nil {
+			panic(err)
+			clog.Errorf("couldn't prepare COPY statement: %v", err)
+		}
+
+		for d := range in {
+			var hs, hp, ho, hl NodeHash
+			// var quadExists bool
+			for _, dir := range quad.Directions {
+				v := d.Quad.Get(dir)
+				if v == nil {
+					continue
+				}
+
+				h := hashOf(v)
+				switch dir {
+				case quad.Subject:
+					hs = h
+				case quad.Predicate:
+					hp = h
+				case quad.Object:
+					ho = h
+				case quad.Label:
+					hl = h
+				}
+				if !h.Valid() {
+					continue
+				} else if _, ok := inserted[h]; ok {
+					continue
+				}
+
+				nodeKey, values, err := nodeValues(h, v)
+				if err != nil {
+					panic(err)
+				}
+
+				// create an array of values to insert, only set the values of the array
+				// indexes that align with the columns we wish to populate.
+				insertValues := make([]interface{}, len(nodesColumns))
+
+				// hash is not included in nodeInsertColumns, but is always first
+				insertValues[0] = values[0]
+
+				// populate other values from array map
+				for i, valCol := range nodeInsertColumns[nodeKey] {
+					for nodeNo, nodeCol := range nodesColumns {
+						if valCol == nodeCol {
+							// nodeInsertColumns does not have hash, so need to add one to
+							// index to skip the first entry.
+							insertValues[nodeNo] = values[i+1]
+							break
+						}
+					}
+				}
+
+				_, err = nodeStmt.Exec(insertValues...)
+				err = convInsertErrorPG(err)
+				if err != nil {
+					if !strings.Contains(err.Error(), "quad exists") {
+						panic(err)
+						clog.Errorf("couldn't exec COPY statement: %v", err)
+					}
+					// quadExists = true
+				}
+
+				inserted[h] = struct{}{}
+			}
+			quads <- quadValue{hs, hp, ho, hl, d.ID, d.Timestamp}
+		}
+		close(quads)
+
+		_, err = nodeStmt.Exec()
+		if err != nil {
+			panic(err)
+			err = convInsertErrorPG(err)
+		}
+		_ = nodeStmt.Close() // COPY will be closed on last Exec, this will return non-nil error in all cases
+
+		var doNothing string
+		if opts.IgnoreDup {
+			doNothing = " ON CONFLICT (hash) DO NOTHING"
+		}
+
+		// sync copy tables back to nodes table
+		_, err = tx.Exec("INSERT INTO nodes SELECT * FROM nodes_copy" + doNothing + ";")
+		if err != nil {
+			panic(err)
+		}
+		if err := tx.Commit(); err != nil {
+			panic(err)
+			err = convInsertErrorPG(err)
+		}
+
+		wg.Done()
+	}()
+
+	// nodes tb needs to be set up before quads
+	wg.Wait()
+
+	_, err := tx2.Exec("INSERT INTO quads SELECT * FROM quads_copy;")
+	if err != nil {
+		panic(err)
+	}
+
+	return tx2.Commit()
 }
 
 func convInsertErrorPG(err error) error {
@@ -90,57 +259,7 @@ func convInsertErrorPG(err error) error {
 	return err
 }
 
-func copyFromPG(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
-	panic("broken")
-	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts", "subject_hash", "predicate_hash", "object_hash", "label_hash"))
-	if err != nil {
-		clog.Errorf("couldn't prepare COPY statement: %v", err)
-		return err
-	}
-	for _, d := range in {
-		s, p, o, l, err := marshalQuadDirections(d.Quad)
-		if err != nil {
-			clog.Errorf("couldn't marshal quads: %v", err)
-			return err
-		}
-		_, err = stmt.Exec(
-			s,
-			p,
-			o,
-			l,
-			d.ID.Int(),
-			d.Timestamp,
-			hashOf(d.Quad.Subject),
-			hashOf(d.Quad.Predicate),
-			hashOf(d.Quad.Object),
-			hashOf(d.Quad.Label),
-		)
-		if err != nil {
-			err = convInsertErrorPG(err)
-			clog.Errorf("couldn't execute COPY statement: %v", err)
-			return err
-		}
-	}
-	_, err = stmt.Exec()
-	if err != nil {
-		err = convInsertErrorPG(err)
-		return err
-	}
-	_ = stmt.Close() // COPY will be closed on last Exec, this will return non-nil error in all cases
-	return nil
-}
-
 func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
-	//allAdds := true
-	//for _, d := range in {
-	//	if d.Action != graph.Add {
-	//		allAdds = false
-	//	}
-	//}
-	//if allAdds && !opts.IgnoreDup {
-	//	return qs.copyFrom(tx, in, opts)
-	//}
-
 	end := ";"
 	if opts.IgnoreDup {
 		end = " ON CONFLICT DO NOTHING;"
