@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
@@ -54,16 +55,23 @@ const (
 )
 
 type QuadStore struct {
-	db            *bolt.DB
-	path          string
-	open          bool
+	db        *bolt.DB
+	path      string
+	open      bool
+	mapBucket map[string]map[uint64][]uint64
+	valueLRU  *lru.Cache
+	exists    *boom.DeletableBloomFilter
+	writer    sync.Mutex
+
+	mu            sync.RWMutex
 	size          int64
 	horizon       int64
 	sameAsHorizon int64
 	version       int64
-	mapBucket     map[string]map[uint64][]uint64
-	valueLRU      *lru.Cache
-	exists        *boom.DeletableBloomFilter
+
+	hashBuf  []byte
+	bloomBuf []byte
+	bufLock  sync.Mutex
 }
 
 func getBoltFile(cfgpath string) string {
@@ -128,6 +136,8 @@ func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	}
 	qs.valueLRU = lru.New(2000)
 	qs.initBloomFilter()
+	qs.hashBuf = make([]byte, quad.HashSize)
+	qs.bloomBuf = make([]byte, 3*8)
 	return &qs, nil
 }
 
@@ -150,6 +160,8 @@ func setVersion(db *bolt.DB, version int64) error {
 }
 
 func (qs *QuadStore) Size() int64 {
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	return qs.size
 }
 
@@ -163,6 +175,8 @@ func (qs *QuadStore) Close() error {
 }
 
 func (qs *QuadStore) getMetadata() error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
 		qs.size, err = getInt64ForMetaKey(tx, "size", 0)
@@ -206,6 +220,8 @@ func getInt64ForKey(tx *bolt.Tx, bucket []byte, key string, empty int64) (int64,
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	return graph.NewSequentialKey(qs.horizon)
 }
 
@@ -239,14 +255,18 @@ func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	var v quad.Quad
-	key := k.(*proto.Primitive)
+	key, ok := k.(*proto.Primitive)
+	if !ok {
+		clog.Errorf("passed value was not a quad primitive")
+		return quad.Quad{}
+	}
 	err := qs.db.View(func(tx *bolt.Tx) error {
 		var err error
 		v, err = qs.primitiveToQuad(tx, key)
 		return err
 	})
 	if err != nil {
-		clog.Errorf("error fetching quad %d: %s", key, err)
+		clog.Errorf("error fetching quad %#v: %s", key, err)
 	}
 	return v
 }
@@ -281,6 +301,9 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 		out = Int64Value(qs.resolveQuadValue(tx, s))
 		return nil
 	})
+	if out == 0 {
+		return nil
+	}
 	return out
 }
 
@@ -291,7 +314,7 @@ func (qs *QuadStore) Type() string {
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
 	p, ok := val.(*proto.Primitive)
 	if !ok {
-		return Int64Value(0)
+		return nil
 	}
 	switch d {
 	case quad.Subject:
@@ -301,9 +324,12 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	case quad.Object:
 		return Int64Value(p.Object)
 	case quad.Label:
+		if p.Label == 0 {
+			return nil
+		}
 		return Int64Value(p.Label)
 	}
-	return Int64Value(0)
+	return nil
 }
 
 func (qs *QuadStore) getPrimitive(val Int64Value) (*proto.Primitive, bool) {

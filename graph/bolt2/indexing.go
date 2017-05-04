@@ -49,8 +49,6 @@ var (
 		sameNodesIndex,
 		logIndex,
 	}
-	hashBuf  = make([]byte, quad.HashSize)
-	bloomBuf = make([]byte, 3*8)
 )
 
 func (qs *QuadStore) createBuckets() error {
@@ -93,6 +91,8 @@ func bucketFor(i, j byte) []byte {
 }
 
 func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, qs.size)
 	if err != nil {
@@ -122,12 +122,18 @@ func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	qs.writer.Lock()
+	defer qs.writer.Unlock()
 	tx, err := qs.db.Begin(true)
-	tx.Bucket(logIndex).FillPercent = 0.9
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+	tx.Bucket(logIndex).FillPercent = 0.9
+	qs.mu.RLock()
+	size := qs.size
+	horizon := qs.horizon
+	qs.mu.RUnlock()
 
 nextDelta:
 	for _, d := range deltas {
@@ -151,8 +157,8 @@ nextDelta:
 				if err != nil {
 					return err
 				}
-				qs.horizon++
-				node.ID = uint64(qs.horizon)
+				horizon++
+				node.ID = uint64(horizon)
 				err = qs.index(tx, node, val)
 				mustBeNew = true
 				if err != nil {
@@ -171,9 +177,8 @@ nextDelta:
 			if err != nil {
 				return err
 			}
-			writePrimToBuf(&link)
-			qs.exists.TestAndRemove(bloomBuf)
-			qs.size--
+			qs.bloomRemove(&link)
+			size--
 			continue
 		}
 
@@ -190,23 +195,30 @@ nextDelta:
 				return fmt.Errorf("adding duplicate link %v", d)
 			}
 		}
-		qs.horizon++
-		link.ID = uint64(qs.horizon)
+		horizon++
+		link.ID = uint64(horizon)
 		link.Timestamp = time.Now().UnixNano()
 		err = qs.index(tx, &link, nil)
-		writePrimToBuf(&link)
-		qs.exists.Add(bloomBuf)
+		qs.bloomAdd(&link)
 		if err != nil {
 			return err
 		}
-		qs.size++
+		size++
 	}
 	err = qs.flushMapBucket(tx)
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+	qs.mu.Lock()
+	qs.size = size
+	qs.horizon = horizon
+	qs.mu.Unlock()
+	return nil
 }
 
 func (qs *QuadStore) index(tx *bolt.Tx, p *proto.Primitive, val quad.Value) error {
@@ -224,9 +236,11 @@ func (qs *QuadStore) indexNode(tx *bolt.Tx, p *proto.Primitive, val quad.Value) 
 			return err
 		}
 	}
-	quad.HashTo(val, hashBuf)
-	bucket := tx.Bucket(bucketFor(hashBuf[0], hashBuf[1]))
-	err = bucket.Put(hashBuf, uint64toBytes(p.ID))
+	qs.bufLock.Lock()
+	defer qs.bufLock.Unlock()
+	quad.HashTo(val, qs.hashBuf)
+	bucket := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]))
+	err = bucket.Put(qs.hashBuf, uint64toBytes(p.ID))
 	if err != nil {
 		return err
 	}
@@ -278,7 +292,7 @@ func decodeIndex(b []byte) ([]uint64, error) {
 	var out []uint64
 	for {
 		var x uint64
-		x, err := binary.ReadUvarint(r)
+		x, err = binary.ReadUvarint(r)
 		if err != nil {
 			break
 		}
@@ -431,12 +445,14 @@ func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
 		}
 	}
 
-	quad.HashTo(v, hashBuf)
-	buck := tx.Bucket(bucketFor(hashBuf[0], hashBuf[1]))
+	qs.bufLock.Lock()
+	defer qs.bufLock.Unlock()
+	quad.HashTo(v, qs.hashBuf)
+	buck := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]))
 	if buck == nil {
 		return 0
 	}
-	val := buck.Get(hashBuf)
+	val := buck.Get(qs.hashBuf)
 	if val == nil {
 		return 0
 	}
@@ -479,6 +495,8 @@ func (qs *QuadStore) initBloomFilter() error {
 	before := m.Alloc
 	qs.exists = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
 	runtime.ReadMemStats(m)
+	qs.bufLock.Lock()
+	defer qs.bufLock.Unlock()
 	clog.Infof("Using a bloom filter of %d bytes", m.Alloc-before)
 	return qs.db.View(func(tx *bolt.Tx) error {
 		p := proto.Primitive{}
@@ -494,22 +512,38 @@ func (qs *QuadStore) initBloomFilter() error {
 			if p.Deleted {
 				return nil
 			}
-			writePrimToBuf(&p)
-			qs.exists.Add(bloomBuf)
+			writePrimToBuf(&p, qs.bloomBuf)
+			qs.exists.Add(qs.bloomBuf)
 			return nil
 		})
 	})
 }
 
 func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
-	writePrimToBuf(p)
-	return qs.exists.Test(bloomBuf)
+	qs.bufLock.Lock()
+	defer qs.bufLock.Unlock()
+	writePrimToBuf(p, qs.bloomBuf)
+	return qs.exists.Test(qs.bloomBuf)
 }
 
-func writePrimToBuf(p *proto.Primitive) {
-	binary.BigEndian.PutUint64(bloomBuf[0:8], p.Subject)
-	binary.BigEndian.PutUint64(bloomBuf[8:16], p.Predicate)
-	binary.BigEndian.PutUint64(bloomBuf[16:24], p.Object)
+func (qs *QuadStore) bloomRemove(p *proto.Primitive) {
+	qs.bufLock.Lock()
+	defer qs.bufLock.Unlock()
+	writePrimToBuf(p, qs.bloomBuf)
+	qs.exists.TestAndRemove(qs.bloomBuf)
+}
+
+func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
+	qs.bufLock.Lock()
+	defer qs.bufLock.Unlock()
+	writePrimToBuf(p, qs.bloomBuf)
+	qs.exists.Add(qs.bloomBuf)
+}
+
+func writePrimToBuf(p *proto.Primitive, buf []byte) {
+	binary.BigEndian.PutUint64(buf[0:8], p.Subject)
+	binary.BigEndian.PutUint64(buf[8:16], p.Predicate)
+	binary.BigEndian.PutUint64(buf[16:24], p.Object)
 }
 
 type Int64Set []uint64

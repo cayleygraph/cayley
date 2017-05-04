@@ -53,6 +53,8 @@ var _ graph.Iterator = &QuadIterator{}
 func Type() graph.Type { return boltType }
 
 func NewQuadIterator(dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	return &QuadIterator{
 		qs:      qs,
 		horizon: qs.horizon,
@@ -89,6 +91,7 @@ func (it *QuadIterator) Clone() graph.Iterator {
 	out := NewQuadIterator(it.dir, it.v, it.qs)
 	out.tags.CopyFrom(it)
 	out.ids = it.ids
+	out.horizon = it.horizon
 	return out
 }
 

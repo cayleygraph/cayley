@@ -49,6 +49,8 @@ type constraint struct {
 }
 
 func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	if nodes && cons != nil {
 		panic("cannot use a bolt2 all iterator across nodes with a constraint")
 	}
@@ -146,7 +148,11 @@ func (it *AllIterator) NextPath() bool {
 
 func (it *AllIterator) Contains(v graph.Value) bool {
 	if it.nodes {
-		it.id = uint64(v.(Int64Value))
+		x, ok := v.(Int64Value)
+		if !ok {
+			return false
+		}
+		it.id = uint64(x)
 		return it.id <= uint64(it.horizon)
 	}
 	it.prim = v.(*proto.Primitive)
