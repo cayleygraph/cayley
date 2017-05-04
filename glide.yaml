@@ -45,3 +45,7 @@ import:
 - package: github.com/dop251/goja
 - package: github.com/go-sql-driver/mysql
 - package: github.com/dennwc/graphql
+- package: github.com/qedus/nds
+- package: google.golang.org/appengine
+  subpackages:
+  - datastore
