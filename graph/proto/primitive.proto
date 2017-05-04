@@ -18,7 +18,7 @@ package proto;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 //import "google/protobuf/timestamp.proto";
-option (gogoproto.sizer_all) = true;
+option (gogoproto.protosizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) =  true;
 

@@ -2,6 +2,17 @@
 // source: serializations.proto
 // DO NOT EDIT!
 
+/*
+	Package proto is a generated protocol buffer package.
+
+	It is generated from these files:
+		serializations.proto
+
+	It has these top-level messages:
+		LogDelta
+		HistoryEntry
+		NodeData
+*/
 package proto
 
 import proto1 "github.com/gogo/protobuf/proto"
@@ -17,17 +28,30 @@ var _ = proto1.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto1.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+
 type LogDelta struct {
-	ID        uint64       `protobuf:"varint,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Quad      *pquads.Quad `protobuf:"bytes,2,opt,name=Quad" json:"Quad,omitempty"`
-	Action    int32        `protobuf:"varint,3,opt,name=Action,proto3" json:"Action,omitempty"`
-	Timestamp int64        `protobuf:"varint,4,opt,name=Timestamp,proto3" json:"Timestamp,omitempty"`
+	ID        uint64       `protobuf:"varint,1,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
+	Quad      *pquads.Quad `protobuf:"bytes,2,opt,name=Quad,json=quad" json:"Quad,omitempty"`
+	Action    int32        `protobuf:"varint,3,opt,name=Action,json=action,proto3" json:"Action,omitempty"`
+	Timestamp int64        `protobuf:"varint,4,opt,name=Timestamp,json=timestamp,proto3" json:"Timestamp,omitempty"`
 }
 
 func (m *LogDelta) Reset()                    { *m = LogDelta{} }
 func (m *LogDelta) String() string            { return proto1.CompactTextString(m) }
 func (*LogDelta) ProtoMessage()               {}
 func (*LogDelta) Descriptor() ([]byte, []int) { return fileDescriptorSerializations, []int{0} }
+
+func (m *LogDelta) GetID() uint64 {
+	if m != nil {
+		return m.ID
+	}
+	return 0
+}
 
 func (m *LogDelta) GetQuad() *pquads.Quad {
 	if m != nil {
@@ -36,8 +60,22 @@ func (m *LogDelta) GetQuad() *pquads.Quad {
 	return nil
 }
 
+func (m *LogDelta) GetAction() int32 {
+	if m != nil {
+		return m.Action
+	}
+	return 0
+}
+
+func (m *LogDelta) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
 type HistoryEntry struct {
-	History []uint64 `protobuf:"varint,1,rep,packed,name=History" json:"History,omitempty"`
+	History []uint64 `protobuf:"varint,1,rep,packed,name=History,json=history" json:"History,omitempty"`
 }
 
 func (m *HistoryEntry) Reset()                    { *m = HistoryEntry{} }
@@ -45,9 +83,16 @@ func (m *HistoryEntry) String() string            { return proto1.CompactTextStr
 func (*HistoryEntry) ProtoMessage()               {}
 func (*HistoryEntry) Descriptor() ([]byte, []int) { return fileDescriptorSerializations, []int{1} }
 
+func (m *HistoryEntry) GetHistory() []uint64 {
+	if m != nil {
+		return m.History
+	}
+	return nil
+}
+
 type NodeData struct {
-	Name  string        `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
-	Size_ int64         `protobuf:"varint,2,opt,name=Size,proto3" json:"Size,omitempty"`
+	Name  string        `protobuf:"bytes,1,opt,name=Name,json=name,proto3" json:"Name,omitempty"`
+	Size  int64         `protobuf:"varint,2,opt,name=Size,json=size,proto3" json:"Size,omitempty"`
 	Value *pquads.Value `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
 }
 
@@ -55,6 +100,20 @@ func (m *NodeData) Reset()                    { *m = NodeData{} }
 func (m *NodeData) String() string            { return proto1.CompactTextString(m) }
 func (*NodeData) ProtoMessage()               {}
 func (*NodeData) Descriptor() ([]byte, []int) { return fileDescriptorSerializations, []int{2} }
+
+func (m *NodeData) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *NodeData) GetSize() int64 {
+	if m != nil {
+		return m.Size
+	}
+	return 0
+}
 
 func (m *NodeData) GetValue() *pquads.Value {
 	if m != nil {
@@ -69,7 +128,7 @@ func init() {
 	proto1.RegisterType((*NodeData)(nil), "proto.NodeData")
 }
 func (m *LogDelta) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
 	if err != nil {
@@ -91,7 +150,7 @@ func (m *LogDelta) MarshalTo(dAtA []byte) (int, error) {
 	if m.Quad != nil {
 		dAtA[i] = 0x12
 		i++
-		i = encodeVarintSerializations(dAtA, i, uint64(m.Quad.Size()))
+		i = encodeVarintSerializations(dAtA, i, uint64(m.Quad.ProtoSize()))
 		n1, err := m.Quad.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
@@ -112,7 +171,7 @@ func (m *LogDelta) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *HistoryEntry) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
 	if err != nil {
@@ -147,7 +206,7 @@ func (m *HistoryEntry) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *NodeData) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
 	if err != nil {
@@ -167,15 +226,15 @@ func (m *NodeData) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintSerializations(dAtA, i, uint64(len(m.Name)))
 		i += copy(dAtA[i:], m.Name)
 	}
-	if m.Size_ != 0 {
+	if m.Size != 0 {
 		dAtA[i] = 0x10
 		i++
-		i = encodeVarintSerializations(dAtA, i, uint64(m.Size_))
+		i = encodeVarintSerializations(dAtA, i, uint64(m.Size))
 	}
 	if m.Value != nil {
 		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintSerializations(dAtA, i, uint64(m.Value.Size()))
+		i = encodeVarintSerializations(dAtA, i, uint64(m.Value.ProtoSize()))
 		n4, err := m.Value.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
@@ -212,14 +271,14 @@ func encodeVarintSerializations(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *LogDelta) Size() (n int) {
+func (m *LogDelta) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if m.ID != 0 {
 		n += 1 + sovSerializations(uint64(m.ID))
 	}
 	if m.Quad != nil {
-		l = m.Quad.Size()
+		l = m.Quad.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	if m.Action != 0 {
@@ -231,7 +290,7 @@ func (m *LogDelta) Size() (n int) {
 	return n
 }
 
-func (m *HistoryEntry) Size() (n int) {
+func (m *HistoryEntry) ProtoSize() (n int) {
 	var l int
 	_ = l
 	if len(m.History) > 0 {
@@ -244,18 +303,18 @@ func (m *HistoryEntry) Size() (n int) {
 	return n
 }
 
-func (m *NodeData) Size() (n int) {
+func (m *NodeData) ProtoSize() (n int) {
 	var l int
 	_ = l
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovSerializations(uint64(l))
 	}
-	if m.Size_ != 0 {
-		n += 1 + sovSerializations(uint64(m.Size_))
+	if m.Size != 0 {
+		n += 1 + sovSerializations(uint64(m.Size))
 	}
 	if m.Value != nil {
-		l = m.Value.Size()
+		l = m.Value.ProtoSize()
 		n += 1 + l + sovSerializations(uint64(l))
 	}
 	return n
@@ -444,7 +503,24 @@ func (m *HistoryEntry) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType == 2 {
+			if wireType == 0 {
+				var v uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowSerializations
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.History = append(m.History, v)
+			} else if wireType == 2 {
 				var packedLen int
 				for shift := uint(0); ; shift += 7 {
 					if shift >= 64 {
@@ -485,23 +561,6 @@ func (m *HistoryEntry) Unmarshal(dAtA []byte) error {
 					}
 					m.History = append(m.History, v)
 				}
-			} else if wireType == 0 {
-				var v uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowSerializations
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					v |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				m.History = append(m.History, v)
 			} else {
 				return fmt.Errorf("proto: wrong wireType = %d for field History", wireType)
 			}
@@ -586,9 +645,9 @@ func (m *NodeData) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Size_", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
 			}
-			m.Size_ = 0
+			m.Size = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSerializations
@@ -598,7 +657,7 @@ func (m *NodeData) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Size_ |= (int64(b) & 0x7F) << shift
+				m.Size |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -765,25 +824,25 @@ var (
 func init() { proto1.RegisterFile("serializations.proto", fileDescriptorSerializations) }
 
 var fileDescriptorSerializations = []byte{
-	// 308 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x4c, 0x90, 0xd1, 0x4a, 0xf3, 0x30,
-	0x14, 0xc7, 0xbf, 0xac, 0xdd, 0xbe, 0x2d, 0x9b, 0x22, 0x41, 0xa4, 0x0c, 0x29, 0x65, 0xde, 0xe4,
-	0xc6, 0x16, 0x26, 0x3e, 0x80, 0x52, 0xc1, 0x81, 0x0c, 0x8c, 0xa2, 0xd7, 0x67, 0x5b, 0xec, 0x02,
-	0xed, 0x52, 0xd3, 0x54, 0xe8, 0x9e, 0xc2, 0xc7, 0xf2, 0xd2, 0x47, 0x90, 0xf9, 0x22, 0xd2, 0xd3,
-	0x0e, 0xbd, 0x69, 0xff, 0xff, 0xdf, 0xc9, 0x21, 0x3f, 0x42, 0x8f, 0x0b, 0x69, 0x14, 0xa4, 0x6a,
-	0x0b, 0x56, 0xe9, 0x4d, 0x11, 0xe6, 0x46, 0x5b, 0xcd, 0xba, 0xf8, 0x1b, 0x9f, 0x27, 0xca, 0xae,
-	0xcb, 0x45, 0xb8, 0xd4, 0x59, 0x94, 0xe8, 0x44, 0x47, 0x88, 0x17, 0xe5, 0x0b, 0x36, 0x2c, 0x98,
-	0x9a, 0xad, 0xf1, 0xe5, 0x9f, 0xe3, 0x4b, 0xa8, 0x52, 0x59, 0x25, 0x06, 0xf2, 0x75, 0x9b, 0xa3,
-	0xd7, 0x12, 0x56, 0x51, 0x5e, 0x7f, 0x0b, 0xcc, 0xed, 0x65, 0x13, 0x43, 0xfb, 0x77, 0x3a, 0x89,
-	0x65, 0x6a, 0x81, 0x1d, 0xd2, 0xce, 0x2c, 0xf6, 0x48, 0x40, 0xb8, 0x2b, 0x3a, 0xb3, 0x98, 0x05,
-	0xd4, 0xbd, 0x2f, 0x61, 0xe5, 0x75, 0x02, 0xc2, 0x87, 0xd3, 0x51, 0xd8, 0xac, 0x87, 0x35, 0x13,
-	0x38, 0x61, 0x27, 0xb4, 0x77, 0xb5, 0xac, 0xdd, 0x3d, 0x27, 0x20, 0xbc, 0x2b, 0xda, 0xc6, 0x4e,
-	0xe9, 0xe0, 0x51, 0x65, 0xb2, 0xb0, 0x90, 0xe5, 0x9e, 0x1b, 0x10, 0xee, 0x88, 0x5f, 0x30, 0xe1,
-	0x74, 0x74, 0xab, 0x0a, 0xab, 0x4d, 0x75, 0xb3, 0xb1, 0xa6, 0x62, 0x1e, 0xfd, 0xdf, 0x76, 0x8f,
-	0x04, 0x0e, 0x77, 0xc5, 0xbe, 0x4e, 0x9e, 0x69, 0x7f, 0xae, 0x57, 0x32, 0x06, 0x0b, 0x8c, 0x51,
-	0x77, 0x0e, 0x99, 0x44, 0xbf, 0x81, 0xc0, 0x5c, 0xb3, 0x07, 0xb5, 0x95, 0x68, 0xe8, 0x08, 0xcc,
-	0xec, 0x8c, 0x76, 0xdf, 0x20, 0x2d, 0x25, 0x2a, 0x0d, 0xa7, 0x07, 0x7b, 0xed, 0xa7, 0x1a, 0x8a,
-	0x66, 0x76, 0x7d, 0xf4, 0xb1, 0xf3, 0xc9, 0xe7, 0xce, 0x27, 0x5f, 0x3b, 0x9f, 0xbc, 0x7f, 0xfb,
-	0xff, 0x16, 0x3d, 0x7c, 0x8f, 0x8b, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x0d, 0xdc, 0x69, 0x50,
-	0x94, 0x01, 0x00, 0x00,
+	// 311 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x4c, 0x90, 0xdf, 0x4a, 0xf3, 0x30,
+	0x18, 0xc6, 0xc9, 0x9a, 0xfd, 0xcb, 0xf6, 0x7d, 0x07, 0x41, 0xa4, 0x0c, 0x19, 0x61, 0x9e, 0xe4,
+	0xc4, 0x16, 0x26, 0x5e, 0x80, 0x52, 0x41, 0x41, 0x06, 0x46, 0xd1, 0xe3, 0x77, 0x5b, 0xec, 0x02,
+	0xed, 0x52, 0x93, 0x54, 0xe8, 0xae, 0xc6, 0xcb, 0xf1, 0xd0, 0x6b, 0x98, 0x37, 0x22, 0x49, 0x37,
+	0xf0, 0x24, 0x79, 0x9e, 0x5f, 0xf2, 0x92, 0x1f, 0x21, 0x27, 0x56, 0x1a, 0x05, 0x85, 0xda, 0x81,
+	0x53, 0x7a, 0x6b, 0x93, 0xca, 0x68, 0xa7, 0x69, 0x37, 0x6c, 0x93, 0x8b, 0x5c, 0xb9, 0x4d, 0xbd,
+	0x4c, 0x56, 0xba, 0x4c, 0x73, 0x9d, 0xeb, 0x34, 0xe0, 0x65, 0xfd, 0x16, 0x5a, 0x28, 0x21, 0xb5,
+	0x53, 0x93, 0xab, 0x3f, 0xd7, 0x57, 0xd0, 0x14, 0xb2, 0xc9, 0x0d, 0x54, 0x9b, 0x43, 0x4e, 0xdf,
+	0x6b, 0x58, 0xa7, 0x95, 0x5f, 0x6d, 0xc8, 0x87, 0xc7, 0x66, 0x86, 0x0c, 0x1e, 0x74, 0x9e, 0xc9,
+	0xc2, 0x01, 0xfd, 0x4f, 0x3a, 0xf7, 0x59, 0x8c, 0x18, 0xe2, 0x58, 0x74, 0x54, 0x46, 0x19, 0xc1,
+	0x8f, 0x35, 0xac, 0xe3, 0x0e, 0x43, 0x7c, 0x34, 0x1f, 0x27, 0xed, 0x78, 0xe2, 0x99, 0xc0, 0x3e,
+	0xd3, 0x53, 0xd2, 0xbb, 0x5e, 0x79, 0xf7, 0x38, 0x62, 0x88, 0x77, 0x45, 0x0f, 0x42, 0xa3, 0x67,
+	0x64, 0xf8, 0xac, 0x4a, 0x69, 0x1d, 0x94, 0x55, 0x8c, 0x19, 0xe2, 0x91, 0x18, 0xba, 0x23, 0x98,
+	0x71, 0x32, 0xbe, 0x53, 0xd6, 0x69, 0xd3, 0xdc, 0x6e, 0x9d, 0x69, 0x68, 0x4c, 0xfa, 0x87, 0x1e,
+	0x23, 0x16, 0x71, 0x2c, 0xfa, 0x9b, 0xb6, 0xce, 0x5e, 0xc9, 0x60, 0xa1, 0xd7, 0x32, 0x03, 0x07,
+	0x94, 0x12, 0xbc, 0x80, 0x52, 0x06, 0xbf, 0xa1, 0xc0, 0x5b, 0x28, 0xa5, 0x67, 0x4f, 0x6a, 0x27,
+	0x83, 0x61, 0x24, 0xb0, 0x55, 0x3b, 0x49, 0xcf, 0x49, 0xf7, 0x03, 0x8a, 0x5a, 0x06, 0xa5, 0xd1,
+	0xfc, 0xdf, 0x51, 0xfb, 0xc5, 0x43, 0xd1, 0x9e, 0xdd, 0x8c, 0xbf, 0xf6, 0x53, 0xf4, 0xbd, 0x9f,
+	0xa2, 0xcf, 0x9f, 0x29, 0x5a, 0xf6, 0xc2, 0x5f, 0x5c, 0xfe, 0x06, 0x00, 0x00, 0xff, 0xff, 0xc4,
+	0x7e, 0x15, 0x5d, 0x90, 0x01, 0x00, 0x00,
 }

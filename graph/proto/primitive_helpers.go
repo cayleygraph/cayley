@@ -2,6 +2,8 @@ package proto
 
 import "github.com/cayleygraph/cayley/quad"
 
+//go:generate protoc --proto_path=$GOPATH/src:. --gogo_out=. primitive.proto
+
 func (p Primitive) GetDirection(d quad.Direction) uint64 {
 	switch d {
 	case quad.Subject:
