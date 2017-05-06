@@ -53,6 +53,7 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 	}
 	TestLoadTypedQuads(t, gen, conf)
 	TestAddRemove(t, gen, conf)
+	TestReAddQuad(t, gen, conf)
 	TestIteratorsAndNextResultOrderA(t, gen)
 	if !conf.UnTyped {
 		TestCompareTypedValues(t, gen, conf)
@@ -659,6 +660,125 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 	ExpectIteratedRawStrings(t, qs, all, nil)
 	all = qs.NodesAllIterator()
 	ExpectIteratedRawStrings(t, qs, all, expect)
+}
+
+// when a quad is deleted, it should be possible to readd the quad without an error
+func TestReAddQuad(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	if opts == nil {
+		opts = make(graph.Options)
+	}
+
+	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	// This quad will be added, removed, and readded
+	testQuad := quad.MakeRaw("X", "follows", "B", "")
+
+	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
+
+	all := qs.NodesAllIterator()
+	expect := []string{
+		"A",
+		"B",
+		"C",
+		"D",
+		"E",
+		"F",
+		"G",
+		"cool",
+		"follows",
+		"status",
+		"status_graph",
+	}
+	ExpectIteratedRawStrings(t, qs, all, expect)
+
+	// Add Test Quad which will be removed and readded
+	err := w.AddQuadSet([]quad.Quad{
+		testQuad,
+	})
+	assert.Nil(t, err, "AddQuadSet failed")
+
+	assert.Equal(t, int64(12), qs.Size(), "Incorrect number of quads")
+
+	all = qs.NodesAllIterator()
+	expect = []string{
+		"A",
+		"B",
+		"C",
+		"D",
+		"E",
+		"F",
+		"G",
+		"X",
+		"cool",
+		"follows",
+		"status",
+		"status_graph",
+	}
+	ExpectIteratedRawStrings(t, qs, all, expect)
+
+	// Remove quad
+	err = w.RemoveQuad(testQuad)
+	require.Nil(t, err, "RemoveQuad failed")
+
+	if !conf.SkipNodeDelAfterQuadDel {
+		expect = []string{
+			"A",
+			"B",
+			"C",
+			"D",
+			"E",
+			"F",
+			"G",
+			"cool",
+			"follows",
+			"status",
+			"status_graph",
+		}
+	} else {
+		expect = []string{
+			"A",
+			"B",
+			"C",
+			"D",
+			"E",
+			"F",
+			"G",
+			"X",
+			"cool",
+			"follows",
+			"status",
+			"status_graph",
+		}
+	}
+
+	// Readd the deleted quad
+	err = w.AddQuadSet([]quad.Quad{
+		testQuad,
+	})
+	assert.Nil(t, err, "AddQuadSet failed")
+
+	assert.Equal(t, int64(12), qs.Size(), "Incorrect number of quads")
+
+	all = qs.NodesAllIterator()
+	expect = []string{
+		"A",
+		"B",
+		"C",
+		"D",
+		"E",
+		"F",
+		"G",
+		"X",
+		"cool",
+		"follows",
+		"status",
+		"status_graph",
+	}
+	ExpectIteratedRawStrings(t, qs, all, expect)
+
 }
 
 func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc) {
