@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package iterator_test
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphmock"
+	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -38,14 +40,12 @@ func hasaWithTag(qs graph.QuadStore, tag string, target string) *HasA {
 }
 
 func TestQueryShape(t *testing.T) {
-	qs := &oldstore{
-		data: []string{
-			1: "cool",
-			2: "status",
-			3: "fun",
-			4: "name",
-		},
-	}
+	qs := &graphmock.Oldstore{Data: []string{
+		1: "cool",
+		2: "status",
+		3: "fun",
+		4: "name",
+	}}
 
 	// Given a single linkage iterator's shape.
 	hasa := hasaWithTag(qs, "tag", "cool")

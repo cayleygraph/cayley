@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package iterator_test
 
 import (
 	"errors"
@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
 func iterated(it graph.Iterator) []int {

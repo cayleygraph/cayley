@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package iterator_test
 
 import (
 	"errors"
@@ -20,13 +20,15 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphmock"
+	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 var (
-	simpleStore = &oldstore{data: []string{"0", "1", "2", "3", "4", "5"}, parse: true}
-	stringStore = &oldstore{data: []string{"foo", "bar", "baz", "echo"}, parse: true}
-	mixedStore  = &oldstore{data: []string{"0", "1", "2", "3", "4", "5", "foo", "bar", "baz", "echo"}, parse: true}
+	simpleStore = &graphmock.Oldstore{Data: []string{"0", "1", "2", "3", "4", "5"}, Parse: true}
+	stringStore = &graphmock.Oldstore{Data: []string{"foo", "bar", "baz", "echo"}, Parse: true}
+	mixedStore  = &graphmock.Oldstore{Data: []string{"0", "1", "2", "3", "4", "5", "foo", "bar", "baz", "echo"}, Parse: true}
 )
 
 func simpleFixedIterator() *Fixed {
@@ -39,24 +41,19 @@ func simpleFixedIterator() *Fixed {
 
 func stringFixedIterator() *Fixed {
 	f := NewFixed(Identity)
-	for _, value := range stringStore.data {
-		f.Add(stringNode(value))
+	for _, value := range stringStore.Data {
+		f.Add(graphmock.StringNode(value))
 	}
 	return f
 }
 
 func mixedFixedIterator() *Fixed {
 	f := NewFixed(Identity)
-	for i := 0; i < len(mixedStore.data); i++ {
+	for i := 0; i < len(mixedStore.Data); i++ {
 		f.Add(Int64Node(i))
 	}
 	return f
 }
-
-type stringNode string
-
-func (stringNode) IsNode() bool { return true }
-func (s stringNode) Key() interface{} { return s }
 
 var comparisonTests = []struct {
 	message  string
@@ -203,7 +200,7 @@ var vciContainsTests = []struct {
 	{
 		message:  "foo is greater than or equal to echo",
 		operator: CompareGTE,
-		check:    stringNode("foo"),
+		check:    graphmock.StringNode("foo"),
 		expect:   true,
 		qs:       stringStore,
 		val:      quad.String("echo"),
@@ -212,7 +209,7 @@ var vciContainsTests = []struct {
 	{
 		message:  "echo is greater than or equal to echo",
 		operator: CompareGTE,
-		check:    stringNode("echo"),
+		check:    graphmock.StringNode("echo"),
 		expect:   true,
 		qs:       stringStore,
 		val:      quad.String("echo"),
@@ -221,7 +218,7 @@ var vciContainsTests = []struct {
 	{
 		message:  "foo is missing from the iterator",
 		operator: CompareLTE,
-		check:    stringNode("foo"),
+		check:    graphmock.StringNode("foo"),
 		expect:   false,
 		qs:       stringStore,
 		val:      quad.String("echo"),

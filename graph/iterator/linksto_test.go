@@ -12,20 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package iterator_test
 
 import (
 	"testing"
 
+	"github.com/cayleygraph/cayley/graph/graphmock"
+	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 func TestLinksTo(t *testing.T) {
-	qs := &oldstore{
-		data: []string{1: "cool"},
-		iter: NewFixed(Identity),
+	qs := &graphmock.Oldstore{
+		Data: []string{1: "cool"},
+		Iter: NewFixed(Identity),
 	}
-	qs.iter.(*Fixed).Add(Int64Quad(2))
+	qs.Iter.(*Fixed).Add(Int64Quad(2))
 	fixed := NewFixed(Identity)
 	val := qs.ValueOf(quad.Raw("cool"))
 	if val.(Int64Node) != 1 {

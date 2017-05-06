@@ -20,10 +20,11 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 )
 
-type applyMorphism func(graph.QuadStore, graph.Iterator, *pathContext) (graph.Iterator, *pathContext)
+type applyMorphism func(shape.Shape, *pathContext) (shape.Shape, *pathContext)
 
 type morphism struct {
 	Name     string
@@ -56,7 +57,7 @@ type pathContext struct {
 	// A nil in this field represents all labels.
 	//
 	// Claimed by the withLabel morphism
-	labelSet *Path
+	labelSet shape.Shape
 }
 
 func (c pathContext) copy() pathContext {
@@ -87,7 +88,7 @@ func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 		stack: []morphism{
 			isMorphism(nodes...),
 		},
-		qs: qs,
+		qs:    qs,
 	}
 }
 
@@ -97,7 +98,7 @@ func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
 		stack: []morphism{
 			isNodeMorphism(nodes...),
 		},
-		qs: qs,
+		qs:    qs,
 	}
 }
 
@@ -113,7 +114,7 @@ func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 // NewPath creates a new, empty Path.
 func NewPath(qs graph.QuadStore) *Path {
 	return &Path{
-		qs: qs,
+		qs:    qs,
 	}
 }
 
@@ -380,8 +381,9 @@ func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
 	default:
 		panic("did not pass a string predicate or a Path to FollowRecursive")
 	}
-	p.stack = append(p.stack, followRecursiveMorphism(path, depthTags))
-	return p
+	np := p.clone()
+	np.stack = append(p.stack, followRecursiveMorphism(path, depthTags))
+	return np
 }
 
 // Save will, from the current nodes in the path, retrieve the node
@@ -493,7 +495,7 @@ func (p *Path) BuildIterator() graph.Iterator {
 
 // BuildIteratorOn will return an iterator for this path on the given QuadStore.
 func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.Iterator {
-	return p.Morphism()(qs, qs.NodesAllIterator())
+	return shape.BuildIterator(qs, p.Shape())
 }
 
 // Morphism returns the morphism of this path.  The returned value is a
@@ -502,12 +504,7 @@ func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.Iterator {
 // iterator matched by the current Path.
 func (p *Path) Morphism() graph.ApplyMorphism {
 	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-		i := it.Clone()
-		ctx := &p.baseContext
-		for _, m := range p.stack {
-			i, ctx = m.Apply(qs, i, ctx)
-		}
-		return i
+		return p.ShapeFrom(iteratorShape{it}).BuildIterator(qs)
 	}
 }
 
@@ -531,5 +528,16 @@ func (p *Path) Count() *Path {
 
 // Iterate is an shortcut for graph.Iterate.
 func (p *Path) Iterate(ctx context.Context) *graph.IterateChain {
-	return graph.Iterate(ctx, p.BuildIterator()).On(p.qs)
+	return shape.Iterate(ctx, p.qs, p.Shape())
+}
+func (p *Path) Shape() shape.Shape {
+	return p.ShapeFrom(shape.AllNodes{})
+}
+func (p *Path) ShapeFrom(from shape.Shape) shape.Shape {
+	var s shape.Shape = from
+	ctx := &p.baseContext
+	for _, m := range p.stack {
+		s, ctx = m.Apply(s, ctx)
+	}
+	return s
 }
