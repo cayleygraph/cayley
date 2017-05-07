@@ -26,7 +26,7 @@ import (
 func singleHop(pred string) graph.ApplyMorphism {
 	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
 		fixed := qs.FixedIterator()
-		fixed.Add(quad.Raw(pred))
+		fixed.Add(graph.PreFetched(quad.Raw(pred)))
 		predlto := NewLinksTo(qs, fixed, quad.Predicate)
 		lto := NewLinksTo(qs, it.Clone(), quad.Subject)
 		and := NewAnd(qs)
@@ -51,7 +51,7 @@ var rec_test_qs = &store{
 func TestRecursiveNext(t *testing.T) {
 	qs := rec_test_qs
 	start := qs.FixedIterator()
-	start.Add(quad.Raw("alice"))
+	start.Add(graph.PreFetched(quad.Raw("alice")))
 	r := NewRecursive(qs, start, singleHop("parent"))
 	expected := []string{"bob", "charlie", "dani", "emily"}
 
@@ -69,7 +69,7 @@ func TestRecursiveNext(t *testing.T) {
 func TestRecursiveContains(t *testing.T) {
 	qs := rec_test_qs
 	start := qs.FixedIterator()
-	start.Add(quad.Raw("alice"))
+	start.Add(graph.PreFetched(quad.Raw("alice")))
 	r := NewRecursive(qs, start, singleHop("parent"))
 	values := []string{"charlie", "bob", "not"}
 	expected := []bool{true, true, false}
@@ -90,7 +90,7 @@ func TestRecursiveNextPath(t *testing.T) {
 	and := NewAnd(qs)
 	and.AddSubIterator(it)
 	fixed := qs.FixedIterator()
-	fixed.Add(quad.Raw("alice"))
+	fixed.Add(graph.PreFetched(quad.Raw("alice")))
 	and.AddSubIterator(fixed)
 	r := NewRecursive(qs, and, singleHop("parent"))
 

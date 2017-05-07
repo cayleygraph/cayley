@@ -32,7 +32,7 @@ type result struct {
 type Materialize struct {
 	uid         uint64
 	tags        graph.Tagger
-	containsMap map[graph.Value]int
+	containsMap map[interface{}]int
 	values      [][]result
 	actualSize  int64
 	index       int
@@ -47,7 +47,7 @@ type Materialize struct {
 func NewMaterialize(sub graph.Iterator) *Materialize {
 	return &Materialize{
 		uid:         NextUID(),
-		containsMap: make(map[graph.Value]int),
+		containsMap: make(map[interface{}]int),
 		subIt:       sub,
 		index:       -1,
 	}

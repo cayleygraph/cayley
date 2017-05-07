@@ -39,9 +39,13 @@ type Int64 struct {
 
 type Int64Node int64
 
+func (v Int64Node) Key() interface{} { return v }
+
 func (Int64Node) IsNode() bool { return true }
 
 type Int64Quad int64
+
+func (v Int64Quad) Key() interface{} { return v }
 
 func (Int64Quad) IsNode() bool { return false }
 
@@ -146,8 +150,8 @@ func (it *Int64) Size() (int64, bool) {
 	return Size, true
 }
 
-func valToInt64(v graph.Value) int64{
-	if v, ok := v.(Int64Node); ok{
+func valToInt64(v graph.Value) int64 {
+	if v, ok := v.(Int64Node); ok {
 		return int64(v)
 	}
 	return int64(v.(Int64Quad))

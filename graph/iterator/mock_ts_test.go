@@ -110,18 +110,26 @@ type store struct {
 var _ graph.QuadStore = &store{}
 
 func (qs *store) ValueOf(s quad.Value) graph.Value {
-	return s
+	return graph.PreFetched(s)
 }
 
 func (qs *store) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return nil }
 
-func (qs *store) Quad(v graph.Value) quad.Quad { return v.(quad.Quad) }
+type quadValue struct {
+	q quad.Quad
+}
+
+func (q quadValue) Key() interface{} {
+	return q.q.String()
+}
+
+func (qs *store) Quad(v graph.Value) quad.Quad { return v.(quadValue).q }
 
 func (qs *store) NameOf(v graph.Value) quad.Value {
 	if v == nil {
 		return nil
 	}
-	return v.(quad.Value)
+	return v.(graph.PreFetchedValue).NameOf()
 }
 
 func (qs *store) RemoveQuad(t quad.Quad) {}
@@ -129,7 +137,7 @@ func (qs *store) RemoveQuad(t quad.Quad) {}
 func (qs *store) Type() string { return "mockstore" }
 
 func (qs *store) QuadDirection(v graph.Value, d quad.Direction) graph.Value {
-	return qs.Quad(v).Get(d)
+	return graph.PreFetched(qs.Quad(v).Get(d))
 }
 
 func (qs *store) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -148,9 +156,10 @@ func (qs *store) DebugPrint() {}
 
 func (qs *store) QuadIterator(d quad.Direction, i graph.Value) graph.Iterator {
 	fixed := qs.FixedIterator()
+	v := i.(graph.PreFetchedValue).NameOf()
 	for _, q := range qs.data {
-		if q.Get(d) == i {
-			fixed.Add(q)
+		if q.Get(d) == v {
+			fixed.Add(quadValue{q})
 		}
 	}
 	return fixed
@@ -160,7 +169,7 @@ func (qs *store) NodesAllIterator() graph.Iterator {
 	set := make(map[string]bool)
 	for _, q := range qs.data {
 		for _, d := range quad.Directions {
-			n := qs.NameOf(q.Get(d))
+			n := qs.NameOf(graph.PreFetched(q.Get(d)))
 			if n != nil {
 				set[n.String()] = true
 			}
@@ -168,7 +177,7 @@ func (qs *store) NodesAllIterator() graph.Iterator {
 	}
 	fixed := qs.FixedIterator()
 	for k, _ := range set {
-		fixed.Add(quad.Raw(k))
+		fixed.Add(graph.PreFetched(quad.Raw(k)))
 	}
 	return fixed
 }
@@ -176,7 +185,7 @@ func (qs *store) NodesAllIterator() graph.Iterator {
 func (qs *store) QuadsAllIterator() graph.Iterator {
 	fixed := qs.FixedIterator()
 	for _, q := range qs.data {
-		fixed.Add(q)
+		fixed.Add(quadValue{q})
 	}
 	return fixed
 }

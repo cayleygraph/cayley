@@ -38,30 +38,46 @@ import (
 // pointers to structs, or merely quads, or whatever works best for the
 // backing store.
 //
-// These must be comparable, or implement a Keyer interface
-// so that they may be stored in maps.
-type Value interface{}
+// These must be comparable, or return a comparable version on Key.
+type Value interface {
+	Key() interface{}
+}
 
 // PreFetchedValue is an optional interface for graph.Value to indicate that
 // quadstore has already loaded a value into memory.
 type PreFetchedValue interface {
+	Value
 	NameOf() quad.Value
 }
+
+func PreFetched(v quad.Value) PreFetchedValue {
+	return fetchedValue{v}
+}
+
+type fetchedValue struct {
+	Val quad.Value
+}
+
+func (v fetchedValue) IsNode() bool       { return true }
+func (v fetchedValue) NameOf() quad.Value { return v.Val }
+func (v fetchedValue) Key() interface{}   { return v.Val }
 
 // Keyer provides a method for comparing types that are not otherwise comparable.
 // The Key method must return a dynamic type that is comparable according to the
 // Go language specification. The returned value must be unique for each receiver
 // value.
+//
+// Deprecated: Value contains the same method now.
 type Keyer interface {
 	Key() interface{}
 }
 
 // ToKey prepares Value to be stored inside maps, calling Key() if necessary.
-func ToKey(v Value) Value {
-	if k, ok := v.(Keyer); ok {
-		return k.Key()
+func ToKey(v Value) interface{} {
+	if v == nil {
+		return nil
 	}
-	return v
+	return v.Key()
 }
 
 type QuadStore interface {

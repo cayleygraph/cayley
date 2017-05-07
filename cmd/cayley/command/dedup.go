@@ -70,7 +70,7 @@ func (a sortProp) Len() int           { return len(a) }
 func (a sortProp) Less(i, j int) bool { return valueLess(a[i].Pred, a[j].Pred) }
 func (a sortProp) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
-func hashProperties(h hash.Hash, m map[graph.Value]property) string {
+func hashProperties(h hash.Hash, m map[interface{}]property) string {
 	props := make([]property, 0, len(m))
 	for _, p := range m {
 		if len(p.Values) > 1 {
@@ -142,7 +142,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 		cnt++
 		it := qs.QuadIterator(quad.Subject, s)
 		defer it.Close()
-		m := make(map[graph.Value]property)
+		m := make(map[interface{}]property)
 		for it.Next() {
 			q := it.Result()
 			p := qs.QuadDirection(q, quad.Predicate)

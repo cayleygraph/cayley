@@ -350,3 +350,5 @@ func (qs *QuadStore) getPrimitive(val Int64Value) (*proto.Primitive, bool) {
 }
 
 type Int64Value uint64
+
+func (v Int64Value) Key() interface{} { return v }
