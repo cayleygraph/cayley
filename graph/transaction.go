@@ -16,7 +16,7 @@ package graph
 
 import "github.com/cayleygraph/cayley/quad"
 
-// Transaction stores a bunch of Deltas to apply atomatically on the database.
+// Transaction stores a bunch of Deltas to apply together in an atomic step on the database.
 type Transaction struct {
 	// Deltas stores the deltas in the right order
 	Deltas []Delta
@@ -31,7 +31,7 @@ func NewTransaction() *Transaction {
 
 // AddQuad adds a new quad to the transaction if it is not already present in it.
 // If there is a 'remove' delta for that quad, it will remove that delta from
-// the transaction instead of actually addind the quad.
+// the transaction instead of actually adding the quad.
 func (t *Transaction) AddQuad(q quad.Quad) {
 	ad, rd := createDeltas(q)
 
