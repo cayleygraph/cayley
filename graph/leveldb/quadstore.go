@@ -33,10 +33,10 @@ import (
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc:           newQuadStore,
-		UpgradeFunc:       upgradeLevelDB,
-		InitFunc:          createNewLevelDB,
-		IsPersistent:      true,
+		NewFunc:      newQuadStore,
+		UpgradeFunc:  upgradeLevelDB,
+		InitFunc:     createNewLevelDB,
+		IsPersistent: true,
 	})
 }
 
@@ -50,8 +50,6 @@ const (
 )
 
 var order = binary.LittleEndian
-
-var _ graph.Keyer = (Token)(nil)
 
 type Token []byte
 

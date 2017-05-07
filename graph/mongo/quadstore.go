@@ -36,20 +36,22 @@ const QuadStoreType = "mongo"
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc:           newQuadStore,
-		UpgradeFunc:       nil,
-		InitFunc:          createNewMongoGraph,
-		IsPersistent:      true,
+		NewFunc:      newQuadStore,
+		UpgradeFunc:  nil,
+		InitFunc:     createNewMongoGraph,
+		IsPersistent: true,
 	})
 }
 
 type NodeHash string
 
-func (NodeHash) IsNode() bool { return false }
+func (NodeHash) IsNode() bool       { return false }
+func (v NodeHash) Key() interface{} { return v }
 
 type QuadHash string
 
-func (QuadHash) IsNode() bool { return false }
+func (QuadHash) IsNode() bool       { return false }
+func (v QuadHash) Key() interface{} { return v }
 
 func (h QuadHash) Get(d quad.Direction) string {
 	var offset int

@@ -59,7 +59,8 @@ type Token struct {
 	Hash string
 }
 
-func (t Token) IsNode() bool { return t.Kind == nodeKind }
+func (t Token) IsNode() bool     { return t.Kind == nodeKind }
+func (t Token) Key() interface{} { return t }
 
 type QuadEntry struct {
 	Hash      string

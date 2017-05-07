@@ -33,10 +33,10 @@ import (
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc:           newQuadStore,
-		UpgradeFunc:       upgradeBolt,
-		InitFunc:          createNewBolt,
-		IsPersistent:      true,
+		NewFunc:      newQuadStore,
+		UpgradeFunc:  upgradeBolt,
+		InitFunc:     createNewBolt,
+		IsPersistent: true,
 	})
 }
 
@@ -49,8 +49,6 @@ const localFillPercent = 0.7
 const (
 	QuadStoreType = "bolt"
 )
-
-var _ graph.Keyer = (*Token)(nil)
 
 type Token struct {
 	nodes  bool

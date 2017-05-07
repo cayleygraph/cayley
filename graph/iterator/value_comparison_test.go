@@ -56,6 +56,7 @@ func mixedFixedIterator() *Fixed {
 type stringNode string
 
 func (stringNode) IsNode() bool { return true }
+func (s stringNode) Key() interface{} { return s }
 
 var comparisonTests = []struct {
 	message  string

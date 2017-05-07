@@ -20,16 +20,17 @@ const QuadStoreType = "sql"
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc:           newQuadStore,
-		UpgradeFunc:       nil,
-		InitFunc:          createSQLTables,
-		IsPersistent:      true,
+		NewFunc:      newQuadStore,
+		UpgradeFunc:  nil,
+		InitFunc:     createSQLTables,
+		IsPersistent: true,
 	})
 }
 
 type NodeHash [quad.HashSize]byte
 
-func (NodeHash) IsNode() bool { return true }
+func (NodeHash) IsNode() bool       { return true }
+func (h NodeHash) Key() interface{} { return h }
 func (h NodeHash) Valid() bool {
 	return h != NodeHash{}
 }
@@ -74,7 +75,8 @@ func hashOf(s quad.Value) (out NodeHash) {
 
 type QuadHashes [4]NodeHash
 
-func (QuadHashes) IsNode() bool { return false }
+func (QuadHashes) IsNode() bool       { return false }
+func (q QuadHashes) Key() interface{} { return q }
 func (q QuadHashes) Get(d quad.Direction) NodeHash {
 	switch d {
 	case quad.Subject:

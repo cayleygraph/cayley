@@ -5,18 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var (
-	_ graph.Value           = fetchedValue{}
-	_ graph.PreFetchedValue = fetchedValue{}
-)
-
-type fetchedValue struct {
-	Val quad.Value
-}
-
-func (v fetchedValue) IsNode() bool       { return true }
-func (v fetchedValue) NameOf() quad.Value { return v.Val }
-
 // Count iterator returns one element with size of underlying iterator.
 type Count struct {
 	uid    uint64
@@ -96,7 +84,7 @@ func (it *Count) Result() graph.Value {
 	if it.result == nil {
 		return nil
 	}
-	return fetchedValue{Val: it.result}
+	return graph.PreFetched(it.result)
 }
 
 func (it *Count) Contains(val graph.Value) bool {
