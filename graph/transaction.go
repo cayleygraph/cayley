@@ -16,7 +16,7 @@ package graph
 
 import "github.com/cayleygraph/cayley/quad"
 
-// Transaction stores a bunch of Deltas to apply automatically on the database.
+// Transaction stores a bunch of Deltas to apply together in an atomic step on the database.
 type Transaction struct {
 	// Deltas stores the deltas in the right order
 	Deltas []Delta
