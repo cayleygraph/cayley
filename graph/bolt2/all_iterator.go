@@ -155,7 +155,11 @@ func (it *AllIterator) Contains(v graph.Value) bool {
 		it.id = uint64(x)
 		return it.id <= uint64(it.horizon)
 	}
-	it.prim = v.(*proto.Primitive)
+	p, ok := v.(*proto.Primitive)
+	if !ok {
+		return false
+	}
+	it.prim = p
 	it.id = it.prim.ID
 	if it.cons == nil {
 		return true
