@@ -45,3 +45,4 @@ import:
 - package: github.com/dop251/goja
 - package: github.com/go-sql-driver/mysql
 - package: github.com/dennwc/graphql
+- package: github.com/tylertreat/BoomFilters

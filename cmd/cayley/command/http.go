@@ -21,6 +21,8 @@ func NewHttpCmd() *cobra.Command {
 		Short: "Serve an HTTP endpoint on the given host and port.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			printBackendInfo()
+			p := mustSetupProfile(cmd)
+			defer mustFinishProfile(p)
 			timeout, err := cmd.Flags().GetDuration("timeout")
 			if err != nil {
 				return err

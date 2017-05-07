@@ -17,11 +17,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"flag"
 
 	"github.com/cayleygraph/cayley/cmd/cayley/command"
 	"github.com/spf13/cobra"
@@ -35,6 +35,7 @@ import (
 
 	// Load supported backends
 	_ "github.com/cayleygraph/cayley/graph/bolt"
+	_ "github.com/cayleygraph/cayley/graph/bolt2"
 	_ "github.com/cayleygraph/cayley/graph/leveldb"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/graph/mongo"
@@ -138,6 +139,9 @@ func init() {
 	rootCmd.PersistentFlags().Bool("dup", true, "don't stop loading on duplicated on add")
 	rootCmd.PersistentFlags().Bool("missing", false, "don't stop loading on missing key on delete")
 	rootCmd.PersistentFlags().Int("batch", quad.DefaultBatch, "size of quads batch to load at once")
+
+	rootCmd.PersistentFlags().String("memprofile", "", "path to output memory profile")
+	rootCmd.PersistentFlags().String("cpuprofile", "", "path to output cpu profile")
 
 	// bind flags to config variables
 	viper.BindPFlag(command.KeyBackend, rootCmd.PersistentFlags().Lookup("db"))

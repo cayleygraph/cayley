@@ -2,6 +2,10 @@ package command
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strings"
 
@@ -84,6 +88,8 @@ func NewLoadDatabaseCmd() *cobra.Command {
 		Short: "Bulk-load a quad file into the database.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			printBackendInfo()
+			p := mustSetupProfile(cmd)
+			defer mustFinishProfile(p)
 			load, _ := cmd.Flags().GetString(flagLoad)
 			if load == "" {
 				return errors.New("quads file must be specified")
@@ -194,4 +200,46 @@ func openDatabase() (*graph.Handle, error) {
 		return nil, err
 	}
 	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
+}
+
+type profileData struct {
+	cpuProfile *os.File
+	memPath    string
+}
+
+func mustSetupProfile(cmd *cobra.Command) profileData {
+	p := profileData{}
+	mpp := cmd.Flag("memprofile")
+	p.memPath = mpp.Value.String()
+	cpp := cmd.Flag("cpuprofile")
+	v := cpp.Value.String()
+	if v != "" {
+		f, err := os.Create(v)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not open CPU profile file %s\n", v)
+			os.Exit(1)
+		}
+		p.cpuProfile = f
+		pprof.StartCPUProfile(f)
+	}
+	return p
+}
+
+func mustFinishProfile(p profileData) {
+	if p.cpuProfile != nil {
+		pprof.StopCPUProfile()
+		p.cpuProfile.Close()
+	}
+	if p.memPath != "" {
+		f, err := os.Create(p.memPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not open memory profile file %s\n", p.memPath)
+			os.Exit(1)
+		}
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not write memory profile file %s\n", p.memPath)
+		}
+		f.Close()
+	}
 }
