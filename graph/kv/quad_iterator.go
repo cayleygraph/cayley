@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bolt2
+package kv
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -27,11 +26,11 @@ import (
 )
 
 var (
-	boltType graph.Type
+	kvType graph.Type
 )
 
 func init() {
-	boltType = graph.RegisterIterator("bolt_quad")
+	kvType = graph.RegisterIterator("kv_quad")
 }
 
 type QuadIterator struct {
@@ -50,7 +49,7 @@ type QuadIterator struct {
 
 var _ graph.Iterator = &QuadIterator{}
 
-func Type() graph.Type { return boltType }
+func Type() graph.Type { return kvType }
 
 func NewQuadIterator(dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
 	qs.mu.RLock()
@@ -159,7 +158,7 @@ func (it *QuadIterator) ensureIDs() {
 	if it.ids != nil {
 		return
 	}
-	err := it.qs.db.View(func(tx *bolt.Tx) error {
+	err := View(it.qs.db, func(tx Tx) error {
 		b := subjectIndex
 		if it.dir == quad.Object {
 			b = objectIndex
@@ -186,7 +185,7 @@ func (it *QuadIterator) Describe() graph.Description {
 	}
 }
 
-func (it *QuadIterator) Type() graph.Type { return boltType }
+func (it *QuadIterator) Type() graph.Type { return kvType }
 func (it *QuadIterator) Sorted() bool     { return true }
 
 func (it *QuadIterator) Optimize() (graph.Iterator, bool) {

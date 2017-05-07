@@ -1,4 +1,4 @@
-package bolt2
+package kv
 
 import "testing"
 
