@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bolt2
+package kv
 
 import (
 	"bytes"
@@ -23,7 +23,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/proto"
@@ -51,8 +50,12 @@ var (
 	}
 )
 
+type FillBucket interface {
+	SetFillPercent(v float64)
+}
+
 func (qs *QuadStore) createBuckets() error {
-	err := qs.db.Update(func(tx *bolt.Tx) error {
+	err := Update(qs.db, func(tx Tx) error {
 		var err error
 		for _, index := range buckets {
 			_, err = tx.CreateBucket(index)
@@ -60,7 +63,9 @@ func (qs *QuadStore) createBuckets() error {
 				return fmt.Errorf("could not create bucket %s: %s", string(index), err)
 			}
 		}
-		tx.Bucket(logIndex).FillPercent = 0.9
+		if f, ok := tx.Bucket(logIndex).(FillBucket); ok {
+			f.SetFillPercent(0.9)
+		}
 		//tx.Bucket(valueIndex).FillPercent = 0.4
 		return nil
 	})
@@ -68,7 +73,7 @@ func (qs *QuadStore) createBuckets() error {
 		return err
 	}
 	for i := 0; i < 256; i++ {
-		err := qs.db.Update(func(tx *bolt.Tx) error {
+		err := Update(qs.db, func(tx Tx) error {
 			var err error
 			for j := 0; j < 256; j++ {
 				_, err = tx.CreateBucket(bucketFor(byte(i), byte(j)))
@@ -90,7 +95,7 @@ func bucketFor(i, j byte) []byte {
 	return []byte{'v', i, j}
 }
 
-func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
+func (qs *QuadStore) writeHorizonAndSize(tx Tx) error {
 	qs.mu.Lock()
 	defer qs.mu.Unlock()
 	buf := new(bytes.Buffer)
@@ -124,12 +129,14 @@ func (qs *QuadStore) writeHorizonAndSize(tx *bolt.Tx) error {
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	qs.writer.Lock()
 	defer qs.writer.Unlock()
-	tx, err := qs.db.Begin(true)
+	tx, err := qs.db.Update()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	tx.Bucket(logIndex).FillPercent = 0.9
+	if f, ok := tx.Bucket(logIndex).(FillBucket); ok {
+		f.SetFillPercent(0.9)
+	}
 	qs.mu.RLock()
 	size := qs.size
 	horizon := qs.horizon
@@ -221,14 +228,14 @@ nextDelta:
 	return nil
 }
 
-func (qs *QuadStore) index(tx *bolt.Tx, p *proto.Primitive, val quad.Value) error {
+func (qs *QuadStore) index(tx Tx, p *proto.Primitive, val quad.Value) error {
 	if p.IsNode() {
 		return qs.indexNode(tx, p, val)
 	}
 	return qs.indexLink(tx, p)
 }
 
-func (qs *QuadStore) indexNode(tx *bolt.Tx, p *proto.Primitive, val quad.Value) error {
+func (qs *QuadStore) indexNode(tx Tx, p *proto.Primitive, val quad.Value) error {
 	var err error
 	if val == nil {
 		val, err = pquads.UnmarshalValue(p.Value)
@@ -250,7 +257,7 @@ func (qs *QuadStore) indexNode(tx *bolt.Tx, p *proto.Primitive, val quad.Value) 
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) indexLink(tx *bolt.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) indexLink(tx Tx, p *proto.Primitive) error {
 	var err error
 	// Subject
 	err = qs.addToMapBucket(tx, "sub", p.Subject, p.ID)
@@ -269,7 +276,7 @@ func (qs *QuadStore) indexLink(tx *bolt.Tx, p *proto.Primitive) error {
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) markAsDead(tx *bolt.Tx, id uint64) error {
+func (qs *QuadStore) markAsDead(tx Tx, id uint64) error {
 	p, err := qs.getPrimitiveFromLog(tx, id)
 	if err != nil {
 		return err
@@ -279,7 +286,7 @@ func (qs *QuadStore) markAsDead(tx *bolt.Tx, id uint64) error {
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) getBucketIndex(tx *bolt.Tx, bucket []byte, key uint64) ([]uint64, error) {
+func (qs *QuadStore) getBucketIndex(tx Tx, bucket []byte, key uint64) ([]uint64, error) {
 	b := tx.Bucket([]byte(bucket))
 	kbytes := uint64KeyBytes(key)
 	v := b.Get(kbytes)
@@ -315,7 +322,7 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 	return b[:off]
 }
 
-func (qs *QuadStore) hasPrimitive(tx *bolt.Tx, p *proto.Primitive) (uint64, error) {
+func (qs *QuadStore) hasPrimitive(tx Tx, p *proto.Primitive) (uint64, error) {
 	if !qs.testBloom(p) {
 		return 0, nil
 	}
@@ -366,7 +373,7 @@ outer:
 	return c
 }
 
-func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket string, key, value uint64) error {
+func (qs *QuadStore) addToMapBucket(tx Tx, bucket string, key, value uint64) error {
 	if key == 0 {
 		return fmt.Errorf("trying to add to map bucket %s with key 0", bucket)
 	}
@@ -382,10 +389,10 @@ func (qs *QuadStore) addToMapBucket(tx *bolt.Tx, bucket string, key, value uint6
 	return nil
 }
 
-func (qs *QuadStore) flushMapBucket(tx *bolt.Tx) error {
+func (qs *QuadStore) flushMapBucket(tx Tx) error {
 	kbytes := make([]byte, 8)
 	for bucket, m := range qs.mapBucket {
-		var b *bolt.Bucket
+		var b Bucket
 		if bucket == "sub" {
 			b = tx.Bucket(subjectIndex)
 		} else if bucket == "obj" {
@@ -413,11 +420,11 @@ func (qs *QuadStore) flushMapBucket(tx *bolt.Tx) error {
 	return nil
 }
 
-func (qs *QuadStore) indexSchema(tx *bolt.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) indexSchema(tx Tx, p *proto.Primitive) error {
 	return nil
 }
 
-func (qs *QuadStore) addToLog(tx *bolt.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) addToLog(tx Tx, p *proto.Primitive) error {
 	b, err := p.Marshal()
 	if err != nil {
 		return err
@@ -436,7 +443,7 @@ func (qs *QuadStore) createNodePrimitive(v quad.Value) (*proto.Primitive, error)
 	return p, nil
 }
 
-func (qs *QuadStore) resolveQuadValue(tx *bolt.Tx, v quad.Value) uint64 {
+func (qs *QuadStore) resolveQuadValue(tx Tx, v quad.Value) uint64 {
 	var isIRI bool
 	if iri, ok := v.(quad.IRI); ok {
 		isIRI = true
@@ -479,7 +486,7 @@ func uint64KeyBytes(x uint64) []byte {
 	return k
 }
 
-func (qs *QuadStore) getPrimitiveFromLog(tx *bolt.Tx, k uint64) (*proto.Primitive, error) {
+func (qs *QuadStore) getPrimitiveFromLog(tx Tx, k uint64) (*proto.Primitive, error) {
 	p := &proto.Primitive{}
 	b := tx.Bucket(logIndex).Get(uint64KeyBytes(k))
 	if b == nil {
@@ -498,7 +505,7 @@ func (qs *QuadStore) initBloomFilter() error {
 	qs.bufLock.Lock()
 	defer qs.bufLock.Unlock()
 	clog.Infof("Using a bloom filter of %d bytes", m.Alloc-before)
-	return qs.db.View(func(tx *bolt.Tx) error {
+	return View(qs.db, func(tx Tx) error {
 		p := proto.Primitive{}
 		b := tx.Bucket(logIndex)
 		return b.ForEach(func(k, v []byte) error {

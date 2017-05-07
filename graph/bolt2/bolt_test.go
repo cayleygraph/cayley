@@ -23,6 +23,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -98,8 +99,8 @@ func TestOptimize(t *testing.T) {
 	if !ok {
 		t.Errorf("Failed to optimize iterator")
 	}
-	if newIt.Type() != Type() {
-		t.Errorf("Optimized iterator type does not match original, got:%v expect:%v", newIt.Type(), Type())
+	if newIt.Type() != kv.Type() {
+		t.Errorf("Optimized iterator type does not match original, got:%v expect:%v", newIt.Type(), kv.Type())
 	}
 
 	newQuads := graphtest.IteratedQuads(t, qs, newIt)
