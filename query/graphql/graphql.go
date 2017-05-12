@@ -51,6 +51,7 @@ type Session struct {
 }
 
 func (s *Session) Execute(ctx context.Context, qu string, out chan query.Result, limit int) {
+	defer close(out)
 	q, err := Parse(strings.NewReader(qu))
 	if err != nil {
 		select {

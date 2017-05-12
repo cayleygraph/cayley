@@ -1,6 +1,8 @@
 package command
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -9,11 +11,59 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
+	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"
 	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 )
+
+func getContext() (context.Context, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	go func() {
+		select {
+		case <-ch:
+		case <-ctx.Done():
+		}
+		signal.Stop(ch)
+		cancel()
+	}()
+	return ctx, cancel
+}
+
+func openForQueries(cmd *cobra.Command) (*graph.Handle, error) {
+	if init, err := cmd.Flags().GetBool("init"); err != nil {
+		return nil, err
+	} else if init {
+		if err = initDatabase(); err != nil {
+			return nil, err
+		}
+	}
+	h, err := openDatabase()
+	if err != nil {
+		return nil, err
+	}
+
+	if load, _ := cmd.Flags().GetString(flagLoad); load != "" {
+		typ, _ := cmd.Flags().GetString(flagLoadFormat)
+		// TODO: check read-only flag in config before that?
+		if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
+			h.Close()
+			return nil, err
+		}
+	}
+	return h, nil
+}
+
+func registerQueryFlags(cmd *cobra.Command) {
+	langs := query.Languages()
+	cmd.Flags().Bool("init", false, "initialize the database before using it")
+	cmd.Flags().String("lang", "gizmo", `query language to use ("`+strings.Join(langs, `", "`)+`")`)
+	cmd.Flags().DurationP("timeout", "t", 30*time.Second, "elapsed time until an individual query times out")
+	registerLoadFlags(cmd)
+}
 
 func NewReplCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -23,51 +73,98 @@ func NewReplCmd() *cobra.Command {
 			printBackendInfo()
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
-			timeout, err := cmd.Flags().GetDuration("timeout")
-			if err != nil {
-				return err
-			}
-			if init, err := cmd.Flags().GetBool("init"); err != nil {
-				return err
-			} else if init {
-				if err = initDatabase(); err != nil {
-					return err
-				}
-			}
-			h, err := openDatabase()
+
+			h, err := openForQueries(cmd)
 			if err != nil {
 				return err
 			}
 			defer h.Close()
 
-			if load, _ := cmd.Flags().GetString(flagLoad); load != "" {
-				typ, _ := cmd.Flags().GetString(flagLoadFormat)
-				// TODO: check read-only flag in config before that?
-				if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
-					return err
-				}
-			}
-
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := getContext()
 			defer cancel()
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, os.Interrupt)
-			go func() {
-				select {
-				case <-ch:
-				case <-ctx.Done():
-				}
-				signal.Stop(ch)
-				cancel()
-			}()
+
+			timeout, err := cmd.Flags().GetDuration("timeout")
+			if err != nil {
+				return err
+			}
 			lang, _ := cmd.Flags().GetString("lang")
 			return db.Repl(ctx, h, lang, timeout)
 		},
 	}
-	langs := query.Languages()
-	cmd.Flags().Bool("init", false, "initialize the database before using it")
-	cmd.Flags().String("lang", "gizmo", `query language to use ("`+strings.Join(langs, `", "`)+`")`)
-	cmd.Flags().DurationP("timeout", "t", 30*time.Second, "elapsed time until an individual query times out")
-	registerLoadFlags(cmd)
+	registerQueryFlags(cmd)
+	return cmd
+}
+
+func NewQueryCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "query",
+		Aliases: []string{"qu"},
+		Short:   "Run a query in a specified database and print results.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("expected query as an argument")
+			}
+			printBackendInfo()
+			p := mustSetupProfile(cmd)
+			defer mustFinishProfile(p)
+
+			h, err := openForQueries(cmd)
+			if err != nil {
+				return err
+			}
+			defer h.Close()
+
+			ctx, cancel := getContext()
+			defer cancel()
+
+			timeout, err := cmd.Flags().GetDuration("timeout")
+			if err != nil {
+				return err
+			}
+			if timeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, timeout)
+				defer cancel()
+			}
+			lang, _ := cmd.Flags().GetString("lang")
+			limit, err := cmd.Flags().GetInt("limit")
+			if err != nil {
+				return err
+			}
+
+			l := query.GetLanguage(lang)
+			if l == nil {
+				return fmt.Errorf("unknown query language: %q", lang)
+			}
+			enc := json.NewEncoder(os.Stdout)
+			sess := l.Session(h)
+			ch := make(chan query.Result, 100)
+			go sess.Execute(ctx, args[0], ch, limit)
+			for i := 0; limit <= 0 || i < limit; i++ {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case r, ok := <-ch:
+					if !ok {
+						return nil
+					} else if err = r.Err(); err != nil {
+						return err
+					}
+					obj := r.Result()
+					switch p := obj.(type) {
+					case map[string]graph.Value:
+						m := make(map[string]quad.Value, len(p))
+						for k, v := range p {
+							m[k] = h.NameOf(v)
+						}
+						obj = m
+					}
+					enc.Encode(obj)
+				}
+			}
+			return nil
+		},
+	}
+	registerQueryFlags(cmd)
+	cmd.Flags().IntP("limit", "n", 100, "limit a number of results")
 	return cmd
 }

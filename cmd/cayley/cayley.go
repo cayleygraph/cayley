@@ -126,6 +126,7 @@ func init() {
 		command.NewDumpDatabaseCmd(),
 		command.NewUpgradeCmd(),
 		command.NewReplCmd(),
+		command.NewQueryCmd(),
 		command.NewHttpCmd(),
 		command.NewConvertCmd(),
 		command.NewDedupCommand(),
