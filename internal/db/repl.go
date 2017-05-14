@@ -185,6 +185,11 @@ func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout ti
 				}
 				continue
 
+			case "help":
+				fmt.Printf("Help\n\texit // Exit\n\thelp // this help\n\td: <quad> // delete quad\n\ta: <quad> // add quad\n\t:debug [t|f]\n")
+				continue
+
+				
 			case "exit":
 				term.Close()
 				os.Exit(0)
