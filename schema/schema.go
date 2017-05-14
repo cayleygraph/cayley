@@ -613,6 +613,11 @@ func LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...qua
 	return LoadIteratorTo(ctx, qs, rv, it)
 }
 
+// LoadPathTo is the same as LoadTo, but starts loading objects from a given path.
+func LoadPathTo(ctx context.Context, qs graph.QuadStore, dst interface{}, p *path.Path) error {
+	return LoadIteratorTo(ctx, qs, reflect.ValueOf(dst), p.BuildIterator())
+}
+
 // LoadIteratorTo is a lower level version of LoadTo.
 //
 // It expects an iterator of nodes to be passed explicitly and
