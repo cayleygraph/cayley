@@ -112,7 +112,7 @@ func NewQueryCmd() *cobra.Command {
 			} else {
 				querystr = args[0]
 			}
-			fmt.Printf("Query to run is :%s\n", querystr)
+			fmt.Fprintf(os.Stderr, "Query to run is :%s\n", querystr)
 			printBackendInfo()
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
