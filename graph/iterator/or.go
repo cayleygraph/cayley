@@ -30,7 +30,6 @@ type Or struct {
 	tags              graph.Tagger
 	isShortCircuiting bool
 	internalIterators []graph.Iterator
-	itCount           int
 	currentIterator   int
 	result            graph.Value
 	err               error
@@ -122,13 +121,15 @@ func (it *Or) Describe() graph.Description {
 // Add a subiterator to this Or graph.iterator. Order matters.
 func (it *Or) AddSubIterator(sub graph.Iterator) {
 	it.internalIterators = append(it.internalIterators, sub)
-	it.itCount++
 }
 
 // Next advances the Or graph.iterator. Because the Or is the union of its
 // subiterators, it must produce from all subiterators -- unless it it
 // shortcircuiting, in which case, it is the first one that returns anything.
 func (it *Or) Next() bool {
+	if it.currentIterator >= len(it.internalIterators) {
+		return false
+	}
 	graph.NextLogIn(it)
 	var first bool
 	for {
@@ -152,7 +153,7 @@ func (it *Or) Next() bool {
 			break
 		}
 		it.currentIterator++
-		if it.currentIterator == it.itCount {
+		if it.currentIterator >= len(it.internalIterators) {
 			break
 		}
 	}

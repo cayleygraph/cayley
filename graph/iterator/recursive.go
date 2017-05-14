@@ -96,9 +96,11 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 		dst[tag] = value
 	}
 	if it.containsValue != nil {
-		m := it.pathMap[graph.ToKey(it.containsValue)][it.pathIndex]
-		for k, v := range m {
-			dst[k] = v
+		paths := it.pathMap[graph.ToKey(it.containsValue)]
+		if len(paths) != 0 {
+			for k, v := range paths[it.pathIndex] {
+				dst[k] = v
+			}
 		}
 	}
 
@@ -210,7 +212,7 @@ func (it *Recursive) Contains(val graph.Value) bool {
 }
 
 func (it *Recursive) NextPath() bool {
-	if len(it.pathMap[graph.ToKey(it.containsValue)]) <= it.pathIndex+1 {
+	if it.pathIndex+1 >= len(it.pathMap[graph.ToKey(it.containsValue)]) {
 		return false
 	}
 	it.pathIndex++
