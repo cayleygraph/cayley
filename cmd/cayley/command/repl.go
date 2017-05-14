@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"time"
+	"io/ioutil"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -101,9 +102,17 @@ func NewQueryCmd() *cobra.Command {
 		Aliases: []string{"qu"},
 		Short:   "Run a query in a specified database and print results.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var querystr string
 			if len(args) != 1 {
-				return fmt.Errorf("expected query as an argument")
+				bytes, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					panic(err)
+				}
+				querystr = string(bytes)
+			} else {
+				querystr = args[0]
 			}
+			fmt.Printf("Query to run is :%s\n", querystr)
 			printBackendInfo()
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
@@ -138,7 +147,7 @@ func NewQueryCmd() *cobra.Command {
 			enc := json.NewEncoder(os.Stdout)
 			sess := l.Session(h)
 			ch := make(chan query.Result, 100)
-			go sess.Execute(ctx, args[0], ch, limit)
+			go sess.Execute(ctx, querystr, ch, limit)
 			for i := 0; limit <= 0 || i < limit; i++ {
 				select {
 				case <-ctx.Done():
