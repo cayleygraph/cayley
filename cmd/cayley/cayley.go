@@ -175,6 +175,7 @@ func init() {
 			case "alsologtostderr": // glog.alsologtostderr
 				rf.Var(pFlag{f.Value}, f.Name, f.Usage)
 			case "logtostderr": // glog.logtostderr
+				f.Value.Set("true")
 				rf.Var(pFlag{f.Value}, f.Name, f.Usage)
 			case "log_dir": // glog.log_dir
 				rf.Var(pFlag{f.Value}, "logs", f.Usage)
