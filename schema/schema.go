@@ -259,7 +259,7 @@ func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 		}
 		switch rule := rule.(type) {
 		case idRule:
-			p = p.Tag(name)
+			p = p.Tag(tagPref + name)
 		case constraintRule:
 			var nodes []quad.Value
 			if rule.Val != "" {
@@ -817,10 +817,12 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 	return nil
 }
 
-func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value) (id quad.Value, err error) {
+func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref string) (id quad.Value, err error) {
+	hasAnon := false
 	for i := 0; i < rt.NumField(); i++ {
 		fld := rt.Field(i)
-		if _, ok := rules[fld.Name].(idRule); ok {
+		hasAnon = hasAnon || fld.Anonymous
+		if _, ok := rules[pref+fld.Name].(idRule); ok {
 			vid := rv.Field(i).Interface()
 			switch vid := vid.(type) {
 			case quad.IRI:
@@ -832,6 +834,20 @@ func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value) (id quad.Value, 
 			default:
 				err = fmt.Errorf("unsupported type for id field: %T", vid)
 			}
+			return
+		}
+	}
+	if !hasAnon {
+		return
+	}
+	// second pass - look for anonymous fields
+	for i := 0; i < rt.NumField(); i++ {
+		fld := rt.Field(i)
+		if !fld.Anonymous {
+			continue
+		}
+		id, err = idFor(rules, fld.Type, rv.Field(i), fld.Name+".")
+		if err != nil || id != nil {
 			return
 		}
 	}
@@ -867,7 +883,7 @@ func WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) {
 		panic(fmt.Errorf("no rules for struct: %v", rt))
 		return nil, fmt.Errorf("no rules for struct: %v", rt)
 	}
-	id, err := idFor(rules, rt, rv)
+	id, err := idFor(rules, rt, rv, "")
 	if err != nil {
 		return nil, err
 	}

@@ -84,6 +84,16 @@ func (t *treeItemReq) Sort() {
 	sort.Sort(treeItemReqByIRI(t.Children))
 }
 
+type genObject struct {
+	ID   quad.IRI `quad:"@id"`
+	Name string   `quad:"name"`
+}
+
+type subObject struct {
+	genObject
+	Num int `quad:"num"`
+}
+
 func iri(s string) quad.IRI { return quad.IRI(s) }
 
 const typeIRI = quad.IRI(rdf.Type)
@@ -189,6 +199,20 @@ var testWriteValueCases = []struct {
 			{iri("1234"), iri("spec"), quad.String("special"), nil},
 			{iri("1234"), iri("values"), quad.String("val1"), nil},
 			{iri("1234"), iri("values"), quad.String("val2"), nil},
+		},
+	},
+	{
+		subObject{
+			genObject: genObject{
+				ID:   "1234",
+				Name: "Obj",
+			},
+			Num: 3,
+		},
+		iri("1234"),
+		[]quad.Quad{
+			{iri("1234"), iri("name"), quad.String("Obj"), nil},
+			{iri("1234"), iri("num"), quad.Int(3), nil},
 		},
 	},
 }
@@ -401,9 +425,22 @@ var testFillValueCases = []struct {
 		quads: treeQuads,
 		from:  []quad.Value{iri("n1")},
 	},
+	{
+		expect: subObject{
+			genObject: genObject{
+				ID:   "1234",
+				Name: "Obj",
+			},
+			Num: 3,
+		},
+		quads: []quad.Quad{
+			{iri("1234"), iri("name"), quad.String("Obj"), nil},
+			{iri("1234"), iri("num"), quad.Int(3), nil},
+		},
+	},
 }
 
-func TestSaveIteratorTo(t *testing.T) {
+func TestLoadIteratorTo(t *testing.T) {
 	for i, c := range testFillValueCases {
 		qs := memstore.New(c.quads...)
 		out := reflect.New(reflect.TypeOf(c.expect))
