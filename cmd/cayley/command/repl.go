@@ -103,14 +103,16 @@ func NewQueryCmd() *cobra.Command {
 		Short:   "Run a query in a specified database and print results.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var querystr string
-			if len(args) != 1 {
+			if len(args) == 0 {
 				bytes, err := ioutil.ReadAll(os.Stdin)
 				if err != nil {
 					panic(err)
 				}
 				querystr = string(bytes)
-			} else {
+			} else if len(args) == 1 {
 				querystr = args[0]
+			} else {
+				return fmt.Errorf("Query accepts only one argument, the query string or nothing for reading from stdin.")
 			}
 			fmt.Fprintf(os.Stderr, "Query to run is :%s\n", querystr)
 			printBackendInfo()
