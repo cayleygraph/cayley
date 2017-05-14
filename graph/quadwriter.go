@@ -178,15 +178,18 @@ func WriterMethods() []string {
 type BatchWriter interface {
 	quad.WriteCloser
 	quad.BatchWriter
+	Flush() error
 }
 
 // NewWriter creates a quad writer for a given QuadStore.
+//
+// Caller must call Flush or Close to flush an internal buffer.
 func NewWriter(qs QuadWriter) BatchWriter {
 	return &batchWriter{qs: qs}
 }
 
 type batchWriter struct {
-	qs QuadWriter
+	qs  QuadWriter
 	buf []quad.Quad
 }
 
@@ -212,8 +215,11 @@ func (w *batchWriter) WriteQuads(quads []quad.Quad) (int, error) {
 	}
 	return len(quads), nil
 }
-func (w *batchWriter) Close() error {
+func (w *batchWriter) Flush() error {
 	return w.flushBuffer(true)
+}
+func (w *batchWriter) Close() error {
+	return w.Flush()
 }
 
 // NewRemover creates a quad writer for a given QuadStore which removes quads instead of adding them.
@@ -237,6 +243,9 @@ func (w *removeWriter) WriteQuads(quads []quad.Quad) (int, error) {
 		return 0, err
 	}
 	return len(quads), nil
+}
+func (w *removeWriter) Flush() error {
+	return nil // TODO: batch deletes automatically
 }
 func (w *removeWriter) Close() error { return nil }
 
