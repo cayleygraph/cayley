@@ -3,6 +3,7 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"
 	"github.com/cayleygraph/cayley/internal/db"
@@ -101,9 +103,19 @@ func NewQueryCmd() *cobra.Command {
 		Aliases: []string{"qu"},
 		Short:   "Run a query in a specified database and print results.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return fmt.Errorf("expected query as an argument")
+			var querystr string
+			if len(args) == 0 {
+				bytes, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					return fmt.Errorf("Error occured while reading from stdin : %s.", err)
+				}
+				querystr = string(bytes)
+			} else if len(args) == 1 {
+				querystr = args[0]
+			} else {
+				return fmt.Errorf("Query accepts only one argument, the query string or nothing for reading from stdin.")
 			}
+			clog.Infof("Query:\n%s", querystr)
 			printBackendInfo()
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
@@ -138,7 +150,7 @@ func NewQueryCmd() *cobra.Command {
 			enc := json.NewEncoder(os.Stdout)
 			sess := l.Session(h)
 			ch := make(chan query.Result, 100)
-			go sess.Execute(ctx, args[0], ch, limit)
+			go sess.Execute(ctx, querystr, ch, limit)
 			for i := 0; limit <= 0 || i < limit; i++ {
 				select {
 				case <-ctx.Done():
