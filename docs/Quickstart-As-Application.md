@@ -12,7 +12,7 @@ If you prefer to build from source, see [Contributing.md](Contributing.md) which
 If you downloaded the correct binary the fastest way to have a peak into Cayley is to load one of the example data file in the ./data directory, and query them by the web interface.
 
 ```bash
-./cayley http --dbpath=./data/30kmoviedata.nq.gz --host 0.0.0.0:64210
+./cayley http --dbpath=./data/30kmoviedata.nq.gz --host 0.0.0.0 --port 64210
 Cayley now listening on 0.0.0.0:64210
   ```
 You can now open the web-interface on: [localhost:64210](http://localhost:64210/)
