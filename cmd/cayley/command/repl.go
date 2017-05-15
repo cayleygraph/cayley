@@ -3,11 +3,11 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
-	"io/ioutil"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
