@@ -11,7 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
-	
+
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"
 	"github.com/cayleygraph/cayley/internal/db"
@@ -106,7 +107,7 @@ func NewQueryCmd() *cobra.Command {
 			if len(args) == 0 {
 				bytes, err := ioutil.ReadAll(os.Stdin)
 				if err != nil {
-					panic(err)
+					return fmt.Errorf("Error occured while reading from stdin : %s.", err)
 				}
 				querystr = string(bytes)
 			} else if len(args) == 1 {
@@ -114,7 +115,7 @@ func NewQueryCmd() *cobra.Command {
 			} else {
 				return fmt.Errorf("Query accepts only one argument, the query string or nothing for reading from stdin.")
 			}
-			fmt.Fprintf(os.Stderr, "Query to run is :%s\n", querystr)
+			clog.Infof("Query:\n%s", querystr)
 			printBackendInfo()
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
