@@ -196,6 +196,16 @@ iteration:
 	return out, c.it.Err()
 }
 
+// First will return a first result of an iterator. It returns nil if iterator is empty.
+func (c *IterateChain) First() (Value, error) {
+	c.start()
+	defer c.end()
+	if !c.next() {
+		return nil, c.it.Err()
+	}
+	return c.it.Result(), nil
+}
+
 // Send will send each result of the iterator to the provided channel.
 //
 // Channel will NOT be closed when function returns.
@@ -293,6 +303,22 @@ func (c *IterateChain) AllValues(qs QuadStore) ([]quad.Value, error) {
 		out = append(out, v)
 	})
 	return out, err
+}
+
+// FirstValue is an analog of First, but it does lookup of a value in QuadStore.
+func (c *IterateChain) FirstValue(qs QuadStore) (quad.Value, error) {
+	if qs != nil {
+		c.qs = qs
+	}
+	if c.qs == nil {
+		return nil, errNoQuadStore
+	}
+	v, err := c.First()
+	if err != nil || v == nil {
+		return nil, err
+	}
+	// TODO: return an error from NameOf once we have it exposed
+	return c.qs.NameOf(v), nil
 }
 
 // SendValues is an analog of Send, but it will additionally call NameOf
