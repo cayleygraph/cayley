@@ -27,7 +27,7 @@ Response: JSON results, depending on the query.
 POST Body: JSON MQL query
 
 Response: JSON results, with a query wrapper:
-```json
+```js
 {
 	"result": <JSON Result set>
 }
@@ -35,7 +35,7 @@ Response: JSON results, with a query wrapper:
 
 If the JSON is invalid or an error occurs:
 
-```json
+```js
 {
 	"error": "Error message"
 }
@@ -46,7 +46,7 @@ If the JSON is invalid or an error occurs:
 
 Result form:
 
-```json
+```js
 {
 	"nodes": [{
 		"id" : integer,
@@ -81,14 +81,14 @@ Response: JSON description of the query.
 Responses come in the form
 
 200 Success:
-```json
+```js
 {
 	"result": "Success message."
 }
 ```
 
 400 / 500 Error:
-```json
+```js
 {
 	"error": "Error message."
 }
@@ -98,7 +98,7 @@ Responses come in the form
 
 POST Body: JSON quads
 
-```json
+```js
 [{
 	"subject": "Subject Node",
 	"predicate": "Predicate Node",
@@ -126,7 +126,7 @@ curl http://localhost:64210/api/v1/write/file/nquad -F NQuadFile=@30k.n3
 
 POST Body: JSON quads
 
-```json
+```js
 [{
 	"subject": "Subject Node",
 	"predicate": "Predicate Node",
