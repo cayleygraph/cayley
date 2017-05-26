@@ -142,7 +142,7 @@ type QuadWriter interface {
 	ApplyTransaction(*Transaction) error
 
 	// RemoveNode removes all quads which have the given node as subject, predicate, object, or label.
-	RemoveNode(Value) error
+	RemoveNode(quad.Value) error
 
 	// Close cleans up replication and closes the writing aspect of the database.
 	Close() error
