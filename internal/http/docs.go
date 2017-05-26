@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/russross/blackfriday"
@@ -57,7 +58,10 @@ func (h *DocRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, pa
 	if docpage == "" {
 		docpage = "Index"
 	}
-	file, err := os.Open(fmt.Sprintf("%s/docs/%s.md", h.assets, docpage))
+	if !strings.HasSuffix(docpage, ".md") {
+		docpage += ".md"
+	}
+	file, err := os.Open(fmt.Sprintf("%s/docs/%s", h.assets, docpage))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
