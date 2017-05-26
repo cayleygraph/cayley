@@ -18,7 +18,7 @@ import (
 func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config // TODO
 
-	conf.Image = "cockroachdb/cockroach:beta-20170413"
+	conf.Image = "cockroachdb/cockroach:v1.0.1"
 	conf.Cmd = []string{"start", "--insecure"}
 
 	opts := graph.Options{"flavor": flavorCockroach}
