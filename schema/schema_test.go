@@ -102,6 +102,7 @@ var testWriteValueCases = []struct {
 	obj    interface{}
 	id     quad.Value
 	expect []quad.Quad
+	err    error
 }{
 	{
 		struct {
@@ -140,6 +141,7 @@ var testWriteValueCases = []struct {
 			{iri("sub3"), iri("name"), quad.String(`Sub 3`), nil},
 			{iri("1234"), iri("sub"), iri("sub3"), nil},
 		},
+		nil,
 	},
 	{
 		struct {
@@ -160,6 +162,7 @@ var testWriteValueCases = []struct {
 			{iri("1234"), iri("values"), quad.String(`val1`), nil},
 			{iri("1234"), iri("values"), quad.String(`val2`), nil},
 		},
+		nil,
 	},
 	{
 		struct {
@@ -180,6 +183,7 @@ var testWriteValueCases = []struct {
 			{iri("1234"), iri("values"), quad.String("val1"), nil},
 			{iri("1234"), iri("values"), quad.String("val2"), nil},
 		},
+		nil,
 	},
 	{
 		struct {
@@ -200,6 +204,7 @@ var testWriteValueCases = []struct {
 			{iri("1234"), iri("values"), quad.String("val1"), nil},
 			{iri("1234"), iri("values"), quad.String("val2"), nil},
 		},
+		nil,
 	},
 	{
 		subObject{
@@ -214,6 +219,23 @@ var testWriteValueCases = []struct {
 			{iri("1234"), iri("name"), quad.String("Obj"), nil},
 			{iri("1234"), iri("num"), quad.Int(3), nil},
 		},
+		nil,
+	},
+	{
+		item2{Name: "partial"},
+		nil, nil,
+		schema.ErrReqFieldNotSet{Field: "Spec"},
+	},
+	{
+		treeItemOpt{
+			ID:   iri("n1"),
+			Name: "Node 1",
+		},
+		iri("n1"),
+		[]quad.Quad{
+			{iri("n1"), iri("name"), quad.String("Node 1"), nil},
+		},
+		nil,
 	},
 }
 
@@ -227,9 +249,13 @@ func (s *quadSlice) WriteQuad(q quad.Quad) error {
 func TestWriteAsQuads(t *testing.T) {
 	for i, c := range testWriteValueCases {
 		var out quadSlice
-		if id, err := schema.WriteAsQuads(&out, c.obj); err != nil {
-			t.Errorf("case %d failed: %v", i, err)
-		} else if id != c.id {
+		id, err := schema.WriteAsQuads(&out, c.obj)
+		if err != c.err {
+			t.Errorf("case %d failed: %v != %v", i, err, c.err)
+		} else if c.err != nil {
+			continue // case with expected error; omit other checks
+		}
+		if id != c.id {
 			t.Errorf("ids are different: %v vs %v", id, c.id)
 		} else if !reflect.DeepEqual([]quad.Quad(out), c.expect) {
 			t.Errorf("quad sets are different\n%#v\n%#v", []quad.Quad(out), c.expect)

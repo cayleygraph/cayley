@@ -21,6 +21,13 @@ import (
 	"github.com/cayleygraph/cayley/voc/rdf"
 )
 
+type ErrReqFieldNotSet struct{
+	Field string
+}
+func (e ErrReqFieldNotSet) Error() string {
+	return fmt.Sprintf("required field is not set: %s", e.Field)
+}
+
 type rule interface {
 	isRule()
 }
@@ -741,8 +748,12 @@ func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 	return errNotFound
 }
 
+func isZero(rv reflect.Value) bool {
+	return rv.Interface() == reflect.Zero(rv.Type()).Interface() // TODO(dennwc): rewrite
+}
+
 func writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflect.Value, rev bool) error {
-	if rv.Interface() == reflect.Zero(rv.Type()).Interface() { // TODO(dennwc): rewrite
+	if isZero(rv) {
 		return nil
 	}
 	targ, ok := quad.AsValue(rv.Interface())
@@ -808,7 +819,11 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 					}
 				}
 			} else {
-				if err := writeOneValReflect(w, id, r.Pred, rv.Field(i), r.Rev); err != nil {
+				fv := rv.Field(i)
+				if !r.Opt && isZero(fv) {
+					return ErrReqFieldNotSet{Field:f.Name}
+				}
+				if err := writeOneValReflect(w, id, r.Pred, fv, r.Rev); err != nil {
 					return err
 				}
 			}
@@ -880,7 +895,6 @@ func WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) {
 		return nil, fmt.Errorf("can't load rules: %v", err)
 	}
 	if len(rules) == 0 {
-		panic(fmt.Errorf("no rules for struct: %v", rt))
 		return nil, fmt.Errorf("no rules for struct: %v", rt)
 	}
 	id, err := idFor(rules, rt, rv, "")
