@@ -76,6 +76,9 @@ func main() {
 	fmt.Printf("saving: %+v\n", bob)
 	id, err := schema.WriteAsQuads(qw, bob)
 	checkErr(err)
+	err = qw.Close()
+	checkErr(err)
+
 	fmt.Println("id for object:", id, "=", bob.ID) // should be equal
 
 	// Get object by id
