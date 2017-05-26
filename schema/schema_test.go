@@ -94,6 +94,16 @@ type subObject struct {
 	Num int `quad:"num"`
 }
 
+func init() {
+	voc.RegisterPrefix("ex:", "http://example.org/")
+	schema.RegisterType(quad.IRI("ex:Coords"), Coords{})
+}
+
+type Coords struct {
+	Lat float64 `json:"ex:lat"`
+	Lng float64 `json:"ex:lng"`
+}
+
 func iri(s string) quad.IRI { return quad.IRI(s) }
 
 const typeIRI = quad.IRI(rdf.Type)
@@ -237,6 +247,16 @@ var testWriteValueCases = []struct {
 		},
 		nil,
 	},
+	{
+		Coords{Lat: 12.3, Lng: 34.5},
+		nil,
+		[]quad.Quad{
+			{nil, typeIRI, iri("ex:Coords"), nil},
+			{nil, iri("ex:lat"), quad.Float(12.3), nil},
+			{nil, iri("ex:lng"), quad.Float(34.5), nil},
+		},
+		nil,
+	},
 }
 
 type quadSlice []quad.Quad
@@ -255,9 +275,16 @@ func TestWriteAsQuads(t *testing.T) {
 		} else if c.err != nil {
 			continue // case with expected error; omit other checks
 		}
-		if id != c.id {
+		if c.id == nil {
+			for i := range out {
+				if c.expect[i].Subject == nil {
+					c.expect[i].Subject = id
+				}
+			}
+		} else if id != c.id {
 			t.Errorf("ids are different: %v vs %v", id, c.id)
-		} else if !reflect.DeepEqual([]quad.Quad(out), c.expect) {
+		}
+		if !reflect.DeepEqual([]quad.Quad(out), c.expect) {
 			t.Errorf("quad sets are different\n%#v\n%#v", []quad.Quad(out), c.expect)
 		}
 	}
@@ -462,6 +489,14 @@ var testFillValueCases = []struct {
 		quads: []quad.Quad{
 			{iri("1234"), iri("name"), quad.String("Obj"), nil},
 			{iri("1234"), iri("num"), quad.Int(3), nil},
+		},
+	},
+	{
+		expect: Coords{Lat: 12.3, Lng: 34.5},
+		quads: []quad.Quad{
+			{iri("c1"), typeIRI, iri("ex:Coords"), nil},
+			{iri("c1"), iri("ex:lat"), quad.Float(12.3), nil},
+			{iri("c1"), iri("ex:lng"), quad.Float(34.5), nil},
 		},
 	},
 }

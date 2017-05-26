@@ -131,6 +131,11 @@ func (api *API) ServeV1WriteNQuad(w http.ResponseWriter, r *http.Request, params
 		jsonResponse(w, 400, err)
 		return
 	}
+	err = qw.Close()
+	if err != nil {
+		jsonResponse(w, 400, err)
+		return
+	}
 	fmt.Fprintf(w, "{\"result\": \"Successfully wrote %d quads.\"}", n)
 }
 

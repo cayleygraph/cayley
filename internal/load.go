@@ -140,7 +140,7 @@ func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerF
 	if err != nil {
 		return fmt.Errorf("db: failed to load data: %v", err)
 	}
-	return nil
+	return dest.Close()
 }
 
 type batchLogger struct {

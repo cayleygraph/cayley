@@ -100,11 +100,14 @@ func main() {
 		{Lat: 12.3, Lng: 34.5},
 		{Lat: 39.7, Lng: 8.41},
 	}
+	qw = graph.NewWriter(store)
 	for _, c := range coords {
 		id, err = schema.WriteAsQuads(qw, c)
 		checkErr(err)
 		fmt.Println("generated id:", id)
 	}
+	err = qw.Close()
+	checkErr(err)
 
 	// Get coords back
 	var newCoords []Coords

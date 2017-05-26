@@ -199,6 +199,11 @@ func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+	err = qw.Close()
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, err)
+		return
+	}
 	w.Header().Set(hdrContentType, contentTypeJSON)
 	fmt.Fprintf(w, `{"result": "Successfully wrote %d quads.", "count": %d}`+"\n", n, n)
 }
