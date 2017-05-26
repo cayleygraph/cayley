@@ -30,6 +30,6 @@ func (Logger) V(level int) bool {
 	return bool(glog.V(glog.Level(level)))
 }
 
-func (Logger) SetV(int) {
-	panic("unexposed in glog")
+func (Logger) SetV(v int) {
+	glog.Warningf("changing log level is not supported; run command with '-v %d' flag", v)
 }
