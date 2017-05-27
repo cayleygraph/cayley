@@ -2,7 +2,7 @@
 
 ## Gephi
 
-Cayley supports streaming to Gephi via [GraphStream](GephiGraphStream.md).
+Cayley supports streaming to Gephi via [GraphStream](GephiGraphStream).
 
 ## API v1
 
@@ -18,7 +18,7 @@ Response: JSON results, depending on the query.
 
 #### `/api/v1/query/graphql`
 
-POST Body: [GraphQL](GraphQL.md) query
+POST Body: [GraphQL](GraphQL) query
 
 Response: JSON results, depending on the query.
 
