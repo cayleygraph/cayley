@@ -52,6 +52,7 @@ func TestAll(t testing.TB, gen DatabaseFunc, conf *Config) {
 		TestDeletedFromIterator(t, gen)
 	}
 	TestLoadTypedQuads(t, gen, conf)
+	TestRemoveQuadsViaIterator(t, gen, conf)
 	TestAddRemove(t, gen, conf)
 	TestReAddQuad(t, gen, conf)
 	TestIteratorsAndNextResultOrderA(t, gen)
@@ -561,6 +562,39 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 		}
 	}
 	require.Equal(t, int64(7), qs.Size(), "Unexpected quadstore size")
+}
+
+func TestRemoveQuadsViaIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
+	// Locals.
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	// Create writer and test-value set.
+	w := MakeWriter(t, qs, opts)
+	now := time.Now()
+	subject := quad.IRI("timequad")
+	values := []quad.Quad{
+		{subject, quad.String("has_unixtime"), quad.Int(now.UnixNano()), nil},
+		{subject, quad.String("has_time"), quad.Time(now), nil},
+	}
+	err := w.AddQuadSet(values)
+	require.Nil(t, err)
+
+	// Create iterator.
+	it := qs.QuadsAllIterator()
+	defer it.Close()
+
+	// Attempt to remove found quads.
+	var count = 0
+	for it.Next() {
+		err := w.RemoveQuad(qs.Quad(it.Result()))
+		require.Nil(t, err)
+		count++
+	}
+	require.Nil(t, it.Err())
+
+	// Check iterator size.
+	assert.Equal(t, len(values), count, "Iterator and values lengths do not match: values.length: %s, it.length: %s", len(values), count)
 }
 
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
