@@ -49,6 +49,10 @@ type QuadDirectionIndex struct {
 	index [4]map[int64]*b.Tree
 }
 
+func (qs *QuadStore) VariableIterator() graph.VariableIterator {
+	return iterator.NewVariable(iterator.Identity)
+}
+
 func NewQuadDirectionIndex() QuadDirectionIndex {
 	return QuadDirectionIndex{[...]map[int64]*b.Tree{
 		quad.Subject - 1:   make(map[int64]*b.Tree),

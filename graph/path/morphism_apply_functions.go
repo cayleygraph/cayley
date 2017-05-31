@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"reflect"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -133,6 +135,16 @@ func hasMorphism(via interface{}, nodes ...quad.Value) morphism {
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasMorphism(via, nodes...), ctx },
 		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
 			return buildHas(qs, via, in, false, nodes), ctx
+		},
+	}
+}
+
+func hasVarMorphism(via interface{}, variable interface{}) morphism {
+	return morphism{
+		Name:     "has",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasVarMorphism(via, variable), ctx },
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			return buildHasVar(qs, via, in, false, variable), ctx
 		},
 	}
 }
@@ -415,6 +427,39 @@ func buildHas(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bo
 		has := iterator.NewHasA(qs, route, start)
 		return join(qs, in, has)
 	}
+
+	// This looks backwards. That's OK-- see the note above.
+	route := join(qs, dest, trail)
+	has := iterator.NewHasA(qs, route, start)
+	return join(qs, has, in)
+}
+
+func buildHasVar(qs graph.QuadStore, via interface{}, in graph.Iterator, reverse bool, variable interface{}) graph.Iterator {
+	viaIter := buildViaPath(qs, via).
+		BuildIterator()
+	ends := func() graph.Iterator {
+		switch v := variable.(type) {
+		case *graph.VarUser:
+			varIt := qs.VariableIterator()
+			varIt.Use(v)
+			return varIt
+		case *graph.VarBinder:
+			varIt := qs.VariableIterator()
+			varIt.Bind(v, qs.NodesAllIterator())
+			return varIt
+		}
+		fmt.Println(reflect.TypeOf(variable))
+		panic("You should be getting a real iterator back from this.")
+		return nil
+	}()
+
+	start, goal := quad.Subject, quad.Object
+	if reverse {
+		start, goal = goal, start
+	}
+
+	trail := iterator.NewLinksTo(qs, viaIter, quad.Predicate)
+	dest := iterator.NewLinksTo(qs, ends, goal)
 
 	// This looks backwards. That's OK-- see the note above.
 	route := join(qs, dest, trail)

@@ -419,6 +419,12 @@ func (p *Path) Has(via interface{}, nodes ...quad.Value) *Path {
 	return np
 }
 
+func (p *Path) HasVar(via interface{}, variable interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, hasVarMorphism(via, variable))
+	return np
+}
+
 // HasReverse limits the paths to be ones where some known node have some linkage
 // to the current nodes.
 func (p *Path) HasReverse(via interface{}, nodes ...quad.Value) *Path {

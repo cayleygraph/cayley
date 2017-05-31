@@ -567,6 +567,10 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(iterator.Identity)
 }
 
+func (qs *QuadStore) VariableIterator() graph.VariableIterator {
+	return iterator.NewVariable(iterator.Identity)
+}
+
 func (qs *QuadStore) Close() error {
 	return qs.db.Close()
 }
