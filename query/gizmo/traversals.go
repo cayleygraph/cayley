@@ -493,6 +493,12 @@ func (p *pathObject) Difference(path *pathObject) *pathObject {
 	return p.Except(path)
 }
 
+// Labels gets the list of inbound and outbound quad labels
+func (p *pathObject) Labels() *pathObject {
+	np := p.clonePath().Labels()
+	return p.new(np)
+}
+
 // InPredicates gets the list of predicates that are pointing in to a node.
 //
 // Example:

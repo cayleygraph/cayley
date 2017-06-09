@@ -401,6 +401,13 @@ var testQueries = []struct {
 		expect: []string{"<follows>"},
 	},
 	{
+		message: "list all labels",
+		query: `
+		  g.V().Labels().All()
+		`,
+		expect: []string{"", "<smart_graph>"},
+	},
+	{
 		message: "list all in predicates",
 		query: `
 		  g.V().InPredicates().All()
