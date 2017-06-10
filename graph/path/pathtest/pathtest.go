@@ -280,6 +280,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vDani},
 		},
 		{
+			message: "Labels()",
+			path:    StartPath(qs, vGreg).Labels(),
+			expect:  []quad.Value{vSmartGraph},
+		},
+		{
 			message: "InPredicates()",
 			path:    StartPath(qs, vBob).InPredicates(),
 			expect:  []quad.Value{vFollows},

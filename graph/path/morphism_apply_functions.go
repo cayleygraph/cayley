@@ -226,6 +226,26 @@ func labelContextMorphism(tags []string, via ...interface{}) morphism {
 	}
 }
 
+// labelsMorphism iterates to the uniqified set of labels from
+// the given set of nodes in the path.
+func labelsMorphism() morphism {
+	m := morphism{
+		Name: "labels",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
+			panic("not implemented")
+		},
+		Apply: func(qs graph.QuadStore, in graph.Iterator, ctx *pathContext) (graph.Iterator, *pathContext) {
+			inLinks := iterator.NewLinksTo(qs, in, quad.Object)
+			outLinks := iterator.NewLinksTo(qs, in.Clone(), quad.Subject)
+			both := iterator.NewOr(inLinks, outLinks)
+			hasa := iterator.NewHasA(qs, both, quad.Label)
+			return iterator.NewUnique(hasa), ctx
+		},
+	}
+
+	return m
+}
+
 // predicatesMorphism iterates to the uniqified set of predicates from
 // the given set of nodes in the path.
 func predicatesMorphism(isIn bool) morphism {
