@@ -17,14 +17,16 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/query"
-	"io"
 )
 
 type SuccessQueryWrapper struct {
@@ -105,6 +107,13 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		errFunc(w, errors.New("HTTP interface is not supported for this query language."))
 		return
 	}
+
+	par, _ := url.ParseQuery(r.URL.RawQuery)
+	limit, _ := strconv.Atoi(par.Get("limit"))
+	if limit == 0 {
+		limit = 100
+	}
+
 	ses := l.HTTP(h.QuadStore)
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -114,7 +123,7 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 	code := string(bodyBytes)
 
 	c := make(chan query.Result, 5)
-	go ses.Execute(ctx, code, c, 100)
+	go ses.Execute(ctx, code, c, limit)
 
 	for res := range c {
 		if err := res.Err(); err != nil {
