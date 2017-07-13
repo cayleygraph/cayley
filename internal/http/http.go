@@ -187,7 +187,7 @@ func SetupRoutes(handle *graph.Handle, cfg *Config) {
 
 	gs := &gephi.GraphStreamHandler{QS: handle.QuadStore}
 	const gephiPath = "/gephi/gs"
-	r.GET(gephiPath, gs.ServeHTTP)
+	r.GET(gephiPath, CORS(gs.ServeHTTP))
 
 	r.GET("/docs/:docpage", docs.ServeHTTP)
 	r.GET("/ui/:ui_type", root.ServeHTTP)
