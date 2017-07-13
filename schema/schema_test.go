@@ -306,6 +306,7 @@ var treeQuads = []quad.Quad{
 var testFillValueCases = []struct {
 	expect interface{}
 	quads  []quad.Quad
+	depth  int
 	from   []quad.Value
 }{
 	{
@@ -437,6 +438,30 @@ var testFillValueCases = []struct {
 		from:  []quad.Value{iri("n1")},
 	},
 	{
+		expect: treeItem{
+			ID:   iri("n1"),
+			Name: "Node 1",
+			Children: []treeItem{
+				{
+					ID:   iri("n2"),
+					Name: "Node 2",
+				},
+				{
+					ID:   iri("n3"),
+					Name: "Node 3",
+					Children: []treeItem{
+						{
+							ID: iri("n4"),
+						},
+					},
+				},
+			},
+		},
+		depth: 1,
+		quads: treeQuads,
+		from:  []quad.Value{iri("n1")},
+	},
+	{
 		expect: treeItemOpt{
 			ID:   iri("n1"),
 			Name: "Node 1",
@@ -457,6 +482,7 @@ var testFillValueCases = []struct {
 				},
 			},
 		},
+		depth: 2,
 		quads: treeQuads,
 		from:  []quad.Value{iri("n1")},
 	},
@@ -513,7 +539,11 @@ func TestLoadIteratorTo(t *testing.T) {
 			}
 			it = fixed
 		}
-		if err := schema.LoadIteratorTo(nil, qs, out, it); err != nil {
+		depth := c.depth
+		if depth == 0 {
+			depth = -1
+		}
+		if err := schema.LoadIteratorToDepth(nil, qs, out, depth, it); err != nil {
 			t.Errorf("case %d failed: %v", i+1, err)
 			continue
 		}

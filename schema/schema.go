@@ -21,9 +21,10 @@ import (
 	"github.com/cayleygraph/cayley/voc/rdf"
 )
 
-type ErrReqFieldNotSet struct{
+type ErrReqFieldNotSet struct {
 	Field string
 }
+
 func (e ErrReqFieldNotSet) Error() string {
 	return fmt.Sprintf("required field is not set: %s", e.Field)
 }
@@ -166,8 +167,8 @@ func iteratorFromPath(qs graph.QuadStore, root graph.Iterator, p *path.Path) (gr
 	return it, nil
 }
 
-func iteratorForType(qs graph.QuadStore, root graph.Iterator, rt reflect.Type) (graph.Iterator, error) {
-	p, err := PathForType(rt)
+func iteratorForType(qs graph.QuadStore, root graph.Iterator, rt reflect.Type, rootOnly bool) (graph.Iterator, error) {
+	p, err := makePathForType(rt, "", rootOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +180,9 @@ var (
 	typeToIRI = make(map[reflect.Type]quad.IRI)
 	iriToType = make(map[quad.IRI]reflect.Type)
 
-	pathForTypeMu sync.RWMutex
-	pathForType   = make(map[reflect.Type]*path.Path)
+	pathForTypeMu   sync.RWMutex
+	pathForType     = make(map[reflect.Type]*path.Path)
+	pathForTypeRoot = make(map[reflect.Type]*path.Path)
 )
 
 // RegisterType associates an IRI with a given Go type.
@@ -217,7 +219,7 @@ func RegisterType(iri quad.IRI, obj interface{}) {
 	iriToType[full] = rt
 }
 
-func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
+func makePathForType(rt reflect.Type, tagPref string, rootOnly bool) (*path.Path, error) {
 	for rt.Kind() == reflect.Ptr {
 		rt = rt.Elem()
 	}
@@ -226,11 +228,15 @@ func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 	}
 	if tagPref != "" {
 		pathForTypeMu.RLock()
-		if p, ok := pathForType[rt]; ok {
-			pathForTypeMu.RUnlock()
+		m := pathForType
+		if rootOnly {
+			m = pathForTypeRoot
+		}
+		p, ok := m[rt]
+		pathForTypeMu.RUnlock()
+		if ok {
 			return p, nil
 		}
-		pathForTypeMu.RUnlock()
 	}
 
 	p := path.StartMorphism()
@@ -243,7 +249,7 @@ func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous {
-			pa, err := makePathForType(f.Type, tagPref+f.Name+".")
+			pa, err := makePathForType(f.Type, tagPref+f.Name+".", rootOnly)
 			if err != nil {
 				return nil, err
 			}
@@ -280,10 +286,18 @@ func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 		case saveRule:
 			tag := tagPref + name
 			if rule.Opt {
+				if !rootOnly {
+					if rule.Rev {
+						p = p.SaveOptionalReverse(rule.Pred, tag)
+					} else {
+						p = p.SaveOptional(rule.Pred, tag)
+					}
+				}
+			} else if rootOnly { // do not save field, enforce constraint only
 				if rule.Rev {
-					p = p.SaveOptionalReverse(rule.Pred, tag)
+					p = p.HasReverse(rule.Pred)
 				} else {
-					p = p.SaveOptional(rule.Pred, tag)
+					p = p.Has(rule.Pred)
 				}
 			} else {
 				if rule.Rev {
@@ -296,7 +310,11 @@ func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 	}
 	if tagPref != "" {
 		pathForTypeMu.Lock()
-		pathForType[rt] = p
+		m := pathForType
+		if rootOnly {
+			m = pathForTypeRoot
+		}
+		m[rt] = p
 		pathForTypeMu.Unlock()
 	}
 	return p, nil
@@ -304,7 +322,7 @@ func makePathForType(rt reflect.Type, tagPref string) (*path.Path, error) {
 
 // PathForType builds a path (morphism) for a given Go type.
 func PathForType(rt reflect.Type) (*path.Path, error) {
-	return makePathForType(rt, "")
+	return makePathForType(rt, "", false)
 }
 
 func anonFieldType(fld reflect.StructField) (reflect.Type, bool) {
@@ -429,7 +447,7 @@ var (
 	errRequiredFieldIsMissing = errors.New("required field is missing")
 )
 
-func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m map[string][]graph.Value, tagPref string) error {
+func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, m map[string][]graph.Value, tagPref string) error {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -450,10 +468,12 @@ func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 		}
 		fields = nfields
 	}
-	for name, field := range fields {
-		if r, ok := field.(saveRule); ok && !r.Opt {
-			if vals := m[name]; len(vals) == 0 {
-				return errRequiredFieldIsMissing
+	if depth != 0 { // do not check required fields if depth limit is reached
+		for name, field := range fields {
+			if r, ok := field.(saveRule); ok && !r.Opt {
+				if vals := m[name]; len(vals) == 0 {
+					return errRequiredFieldIsMissing
+				}
 			}
 		}
 	}
@@ -470,7 +490,7 @@ func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 		}
 		df := dst.Field(i)
 		if f.Anonymous {
-			if err := loadToValue(ctx, qs, df, m, tagPref+name+"."); err != nil {
+			if err := loadToValue(ctx, qs, df, depth, m, tagPref+name+"."); err != nil {
 				return fmt.Errorf("load anonymous field %s failed: %v", f.Name, err)
 			}
 			continue
@@ -489,13 +509,14 @@ func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, m m
 			native = native || isNative(ft)
 			ft = ft.Elem()
 		}
+		recursive := !native && ft.Kind() == reflect.Struct
 		for _, fv := range arr {
 			var sv reflect.Value
-			if !native && ft.Kind() == reflect.Struct {
+			if recursive {
 				sv = reflect.New(ft).Elem()
 				sit := qs.FixedIterator()
 				sit.Add(fv)
-				err := LoadIteratorTo(ctx, qs, sv, sit)
+				err := loadIteratorToDepth(ctx, qs, sv, depth-1, sit)
 				if err == errRequiredFieldIsMissing {
 					continue
 				} else if err != nil {
@@ -600,6 +621,12 @@ func keysEqual(v1, v2 graph.Value) bool {
 //		FollowedBy []quad.IRI `quad:"follows"`
 // 	}
 func LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...quad.Value) error {
+	return LoadToDepth(ctx, qs, dst, -1, ids...)
+}
+
+// LoadToDepth is the same as LoadTo, but stops at a specified depth.
+// Negative value means unlimited depth, and zero means top level only.
+func LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interface{}, depth int, ids ...quad.Value) error {
 	if dst == nil {
 		return fmt.Errorf("nil destination object")
 	}
@@ -617,7 +644,7 @@ func LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...qua
 	} else {
 		rv = reflect.ValueOf(dst)
 	}
-	return LoadIteratorTo(ctx, qs, rv, it)
+	return LoadIteratorToDepth(ctx, qs, rv, depth, it)
 }
 
 // LoadPathTo is the same as LoadTo, but starts loading objects from a given path.
@@ -632,6 +659,20 @@ func LoadPathTo(ctx context.Context, qs graph.QuadStore, dst interface{}, p *pat
 //
 // Nodes iterator can be nil, All iterator will be used in this case.
 func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.Iterator) error {
+	return LoadIteratorToDepth(ctx, qs, dst, -1, list)
+}
+
+// LoadIteratorToDepth is the same as LoadIteratorTo, but stops at a specified depth.
+// Negative value means unlimited depth, and zero means top level only.
+func LoadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
+	if depth >= 0 {
+		// 0 depth means "current level only" for user, but it's easier to make depth=0 a stop condition
+		depth++
+	}
+	return loadIteratorToDepth(ctx, qs, dst, depth, list)
+}
+
+func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -657,7 +698,8 @@ func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 		return ctx.Err()
 	default:
 	}
-	it, err := iteratorForType(qs, list, et)
+	rootOnly := depth == 0
+	it, err := iteratorForType(qs, list, et, rootOnly)
 	if err != nil {
 		return err
 	}
@@ -716,7 +758,7 @@ func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, 
 				}
 			}
 		}
-		err := loadToValue(ctx, qs, cur, mo, "")
+		err := loadToValue(ctx, qs, cur, depth, mo, "")
 		if err == errRequiredFieldIsMissing {
 			if !slice && !chanl {
 				return err
@@ -821,7 +863,7 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 			} else {
 				fv := rv.Field(i)
 				if !r.Opt && isZero(fv) {
-					return ErrReqFieldNotSet{Field:f.Name}
+					return ErrReqFieldNotSet{Field: f.Name}
 				}
 				if err := writeOneValReflect(w, id, r.Pred, fv, r.Rev); err != nil {
 					return err
