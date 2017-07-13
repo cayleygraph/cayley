@@ -12,7 +12,7 @@ imports:
   subpackages:
   - spew
 - name: github.com/dennwc/graphql
-  version: fd5c4aa13f2119414084f229600de0d73f174436
+  version: 5cf1f05cb1945ca40ca374e21ccf26f01fc67d10
   subpackages:
   - gqlerrors
   - language/ast

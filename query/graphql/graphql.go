@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/dennwc/graphql/language/ast"
 	"github.com/dennwc/graphql/language/lexer"
@@ -21,8 +22,19 @@ import (
 
 const Name = "graphql"
 
+// GraphQL charset: [_A-Za-z][_0-9A-Za-z]*
+// (https://facebook.github.io/graphql/#sec-Names)
+
+// IRI charset: [^#x00-#x20<>"{}|^`\]
+// (https://www.w3.org/TR/turtle/#grammar-production-IRIREF)
+
+func allowedNameRune(r rune) bool {
+	// will include <> in the IRI value
+	return r > 0x20 && !strings.ContainsRune("\"{}()|^`", r) && !unicode.IsSpace(r)
+}
+
 func init() {
-	lexer.AllowNameRunes = "/.:<>~-" // TODO(dennwc): change to anonymous function with full IRI charset
+	lexer.AllowNameRunes = allowedNameRune
 
 	query.RegisterLanguage(query.Language{
 		Name: Name,

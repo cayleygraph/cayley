@@ -14,6 +14,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/cayley/voc/rdf"
 )
 
 var casesParse = []struct {
@@ -24,7 +25,7 @@ var casesParse = []struct {
 		`{
 	user(id: 3500401, http://iri: http://some_iri, follow: <bob>, n: _:bob) @rev(follow: "123"){
 	id: ` + ValueKey + `,
-	name,
+	type: `+rdf.NS+"type"+`,
 	followed: follow @reverse {
 		name: <name>
 		followed: ~follow
@@ -48,7 +49,7 @@ var casesParse = []struct {
 			},
 			Fields: []field{
 				{Via: quad.IRI(ValueKey), Alias: "id"},
-				{Via: "name", Alias: "name"},
+				{Via: quad.IRI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), Alias: "type"},
 				{
 					Via: "follow", Alias: "followed", Rev: true,
 					Fields: []field{
