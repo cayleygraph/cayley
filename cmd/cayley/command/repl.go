@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -18,6 +19,10 @@ import (
 	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
+)
+
+const (
+	keyQueryTimeout = "query.timeout"
 )
 
 func getContext() (context.Context, func()) {
@@ -64,6 +69,7 @@ func registerQueryFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("init", false, "initialize the database before using it")
 	cmd.Flags().String("lang", "gizmo", `query language to use ("`+strings.Join(langs, `", "`)+`")`)
 	cmd.Flags().DurationP("timeout", "t", 30*time.Second, "elapsed time until an individual query times out")
+	viper.BindPFlag(keyQueryTimeout, cmd.Flags().Lookup("timeout"))
 	registerLoadFlags(cmd)
 }
 
@@ -85,10 +91,7 @@ func NewReplCmd() *cobra.Command {
 			ctx, cancel := getContext()
 			defer cancel()
 
-			timeout, err := cmd.Flags().GetDuration("timeout")
-			if err != nil {
-				return err
-			}
+			timeout := viper.GetDuration("timeout")
 			lang, _ := cmd.Flags().GetString("lang")
 			return db.Repl(ctx, h, lang, timeout)
 		},
@@ -129,10 +132,7 @@ func NewQueryCmd() *cobra.Command {
 			ctx, cancel := getContext()
 			defer cancel()
 
-			timeout, err := cmd.Flags().GetDuration("timeout")
-			if err != nil {
-				return err
-			}
+			timeout := viper.GetDuration("timeout")
 			if timeout > 0 {
 				ctx, cancel = context.WithTimeout(ctx, timeout)
 				defer cancel()

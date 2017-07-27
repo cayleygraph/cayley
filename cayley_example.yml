@@ -8,6 +8,8 @@ store:
   # backend-specific options
   options:
     nosync: false
+query:
+  timeout: 30s
 load:
   ignore_duplicates: false
   ignore_missing: false

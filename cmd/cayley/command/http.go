@@ -23,10 +23,8 @@ func NewHttpCmd() *cobra.Command {
 			printBackendInfo()
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
-			timeout, err := cmd.Flags().GetDuration("timeout")
-			if err != nil {
-				return err
-			}
+
+			timeout := viper.GetDuration(keyQueryTimeout)
 			if init, err := cmd.Flags().GetBool("init"); err != nil {
 				return err
 			} else if init {
@@ -71,5 +69,6 @@ func NewHttpCmd() *cobra.Command {
 	cmd.Flags().DurationP("timeout", "t", 30*time.Second, "elapsed time until an individual query times out")
 	cmd.Flags().StringVar(&chttp.AssetsPath, "assets", "", "explicit path to the HTTP assets")
 	registerLoadFlags(cmd)
+	viper.BindPFlag(keyQueryTimeout, cmd.Flags().Lookup("timeout"))
 	return cmd
 }
