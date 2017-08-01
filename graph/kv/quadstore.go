@@ -128,9 +128,9 @@ func New(kv KV, _ graph.Options) (graph.QuadStore, error) {
 		return nil, errors.New("bolt: data version is out of date. Run cayleyupgrade for your config to update the data.")
 	}
 	qs.valueLRU = lru.New(2000)
+	qs.bloomBuf = make([]byte, 3*8)
 	qs.initBloomFilter()
 	qs.hashBuf = make([]byte, quad.HashSize)
-	qs.bloomBuf = make([]byte, 3*8)
 	return qs, nil
 }
 
