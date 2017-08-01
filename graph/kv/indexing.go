@@ -509,6 +509,7 @@ func (qs *QuadStore) initBloomFilter() error {
 		p := proto.Primitive{}
 		b := tx.Bucket(logIndex)
 		return b.ForEach(func(k, v []byte) error {
+			p = proto.Primitive{}
 			err := p.Unmarshal(v)
 			if err != nil {
 				return err

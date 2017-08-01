@@ -129,8 +129,8 @@ func New(kv KV, _ graph.Options) (graph.QuadStore, error) {
 	}
 	qs.valueLRU = lru.New(2000)
 	qs.bloomBuf = make([]byte, 3*8)
-	qs.initBloomFilter()
 	qs.hashBuf = make([]byte, quad.HashSize)
+	qs.initBloomFilter()
 	return qs, nil
 }
 
