@@ -1,6 +1,8 @@
 package kv
 
 import (
+	"fmt"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -19,12 +21,18 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 }
 
 func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Value) graph.Iterator {
+	if v == nil {
+		return iterator.NewNull()
+	}
+	vi, ok := v.(Int64Value)
+	if !ok {
+		return iterator.NewError(fmt.Errorf("unexpected node type: %T", v))
+	}
 	if dir == quad.Subject || dir == quad.Object {
-		return NewQuadIterator(dir, v.(Int64Value), qs)
+		return NewQuadIterator(dir, vi, qs)
 	}
-	cons := constraint{
+	return NewAllIterator(false, qs, &constraint{
 		dir: dir,
-		val: v.(Int64Value),
-	}
-	return NewAllIterator(false, qs, &cons)
+		val: vi,
+	})
 }
