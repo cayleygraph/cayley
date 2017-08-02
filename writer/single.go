@@ -31,6 +31,14 @@ type Single struct {
 	ignoreOpts graph.IgnoreOpts
 }
 
+func NewSingle(qs graph.QuadStore, opts graph.IgnoreOpts) (graph.QuadWriter, error) {
+	return &Single{
+		currentID:  qs.Horizon(),
+		qs:         qs,
+		ignoreOpts: opts,
+	}, nil
+}
+
 func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
 	var (
 		ignoreMissing   bool
@@ -56,14 +64,10 @@ func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWri
 		}
 	}
 
-	return &Single{
-		currentID: qs.Horizon(),
-		qs:        qs,
-		ignoreOpts: graph.IgnoreOpts{
-			IgnoreDup:     ignoreDuplicate,
-			IgnoreMissing: ignoreMissing,
-		},
-	}, nil
+	return NewSingle(qs, graph.IgnoreOpts{
+		IgnoreMissing: ignoreMissing,
+		IgnoreDup:     ignoreDuplicate,
+	})
 }
 
 func (s *Single) AddQuad(q quad.Quad) error {
