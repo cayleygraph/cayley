@@ -222,6 +222,32 @@ func (w *batchWriter) Close() error {
 	return w.Flush()
 }
 
+// NewTxWriter creates a writer that applies a given procedures for all quads in stream.
+// If procedure is zero, Add operation will be used.
+func NewTxWriter(tx *Transaction, p Procedure) quad.Writer {
+	if p == 0 {
+		p = Add
+	}
+	return &txWriter{tx: tx, p: p}
+}
+
+type txWriter struct {
+	tx *Transaction
+	p  Procedure
+}
+
+func (w *txWriter) WriteQuad(q quad.Quad) error {
+	switch w.p {
+	case Add:
+		w.tx.AddQuad(q)
+	case Delete:
+		w.tx.RemoveQuad(q)
+	default:
+		return ErrInvalidAction
+	}
+	return nil
+}
+
 // NewRemover creates a quad writer for a given QuadStore which removes quads instead of adding them.
 func NewRemover(qs QuadWriter) BatchWriter {
 	return &removeWriter{qs: qs}
