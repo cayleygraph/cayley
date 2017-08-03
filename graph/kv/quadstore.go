@@ -155,7 +155,7 @@ func (qs *QuadStore) Size() int64 {
 
 func (qs *QuadStore) Close() error {
 	err := Update(qs.db, func(tx Tx) error {
-		return qs.writeHorizonAndSize(tx)
+		return qs.writeHorizonAndSize(tx, -1, -1)
 	})
 	if err != nil {
 		qs.db.Close()

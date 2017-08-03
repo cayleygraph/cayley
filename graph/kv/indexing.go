@@ -95,33 +95,30 @@ func bucketFor(i, j byte) []byte {
 	return []byte{'v', i, j}
 }
 
-func (qs *QuadStore) writeHorizonAndSize(tx Tx) error {
+func (qs *QuadStore) writeHorizonAndSize(tx Tx, horizon, size int64) error {
 	qs.mu.Lock()
 	defer qs.mu.Unlock()
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, qs.size)
-	if err != nil {
-		clog.Errorf("Couldn't convert size!")
-		return err
+	if horizon < 0 {
+		horizon, size = qs.horizon, qs.size
 	}
 	b := tx.Bucket(metaBucket)
-	werr := b.Put([]byte("size"), buf.Bytes())
-	if werr != nil {
-		clog.Errorf("Couldn't write size!")
-		return werr
-	}
-	buf.Reset()
-	err = binary.Write(buf, binary.LittleEndian, qs.horizon)
+
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, uint64(size))
+	err := b.Put([]byte("size"), buf)
 
 	if err != nil {
-		clog.Errorf("Couldn't convert horizon!")
+		clog.Errorf("Couldn't write size!")
+		return err
 	}
 
-	werr = b.Put([]byte("horizon"), buf.Bytes())
+	buf = make([]byte, 8) // bolt needs all slices available on Commit
+	binary.LittleEndian.PutUint64(buf, uint64(horizon))
+	err = b.Put([]byte("horizon"), buf)
 
-	if werr != nil {
+	if err != nil {
 		clog.Errorf("Couldn't write horizon!")
-		return werr
+		return err
 	}
 	return err
 }
@@ -213,6 +210,10 @@ nextDelta:
 		size++
 	}
 	err = qs.flushMapBucket(tx)
+	if err != nil {
+		return err
+	}
+	err = qs.writeHorizonAndSize(tx, horizon, size)
 	if err != nil {
 		return err
 	}
