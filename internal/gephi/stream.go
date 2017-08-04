@@ -2,6 +2,7 @@ package gephi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"

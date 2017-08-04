@@ -1,12 +1,12 @@
 package graph
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/quad"
-	"golang.org/x/net/context"
 )
 
 // IterateChain is a chain-enabled helper to setup iterator execution.

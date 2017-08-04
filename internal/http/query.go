@@ -15,6 +15,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -24,7 +25,6 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/query"
 )

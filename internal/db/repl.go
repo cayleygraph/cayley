@@ -17,6 +17,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -26,7 +27,6 @@ import (
 	"time"
 
 	"github.com/peterh/liner"
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -189,7 +189,6 @@ func Repl(ctx context.Context, h *graph.Handle, queryLanguage string, timeout ti
 				fmt.Printf("Help\n\texit // Exit\n\thelp // this help\n\td: <quad> // delete quad\n\ta: <quad> // add quad\n\t:debug [t|f]\n")
 				continue
 
-				
 			case "exit":
 				term.Close()
 				os.Exit(0)

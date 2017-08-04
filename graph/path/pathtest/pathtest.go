@@ -15,12 +15,11 @@
 package pathtest
 
 import (
+	"context"
 	"reflect"
 	"regexp"
 	"sort"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	. "github.com/cayleygraph/cayley/graph/path"
 
