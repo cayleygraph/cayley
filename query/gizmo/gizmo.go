@@ -15,11 +15,11 @@
 package gizmo
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
 	"github.com/dop251/goja"
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"

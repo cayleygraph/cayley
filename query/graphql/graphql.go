@@ -1,6 +1,7 @@
 package graphql
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +13,6 @@ import (
 	"github.com/dennwc/graphql/language/ast"
 	"github.com/dennwc/graphql/language/lexer"
 	"github.com/dennwc/graphql/language/parser"
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/path"

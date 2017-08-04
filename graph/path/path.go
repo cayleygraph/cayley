@@ -15,12 +15,12 @@
 package path
 
 import (
+	"context"
 	"regexp"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
-	"golang.org/x/net/context"
 )
 
 type applyMorphism func(graph.QuadStore, graph.Iterator, *pathContext) (graph.Iterator, *pathContext)
@@ -268,6 +268,7 @@ func (p *Path) BothWithTags(tags []string, via ...interface{}) *Path {
 	np.stack = append(np.stack, bothMorphism(tags, via...))
 	return np
 }
+
 // Labels updates this path to represent the nodes of the labels
 // of inbound and outbound quads.
 func (p *Path) Labels() *Path {

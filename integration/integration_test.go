@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -24,8 +25,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"

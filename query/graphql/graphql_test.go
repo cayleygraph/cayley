@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"reflect"
 	"strings"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/memstore"
@@ -25,7 +25,7 @@ var casesParse = []struct {
 		`{
 	user(id: 3500401, http://iri: http://some_iri, follow: <bob>, n: _:bob) @rev(follow: "123"){
 	id: ` + ValueKey + `,
-	type: `+rdf.NS+"type"+`,
+	type: ` + rdf.NS + "type" + `,
 	followed: follow @reverse {
 		name: <name>
 		followed: ~follow

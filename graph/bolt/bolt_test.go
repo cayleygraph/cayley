@@ -35,7 +35,6 @@ func TestCreateDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)
 	}
-	t.Log(tmpFile)
 
 	err = createNewBolt(tmpFile.Name(), nil)
 	if err != nil {
@@ -87,7 +86,6 @@ func TestLoadDatabase(t *testing.T) {
 		t.Fatalf("Could not create working directory: %v", err)
 	}
 	defer os.RemoveAll(tmpFile.Name())
-	t.Log(tmpFile.Name())
 
 	err = createNewBolt(tmpFile.Name(), nil)
 	if err != nil {

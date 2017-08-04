@@ -16,10 +16,11 @@
 package query
 
 import (
+	"context"
 	"errors"
-	"github.com/cayleygraph/cayley/graph"
-	"golang.org/x/net/context"
 	"io"
+
+	"github.com/cayleygraph/cayley/graph"
 )
 
 var ErrParseMore = errors.New("query: more input required")

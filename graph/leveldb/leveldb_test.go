@@ -33,7 +33,6 @@ func TestCreateDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)
 	}
-	t.Log(tmpDir)
 
 	err = createNewLevelDB(tmpDir, nil)
 	if err != nil {
@@ -86,7 +85,6 @@ func TestLoadDatabase(t *testing.T) {
 		t.Fatalf("Could not create working directory: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
-	t.Log(tmpDir)
 
 	err = createNewLevelDB(tmpDir, nil)
 	if err != nil {

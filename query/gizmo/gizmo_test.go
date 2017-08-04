@@ -15,12 +15,11 @@
 package gizmo
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"

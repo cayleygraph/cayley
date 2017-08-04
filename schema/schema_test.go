@@ -1,11 +1,10 @@
 package schema_test
 
 import (
+	"context"
 	"reflect"
 	"sort"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/memstore"
