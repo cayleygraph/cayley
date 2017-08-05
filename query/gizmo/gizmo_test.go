@@ -570,7 +570,7 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string,
 func TestGizmo(t *testing.T) {
 	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
-		func() {
+		t.Run(test.message, func(t *testing.T) {
 			rec := func() {
 				if r := recover(); r != nil {
 					t.Errorf("Unexpected panic on %s: %v", test.message, r)
@@ -585,15 +585,14 @@ func TestGizmo(t *testing.T) {
 				if test.err {
 					return //expected
 				}
-				t.Errorf("unexpected error on %s: %v", test.message, err)
+				t.Error(err)
 			}
 			sort.Strings(got)
 			sort.Strings(test.expect)
-			t.Log("testing", test.message)
 			if !reflect.DeepEqual(got, test.expect) {
-				t.Errorf("Failed to %s, got: %v expected: %v", test.message, got, test.expect)
+				t.Errorf("got: %v expected: %v", got, test.expect)
 			}
-		}()
+		})
 	}
 }
 
