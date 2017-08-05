@@ -174,15 +174,17 @@ func runQuery(g []quad.Quad, qu string) interface{} {
 func TestMQL(t *testing.T) {
 	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
-		got := runQuery(simpleGraph, test.query)
-		var expect interface{}
-		json.Unmarshal([]byte(test.expect), &expect)
-		if !reflect.DeepEqual(got, expect) {
-			b, err := json.MarshalIndent(got, "", " ")
-			if err != nil {
-				t.Fatalf("unexpected JSON marshal error: %v", err)
+		t.Run(test.message, func(t *testing.T) {
+			got := runQuery(simpleGraph, test.query)
+			var expect interface{}
+			json.Unmarshal([]byte(test.expect), &expect)
+			if !reflect.DeepEqual(got, expect) {
+				b, err := json.MarshalIndent(got, "", " ")
+				if err != nil {
+					t.Fatalf("unexpected JSON marshal error: %v", err)
+				}
+				t.Errorf("got: %s expected: %s", b, test.expect)
 			}
-			t.Errorf("Failed to %s, got: %s expected: %s", test.message, b, test.expect)
-		}
+		})
 	}
 }

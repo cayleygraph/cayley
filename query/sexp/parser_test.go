@@ -62,20 +62,22 @@ func TestMemstoreBackedSexp(t *testing.T) {
 		t.Errorf(`Incorrect type for empty query, got:%q expect: "null"`, emptyIt.Type())
 	}
 	for _, test := range testQueries {
-		if test.add.IsValid() {
-			w.AddQuad(test.add)
-		}
-		it := BuildIteratorTreeForQuery(qs, test.query)
-		if it.Type() != test.typ {
-			t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
-		}
-		if !it.Next() {
-			t.Errorf("Failed to %s", test.message)
-		}
-		got := it.Result()
-		if expect := qs.ValueOf(quad.Raw(test.expect)); got != expect {
-			t.Errorf("Incorrect result for %s, got:%v expect %v", test.message, got, expect)
-		}
+		t.Run(test.message, func(t *testing.T) {
+			if test.add.IsValid() {
+				w.AddQuad(test.add)
+			}
+			it := BuildIteratorTreeForQuery(qs, test.query)
+			if it.Type() != test.typ {
+				t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
+			}
+			if !it.Next() {
+				t.Errorf("Failed to %s", test.message)
+			}
+			got := it.Result()
+			if expect := qs.ValueOf(quad.Raw(test.expect)); got != expect {
+				t.Errorf("got:%v expect %v", got, expect)
+			}
+		})
 	}
 }
 

@@ -360,7 +360,7 @@ func testSet(qs graph.QuadStore) []test {
 	}
 }
 
-func RunTestMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
+func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
 	for _, ftest := range []func(testing.TB, graphtest.DatabaseFunc){
 		testFollowRecursive,
 	} {
@@ -370,33 +370,35 @@ func RunTestMorphisms(t testing.TB, fnc graphtest.DatabaseFunc) {
 	defer closer()
 
 	for _, test := range testSet(qs) {
-		var (
-			got []quad.Value
-			err error
-		)
 		for _, opt := range []bool{true, false} {
-			if test.tag == "" {
-				got, err = runTopLevel(qs, test.path, opt)
-			} else {
-				got, err = runTag(qs, test.path, test.tag, opt)
-			}
-			unopt := ""
+			name := test.message
 			if !opt {
-				unopt = " (unoptimized)"
+				name += " (unoptimized)"
 			}
-			if err != nil {
-				t.Errorf("Failed to %s%s: %v", test.message, unopt, err)
-				continue
-			}
-			sort.Sort(quad.ByValueString(got))
-			sort.Sort(quad.ByValueString(test.expect))
-			eq := reflect.DeepEqual(got, test.expect)
-			if !eq && test.expectAlt != nil {
-				eq = reflect.DeepEqual(got, test.expectAlt)
-			}
-			if !eq {
-				t.Errorf("Failed to %s%s, got: %v(%d) expected: %v(%d)", test.message, unopt, got, len(got), test.expect, len(test.expect))
-			}
+			t.Run(name, func(t *testing.T) {
+				var (
+					got []quad.Value
+					err error
+				)
+				if test.tag == "" {
+					got, err = runTopLevel(qs, test.path, opt)
+				} else {
+					got, err = runTag(qs, test.path, test.tag, opt)
+				}
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				sort.Sort(quad.ByValueString(got))
+				sort.Sort(quad.ByValueString(test.expect))
+				eq := reflect.DeepEqual(got, test.expect)
+				if !eq && test.expectAlt != nil {
+					eq = reflect.DeepEqual(got, test.expectAlt)
+				}
+				if !eq {
+					t.Errorf("got: %v(%d) expected: %v(%d)", got, len(got), test.expect, len(test.expect))
+				}
+			})
 		}
 	}
 }
