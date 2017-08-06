@@ -100,9 +100,8 @@ func TestMemstore(t *testing.T) {
 		switch v := v.(type) {
 		default:
 			t.Errorf("ValueOf(%q) returned unexpected type, got:%T expected int64", test.query, v)
-		case graph.PrimaryKey:
-			n, _ := v.Int()
-			require.Equal(t, test.value, n)
+		case bnode:
+			require.Equal(t, test.value, int64(v))
 		}
 	}
 }

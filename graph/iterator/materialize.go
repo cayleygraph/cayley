@@ -255,6 +255,7 @@ func (it *Materialize) NextPath() bool {
 
 func (it *Materialize) materializeSet() {
 	i := 0
+	mn := 0
 	for it.subIt.Next() {
 		i++
 		if i > abortMaterializeAt {
@@ -268,8 +269,11 @@ func (it *Materialize) materializeSet() {
 			it.values = append(it.values, nil)
 		}
 		index := it.containsMap[val]
-		tags := make(map[string]graph.Value)
+		tags := make(map[string]graph.Value, mn)
 		it.subIt.TagResults(tags)
+		if n := len(tags); n > mn {
+			n = mn
+		}
 		it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		it.actualSize += 1
 		for it.subIt.NextPath() {
@@ -278,8 +282,11 @@ func (it *Materialize) materializeSet() {
 				it.aborted = true
 				break
 			}
-			tags := make(map[string]graph.Value)
+			tags := make(map[string]graph.Value, mn)
 			it.subIt.TagResults(tags)
+			if n := len(tags); n > mn {
+				n = mn
+			}
 			it.values[index] = append(it.values[index], result{id: id, tags: tags})
 			it.actualSize += 1
 		}

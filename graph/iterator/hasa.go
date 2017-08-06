@@ -165,6 +165,9 @@ func (it *HasA) Contains(val graph.Value) bool {
 // result iterator (a quad iterator based on the last checked value) and returns true if
 // another match is made.
 func (it *HasA) NextContains() bool {
+	if it.resultIt == nil {
+		return false
+	}
 	for it.resultIt.Next() {
 		it.runstats.ContainsNext += 1
 		link := it.resultIt.Result()
@@ -218,7 +221,6 @@ func (it *HasA) Next() bool {
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
-	it.resultIt = &Null{}
 
 	if !it.primaryIt.Next() {
 		it.err = it.primaryIt.Err()

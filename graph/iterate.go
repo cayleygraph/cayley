@@ -236,14 +236,18 @@ func (c *IterateChain) TagEach(fnc func(map[string]Value)) error {
 	defer c.end()
 	done := c.ctx.Done()
 
+	mn := 0
 	for c.next() {
 		select {
 		case <-done:
 			return c.ctx.Err()
 		default:
 		}
-		tags := make(map[string]Value)
+		tags := make(map[string]Value, mn)
 		c.it.TagResults(tags)
+		if n := len(tags); n > mn {
+			mn = n
+		}
 		fnc(tags)
 		for c.nextPath() {
 			select {
@@ -251,8 +255,11 @@ func (c *IterateChain) TagEach(fnc func(map[string]Value)) error {
 				return c.ctx.Err()
 			default:
 			}
-			tags := make(map[string]Value)
+			tags := make(map[string]Value, mn)
 			c.it.TagResults(tags)
+			if n := len(tags); n > mn {
+				mn = n
+			}
 			fnc(tags)
 		}
 	}
