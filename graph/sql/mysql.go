@@ -81,7 +81,7 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 		switch d.Action {
 		case graph.Add:
 			if insertQuad == nil {
-				insertQuad, err = tx.Prepare(`INSERT` + ignore + ` INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES (?, ?, ?, ?, ?, ?);`)
+				insertQuad, err = tx.Prepare(`INSERT` + ignore + ` INTO quads(subject_hash, predicate_hash, object_hash, label_hash, ts) VALUES (?, ?, ?, ?, now());`)
 				if err != nil {
 					return err
 				}
@@ -140,8 +140,6 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 			}
 			_, err := insertQuad.Exec(
 				hs.toSQL(), hp.toSQL(), ho.toSQL(), hl.toSQL(),
-				d.ID.Int(),
-				d.Timestamp,
 			)
 			err = convInsertErrorMySql(err)
 			if err != nil {

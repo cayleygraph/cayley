@@ -17,6 +17,7 @@ package bolt
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
@@ -94,13 +95,15 @@ func upgrade1To2(db *bolt.DB) error {
 	fmt.Println("Upgrading bucket", string(logBucket))
 	lb := tx.Bucket(logBucket)
 	c := lb.Cursor()
+	id := int64(0)
 	for k, v := c.First(); k != nil; k, v = c.Next() {
 		var delta graph.Delta
 		err := json.Unmarshal(v, &delta)
 		if err != nil {
 			return err
 		}
-		newd := deltaToProto(delta)
+		id++
+		newd := deltaToProto(delta, id, time.Now())
 		data, err := newd.Marshal()
 		if err != nil {
 			return err

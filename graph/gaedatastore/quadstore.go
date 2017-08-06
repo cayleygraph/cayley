@@ -19,6 +19,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"time"
 
 	"github.com/cayleygraph/cayley/clog"
 
@@ -64,12 +65,12 @@ func (t Token) Key() interface{} { return t }
 
 type QuadEntry struct {
 	Hash      string
-	Added     []string `datastore:",noindex"`
-	Deleted   []string `datastore:",noindex"`
-	Subject   string   `datastore:"subject"`
-	Predicate string   `datastore:"predicate"`
-	Object    string   `datastore:"object"`
-	Label     string   `datastore:"label"`
+	Added     []int64 `datastore:",noindex"`
+	Deleted   []int64 `datastore:",noindex"`
+	Subject   string  `datastore:"subject"`
+	Predicate string  `datastore:"predicate"`
+	Object    string  `datastore:"object"`
+	Label     string  `datastore:"label"`
 }
 
 type NodeEntry struct {
@@ -78,7 +79,6 @@ type NodeEntry struct {
 }
 
 type LogEntry struct {
-	LogID     string
 	Action    string
 	Key       string
 	Timestamp int64
@@ -123,8 +123,8 @@ func (qs *QuadStore) createKeyForMetadata() *datastore.Key {
 	return qs.createKeyFromToken(&Token{"metadata", "metadataentry"})
 }
 
-func (qs *QuadStore) createKeyForLog(deltaID graph.PrimaryKey) *datastore.Key {
-	return datastore.NewKey(qs.context, "logentry", deltaID.String(), 0, nil)
+func (qs *QuadStore) createKeyForLog() *datastore.Key {
+	return datastore.NewKey(qs.context, "logentry", "", 0, nil)
 }
 
 func (qs *QuadStore) createKeyFromToken(t *Token) *datastore.Key {
@@ -210,7 +210,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	if len(toKeep) == 0 {
 		return nil
 	}
-	err := qs.updateLog(toKeep)
+	ids, err := qs.updateLog(toKeep)
 	if err != nil {
 		clog.Errorf("Updating log failed %v", err)
 		return err
@@ -220,7 +220,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		clog.Infof("Existence verified. Proceeding.")
 	}
 
-	quadsAdded, err := qs.updateQuads(toKeep)
+	quadsAdded, err := qs.updateQuads(toKeep, ids)
 	if err != nil {
 		clog.Errorf("UpdateQuads failed %v", err)
 		return err
@@ -298,7 +298,7 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 	return nodesAdded, nil
 }
 
-func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
+func (qs *QuadStore) updateQuads(in []graph.Delta, ids []int64) (int64, error) {
 	keys := make([]*datastore.Key, 0, len(in))
 	for _, d := range in {
 		keys = append(keys, qs.createKeyForQuad(d.Quad))
@@ -322,10 +322,10 @@ func (qs *QuadStore) updateQuads(in []graph.Delta) (int64, error) {
 
 				// If the quad exists the Added[] will be non-empty
 				if in[x].Action == graph.Add {
-					foundQuads[k].Added = append(foundQuads[k].Added, in[x].ID.String())
+					foundQuads[k].Added = append(foundQuads[k].Added, ids[x])
 					quadCount += 1
 				} else {
-					foundQuads[k].Deleted = append(foundQuads[k].Deleted, in[x].ID.String())
+					foundQuads[k].Deleted = append(foundQuads[k].Deleted, ids[x])
 					quadCount -= 1
 				}
 			}
@@ -359,13 +359,13 @@ func (qs *QuadStore) updateMetadata(quadsAdded int64, nodesAdded int64) error {
 	return err
 }
 
-func (qs *QuadStore) updateLog(in []graph.Delta) error {
+func (qs *QuadStore) updateLog(in []graph.Delta) ([]int64, error) {
 	if qs.context == nil {
 		err := errors.New("Error updating log, context is nil, graph not correctly initialised")
-		return err
+		return nil, err
 	}
 	if len(in) == 0 {
-		return errors.New("Nothing to log")
+		return nil, errors.New("Nothing to log")
 	}
 	logEntries := make([]LogEntry, 0, len(in))
 	logKeys := make([]*datastore.Key, 0, len(in))
@@ -378,20 +378,24 @@ func (qs *QuadStore) updateLog(in []graph.Delta) error {
 		}
 
 		entry := LogEntry{
-			LogID:     d.ID.String(),
 			Action:    action,
 			Key:       qs.createKeyForQuad(d.Quad).String(),
-			Timestamp: d.Timestamp.UnixNano(),
+			Timestamp: time.Now().UnixNano(),
 		}
 		logEntries = append(logEntries, entry)
-		logKeys = append(logKeys, qs.createKeyForLog(d.ID))
+		logKeys = append(logKeys, qs.createKeyForLog())
 	}
 
-	_, err := datastore.PutMulti(qs.context, logKeys, logEntries)
+	ids, err := datastore.PutMulti(qs.context, logKeys, logEntries)
 	if err != nil {
 		clog.Errorf("Error updating log: %v", err)
+		return nil, err
 	}
-	return err
+	out := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, id.IntID())
+	}
+	return out, nil
 }
 
 func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Value) graph.Iterator {
@@ -504,12 +508,12 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	// Query log for last entry...
 	q := datastore.NewQuery("logentry").Order("-Timestamp").Limit(1)
 	var logEntries []LogEntry
-	_, err := q.GetAll(qs.context, &logEntries)
+	keys, err := q.GetAll(qs.context, &logEntries)
 	if err != nil || len(logEntries) == 0 {
 		// Error fetching horizon, probably graph is empty
 		return graph.NewUniqueKey("")
 	}
-	return graph.NewUniqueKey(logEntries[0].LogID)
+	return graph.NewSequentialKey(keys[0].IntID())
 }
 
 func compareTokens(a, b graph.Value) bool {

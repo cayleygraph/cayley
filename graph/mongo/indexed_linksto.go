@@ -110,9 +110,9 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 
 func (it *LinksTo) Next() bool {
 	var result struct {
-		ID      string  `bson:"_id"`
-		Added   []int64 `bson:"Added"`
-		Deleted []int64 `bson:"Deleted"`
+		ID      string     `bson:"_id"`
+		Added   []bson.Raw `bson:"Added"`
+		Deleted []bson.Raw `bson:"Deleted"`
 	}
 	graph.NextLogIn(it)
 next:

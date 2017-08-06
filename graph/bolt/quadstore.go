@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
@@ -228,11 +229,11 @@ var (
 	metaBucket = []byte("meta")
 )
 
-func deltaToProto(delta graph.Delta) proto.LogDelta {
+func deltaToProto(delta graph.Delta, id int64, t time.Time) proto.LogDelta {
 	var newd proto.LogDelta
-	newd.ID = uint64(delta.ID.Int())
+	newd.ID = uint64(id)
 	newd.Action = int32(delta.Action)
-	newd.Timestamp = delta.Timestamp.UnixNano()
+	newd.Timestamp = t.UnixNano()
 	newd.Quad = pquads.MakeQuad(delta.Quad)
 	return newd
 }
@@ -243,26 +244,29 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	oldSize := qs.size
 	oldHorizon := qs.horizon
 	err := qs.db.Update(func(tx *bolt.Tx) error {
+		id, t := oldHorizon+1, time.Now()
 		b := tx.Bucket(logBucket)
 		b.FillPercent = localFillPercent
 		resizeMap := make(map[quad.Value]int64)
 		sizeChange := int64(0)
-		for _, d := range deltas {
+		for i, d := range deltas {
 			if d.Action != graph.Add && d.Action != graph.Delete {
 				return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 			}
-			p := deltaToProto(d)
+			di := id + int64(i)
+			p := deltaToProto(d, di, t)
 			bytes, err := p.Marshal()
 			if err != nil {
 				return &graph.DeltaError{Delta: d, Err: err}
 			}
-			err = b.Put(qs.createDeltaKeyFor(d.ID.Int()), bytes)
+			err = b.Put(qs.createDeltaKeyFor(di), bytes)
 			if err != nil {
 				return &graph.DeltaError{Delta: d, Err: err}
 			}
 		}
-		for _, d := range deltas {
-			err := qs.buildQuadWrite(tx, d.Quad, d.ID.Int(), d.Action == graph.Add)
+		for i, d := range deltas {
+			di := id + int64(i)
+			err := qs.buildQuadWrite(tx, d.Quad, di, d.Action == graph.Add)
 			if err != nil {
 				if err == graph.ErrQuadExists && ignoreOpts.IgnoreDup {
 					continue
@@ -283,7 +287,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				resizeMap[d.Quad.Label] += delta
 			}
 			sizeChange += delta
-			qs.horizon = d.ID.Int()
+			qs.horizon = di
 		}
 		for k, v := range resizeMap {
 			if v != 0 {

@@ -18,7 +18,7 @@ import (
 func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config // TODO
 
-	conf.Image = "cockroachdb/cockroach:v1.0.1"
+	conf.Image = "cockroachdb/cockroach:v1.0.4"
 	conf.Cmd = []string{"start", "--insecure"}
 
 	opts := graph.Options{"flavor": flavorCockroach}
@@ -58,6 +58,7 @@ func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestCockroachAll(t *testing.T) {
 	graphtest.TestAll(t, makeCockroach, &graphtest.Config{
+		NoPrimitives:            true,
 		TimeInMcs:               true,
 		TimeRound:               true,
 		OptimizesHasAToUnique:   true,

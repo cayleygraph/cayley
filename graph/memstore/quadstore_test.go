@@ -24,6 +24,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/writer"
+	"github.com/stretchr/testify/require"
 )
 
 // This is a simple test graph.
@@ -72,6 +73,7 @@ func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 		}
 
 		writer.AddQuad(t)
+		val++
 	}
 	return qs, writer, ind
 }
@@ -91,18 +93,16 @@ type pair struct {
 
 func TestMemstore(t *testing.T) {
 	qs, _, index := makeTestStore(simpleGraph)
-	if size := qs.Size(); size != int64(len(simpleGraph)) {
-		t.Errorf("Quad store has unexpected size, got:%d expected %d", size, len(simpleGraph))
-	}
+	require.Equal(t, int64(22), qs.Size())
+
 	for _, test := range index {
 		v := qs.ValueOf(quad.Raw(test.query))
 		switch v := v.(type) {
 		default:
 			t.Errorf("ValueOf(%q) returned unexpected type, got:%T expected int64", test.query, v)
-		case iterator.Int64Node:
-			if int64(v) != test.value {
-				t.Errorf("ValueOf(%q) returned unexpected value, got:%d expected:%d", test.query, v, test.value)
-			}
+		case graph.PrimaryKey:
+			n, _ := v.Int()
+			require.Equal(t, test.value, n)
 		}
 	}
 }
@@ -139,7 +139,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, qs.NameOf(all.Result()).String())
+		got = append(got, quad.StringOf(qs.NameOf(all.Result())))
 		if !outerAnd.NextPath() {
 			break
 		}

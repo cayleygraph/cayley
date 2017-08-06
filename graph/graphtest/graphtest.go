@@ -19,11 +19,12 @@ import (
 type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 
 type Config struct {
-	UnTyped   bool // converts all values to Raw representation
-	NoHashes  bool // cannot exchange raw values into typed ones
-	TimeInMs  bool
-	TimeInMcs bool
-	TimeRound bool
+	NoPrimitives bool
+	UnTyped      bool // converts all values to Raw representation
+	NoHashes     bool // cannot exchange raw values into typed ones
+	TimeInMs     bool
+	TimeInMcs    bool
+	TimeRound    bool
 
 	OptimizesComparison bool
 	// TODO(dennwc): some stores return duplicates entries for HasA, some optimizes them to be unique
@@ -188,24 +189,32 @@ func IteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.
 	return res
 }
 
-func TestLoadOneQuad(t testing.TB, gen DatabaseFunc, _ *Config) {
+func TestLoadOneQuad(t testing.TB, gen DatabaseFunc, c *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
 	w := MakeWriter(t, qs, opts)
 
-	err := w.AddQuad(quad.MakeRaw(
+	q := quad.MakeRaw(
 		"Something",
 		"points_to",
 		"Something Else",
 		"context",
-	))
+	)
+
+	err := w.AddQuad(q)
 	require.NoError(t, err)
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
 		got := quad.StringOf(qs.NameOf(qs.ValueOf(quad.Raw(pq))))
 		require.Equal(t, pq, got, "Failed to roundtrip %q", pq)
 	}
-	require.Equal(t, int64(1), qs.Size(), "Unexpected quadstore size")
+	exp := int64(5)
+	if c.NoPrimitives {
+		exp = 1
+	}
+	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), []quad.Quad{q}, false)
 }
 
 type ValueSizer interface {
@@ -221,20 +230,34 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 
 	w := MakeWriter(t, qs, opts)
 
-	horizon := qs.Horizon()
-	require.Equal(t, int64(0), horizon.Int(), "Unexpected horizon value")
+	horizon, ok := qs.Horizon().Int()
+	if !ok && graph.NewSequentialKey(0) != qs.Horizon() {
+		t.Skip("horizon is not int")
+	}
+	require.Equal(t, int64(0), horizon, "Unexpected horizon value")
 
 	err := w.AddQuadSet(MakeQuadSet())
 	require.NoError(t, err)
-	require.Equal(t, int64(11), qs.Size(), "Unexpected quadstore size")
+	exp := int64(22)
+	if conf.NoPrimitives {
+		exp = 11
+	}
+	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
 
 	if qss, ok := qs.(ValueSizer); ok {
 		s := qss.SizeOf(qs.ValueOf(quad.Raw("B")))
 		require.Equal(t, int64(5), s, "Unexpected quadstore value size")
 	}
 
-	horizon = qs.Horizon()
-	require.Equal(t, int64(11), horizon.Int(), "Unexpected horizon value")
+	horizon, ok = qs.Horizon().Int()
+	if !ok {
+		t.SkipNow()
+	}
+	exp = int64(1)
+	if conf.NoPrimitives {
+		exp = 11
+	}
+	require.Equal(t, exp, horizon, "Unexpected horizon value")
 
 	err = w.RemoveQuad(quad.MakeRaw(
 		"A",
@@ -244,7 +267,11 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 	))
 	require.NoError(t, err)
 	if !conf.SkipSizeCheckAfterDelete {
-		require.Equal(t, int64(10), qs.Size(), "Unexpected quadstore size after RemoveQuad")
+		exp = int64(21)
+		if conf.NoPrimitives {
+			exp = 10
+		}
+		require.Equal(t, exp, qs.Size(), "Unexpected quadstore size after RemoveQuad")
 	} else {
 		require.Equal(t, int64(11), qs.Size(), "Unexpected quadstore size")
 	}
@@ -267,7 +294,7 @@ func TestIterator(t testing.TB, gen DatabaseFunc, _ *Config) {
 	require.NotNil(t, it)
 
 	size, _ := it.Size()
-	require.True(t, size > 0 && size < 20, "Unexpected size")
+	require.True(t, size > 0 && size < 23, "Unexpected size: %v", size)
 	// TODO: leveldb had this test
 	//if exact {
 	//	t.Errorf("Got unexpected exact result.")
@@ -455,13 +482,17 @@ func TestDeleteQuad(t testing.TB, gen DatabaseFunc, _ *Config) {
 
 	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
+	vn := qs.ValueOf(quad.Raw("E"))
+	require.NotNil(t, vn)
+
+	it := qs.QuadIterator(quad.Subject, vn)
 	ExpectIteratedQuads(t, qs, it, []quad.Quad{
 		quad.MakeRaw("E", "follows", "F", ""),
 	}, false)
 	it.Close()
 
-	w.RemoveQuad(quad.MakeRaw("E", "follows", "F", ""))
+	err := w.RemoveQuad(quad.MakeRaw("E", "follows", "F", ""))
+	require.NoError(t, err)
 
 	it = qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
 	ExpectIteratedQuads(t, qs, it, nil, false)
@@ -570,7 +601,11 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 			assert.Equal(t, quad.StringOf(pq), quad.StringOf(got), "Failed to roundtrip raw %q (%T)", pq, pq)
 		}
 	}
-	require.Equal(t, int64(7), qs.Size(), "Unexpected quadstore size")
+	exp := int64(19)
+	if conf.NoPrimitives {
+		exp = 7
+	}
+	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
 }
 
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
@@ -586,7 +621,11 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 
 	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
+	sz := int64(22)
+	if conf.NoPrimitives {
+		sz = 11
+	}
+	require.Equal(t, sz, qs.Size(), "Incorrect number of quads")
 
 	all := qs.NodesAllIterator()
 	expect := []string{
@@ -613,7 +652,11 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 	})
 	assert.Nil(t, err, "AddQuadSet failed")
 
-	assert.Equal(t, int64(13), qs.Size(), "Incorrect number of quads")
+	sz = int64(25)
+	if conf.NoPrimitives {
+		sz = 13
+	}
+	assert.Equal(t, sz, qs.Size(), "Incorrect number of quads")
 
 	all = qs.NodesAllIterator()
 	expect = []string{
@@ -672,13 +715,17 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 	ExpectIteratedRawStrings(t, qs, all, expect)
 }
 
-func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc, _ *Config) {
+func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
 	MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
+	sz := int64(22)
+	if conf.NoPrimitives {
+		sz = 11
+	}
+	require.Equal(t, sz, qs.Size(), "Incorrect number of quads")
 
 	fixed := qs.FixedIterator()
 	fixed.Add(qs.ValueOf(quad.Raw("C")))

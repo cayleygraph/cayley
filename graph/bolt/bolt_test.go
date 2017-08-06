@@ -76,6 +76,7 @@ func makeBolt(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestBoltAll(t *testing.T) {
 	graphtest.TestAll(t, makeBolt, &graphtest.Config{
+		NoPrimitives:            true,
 		SkipNodeDelAfterQuadDel: true,
 	})
 }
@@ -131,8 +132,8 @@ func TestLoadDatabase(t *testing.T) {
 
 	//Test horizon
 	horizon := qs.Horizon()
-	if horizon.Int() != 1 {
-		t.Errorf("Unexpected horizon value, got:%d expect:1", horizon.Int())
+	if v, _ := horizon.Int(); v != 1 {
+		t.Errorf("Unexpected horizon value, got:%d expect:1", v)
 	}
 
 	w.AddQuadSet(graphtest.MakeQuadSet())
@@ -143,8 +144,8 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
 	}
 	horizon = qs.Horizon()
-	if horizon.Int() != 12 {
-		t.Errorf("Unexpected horizon value, got:%d expect:12", horizon.Int())
+	if v, _ := horizon.Int(); v != 12 {
+		t.Errorf("Unexpected horizon value, got:%d expect:12", v)
 	}
 
 	w.RemoveQuad(quad.MakeRaw(
