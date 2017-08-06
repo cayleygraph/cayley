@@ -89,45 +89,45 @@ func convInsertErrorPG(err error) error {
 	return err
 }
 
-func copyFromPG(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
-	panic("broken")
-	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts", "subject_hash", "predicate_hash", "object_hash", "label_hash"))
-	if err != nil {
-		clog.Errorf("couldn't prepare COPY statement: %v", err)
-		return err
-	}
-	for _, d := range in {
-		s, p, o, l, err := marshalQuadDirections(d.Quad)
-		if err != nil {
-			clog.Errorf("couldn't marshal quads: %v", err)
-			return err
-		}
-		_, err = stmt.Exec(
-			s,
-			p,
-			o,
-			l,
-			d.ID.Int(),
-			d.Timestamp,
-			hashOf(d.Quad.Subject),
-			hashOf(d.Quad.Predicate),
-			hashOf(d.Quad.Object),
-			hashOf(d.Quad.Label),
-		)
-		if err != nil {
-			err = convInsertErrorPG(err)
-			clog.Errorf("couldn't execute COPY statement: %v", err)
-			return err
-		}
-	}
-	_, err = stmt.Exec()
-	if err != nil {
-		err = convInsertErrorPG(err)
-		return err
-	}
-	_ = stmt.Close() // COPY will be closed on last Exec, this will return non-nil error in all cases
-	return nil
-}
+//func copyFromPG(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
+//	panic("broken")
+//	stmt, err := tx.Prepare(pq.CopyIn("quads", "subject", "predicate", "object", "label", "id", "ts", "subject_hash", "predicate_hash", "object_hash", "label_hash"))
+//	if err != nil {
+//		clog.Errorf("couldn't prepare COPY statement: %v", err)
+//		return err
+//	}
+//	for _, d := range in {
+//		s, p, o, l, err := marshalQuadDirections(d.Quad)
+//		if err != nil {
+//			clog.Errorf("couldn't marshal quads: %v", err)
+//			return err
+//		}
+//		_, err = stmt.Exec(
+//			s,
+//			p,
+//			o,
+//			l,
+//			d.ID.Int(),
+//			d.Timestamp,
+//			hashOf(d.Quad.Subject),
+//			hashOf(d.Quad.Predicate),
+//			hashOf(d.Quad.Object),
+//			hashOf(d.Quad.Label),
+//		)
+//		if err != nil {
+//			err = convInsertErrorPG(err)
+//			clog.Errorf("couldn't execute COPY statement: %v", err)
+//			return err
+//		}
+//	}
+//	_, err = stmt.Exec()
+//	if err != nil {
+//		err = convInsertErrorPG(err)
+//		return err
+//	}
+//	_ = stmt.Close() // COPY will be closed on last Exec, this will return non-nil error in all cases
+//	return nil
+//}
 
 func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 	//allAdds := true
@@ -159,7 +159,7 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 		switch d.Action {
 		case graph.Add:
 			if insertQuad == nil {
-				insertQuad, err = tx.Prepare(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)` + end)
+				insertQuad, err = tx.Prepare(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, ts) VALUES ($1, $2, $3, $4, now())` + end)
 				if err != nil {
 					return err
 				}
@@ -218,14 +218,13 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 			}
 			_, err := insertQuad.Exec(
 				hs.toSQL(), hp.toSQL(), ho.toSQL(), hl.toSQL(),
-				d.ID.Int(),
-				d.Timestamp,
 			)
 			err = convInsertErrorPG(err)
 			if err != nil {
 				clog.Errorf("couldn't exec INSERT statement: %v", err)
 				return err
 			}
+
 		case graph.Delete:
 			if deleteQuad == nil {
 				deleteQuad, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=$1 and predicate_hash=$2 and object_hash=$3 and label_hash=$4;`)

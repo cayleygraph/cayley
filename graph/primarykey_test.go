@@ -24,33 +24,26 @@ import (
 func TestSequentialKeyCreation(t *testing.T) {
 	{
 		seqKey := NewSequentialKey(666)
-		seqKey.Next()
 
-		var expected int64 = 667
-		result := seqKey.Int()
+		var expected int64 = 666
+		result, _ := seqKey.Int()
 		if expected != result {
 			t.Errorf("Expected %q got %q", expected, result)
 		}
 	}
 	{
 		seqKey := NewSequentialKey(0)
-		seqKey.Next()
 
-		var expected int64 = 1
-		result := seqKey.Int()
-		if expected != result {
-			t.Errorf("Expected %q got %q", expected, result)
+		result, ok := seqKey.Int()
+		if !ok || result != 0 {
+			t.Errorf("Expected %q got %q", 0, result)
 		}
 	}
 }
 
 func TestUniqueKeyCreation(t *testing.T) {
-	uniqueKey := NewUniqueKey("")
-	if uuid.Parse(uniqueKey.String()) == nil {
-		t.Error("Invalid uuid generated")
-	}
-	uniqueKey.Next()
-	if uuid.Parse(uniqueKey.String()) == nil {
+	k := NewUniqueKey("")
+	if s, _ := k.Unique(); uuid.Parse(s) == nil {
 		t.Error("Invalid uuid generated")
 	}
 }
@@ -67,8 +60,10 @@ func TestSequentialKeyMarshaling(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unmarshaling of sequential key failed with : %v", err)
 	}
-	if seqKey.Int() != seqKey2.Int() {
-		t.Errorf("Unmarshaling failed: Expected: %d, got: %d", seqKey.Int(), seqKey2.Int())
+	n1, _ := seqKey.Int()
+	n2, _ := seqKey2.Int()
+	if seqKey != seqKey2 || n1 != n2 {
+		t.Errorf("Unmarshaling failed: Expected: %d, got: %d", n1, n2)
 	}
 }
 
@@ -84,10 +79,11 @@ func TestUniqueKeyMarshaling(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unmarshaling of unique key failed with : %v", err)
 	}
-	if uuid.Parse(uniqueKey2.String()) == nil {
+	s2, _ := uniqueKey2.Unique()
+	if uuid.Parse(s2) == nil {
 		t.Error("Unique Key incorrectly unmarshaled")
 	}
-	if uniqueKey.String() != uniqueKey2.String() {
+	if s1, _ := uniqueKey.Unique(); uniqueKey != uniqueKey2 || s1 != s2 {
 		t.Error("Unique Key incorrectly unmarshaled")
 	}
 }

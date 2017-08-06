@@ -40,7 +40,6 @@ func init() {
 	predicate_hash BYTEA NOT NULL,
 	object_hash BYTEA NOT NULL,
 	label_hash BYTEA,
-	id BIGINT,
 	ts timestamp
 );`,
 		FieldQuote:  '"',
@@ -154,7 +153,7 @@ func tryRunTxCockroach(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) erro
 		switch d.Action {
 		case graph.Add:
 			if insertQuad == nil {
-				insertQuad, err = tx.Prepare(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, id, ts) VALUES ($1, $2, $3, $4, $5, $6)` + end)
+				insertQuad, err = tx.Prepare(`INSERT INTO quads(subject_hash, predicate_hash, object_hash, label_hash, ts) VALUES ($1, $2, $3, $4, now())` + end)
 				if err != nil {
 					return err
 				}
@@ -212,8 +211,6 @@ func tryRunTxCockroach(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) erro
 			}
 			_, err := insertQuad.Exec(
 				hs.toSQL(), hp.toSQL(), ho.toSQL(), hl.toSQL(),
-				d.ID.Int(),
-				d.Timestamp,
 			)
 			if err != nil {
 				clog.Errorf("couldn't exec INSERT statement: %v", err)

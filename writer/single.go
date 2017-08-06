@@ -15,8 +15,6 @@
 package writer
 
 import (
-	"time"
-
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -26,14 +24,12 @@ func init() {
 }
 
 type Single struct {
-	currentID  graph.PrimaryKey
 	qs         graph.QuadStore
 	ignoreOpts graph.IgnoreOpts
 }
 
 func NewSingle(qs graph.QuadStore, opts graph.IgnoreOpts) (graph.QuadWriter, error) {
 	return &Single{
-		currentID:  qs.Horizon(),
 		qs:         qs,
 		ignoreOpts: opts,
 	}, nil
@@ -73,10 +69,8 @@ func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWri
 func (s *Single) AddQuad(q quad.Quad) error {
 	deltas := make([]graph.Delta, 1)
 	deltas[0] = graph.Delta{
-		ID:        s.currentID.Next(),
-		Quad:      q,
-		Action:    graph.Add,
-		Timestamp: time.Now(),
+		Quad:   q,
+		Action: graph.Add,
 	}
 	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
@@ -85,23 +79,18 @@ func (s *Single) AddQuadSet(set []quad.Quad) error {
 	deltas := make([]graph.Delta, len(set))
 	for i, q := range set {
 		deltas[i] = graph.Delta{
-			ID:        s.currentID.Next(),
-			Quad:      q,
-			Action:    graph.Add,
-			Timestamp: time.Now(),
+			Quad:   q,
+			Action: graph.Add,
 		}
 	}
-
 	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
 
 func (s *Single) RemoveQuad(q quad.Quad) error {
 	deltas := make([]graph.Delta, 1)
 	deltas[0] = graph.Delta{
-		ID:        s.currentID.Next(),
-		Quad:      q,
-		Action:    graph.Delete,
-		Timestamp: time.Now(),
+		Quad:   q,
+		Action: graph.Delete,
 	}
 	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
@@ -118,10 +107,8 @@ func (s *Single) RemoveNode(v quad.Value) error {
 		it := s.qs.QuadIterator(d, gv)
 		for it.Next() {
 			deltas = append(deltas, graph.Delta{
-				ID:        s.currentID.Next(),
-				Quad:      s.qs.Quad(it.Result()),
-				Action:    graph.Delete,
-				Timestamp: time.Now(),
+				Quad:   s.qs.Quad(it.Result()),
+				Action: graph.Delete,
 			})
 		}
 		it.Close()
@@ -135,10 +122,5 @@ func (s *Single) Close() error {
 }
 
 func (s *Single) ApplyTransaction(t *graph.Transaction) error {
-	ts := time.Now()
-	for i := 0; i < len(t.Deltas); i++ {
-		t.Deltas[i].ID = s.currentID.Next()
-		t.Deltas[i].Timestamp = ts
-	}
 	return s.qs.ApplyDeltas(t.Deltas, s.ignoreOpts)
 }

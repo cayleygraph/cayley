@@ -404,7 +404,7 @@ var testQueries = []struct {
 		query: `
 		  g.V().Labels().All()
 		`,
-		expect: []string{"", "<smart_graph>"},
+		expect: []string{"<smart_graph>"},
 	},
 	{
 		message: "list all in predicates",

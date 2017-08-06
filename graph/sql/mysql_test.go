@@ -54,6 +54,7 @@ func makeMysql(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestMysqlAll(t *testing.T) {
 	graphtest.TestAll(t, makeMysql, &graphtest.Config{
+		NoPrimitives:            true,
 		TimeInMcs:               true,
 		OptimizesHasAToUnique:   true,
 		SkipNodeDelAfterQuadDel: true,

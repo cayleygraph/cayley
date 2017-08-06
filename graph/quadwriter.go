@@ -24,7 +24,6 @@ package graph
 import (
 	"errors"
 	"io"
-	"time"
 
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -49,10 +48,8 @@ const (
 )
 
 type Delta struct {
-	ID        PrimaryKey
-	Quad      quad.Quad
-	Action    Procedure
-	Timestamp time.Time
+	Quad   quad.Quad
+	Action Procedure
 }
 
 type Handle struct {

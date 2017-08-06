@@ -114,10 +114,6 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) checkValid(index int64) bool {
-	return it.qs.log[index].DeletedBy == 0
-}
-
 func (it *Iterator) Next() bool {
 	graph.NextLogIn(it)
 	if it.iter == nil {
@@ -131,9 +127,6 @@ func (it *Iterator) Next() bool {
 			}
 			return graph.NextLogOut(it, false)
 		}
-		if !it.checkValid(result) {
-			continue
-		}
 		it.result = result
 		return graph.NextLogOut(it, true)
 	}
@@ -144,10 +137,10 @@ func (it *Iterator) Err() error {
 }
 
 func (it *Iterator) Result() graph.Value {
-	if it.nodes {
-		return iterator.Int64Node(it.result)
+	if it.result == 0 {
+		return nil
 	}
-	return iterator.Int64Quad(it.result)
+	return graph.NewSequentialKey(it.result)
 }
 
 func (it *Iterator) NextPath() bool {
@@ -167,17 +160,13 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if v == nil {
 		return graph.ContainsLogOut(it, v, false)
-	} else if it.nodes != it.qs.isNode(v) {
-		return graph.ContainsLogOut(it, v, false)
 	}
-	var vi int64
-	if it.nodes {
-		vi = int64(v.(iterator.Int64Node))
-	} else {
-		vi = int64(v.(iterator.Int64Quad))
+	id, ok := asID(v)
+	if !ok {
+		return false
 	}
-	if _, ok := it.tree.Get(vi); ok {
-		it.result = vi
+	if _, ok := it.tree.Get(id); ok {
+		it.result = id
 		return graph.ContainsLogOut(it, v, true)
 	}
 	return graph.ContainsLogOut(it, v, false)

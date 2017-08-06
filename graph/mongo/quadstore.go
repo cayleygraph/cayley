@@ -101,16 +101,6 @@ func ensureIndexes(db *mgo.Database) error {
 	if err := db.C("quads").EnsureIndex(indexOpts); err != nil {
 		return err
 	}
-	logOpts := mgo.Index{
-		Key:        []string{"LogID"},
-		Unique:     true,
-		DropDups:   false,
-		Background: true,
-		Sparse:     true,
-	}
-	if err := db.C("log").EnsureIndex(logOpts); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -203,10 +193,9 @@ type MongoNode struct {
 }
 
 type MongoLogEntry struct {
-	LogID     int64  `bson:"LogID"`
-	Action    string `bson:"Action"`
-	Key       string `bson:"Key"`
-	Timestamp int64
+	ID     bson.ObjectId `bson:"_id"`
+	Action string        `bson:"Action"`
+	Key    string        `bson:"Key"`
 }
 
 func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) error {
@@ -238,7 +227,7 @@ func (qs *QuadStore) updateNodeBy(name quad.Value, inc int) error {
 	return err
 }
 
-func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) error {
+func (qs *QuadStore) updateQuad(q quad.Quad, id bson.ObjectId, proc graph.Procedure) error {
 	var setname string
 	if proc == graph.Add {
 		setname = "Added"
@@ -265,8 +254,8 @@ func (qs *QuadStore) updateQuad(q quad.Quad, id int64, proc graph.Procedure) err
 
 func (qs *QuadStore) checkValid(key string) bool {
 	var indexEntry struct {
-		Added   []int64 `bson:"Added"`
-		Deleted []int64 `bson:"Deleted"`
+		Added   []bson.Raw `bson:"Added"`
+		Deleted []bson.Raw `bson:"Deleted"`
 	}
 	err := qs.db.C("quads").FindId(key).One(&indexEntry)
 	if err == mgo.ErrNotFound {
@@ -282,7 +271,11 @@ func (qs *QuadStore) checkValid(key string) bool {
 	return true
 }
 
-func (qs *QuadStore) updateLog(d graph.Delta) error {
+func objidString(id bson.ObjectId) string {
+	return hex.EncodeToString([]byte(id))
+}
+
+func (qs *QuadStore) updateLog(d *graph.Delta) (bson.ObjectId, error) {
 	var action string
 	if d.Action == graph.Add {
 		action = "Add"
@@ -290,16 +283,16 @@ func (qs *QuadStore) updateLog(d graph.Delta) error {
 		action = "Delete"
 	}
 	entry := MongoLogEntry{
-		LogID:     d.ID.Int(),
-		Action:    action,
-		Key:       qs.getIDForQuad(d.Quad),
-		Timestamp: d.Timestamp.UnixNano(),
+		ID:     bson.NewObjectId(),
+		Action: action,
+		Key:    qs.getIDForQuad(d.Quad),
 	}
 	err := qs.db.C("log").Insert(entry)
 	if err != nil {
 		clog.Errorf("Error updating log: %v", err)
+		return "", err
 	}
-	return err
+	return entry.ID, nil
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
@@ -345,11 +338,13 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	if clog.V(2) {
 		clog.Infof("Existence verified. Proceeding.")
 	}
-	for _, d := range deltas {
-		err := qs.updateLog(d)
+	oids := make([]bson.ObjectId, 0, len(deltas))
+	for i, d := range deltas {
+		id, err := qs.updateLog(&deltas[i])
 		if err != nil {
 			return &graph.DeltaError{Delta: d, Err: err}
 		}
+		oids = append(oids, id)
 	}
 	// make sure to create all nodes before writing any quads
 	// concurrent reads may observe broken quads in other case
@@ -359,8 +354,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			return err
 		}
 	}
-	for _, d := range deltas {
-		err := qs.updateQuad(d.Quad, d.ID.Int(), d.Action)
+	for i, d := range deltas {
+		err := qs.updateQuad(d.Quad, oids[i], d.Action)
 		if err != nil {
 			return &graph.DeltaError{Delta: d, Err: err}
 		}
@@ -540,14 +535,14 @@ func (qs *QuadStore) Size() int64 {
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	var log MongoLogEntry
-	err := qs.db.C("log").Find(nil).Sort("-LogID").One(&log)
+	err := qs.db.C("log").Find(nil).Sort("-_id").One(&log)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			return graph.NewSequentialKey(0)
 		}
 		clog.Errorf("Could not get Horizon from Mongo: %v", err)
 	}
-	return graph.NewSequentialKey(log.LogID)
+	return graph.NewUniqueKey(objidString(log.ID))
 }
 
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {

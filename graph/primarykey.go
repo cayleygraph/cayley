@@ -15,119 +15,76 @@
 package graph
 
 import (
+	"bytes"
 	"encoding/json"
-	"errors"
-	"strconv"
-	"sync"
+	"io"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/pborman/uuid"
 )
 
-type primaryKeyType uint8
-
-const (
-	none primaryKeyType = iota
-	sequential
-	unique
-)
+var _ Value = PrimaryKey{}
 
 type PrimaryKey struct {
-	keyType      primaryKeyType
-	mut          sync.Mutex
 	sequentialID int64
 	uniqueID     string
 }
 
-func NewSequentialKey(horizon int64) PrimaryKey {
+func (p PrimaryKey) Key() interface{} {
+	return p
+}
+
+func NewSequentialKey(val int64) PrimaryKey {
 	return PrimaryKey{
-		keyType:      sequential,
-		sequentialID: horizon,
+		sequentialID: val,
 	}
 }
 
-func NewUniqueKey(horizon string) PrimaryKey {
-	id := uuid.Parse(horizon)
-	if id == nil {
-		id = uuid.NewUUID()
+func NewUniqueKey(s string) PrimaryKey {
+	if s == "" {
+		s = uuid.NewUUID().String()
 	}
 	return PrimaryKey{
-		keyType:  unique,
-		uniqueID: id.String(),
+		uniqueID: s,
 	}
 }
 
-func (p *PrimaryKey) Next() PrimaryKey {
-	switch p.keyType {
-	case sequential:
-		p.mut.Lock()
-		defer p.mut.Unlock()
-		p.sequentialID++
-		if p.sequentialID <= 0 {
-			p.sequentialID = 1
-		}
-		return PrimaryKey{
-			keyType:      sequential,
-			sequentialID: p.sequentialID,
-		}
-	case unique:
-		id := uuid.NewUUID()
-		p.uniqueID = id.String()
-		return *p
-	case none:
-		panic("Calling next() on a none PrimaryKey")
-	}
-	return PrimaryKey{}
+func (p PrimaryKey) Valid() bool {
+	return p.sequentialID != 0 || p.uniqueID != ""
 }
 
-func (p *PrimaryKey) Int() int64 {
-	switch p.keyType {
-	case sequential:
-		return p.sequentialID
-	case unique:
-		msg := "UUID cannot be converted to an int64"
-		clog.Errorf(msg)
-		panic(msg)
-	}
-	return -1
+func (p PrimaryKey) Int() (int64, bool) {
+	return p.sequentialID, p.uniqueID == ""
 }
 
-func (p *PrimaryKey) String() string {
-	switch p.keyType {
-	case sequential:
-		return strconv.FormatInt(p.sequentialID, 10)
-	case unique:
-		return p.uniqueID
-	case none:
-		panic("Calling String() on a none PrimaryKey")
-	}
-	return ""
+func (p *PrimaryKey) Unique() (string, bool) {
+	return p.uniqueID, p.uniqueID != ""
 }
 
 func (p PrimaryKey) MarshalJSON() ([]byte, error) {
-	switch p.keyType {
-	case none:
-		return nil, errors.New("Cannot marshal PrimaryKey with KeyType of 'none'")
-	case sequential:
+	if p.sequentialID != 0 {
 		return json.Marshal(p.sequentialID)
-	case unique:
-		return []byte("\"u" + p.uniqueID + "\""), nil
-	default:
-		return nil, errors.New("Unknown PrimaryKey type")
+	} else if p.uniqueID != "" {
+		return json.Marshal(p.uniqueID)
 	}
+	return []byte("null"), nil
 }
 
-func (p *PrimaryKey) UnmarshalJSON(bytes []byte) error {
-	if bytes[0] == '"' {
-		switch bytes[1] {
-		case 'u':
-			p.keyType = unique
-			p.uniqueID = string(bytes[2 : len(bytes)-1])
-			return nil
-		default:
-			return errors.New("Unknown string-like PrimaryKey type")
+func (p *PrimaryKey) UnmarshalJSON(b []byte) error {
+	b = bytes.TrimSpace(b)
+	if len(b) == 0 {
+		return io.ErrUnexpectedEOF
+	} else if b[0] == '"' {
+		var s string
+		if err := json.Unmarshal(b, &s); err != nil {
+			return err
 		}
+		*p = PrimaryKey{uniqueID: s}
+		return nil
 	}
-	p.keyType = sequential
-	return json.Unmarshal(bytes, &p.sequentialID)
+	var n int64
+	if err := json.Unmarshal(b, &n); err != nil {
+		return err
+	}
+	*p = PrimaryKey{sequentialID: n}
+	return nil
 }

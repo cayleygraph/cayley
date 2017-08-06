@@ -92,6 +92,7 @@ func makeGAE(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestGAEAll(t *testing.T) {
 	graphtest.TestAll(t, makeGAE, &graphtest.Config{
+		NoPrimitives:   true,
 		SkipIntHorizon: true,
 		UnTyped:        true,
 	})

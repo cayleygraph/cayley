@@ -3,10 +3,10 @@
 package mongo
 
 import (
-	"testing"
+	"bytes"
 	"math/rand"
 	"sync"
-	"bytes"
+	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
@@ -41,6 +41,7 @@ func makeMongo(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestMongoAll(t *testing.T) {
 	graphtest.TestAll(t, makeMongo, &graphtest.Config{
+		NoPrimitives:             true,
 		TimeInMs:                 true,
 		OptimizesComparison:      true,
 		SkipDeletedFromIterator:  true,
