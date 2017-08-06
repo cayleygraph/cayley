@@ -227,7 +227,7 @@ func (r *Result) Err() error { return nil }
 
 func (s *Session) run(qu string) (v goja.Value, err error) {
 	var p *goja.Program
-	if s.last == qu {
+	if s.last == qu && s.last != "" {
 		p = s.p
 	} else {
 		p, err = goja.Compile("", qu, false)
