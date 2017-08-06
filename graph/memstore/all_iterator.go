@@ -59,7 +59,7 @@ func (it *AllIterator) ok(p *primitive) bool {
 		return false
 	} else if it.nodes && p.Value != nil {
 		return true
-	} else if !it.nodes && p.internalQuad != (internalQuad{}) {
+	} else if !it.nodes && !p.Quad.Zero() {
 		return true
 	}
 	return false
@@ -113,7 +113,10 @@ func (it *AllIterator) Result() graph.Value {
 	if it.cur == nil {
 		return nil
 	}
-	return graph.NewSequentialKey(it.cur.ID)
+	if !it.cur.Quad.Zero() {
+		return qprim{p: it.cur}
+	}
+	return bnode(it.cur.ID)
 }
 
 func (it *AllIterator) Err() error { return nil }

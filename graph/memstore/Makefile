@@ -24,5 +24,5 @@ specify:
 	git clone https://github.com/cznic/b
 	cd b && git checkout $(pinned)
 	go test ./b
-	@sed -e 's|interface{}[^{]*/\*K\*/|int64|g' -e 's|interface{}[^{]*/\*V\*/|struct{}|g' b/btree.go >keys.go
+	@sed -e 's|interface{}[^{]*/\*K\*/|int64|g' -e 's|interface{}[^{]*/\*V\*/|\*primitive|g' b/btree.go >keys.go
 	rm -rf b

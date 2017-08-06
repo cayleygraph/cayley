@@ -14,4 +14,4 @@
 
 //go:generate make specify
 
-package b
+package memstore

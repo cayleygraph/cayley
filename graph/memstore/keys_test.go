@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
+package memstore
 
 import (
 	"math"
@@ -19,10 +19,6 @@ func rng() *mathutil.FC32 {
 	}
 
 	return x
-}
-
-func cmp(a, b int64) int {
-	return int(a - b)
 }
 
 func BenchmarkSetSeq1e3(b *testing.B) {
@@ -49,7 +45,7 @@ func benchmarkSetSeq(b *testing.B, n int) {
 		debug.FreeOSMemory()
 		b.StartTimer()
 		for j := int64(0); j < int64(n); j++ {
-			r.Set(j, struct{}{})
+			r.Set(j, nil)
 		}
 		b.StopTimer()
 		r.Close()
@@ -76,7 +72,7 @@ func BenchmarkGetSeq1e6(b *testing.B) {
 func benchmarkGetSeq(b *testing.B, n int) {
 	r := TreeNew(cmp)
 	for i := int64(0); i < int64(n); i++ {
-		r.Set(i, struct{}{})
+		r.Set(i, nil)
 	}
 	debug.FreeOSMemory()
 	b.ResetTimer()
@@ -118,7 +114,7 @@ func benchmarkSetRnd(b *testing.B, n int) {
 		debug.FreeOSMemory()
 		b.StartTimer()
 		for _, v := range a {
-			r.Set(int64(v), struct{}{})
+			r.Set(int64(v), nil)
 		}
 		b.StopTimer()
 		r.Close()
@@ -150,7 +146,7 @@ func benchmarkGetRnd(b *testing.B, n int) {
 		a[i] = int64(rng.Next())
 	}
 	for _, v := range a {
-		r.Set(v, struct{}{})
+		r.Set(v, nil)
 	}
 	debug.FreeOSMemory()
 	b.ResetTimer()
@@ -185,7 +181,7 @@ func benchmarkDelSeq(b *testing.B, n int) {
 		b.StopTimer()
 		r := TreeNew(cmp)
 		for j := int64(0); j < int64(n); j++ {
-			r.Set(j, struct{}{})
+			r.Set(j, nil)
 		}
 		debug.FreeOSMemory()
 		b.StartTimer()
@@ -223,7 +219,7 @@ func benchmarkDelRnd(b *testing.B, n int) {
 		b.StopTimer()
 		r := TreeNew(cmp)
 		for _, v := range a {
-			r.Set(v, struct{}{})
+			r.Set(v, nil)
 		}
 		debug.FreeOSMemory()
 		b.StartTimer()
@@ -257,7 +253,7 @@ func benchmarkSeekSeq(b *testing.B, n int) {
 		b.StopTimer()
 		t := TreeNew(cmp)
 		for j := int64(0); j < int64(n); j++ {
-			t.Set(j, struct{}{})
+			t.Set(j, nil)
 		}
 		debug.FreeOSMemory()
 		b.StartTimer()
@@ -295,7 +291,7 @@ func benchmarkSeekRnd(b *testing.B, n int) {
 		a[i] = int64(rng.Next())
 	}
 	for _, v := range a {
-		r.Set(v, struct{}{})
+		r.Set(v, nil)
 	}
 	debug.FreeOSMemory()
 	b.ResetTimer()
@@ -328,7 +324,7 @@ func BenchmarkNext1e6(b *testing.B) {
 func benchmarkNext(b *testing.B, n int) {
 	t := TreeNew(cmp)
 	for i := int64(0); i < int64(n); i++ {
-		t.Set(i, struct{}{})
+		t.Set(i, nil)
 	}
 	debug.FreeOSMemory()
 	b.ResetTimer()
@@ -372,7 +368,7 @@ func BenchmarkPrev1e6(b *testing.B) {
 func benchmarkPrev(b *testing.B, n int) {
 	t := TreeNew(cmp)
 	for i := int64(0); i < int64(n); i++ {
-		t.Set(i, struct{}{})
+		t.Set(i, nil)
 	}
 	debug.FreeOSMemory()
 	b.ResetTimer()
