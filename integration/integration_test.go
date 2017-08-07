@@ -495,7 +495,7 @@ func prepare(t testing.TB) {
 			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
 		}
 
-		if needsLoad && !remote {
+		if needsLoad {
 			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "../data/30kmoviedata.nq.gz", format)
 			if err != nil {
 				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
