@@ -125,7 +125,10 @@ func setVersion(kv BucketKV, version int64) error {
 	return Update(kv, func(tx BucketTx) error {
 		var buf [8]byte
 		binary.LittleEndian.PutUint64(buf[:], uint64(version))
-		b := tx.Bucket(metaBucket)
+		b, err := tx.Bucket(metaBucket, OpGet)
+		if err != nil {
+			return err
+		}
 
 		if err := b.Put([]byte("version"), buf[:]); err != nil {
 			return fmt.Errorf("couldn't write version: %v", err)
@@ -179,16 +182,20 @@ func getInt64ForMetaKey(tx BucketTx, key string, empty int64) (int64, error) {
 
 func getInt64ForKey(tx BucketTx, bucket []byte, key string, empty int64) (int64, error) {
 	var out int64
-	b := tx.Bucket(bucket)
-	if b == nil {
-		return empty, ErrNoBucket
+	b, err := tx.Bucket(bucket, OpGet)
+	if err != nil {
+		return empty, err
 	}
-	data := b.Get([]byte(key))
-	if data == nil {
+	data, err := b.Get([]byte(key))
+	if err == ErrNotFound {
+		return empty, nil
+	} else if err != nil {
+		return 0, err
+	} else if len(data) == 0 {
 		return empty, nil
 	}
 	buf := bytes.NewBuffer(data)
-	err := binary.Read(buf, binary.LittleEndian, &out)
+	err = binary.Read(buf, binary.LittleEndian, &out)
 	if err != nil {
 		return 0, err
 	}
@@ -273,9 +280,10 @@ func (qs *QuadStore) getValFromLog(tx BucketTx, k uint64) (quad.Value, error) {
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	var out Int64Value
-	View(qs.db, func(tx BucketTx) error {
-		out = Int64Value(qs.resolveQuadValue(tx, s))
-		return nil
+	_ = View(qs.db, func(tx BucketTx) error {
+		v, err := qs.resolveQuadValue(tx, s)
+		out = Int64Value(v)
+		return err
 	})
 	if out == 0 {
 		return nil

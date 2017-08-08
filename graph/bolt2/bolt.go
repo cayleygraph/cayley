@@ -16,6 +16,8 @@ package bolt2
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -83,15 +85,8 @@ func (db *DB) Type() string {
 func (db *DB) Close() error {
 	return db.DB.Close()
 }
-func (db *DB) View() (kv.BucketTx, error) {
-	tx, err := db.DB.Begin(false)
-	if err != nil {
-		return nil, err
-	}
-	return &Tx{Tx: tx}, nil
-}
-func (db *DB) Update() (kv.BucketTx, error) {
-	tx, err := db.DB.Begin(true)
+func (db *DB) Tx(update bool) (kv.BucketTx, error) {
+	tx, err := db.DB.Begin(update)
 	if err != nil {
 		return nil, err
 	}
@@ -108,22 +103,26 @@ func (tx *Tx) Commit() error {
 func (tx *Tx) Rollback() error {
 	return tx.Tx.Rollback()
 }
-func (tx *Tx) Bucket(name []byte) kv.Bucket {
-	b := tx.Tx.Bucket(name)
-	if b == nil {
-		return nil
-	}
-	return &Bucket{b}
-}
-func (tx *Tx) CreateBucket(name []byte, excl bool) (kv.Bucket, error) {
+func (tx *Tx) Bucket(name []byte, op kv.Op) (kv.Bucket, error) {
 	var (
 		b   *bolt.Bucket
 		err error
 	)
-	if excl {
+	switch op {
+	case kv.OpGet:
+		b = tx.Tx.Bucket(name)
+		if b == nil {
+			return nil, kv.ErrNoBucket
+		}
+	case kv.OpCreate:
 		b, err = tx.Tx.CreateBucket(name)
-	} else {
+		if err == bolt.ErrBucketExists {
+			return nil, kv.ErrBucketExists
+		}
+	case kv.OpUpsert:
 		b, err = tx.Tx.CreateBucketIfNotExists(name)
+	default:
+		return nil, fmt.Errorf("unsupported operation")
 	}
 	if err != nil {
 		return nil, err
@@ -137,20 +136,50 @@ type Bucket struct {
 	Bucket *bolt.Bucket
 }
 
-func (b *Bucket) Get(k []byte) []byte   { return b.Bucket.Get(k) }
-func (b *Bucket) Put(k, v []byte) error { return b.Bucket.Put(k, v) }
-func (b *Bucket) ForEach(pref []byte, fnc func(k, v []byte) error) error {
-	if pref == nil {
-		return b.Bucket.ForEach(fnc)
+func (b *Bucket) Get(k []byte) ([]byte, error) {
+	v := b.Bucket.Get(k)
+	if v == nil {
+		return nil, kv.ErrNotFound
 	}
-	c := b.Bucket.Cursor()
-	for k, v := c.Seek(pref); bytes.HasPrefix(k, pref); k, v = c.Next() {
-		if err := fnc(k, v); err != nil {
-			return err
-		}
-	}
-	return nil
+	return v, nil
 }
+func (b *Bucket) Put(k, v []byte) error { return b.Bucket.Put(k, v) }
+func (b *Bucket) Del(k []byte) error    { return b.Bucket.Delete(k) }
+func (b *Bucket) Scan(pref []byte) kv.KVIterator {
+	return &Iterator{b: b, pref: pref}
+}
+
+type Iterator struct {
+	b    *Bucket
+	pref []byte
+	c    *bolt.Cursor
+	k, v []byte
+}
+
+func (it *Iterator) Next(ctx context.Context) bool {
+	if it.b == nil {
+		return false
+	}
+	if it.c == nil {
+		it.c = it.b.Bucket.Cursor()
+		if len(it.pref) == 0 {
+			it.k, it.v = it.c.First()
+		} else {
+			it.k, it.v = it.c.Seek(it.pref)
+		}
+	} else {
+		it.k, it.v = it.c.Next()
+	}
+	ok := it.k != nil && bytes.HasPrefix(it.k, it.pref)
+	if !ok {
+		it.b = nil
+	}
+	return ok
+}
+func (it *Iterator) Key() []byte  { return it.k }
+func (it *Iterator) Val() []byte  { return it.v }
+func (it *Iterator) Err() error   { return nil }
+func (it *Iterator) Close() error { return nil }
 
 func (b *Bucket) SetFillPercent(v float64) {
 	b.Bucket.FillPercent = v
