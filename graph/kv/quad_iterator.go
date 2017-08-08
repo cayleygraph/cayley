@@ -158,7 +158,7 @@ func (it *QuadIterator) ensureIDs() {
 	if it.ids != nil {
 		return
 	}
-	err := View(it.qs.db, func(tx Tx) error {
+	err := View(it.qs.db, func(tx BucketTx) error {
 		b := subjectIndex
 		if it.dir == quad.Object {
 			b = objectIndex

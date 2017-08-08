@@ -30,9 +30,38 @@ import (
 	boom "github.com/tylertreat/BoomFilters"
 )
 
-var (
-	ErrNoBucket = errors.New("kv: bucket is missing")
-)
+type Registration struct {
+	NewFunc      NewFunc
+	InitFunc     InitFunc
+	IsPersistent bool
+}
+
+type InitFunc func(string, graph.Options) (BucketKV, error)
+type NewFunc func(string, graph.Options) (BucketKV, error)
+
+func Register(name string, r Registration) {
+	graph.RegisterQuadStore(name, graph.QuadStoreRegistration{
+		InitFunc: func(addr string, opt graph.Options) error {
+			kv, err := r.InitFunc(addr, opt)
+			if err != nil {
+				return err
+			}
+			defer kv.Close()
+			if err = Init(kv, opt); err != nil {
+				return err
+			}
+			return kv.Close()
+		},
+		NewFunc: func(addr string, opt graph.Options) (graph.QuadStore, error) {
+			kv, err := r.NewFunc(addr, opt)
+			if err != nil {
+				return nil, err
+			}
+			return New(kv, opt)
+		},
+		IsPersistent: r.IsPersistent,
+	})
+}
 
 const (
 	latestDataVersion = 1
@@ -40,55 +69,14 @@ const (
 	notFound          = 0
 )
 
-type Bucket interface {
-	Get(k []byte) []byte
-	Put(k, v []byte) error
-	ForEach(fn func(k, v []byte) error) error
-}
-
-type Tx interface {
-	Bucket(name []byte) Bucket
-	CreateBucket(name []byte) (Bucket, error)
-	Commit() error
-	Rollback() error
-}
-
-type KV interface {
-	Type() string
-	View() (Tx, error)
-	Update() (Tx, error)
-	Close() error
-}
-
-func Update(kv KV, update func(tx Tx) error) error {
-	tx, err := kv.Update()
-	if err != nil {
-		return err
-	}
-	if err = update(tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-	return tx.Commit()
-}
-
-func View(kv KV, view func(tx Tx) error) error {
-	tx, err := kv.View()
-	if err != nil {
-		return err
-	}
-	err = view(tx)
-	tx.Rollback()
-	return err
-}
-
 type QuadStore struct {
-	db        KV
-	path      string
-	mapBucket map[string]map[uint64][]uint64
-	valueLRU  *lru.Cache
-	exists    *boom.DeletableBloomFilter
+	db   BucketKV
+	path string
+
 	writer    sync.Mutex
+	valueLRU  *lru.Cache
+	mapBucket map[string]map[uint64][]uint64
+	exists    *boom.DeletableBloomFilter
 
 	mu            sync.RWMutex
 	size          int64
@@ -96,28 +84,27 @@ type QuadStore struct {
 	sameAsHorizon int64
 	version       int64
 
+	bufLock  sync.Mutex
 	hashBuf  []byte
 	bloomBuf []byte
-	bufLock  sync.Mutex
 }
 
-func Init(kv KV, _ graph.Options) error {
+func Init(kv BucketKV, opt graph.Options) error {
 	qs := &QuadStore{db: kv}
-	defer qs.Close()
 	if err := qs.getMetadata(); err != ErrNoBucket {
 		return graph.ErrDatabaseExists
 	}
-	if err := qs.createBuckets(); err != nil {
+	upfront, _, _ := opt.BoolKey("upfront")
+	if err := qs.createBuckets(upfront); err != nil {
 		return err
 	}
 	if err := setVersion(qs.db, latestDataVersion); err != nil {
 		return err
 	}
-	qs.Close()
 	return nil
 }
 
-func New(kv KV, _ graph.Options) (graph.QuadStore, error) {
+func New(kv BucketKV, _ graph.Options) (graph.QuadStore, error) {
 	qs := &QuadStore{db: kv}
 	if err := qs.getMetadata(); err == ErrNoBucket {
 		return nil, errors.New("kv: quadstore has not been initialised")
@@ -134,8 +121,8 @@ func New(kv KV, _ graph.Options) (graph.QuadStore, error) {
 	return qs, nil
 }
 
-func setVersion(kv KV, version int64) error {
-	return Update(kv, func(tx Tx) error {
+func setVersion(kv BucketKV, version int64) error {
+	return Update(kv, func(tx BucketTx) error {
 		var buf [8]byte
 		binary.LittleEndian.PutUint64(buf[:], uint64(version))
 		b := tx.Bucket(metaBucket)
@@ -154,7 +141,7 @@ func (qs *QuadStore) Size() int64 {
 }
 
 func (qs *QuadStore) Close() error {
-	err := Update(qs.db, func(tx Tx) error {
+	err := Update(qs.db, func(tx BucketTx) error {
 		return qs.writeHorizonAndSize(tx, -1, -1)
 	})
 	if err != nil {
@@ -167,7 +154,7 @@ func (qs *QuadStore) Close() error {
 func (qs *QuadStore) getMetadata() error {
 	qs.mu.Lock()
 	defer qs.mu.Unlock()
-	return View(qs.db, func(tx Tx) error {
+	return View(qs.db, func(tx BucketTx) error {
 		var err error
 		qs.size, err = getInt64ForMetaKey(tx, "size", 0)
 		if err != nil {
@@ -186,11 +173,11 @@ func (qs *QuadStore) getMetadata() error {
 	})
 }
 
-func getInt64ForMetaKey(tx Tx, key string, empty int64) (int64, error) {
+func getInt64ForMetaKey(tx BucketTx, key string, empty int64) (int64, error) {
 	return getInt64ForKey(tx, metaBucket, key, empty)
 }
 
-func getInt64ForKey(tx Tx, bucket []byte, key string, empty int64) (int64, error) {
+func getInt64ForKey(tx BucketTx, bucket []byte, key string, empty int64) (int64, error) {
 	var out int64
 	b := tx.Bucket(bucket)
 	if b == nil {
@@ -228,7 +215,7 @@ func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
 			return nil
 		}
 		var val quad.Value
-		err := View(qs.db, func(tx Tx) error {
+		err := View(qs.db, func(tx BucketTx) error {
 			var err error
 			val, err = qs.getValFromLog(tx, uint64(v))
 			return err
@@ -249,7 +236,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 		clog.Errorf("passed value was not a quad primitive")
 		return quad.Quad{}
 	}
-	err := View(qs.db, func(tx Tx) error {
+	err := View(qs.db, func(tx BucketTx) error {
 		var err error
 		v, err = qs.primitiveToQuad(tx, key)
 		return err
@@ -260,7 +247,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	return v
 }
 
-func (qs *QuadStore) primitiveToQuad(tx Tx, p *proto.Primitive) (quad.Quad, error) {
+func (qs *QuadStore) primitiveToQuad(tx BucketTx, p *proto.Primitive) (quad.Quad, error) {
 	q := &quad.Quad{}
 	for _, dir := range quad.Directions {
 		v := p.GetDirection(dir)
@@ -273,7 +260,7 @@ func (qs *QuadStore) primitiveToQuad(tx Tx, p *proto.Primitive) (quad.Quad, erro
 	return *q, nil
 }
 
-func (qs *QuadStore) getValFromLog(tx Tx, k uint64) (quad.Value, error) {
+func (qs *QuadStore) getValFromLog(tx BucketTx, k uint64) (quad.Value, error) {
 	if k == 0 {
 		return nil, nil
 	}
@@ -286,7 +273,7 @@ func (qs *QuadStore) getValFromLog(tx Tx, k uint64) (quad.Value, error) {
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	var out Int64Value
-	View(qs.db, func(tx Tx) error {
+	View(qs.db, func(tx BucketTx) error {
 		out = Int64Value(qs.resolveQuadValue(tx, s))
 		return nil
 	})
@@ -326,7 +313,7 @@ func (qs *QuadStore) getPrimitive(val Int64Value) (*proto.Primitive, bool) {
 		return nil, false
 	}
 	var p *proto.Primitive
-	err := View(qs.db, func(tx Tx) error {
+	err := View(qs.db, func(tx BucketTx) error {
 		var err error
 		p, err = qs.getPrimitiveFromLog(tx, uint64(val))
 		return err
