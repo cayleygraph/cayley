@@ -108,12 +108,14 @@ func iri(s string) quad.IRI { return quad.IRI(s) }
 const typeIRI = quad.IRI(rdf.Type)
 
 var testWriteValueCases = []struct {
+	name   string
 	obj    interface{}
 	id     quad.Value
 	expect []quad.Quad
 	err    error
 }{
 	{
+		"complex object",
 		struct {
 			rdfType struct{} `quad:"rdf:type > some:Type"`
 			ID      quad.IRI `quad:"@id"`
@@ -153,6 +155,7 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"complex object (embedded)",
 		struct {
 			rdfType struct{} `quad:"rdf:type > some:Type"`
 			item2
@@ -174,6 +177,7 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"type shorthand",
 		struct {
 			rdfType struct{} `quad:"@type > some:Type"`
 			item2
@@ -195,6 +199,7 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"json tags",
 		struct {
 			rdfType struct{} `quad:"@type > some:Type"`
 			item2
@@ -216,6 +221,7 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"simple object",
 		subObject{
 			genObject: genObject{
 				ID:   "1234",
@@ -231,11 +237,13 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"required field not set",
 		item2{Name: "partial"},
 		nil, nil,
 		schema.ErrReqFieldNotSet{Field: "Spec"},
 	},
 	{
+		"single tree node",
 		treeItemOpt{
 			ID:   iri("n1"),
 			Name: "Node 1",
@@ -247,6 +255,7 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"coords",
 		Coords{Lat: 12.3, Lng: 34.5},
 		nil,
 		[]quad.Quad{
@@ -267,25 +276,27 @@ func (s *quadSlice) WriteQuad(q quad.Quad) error {
 
 func TestWriteAsQuads(t *testing.T) {
 	for i, c := range testWriteValueCases {
-		var out quadSlice
-		id, err := schema.WriteAsQuads(&out, c.obj)
-		if err != c.err {
-			t.Errorf("case %d failed: %v != %v", i, err, c.err)
-		} else if c.err != nil {
-			continue // case with expected error; omit other checks
-		}
-		if c.id == nil {
-			for i := range out {
-				if c.expect[i].Subject == nil {
-					c.expect[i].Subject = id
-				}
+		t.Run(c.name, func(t *testing.T) {
+			var out quadSlice
+			id, err := schema.WriteAsQuads(&out, c.obj)
+			if err != c.err {
+				t.Errorf("case %d failed: %v != %v", i, err, c.err)
+			} else if c.err != nil {
+				return // case with expected error; omit other checks
 			}
-		} else if id != c.id {
-			t.Errorf("ids are different: %v vs %v", id, c.id)
-		}
-		if !reflect.DeepEqual([]quad.Quad(out), c.expect) {
-			t.Errorf("quad sets are different\n%#v\n%#v", []quad.Quad(out), c.expect)
-		}
+			if c.id == nil {
+				for i := range out {
+					if c.expect[i].Subject == nil {
+						c.expect[i].Subject = id
+					}
+				}
+			} else if id != c.id {
+				t.Errorf("ids are different: %v vs %v", id, c.id)
+			}
+			if !reflect.DeepEqual([]quad.Quad(out), c.expect) {
+				t.Errorf("quad sets are different\n%#v\n%#v", []quad.Quad(out), c.expect)
+			}
+		})
 	}
 }
 
@@ -303,12 +314,14 @@ var treeQuads = []quad.Quad{
 }
 
 var testFillValueCases = []struct {
+	name   string
 	expect interface{}
 	quads  []quad.Quad
 	depth  int
 	from   []quad.Value
 }{
 	{
+		name: "complex object",
 		expect: struct {
 			rdfType struct{} `quad:"rdf:type > some:Type"`
 			ID      quad.IRI `quad:"@id"`
@@ -346,6 +359,7 @@ var testFillValueCases = []struct {
 		},
 	},
 	{
+		name: "complex object (id value)",
 		expect: struct {
 			rdfType struct{}   `quad:"rdf:type > some:Type"`
 			ID      quad.Value `quad:"@id"`
@@ -375,6 +389,7 @@ var testFillValueCases = []struct {
 		},
 	},
 	{
+		name: "embedded object",
 		expect: struct {
 			rdfType struct{} `quad:"rdf:type > some:Type"`
 			item2
@@ -394,6 +409,7 @@ var testFillValueCases = []struct {
 		},
 	},
 	{
+		name: "type shorthand",
 		expect: struct {
 			rdfType struct{} `quad:"@type > some:Type"`
 			item2
@@ -413,6 +429,7 @@ var testFillValueCases = []struct {
 		},
 	},
 	{
+		name: "tree",
 		expect: treeItem{
 			ID:   iri("n1"),
 			Name: "Node 1",
@@ -437,6 +454,7 @@ var testFillValueCases = []struct {
 		from:  []quad.Value{iri("n1")},
 	},
 	{
+		name: "tree with depth limit 1",
 		expect: treeItem{
 			ID:   iri("n1"),
 			Name: "Node 1",
@@ -461,6 +479,7 @@ var testFillValueCases = []struct {
 		from:  []quad.Value{iri("n1")},
 	},
 	{
+		name: "tree with depth limit 2",
 		expect: treeItemOpt{
 			ID:   iri("n1"),
 			Name: "Node 1",
@@ -486,6 +505,7 @@ var testFillValueCases = []struct {
 		from:  []quad.Value{iri("n1")},
 	},
 	{
+		name: "tree with required children",
 		expect: treeItemReq{
 			ID:   iri("n1"),
 			Name: "Node 1",
@@ -504,6 +524,7 @@ var testFillValueCases = []struct {
 		from:  []quad.Value{iri("n1")},
 	},
 	{
+		name: "simple object",
 		expect: subObject{
 			genObject: genObject{
 				ID:   "1234",
@@ -517,6 +538,7 @@ var testFillValueCases = []struct {
 		},
 	},
 	{
+		name:   "coords",
 		expect: Coords{Lat: 12.3, Lng: 34.5},
 		quads: []quad.Quad{
 			{iri("c1"), typeIRI, iri("ex:Coords"), nil},
@@ -528,40 +550,42 @@ var testFillValueCases = []struct {
 
 func TestLoadIteratorTo(t *testing.T) {
 	for i, c := range testFillValueCases {
-		qs := memstore.New(c.quads...)
-		out := reflect.New(reflect.TypeOf(c.expect))
-		var it graph.Iterator
-		if c.from != nil {
-			fixed := qs.FixedIterator()
-			for _, id := range c.from {
-				fixed.Add(qs.ValueOf(id))
+		t.Run(c.name, func(t *testing.T) {
+			qs := memstore.New(c.quads...)
+			out := reflect.New(reflect.TypeOf(c.expect))
+			var it graph.Iterator
+			if c.from != nil {
+				fixed := qs.FixedIterator()
+				for _, id := range c.from {
+					fixed.Add(qs.ValueOf(id))
+				}
+				it = fixed
 			}
-			it = fixed
-		}
-		depth := c.depth
-		if depth == 0 {
-			depth = -1
-		}
-		if err := schema.LoadIteratorToDepth(nil, qs, out, depth, it); err != nil {
-			t.Errorf("case %d failed: %v", i+1, err)
-			continue
-		}
-		got := out.Elem().Interface()
-		if s, ok := got.(interface {
-			Sort()
-		}); ok {
-			s.Sort()
-		}
-		if s, ok := c.expect.(interface {
-			Sort()
-		}); ok {
-			s.Sort()
-		}
-		if !reflect.DeepEqual(got, c.expect) {
-			t.Errorf("case %d failed: objects are different\n%#v\n%#v",
-				i+1, out.Elem().Interface(), c.expect,
-			)
-		}
+			depth := c.depth
+			if depth == 0 {
+				depth = -1
+			}
+			if err := schema.LoadIteratorToDepth(nil, qs, out, depth, it); err != nil {
+				t.Errorf("case %d failed: %v", i+1, err)
+				return
+			}
+			got := out.Elem().Interface()
+			if s, ok := got.(interface {
+				Sort()
+			}); ok {
+				s.Sort()
+			}
+			if s, ok := c.expect.(interface {
+				Sort()
+			}); ok {
+				s.Sort()
+			}
+			if !reflect.DeepEqual(got, c.expect) {
+				t.Errorf("case %d failed: objects are different\n%#v\n%#v",
+					i+1, out.Elem().Interface(), c.expect,
+				)
+			}
+		})
 	}
 }
 
