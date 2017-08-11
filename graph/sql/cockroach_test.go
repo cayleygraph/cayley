@@ -57,6 +57,7 @@ func makeCockroach(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 }
 
 func TestCockroachAll(t *testing.T) {
+	t.Parallel()
 	graphtest.TestAll(t, makeCockroach, &graphtest.Config{
 		NoPrimitives:            true,
 		TimeInMcs:               true,
@@ -68,6 +69,7 @@ func TestCockroachAll(t *testing.T) {
 }
 
 func TestCockroachZeroRune(t *testing.T) {
+	t.Parallel()
 	qs, opts, closer := makeCockroach(t)
 	defer closer()
 
@@ -88,5 +90,6 @@ func TestCockroachZeroRune(t *testing.T) {
 }
 
 func TestCockroachPaths(t *testing.T) {
+	t.Parallel()
 	pathtest.RunTestMorphisms(t, makeCockroach)
 }

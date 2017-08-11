@@ -50,6 +50,7 @@ func makePostgres(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 }
 
 func TestPostgresAll(t *testing.T) {
+	t.Parallel()
 	graphtest.TestAll(t, makePostgres, &graphtest.Config{
 		NoPrimitives:            true,
 		TimeInMcs:               true,
@@ -60,10 +61,12 @@ func TestPostgresAll(t *testing.T) {
 }
 
 func TestPostgresPaths(t *testing.T) {
+	t.Parallel()
 	pathtest.RunTestMorphisms(t, makePostgres)
 }
 
 func TestPostgresZeroRune(t *testing.T) {
+	t.Parallel()
 	qs, opts, closer := makePostgres(t)
 	defer closer()
 
