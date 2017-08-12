@@ -103,7 +103,10 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 			}
 		}
 	}
-
+	if it.nextIt != nil {
+		it.nextIt.TagResults(dst)
+		delete(dst, "__base_recursive")
+	}
 }
 
 func (it *Recursive) Clone() graph.Iterator {
