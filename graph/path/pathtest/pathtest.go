@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"sort"
 	"testing"
+	"time"
 
 	. "github.com/cayleygraph/cayley/graph/path"
 
@@ -380,11 +381,13 @@ func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
 					got []quad.Value
 					err error
 				)
+				start := time.Now()
 				if test.tag == "" {
 					got, err = runTopLevel(qs, test.path, opt)
 				} else {
 					got, err = runTag(qs, test.path, test.tag, opt)
 				}
+				dt := time.Since(start)
 				if err != nil {
 					t.Error(err)
 					return
@@ -397,6 +400,8 @@ func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
 				}
 				if !eq {
 					t.Errorf("got: %v(%d) expected: %v(%d)", got, len(got), test.expect, len(test.expect))
+				} else {
+					t.Logf("%v", dt)
 				}
 			})
 		}

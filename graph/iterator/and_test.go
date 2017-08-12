@@ -12,20 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package iterator_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphmock"
+	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
 // Make sure that tags work on the And.
 func TestTag(t *testing.T) {
-	qs := &oldstore{
-		data: []string{},
-		iter: NewFixed(Identity),
+	qs := &graphmock.Oldstore{
+		Data: []string{},
+		Iter: NewFixed(Identity),
 	}
 	fix1 := NewFixed(Identity, Int64Node(234))
 	fix1.Tagger().Add("foo")
@@ -58,9 +60,9 @@ func TestTag(t *testing.T) {
 
 // Do a simple itersection of fixed values.
 func TestAndAndFixedIterators(t *testing.T) {
-	qs := &oldstore{
-		data: []string{},
-		iter: NewFixed(Identity),
+	qs := &graphmock.Oldstore{
+		Data: []string{},
+		Iter: NewFixed(Identity),
 	}
 	fix1 := NewFixed(Identity,
 		Int64Node(1),
@@ -100,9 +102,9 @@ func TestAndAndFixedIterators(t *testing.T) {
 // If there's no intersection, the size should still report the same,
 // but there should be nothing to Next()
 func TestNonOverlappingFixedIterators(t *testing.T) {
-	qs := &oldstore{
-		data: []string{},
-		iter: NewFixed(Identity),
+	qs := &graphmock.Oldstore{
+		Data: []string{},
+		Iter: NewFixed(Identity),
 	}
 	fix1 := NewFixed(Identity,
 		Int64Node(1),
@@ -132,9 +134,9 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 }
 
 func TestAllIterators(t *testing.T) {
-	qs := &oldstore{
-		data: []string{},
-		iter: NewFixed(Identity),
+	qs := &graphmock.Oldstore{
+		Data: []string{},
+		Iter: NewFixed(Identity),
 	}
 	all1 := NewInt64(1, 5, true)
 	all2 := NewInt64(4, 10, true)
@@ -154,9 +156,9 @@ func TestAllIterators(t *testing.T) {
 }
 
 func TestAndIteratorErr(t *testing.T) {
-	qs := &oldstore{
-		data: []string{},
-		iter: NewFixed(Identity),
+	qs := &graphmock.Oldstore{
+		Data: []string{},
+		Iter: NewFixed(Identity),
 	}
 	wantErr := errors.New("unique")
 	allErr := newTestIterator(false, wantErr)

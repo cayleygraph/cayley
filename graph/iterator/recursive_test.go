@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package iterator_test
 
 import (
 	"reflect"
@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphmock"
+	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -36,8 +38,8 @@ func singleHop(pred string) graph.ApplyMorphism {
 	}
 }
 
-var rec_test_qs = &store{
-	data: []quad.Quad{
+var rec_test_qs = &graphmock.Store{
+	Data: []quad.Quad{
 		quad.MakeRaw("alice", "parent", "bob", ""),
 		quad.MakeRaw("bob", "parent", "charlie", ""),
 		quad.MakeRaw("charlie", "parent", "dani", ""),

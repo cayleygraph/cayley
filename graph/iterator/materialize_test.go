@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package iterator_test
 
 import (
 	"errors"
 	"testing"
+
+	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
 func TestMaterializeIteratorError(t *testing.T) {
@@ -43,14 +45,14 @@ func TestMaterializeIteratorErrorAbort(t *testing.T) {
 	// underlying iterator is larger than our 'abort at' value, and then
 	// returns an error.
 	or := NewOr(
-		NewInt64(1, int64(abortMaterializeAt+1), true),
+		NewInt64(1, int64(MaterializeLimit+1), true),
 		errIt,
 	)
 
 	mIt := NewMaterialize(or)
 
 	// We should get all the underlying values...
-	for i := 0; i < abortMaterializeAt+1; i++ {
+	for i := 0; i < MaterializeLimit+1; i++ {
 		if !mIt.Next() {
 			t.Errorf("Materialize iterator returned spurious 'false' on iteration %d", i)
 			return

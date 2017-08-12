@@ -45,8 +45,8 @@ type Linkage struct {
 // TODO(barakmich): Helper functions as needed, eg, ValuesForDirection(quad.Direction) []Value
 
 // Add a tag to the iterator.
-func (t *Tagger) Add(tag string) {
-	t.tags = append(t.tags, tag)
+func (t *Tagger) Add(tag ...string) {
+	t.tags = append(t.tags, tag...)
 }
 
 func (t *Tagger) AddFixed(tag string, value Value) {

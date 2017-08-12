@@ -1,8 +1,10 @@
-package iterator
+package iterator_test
 
 import (
 	"reflect"
 	"testing"
+
+	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
 func TestSkipIteratorBasics(t *testing.T) {
