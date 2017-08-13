@@ -163,15 +163,7 @@ func (it *Iterator) Describe() graph.Description {
 	}
 }
 
-var memType graph.Type
-
-func init() {
-	memType = graph.RegisterIterator("b+tree")
-}
-
-func Type() graph.Type { return memType }
-
-func (it *Iterator) Type() graph.Type { return memType }
+func (it *Iterator) Type() graph.Type { return "b+tree" }
 
 func (it *Iterator) Sorted() bool { return true }
 

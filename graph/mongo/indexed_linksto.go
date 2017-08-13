@@ -25,12 +25,6 @@ import (
 
 var _ graph.Iterator = &LinksTo{}
 
-var linksToType graph.Type
-
-func init() {
-	linksToType = graph.RegisterIterator("mongo-linksto")
-}
-
 // LinksTo is a MongoDB-dependent version of a LinksTo iterator. Like the normal
 // LinksTo, it represents a set of links to a set of nodes, represented by its
 // subiterator. However, this iterator may often be faster than the generic
@@ -183,7 +177,7 @@ func (it *LinksTo) NextPath() bool {
 }
 
 func (it *LinksTo) Type() graph.Type {
-	return linksToType
+	return "mongo-linksto"
 }
 
 func (it *LinksTo) Clone() graph.Iterator {

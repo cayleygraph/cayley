@@ -125,7 +125,7 @@ func linksto(aIn sqlIterator, d quad.Direction, qs *QuadStore) (*SQLIterator, er
 	out := &SQLLinkIterator{
 		tableName: newTableName(),
 		nodeIts: []sqlItDir{
-			sqlItDir{
+			{
 				it:  a,
 				dir: d,
 			},
@@ -153,6 +153,16 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 		return it, false
 	}
 	primary := subs[0]
+	switch p := primary.(type) {
+	case *SQLIterator:
+		newit, err := linksto(p.sql, it.Direction(), qs)
+		if err != nil {
+			clog.Errorf("%v", err)
+			return it, false
+		}
+		newit.Tagger().CopyFrom(it)
+		return newit, true
+	}
 	switch primary.Type() {
 	case graph.Fixed:
 		size, _ := primary.Size()
@@ -179,7 +189,7 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			}
 			lsql := &SQLLinkIterator{
 				constraints: []constraint{
-					constraint{
+					{
 						dir:    it.Direction(),
 						hashes: vals,
 					},
@@ -203,15 +213,6 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 			it.Close()
 			return l, true
 		}
-	case sqlType:
-		p := primary.(*SQLIterator)
-		newit, err := linksto(p.sql, it.Direction(), qs)
-		if err != nil {
-			clog.Errorf("%v", err)
-			return it, false
-		}
-		newit.Tagger().CopyFrom(it)
-		return newit, true
 	case graph.All:
 		linkit := &SQLLinkIterator{
 			tableName: newTableName(),
@@ -246,12 +247,12 @@ func (qs *QuadStore) optimizeAnd(it *iterator.And) (graph.Iterator, bool) {
 		clog.Infof("Combining SQL %#v", subs)
 	}
 	for _, subit := range subs {
-		if subit.Type() == sqlType {
+		if sit, ok := subit.(*SQLIterator); ok {
 			if newit == nil {
-				newit = subit.(*SQLIterator)
+				newit = sit
 			} else {
 				changed = true
-				newit, err = intersect(newit.sql, subit.(*SQLIterator).sql, qs)
+				newit, err = intersect(newit.sql, sit.sql, qs)
 				if err != nil {
 					clog.Errorf("%v", err)
 					return it, false
@@ -315,8 +316,7 @@ func (qs *QuadStore) optimizeHasA(it *iterator.HasA) (graph.Iterator, bool) {
 		return it, false
 	}
 	primary := subs[0]
-	if primary.Type() == sqlType {
-		p := primary.(*SQLIterator)
+	if p, ok := primary.(*SQLIterator); ok {
 		newit, err := hasa(p.sql, it.Direction(), qs)
 		if err != nil {
 			clog.Errorf("%v", err)

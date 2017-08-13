@@ -25,14 +25,6 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var (
-	kvType graph.Type
-)
-
-func init() {
-	kvType = graph.RegisterIterator("kv_quad")
-}
-
 type QuadIterator struct {
 	qs        *QuadStore
 	err       error
@@ -48,8 +40,6 @@ type QuadIterator struct {
 }
 
 var _ graph.Iterator = &QuadIterator{}
-
-func Type() graph.Type { return kvType }
 
 func NewQuadIterator(dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
 	qs.mu.RLock()
@@ -185,7 +175,7 @@ func (it *QuadIterator) Describe() graph.Description {
 	}
 }
 
-func (it *QuadIterator) Type() graph.Type { return kvType }
+func (it *QuadIterator) Type() graph.Type { return "kv_quad" }
 func (it *QuadIterator) Sorted() bool     { return true }
 
 func (it *QuadIterator) Optimize() (graph.Iterator, bool) {

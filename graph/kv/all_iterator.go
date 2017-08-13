@@ -21,14 +21,6 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var (
-	constrainedAllType graph.Type
-)
-
-func init() {
-	constrainedAllType = graph.RegisterIterator("bolt_constrained_all")
-}
-
 type AllIterator struct {
 	nodes   bool
 	id      uint64
@@ -187,7 +179,7 @@ func (it *AllIterator) Describe() graph.Description {
 
 func (it *AllIterator) Type() graph.Type {
 	if it.cons != nil {
-		return constrainedAllType
+		return "kv_constrained_all"
 	}
 	return graph.All
 }

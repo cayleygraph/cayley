@@ -81,8 +81,8 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 	if !ok {
 		t.Errorf("Failed to optimize iterator")
 	}
-	if newIt.Type() != kv.Type() {
-		t.Errorf("Optimized iterator type does not match original, got:%v expect:%v", newIt.Type(), kv.Type())
+	if _, ok := newIt.(*kv.QuadIterator); !ok {
+		t.Errorf("Optimized iterator type does not match original, got:%T", newIt)
 	}
 
 	newQuads := graphtest.IteratedQuads(t, qs, newIt)

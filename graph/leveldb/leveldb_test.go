@@ -183,8 +183,8 @@ func TestOptimize(t *testing.T) {
 	if !ok {
 		t.Errorf("Failed to optimize iterator")
 	}
-	if newIt.Type() != Type() {
-		t.Errorf("Optimized iterator type does not match original, got:%v expect:%v", newIt.Type(), Type())
+	if _, ok := newIt.(*Iterator); !ok {
+		t.Errorf("Optimized iterator type does not match original, got:%T", newIt)
 	}
 
 	newQuads := graphtest.IteratedQuads(t, qs, newIt)

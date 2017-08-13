@@ -17,9 +17,7 @@ package graph
 // Define the general iterator interface.
 
 import (
-	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/quad"
@@ -222,99 +220,36 @@ type IteratorStats struct {
 }
 
 // Type enumerates the set of Iterator types.
-type Type int
+type Type string
 
 // These are the iterator types, defined as constants
 const (
-	Invalid Type = iota
-	All
-	And
-	Or
-	HasA
-	LinksTo
-	Comparison
-	Null
-	Fixed
-	Not
-	Optional
-	Materialize
-	Unique
-	Limit
-	Skip
-	Regex
-	Count
-	Recursive
+	Invalid     = Type("")
+	All         = Type("all")
+	And         = Type("and")
+	Or          = Type("or")
+	HasA        = Type("hasa")
+	LinksTo     = Type("linksto")
+	Comparison  = Type("comparison")
+	Null        = Type("null")
+	Fixed       = Type("fixed")
+	Not         = Type("not")
+	Optional    = Type("optional")
+	Materialize = Type("materialize")
+	Unique      = Type("unique")
+	Limit       = Type("limit")
+	Skip        = Type("skip")
+	Regex       = Type("regexp")
+	Count       = Type("count")
+	Recursive   = Type("recursive")
 )
-
-var (
-	// We use a sync.Mutex rather than an RWMutex since the client packages keep
-	// the Type that was returned, so the only possibility for contention is at
-	// initialization.
-	lock sync.Mutex
-	// These strings must be kept in order consistent with the Type const block above.
-	types = []string{
-		"invalid",
-		"all",
-		"and",
-		"or",
-		"hasa",
-		"linksto",
-		"comparison",
-		"null",
-		"fixed",
-		"not",
-		"optional",
-		"materialize",
-		"unique",
-		"limit",
-		"skip",
-		"regex",
-		"count",
-		"recursive",
-	}
-)
-
-// RegisterIterator adds a new iterator type to the set of acceptable types, returning
-// the registered Type.
-// Calls to Register are idempotent and must be made prior to use of the iterator.
-// The conventional approach for use is to include a call to Register in a package
-// init() function, saving the Type to a private package var.
-func RegisterIterator(name string) Type {
-	lock.Lock()
-	defer lock.Unlock()
-	for i, t := range types {
-		if t == name {
-			return Type(i)
-		}
-	}
-	types = append(types, name)
-	return Type(len(types) - 1)
-}
 
 // String returns a string representation of the Type.
 func (t Type) String() string {
-	if t < 0 || int(t) >= len(types) {
+	if t == "" {
 		return "illegal-type"
 	}
-	return types[t]
-}
-
-func (t *Type) MarshalText() (text []byte, err error) {
-	if *t < 0 || int(*t) >= len(types) {
-		return nil, fmt.Errorf("graph: illegal iterator type: %d", *t)
-	}
-	return []byte(types[*t]), nil
-}
-
-func (t *Type) UnmarshalText(text []byte) error {
-	s := string(text)
-	for i, c := range types[1:] {
-		if c == s {
-			*t = Type(i + 1)
-			return nil
-		}
-	}
-	return fmt.Errorf("graph: unknown iterator label: %q", text)
+	return string(t)
 }
 
 type StatsContainer struct {

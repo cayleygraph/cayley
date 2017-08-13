@@ -205,19 +205,11 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.size, true
 }
 
-var mongoType graph.Type
-
-func init() {
-	mongoType = graph.RegisterIterator("mongo")
-}
-
-func Type() graph.Type { return mongoType }
-
 func (it *Iterator) Type() graph.Type {
 	if it.isAll {
 		return graph.All
 	}
-	return mongoType
+	return "mongo"
 }
 
 func (it *Iterator) Sorted() bool                     { return true }

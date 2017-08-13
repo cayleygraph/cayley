@@ -257,15 +257,7 @@ func (it *Iterator) Describe() graph.Description {
 	}
 }
 
-var levelDBType graph.Type
-
-func init() {
-	levelDBType = graph.RegisterIterator("leveldb")
-}
-
-func Type() graph.Type { return levelDBType }
-
-func (it *Iterator) Type() graph.Type { return levelDBType }
+func (it *Iterator) Type() graph.Type { return "leveldb" }
 func (it *Iterator) Sorted() bool     { return false }
 
 func (it *Iterator) Optimize() (graph.Iterator, bool) {

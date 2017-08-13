@@ -25,12 +25,6 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var sqlType graph.Type
-
-func init() {
-	sqlType = graph.RegisterIterator("sql")
-}
-
 type sqlArgs []interface{}
 
 type tagDir struct {
@@ -152,7 +146,7 @@ func (it *SQLIterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *SQLIterator) Type() graph.Type {
-	return sqlType
+	return "sql"
 }
 
 func (it *SQLIterator) SubIterators() []graph.Iterator {

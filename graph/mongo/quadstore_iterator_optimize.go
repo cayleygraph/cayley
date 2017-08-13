@@ -47,7 +47,7 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 		if clog.V(4) {
 			clog.Infof("%v", it.Type())
 		}
-		if it.Type() == mongoType {
+		if _, ok := it.(*Iterator); ok {
 			found = true
 		}
 	}
@@ -61,13 +61,15 @@ func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool
 	newAnd := iterator.NewAnd(qs)
 	var mongoIt *Iterator
 	for _, it := range it.SubIterators() {
-		switch it.Type() {
-		case mongoType:
+		if sit, ok := it.(*Iterator); ok {
 			if mongoIt == nil {
-				mongoIt = it.(*Iterator)
+				mongoIt = sit
 			} else {
 				newAnd.AddSubIterator(it)
 			}
+			continue
+		}
+		switch it.Type() {
 		case graph.LinksTo:
 			continue
 		default:
