@@ -1,27 +1,11 @@
 <!--
-If you are reporting a new issue, make sure that we do not have any duplicates
-already open. You can ensure this by searching the issue list for this
-repository. If there is a duplicate, please close your issue and add a comment
-to the existing issue instead.
-
-If you suspect your issue is a bug, please edit your issue description to
-include the BUG REPORT INFORMATION shown below.
-
----------------------------------------------------
-GENERAL SUPPORT INFORMATION
----------------------------------------------------
-
 The GitHub issue tracker is for bug reports and feature requests.
 General support can be found at the following locations:
 
 - Cayley Forum - https://discourse.cayley.io
-- IRC - irc.freenode.net #cayley channel
+- Slack - cayleygraph.slack.com, invites: https://cayley-slackin.herokuapp.com
 
----------------------------------------------------
-BUG REPORT INFORMATION
----------------------------------------------------
-Use the command below to provide key information from your environment:
-You do NOT have to include this information if this is a FEATURE REQUEST
+Please answer these questions before submitting your issue. Thanks!
 -->
 
 **Description**
