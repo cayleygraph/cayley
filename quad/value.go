@@ -15,6 +15,11 @@ import (
 	"github.com/cayleygraph/cayley/voc/schema"
 )
 
+func IsValidValue(v Value) bool {
+	rv, ok := v.(Raw)
+	return v != nil && (!ok || rv != "")
+}
+
 // Value is a type used by all quad directions.
 type Value interface {
 	String() string

@@ -258,8 +258,7 @@ func (q Quad) String() string {
 }
 
 func (q Quad) IsValid() bool {
-	return q.Subject != nil && q.Predicate != nil && q.Object != nil &&
-		q.Subject.String() != "" && q.Predicate.String() != "" && q.Object.String() != ""
+	return IsValidValue(q.Subject) && IsValidValue(q.Predicate) && IsValidValue(q.Object)
 }
 
 // Prints a quad in N-Quad format.
