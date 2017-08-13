@@ -151,33 +151,34 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 
 // Next()ing a LinksTo operates as described above.
 func (it *LinksTo) Next() bool {
-	graph.NextLogIn(it)
-	it.runstats.Next += 1
-	if it.nextIt.Next() {
-		it.runstats.ContainsNext += 1
-		it.result = it.nextIt.Result()
-		return graph.NextLogOut(it, true)
+	for {
+		graph.NextLogIn(it)
+		it.runstats.Next += 1
+		if it.nextIt.Next() {
+			it.runstats.ContainsNext += 1
+			it.result = it.nextIt.Result()
+			return graph.NextLogOut(it, true)
+		}
+
+		// If there's an error in the 'next' iterator, we save it and we're done.
+		it.err = it.nextIt.Err()
+		if it.err != nil {
+			return false
+		}
+
+		// Subiterator is empty, get another one
+		if !it.primaryIt.Next() {
+			// Possibly save error
+			it.err = it.primaryIt.Err()
+
+			// We're out of nodes in our subiterator, so we're done as well.
+			return graph.NextLogOut(it, false)
+		}
+		it.nextIt.Close()
+		it.nextIt = it.qs.QuadIterator(it.dir, it.primaryIt.Result())
+
+		// Continue -- return the first in the next set.
 	}
-
-	// If there's an error in the 'next' iterator, we save it and we're done.
-	it.err = it.nextIt.Err()
-	if it.err != nil {
-		return false
-	}
-
-	// Subiterator is empty, get another one
-	if !it.primaryIt.Next() {
-		// Possibly save error
-		it.err = it.primaryIt.Err()
-
-		// We're out of nodes in our subiterator, so we're done as well.
-		return graph.NextLogOut(it, false)
-	}
-	it.nextIt.Close()
-	it.nextIt = it.qs.QuadIterator(it.dir, it.primaryIt.Result())
-
-	// Recurse -- return the first in the next set.
-	return it.Next()
 }
 
 func (it *LinksTo) Err() error {
