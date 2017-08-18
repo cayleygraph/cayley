@@ -159,11 +159,7 @@ iteration:
 		default:
 		}
 		cnt++
-<<<<<<< 3d553cea5e2423585745751def30b44d02f96bf8
-		for c.nextPath() {
-=======
 		for c.nextPath(nil) {
->>>>>>> Tidy up.
 			select {
 			case <-done:
 				break iteration
