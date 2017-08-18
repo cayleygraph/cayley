@@ -17,7 +17,6 @@ package bolt2
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -94,57 +93,78 @@ func (db *DB) Tx(update bool) (kv.BucketTx, error) {
 }
 
 type Tx struct {
-	Tx *bolt.Tx
+	Tx  *bolt.Tx
+	err error
+}
+
+func (tx *Tx) Get(keys []kv.BucketKey) ([][]byte, error) {
+	vals := make([][]byte, len(keys))
+	for i, k := range keys {
+		if b := tx.Tx.Bucket(k.Bucket); b != nil {
+			vals[i] = b.Get(k.Key)
+		}
+	}
+	return vals, nil
 }
 
 func (tx *Tx) Commit() error {
+	if tx.err != nil {
+		_ = tx.Tx.Rollback()
+		return tx.err
+	}
 	return tx.Tx.Commit()
 }
 func (tx *Tx) Rollback() error {
+	if tx.err != nil {
+		_ = tx.Tx.Rollback()
+		return tx.err
+	}
 	return tx.Tx.Rollback()
 }
-func (tx *Tx) Bucket(name []byte, op kv.Op) (kv.Bucket, error) {
-	var (
-		b   *bolt.Bucket
-		err error
-	)
-	switch op {
-	case kv.OpGet:
-		b = tx.Tx.Bucket(name)
-		if b == nil {
-			return nil, kv.ErrNoBucket
-		}
-	case kv.OpCreate:
-		b, err = tx.Tx.CreateBucket(name)
-		if err == bolt.ErrBucketExists {
-			return nil, kv.ErrBucketExists
-		}
-	case kv.OpUpsert:
-		b, err = tx.Tx.CreateBucketIfNotExists(name)
-	default:
-		return nil, fmt.Errorf("unsupported operation")
+func (tx *Tx) Bucket(name []byte) kv.Bucket {
+	if tx.Tx.Writable() {
+		b, err := tx.Tx.CreateBucketIfNotExists(name)
+		return &Bucket{Bucket: b, err: err}
 	}
-	if err != nil {
-		return nil, err
+	b := tx.Tx.Bucket(name)
+	var err error
+	if b == nil {
+		err = kv.ErrNoBucket
 	}
-	return &Bucket{b}, nil
+	return &Bucket{Bucket: b, err: err}
 }
 
 var _ kv.FillBucket = (*Bucket)(nil)
 
 type Bucket struct {
 	Bucket *bolt.Bucket
+	err    error
 }
 
-func (b *Bucket) Get(k []byte) ([]byte, error) {
-	v := b.Bucket.Get(k)
-	if v == nil {
+func (b *Bucket) Get(keys [][]byte) ([][]byte, error) {
+	if b.err != nil {
+		return nil, b.err
+	} else if b.Bucket == nil {
 		return nil, kv.ErrNotFound
 	}
-	return v, nil
+	vals := make([][]byte, len(keys))
+	for i, k := range keys {
+		vals[i] = b.Bucket.Get(k)
+	}
+	return vals, nil
 }
-func (b *Bucket) Put(k, v []byte) error { return b.Bucket.Put(k, v) }
-func (b *Bucket) Del(k []byte) error    { return b.Bucket.Delete(k) }
+func (b *Bucket) Put(k, v []byte) error {
+	if b.err != nil {
+		return b.err
+	}
+	return b.Bucket.Put(k, v)
+}
+func (b *Bucket) Del(k []byte) error {
+	if b.err != nil {
+		return b.err
+	}
+	return b.Bucket.Delete(k)
+}
 func (b *Bucket) Scan(pref []byte) kv.KVIterator {
 	return &Iterator{b: b, pref: pref}
 }
@@ -158,6 +178,8 @@ type Iterator struct {
 
 func (it *Iterator) Next(ctx context.Context) bool {
 	if it.b == nil {
+		return false
+	} else if it.b.err != nil {
 		return false
 	}
 	if it.c == nil {
@@ -176,10 +198,15 @@ func (it *Iterator) Next(ctx context.Context) bool {
 	}
 	return ok
 }
-func (it *Iterator) Key() []byte  { return it.k }
-func (it *Iterator) Val() []byte  { return it.v }
-func (it *Iterator) Err() error   { return nil }
-func (it *Iterator) Close() error { return nil }
+func (it *Iterator) Key() []byte { return it.k }
+func (it *Iterator) Val() []byte { return it.v }
+func (it *Iterator) Err() error {
+	if it.b == nil {
+		return nil
+	}
+	return it.b.err
+}
+func (it *Iterator) Close() error { return it.Err() }
 
 func (b *Bucket) SetFillPercent(v float64) {
 	b.Bucket.FillPercent = v

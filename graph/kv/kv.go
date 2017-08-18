@@ -19,10 +19,20 @@ type Tx interface {
 }
 
 type Bucket interface {
-	Get(k []byte) ([]byte, error)
+	Get(keys [][]byte) ([][]byte, error)
 	Put(k, v []byte) error
 	Del(k []byte) error
 	Scan(pref []byte) KVIterator
+}
+
+func GetOne(b Bucket, key []byte) ([]byte, error) {
+	out, err := b.Get([][]byte{key})
+	if err != nil {
+		return nil, err
+	} else if len(out) == 0 || out[0] == nil {
+		return nil, ErrNotFound
+	}
+	return out[0], nil
 }
 
 type KVIterator interface {
@@ -33,17 +43,14 @@ type KVIterator interface {
 	Val() []byte
 }
 
-type Op int
-
-const (
-	OpGet = Op(iota)
-	OpCreate
-	OpUpsert
-)
+type BucketKey struct {
+	Bucket, Key []byte
+}
 
 type BucketTx interface {
 	Tx
-	Bucket(name []byte, op Op) (Bucket, error)
+	Bucket(name []byte) Bucket
+	Get(keys []BucketKey) ([][]byte, error)
 }
 
 type FlatTx interface {
@@ -126,7 +133,16 @@ type flatTx struct {
 	kv FlatKV
 	tx FlatTx
 	ro bool
-	// TODO: map[[]byte]*flatBucket
+
+	buckets map[string]*flatBucket
+}
+
+func (v *flatTx) Get(keys []BucketKey) ([][]byte, error) {
+	ks := make([][]byte, len(keys))
+	for i, k := range keys {
+		ks[i] = v.bucketKey(k.Bucket, k.Key)
+	}
+	return v.tx.Get(ks)
 }
 
 func (v *flatTx) Commit() error {
@@ -138,33 +154,25 @@ func (v *flatTx) Rollback() error {
 
 const bucketSep = '/'
 
-func (v *flatTx) bucketPref(name []byte) []byte {
-	pref := make([]byte, len(name)+1)
-	n := copy(pref, name)
-	pref[n] = bucketSep
-	return pref
+func (v *flatTx) bucketKey(name, key []byte) []byte {
+	p := make([]byte, len(name)+1+len(key))
+	n := copy(p, name)
+	p[n] = bucketSep
+	n++
+	copy(p[n:], key)
+	return p
 }
-func (v *flatTx) Bucket(name []byte, op Op) (Bucket, error) {
-	if v.ro && op != OpGet {
-		return nil, fmt.Errorf("create bucket on ro tx")
+func (v *flatTx) Bucket(name []byte) Bucket {
+	if b := v.buckets[string(name)]; b != nil {
+		return b
 	}
-	pref := v.bucketPref(name)
-	_, err := v.tx.Get(pref)
-	if err == ErrNotFound {
-		if op == OpGet {
-			return nil, ErrNoBucket
-		}
-		if err := v.tx.Put(pref, []byte{0}); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
-	} else {
-		if op == OpCreate {
-			return nil, ErrBucketExists
-		}
+	if v.buckets == nil {
+		v.buckets = make(map[string]*flatBucket)
 	}
-	return &flatBucket{flatTx: v, pref: pref}, nil
+	pref := v.bucketKey(name, nil)
+	b := &flatBucket{flatTx: v, pref: pref}
+	v.buckets[string(name)] = b
+	return b
 }
 
 type flatBucket struct {
@@ -178,8 +186,17 @@ func (b *flatBucket) key(k []byte) []byte {
 	copy(key[n:], k)
 	return key
 }
-func (b *flatBucket) Get(k []byte) ([]byte, error) {
-	return b.tx.Get(b.key(k))
+func (b *flatBucket) Get(keys [][]byte) ([][]byte, error) {
+	if len(keys) == 0 {
+		return nil, nil
+	} else if len(keys) == 1 {
+		return b.tx.Get([][]byte{b.key(keys[0])})
+	}
+	nk := make([][]byte, len(keys))
+	for i, k := range keys {
+		nk[i] = b.key(k)
+	}
+	return b.tx.Get(nk)
 }
 func (b *flatBucket) Put(k, v []byte) error {
 	if b.ro {

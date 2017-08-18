@@ -15,7 +15,6 @@
 package kv
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -68,6 +67,8 @@ const (
 	nilDataVersion    = 1
 	notFound          = 0
 )
+
+var _ graph.BatchQuadStore = (*QuadStore)(nil)
 
 type QuadStore struct {
 	db   BucketKV
@@ -125,11 +126,7 @@ func setVersion(kv BucketKV, version int64) error {
 	return Update(kv, func(tx BucketTx) error {
 		var buf [8]byte
 		binary.LittleEndian.PutUint64(buf[:], uint64(version))
-		b, err := tx.Bucket(metaBucket, OpGet)
-		if err != nil {
-			return err
-		}
-
+		b := tx.Bucket(metaBucket)
 		if err := b.Put([]byte("version"), buf[:]); err != nil {
 			return fmt.Errorf("couldn't write version: %v", err)
 		}
@@ -158,48 +155,50 @@ func (qs *QuadStore) getMetadata() error {
 	qs.mu.Lock()
 	defer qs.mu.Unlock()
 	return View(qs.db, func(tx BucketTx) error {
+		b := tx.Bucket(metaBucket)
 		var err error
-		qs.size, err = getInt64ForMetaKey(tx, "size", 0)
+		vals, err := b.Get([][]byte{
+			[]byte("version"),
+			[]byte("size"),
+			[]byte("sameAsHorizon"),
+			[]byte("horizon"),
+		})
+		if err == ErrNotFound {
+			return ErrNoBucket
+		} else if err != nil {
+			return err
+		} else if vals[0] == nil {
+			return ErrNoBucket
+		}
+
+		qs.version, err = asInt64(vals[0], nilDataVersion)
 		if err != nil {
 			return err
 		}
-		qs.version, err = getInt64ForMetaKey(tx, "version", nilDataVersion)
+		qs.size, err = asInt64(vals[1], 0)
 		if err != nil {
 			return err
 		}
-		qs.sameAsHorizon, err = getInt64ForMetaKey(tx, "sameAsHorizon", 0)
+		qs.sameAsHorizon, err = asInt64(vals[2], 0)
 		if err != nil {
 			return err
 		}
-		qs.horizon, err = getInt64ForMetaKey(tx, "horizon", 0)
-		return err
+		qs.horizon, err = asInt64(vals[3], 0)
+		if err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
-func getInt64ForMetaKey(tx BucketTx, key string, empty int64) (int64, error) {
-	return getInt64ForKey(tx, metaBucket, key, empty)
-}
-
-func getInt64ForKey(tx BucketTx, bucket []byte, key string, empty int64) (int64, error) {
-	var out int64
-	b, err := tx.Bucket(bucket, OpGet)
-	if err != nil {
-		return empty, err
-	}
-	data, err := b.Get([]byte(key))
-	if err == ErrNotFound {
+func asInt64(b []byte, empty int64) (int64, error) {
+	if len(b) == 0 {
 		return empty, nil
-	} else if err != nil {
-		return 0, err
-	} else if len(data) == 0 {
-		return empty, nil
+	} else if len(b) != 8 {
+		return 0, fmt.Errorf("unexpected int size: %d", len(b))
 	}
-	buf := bytes.NewBuffer(data)
-	err = binary.Read(buf, binary.LittleEndian, &out)
-	if err != nil {
-		return 0, err
-	}
-	return out, nil
+	v := int64(binary.LittleEndian.Uint64(b))
+	return v, nil
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
@@ -208,39 +207,65 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	return graph.NewSequentialKey(qs.horizon)
 }
 
-func (qs *QuadStore) NameOf(k graph.Value) quad.Value {
-	if k == nil {
-		return nil
-	} else if v, ok := k.(graph.PreFetchedValue); ok {
-		return v.NameOf()
-	}
-	if v, ok := k.(Int64Value); ok {
-		if v == 0 {
-			if clog.V(2) {
-				clog.Infof("k was 0")
+func (qs *QuadStore) ValuesOf(vals []graph.Value) ([]quad.Value, error) {
+	out := make([]quad.Value, len(vals))
+	var (
+		inds []int
+		refs []uint64
+	)
+	for i, v := range vals {
+		if v == nil {
+			continue
+		} else if pv, ok := v.(graph.PreFetchedValue); ok {
+			out[i] = pv.NameOf()
+			continue
+		}
+		switch v := v.(type) {
+		case Int64Value:
+			if v == 0 {
+				continue
 			}
-			return nil
+			inds = append(inds, i)
+			refs = append(refs, uint64(v))
+		default:
+			return out, fmt.Errorf("unknown type of graph.Value; not meant for this quadstore. apparently a %#v", v)
 		}
-		var val quad.Value
-		err := View(qs.db, func(tx BucketTx) error {
-			var err error
-			val, err = qs.getValFromLog(tx, uint64(v))
-			return err
-		})
-		if err != nil {
-			clog.Errorf("error getting NameOf %d: %s", v, err)
-			return nil
-		}
-		return val
 	}
-	panic("unknown type of graph.Value; not meant for this quadstore. apparently a " + fmt.Sprintf("%#v", k))
+	if len(refs) == 0 {
+		return out, nil
+	}
+	prim, err := qs.getPrimitives(refs)
+	if err != nil {
+		return out, err
+	}
+	var last error
+	for i, p := range prim {
+		if !p.IsNode() {
+			continue
+		}
+		qv, err := pquads.UnmarshalValue(p.Value)
+		if err != nil {
+			last = err
+			continue
+		}
+		out[inds[i]] = qv
+	}
+	return out, last
+}
+func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
+	vals, err := qs.ValuesOf([]graph.Value{v})
+	if err != nil {
+		clog.Errorf("error getting NameOf %d: %s", v, err)
+		return nil
+	}
+	return vals[0]
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	var v quad.Quad
 	key, ok := k.(*proto.Primitive)
 	if !ok {
-		clog.Errorf("passed value was not a quad primitive")
+		clog.Errorf("passed value was not a quad primitive: %T", k)
 		return quad.Quad{}
 	}
 	err := View(qs.db, func(tx BucketTx) error {
@@ -316,21 +341,13 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	return nil
 }
 
-func (qs *QuadStore) getPrimitive(val Int64Value) (*proto.Primitive, bool) {
-	if val == 0 {
-		return nil, false
-	}
-	var p *proto.Primitive
-	err := View(qs.db, func(tx BucketTx) error {
-		var err error
-		p, err = qs.getPrimitiveFromLog(tx, uint64(val))
-		return err
-	})
+func (qs *QuadStore) getPrimitives(vals []uint64) ([]*proto.Primitive, error) {
+	tx, err := qs.db.Tx(false)
 	if err != nil {
-		clog.Errorf("error getting primitive %d: %s", val, err)
-		return p, false
+		return nil, err
 	}
-	return p, true
+	defer tx.Rollback()
+	return qs.getPrimitivesFromLog(tx, vals)
 }
 
 type Int64Value uint64

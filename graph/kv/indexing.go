@@ -56,14 +56,10 @@ type FillBucket interface {
 
 func (qs *QuadStore) createBuckets(upfront bool) error {
 	err := Update(qs.db, func(tx BucketTx) error {
-		var err error
 		for _, index := range buckets {
-			_, err = tx.Bucket(index, OpCreate)
-			if err != nil {
-				return fmt.Errorf("could not create bucket %s: %s", string(index), err)
-			}
+			_ = tx.Bucket(index)
 		}
-		b, _ := tx.Bucket(logIndex, OpGet)
+		b := tx.Bucket(logIndex)
 		if f, ok := b.(FillBucket); ok {
 			f.SetFillPercent(0.9)
 		}
@@ -78,12 +74,8 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 	}
 	for i := 0; i < 256; i++ {
 		err := Update(qs.db, func(tx BucketTx) error {
-			var err error
 			for j := 0; j < 256; j++ {
-				_, err = tx.Bucket(bucketFor(byte(i), byte(j)), OpCreate)
-				if err != nil {
-					return fmt.Errorf("could not create subbucket %d %d : %s", i, j, err)
-				}
+				_ = tx.Bucket(bucketFor(byte(i), byte(j)))
 			}
 			return nil
 		})
@@ -104,14 +96,11 @@ func (qs *QuadStore) writeHorizonAndSize(tx BucketTx, horizon, size int64) error
 	if horizon < 0 {
 		horizon, size = qs.horizon, qs.size
 	}
-	b, err := tx.Bucket(metaBucket, OpGet)
-	if err != nil {
-		return err
-	}
+	b := tx.Bucket(metaBucket)
 
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(size))
-	err = b.Put([]byte("size"), buf)
+	err := b.Put([]byte("size"), buf)
 
 	if err != nil {
 		clog.Errorf("Couldn't write size!")
@@ -137,7 +126,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		return err
 	}
 	defer tx.Rollback()
-	b, _ := tx.Bucket(logIndex, OpGet)
+	b := tx.Bucket(logIndex)
 	if f, ok := b.(FillBucket); ok {
 		f.SetFillPercent(0.9)
 	}
@@ -146,48 +135,57 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	horizon := qs.horizon
 	qs.mu.RUnlock()
 
+	qvals := make([]quad.Value, 4)
 nextDelta:
 	for _, d := range deltas {
 		link := proto.Primitive{}
 		mustBeNew := false
+		qvals = qvals[:0]
 		for _, dir := range quad.Directions {
-			val := d.Quad.Get(dir)
-			if val == nil {
-				continue
+			if val := d.Quad.Get(dir); val != nil {
+				qvals = append(qvals, val)
 			}
-			v, err := qs.resolveQuadValue(tx, val)
-			if err != nil {
-				return err
-			}
-			if v == 0 {
-				// Not found
-				if d.Action == graph.Delete {
-					if ignoreOpts.IgnoreMissing {
-						continue nextDelta
+		}
+		ids, err := qs.resolveQuadValues(tx, qvals)
+		if err != nil {
+			return err
+		}
+		for _, dir := range quad.Directions {
+			if val := d.Quad.Get(dir); val != nil {
+				v := ids[0]
+				if v == 0 {
+					// Not found
+					if d.Action == graph.Delete {
+						if ignoreOpts.IgnoreMissing {
+							continue nextDelta
+						}
+						return fmt.Errorf("Deleting unknown quad: %s", d.Quad)
 					}
-					return fmt.Errorf("Deleting unknown quad: %s", d.Quad)
+					node, err := qs.createNodePrimitive(val)
+					if err != nil {
+						return err
+					}
+					horizon++
+					node.ID = uint64(horizon)
+					err = qs.index(tx, node, val)
+					mustBeNew = true
+					if err != nil {
+						return err
+					}
+					v = node.ID
 				}
-				node, err := qs.createNodePrimitive(val)
-				if err != nil {
-					return err
-				}
-				horizon++
-				node.ID = uint64(horizon)
-				err = qs.index(tx, node, val)
-				mustBeNew = true
-				if err != nil {
-					return err
-				}
-				v = node.ID
+				link.SetDirection(dir, v)
+				ids = ids[1:]
 			}
-			link.SetDirection(dir, v)
 		}
 		if d.Action == graph.Delete {
-			id, err := qs.hasPrimitive(tx, &link)
+			p, err := qs.hasPrimitive(tx, &link)
 			if err != nil {
 				return err
+			} else if p == nil {
+				continue
 			}
-			err = qs.markAsDead(tx, id)
+			err = qs.markAsDead(tx, p)
 			if err != nil {
 				return err
 			}
@@ -198,11 +196,11 @@ nextDelta:
 
 		// Check if it already exists.
 		if !mustBeNew {
-			id, err := qs.hasPrimitive(tx, &link)
+			p, err := qs.hasPrimitive(tx, &link)
 			if err != nil {
 				return err
 			}
-			if id != 0 {
+			if p != nil {
 				if ignoreOpts.IgnoreDup {
 					continue
 				}
@@ -257,10 +255,7 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 	qs.bufLock.Lock()
 	defer qs.bufLock.Unlock()
 	quad.HashTo(val, qs.hashBuf)
-	bucket, err := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]), OpUpsert)
-	if err != nil {
-		return err
-	}
+	bucket := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]))
 	err = bucket.Put(qs.hashBuf, uint64toBytes(p.ID))
 	if err != nil {
 		return err
@@ -290,29 +285,36 @@ func (qs *QuadStore) indexLink(tx BucketTx, p *proto.Primitive) error {
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) markAsDead(tx BucketTx, id uint64) error {
-	p, err := qs.getPrimitiveFromLog(tx, id)
-	if err != nil {
-		return err
-	}
+func (qs *QuadStore) markAsDead(tx BucketTx, p *proto.Primitive) error {
 	p.Deleted = true
 	//TODO(barakmich): Add tombstone?
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) getBucketIndex(tx BucketTx, bucket []byte, key uint64) ([]uint64, error) {
-	b, err := tx.Bucket([]byte(bucket), OpGet)
+func (qs *QuadStore) getBucketIndexes(tx BucketTx, buckets [][]byte, key []uint64) ([][]uint64, error) {
+	keys := make([]BucketKey, len(key))
+	for i := range key {
+		keys[i] = BucketKey{
+			Bucket: buckets[i],
+			Key:    uint64KeyBytes(key[i]),
+		}
+	}
+	vals, err := tx.Get(keys)
 	if err != nil {
 		return nil, err
 	}
-	kbytes := uint64KeyBytes(key)
-	v, err := b.Get(kbytes)
-	if err == ErrNotFound {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
+	out := make([][]uint64, len(key))
+	for i, v := range vals {
+		if len(v) == 0 {
+			continue
+		}
+		ind, err := decodeIndex(v)
+		if err != nil {
+			return out, err
+		}
+		out[i] = ind
 	}
-	return decodeIndex(v)
+	return out, nil
 }
 
 func decodeIndex(b []byte) ([]uint64, error) {
@@ -344,29 +346,31 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 	return b[:off]
 }
 
-func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive) (uint64, error) {
+func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive) (*proto.Primitive, error) {
 	if !qs.testBloom(p) {
-		return 0, nil
+		return nil, nil
 	}
-	sub, err := qs.getBucketIndex(tx, subjectIndex, p.Subject)
+	inds, err := qs.getBucketIndexes(tx, [][]byte{
+		subjectIndex, objectIndex,
+	}, []uint64{
+		p.Subject, p.Object,
+	})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	obj, err := qs.getBucketIndex(tx, objectIndex, p.Object)
-	if err != nil {
-		return 0, err
-	}
+	sub, obj := inds[0], inds[1]
 	options := intersectSortedUint64(sub, obj)
 	for _, x := range options {
+		// TODO: batch
 		prim, err := qs.getPrimitiveFromLog(tx, x)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		if prim.IsSameLink(p) {
-			return prim.ID, nil
+			return prim, nil
 		}
 	}
-	return 0, nil
+	return nil, nil
 }
 
 func intersectSortedUint64(a, b []uint64) []uint64 {
@@ -412,7 +416,7 @@ func (qs *QuadStore) addToMapBucket(tx BucketTx, bucket string, key, value uint6
 }
 
 func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
-	kbytes := make([]byte, 8)
+	end := binary.BigEndian
 	for bucket, m := range qs.mapBucket {
 		var bname []byte
 		if bucket == "sub" {
@@ -422,28 +426,27 @@ func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
 		} else {
 			return fmt.Errorf("unexpected bucket name: %q", bucket)
 		}
-		b, err := tx.Bucket(bname, OpGet)
+		b := tx.Bucket(bname)
+		kint := make(Int64Set, 0, len(m))
+		keys := make([][]byte, len(m))
+		for k := range m {
+			kint = append(kint, k)
+		}
+		sort.Sort(kint)
+		for i, k := range kint {
+			var buf [8]byte
+			end.PutUint64(buf[:], k)
+			keys[i] = buf[:]
+		}
+		vals, err := b.Get(keys)
 		if err != nil {
 			return err
 		}
-		keys := make(Int64Set, len(m))
-		i := 0
-		for k := range m {
-			keys[i] = k
-			i++
-		}
-		sort.Sort(keys)
-		for _, k := range keys {
+		for i, k := range kint {
 			l := m[k]
-			binary.BigEndian.PutUint64(kbytes, k)
-			bytelist, err := b.Get(kbytes)
-			if err == ErrNotFound {
-				err = nil
-			} else if err != nil {
-				return err
-			}
-			buf := appendIndex(bytelist, l)
-			err = b.Put(kbytes, buf)
+			list := vals[i]
+			buf := appendIndex(list, l)
+			err = b.Put(keys[i], buf)
 			if err != nil {
 				return err
 			}
@@ -462,10 +465,7 @@ func (qs *QuadStore) addToLog(tx BucketTx, p *proto.Primitive) error {
 	if err != nil {
 		return err
 	}
-	b, err := tx.Bucket(logIndex, OpGet)
-	if err != nil {
-		return err
-	}
+	b := tx.Bucket(logIndex)
 	return b.Put(uint64KeyBytes(p.ID), buf)
 }
 
@@ -481,34 +481,61 @@ func (qs *QuadStore) createNodePrimitive(v quad.Value) (*proto.Primitive, error)
 }
 
 func (qs *QuadStore) resolveQuadValue(tx BucketTx, v quad.Value) (uint64, error) {
-	var isIRI bool
-	if iri, ok := v.(quad.IRI); ok {
-		isIRI = true
-		if x, ok := qs.valueLRU.Get(string(iri)); ok {
-			return x.(uint64), nil
-		}
+	out, err := qs.resolveQuadValues(tx, []quad.Value{v})
+	if err != nil {
+		return 0, err
 	}
+	return out[0], nil
+}
 
+func clone(p []byte) []byte {
+	b := make([]byte, len(p))
+	copy(b, p)
+	return b
+}
+
+func (qs *QuadStore) bucketKeyForVal(v quad.Value) BucketKey {
 	qs.bufLock.Lock()
 	defer qs.bufLock.Unlock()
 	quad.HashTo(v, qs.hashBuf)
-	b, err := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]), OpGet)
-	if err == ErrNoBucket {
-		return 0, nil
-	} else if err != nil {
-		return 0, err
+	return BucketKey{
+		Bucket: bucketFor(qs.hashBuf[0], qs.hashBuf[1]),
+		Key:    clone(qs.hashBuf),
 	}
-	val, err := b.Get(qs.hashBuf)
-	if err == ErrNotFound {
-		return 0, nil
-	} else if err != nil {
-		return 0, err
-	} else if val == nil {
-		return 0, nil
+}
+
+func (qs *QuadStore) resolveQuadValues(tx BucketTx, vals []quad.Value) ([]uint64, error) {
+	out := make([]uint64, len(vals))
+	inds := make([]int, 0, len(vals))
+	keys := make([]BucketKey, 0, len(vals))
+	for i, v := range vals {
+		if iri, ok := v.(quad.IRI); ok {
+			if x, ok := qs.valueLRU.Get(string(iri)); ok {
+				out[i] = x.(uint64)
+				continue
+			}
+		} else if v == nil {
+			continue
+		}
+		inds = append(inds, i)
+		keys = append(keys, qs.bucketKeyForVal(v))
 	}
-	out, _ := binary.Uvarint(val)
-	if isIRI {
-		qs.valueLRU.Put(string(v.(quad.IRI)), out)
+	if len(keys) == 0 {
+		return out, nil
+	}
+	resp, err := tx.Get(keys)
+	if err != nil {
+		return out, err
+	}
+	for i, b := range resp {
+		if len(b) == 0 {
+			continue
+		}
+		ind := inds[i]
+		out[ind], _ = binary.Uvarint(b)
+		if iri, ok := vals[ind].(quad.IRI); ok && out[ind] != 0 {
+			qs.valueLRU.Put(string(iri), uint64(out[ind]))
+		}
 	}
 	return out, nil
 }
@@ -529,20 +556,40 @@ func uint64KeyBytes(x uint64) []byte {
 	return k
 }
 
-func (qs *QuadStore) getPrimitiveFromLog(tx BucketTx, k uint64) (*proto.Primitive, error) {
-	p := &proto.Primitive{}
-	b, err := tx.Bucket(logIndex, OpGet)
+func (qs *QuadStore) getPrimitivesFromLog(tx BucketTx, keys []uint64) ([]*proto.Primitive, error) {
+	b := tx.Bucket(logIndex)
+	bkeys := make([][]byte, len(keys))
+	for i, k := range keys {
+		bkeys[i] = uint64KeyBytes(k)
+	}
+	vals, err := b.Get(bkeys)
 	if err != nil {
 		return nil, err
 	}
-	v, err := b.Get(uint64KeyBytes(k))
-	if err != nil && err != ErrNotFound {
-		return nil, err
-	} else if v == nil {
-		return p, fmt.Errorf("no such log entry")
+	out := make([]*proto.Primitive, len(keys))
+	var last error
+	for i, v := range vals {
+		if v == nil {
+			continue
+		}
+		var p proto.Primitive
+		if err = p.Unmarshal(v); err != nil {
+			last = err
+		} else {
+			out[i] = &p
+		}
 	}
-	err = p.Unmarshal(v)
-	return p, err
+	return out, last
+}
+
+func (qs *QuadStore) getPrimitiveFromLog(tx BucketTx, k uint64) (*proto.Primitive, error) {
+	out, err := qs.getPrimitivesFromLog(tx, []uint64{k})
+	if err != nil {
+		return nil, err
+	} else if out[0] == nil {
+		return nil, ErrNotFound
+	}
+	return out[0], nil
 }
 
 func (qs *QuadStore) initBloomFilter() error {
@@ -552,16 +599,13 @@ func (qs *QuadStore) initBloomFilter() error {
 	defer qs.bufLock.Unlock()
 	return View(qs.db, func(tx BucketTx) error {
 		p := proto.Primitive{}
-		b, err := tx.Bucket(logIndex, OpGet)
-		if err != nil {
-			return err
-		}
+		b := tx.Bucket(logIndex)
 		it := b.Scan(nil)
 		defer it.Close()
 		for it.Next(ctx) {
 			v := it.Key()
 			p = proto.Primitive{}
-			err = p.Unmarshal(v)
+			err := p.Unmarshal(v)
 			if err != nil {
 				return err
 			}

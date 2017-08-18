@@ -80,6 +80,21 @@ func ToKey(v Value) interface{} {
 	return v.Key()
 }
 
+type BatchQuadStore interface {
+	ValuesOf([]Value) ([]quad.Value, error)
+}
+
+func ValuesOf(qs QuadStore, vals []Value) ([]quad.Value, error) {
+	if bq, ok := qs.(BatchQuadStore); ok {
+		return bq.ValuesOf(vals)
+	}
+	out := make([]quad.Value, len(vals))
+	for i, v := range vals {
+		out[i] = qs.NameOf(v)
+	}
+	return out, nil
+}
+
 type QuadStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.

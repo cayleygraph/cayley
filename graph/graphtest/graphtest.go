@@ -80,7 +80,7 @@ func LoadGraph(t testing.TB, path string) []quad.Quad {
 		f   *os.File
 		err error
 	)
-	const levels = 3
+	const levels = 5
 	for i := 0; i < levels; i++ {
 		f, err = os.Open(path)
 		if i+1 < levels && os.IsNotExist(err) {
@@ -753,7 +753,7 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc, conf *Conf
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, qs.NameOf(all.Result()).String())
+		got = append(got, quad.StringOf(qs.NameOf(all.Result())))
 		if !outerAnd.NextPath() {
 			break
 		}

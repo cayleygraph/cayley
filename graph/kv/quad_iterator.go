@@ -15,7 +15,6 @@
 package kv
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -26,17 +25,17 @@ import (
 )
 
 type QuadIterator struct {
-	qs        *QuadStore
-	err       error
-	uid       uint64
-	tags      graph.Tagger
-	horizon   int64
-	off       int
-	ids       []uint64
-	v         Int64Value
-	dir       quad.Direction
-	prim      *proto.Primitive
-	contained bool
+	qs      *QuadStore
+	err     error
+	uid     uint64
+	tags    graph.Tagger
+	horizon int64
+	off     int
+	ids     []uint64
+	buf     []*proto.Primitive
+	v       Int64Value
+	dir     quad.Direction
+	prim    *proto.Primitive
 }
 
 var _ graph.Iterator = &QuadIterator{}
@@ -49,7 +48,6 @@ func NewQuadIterator(dir quad.Direction, v Int64Value, qs *QuadStore) *QuadItera
 		horizon: qs.horizon,
 		uid:     iterator.NextUID(),
 		v:       v,
-		off:     -1,
 		dir:     dir,
 	}
 }
@@ -59,7 +57,7 @@ func (it *QuadIterator) UID() uint64 {
 }
 
 func (it *QuadIterator) Reset() {
-	it.off = -1
+	it.off = 0
 }
 
 func (it *QuadIterator) Tagger() *graph.Tagger {
@@ -87,31 +85,45 @@ func (it *QuadIterator) Err() error {
 }
 
 func (it *QuadIterator) Result() graph.Value {
-	if it.off == -1 {
+	if it.off < 0 || it.prim == nil {
 		return nil
 	}
 	return it.prim
 }
 
 func (it *QuadIterator) Next() bool {
-	it.contained = false
+	it.prim = nil
+	if it.err != nil {
+		return false
+	}
 	it.ensureIDs()
 	for {
-		it.off++
-		if it.off >= len(it.ids) {
-			return false
+		if len(it.buf) == 0 {
+			if it.off >= len(it.ids) {
+				return false
+			}
+			ids := it.ids[it.off:]
+			if len(ids) > nextBatch {
+				ids = ids[:nextBatch]
+			}
+			if len(ids) == 0 {
+				return false
+			}
+			it.buf, it.err = it.qs.getPrimitives(ids)
+			if it.err != nil || len(ids) == 0 {
+				return false
+			}
+		} else {
+			it.buf, it.off = it.buf[1:], it.off+1
 		}
-		prim, ok := it.qs.getPrimitive(Int64Value(it.ids[it.off]))
-		if !ok {
-			it.err = errors.New("couldn't get underlying primitive")
-			it.prim = nil
-			return false
+		for ; len(it.buf) > 0; it.buf, it.off = it.buf[1:], it.off+1 {
+			p := it.buf[0]
+			if p == nil || p.Deleted {
+				continue
+			}
+			it.prim = p
+			return true
 		}
-		if prim.Deleted {
-			continue
-		}
-		it.prim = prim
-		return true
 	}
 }
 
@@ -120,7 +132,7 @@ func (it *QuadIterator) NextPath() bool {
 }
 
 func (it *QuadIterator) Contains(v graph.Value) bool {
-	it.contained = true
+	it.prim = nil
 	p := v.(*proto.Primitive)
 	if p.GetDirection(it.dir) == uint64(it.v) {
 		it.prim = p
@@ -147,9 +159,12 @@ func (it *QuadIterator) ensureIDs() {
 		if it.dir == quad.Object {
 			b = objectIndex
 		}
-		var err error
-		it.ids, err = it.qs.getBucketIndex(tx, b, uint64(it.v))
-		return err
+		inds, err := it.qs.getBucketIndexes(tx, [][]byte{b}, []uint64{uint64(it.v)})
+		if err != nil {
+			return err
+		}
+		it.ids = inds[0]
+		return nil
 	})
 	if err != nil {
 		it.ids = make([]uint64, 0)
