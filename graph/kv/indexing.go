@@ -32,22 +32,60 @@ import (
 )
 
 var (
-	metaBucket   = []byte("meta")
-	subjectIndex = []byte{quad.Subject.Prefix()}
-	objectIndex  = []byte{quad.Object.Prefix()}
-	logIndex     = []byte("log")
+	metaBucket = []byte("meta")
+	logIndex   = []byte("log")
 
 	// List of all buckets in the current version of the database.
 	buckets = [][]byte{
 		metaBucket,
-		subjectIndex,
-		objectIndex,
 		logIndex,
+	}
+
+	DefaultQuadIndexes = []QuadIndex{
+		{Dirs: []quad.Direction{quad.Subject}},
+		{Dirs: []quad.Direction{quad.Object}},
 	}
 )
 
+var quadKeyEnc = binary.BigEndian
+
+type QuadIndex struct {
+	Dirs   []quad.Direction
+	Unique bool
+}
+
+func (ind QuadIndex) Key(dirs []uint64) []byte {
+	key := make([]byte, 8*len(dirs))
+	n := 0
+	for i := range ind.Dirs {
+		quadKeyEnc.PutUint64(key[n:], dirs[i])
+		n += 8
+	}
+	return key
+}
+func (ind QuadIndex) KeyFor(p *proto.Primitive) []byte {
+	key := make([]byte, 8*len(ind.Dirs))
+	n := 0
+	for _, d := range ind.Dirs {
+		quadKeyEnc.PutUint64(key[n:], p.GetDirection(d))
+		n += 8
+	}
+	return key
+}
+func (ind QuadIndex) Bucket() []byte {
+	b := make([]byte, len(ind.Dirs))
+	for i, d := range ind.Dirs {
+		b[i] = d.Prefix()
+	}
+	return b
+}
+
 type FillBucket interface {
 	SetFillPercent(v float64)
+}
+
+func bucketForVal(i, j byte) []byte {
+	return []byte{'v', i, j}
 }
 
 func (qs *QuadStore) createBuckets(upfront bool) error {
@@ -59,7 +97,9 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 		if f, ok := b.(FillBucket); ok {
 			f.SetFillPercent(0.9)
 		}
-		//tx.Bucket(valueIndex).FillPercent = 0.4
+		for _, ind := range qs.indexes.all {
+			_ = tx.Bucket(ind.Bucket())
+		}
 		return nil
 	})
 	if err != nil {
@@ -71,7 +111,7 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 	for i := 0; i < 256; i++ {
 		err := Update(qs.db, func(tx BucketTx) error {
 			for j := 0; j < 256; j++ {
-				_ = tx.Bucket(bucketFor(byte(i), byte(j)))
+				_ = tx.Bucket(bucketForVal(byte(i), byte(j)))
 			}
 			return nil
 		})
@@ -80,10 +120,6 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 		}
 	}
 	return nil
-}
-
-func bucketFor(i, j byte) []byte {
-	return []byte{'v', i, j}
 }
 
 func (qs *QuadStore) writeHorizonAndSize(tx BucketTx, horizon, size int64) error {
@@ -249,7 +285,7 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 		}
 	}
 	hash := quad.HashOf(val)
-	bucket := tx.Bucket(bucketFor(hash[0], hash[1]))
+	bucket := tx.Bucket(bucketForVal(hash[0], hash[1]))
 	err = bucket.Put(hash, uint64toBytes(p.ID))
 	if err != nil {
 		return err
@@ -262,15 +298,14 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 
 func (qs *QuadStore) indexLink(tx BucketTx, p *proto.Primitive) error {
 	var err error
-	// Subject
-	err = qs.addToMapBucket(tx, "sub", p.Subject, p.ID)
-	if err != nil {
-		return err
-	}
-	// Object
-	err = qs.addToMapBucket(tx, "obj", p.Object, p.ID)
-	if err != nil {
-		return err
+	qs.indexes.RLock()
+	all := qs.indexes.all
+	qs.indexes.RUnlock()
+	for _, ind := range all {
+		err = qs.addToMapBucket(tx, ind.Bucket(), ind.KeyFor(p), p.ID)
+		if err != nil {
+			return err
+		}
 	}
 	err = qs.indexSchema(tx, p)
 	if err != nil {
@@ -285,19 +320,12 @@ func (qs *QuadStore) markAsDead(tx BucketTx, p *proto.Primitive) error {
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) getBucketIndexes(tx BucketTx, buckets [][]byte, key []uint64) ([][]uint64, error) {
-	keys := make([]BucketKey, len(key))
-	for i := range key {
-		keys[i] = BucketKey{
-			Bucket: buckets[i],
-			Key:    uint64KeyBytes(key[i]),
-		}
-	}
+func (qs *QuadStore) getBucketIndexes(tx BucketTx, keys []BucketKey) ([][]uint64, error) {
 	vals, err := tx.Get(keys)
 	if err != nil {
 		return nil, err
 	}
-	out := make([][]uint64, len(key))
+	out := make([][]uint64, len(keys))
 	for i, v := range vals {
 		if len(v) == 0 {
 			continue
@@ -340,20 +368,64 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 	return b[:off]
 }
 
+func (qs *QuadStore) bestUnique() ([]QuadIndex, error) {
+	qs.indexes.RLock()
+	ind := qs.indexes.unique
+	qs.indexes.RUnlock()
+	if len(ind) != 0 {
+		return ind, nil
+	}
+	qs.indexes.Lock()
+	defer qs.indexes.Unlock()
+	if len(qs.indexes.unique) != 0 {
+		return qs.indexes.unique, nil
+	}
+	for _, in := range qs.indexes.all {
+		if in.Unique {
+			qs.indexes.unique = []QuadIndex{in}
+			return qs.indexes.unique, nil
+		}
+	}
+	// TODO: find best combination of indexes
+	inds := qs.indexes.all
+	if len(inds) == 0 {
+		return nil, fmt.Errorf("no indexes defined")
+	}
+	qs.indexes.unique = inds
+	return qs.indexes.unique, nil
+}
+
 func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive) (*proto.Primitive, error) {
 	if !qs.testBloom(p) {
 		return nil, nil
 	}
-	inds, err := qs.getBucketIndexes(tx, [][]byte{
-		subjectIndex, objectIndex,
-	}, []uint64{
-		p.Subject, p.Object,
-	})
+	inds, err := qs.bestUnique()
 	if err != nil {
 		return nil, err
 	}
-	sub, obj := inds[0], inds[1]
-	options := intersectSortedUint64(sub, obj)
+	keys := make([]BucketKey, len(inds))
+	for i, in := range inds {
+		keys[i] = BucketKey{
+			Bucket: in.Bucket(),
+			Key:    in.KeyFor(p),
+		}
+	}
+	lists, err := qs.getBucketIndexes(tx, keys)
+	if err != nil {
+		return nil, err
+	}
+	var options []uint64
+	for len(lists) > 0 {
+		if len(lists) == 1 {
+			options = lists[0]
+			break
+		}
+		a, b := lists[0], lists[1]
+		lists = lists[1:]
+		a = intersectSortedUint64(a, b)
+		lists[0] = a
+	}
+	// TODO: if index is unique we don't need to load entry from log
 	for _, x := range options {
 		// TODO: batch
 		prim, err := qs.getPrimitiveFromLog(tx, x)
@@ -393,48 +465,38 @@ outer:
 	return c
 }
 
-func (qs *QuadStore) addToMapBucket(tx BucketTx, bucket string, key, value uint64) error {
-	if key == 0 {
+func (qs *QuadStore) addToMapBucket(tx BucketTx, bucket []byte, key []byte, value uint64) error {
+	if len(key) == 0 {
 		return fmt.Errorf("trying to add to map bucket %s with key 0", bucket)
 	}
 	if qs.mapBucket == nil {
-		qs.mapBucket = make(map[string]map[uint64][]uint64)
+		qs.mapBucket = make(map[string]map[string][]uint64)
 	}
-	if _, ok := qs.mapBucket[bucket]; !ok {
-		qs.mapBucket[bucket] = make(map[uint64][]uint64)
+	m, ok := qs.mapBucket[string(bucket)]
+	if !ok {
+		m = make(map[string][]uint64)
+		qs.mapBucket[string(bucket)] = m
 	}
-
-	l := qs.mapBucket[bucket][key]
-	qs.mapBucket[bucket][key] = append(l, value)
+	m[string(key)] = append(m[string(key)], value)
 	return nil
 }
 
 func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
 	for bucket, m := range qs.mapBucket {
-		var bname []byte
-		if bucket == "sub" {
-			bname = subjectIndex
-		} else if bucket == "obj" {
-			bname = objectIndex
-		} else {
-			return fmt.Errorf("unexpected bucket name: %q", bucket)
-		}
-		b := tx.Bucket(bname)
-		kint := make(Int64Set, 0, len(m))
-		keys := make([][]byte, len(m))
+		b := tx.Bucket([]byte(bucket))
+		keys := make([][]byte, 0, len(m))
 		for k := range m {
-			kint = append(kint, k)
+			keys = append(keys, []byte(k))
 		}
-		sort.Sort(kint)
-		for i, k := range kint {
-			keys[i] = uint64KeyBytes(k)
-		}
+		sort.Slice(keys, func(i, j int) bool {
+			return bytes.Compare(keys[i], keys[j]) < 0
+		})
 		vals, err := b.Get(keys)
 		if err != nil {
 			return err
 		}
-		for i, k := range kint {
-			l := m[k]
+		for i, k := range keys {
+			l := m[string(k)]
 			list := vals[i]
 			buf := appendIndex(list, l)
 			err = b.Put(keys[i], buf)
@@ -479,10 +541,10 @@ func (qs *QuadStore) resolveQuadValue(tx BucketTx, v quad.Value) (uint64, error)
 	return out[0], nil
 }
 
-func (qs *QuadStore) bucketKeyForVal(v quad.Value) BucketKey {
+func bucketKeyForVal(v quad.Value) BucketKey {
 	hash := quad.HashOf(v)
 	return BucketKey{
-		Bucket: bucketFor(hash[0], hash[1]),
+		Bucket: bucketForVal(hash[0], hash[1]),
 		Key:    hash,
 	}
 }
@@ -501,7 +563,7 @@ func (qs *QuadStore) resolveQuadValues(tx BucketTx, vals []quad.Value) ([]uint64
 			continue
 		}
 		inds = append(inds, i)
-		keys = append(keys, qs.bucketKeyForVal(v))
+		keys = append(keys, bucketKeyForVal(v))
 	}
 	if len(keys) == 0 {
 		return out, nil
@@ -535,7 +597,7 @@ func uint64toBytesAt(x uint64, bytes []byte) []byte {
 
 func uint64KeyBytes(x uint64) []byte {
 	k := make([]byte, 8)
-	binary.BigEndian.PutUint64(k, x)
+	quadKeyEnc.PutUint64(k, x)
 	return k
 }
 
@@ -625,10 +687,9 @@ func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
 }
 
 func writePrimToBuf(p *proto.Primitive, buf []byte) {
-	e := binary.BigEndian
-	e.PutUint64(buf[0:8], p.Subject)
-	e.PutUint64(buf[8:16], p.Predicate)
-	e.PutUint64(buf[16:24], p.Object)
+	quadKeyEnc.PutUint64(buf[0:8], p.Subject)
+	quadKeyEnc.PutUint64(buf[8:16], p.Predicate)
+	quadKeyEnc.PutUint64(buf[16:24], p.Object)
 }
 
 type Int64Set []uint64

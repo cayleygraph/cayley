@@ -17,7 +17,6 @@ package kv
 import (
 	"fmt"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
@@ -26,6 +25,7 @@ import (
 
 type QuadIterator struct {
 	qs      *QuadStore
+	ind     QuadIndex
 	err     error
 	uid     uint64
 	tags    graph.Tagger
@@ -40,9 +40,10 @@ type QuadIterator struct {
 
 var _ graph.Iterator = &QuadIterator{}
 
-func NewQuadIterator(dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
+func NewQuadIterator(ind QuadIndex, dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
 	return &QuadIterator{
 		qs:      qs,
+		ind:     ind,
 		horizon: qs.horizon(),
 		uid:     iterator.NextUID(),
 		v:       v,
@@ -67,7 +68,7 @@ func (it *QuadIterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *QuadIterator) Clone() graph.Iterator {
-	out := NewQuadIterator(it.dir, it.v, it.qs)
+	out := NewQuadIterator(it.ind, it.dir, it.v, it.qs)
 	out.tags.CopyFrom(it)
 	out.ids = it.ids
 	out.horizon = it.horizon
@@ -153,11 +154,12 @@ func (it *QuadIterator) ensureIDs() {
 		return
 	}
 	err := View(it.qs.db, func(tx BucketTx) error {
-		b := subjectIndex
-		if it.dir == quad.Object {
-			b = objectIndex
-		}
-		inds, err := it.qs.getBucketIndexes(tx, [][]byte{b}, []uint64{uint64(it.v)})
+		inds, err := it.qs.getBucketIndexes(tx, []BucketKey{
+			{
+				Bucket: it.ind.Bucket(),
+				Key:    it.ind.Key([]uint64{uint64(it.v)}),
+			},
+		})
 		if err != nil {
 			return err
 		}
@@ -166,7 +168,7 @@ func (it *QuadIterator) ensureIDs() {
 	})
 	if err != nil {
 		it.ids = make([]uint64, 0)
-		clog.Errorf("error getting index for iterator: %s", err)
+		it.err = err
 	}
 }
 
