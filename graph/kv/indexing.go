@@ -32,20 +32,16 @@ import (
 )
 
 var (
-	metaBucket     = []byte("meta")
-	subjectIndex   = []byte{quad.Subject.Prefix()}
-	objectIndex    = []byte{quad.Object.Prefix()}
-	sameAsIndex    = []byte("sameas")
-	sameNodesIndex = []byte("samenodes")
-	logIndex       = []byte("log")
+	metaBucket   = []byte("meta")
+	subjectIndex = []byte{quad.Subject.Prefix()}
+	objectIndex  = []byte{quad.Object.Prefix()}
+	logIndex     = []byte("log")
 
 	// List of all buckets in the current version of the database.
 	buckets = [][]byte{
 		metaBucket,
 		subjectIndex,
 		objectIndex,
-		sameAsIndex,
-		sameNodesIndex,
 		logIndex,
 	}
 )
