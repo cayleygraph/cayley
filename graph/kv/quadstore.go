@@ -72,10 +72,17 @@ var _ graph.BatchQuadStore = (*QuadStore)(nil)
 type QuadStore struct {
 	db BucketKV
 
+	indexes struct {
+		sync.RWMutex
+		all []QuadIndex
+		// indexes to check to detect duplicate quads
+		unique []QuadIndex
+	}
+
 	valueLRU *lru.Cache
 
 	writer    sync.Mutex
-	mapBucket map[string]map[uint64][]uint64
+	mapBucket map[string]map[string][]uint64
 
 	meta struct {
 		sync.RWMutex
@@ -90,8 +97,14 @@ type QuadStore struct {
 	}
 }
 
-func Init(kv BucketKV, opt graph.Options) error {
+func newQuadStore(kv BucketKV) *QuadStore {
 	qs := &QuadStore{db: kv}
+	qs.indexes.all = DefaultQuadIndexes
+	return qs
+}
+
+func Init(kv BucketKV, opt graph.Options) error {
+	qs := newQuadStore(kv)
 	if _, err := qs.getMetadata(); err == nil {
 		return graph.ErrDatabaseExists
 	} else if err != ErrNoBucket {
@@ -108,7 +121,7 @@ func Init(kv BucketKV, opt graph.Options) error {
 }
 
 func New(kv BucketKV, _ graph.Options) (graph.QuadStore, error) {
-	qs := &QuadStore{db: kv}
+	qs := newQuadStore(kv)
 	if vers, err := qs.getMetadata(); err == ErrNoBucket {
 		return nil, graph.ErrNotInitialized
 	} else if err != nil {

@@ -28,8 +28,14 @@ func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Value) graph.Itera
 	if !ok {
 		return iterator.NewError(fmt.Errorf("unexpected node type: %T", v))
 	}
-	if dir == quad.Subject || dir == quad.Object {
-		return NewQuadIterator(dir, vi, qs)
+
+	qs.indexes.RLock()
+	all := qs.indexes.all
+	qs.indexes.RUnlock()
+	for _, ind := range all {
+		if len(ind.Dirs) == 1 && ind.Dirs[0] == dir {
+			return NewQuadIterator(ind, dir, vi, qs)
+		}
 	}
 	return NewAllIterator(false, qs, &constraint{
 		dir: dir,
