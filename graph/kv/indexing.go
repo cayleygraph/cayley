@@ -91,10 +91,10 @@ func bucketFor(i, j byte) []byte {
 }
 
 func (qs *QuadStore) writeHorizonAndSize(tx BucketTx, horizon, size int64) error {
-	qs.mu.Lock()
-	defer qs.mu.Unlock()
+	qs.meta.Lock()
+	defer qs.meta.Unlock()
 	if horizon < 0 {
-		horizon, size = qs.horizon, qs.size
+		horizon, size = qs.meta.horizon, qs.meta.size
 	}
 	b := tx.Bucket(metaBucket)
 
@@ -130,10 +130,10 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	if f, ok := b.(FillBucket); ok {
 		f.SetFillPercent(0.9)
 	}
-	qs.mu.RLock()
-	size := qs.size
-	horizon := qs.horizon
-	qs.mu.RUnlock()
+	qs.meta.RLock()
+	size := qs.meta.size
+	horizon := qs.meta.horizon
+	qs.meta.RUnlock()
 
 	qvals := make([]quad.Value, 4)
 nextDelta:
@@ -230,10 +230,10 @@ nextDelta:
 	if err != nil {
 		return err
 	}
-	qs.mu.Lock()
-	qs.size = size
-	qs.horizon = horizon
-	qs.mu.Unlock()
+	qs.meta.Lock()
+	qs.meta.size = size
+	qs.meta.horizon = horizon
+	qs.meta.Unlock()
 	return nil
 }
 
@@ -252,11 +252,9 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 			return err
 		}
 	}
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	quad.HashTo(val, qs.hashBuf)
-	bucket := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]))
-	err = bucket.Put(qs.hashBuf, uint64toBytes(p.ID))
+	hash := quad.HashOf(val)
+	bucket := tx.Bucket(bucketFor(hash[0], hash[1]))
+	err = bucket.Put(hash, uint64toBytes(p.ID))
 	if err != nil {
 		return err
 	}
@@ -416,7 +414,6 @@ func (qs *QuadStore) addToMapBucket(tx BucketTx, bucket string, key, value uint6
 }
 
 func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
-	end := binary.BigEndian
 	for bucket, m := range qs.mapBucket {
 		var bname []byte
 		if bucket == "sub" {
@@ -434,9 +431,7 @@ func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
 		}
 		sort.Sort(kint)
 		for i, k := range kint {
-			var buf [8]byte
-			end.PutUint64(buf[:], k)
-			keys[i] = buf[:]
+			keys[i] = uint64KeyBytes(k)
 		}
 		vals, err := b.Get(keys)
 		if err != nil {
@@ -488,19 +483,11 @@ func (qs *QuadStore) resolveQuadValue(tx BucketTx, v quad.Value) (uint64, error)
 	return out[0], nil
 }
 
-func clone(p []byte) []byte {
-	b := make([]byte, len(p))
-	copy(b, p)
-	return b
-}
-
 func (qs *QuadStore) bucketKeyForVal(v quad.Value) BucketKey {
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	quad.HashTo(v, qs.hashBuf)
+	hash := quad.HashOf(v)
 	return BucketKey{
-		Bucket: bucketFor(qs.hashBuf[0], qs.hashBuf[1]),
-		Key:    clone(qs.hashBuf),
+		Bucket: bucketFor(hash[0], hash[1]),
+		Key:    hash,
 	}
 }
 
@@ -593,10 +580,9 @@ func (qs *QuadStore) getPrimitiveFromLog(tx BucketTx, k uint64) (*proto.Primitiv
 }
 
 func (qs *QuadStore) initBloomFilter() error {
-	qs.exists = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
+	qs.exists.buf = make([]byte, 3*8)
+	qs.exists.DeletableBloomFilter = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
 	ctx := context.TODO()
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
 	return View(qs.db, func(tx BucketTx) error {
 		p := proto.Primitive{}
 		b := tx.Bucket(logIndex)
@@ -614,38 +600,39 @@ func (qs *QuadStore) initBloomFilter() error {
 			} else if p.Deleted {
 				continue
 			}
-			writePrimToBuf(&p, qs.bloomBuf)
-			qs.exists.Add(qs.bloomBuf)
+			writePrimToBuf(&p, qs.exists.buf)
+			qs.exists.Add(qs.exists.buf)
 		}
 		return it.Err()
 	})
 }
 
 func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	writePrimToBuf(p, qs.bloomBuf)
-	return qs.exists.Test(qs.bloomBuf)
+	qs.exists.Lock()
+	defer qs.exists.Unlock()
+	writePrimToBuf(p, qs.exists.buf)
+	return qs.exists.Test(qs.exists.buf)
 }
 
 func (qs *QuadStore) bloomRemove(p *proto.Primitive) {
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	writePrimToBuf(p, qs.bloomBuf)
-	qs.exists.TestAndRemove(qs.bloomBuf)
+	qs.exists.Lock()
+	defer qs.exists.Unlock()
+	writePrimToBuf(p, qs.exists.buf)
+	qs.exists.TestAndRemove(qs.exists.buf)
 }
 
 func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	writePrimToBuf(p, qs.bloomBuf)
-	qs.exists.Add(qs.bloomBuf)
+	qs.exists.Lock()
+	defer qs.exists.Unlock()
+	writePrimToBuf(p, qs.exists.buf)
+	qs.exists.Add(qs.exists.buf)
 }
 
 func writePrimToBuf(p *proto.Primitive, buf []byte) {
-	binary.BigEndian.PutUint64(buf[0:8], p.Subject)
-	binary.BigEndian.PutUint64(buf[8:16], p.Predicate)
-	binary.BigEndian.PutUint64(buf[16:24], p.Object)
+	e := binary.BigEndian
+	e.PutUint64(buf[0:8], p.Subject)
+	e.PutUint64(buf[8:16], p.Predicate)
+	e.PutUint64(buf[16:24], p.Object)
 }
 
 type Int64Set []uint64

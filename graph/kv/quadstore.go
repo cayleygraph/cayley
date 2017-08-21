@@ -65,35 +65,37 @@ func Register(name string, r Registration) {
 const (
 	latestDataVersion = 1
 	nilDataVersion    = 1
-	notFound          = 0
 )
 
 var _ graph.BatchQuadStore = (*QuadStore)(nil)
 
 type QuadStore struct {
-	db   BucketKV
-	path string
+	db BucketKV
+
+	valueLRU *lru.Cache
 
 	writer    sync.Mutex
-	valueLRU  *lru.Cache
 	mapBucket map[string]map[uint64][]uint64
-	exists    *boom.DeletableBloomFilter
 
-	mu            sync.RWMutex
-	size          int64
-	horizon       int64
-	sameAsHorizon int64
-	version       int64
+	meta struct {
+		sync.RWMutex
+		size    int64
+		horizon int64
+	}
 
-	bufLock  sync.Mutex
-	hashBuf  []byte
-	bloomBuf []byte
+	exists struct {
+		sync.Mutex
+		buf []byte
+		*boom.DeletableBloomFilter
+	}
 }
 
 func Init(kv BucketKV, opt graph.Options) error {
 	qs := &QuadStore{db: kv}
-	if err := qs.getMetadata(); err != ErrNoBucket {
+	if _, err := qs.getMetadata(); err == nil {
 		return graph.ErrDatabaseExists
+	} else if err != ErrNoBucket {
+		return err
 	}
 	upfront, _, _ := opt.BoolKey("upfront")
 	if err := qs.createBuckets(upfront); err != nil {
@@ -107,17 +109,14 @@ func Init(kv BucketKV, opt graph.Options) error {
 
 func New(kv BucketKV, _ graph.Options) (graph.QuadStore, error) {
 	qs := &QuadStore{db: kv}
-	if err := qs.getMetadata(); err == ErrNoBucket {
-		return nil, errors.New("kv: quadstore has not been initialised")
+	if vers, err := qs.getMetadata(); err == ErrNoBucket {
+		return nil, graph.ErrNotInitialized
 	} else if err != nil {
 		return nil, err
-	}
-	if qs.version != latestDataVersion {
-		return nil, errors.New("bolt: data version is out of date. Run cayleyupgrade for your config to update the data.")
+	} else if vers != latestDataVersion {
+		return nil, errors.New("kv: data version is out of date. Run cayleyupgrade for your config to update the data.")
 	}
 	qs.valueLRU = lru.New(2000)
-	qs.bloomBuf = make([]byte, 3*8)
-	qs.hashBuf = make([]byte, quad.HashSize)
 	qs.initBloomFilter()
 	return qs, nil
 }
@@ -135,9 +134,10 @@ func setVersion(kv BucketKV, version int64) error {
 }
 
 func (qs *QuadStore) Size() int64 {
-	qs.mu.RLock()
-	defer qs.mu.RUnlock()
-	return qs.size
+	qs.meta.RLock()
+	sz := qs.meta.size
+	qs.meta.RUnlock()
+	return sz
 }
 
 func (qs *QuadStore) Close() error {
@@ -151,16 +151,16 @@ func (qs *QuadStore) Close() error {
 	return qs.db.Close()
 }
 
-func (qs *QuadStore) getMetadata() error {
-	qs.mu.Lock()
-	defer qs.mu.Unlock()
-	return View(qs.db, func(tx BucketTx) error {
+func (qs *QuadStore) getMetadata() (int64, error) {
+	qs.meta.Lock()
+	defer qs.meta.Unlock()
+	var vers int64
+	err := View(qs.db, func(tx BucketTx) error {
 		b := tx.Bucket(metaBucket)
 		var err error
 		vals, err := b.Get([][]byte{
 			[]byte("version"),
 			[]byte("size"),
-			[]byte("sameAsHorizon"),
 			[]byte("horizon"),
 		})
 		if err == ErrNotFound {
@@ -171,24 +171,21 @@ func (qs *QuadStore) getMetadata() error {
 			return ErrNoBucket
 		}
 
-		qs.version, err = asInt64(vals[0], nilDataVersion)
+		vers, err = asInt64(vals[0], nilDataVersion)
 		if err != nil {
 			return err
 		}
-		qs.size, err = asInt64(vals[1], 0)
+		qs.meta.size, err = asInt64(vals[1], 0)
 		if err != nil {
 			return err
 		}
-		qs.sameAsHorizon, err = asInt64(vals[2], 0)
-		if err != nil {
-			return err
-		}
-		qs.horizon, err = asInt64(vals[3], 0)
+		qs.meta.horizon, err = asInt64(vals[2], 0)
 		if err != nil {
 			return err
 		}
 		return nil
 	})
+	return vers, err
 }
 
 func asInt64(b []byte, empty int64) (int64, error) {
@@ -201,10 +198,15 @@ func asInt64(b []byte, empty int64) (int64, error) {
 	return v, nil
 }
 
+func (qs *QuadStore) horizon() int64 {
+	qs.meta.RLock()
+	h := qs.meta.horizon
+	qs.meta.RUnlock()
+	return h
+}
+
 func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	qs.mu.RLock()
-	defer qs.mu.RUnlock()
-	return graph.NewSequentialKey(qs.horizon)
+	return graph.NewSequentialKey(qs.horizon())
 }
 
 func (qs *QuadStore) ValuesOf(vals []graph.Value) ([]quad.Value, error) {

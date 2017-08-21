@@ -42,15 +42,13 @@ type constraint struct {
 }
 
 func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
-	qs.mu.RLock()
-	defer qs.mu.RUnlock()
 	if nodes && cons != nil {
-		panic("cannot use a bolt2 all iterator across nodes with a constraint")
+		panic("cannot use a kv all iterator across nodes with a constraint")
 	}
 	return &AllIterator{
 		nodes:   nodes,
 		qs:      qs,
-		horizon: qs.horizon,
+		horizon: qs.horizon(),
 		uid:     iterator.NextUID(),
 		cons:    cons,
 	}

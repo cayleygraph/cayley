@@ -194,8 +194,10 @@ func (d Options) BoolKey(key string) (bool, bool, error) {
 	return false, false, nil
 }
 
-var ErrCannotBulkLoad = errors.New("quadstore: cannot bulk load")
-var ErrDatabaseExists = errors.New("quadstore: cannot init; database already exists")
+var (
+	ErrDatabaseExists = errors.New("quadstore: cannot init; database already exists")
+	ErrNotInitialized = errors.New("quadstore: not initialized")
+)
 
 type BulkLoader interface {
 	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the QuadStore.
