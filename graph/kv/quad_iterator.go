@@ -41,11 +41,9 @@ type QuadIterator struct {
 var _ graph.Iterator = &QuadIterator{}
 
 func NewQuadIterator(dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
-	qs.mu.RLock()
-	defer qs.mu.RUnlock()
 	return &QuadIterator{
 		qs:      qs,
-		horizon: qs.horizon,
+		horizon: qs.horizon(),
 		uid:     iterator.NextUID(),
 		v:       v,
 		dir:     dir,
