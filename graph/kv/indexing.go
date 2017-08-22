@@ -54,11 +54,11 @@ type QuadIndex struct {
 	Unique bool
 }
 
-func (ind QuadIndex) Key(dirs []uint64) []byte {
-	key := make([]byte, 8*len(dirs))
+func (ind QuadIndex) Key(vals []uint64) []byte {
+	key := make([]byte, 8*len(vals))
 	n := 0
-	for i := range ind.Dirs {
-		quadKeyEnc.PutUint64(key[n:], dirs[i])
+	for i := range vals {
+		quadKeyEnc.PutUint64(key[n:], vals[i])
 		n += 8
 	}
 	return key
@@ -211,7 +211,7 @@ nextDelta:
 			}
 		}
 		if d.Action == graph.Delete {
-			p, err := qs.hasPrimitive(tx, &link)
+			p, err := qs.hasPrimitive(tx, &link, true)
 			if err != nil {
 				return err
 			} else if p == nil {
@@ -228,7 +228,7 @@ nextDelta:
 
 		// Check if it already exists.
 		if !mustBeNew {
-			p, err := qs.hasPrimitive(tx, &link)
+			p, err := qs.hasPrimitive(tx, &link, false)
 			if err != nil {
 				return err
 			}
@@ -370,20 +370,23 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 
 func (qs *QuadStore) bestUnique() ([]QuadIndex, error) {
 	qs.indexes.RLock()
-	ind := qs.indexes.unique
+	ind := qs.indexes.exists
 	qs.indexes.RUnlock()
 	if len(ind) != 0 {
 		return ind, nil
 	}
 	qs.indexes.Lock()
 	defer qs.indexes.Unlock()
-	if len(qs.indexes.unique) != 0 {
-		return qs.indexes.unique, nil
+	if len(qs.indexes.exists) != 0 {
+		return qs.indexes.exists, nil
 	}
 	for _, in := range qs.indexes.all {
 		if in.Unique {
-			qs.indexes.unique = []QuadIndex{in}
-			return qs.indexes.unique, nil
+			if clog.V(2) {
+				clog.Infof("using unique index: %v", in.Dirs)
+			}
+			qs.indexes.exists = []QuadIndex{in}
+			return qs.indexes.exists, nil
 		}
 	}
 	// TODO: find best combination of indexes
@@ -391,11 +394,14 @@ func (qs *QuadStore) bestUnique() ([]QuadIndex, error) {
 	if len(inds) == 0 {
 		return nil, fmt.Errorf("no indexes defined")
 	}
-	qs.indexes.unique = inds
-	return qs.indexes.unique, nil
+	if clog.V(2) {
+		clog.Infof("using index intersection: %v", inds)
+	}
+	qs.indexes.exists = inds
+	return qs.indexes.exists, nil
 }
 
-func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive) (*proto.Primitive, error) {
+func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive, get bool) (*proto.Primitive, error) {
 	if !qs.testBloom(p) {
 		return nil, nil
 	}
@@ -403,6 +409,7 @@ func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive) (*proto.Primi
 	if err != nil {
 		return nil, err
 	}
+	unique := len(inds) != 0 && inds[0].Unique
 	keys := make([]BucketKey, len(inds))
 	for i, in := range inds {
 		keys[i] = BucketKey{
@@ -425,7 +432,9 @@ func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive) (*proto.Primi
 		a = intersectSortedUint64(a, b)
 		lists[0] = a
 	}
-	// TODO: if index is unique we don't need to load entry from log
+	if !get && unique {
+		return p, nil
+	}
 	for _, x := range options {
 		// TODO: batch
 		prim, err := qs.getPrimitiveFromLog(tx, x)
