@@ -75,8 +75,8 @@ type QuadStore struct {
 	indexes struct {
 		sync.RWMutex
 		all []QuadIndex
-		// indexes to check to detect duplicate quads
-		unique []QuadIndex
+		// indexes used to detect duplicate quads
+		exists []QuadIndex
 	}
 
 	valueLRU *lru.Cache

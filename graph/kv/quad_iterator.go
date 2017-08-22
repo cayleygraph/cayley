@@ -15,39 +15,45 @@
 package kv
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
-	"github.com/cayleygraph/cayley/quad"
 )
 
 type QuadIterator struct {
-	qs      *QuadStore
-	ind     QuadIndex
-	err     error
 	uid     uint64
 	tags    graph.Tagger
+	qs      *QuadStore
+	ind     QuadIndex
 	horizon int64
-	off     int
-	ids     []uint64
-	buf     []*proto.Primitive
-	v       Int64Value
-	dir     quad.Direction
-	prim    *proto.Primitive
+	vals    []uint64
+	size    int64
+
+	tx   BucketTx
+	b    Bucket
+	it   KVIterator
+	done bool
+
+	err  error
+	off  int
+	ids  []uint64
+	buf  []*proto.Primitive
+	prim *proto.Primitive
 }
 
 var _ graph.Iterator = &QuadIterator{}
 
-func NewQuadIterator(ind QuadIndex, dir quad.Direction, v Int64Value, qs *QuadStore) *QuadIterator {
+func NewQuadIterator(qs *QuadStore, ind QuadIndex, vals []uint64) *QuadIterator {
 	return &QuadIterator{
 		qs:      qs,
 		ind:     ind,
 		horizon: qs.horizon(),
 		uid:     iterator.NextUID(),
-		v:       v,
-		dir:     dir,
+		vals:    vals,
+		size:    -1,
 	}
 }
 
@@ -57,6 +63,13 @@ func (it *QuadIterator) UID() uint64 {
 
 func (it *QuadIterator) Reset() {
 	it.off = 0
+	it.ids = nil
+	it.buf = nil
+	it.done = false
+	if it.it != nil {
+		it.it.Close()
+		it.it = it.b.Scan(it.ind.Key(it.vals))
+	}
 }
 
 func (it *QuadIterator) Tagger() *graph.Tagger {
@@ -68,7 +81,7 @@ func (it *QuadIterator) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *QuadIterator) Clone() graph.Iterator {
-	out := NewQuadIterator(it.ind, it.dir, it.v, it.qs)
+	out := NewQuadIterator(it.qs, it.ind, it.vals)
 	out.tags.CopyFrom(it)
 	out.ids = it.ids
 	out.horizon = it.horizon
@@ -76,7 +89,18 @@ func (it *QuadIterator) Clone() graph.Iterator {
 }
 
 func (it *QuadIterator) Close() error {
-	return nil
+	if it.it != nil {
+		if err := it.it.Close(); err != nil && it.err == nil {
+			it.err = err
+		}
+		if err := it.tx.Rollback(); err != nil && it.err == nil {
+			it.err = err
+		}
+		it.it = nil
+		it.tx = nil
+		it.b = nil
+	}
+	return it.err
 }
 
 func (it *QuadIterator) Err() error {
@@ -90,26 +114,55 @@ func (it *QuadIterator) Result() graph.Value {
 	return it.prim
 }
 
-func (it *QuadIterator) Next() bool {
-	it.prim = nil
+func (it *QuadIterator) ensureTx() bool {
+	if it.tx != nil {
+		return true
+	}
+	it.tx, it.err = it.qs.db.Tx(false)
 	if it.err != nil {
 		return false
 	}
-	it.ensureIDs()
+	it.b = it.tx.Bucket(it.ind.Bucket())
+	return true
+}
+
+func (it *QuadIterator) Next() bool {
+	it.prim = nil
+	if it.err != nil || it.done {
+		return false
+	}
+	if it.it == nil {
+		if !it.ensureTx() {
+			return false
+		}
+		it.it = it.b.Scan(it.ind.Key(it.vals))
+		if err := it.Err(); err != nil {
+			it.err = err
+			return false
+		}
+	}
 	for {
 		if len(it.buf) == 0 {
-			if it.off >= len(it.ids) {
-				return false
+			for len(it.ids[it.off:]) == 0 {
+				it.off = 0
+				it.ids = nil
+				it.buf = nil
+				if !it.it.Next(context.TODO()) {
+					it.Close()
+					it.done = true
+					return false
+				}
+				it.ids, it.err = decodeIndex(it.it.Val())
+				if it.err != nil {
+					return false
+				}
 			}
 			ids := it.ids[it.off:]
 			if len(ids) > nextBatch {
 				ids = ids[:nextBatch]
 			}
-			if len(ids) == 0 {
-				return false
-			}
-			it.buf, it.err = it.qs.getPrimitives(ids)
-			if it.err != nil || len(ids) == 0 {
+			it.buf, it.err = it.qs.getPrimitivesFromLog(it.tx, ids)
+			if it.err != nil {
 				return false
 			}
 		} else {
@@ -132,12 +185,16 @@ func (it *QuadIterator) NextPath() bool {
 
 func (it *QuadIterator) Contains(v graph.Value) bool {
 	it.prim = nil
-	p := v.(*proto.Primitive)
-	if p.GetDirection(it.dir) == uint64(it.v) {
-		it.prim = p
-		return true
+	p, ok := v.(*proto.Primitive)
+	if !ok {
+		return false
 	}
-	return false
+	for i, v := range it.vals {
+		if p.GetDirection(it.ind.Dirs[i]) != v {
+			return false
+		}
+	}
+	return true
 }
 
 func (it *QuadIterator) SubIterators() []graph.Iterator {
@@ -145,31 +202,32 @@ func (it *QuadIterator) SubIterators() []graph.Iterator {
 }
 
 func (it *QuadIterator) Size() (int64, bool) {
-	it.ensureIDs()
-	return int64(len(it.ids)), true
-}
-
-func (it *QuadIterator) ensureIDs() {
-	if it.ids != nil {
-		return
+	if it.err != nil {
+		return 0, false
+	} else if it.size >= 0 {
+		return it.size, true
 	}
-	err := View(it.qs.db, func(tx BucketTx) error {
-		inds, err := it.qs.getBucketIndexes(tx, []BucketKey{
-			{
-				Bucket: it.ind.Bucket(),
-				Key:    it.ind.Key([]uint64{uint64(it.v)}),
-			},
+	if len(it.ind.Dirs) == len(it.vals) {
+		var ids []uint64
+		it.err = View(it.qs.db, func(tx BucketTx) error {
+			b := tx.Bucket(it.ind.Bucket())
+			vals, err := b.Get([][]byte{it.ind.Key(it.vals)})
+			if err != nil {
+				return err
+			}
+			ids, err = decodeIndex(vals[0])
+			if err != nil {
+				return err
+			}
+			return nil
 		})
-		if err != nil {
-			return err
+		if it.err != nil {
+			return 0, false
 		}
-		it.ids = inds[0]
-		return nil
-	})
-	if err != nil {
-		it.ids = make([]uint64, 0)
-		it.err = err
+		it.size = int64(len(ids))
+		return it.size, true
 	}
+	return 1 + it.qs.Size()/2, false
 }
 
 func (it *QuadIterator) Describe() graph.Description {
@@ -179,8 +237,8 @@ func (it *QuadIterator) Describe() graph.Description {
 		Type:      it.Type(),
 		Tags:      it.tags.Tags(),
 		Size:      size,
-		Direction: it.dir,
-		Name:      fmt.Sprint(it.v, it.ids),
+		Direction: it.ind.Dirs[0],
+		Name:      fmt.Sprint(it.vals, it.ids),
 	}
 }
 
