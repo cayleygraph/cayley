@@ -36,6 +36,7 @@ import (
 	// Load supported backends
 	_ "github.com/cayleygraph/cayley/graph/bolt"
 	_ "github.com/cayleygraph/cayley/graph/bolt2"
+	_ "github.com/cayleygraph/cayley/graph/kv/leveldb"
 	_ "github.com/cayleygraph/cayley/graph/leveldb"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/graph/mongo"
