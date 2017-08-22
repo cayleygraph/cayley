@@ -40,13 +40,7 @@ func (it *Not) Tagger() *graph.Tagger {
 }
 
 func (it *Not) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
+	it.tags.TagResult(dst, it.Result())
 
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)

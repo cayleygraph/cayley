@@ -85,13 +85,7 @@ func (it *Int64) Tagger() *graph.Tagger {
 
 // Fill the map based on the tags assigned to this iterator.
 func (it *Int64) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
+	it.tags.TagResult(dst, it.Result())
 }
 
 func (it *Int64) Describe() graph.Description {

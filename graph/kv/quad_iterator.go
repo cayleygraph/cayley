@@ -67,13 +67,7 @@ func (it *QuadIterator) Tagger() *graph.Tagger {
 }
 
 func (it *QuadIterator) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
+	it.tags.TagResult(dst, it.Result())
 }
 
 func (it *QuadIterator) Clone() graph.Iterator {

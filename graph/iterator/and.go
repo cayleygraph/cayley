@@ -69,13 +69,7 @@ func (it *And) Tagger() *graph.Tagger {
 // An extended TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
 func (it *And) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
+	it.tags.TagResult(dst, it.Result())
 
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)

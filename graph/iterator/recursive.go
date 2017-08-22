@@ -80,21 +80,9 @@ func (it *Recursive) AddDepthTag(s string) {
 }
 
 func (it *Recursive) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
+	it.tags.TagResult(dst, it.Result())
+	it.depthTags.TagResult(dst, it.qs.ValueOf(quad.Int(it.result.depth)))
 
-	for _, tag := range it.depthTags.Tags() {
-		dst[tag] = it.qs.ValueOf(quad.Int(it.result.depth))
-	}
-
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
-
-	for tag, value := range it.depthTags.Fixed() {
-		dst[tag] = value
-	}
 	if it.containsValue != nil {
 		paths := it.pathMap[graph.ToKey(it.containsValue)]
 		if len(paths) != 0 {

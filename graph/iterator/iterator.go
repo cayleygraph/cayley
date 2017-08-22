@@ -60,13 +60,7 @@ func (it *Null) Tagger() *graph.Tagger {
 
 // Fill the map based on the tags assigned to this iterator.
 func (it *Null) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
+	it.tags.TagResult(dst, it.Result())
 }
 
 func (it *Null) Contains(graph.Value) bool {
@@ -128,11 +122,11 @@ func (it *Null) Stats() graph.IteratorStats {
 type Error struct {
 	uid  uint64
 	tags graph.Tagger
-	err error
+	err  error
 }
 
 func NewError(err error) *Error {
-	return &Error{uid: NextUID(), err:err}
+	return &Error{uid: NextUID(), err: err}
 }
 
 func (it *Error) UID() uint64 {
@@ -145,13 +139,7 @@ func (it *Error) Tagger() *graph.Tagger {
 
 // Fill the map based on the tags assigned to this iterator.
 func (it *Error) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
-
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
+	it.tags.TagResult(dst, it.Result())
 }
 
 func (it *Error) Contains(graph.Value) bool {

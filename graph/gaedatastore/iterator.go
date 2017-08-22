@@ -177,12 +177,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 }
 
 func (it *Iterator) TagResults(dst map[string]graph.Value) {
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
-	}
-	for tag, value := range it.tags.Fixed() {
-		dst[tag] = value
-	}
+	it.tags.TagResult(dst, it.Result())
 }
 
 func (it *Iterator) Clone() graph.Iterator {

@@ -64,6 +64,16 @@ func (t *Tagger) Fixed() map[string]Value {
 	return t.fixedTags
 }
 
+func (t *Tagger) TagResult(dst map[string]Value, v Value) {
+	for _, tag := range t.Tags() {
+		dst[tag] = v
+	}
+
+	for tag, value := range t.Fixed() {
+		dst[tag] = value
+	}
+}
+
 func (t *Tagger) CopyFrom(src Iterator) {
 	t.CopyFromTagger(src.Tagger())
 }
