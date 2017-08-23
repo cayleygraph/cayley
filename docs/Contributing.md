@@ -30,7 +30,7 @@ To run the web frontend, replace the "repl" command with "http"
 
 # Hacking on Cayley
 
-First, you'll need Go [(version 1.7.x or greater)](https://golang.org/doc/install) and a Go workspace. This is outlined by the Go team at http://golang.org/doc/code.html and is sort of the official way of going about it.
+First, you'll need Go [(version 1.8.x or greater)](https://golang.org/doc/install) and a Go workspace. This is outlined by the Go team at http://golang.org/doc/code.html and is sort of the official way of going about it.
 
 If you just want to build Cayley and check out the source, or use it as a library, a simple `go get github.com/cayleygraph/cayley` will work!
 
