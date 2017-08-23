@@ -41,6 +41,9 @@ type NewFunc func(string, graph.Options) (BucketKV, error)
 func Register(name string, r Registration) {
 	graph.RegisterQuadStore(name, graph.QuadStoreRegistration{
 		InitFunc: func(addr string, opt graph.Options) error {
+			if !r.IsPersistent {
+				return nil
+			}
 			kv, err := r.InitFunc(addr, opt)
 			if err != nil {
 				return err
@@ -55,6 +58,12 @@ func Register(name string, r Registration) {
 			kv, err := r.NewFunc(addr, opt)
 			if err != nil {
 				return nil, err
+			}
+			if !r.IsPersistent {
+				if err = Init(kv, opt); err != nil {
+					kv.Close()
+					return nil, err
+				}
 			}
 			return New(kv, opt)
 		},
