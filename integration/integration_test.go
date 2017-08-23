@@ -22,7 +22,6 @@ import (
 	"os"
 	"reflect"
 	"sort"
-	"sync"
 	"testing"
 	"time"
 
@@ -30,7 +29,6 @@ import (
 	"github.com/cayleygraph/cayley/internal"
 	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/internal/db"
-	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/gizmo"
 
@@ -436,17 +434,13 @@ var m2_actors = movie2.Save("<name>","movie2").Follow(filmToActor)
 `
 
 var (
-	create            sync.Once
-	deleteAndRecreate sync.Once
-	cfg               = &config.Config{
+	cfg = &config.Config{
 		ReplicationType: "single",
 		Timeout:         300 * time.Second,
 	}
-
-	handle *graph.Handle
 )
 
-func prepare(t testing.TB) {
+func prepare(t testing.TB) *graph.Handle {
 	var remote bool
 	cfg.DatabaseType = *backend
 	switch *backend {
@@ -476,87 +470,71 @@ func prepare(t testing.TB) {
 		cfg.DatabasePath = *backendPath
 	}
 
-	var err error
-	create.Do(func() {
-		needsLoad := true
-		if graph.IsPersistent(cfg.DatabaseType) && !remote {
-			if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
-				err = db.Init(cfg)
-				if err != nil {
-					t.Fatalf("Could not initialize database: %v", err)
-				}
-			} else {
-				needsLoad = false
-			}
-		}
-
-		handle, err = db.Open(cfg)
-		if err != nil {
-			t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
-		}
-
-		if needsLoad {
-			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "../data/30kmoviedata.nq.gz", format)
+	needsLoad := true
+	if graph.IsPersistent(cfg.DatabaseType) && !remote {
+		if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
+			err = db.Init(cfg)
 			if err != nil {
-				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
+				t.Fatalf("Could not initialize database: %v", err)
 			}
+		} else {
+			needsLoad = false
 		}
-	})
+	}
+
+	h, err := db.Open(cfg)
+	if err != nil {
+		t.Fatalf("Failed to open %q: %v", cfg.DatabasePath, err)
+	}
+
+	if needsLoad {
+		start := time.Now()
+		err := internal.Load(h.QuadWriter, cfg.LoadSize, "../data/30kmoviedata.nq.gz", format)
+		if err != nil {
+			t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
+		}
+		t.Logf("loaded data in %v", time.Since(start))
+	}
+	return h
 }
 
-func deletePrepare(t testing.TB) {
+func deletePrepare(t testing.TB) *graph.Handle {
 	var err error
-	deleteAndRecreate.Do(func() {
-		prepare(t)
-		if !graph.IsPersistent(cfg.DatabaseType) {
-			err = removeAll(handle.QuadWriter, cfg, "", format)
-			if err != nil {
-				t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
-			}
-			err = internal.Load(handle.QuadWriter, cfg.LoadSize, "", format)
-			if err != nil {
-				t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
-			}
+	h := prepare(t)
+	if !graph.IsPersistent(cfg.DatabaseType) {
+		err = removeAll(h.QuadWriter, cfg, "", format)
+		if err != nil {
+			t.Fatalf("Failed to remove %q: %v", cfg.DatabasePath, err)
 		}
-	})
+		err = internal.Load(h.QuadWriter, cfg.LoadSize, "", format)
+		if err != nil {
+			t.Fatalf("Failed to load %q: %v", cfg.DatabasePath, err)
+		}
+	}
+	return h
 }
 
 func removeAll(qw graph.QuadWriter, cfg *config.Config, path, typ string) error {
 	return internal.DecompressAndLoad(qw, cfg.LoadSize, path, typ, graph.NewRemover)
 }
 
-func remove(qw graph.QuadWriter, cfg *config.Config, dec quad.Reader) error {
-	for {
-		t, err := dec.ReadQuad()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		err = qw.RemoveQuad(t)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func TestQueries(t *testing.T) {
-	prepare(t)
-	checkQueries(t)
+	h := prepare(t)
+	defer h.Close()
+	checkQueries(t, h)
 }
 
 func TestDeletedAndRecreatedQueries(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	deletePrepare(t)
-	checkQueries(t)
+	h := deletePrepare(t)
+	defer h.Close()
+	checkQueries(t, h)
 }
 
-func checkQueries(t *testing.T) {
-	if handle == nil {
+func checkQueries(t *testing.T, h *graph.Handle) {
+	if h == nil {
 		t.Fatal("not initialized")
 	}
 	for _, test := range benchmarkQueries {
@@ -568,7 +546,7 @@ func checkQueries(t *testing.T) {
 				t.SkipNow()
 			}
 			tInit := time.Now()
-			ses := gizmo.NewSession(handle.QuadStore)
+			ses := gizmo.NewSession(h.QuadStore)
 			c := make(chan query.Result, 5)
 			ctx := context.Background()
 			if cfg.Timeout > 0 {
@@ -630,78 +608,40 @@ func convertToStringList(in []interface{}) []string {
 	return out
 }
 
-func runBench(n int, b *testing.B) {
-	if testing.Short() && benchmarkQueries[n].long {
-		b.Skip()
+func BenchmarkQueries(b *testing.B) {
+	h := prepare(b)
+	defer h.Close()
+	for _, bench := range benchmarkQueries {
+		b.Run(bench.message, func(b *testing.B) {
+			if testing.Short() && bench.long {
+				b.Skip()
+			}
+			b.StopTimer()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				c := make(chan query.Result, 5)
+				ctx := context.Background()
+				var cancel func()
+				if cfg.Timeout > 0 {
+					ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
+				}
+				ses := gizmo.NewSession(h.QuadStore)
+				b.StartTimer()
+				go ses.Execute(ctx, bench.query, c, 100)
+				n := 0
+				for range c {
+					n++
+				}
+				b.StopTimer()
+				if n != len(bench.expect) {
+					b.Fatalf("unexpected number of results: %d vs %d", n, len(bench.expect))
+				}
+				if cancel != nil {
+					cancel()
+				}
+			}
+		})
 	}
-	prepare(b)
-	b.StopTimer()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		c := make(chan query.Result, 5)
-		ctx := context.Background()
-		var cancel func()
-		if cfg.Timeout > 0 {
-			ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
-		}
-		ses := gizmo.NewSession(handle.QuadStore)
-		b.StartTimer()
-		go ses.Execute(ctx, benchmarkQueries[n].query, c, 100)
-		for range c {
-		}
-		b.StopTimer()
-		if cancel != nil {
-			cancel()
-		}
-	}
-}
-
-func BenchmarkNamePredicate(b *testing.B) {
-	runBench(0, b)
-}
-
-func BenchmarkLargeSetsNoIntersection(b *testing.B) {
-	runBench(1, b)
-}
-
-func BenchmarkVeryLargeSetsSmallIntersection(b *testing.B) {
-	runBench(2, b)
-}
-
-func BenchmarkHelplessContainsChecker(b *testing.B) {
-	runBench(3, b)
-}
-
-func BenchmarkHelplessNotContainsFilms(b *testing.B) {
-	runBench(4, b)
-}
-
-func BenchmarkHelplessNotContainsActors(b *testing.B) {
-	runBench(5, b)
-}
-
-func BenchmarkNetAndSpeed(b *testing.B) {
-	runBench(6, b)
-}
-
-func BenchmarkKeanuAndNet(b *testing.B) {
-	runBench(7, b)
-}
-
-func BenchmarkKeanuAndSpeed(b *testing.B) {
-	runBench(8, b)
-}
-
-func BenchmarkKeanuOther(b *testing.B) {
-	runBench(9, b)
-}
-
-func BenchmarkKeanuBullockOther(b *testing.B) {
-	runBench(10, b)
-}
-
-func BenchmarkSaveBogartPerformances(b *testing.B) {
-	runBench(11, b)
 }
 
 // reader is a test helper to filter non-io.Reader methods from the contained io.Reader.
