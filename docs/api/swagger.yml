@@ -1,0 +1,372 @@
+openapi: "3.0.0"
+info:
+  description: ""
+  version: "2.0.0"
+  title: "Cayley API"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+servers:
+- url: "http://{host}:{port}"
+  variables:
+    'host':
+      default: "localhost"
+    'port':
+      default: "64210"
+tags:
+- name: "data"
+  description: "Reading and writing data"
+- name: "queries"
+  description: "Querying the graph"
+paths:
+  /api/v2/formats:
+    get:
+      tags:
+      - "data"
+      summary: "Returns a list of supported data formats"
+      description: ""
+      operationId: "listFormats"
+      responses:
+        200:
+          description: "success"
+          content:
+            'application/json':
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "string"
+                  read:
+                    type: "boolean"
+                  write:
+                    type: "boolean"
+                  ext:
+                    type: "array"
+                    items:
+                      type: "string"
+                  mime:
+                    type: "array"
+                    items:
+                      type: "string"
+                  binary:
+                    type: "boolean"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v2/read:
+    get:
+      tags:
+      - "data"
+      summary: "Reads all quads from the database"
+      description: ""
+      operationId: "readQuads"
+      parameters:
+      - name: "format"
+        in: "query"
+        description: "Data encoder to use for response. Overrides Accept header."
+        required: false
+        schema:
+          type: "string"
+          enum:
+          - "nquads"
+          - "jsonld"
+          - "json"
+          - "json-stream"
+          - "pquads"
+          - "graphviz"
+          - "gml"
+          - "graphml"
+          default: "nquads"
+      responses:
+        200:
+          description: "read successful"
+          content:
+            'application/n-quads':
+              schema:
+                $ref: '#/components/schemas/NQuads'
+            'application/ld+json':
+              schema:
+                $ref: '#/components/schemas/JSONLD'
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/JsonQuads'
+            'application/x-json-stream':
+              schema:
+                $ref: '#/components/schemas/JsonQuadsStream'
+            'application/x-protobuf':
+              schema:
+                $ref: '#/components/schemas/PQuads'
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v2/write:
+    post:
+      tags:
+      - "data"
+      summary: "Writes quads to the database"
+      description: ""
+      operationId: "writeQuads"
+      requestBody:
+        description: "File in one of formats specified in Content-Type."
+        required: true
+        content:
+          'application/n-quads':
+            schema:
+              $ref: '#/components/schemas/NQuads'
+          'application/ld+json':
+            schema:
+              $ref: '#/components/schemas/JSONLD'
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/JsonQuads'
+          'application/x-json-stream':
+            schema:
+              $ref: '#/components/schemas/JsonQuadsStream'
+          'application/x-protobuf':
+            schema:
+              $ref: '#/components/schemas/PQuads'
+      parameters:
+      - name: "format"
+        in: "query"
+        description: "Data decoder to use for request. Overrides Content-Type."
+        required: false
+        schema:
+          type: "string"
+      responses:
+        200:
+          description: "write successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  result:
+                    type: "string"
+                    description: "legacy success message"
+                  count:
+                    type: "integer"
+                    description: "number of quads received"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v2/delete:
+    post:
+      tags:
+      - "data"
+      summary: "Delete quads from the database"
+      description: ""
+      operationId: "deleteQuads"
+      requestBody:
+        description: "File in one of formats specified in Content-Type."
+        required: true
+        content:
+          'application/n-quads':
+            schema:
+              $ref: '#/components/schemas/NQuads'
+          'application/ld+json':
+            schema:
+              $ref: '#/components/schemas/JSONLD'
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/JsonQuads'
+          'application/x-json-stream':
+            schema:
+              $ref: '#/components/schemas/JsonQuadsStream'
+          'application/x-protobuf':
+            schema:
+              $ref: '#/components/schemas/PQuads'
+      parameters:
+      - name: "format"
+        in: "query"
+        description: "Data decoder to use for request. Overrides Content-Type."
+        required: false
+        schema:
+          type: "string"
+      responses:
+        200:
+          description: "write successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  result:
+                    type: "string"
+                    description: "legacy success message"
+                  count:
+                    type: "integer"
+                    description: "number of quads received"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v2/query:
+    get:
+      tags:
+      - "queries"
+      summary: "Query the graph"
+      description: ""
+      operationId: "readQuads"
+      parameters:
+      - name: "lang"
+        in: "query"
+        description: "Query language to use"
+        required: true
+        schema:
+          type: "string"
+          enum:
+          - "gizmo"
+          - "graphql"
+          - "mql"
+          - "sexp"
+      requestBody:
+        description: "Query text"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+            examples:
+              gizmo:
+                summary: "Gizmo: first 10 nodes"
+                value: "g.V().GetLimit(10)"
+              graphql:
+                summary: "GraphQL: first 10 nodes"
+                value: "{\n  nodes(first: 10){\n    id\n  }\n}"
+      responses:
+        200:
+          description: "query succesful"
+          content:
+            'application/json':
+              schema:
+                oneOf:
+                - type: "array"
+                - type: "object"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /gephi/gs:
+    get:
+      tags:
+      - "queries"
+      summary: "Gephi GraphStream endpoint"
+      description: ""
+      operationId: "gephiGraphStream"
+      parameters:
+      - name: "mode"
+        in: "query"
+        description: "Streamer mode"
+        required: false
+        schema:
+          type: "string"
+          enum:
+          - "raw"
+          - "nodes"
+          default: "raw"
+      - name: "limit"
+        in: "query"
+        description: "Limit the number of nodes or quads"
+        required: false
+        schema:
+          type: "integer"
+      responses:
+        200:
+          description: "success"
+          content:
+            'application/stream+json':
+              schema:
+                type: "string"
+                format: "binary"
+                description: "stream of JSON objects"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    NQuads:
+      type: "string"
+      format: "binary"
+      example: |
+        <alice> <follows> <bob> .
+        <bob> <follows> <fred> .
+        <bob> <status> "cool_person" .
+        <charlie> <follows> <bob> .
+        <charlie> <follows> <dani> .
+        <dani> <follows> <bob> .
+        <dani> <follows> <greg> .
+        <dani> <status> "cool_person" .
+        <emily> <follows> <fred> .
+        <fred> <follows> <greg> .
+        <greg> <status> "cool_person" .
+        <predicates> <are> <follows> .
+        <predicates> <are> <status> .
+        <emily> <status> "smart_person" <smart_graph> .
+        <greg> <status> "smart_person" <smart_graph> .
+    JSONLD:
+      type: "string"
+      format: "binary"
+      example: {
+          "@context": "http://schema.org/",
+          "@type": "Person",
+          "name": "Jane Doe",
+          "jobTitle": "Professor",
+          "telephone": "(425) 123-4567",
+          "url": "http://www.janedoe.com"
+        }
+      externalDocs:
+        url: 'https://json-ld.org'
+    JsonQuad:
+      type: "object"
+      properties:
+        subject:
+          type: "string"
+        predicate:
+          type: "string"
+        object:
+          type: "string"
+        label:
+          type: "string"
+    JsonQuads:
+      type: "array"
+      items:
+        type: "object"
+        properties:
+          subject:
+            type: "string"
+          predicate:
+            type: "string"
+          object:
+            type: "string"
+          label:
+            type: "string"
+    JsonQuadsStream:
+      type: "string"
+      format: "binary"
+      description: "stream of JsonQuad objects"
+    PQuads:
+      type: "string"
+      format: "binary"
+      description: "Cayley-specific binary encoding of quads based on protobuf"
+    Error:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+          description: "error message"
