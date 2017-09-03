@@ -559,7 +559,3 @@ func (qs *QuadStore) QuadDirection(val graph.Value, dir quad.Direction) graph.Va
 	sub := t.Hash[offset : offset+(quad.HashSize*2)]
 	return &Token{Kind: nodeKind, Hash: sub}
 }
-
-func (qs *QuadStore) Type() string {
-	return QuadStoreType
-}

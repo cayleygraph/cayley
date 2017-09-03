@@ -82,9 +82,11 @@ type DB struct {
 func (db *DB) Type() string {
 	return Type
 }
+
 func (db *DB) Close() error {
 	return db.DB.Close()
 }
+
 func (db *DB) Tx(update bool) (kv.BucketTx, error) {
 	tx, err := db.DB.Begin(update)
 	if err != nil {

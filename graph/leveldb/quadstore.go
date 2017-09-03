@@ -573,7 +573,3 @@ func compareBytes(a, b graph.Value) bool {
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(compareBytes)
 }
-
-func (qs *QuadStore) Type() string {
-	return QuadStoreType
-}

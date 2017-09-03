@@ -134,10 +134,6 @@ type QuadStore interface {
 	//  qs.ValueOf(qs.Quad(id).Get(dir))
 	//
 	QuadDirection(id Value, d quad.Direction) Value
-
-	// Get the type of QuadStore
-	//TODO replace this using reflection
-	Type() string
 }
 
 type Options map[string]interface{}
