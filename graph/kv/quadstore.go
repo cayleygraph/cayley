@@ -291,10 +291,6 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	return out
 }
 
-func (qs *QuadStore) Type() string {
-	return qs.db.Type()
-}
-
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
 	p, ok := val.(*proto.Primitive)
 	if !ok {

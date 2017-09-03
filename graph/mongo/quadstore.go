@@ -560,10 +560,6 @@ func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value
 
 // TODO(barakmich): Rewrite bulk loader. For now, iterating around blocks is the way we'll go about it.
 
-func (qs *QuadStore) Type() string {
-	return QuadStoreType
-}
-
 func (qs *QuadStore) getSize(collection string, constraint bson.M) (int64, error) {
 	var size int
 	bytes, err := bson.Marshal(constraint)

@@ -575,10 +575,6 @@ func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value
 	return NodeHash(in.(QuadHashes).Get(d))
 }
 
-func (qs *QuadStore) Type() string {
-	return QuadStoreType
-}
-
 func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, hash NodeHash) int64 {
 	var err error
 	if isAll {
