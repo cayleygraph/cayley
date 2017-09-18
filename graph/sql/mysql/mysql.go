@@ -15,46 +15,16 @@ import (
 const Type = "mysql"
 
 func init() {
-	hs := fmt.Sprint(quad.HashSize)
 	csql.Register(Type, csql.Registration{
-		Driver: "mysql",
-		NodesTable: `CREATE TABLE nodes (
-	hash BINARY(` + hs + `) PRIMARY KEY,
-	value BLOB,
-	value_string TEXT,
-	datatype TEXT,
-	language TEXT,
-	iri BOOLEAN,
-	bnode BOOLEAN,
-	value_int BIGINT,
-	value_bool BOOLEAN,
-	value_float double precision,
-	value_time DATETIME(6)
-);`,
-		QuadsTable: `CREATE TABLE quads (
-	horizon SERIAL PRIMARY KEY,
-	subject_hash BINARY(` + hs + `) NOT NULL,
-	predicate_hash BINARY(` + hs + `) NOT NULL,
-	object_hash BINARY(` + hs + `) NOT NULL,
-	label_hash BINARY(` + hs + `),
-	id BIGINT,
-	ts timestamp
-);`,
-		FieldQuote:  '`',
-		Placeholder: func(n int) string { return "?" },
-		Indexes: func(options graph.Options) []string {
-			return []string{
-				`CREATE UNIQUE INDEX spo_unique ON quads (subject_hash, predicate_hash, object_hash);`,
-				`CREATE UNIQUE INDEX spol_unique ON quads (subject_hash, predicate_hash, object_hash, label_hash);`,
-				`CREATE INDEX spo_index ON quads (subject_hash);`,
-				`CREATE INDEX pos_index ON quads (predicate_hash);`,
-				`CREATE INDEX osp_index ON quads (object_hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT subject_hash_fk FOREIGN KEY (subject_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT predicate_hash_fk FOREIGN KEY (predicate_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT object_hash_fk FOREIGN KEY (object_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT label_hash_fk FOREIGN KEY (label_hash) REFERENCES nodes (hash);`,
-			}
+		Driver:      "mysql",
+		HashType:    fmt.Sprintf(`BINARY(%d)`, quad.HashSize),
+		BytesType:   `BLOB`,
+		HorizonType: `SERIAL`,
+		TimeType:    `DATETIME(6)`,
+		FieldQuote:  func(name string) string {
+			return "`"+name+"`"
 		},
+		Placeholder: func(n int) string { return "?" },
 		Error: func(err error) error {
 			return err
 		},

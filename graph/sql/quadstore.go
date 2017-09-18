@@ -28,11 +28,11 @@ func init() {
 
 func registerQuadStore(name, typ string) {
 	graph.RegisterQuadStore(name, graph.QuadStoreRegistration{
-		NewFunc:      func(addr string, options graph.Options) (graph.QuadStore, error) {
+		NewFunc: func(addr string, options graph.Options) (graph.QuadStore, error) {
 			return New(typ, addr, options)
 		},
-		UpgradeFunc:  nil,
-		InitFunc:     func(addr string, options graph.Options) error {
+		UpgradeFunc: nil,
+		InitFunc: func(addr string, options graph.Options) error {
 			return Init(typ, addr, options)
 		},
 		IsPersistent: true,
@@ -181,20 +181,24 @@ func Init(typ string, addr string, options graph.Options) error {
 	}
 	defer conn.Close()
 
+	nodesSql := fl.nodesTable()
+	quadsSql := fl.quadsTable()
+	indexes := fl.quadIndexes(options)
+
 	if fl.NoSchemaChangesInTx {
-		_, err = conn.Exec(fl.NodesTable)
+		_, err = conn.Exec(nodesSql)
 		if err != nil {
 			err = fl.Error(err)
 			clog.Errorf("Cannot create nodes table: %v", err)
 			return err
 		}
-		_, err = conn.Exec(fl.QuadsTable)
+		_, err = conn.Exec(quadsSql)
 		if err != nil {
 			err = fl.Error(err)
 			clog.Errorf("Cannot create quad table: %v", err)
 			return err
 		}
-		for _, index := range fl.Indexes(options) {
+		for _, index := range indexes {
 			if _, err = conn.Exec(index); err != nil {
 				clog.Errorf("Cannot create index: %v", err)
 				return err
@@ -207,21 +211,21 @@ func Init(typ string, addr string, options graph.Options) error {
 			return err
 		}
 
-		_, err = tx.Exec(fl.NodesTable)
+		_, err = tx.Exec(nodesSql)
 		if err != nil {
 			tx.Rollback()
 			err = fl.Error(err)
 			clog.Errorf("Cannot create nodes table: %v", err)
 			return err
 		}
-		_, err = tx.Exec(fl.QuadsTable)
+		_, err = tx.Exec(quadsSql)
 		if err != nil {
 			tx.Rollback()
 			err = fl.Error(err)
 			clog.Errorf("Cannot create quad table: %v", err)
 			return err
 		}
-		for _, index := range fl.Indexes(options) {
+		for _, index := range indexes {
 			if _, err = tx.Exec(index); err != nil {
 				clog.Errorf("Cannot create index: %v", err)
 				tx.Rollback()
@@ -278,6 +282,7 @@ func unescapeNullByte(s string) string {
 }
 
 type ValueType int
+
 func (t ValueType) Columns() []string {
 	return nodeInsertColumns[t]
 }
@@ -285,7 +290,7 @@ func (t ValueType) Columns() []string {
 func NodeValues(h NodeHash, v quad.Value) (ValueType, []interface{}, error) {
 	var (
 		nodeKey ValueType
-		values      = []interface{}{h.SQLValue(), nil, nil}[:1]
+		values  = []interface{}{h.SQLValue(), nil, nil}[:1]
 	)
 	switch v := v.(type) {
 	case quad.IRI:

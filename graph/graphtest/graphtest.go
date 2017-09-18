@@ -172,7 +172,7 @@ func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator, e
 func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []string {
 	var res []string
 	for it.Next() {
-		res = append(res, qs.NameOf(it.Result()).String())
+		res = append(res, quad.StringOf(qs.NameOf(it.Result())))
 	}
 	require.Nil(t, it.Err())
 	sort.Strings(res)

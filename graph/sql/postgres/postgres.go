@@ -15,69 +15,35 @@ import (
 
 const Type = "postgres"
 
-const defaultFillFactor = 50
-
 func init() {
 	csql.Register(Type, csql.Registration{
-		Driver: "postgres",
-		NodesTable: `CREATE TABLE nodes (
-	hash BYTEA PRIMARY KEY,
-	value BYTEA,
-	value_string TEXT,
-	datatype TEXT,
-	language TEXT,
-	iri BOOLEAN,
-	bnode BOOLEAN,
-	value_int BIGINT,
-	value_bool BOOLEAN,
-	value_float double precision,
-	value_time timestamp with time zone
-);`,
-		QuadsTable: `CREATE TABLE quads (
-	horizon BIGSERIAL PRIMARY KEY,
-	subject_hash BYTEA NOT NULL,
-	predicate_hash BYTEA NOT NULL,
-	object_hash BYTEA NOT NULL,
-	label_hash BYTEA,
-	id BIGINT,
-	ts timestamp
-);`,
-		FieldQuote:          '"',
-		NumericPlaceholders: true,
-		Placeholder:         func(n int) string { return fmt.Sprintf("$%d", n) },
-		Indexes: func(options graph.Options) []string {
-			factor, factorOk, _ := options.IntKey("db_fill_factor")
-			if !factorOk {
-				factor = defaultFillFactor
-			}
-			return []string{
-				`CREATE UNIQUE INDEX spol_unique ON quads (subject_hash, predicate_hash, object_hash, label_hash) WHERE label_hash IS NOT NULL;`,
-				`CREATE UNIQUE INDEX spo_unique ON quads (subject_hash, predicate_hash, object_hash) WHERE label_hash IS NULL;`,
-				`ALTER TABLE quads ADD CONSTRAINT subject_hash_fk FOREIGN KEY (subject_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT predicate_hash_fk FOREIGN KEY (predicate_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT object_hash_fk FOREIGN KEY (object_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT label_hash_fk FOREIGN KEY (label_hash) REFERENCES nodes (hash);`,
-				fmt.Sprintf(`CREATE INDEX spo_index ON quads (subject_hash) WITH (FILLFACTOR = %d);`, factor),
-				fmt.Sprintf(`CREATE INDEX pos_index ON quads (predicate_hash) WITH (FILLFACTOR = %d);`, factor),
-				fmt.Sprintf(`CREATE INDEX osp_index ON quads (object_hash) WITH (FILLFACTOR = %d);`, factor),
-			}
-		},
-		Error: func(err error) error {
-			e, ok := err.(*pq.Error)
-			if !ok {
-				return err
-			}
-			switch e.Code {
-			case "42P07":
-				return graph.ErrDatabaseExists
-			}
-			return err
-		},
+		Driver:             "postgres",
+		HashType:           `BYTEA`,
+		BytesType:          `BYTEA`,
+		HorizonType:        `BIGSERIAL`,
+		TimeType:           `timestamp with time zone`,
+		FieldQuote:         pq.QuoteIdentifier,
+		Placeholder:        func(n int) string { return fmt.Sprintf("$%d", n) },
+		ConditionalIndexes: true,
+		FillFactor:         true,
+		Error:              ConvError,
 		Estimated: func(table string) string {
 			return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='" + table + "';"
 		},
 		RunTx: RunTxPostgres,
 	})
+}
+
+func ConvError(err error) error {
+	e, ok := err.(*pq.Error)
+	if !ok {
+		return err
+	}
+	switch e.Code {
+	case "42P07":
+		return graph.ErrDatabaseExists
+	}
+	return err
 }
 
 func convInsertErrorPG(err error) error {
@@ -149,7 +115,7 @@ func RunTx(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts, onConflict strin
 
 	end := ";"
 	if opts.IgnoreDup {
-		end = ` ON CONFLICT `+onConflict+` DO NOTHING;`
+		end = ` ON CONFLICT ` + onConflict + ` DO NOTHING;`
 	}
 
 	var (
