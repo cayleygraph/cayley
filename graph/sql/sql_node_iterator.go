@@ -86,7 +86,7 @@ func (n *SQLNodeIterator) Size(qs *QuadStore) (int64, bool) {
 }
 
 func (n *SQLNodeIterator) Describe() string {
-	s, _ := n.buildSQL(&Flavor{}, true, nil)
+	s, _ := n.buildSQL(&Registration{}, true, nil)
 	return fmt.Sprintf("SQL_NODE_QUERY: %s", s)
 }
 
@@ -104,7 +104,7 @@ func (n *SQLNodeIterator) buildResult(result []NodeHash, cols []string) map[stri
 	return m
 }
 
-func (n *SQLNodeIterator) getTables(fl *Flavor) []tableDef {
+func (n *SQLNodeIterator) getTables(fl *Registration) []tableDef {
 	var out []tableDef
 	if n.linkIt.it != nil {
 		out = n.linkIt.it.getTables(fl)
@@ -164,7 +164,7 @@ func (n *SQLNodeIterator) buildWhere() (string, sqlArgs) {
 		topData := n.tableID()
 		var valueChain []string
 		for _, v := range n.fixedSet {
-			vals = append(vals, hashOf(v).toSQL())
+			vals = append(vals, HashOf(v).SQLValue())
 			valueChain = append(valueChain, "?")
 		}
 		q = append(q, fmt.Sprintf("%s.%s_hash IN (%s)", topData.table, topData.dir, strings.Join(valueChain, ", ")))
@@ -173,7 +173,7 @@ func (n *SQLNodeIterator) buildWhere() (string, sqlArgs) {
 	return query, vals
 }
 
-func (n *SQLNodeIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (string, sqlArgs) {
+func (n *SQLNodeIterator) buildSQL(fl *Registration, next bool, val graph.Value) (string, sqlArgs) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
@@ -202,7 +202,7 @@ func (n *SQLNodeIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (stri
 			constraint += " AND "
 		}
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, v.toSQL())
+		values = append(values, v.SQLValue())
 	}
 
 	if constraint != "" {

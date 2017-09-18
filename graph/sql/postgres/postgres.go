@@ -1,23 +1,25 @@
-package sql
+package postgres
 
 import (
 	"database/sql"
 	"fmt"
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/lib/pq"
 	"strconv"
 	"strings"
+
+	"github.com/cayleygraph/cayley/clog"
+	"github.com/cayleygraph/cayley/graph"
+	csql "github.com/cayleygraph/cayley/graph/sql"
+	"github.com/cayleygraph/cayley/quad"
+	"github.com/lib/pq"
 )
 
-const flavorPostgres = "postgres"
+const Type = "postgres"
 
 const defaultFillFactor = 50
 
 func init() {
-	RegisterFlavor(Flavor{
-		Name: flavorPostgres,
+	csql.Register(Type, csql.Registration{
+		Driver: "postgres",
 		NodesTable: `CREATE TABLE nodes (
 	hash BYTEA PRIMARY KEY,
 	value BYTEA,
@@ -40,8 +42,9 @@ func init() {
 	id BIGINT,
 	ts timestamp
 );`,
-		FieldQuote:  '"',
-		Placeholder: func(n int) string { return fmt.Sprintf("$%d", n) },
+		FieldQuote:          '"',
+		NumericPlaceholders: true,
+		Placeholder:         func(n int) string { return fmt.Sprintf("$%d", n) },
 		Indexes: func(options graph.Options) []string {
 			factor, factorOk, _ := options.IntKey("db_fill_factor")
 			if !factorOk {
@@ -73,7 +76,7 @@ func init() {
 		Estimated: func(table string) string {
 			return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='" + table + "';"
 		},
-		RunTx: runTxPostgres,
+		RunTx: RunTxPostgres,
 	})
 }
 
@@ -129,7 +132,11 @@ func convInsertErrorPG(err error) error {
 //	return nil
 //}
 
-func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
+func RunTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
+	return RunTx(tx, in, opts, "")
+}
+
+func RunTx(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts, onConflict string) error {
 	//allAdds := true
 	//for _, d := range in {
 	//	if d.Action != graph.Add {
@@ -142,13 +149,13 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 
 	end := ";"
 	if opts.IgnoreDup {
-		end = " ON CONFLICT DO NOTHING;"
+		end = ` ON CONFLICT `+onConflict+` DO NOTHING;`
 	}
 
 	var (
 		insertQuad  *sql.Stmt
-		insertValue map[int]*sql.Stmt     // prepared statements for each value type
-		inserted    map[NodeHash]struct{} // tracks already inserted values
+		insertValue map[csql.ValueType]*sql.Stmt // prepared statements for each value type
+		inserted    map[csql.NodeHash]struct{}   // tracks already inserted values
 
 		deleteQuad   *sql.Stmt
 		deleteTriple *sql.Stmt
@@ -163,16 +170,16 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 				if err != nil {
 					return err
 				}
-				insertValue = make(map[int]*sql.Stmt)
-				inserted = make(map[NodeHash]struct{}, len(in))
+				insertValue = make(map[csql.ValueType]*sql.Stmt)
+				inserted = make(map[csql.NodeHash]struct{}, len(in))
 			}
-			var hs, hp, ho, hl NodeHash
+			var hs, hp, ho, hl csql.NodeHash
 			for _, dir := range quad.Directions {
 				v := d.Quad.Get(dir)
 				if v == nil {
 					continue
 				}
-				h := hashOf(v)
+				h := csql.HashOf(v)
 				switch dir {
 				case quad.Subject:
 					hs = h
@@ -188,7 +195,7 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 				} else if _, ok := inserted[h]; ok {
 					continue
 				}
-				nodeKey, values, err := nodeValues(h, v)
+				nodeKey, values, err := csql.NodeValues(h, v)
 				if err != nil {
 					return err
 				}
@@ -199,10 +206,10 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 						ph[i] = "$" + strconv.FormatInt(int64(i)+2, 10)
 					}
 					stmt, err = tx.Prepare(`INSERT INTO nodes(hash, ` +
-						strings.Join(nodeInsertColumns[nodeKey], ", ") +
+						strings.Join(nodeKey.Columns(), ", ") +
 						`) VALUES ($1, ` +
 						strings.Join(ph, ", ") +
-						`) ON CONFLICT DO NOTHING;`)
+						`) ON CONFLICT (hash) DO NOTHING;`)
 					if err != nil {
 						return err
 					}
@@ -217,7 +224,7 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 				inserted[h] = struct{}{}
 			}
 			_, err := insertQuad.Exec(
-				hs.toSQL(), hp.toSQL(), ho.toSQL(), hl.toSQL(),
+				hs.SQLValue(), hp.SQLValue(), ho.SQLValue(), hl.SQLValue(),
 			)
 			err = convInsertErrorPG(err)
 			if err != nil {
@@ -238,9 +245,18 @@ func runTxPostgres(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 			}
 			var result sql.Result
 			if d.Quad.Label == nil {
-				result, err = deleteTriple.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL())
+				result, err = deleteTriple.Exec(
+					csql.HashOf(d.Quad.Subject).SQLValue(),
+					csql.HashOf(d.Quad.Predicate).SQLValue(),
+					csql.HashOf(d.Quad.Object).SQLValue(),
+				)
 			} else {
-				result, err = deleteQuad.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL(), hashOf(d.Quad.Label).toSQL())
+				result, err = deleteQuad.Exec(
+					csql.HashOf(d.Quad.Subject).SQLValue(),
+					csql.HashOf(d.Quad.Predicate).SQLValue(),
+					csql.HashOf(d.Quad.Object).SQLValue(),
+					csql.HashOf(d.Quad.Label).SQLValue(),
+				)
 			}
 			if err != nil {
 				clog.Errorf("couldn't exec DELETE statement: %v", err)

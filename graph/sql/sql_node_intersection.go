@@ -65,7 +65,7 @@ func (n *SQLNodeIntersection) Size(qs *QuadStore) (int64, bool) {
 }
 
 func (n *SQLNodeIntersection) Describe() string {
-	s, _ := n.buildSQL(&Flavor{}, true, nil)
+	s, _ := n.buildSQL(&Registration{}, true, nil)
 	return fmt.Sprintf("SQL_NODE_INTERSECTION: %s", s)
 }
 
@@ -93,14 +93,14 @@ func (n *SQLNodeIntersection) makeNodeTableNames() {
 	}
 }
 
-func (n *SQLNodeIntersection) getTables(fl *Flavor) []tableDef {
+func (n *SQLNodeIntersection) getTables(fl *Registration) []tableDef {
 	if len(n.nodeIts) == 0 {
 		panic("Combined no subnode queries")
 	}
 	return n.buildSubqueries(fl)
 }
 
-func (n *SQLNodeIntersection) buildSubqueries(fl *Flavor) []tableDef {
+func (n *SQLNodeIntersection) buildSubqueries(fl *Registration) []tableDef {
 	var out []tableDef
 	n.makeNodeTableNames()
 	for i, it := range n.nodeIts {
@@ -162,7 +162,7 @@ func (n *SQLNodeIntersection) buildWhere() (string, sqlArgs) {
 	return query, vals
 }
 
-func (n *SQLNodeIntersection) buildSQL(fl *Flavor, next bool, val graph.Value) (string, sqlArgs) {
+func (n *SQLNodeIntersection) buildSQL(fl *Registration, next bool, val graph.Value) (string, sqlArgs) {
 	topData := n.tableID()
 	tags := []tagDir{topData}
 	tags = append(tags, n.getTags()...)
@@ -191,7 +191,7 @@ func (n *SQLNodeIntersection) buildSQL(fl *Flavor, next bool, val graph.Value) (
 			constraint += " AND "
 		}
 		constraint += fmt.Sprintf("%s.%s_hash = ?", topData.table, topData.dir)
-		values = append(values, v.toSQL())
+		values = append(values, v.SQLValue())
 	}
 	query += constraint
 	query += ";"

@@ -80,7 +80,7 @@ func LoadGraph(t testing.TB, path string) []quad.Quad {
 		f   *os.File
 		err error
 	)
-	const levels = 3
+	const levels = 5
 	for i := 0; i < levels; i++ {
 		f, err = os.Open(path)
 		if i+1 < levels && os.IsNotExist(err) {

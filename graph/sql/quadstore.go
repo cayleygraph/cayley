@@ -16,13 +16,25 @@ import (
 	"github.com/cayleygraph/cayley/quad/pquads"
 )
 
+// Type string for generic sql QuadStore.
+//
+// Deprecated: use specific types from sub-packages.
 const QuadStoreType = "sql"
 
 func init() {
-	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc:      newQuadStore,
+	// Deprecated QS registration that resolves backend type via "flavor" option.
+	registerQuadStore(QuadStoreType, "")
+}
+
+func registerQuadStore(name, typ string) {
+	graph.RegisterQuadStore(name, graph.QuadStoreRegistration{
+		NewFunc:      func(addr string, options graph.Options) (graph.QuadStore, error) {
+			return New(typ, addr, options)
+		},
 		UpgradeFunc:  nil,
-		InitFunc:     createSQLTables,
+		InitFunc:     func(addr string, options graph.Options) error {
+			return Init(typ, addr, options)
+		},
 		IsPersistent: true,
 	})
 }
@@ -34,7 +46,7 @@ func (h NodeHash) Key() interface{} { return h }
 func (h NodeHash) Valid() bool {
 	return h != NodeHash{}
 }
-func (h NodeHash) toSQL() interface{} {
+func (h NodeHash) SQLValue() interface{} {
 	if !h.Valid() {
 		return nil
 	}
@@ -65,7 +77,7 @@ func (h *NodeHash) Scan(src interface{}) error {
 	return nil
 }
 
-func hashOf(s quad.Value) (out NodeHash) {
+func HashOf(s quad.Value) (out NodeHash) {
 	if s == nil {
 		return
 	}
@@ -93,35 +105,13 @@ func (q QuadHashes) Get(d quad.Direction) NodeHash {
 
 type QuadStore struct {
 	db           *sql.DB
-	flavor       Flavor
+	flavor       Registration
 	size         int64
 	ids          *lru.Cache
 	sizes        *lru.Cache
 	noSizes      bool
 	useEstimates bool
 }
-
-type Flavor struct {
-	Name                string
-	Driver              string
-	NodesTable          string
-	QuadsTable          string
-	FieldQuote          rune
-	Placeholder         func(int) string
-	Indexes             func(graph.Options) []string
-	Error               func(error) error
-	Estimated           func(table string) string
-	RunTx               func(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error
-	NoSchemaChangesInTx bool
-}
-
-var flavors = make(map[string]Flavor)
-
-func RegisterFlavor(f Flavor) {
-	flavors[f.Name] = f
-}
-
-const defaultFlavor = "postgres"
 
 func connect(addr string, flavor string, opts graph.Options) (*sql.DB, error) {
 	// TODO(barakmich): Parse options for more friendly addr
@@ -167,20 +157,25 @@ var nodeInsertColumns = [][]string{
 	{"value_time"},
 }
 
-func createSQLTables(addr string, options graph.Options) error {
-	flavor, _, _ := options.StringKey("flavor")
+const defaultFlavor = "postgres"
+
+func typeFromOpts(opts graph.Options) string {
+	flavor, _, _ := opts.StringKey("flavor")
 	if flavor == "" {
 		flavor = defaultFlavor
 	}
-	fl, ok := flavors[flavor]
+	return flavor
+}
+
+func Init(typ string, addr string, options graph.Options) error {
+	if typ == "" {
+		typ = typeFromOpts(options)
+	}
+	fl, ok := types[typ]
 	if !ok {
-		return fmt.Errorf("unsupported sql flavor: %s", flavor)
+		return fmt.Errorf("unsupported sql database: %s", typ)
 	}
-	dr := fl.Driver
-	if dr == "" {
-		dr = fl.Name
-	}
-	conn, err := connect(addr, dr, options)
+	conn, err := connect(addr, fl.Driver, options)
 	if err != nil {
 		return err
 	}
@@ -205,55 +200,49 @@ func createSQLTables(addr string, options graph.Options) error {
 				return err
 			}
 		}
-		return nil
-	}
-
-	tx, err := conn.Begin()
-	if err != nil {
-		clog.Errorf("Couldn't begin creation transaction: %s", err)
-		return err
-	}
-
-	_, err = tx.Exec(fl.NodesTable)
-	if err != nil {
-		tx.Rollback()
-		err = fl.Error(err)
-		clog.Errorf("Cannot create nodes table: %v", err)
-		return err
-	}
-	_, err = tx.Exec(fl.QuadsTable)
-	if err != nil {
-		tx.Rollback()
-		err = fl.Error(err)
-		clog.Errorf("Cannot create quad table: %v", err)
-		return err
-	}
-	for _, index := range fl.Indexes(options) {
-		if _, err = tx.Exec(index); err != nil {
-			clog.Errorf("Cannot create index: %v", err)
-			tx.Rollback()
+	} else {
+		tx, err := conn.Begin()
+		if err != nil {
+			clog.Errorf("Couldn't begin creation transaction: %s", err)
 			return err
 		}
+
+		_, err = tx.Exec(fl.NodesTable)
+		if err != nil {
+			tx.Rollback()
+			err = fl.Error(err)
+			clog.Errorf("Cannot create nodes table: %v", err)
+			return err
+		}
+		_, err = tx.Exec(fl.QuadsTable)
+		if err != nil {
+			tx.Rollback()
+			err = fl.Error(err)
+			clog.Errorf("Cannot create quad table: %v", err)
+			return err
+		}
+		for _, index := range fl.Indexes(options) {
+			if _, err = tx.Exec(index); err != nil {
+				clog.Errorf("Cannot create index: %v", err)
+				tx.Rollback()
+				return err
+			}
+		}
+		tx.Commit()
 	}
-	tx.Commit()
 	return nil
 }
 
-func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
-	flavor, _, _ := options.StringKey("flavor")
-	if flavor == "" {
-		flavor = defaultFlavor
+func New(typ string, addr string, options graph.Options) (graph.QuadStore, error) {
+	if typ == "" {
+		typ = typeFromOpts(options)
 	}
-	fl, ok := flavors[flavor]
+	fl, ok := types[typ]
 	if !ok {
-		return nil, fmt.Errorf("unsupported sql flavor: %s", flavor)
-	}
-	dr := fl.Driver
-	if dr == "" {
-		dr = fl.Name
+		return nil, fmt.Errorf("unsupported sql database: %s", typ)
 	}
 	var qs QuadStore
-	conn, err := connect(addr, dr, options)
+	conn, err := connect(addr, fl.Driver, options)
 	if err != nil {
 		return nil, err
 	}
@@ -278,28 +267,7 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &qs, nil
-}
-
-func marshalQuadDirections(q quad.Quad) (s, p, o, l []byte, err error) {
-	s, err = pquads.MarshalValue(q.Subject)
-	if err != nil {
-		return
-	}
-	p, err = pquads.MarshalValue(q.Predicate)
-	if err != nil {
-		return
-	}
-	o, err = pquads.MarshalValue(q.Object)
-	if err != nil {
-		return
-	}
-	l, err = pquads.MarshalValue(q.Label)
-	if err != nil {
-		return
-	}
-	return
 }
 
 func escapeNullByte(s string) string {
@@ -309,10 +277,15 @@ func unescapeNullByte(s string) string {
 	return strings.Replace(s, `\x00`, "\u0000", -1)
 }
 
-func nodeValues(h NodeHash, v quad.Value) (int, []interface{}, error) {
+type ValueType int
+func (t ValueType) Columns() []string {
+	return nodeInsertColumns[t]
+}
+
+func NodeValues(h NodeHash, v quad.Value) (ValueType, []interface{}, error) {
 	var (
-		nodeKey int
-		values  = []interface{}{h.toSQL(), nil, nil}[:1]
+		nodeKey ValueType
+		values      = []interface{}{h.SQLValue(), nil, nil}[:1]
 	)
 	switch v := v.(type) {
 	case quad.IRI:
@@ -392,7 +365,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return NodeHash(hashOf(s))
+	return NodeHash(HashOf(s))
 }
 
 // NullTime represents a time.Time that may be null. NullTime implements the
@@ -463,7 +436,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		value_float,
 		value_time
 	FROM nodes WHERE hash = ` + qs.flavor.Placeholder(1) + ` LIMIT 1;`
-	c := qs.db.QueryRow(query, hash.toSQL())
+	c := qs.db.QueryRow(query, hash.SQLValue())
 	var (
 		data   []byte
 		str    sql.NullString
@@ -594,7 +567,7 @@ func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, hash NodeHa
 		clog.Infof("sql: getting size for select %s, %v", dir.String(), hash)
 	}
 	err = qs.db.QueryRow(
-		fmt.Sprintf("SELECT count(*) FROM quads WHERE %s_hash = "+qs.flavor.Placeholder(1)+";", dir.String()), hash.toSQL()).Scan(&size)
+		fmt.Sprintf("SELECT count(*) FROM quads WHERE %s_hash = "+qs.flavor.Placeholder(1)+";", dir.String()), hash.SQLValue()).Scan(&size)
 	if err != nil {
 		clog.Errorf("Error getting size from SQL database: %v", err)
 		return 0

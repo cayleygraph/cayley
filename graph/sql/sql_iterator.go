@@ -56,8 +56,8 @@ type tableDef struct {
 type sqlIterator interface {
 	sqlClone() sqlIterator
 
-	buildSQL(fl *Flavor, next bool, val graph.Value) (string, sqlArgs)
-	getTables(fl *Flavor) []tableDef
+	buildSQL(fl *Registration, next bool, val graph.Value) (string, sqlArgs)
+	getTables(fl *Registration) []tableDef
 	getTags() []tagDir
 	buildWhere() (string, sqlArgs)
 	tableID() tagDir
@@ -347,7 +347,7 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 	var q string
 	var values sqlArgs
 	q, values = it.sql.buildSQL(&it.qs.flavor, next, value)
-	if it.qs.flavor.Name == flavorPostgres || it.qs.flavor.Driver == flavorPostgres {
+	if it.qs.flavor.NumericPlaceholders {
 		q = convertToPostgres(q, values)
 	}
 	cursor, err := it.qs.db.Query(q, values...)
@@ -368,7 +368,7 @@ func convertToPostgres(query string, values sqlArgs) string {
 }
 
 func NewSQLLinkIterator(qs *QuadStore, d quad.Direction, v quad.Value) *SQLIterator {
-	return newSQLLinkIterator(qs, d, NodeHash(hashOf(v)))
+	return newSQLLinkIterator(qs, d, NodeHash(HashOf(v)))
 }
 
 func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIterator {
@@ -377,7 +377,7 @@ func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIter
 		qs:  qs,
 		sql: &SQLLinkIterator{
 			constraints: []constraint{
-				constraint{
+				{
 					dir:    d,
 					hashes: []NodeHash{hash},
 				},
