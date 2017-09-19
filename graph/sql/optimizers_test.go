@@ -21,36 +21,47 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+func testQS() *QuadStore {
+	return &QuadStore{flavor: Registration{
+		FieldQuote: func(name string) string {
+			return `"` + name + `"`
+		},
+	}}
+}
+
 func TestBuildIntersect(t *testing.T) {
+	qs := testQS()
 	a := NewSQLLinkIterator(nil, quad.Subject, quad.Raw("Foo"))
 	b := NewSQLLinkIterator(nil, quad.Predicate, quad.Raw("is_equivalent_to"))
-	it, err := intersect(a.sql, b.sql, nil)
+	it, err := intersect(a.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it.sql.buildSQL(&Flavor{}, true, nil)
+	s, v := it.sql.buildSQL(&qs.flavor, true, nil)
 	t.Log(s, v)
 }
 
 func TestBuildHasa(t *testing.T) {
-	a := NewSQLLinkIterator(nil, quad.Subject, quad.Raw("Foo"))
+	qs := testQS()
+	a := NewSQLLinkIterator(qs, quad.Subject, quad.Raw("Foo"))
 	a.Tagger().Add("foo")
-	b := NewSQLLinkIterator(nil, quad.Predicate, quad.Raw("is_equivalent_to"))
-	it1, err := intersect(a.sql, b.sql, nil)
+	b := NewSQLLinkIterator(qs, quad.Predicate, quad.Raw("is_equivalent_to"))
+	it1, err := intersect(a.sql, b.sql, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	it2, err := hasa(it1.sql, quad.Object, nil)
+	it2, err := hasa(it1.sql, quad.Object, qs)
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it2.sql.buildSQL(&Flavor{}, true, nil)
+	s, v := it2.sql.buildSQL(&qs.flavor, true, nil)
 	t.Log(s, v)
 }
 
 func TestBuildLinksTo(t *testing.T) {
-	a := NewSQLLinkIterator(nil, quad.Subject, quad.Raw("Foo"))
-	b := NewSQLLinkIterator(nil, quad.Predicate, quad.Raw("is_equivalent_to"))
+	qs := testQS()
+	a := NewSQLLinkIterator(qs, quad.Subject, quad.Raw("Foo"))
+	b := NewSQLLinkIterator(qs, quad.Predicate, quad.Raw("is_equivalent_to"))
 	it1, err := intersect(a.sql, b.sql, nil)
 	if err != nil {
 		t.Error(err)
@@ -64,7 +75,7 @@ func TestBuildLinksTo(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it3.sql.buildSQL(&Flavor{}, true, nil)
+	s, v := it3.sql.buildSQL(&qs.flavor, true, nil)
 	t.Log(s, v)
 }
 
@@ -72,7 +83,7 @@ func TestInterestingQuery(t *testing.T) {
 	if *postgres_path == "" {
 		t.SkipNow()
 	}
-	db, err := newQuadStore(*postgres_path, nil)
+	db, err := New("postgres", *postgres_path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +125,7 @@ func TestInterestingQuery(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	s, v := it8.sql.buildSQL(&Flavor{}, true, nil)
+	s, v := it8.sql.buildSQL(&Registration{}, true, nil)
 	it8.Tagger().Add("id")
 	t.Log(s, v)
 	for it8.Next() {

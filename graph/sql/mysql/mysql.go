@@ -1,58 +1,30 @@
-package sql
+package mysql
 
 import (
 	"database/sql"
 	"fmt"
+	"strings"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	csql "github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/quad"
 	_ "github.com/go-sql-driver/mysql"
-	"strings"
 )
 
-const flavorMysql = "mysql"
+const Type = "mysql"
 
 func init() {
-	hs := fmt.Sprint(quad.HashSize)
-	RegisterFlavor(Flavor{
-		Name: flavorMysql,
-		NodesTable: `CREATE TABLE nodes (
-	hash BINARY(` + hs + `) PRIMARY KEY,
-	value BLOB,
-	value_string TEXT,
-	datatype TEXT,
-	language TEXT,
-	iri BOOLEAN,
-	bnode BOOLEAN,
-	value_int BIGINT,
-	value_bool BOOLEAN,
-	value_float double precision,
-	value_time DATETIME(6)
-);`,
-		QuadsTable: `CREATE TABLE quads (
-	horizon SERIAL PRIMARY KEY,
-	subject_hash BINARY(` + hs + `) NOT NULL,
-	predicate_hash BINARY(` + hs + `) NOT NULL,
-	object_hash BINARY(` + hs + `) NOT NULL,
-	label_hash BINARY(` + hs + `),
-	id BIGINT,
-	ts timestamp
-);`,
-		FieldQuote:  '`',
-		Placeholder: func(n int) string { return "?" },
-		Indexes: func(options graph.Options) []string {
-			return []string{
-				`CREATE UNIQUE INDEX spo_unique ON quads (subject_hash, predicate_hash, object_hash);`,
-				`CREATE UNIQUE INDEX spol_unique ON quads (subject_hash, predicate_hash, object_hash, label_hash);`,
-				`CREATE INDEX spo_index ON quads (subject_hash);`,
-				`CREATE INDEX pos_index ON quads (predicate_hash);`,
-				`CREATE INDEX osp_index ON quads (object_hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT subject_hash_fk FOREIGN KEY (subject_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT predicate_hash_fk FOREIGN KEY (predicate_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT object_hash_fk FOREIGN KEY (object_hash) REFERENCES nodes (hash);`,
-				`ALTER TABLE quads ADD CONSTRAINT label_hash_fk FOREIGN KEY (label_hash) REFERENCES nodes (hash);`,
-			}
+	csql.Register(Type, csql.Registration{
+		Driver:      "mysql",
+		HashType:    fmt.Sprintf(`BINARY(%d)`, quad.HashSize),
+		BytesType:   `BLOB`,
+		HorizonType: `SERIAL`,
+		TimeType:    `DATETIME(6)`,
+		FieldQuote:  func(name string) string {
+			return "`"+name+"`"
 		},
+		Placeholder: func(n int) string { return "?" },
 		Error: func(err error) error {
 			return err
 		},
@@ -69,8 +41,8 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 
 	var (
 		insertQuad  *sql.Stmt
-		insertValue map[int]*sql.Stmt     // prepared statements for each value type
-		inserted    map[NodeHash]struct{} // tracks already inserted values
+		insertValue map[csql.ValueType]*sql.Stmt // prepared statements for each value type
+		inserted    map[csql.NodeHash]struct{}   // tracks already inserted values
 
 		deleteQuad   *sql.Stmt
 		deleteTriple *sql.Stmt
@@ -85,16 +57,16 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 				if err != nil {
 					return err
 				}
-				insertValue = make(map[int]*sql.Stmt)
-				inserted = make(map[NodeHash]struct{}, len(in))
+				insertValue = make(map[csql.ValueType]*sql.Stmt)
+				inserted = make(map[csql.NodeHash]struct{}, len(in))
 			}
-			var hs, hp, ho, hl NodeHash
+			var hs, hp, ho, hl csql.NodeHash
 			for _, dir := range quad.Directions {
 				v := d.Quad.Get(dir)
 				if v == nil {
 					continue
 				}
-				h := hashOf(v)
+				h := csql.HashOf(v)
 				switch dir {
 				case quad.Subject:
 					hs = h
@@ -110,7 +82,7 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 				} else if _, ok := inserted[h]; ok {
 					continue
 				}
-				nodeKey, values, err := nodeValues(h, v)
+				nodeKey, values, err := csql.NodeValues(h, v)
 				if err != nil {
 					return err
 				}
@@ -121,7 +93,7 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 						ph[i] = "?"
 					}
 					stmt, err = tx.Prepare(`INSERT IGNORE INTO nodes(hash, ` +
-						strings.Join(nodeInsertColumns[nodeKey], ", ") +
+						strings.Join(nodeKey.Columns(), ", ") +
 						`) VALUES (?, ` +
 						strings.Join(ph, ", ") +
 						`);`)
@@ -139,7 +111,7 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 				inserted[h] = struct{}{}
 			}
 			_, err := insertQuad.Exec(
-				hs.toSQL(), hp.toSQL(), ho.toSQL(), hl.toSQL(),
+				hs.SQLValue(), hp.SQLValue(), ho.SQLValue(), hl.SQLValue(),
 			)
 			err = convInsertErrorMySql(err)
 			if err != nil {
@@ -159,9 +131,18 @@ func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 			}
 			var result sql.Result
 			if d.Quad.Label == nil {
-				result, err = deleteTriple.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL())
+				result, err = deleteTriple.Exec(
+					csql.HashOf(d.Quad.Subject).SQLValue(),
+					csql.HashOf(d.Quad.Predicate).SQLValue(),
+					csql.HashOf(d.Quad.Object).SQLValue(),
+				)
 			} else {
-				result, err = deleteQuad.Exec(hashOf(d.Quad.Subject).toSQL(), hashOf(d.Quad.Predicate).toSQL(), hashOf(d.Quad.Object).toSQL(), hashOf(d.Quad.Label).toSQL())
+				result, err = deleteQuad.Exec(
+					csql.HashOf(d.Quad.Subject).SQLValue(),
+					csql.HashOf(d.Quad.Predicate).SQLValue(),
+					csql.HashOf(d.Quad.Object).SQLValue(),
+					csql.HashOf(d.Quad.Label).SQLValue(),
+				)
 			}
 			if err != nil {
 				clog.Errorf("couldn't exec DELETE statement: %v", err)

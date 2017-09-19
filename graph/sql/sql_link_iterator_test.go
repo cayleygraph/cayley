@@ -26,8 +26,9 @@ import (
 var postgres_path = flag.String("postgres_path", "", "Path to running DB")
 
 func TestSQLLink(t *testing.T) {
-	it := NewSQLLinkIterator(nil, quad.Object, quad.Raw("cool"))
-	s, v := it.sql.buildSQL(&Flavor{}, true, nil)
+	qs := testQS()
+	it := NewSQLLinkIterator(qs, quad.Object, quad.Raw("cool"))
+	s, v := it.sql.buildSQL(&qs.flavor, true, nil)
 	t.Log(s, v)
 }
 
@@ -35,7 +36,7 @@ func TestSQLLinkIteration(t *testing.T) {
 	if *postgres_path == "" {
 		t.SkipNow()
 	}
-	db, err := newQuadStore(*postgres_path, nil)
+	db, err := New("postgres", *postgres_path, nil)
 	qs := db.(*QuadStore)
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +62,7 @@ func TestSQLNodeIteration(t *testing.T) {
 	if *postgres_path == "" {
 		t.SkipNow()
 	}
-	db, err := newQuadStore(*postgres_path, nil)
+	db, err := New("postgres", *postgres_path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

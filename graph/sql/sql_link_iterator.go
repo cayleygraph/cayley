@@ -102,7 +102,7 @@ func (l *SQLLinkIterator) Size(qs *QuadStore) (int64, bool) {
 }
 
 func (l *SQLLinkIterator) Describe() string {
-	s, _ := l.buildSQL(&Flavor{}, true, nil)
+	s, _ := l.buildSQL(&Registration{}, true, nil)
 	return fmt.Sprintf("SQL_LINK_QUERY: %s", s)
 }
 
@@ -144,7 +144,7 @@ func (l *SQLLinkIterator) buildResult(result []NodeHash, cols []string) map[stri
 	return m
 }
 
-func (l *SQLLinkIterator) getTables(fl *Flavor) []tableDef {
+func (l *SQLLinkIterator) getTables(fl *Registration) []tableDef {
 	out := []tableDef{tableDef{table: "quads", name: l.tableName}}
 	for _, i := range l.nodeIts {
 		out = append(out, i.it.getTables(fl)...)
@@ -181,13 +181,13 @@ func (l *SQLLinkIterator) buildWhere() (string, sqlArgs) {
 	for _, c := range l.constraints {
 		if len(c.hashes) == 1 {
 			q = append(q, fmt.Sprintf("%s.%s_hash = ?", l.tableName, c.dir))
-			vals = append(vals, c.hashes[0].toSQL())
+			vals = append(vals, c.hashes[0].SQLValue())
 		} else if len(c.hashes) > 1 {
 			valslots := strings.Join(strings.Split(strings.Repeat("?", len(c.hashes)), ""), ", ")
 			subq := fmt.Sprintf("%s.%s_hash IN (%s)", l.tableName, c.dir, valslots)
 			q = append(q, subq)
 			for _, v := range c.hashes {
-				vals = append(vals, v.toSQL())
+				vals = append(vals, v.SQLValue())
 			}
 		}
 	}
@@ -217,7 +217,7 @@ func (l *SQLLinkIterator) tableID() tagDir {
 	}
 }
 
-func (l *SQLLinkIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (string, sqlArgs) {
+func (l *SQLLinkIterator) buildSQL(fl *Registration, next bool, val graph.Value) (string, sqlArgs) {
 	query := "SELECT "
 	t := []string{
 		fmt.Sprintf("%s.subject_hash AS subject", l.tableName),
@@ -257,10 +257,10 @@ func (l *SQLLinkIterator) buildSQL(fl *Flavor, next bool, val graph.Value) (stri
 			fmt.Sprintf("%s.label_hash = ?", l.tableName),
 		}
 		constraint += strings.Join(t, " AND ")
-		values = append(values, h[0].toSQL())
-		values = append(values, h[1].toSQL())
-		values = append(values, h[2].toSQL())
-		values = append(values, h[3].toSQL())
+		values = append(values, h[0].SQLValue())
+		values = append(values, h[1].SQLValue())
+		values = append(values, h[2].SQLValue())
+		values = append(values, h[3].SQLValue())
 	}
 	query += constraint
 	query += ";"

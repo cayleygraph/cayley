@@ -35,9 +35,8 @@ type tagDir struct {
 }
 
 func (t tagDir) String() string { return "" }
-func (t tagDir) SQL(c rune) string {
-	rs := string(c)
-	tag := rs + t.tag + rs
+func (t tagDir) SQL(escape func(string)string) string {
+	tag := escape(t.tag)
 	if t.dir == quad.Any {
 		if t.justLocal {
 			return fmt.Sprintf("%s.__execd as %s", t.table, tag)
@@ -56,8 +55,8 @@ type tableDef struct {
 type sqlIterator interface {
 	sqlClone() sqlIterator
 
-	buildSQL(fl *Flavor, next bool, val graph.Value) (string, sqlArgs)
-	getTables(fl *Flavor) []tableDef
+	buildSQL(fl *Registration, next bool, val graph.Value) (string, sqlArgs)
+	getTables(fl *Registration) []tableDef
 	getTags() []tagDir
 	buildWhere() (string, sqlArgs)
 	tableID() tagDir
@@ -347,8 +346,8 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 	var q string
 	var values sqlArgs
 	q, values = it.sql.buildSQL(&it.qs.flavor, next, value)
-	if it.qs.flavor.Name == flavorPostgres || it.qs.flavor.Driver == flavorPostgres {
-		q = convertToPostgres(q, values)
+	if it.qs.flavor.Placeholder(1) != "?" {
+		q = convertPlaceholders(q, values)
 	}
 	cursor, err := it.qs.db.Query(q, values...)
 	if err != nil {
@@ -360,7 +359,7 @@ func (it *SQLIterator) makeCursor(next bool, value graph.Value) error {
 	return nil
 }
 
-func convertToPostgres(query string, values sqlArgs) string {
+func convertPlaceholders(query string, values sqlArgs) string {
 	for i := 1; i <= len(values); i++ {
 		query = strings.Replace(query, "?", fmt.Sprintf("$%d", i), 1)
 	}
@@ -368,7 +367,7 @@ func convertToPostgres(query string, values sqlArgs) string {
 }
 
 func NewSQLLinkIterator(qs *QuadStore, d quad.Direction, v quad.Value) *SQLIterator {
-	return newSQLLinkIterator(qs, d, NodeHash(hashOf(v)))
+	return newSQLLinkIterator(qs, d, NodeHash(HashOf(v)))
 }
 
 func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIterator {
@@ -377,7 +376,7 @@ func newSQLLinkIterator(qs *QuadStore, d quad.Direction, hash NodeHash) *SQLIter
 		qs:  qs,
 		sql: &SQLLinkIterator{
 			constraints: []constraint{
-				constraint{
+				{
 					dir:    d,
 					hashes: []NodeHash{hash},
 				},

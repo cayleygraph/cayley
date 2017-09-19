@@ -80,7 +80,7 @@ func LoadGraph(t testing.TB, path string) []quad.Quad {
 		f   *os.File
 		err error
 	)
-	const levels = 3
+	const levels = 5
 	for i := 0; i < levels; i++ {
 		f, err = os.Open(path)
 		if i+1 < levels && os.IsNotExist(err) {
@@ -172,7 +172,7 @@ func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator, e
 func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []string {
 	var res []string
 	for it.Next() {
-		res = append(res, qs.NameOf(it.Result()).String())
+		res = append(res, quad.StringOf(qs.NameOf(it.Result())))
 	}
 	require.Nil(t, it.Err())
 	sort.Strings(res)
