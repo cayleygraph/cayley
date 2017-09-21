@@ -138,6 +138,17 @@ func hasReverseMorphism(via interface{}, nodes ...quad.Value) morphism {
 	}
 }
 
+func untagMorphism(tags ...string) morphism {
+	return morphism{
+		Name:     "untag",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return untagMorphism(tags...), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			return shape.UnSave{From: in, Tags: tags}, ctx
+		},
+		tags: tags,
+	}
+}
+
 func tagMorphism(tags ...string) morphism {
 	return morphism{
 		Name:     "tag",

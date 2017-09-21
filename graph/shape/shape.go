@@ -1083,6 +1083,45 @@ func (s Save) Optimize(r Optimizer) (Shape, bool) {
 	return s, opt
 }
 
+type UnSave struct {
+	From Shape
+	Tags []string
+}
+
+func (s UnSave) BuildIterator(qs graph.QuadStore) graph.Iterator {
+	if IsNull(s.From) {
+		return iterator.NewNull()
+	}
+	it := s.From.BuildIterator(qs)
+	// Do it recursively
+	children := []graph.Iterator{it}
+	var curr graph.Iterator
+	for len(children) > 0 {
+		curr, children = children[0], children[1:]
+		children = append(children, curr.SubIterators()...)
+
+		tg := curr.Tagger()
+		tg.Remove(s.Tags)
+	}
+	return it
+}
+
+func (s UnSave) Optimize(r Optimizer) (Shape, bool) {
+	if IsNull(s.From) {
+		return nil, true
+	}
+	var opt bool
+	s.From, opt = s.From.Optimize(r)
+	if len(s.Tags) == 0 {
+		return s.From, true
+	}
+	if r != nil {
+		ns, nopt := r.OptimizeShape(s)
+		return ns, opt || nopt
+	}
+	return s, opt
+}
+
 // Optional makes a query execution optional. The query can only produce tagged results,
 // since it's value is not used to compute intersection.
 type Optional struct {

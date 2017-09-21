@@ -202,6 +202,12 @@ func (p *Path) Tag(tags ...string) *Path {
 	return np
 }
 
+func (p *Path) UnTag(tags ...string) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, untagMorphism(tags...))
+	return np
+}
+
 // Out updates this Path to represent the nodes that are adjacent to the
 // current nodes, via the given outbound predicate.
 //
