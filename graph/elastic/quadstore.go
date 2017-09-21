@@ -15,6 +15,7 @@
 package elastic
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -79,6 +80,11 @@ func (v QuadHash) Get(d quad.Direction) string {
 		if len(v) == offset { // no label
 			return ""
 		}
+	case quad.QuadMetadata:
+		offset = (quad.HashSize * 2) * 4
+		if len(v) == offset { // no timestamp
+			return ""
+		}
 	}
 	return string(v[offset : quad.HashSize*2+offset])
 }
@@ -137,8 +143,8 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 				"label": {
 					"type": "string"
 				},
-				"active": {
-					"type": "string"
+				"quadmetadata": {
+					"type": "map[string]interface{}"
 				}
 			}
 		},
@@ -227,7 +233,21 @@ func hashOf(s quad.Value) string {
 	if s == nil {
 		return ""
 	}
-	return hex.EncodeToString(quad.HashOf(s))
+	switch s.Native().(type) {
+	case string:
+		return hex.EncodeToString(quad.HashOf(s))
+
+	case map[string]string:
+		var buffer bytes.Buffer
+		for _, value := range s.Native().(map[string]string) {
+			buffer.WriteString(value)
+		}
+		return hex.EncodeToString(quad.HashOf(toQuadValue(buffer.String())))
+
+	default:
+		return hex.EncodeToString(quad.HashOf(s))
+	}
+
 }
 
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
@@ -235,6 +255,7 @@ func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	id += hashOf(t.Predicate)
 	id += hashOf(t.Object)
 	id += hashOf(t.Label)
+	id += hashOf(t.QuadMetadata)
 	return id
 }
 
@@ -283,8 +304,7 @@ type ElasticNodeTracker struct {
 
 // ApplyDeltas - A Delta is any update to the graph (an add or delete)
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
-
-	// A map of quad.Value (sub, pred, obj, or label) to an ElasticNodeTracker struct
+	// A map of quad.Value (sub, pred, obj, label, or quad metadata) to an ElasticNodeTracker struct
 	// Used to decide whether to add a node or delete it.
 	nodeTracker := make(map[quad.Value]ElasticNodeTracker)
 
@@ -334,6 +354,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				"label", d.Action,
 			}
 		}
+
 	}
 
 	if clog.V(2) {
@@ -369,11 +390,11 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 
 // ElasticQuad - Quad structure
 type ElasticQuad struct {
-	Subject   string `json:"subject"`
-	Predicate string `json:"predicate"`
-	Object    string `json:"object"`
-	Label     string `json:"label"`
-	Active    string `json:"active"`
+	Subject      string     `json:"subject"`
+	Predicate    string     `json:"predicate"`
+	Object       string     `json:"object"`
+	Label        string     `json:"label"`
+	QuadMetadata quad.Value `json:"quadmetadata"`
 }
 
 // ElasticNodeEntry - Node structure
@@ -395,11 +416,11 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 	switch proc {
 	case graph.Add:
 		upsert := ElasticQuad{
-			Subject:   hashOf(q.Subject),
-			Predicate: hashOf(q.Predicate),
-			Object:    hashOf(q.Object),
-			Label:     hashOf(q.Label),
-			Active:    "true",
+			Subject:      hashOf(q.Subject),
+			Predicate:    hashOf(q.Predicate),
+			Object:       hashOf(q.Object),
+			Label:        hashOf(q.Label),
+			QuadMetadata: q.QuadMetadata,
 		}
 
 		// Add document to index with specified ID
@@ -515,10 +536,11 @@ func (qs *QuadStore) Quad(v graph.Value) quad.Quad {
 	//the old stuff from mongo
 	h := v.(QuadHash)
 	return quad.Quad{
-		Subject:   qs.NameOf(NodeHash(h.Get(quad.Subject))),
-		Predicate: qs.NameOf(NodeHash(h.Get(quad.Predicate))),
-		Object:    qs.NameOf(NodeHash(h.Get(quad.Object))),
-		Label:     qs.NameOf(NodeHash(h.Get(quad.Label))),
+		Subject:      qs.NameOf(NodeHash(h.Get(quad.Subject))),
+		Predicate:    qs.NameOf(NodeHash(h.Get(quad.Predicate))),
+		Object:       qs.NameOf(NodeHash(h.Get(quad.Object))),
+		Label:        qs.NameOf(NodeHash(h.Get(quad.Label))),
+		QuadMetadata: qs.NameOf(NodeHash(h.Get(quad.QuadMetadata))),
 	}
 }
 

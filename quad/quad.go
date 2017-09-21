@@ -48,7 +48,7 @@ var (
 )
 
 // Make creates a quad with provided values.
-func Make(subject, predicate, object, label interface{}) (q Quad) {
+func Make(subject, predicate, object, label interface{}, quadmetadata interface{}) (q Quad) {
 	var ok bool
 	if q.Subject, ok = AsValue(subject); !ok {
 		q.Subject = String(fmt.Sprint(subject))
@@ -62,11 +62,14 @@ func Make(subject, predicate, object, label interface{}) (q Quad) {
 	if q.Label, ok = AsValue(label); !ok {
 		q.Label = String(fmt.Sprint(label))
 	}
+	if q.QuadMetadata, ok = AsValue(quadmetadata); !ok {
+		q.QuadMetadata = String(fmt.Sprint(quadmetadata))
+	}
 	return
 }
 
 // MakeRaw creates a quad with provided raw values (nquads-escaped).
-func MakeRaw(subject, predicate, object, label string) (q Quad) {
+func MakeRaw(subject, predicate, object, label string, quadmetadata QuadRef) (q Quad) {
 	if subject != "" {
 		q.Subject = Raw(subject)
 	}
@@ -79,11 +82,14 @@ func MakeRaw(subject, predicate, object, label string) (q Quad) {
 	if label != "" {
 		q.Label = Raw(label)
 	}
+	if quadmetadata != nil {
+		q.QuadMetadata = quadmetadata
+	}
 	return
 }
 
 // MakeIRI creates a quad with provided IRI values.
-func MakeIRI(subject, predicate, object, label string) (q Quad) {
+func MakeIRI(subject, predicate, object, label string, quadmetadata QuadRef) (q Quad) {
 	if subject != "" {
 		q.Subject = IRI(subject)
 	}
@@ -96,6 +102,9 @@ func MakeIRI(subject, predicate, object, label string) (q Quad) {
 	if label != "" {
 		q.Label = IRI(label)
 	}
+	if quadmetadata != nil {
+		q.QuadMetadata = quadmetadata
+	}
 	return
 }
 
@@ -106,17 +115,19 @@ var (
 
 // Our quad struct, used throughout.
 type Quad struct {
-	Subject   Value `json:"subject"`
-	Predicate Value `json:"predicate"`
-	Object    Value `json:"object"`
-	Label     Value `json:"label,omitempty"`
+	Subject      Value `json:"subject"`
+	Predicate    Value `json:"predicate"`
+	Object       Value `json:"object"`
+	Label        Value `json:"label,omitempty"`
+	QuadMetadata Value `json:"quadmetadata,omitempty"`
 }
 
 type rawQuad struct {
-	Subject   string `json:"subject"`
-	Predicate string `json:"predicate"`
-	Object    string `json:"object"`
-	Label     string `json:"label,omitempty"`
+	Subject      string            `json:"subject"`
+	Predicate    string            `json:"predicate"`
+	Object       string            `json:"object"`
+	Label        string            `json:"label,omitempty"`
+	QuadMetadata map[string]string `json:"quadmetadata,omitempty"`
 }
 
 func (q Quad) MarshalJSON() ([]byte, error) {
@@ -128,6 +139,9 @@ func (q Quad) MarshalJSON() ([]byte, error) {
 	if q.Label != nil {
 		rq.Label = q.Label.String()
 	}
+	if q.QuadMetadata != nil {
+		rq.QuadMetadata = q.QuadMetadata.Native().(map[string]string)
+	}
 	return json.Marshal(rq)
 }
 func (q *Quad) UnmarshalJSON(data []byte) error {
@@ -136,7 +150,7 @@ func (q *Quad) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	// TODO(dennwc): parse nquads? or use StringToValue hack?
-	*q = MakeRaw(rq.Subject, rq.Predicate, rq.Object, rq.Label)
+	*q = MakeRaw(rq.Subject, rq.Predicate, rq.Object, rq.Label, rq.QuadMetadata)
 	return nil
 }
 
@@ -150,9 +164,10 @@ const (
 	Predicate
 	Object
 	Label
+	QuadMetadata
 )
 
-var Directions = []Direction{Subject, Predicate, Object, Label}
+var Directions = []Direction{Subject, Predicate, Object, Label, QuadMetadata}
 
 func (d Direction) Prefix() byte {
 	switch d {
@@ -166,6 +181,8 @@ func (d Direction) Prefix() byte {
 		return 'c'
 	case Object:
 		return 'o'
+	case QuadMetadata:
+		return 'm'
 	default:
 		return '\x00'
 	}
@@ -183,6 +200,8 @@ func (d Direction) String() string {
 		return "label"
 	case Object:
 		return "object"
+	case QuadMetadata:
+		return "quadmetadata"
 	default:
 		return fmt.Sprint("illegal direction:", byte(d))
 	}
@@ -200,6 +219,8 @@ func (d Direction) GoString() string {
 		return "quad.Label"
 	case Object:
 		return "quad.Object"
+	case QuadMetadata:
+		return "quad.QuadMetadata"
 	default:
 		return fmt.Sprintf("%x", byte(d))
 	}
@@ -216,6 +237,8 @@ func (q Quad) Get(d Direction) Value {
 		return q.Label
 	case Object:
 		return q.Object
+	case QuadMetadata:
+		return q.QuadMetadata
 	default:
 		panic(d.String())
 	}
@@ -231,6 +254,8 @@ func (q *Quad) Set(d Direction, v Value) {
 		q.Label = v
 	case Object:
 		q.Object = v
+	case QuadMetadata:
+		q.QuadMetadata = v
 	default:
 		panic(d.String())
 	}
@@ -247,6 +272,8 @@ func (q Quad) GetString(d Direction) string {
 		return StringOf(q.Object)
 	case Label:
 		return StringOf(q.Label)
+	case QuadMetadata:
+		return StringOf(q.QuadMetadata)
 	default:
 		panic(d.String())
 	}
@@ -266,7 +293,10 @@ func (q Quad) NQuad() string {
 	if q.Label == nil || q.Label.String() == "" {
 		return fmt.Sprintf("%s %s %s .", q.Subject, q.Predicate, q.Object)
 	}
-	return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
+	if q.QuadMetadata == nil || q.QuadMetadata.String() == "" {
+		return fmt.Sprintf("%s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label)
+	}
+	return fmt.Sprintf("%s %s %s %s %s .", q.Subject, q.Predicate, q.Object, q.Label, q.QuadMetadata)
 }
 
 type ByQuadString []Quad

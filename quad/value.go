@@ -2,6 +2,7 @@ package quad
 
 import (
 	"crypto/sha1"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"math/rand"
@@ -130,6 +131,24 @@ func StringToValue(v string) Value {
 		}
 	}
 	return String(v)
+}
+
+// QuadRef is a map from string to any value for holding extra Quad metadata
+type QuadRef map[string]string
+
+func (s QuadRef) String() string {
+	jsonString, err := json.Marshal(s)
+	if err != nil {
+		return "quadref"
+	}
+	return string(jsonString)
+}
+
+func (s QuadRef) Native() interface{} { return s }
+
+// MapToValue converts a map to a QuadRef value
+func MapToValue(v map[string]string) Value {
+	return QuadRef(v)
 }
 
 // Raw is a Turtle/NQuads-encoded value.
