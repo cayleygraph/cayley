@@ -818,7 +818,7 @@ func writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflec
 	if rev {
 		s, o = o, s
 	}
-	return w.WriteQuad(quad.Quad{s, pred, o, nil})
+	return w.WriteQuad(quad.Quad{s, pred, o, nil, nil})
 }
 
 func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, rules fieldRules) error {
@@ -830,7 +830,7 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 	iri := typeToIRI[rt]
 	typesMu.RUnlock()
 	if iri != quad.IRI("") {
-		if err := w.WriteQuad(quad.Quad{id, iriType, iri, nil}); err != nil {
+		if err := w.WriteQuad(quad.Quad{id, iriType, iri, nil, nil}); err != nil {
 			return err
 		}
 	}
@@ -848,7 +848,7 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 			if r.Rev {
 				s, o = o, s
 			}
-			if err := w.WriteQuad(quad.Quad{s, r.Pred, o, nil}); err != nil {
+			if err := w.WriteQuad(quad.Quad{s, r.Pred, o, nil, nil}); err != nil {
 				return err
 			}
 		case saveRule:
