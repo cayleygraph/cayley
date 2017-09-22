@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	elasticClient "gopkg.in/olivere/elastic.v5"
+	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -35,6 +35,7 @@ import (
 
 // QuadStoreType describes backend
 const QuadStoreType = "elastic"
+const DefaultESIndex = "cayley"
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
@@ -85,16 +86,16 @@ func (v QuadHash) Get(d quad.Direction) string {
 
 // QuadStore stores details needed for backend (elasticsearch in this case)
 type QuadStore struct {
-	client      *elasticClient.Client
+	client      *elastic.Client
 	nodeTracker *lru.Cache
 	sizes       *lru.Cache
 }
 
 // dialElastic connects to elasticsearch
-func dialElastic(addr string, options graph.Options) (*elasticClient.Client, error) {
-	client, err := elasticClient.NewClient(elasticClient.SetURL(addr))
+func dialElastic(addr string, options graph.Options) (*elastic.Client, error) {
+	client, err := elastic.NewClient(elastic.SetURL(addr))
 	if err != nil {
-		panic(err)
+		return client, err
 	}
 
 	return client, nil
@@ -136,9 +137,6 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 				},
 				"label": {
 					"type": "string"
-				},
-				"active": {
-					"type": "string"
 				}
 			}
 		},
@@ -149,9 +147,6 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 					"type": "keyword"
 				},
 				"hash": {
-					"type": "string"
-				},
-				"active": {
 					"type": "string"
 				}
 			},
@@ -167,7 +162,7 @@ func createNewElasticGraph(addr string, options graph.Options) error {
     }
 	}`)
 	mapping := strings.Join(allSettings, "")
-	_, err = client.CreateIndex("cayley").BodyString(mapping).Do(ctx)
+	_, err = client.CreateIndex(DefaultESIndex).BodyString(mapping).Do(ctx)
 	if err != nil {
 		return err
 	}
@@ -181,7 +176,7 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	qs.client = client
-	qs.client.OpenIndex("cayley")
+	qs.client.OpenIndex(DefaultESIndex)
 	qs.nodeTracker = lru.New(1 << 16)
 	qs.sizes = lru.New(1 << 16)
 	return &qs, nil
@@ -238,16 +233,16 @@ func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	return id
 }
 
-func (qs *QuadStore) getSize(resultType string, query elasticClient.Query) (int64, error) {
+func (qs *QuadStore) getSize(resultType string, query elastic.Query) (int64, error) {
 	ctx := context.Background()
 
-	searchResults, ok := qs.client.Search("cayley").
+	searchResults, ok := qs.client.Search(DefaultESIndex).
 		Type(resultType).
 		Query(query).
 		Do(ctx)
 	src, err := query.Source()
 	if err != nil {
-		panic(err)
+		return -1, err
 	}
 	if ok != nil {
 		clog.Errorf("Trouble getting size for iterator! %v", err)
@@ -255,7 +250,7 @@ func (qs *QuadStore) getSize(resultType string, query elasticClient.Query) (int6
 	}
 	key, err := json.Marshal(src)
 	if err != nil {
-		panic(err)
+		return -1, err
 	}
 	size := searchResults.TotalHits()
 	qs.sizes.Put(string(key), int64(size))
@@ -264,20 +259,16 @@ func (qs *QuadStore) getSize(resultType string, query elasticClient.Query) (int6
 
 func (qs *QuadStore) checkValid(key string) bool {
 	// Check if a quad with that key already exists (meaning it is a duplicate delta). If so, return true.
-	get1, err := qs.client.Get().Index("cayley").Type("quads").Id(key).Do(context.Background())
+	res, err := qs.client.Get().Index(DefaultESIndex).Type("quads").Id(key).Do(context.Background())
 	if err != nil {
 		return false
 	}
-	if get1.Found {
-		return true
-	}
-
-	return false
+	return(res.Found)
 }
 
 // ElasticNodeTracker - Keeping track of nodes in a quad for graph deletes
 type ElasticNodeTracker struct {
-	NodeType  string
+	NodeType  quad.Direction
 	DeltaFlag graph.Procedure
 }
 
@@ -320,18 +311,18 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		// Keeps track of the graph action (add or delete) for each kind of node (sub, pred, obj, label).
 		// If d.Action is add, add the node. Else, delete it.
 		nodeTracker[d.Quad.Subject] = ElasticNodeTracker{
-			"subject", d.Action,
+			quad.Subject, d.Action,
 		}
 		nodeTracker[d.Quad.Object] = ElasticNodeTracker{
-			"object", d.Action,
+			quad.Object, d.Action,
 		}
 		nodeTracker[d.Quad.Predicate] = ElasticNodeTracker{
-			"predicate", d.Action,
+			quad.Predicate, d.Action,
 		}
 
 		if d.Quad.Label != nil {
 			nodeTracker[d.Quad.Label] = ElasticNodeTracker{
-				"label", d.Action,
+				quad.Label, d.Action,
 			}
 		}
 	}
@@ -380,7 +371,6 @@ type ElasticQuad struct {
 type ElasticNodeEntry struct {
 	Hash   string     `json:"hash"`
 	Node   quad.Value `json:"node"`
-	Active string     `json:"active"`
 }
 
 // ElasticLogEntry - Log entry structure
@@ -403,7 +393,7 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 		}
 
 		// Add document to index with specified ID
-		_, err := qs.client.Index().Index("cayley").Type("quads").Id(qs.getIDForQuad(q)).BodyJson(upsert).Do(context.Background())
+		_, err := qs.client.Index().Index(DefaultESIndex).Type("quads").Id(qs.getIDForQuad(q)).BodyJson(upsert).Do(context.Background())
 
 		if err != nil {
 			clog.Errorf("Error: %v", err)
@@ -412,7 +402,7 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 
 	case graph.Delete:
 		// Delete document from index with specified ID
-		_, err := qs.client.Delete().Index("cayley").Type("quads").Id(qs.getIDForQuad(q)).Do(context.Background())
+		_, err := qs.client.Delete().Index(DefaultESIndex).Type("quads").Id(qs.getIDForQuad(q)).Do(context.Background())
 
 		if err != nil {
 			clog.Errorf("Error: %v", err)
@@ -433,16 +423,15 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode ElasticNodeTra
 		// Construct an Elastic query to check if the Node marked for deletion is present
 		// in another Quad. If so, don't delete the Node. If not, delete the Node.
 		// Example: nodeType - subject, nodeId - 9328afb
-		termQuery := elasticClient.NewTermQuery(trackedNode.NodeType, nodeId)
+		termQuery := elastic.NewTermQuery(trackedNode.NodeType.String(), nodeId)
 		ctx := context.Background()
 
 		// Elasticsearch query checking the quads Type
 		searchResult, err := qs.client.Search().
-			Index("cayley").
+			Index(DefaultESIndex).
 			Type("quads").
 			Query(termQuery).
 			From(0).Size(1).
-			Pretty(true).
 			Do(ctx)
 		if err != nil {
 			clog.Errorf("Error: %v", err)
@@ -452,18 +441,17 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode ElasticNodeTra
 		// If the Node is present in more than one Quad, don't delete
 		if searchResult.Hits.TotalHits > 1 {
 			return nil
-		} else {
-			// Delete Node from nodes Type in elasticsearch
-			_, err := qs.client.Delete().
-				Index("cayley").
-				Type("nodes").
-				Id(nodeId).
-				Do(context.Background())
-			if err != nil {
-				clog.Errorf("Error deleting empty node: %v", err)
-				return err
-			}
+		} 
 
+		// Delete Node from nodes Type in elasticsearch
+		_, deleteErr := qs.client.Delete().
+			Index(DefaultESIndex).
+			Type("nodes").
+			Id(nodeId).
+			Do(context.Background())
+		if deleteErr != nil {
+			clog.Errorf("Error deleting empty node: %v", err)
+			return err
 		}
 
 	case graph.Add:
@@ -471,11 +459,10 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode ElasticNodeTra
 		doc := ElasticNodeEntry{
 			Hash:   nodeId,
 			Node:   nodeVal,
-			Active: "true",
 		}
 
 		// Add document to index
-		_, err := qs.client.Index().Index("cayley").Type("nodes").Id(nodeId).BodyJson(doc).Do(context.Background())
+		_, err := qs.client.Index().Index(DefaultESIndex).Type("nodes").Id(nodeId).BodyJson(doc).Do(context.Background())
 		if err != nil {
 			clog.Errorf("Error: %v", err)
 			return err
@@ -558,10 +545,10 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	}
 
 	ctx := context.Background()
-	termQuery := elasticClient.NewTermQuery("hash", string(hash))
+	termQuery := elastic.NewTermQuery("hash", string(hash))
 
 	searchResult, err := qs.client.Search().
-		Index("cayley").
+		Index(DefaultESIndex).
 		Type("nodes").
 		Query(termQuery).
 		From(0).Size(1).
@@ -590,7 +577,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 func (qs *QuadStore) Size() int64 {
 	ctx := context.Background()
 	searchResult, err := qs.client.
-		Count("cayley").
+		Count(DefaultESIndex).
 		Type("quads").
 		Do(ctx)
 	if err != nil {
@@ -605,7 +592,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	ctx := context.Background()
 	searchResult, err := qs.client.
 		Search().
-		Index("cayley").
+		Index(DefaultESIndex).
 		Sort("_timestamp", false).
 		From(0).Size(1).
 		Pretty(true).
@@ -641,7 +628,7 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 
 // Close closes the connection to Elasticsearch
 func (qs *QuadStore) Close() error {
-	qs.client.CloseIndex("cayley")
+	qs.client.CloseIndex(DefaultESIndex)
 	return nil
 }
 

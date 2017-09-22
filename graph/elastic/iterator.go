@@ -18,7 +18,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
-	"golang.org/x/net/context"
+	"context"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -47,8 +47,6 @@ type SearchResultsIterator struct {
 	searchResults *elastic.SearchResult
 }
 
-var ctx = context.Background()
-
 // NewIterator returns a new iterator
 func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.Value) *Iterator {
 	h := val.(NodeHash)
@@ -68,11 +66,15 @@ func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.V
 }
 
 // if iterator is empty make elastic query and return results set
-func (it *Iterator) makeElasticResultSet() (*elastic.SearchResult, error) {
+func (it *Iterator) makeElasticResultSet(ctx context.Context) (*elastic.SearchResult, error) {
 	if it.isAll {
-		return it.qs.client.Scroll("cayley").Type(it.resultType).Do(ctx)
+		resultSet, error := it.qs.client.Scroll("cayley").Type(it.resultType).Do(ctx)
+		it.resultSet = resultSet
+		return resultSet, error
 	}
-	return it.qs.client.Scroll("cayley").Type(it.resultType).Query(it.query).Do(ctx)
+	resultSet, error := it.qs.client.Scroll("cayley").Type(it.resultType).Query(it.query).Do(ctx)
+	it.resultSet = resultSet
+	return resultSet, error
 }
 
 // NewAllIterator returns an iterator over all nodes
@@ -115,8 +117,9 @@ func (it *Iterator) Result() graph.Value {
 
 // Next returns true and increments resultIndex if there is another result in the elastic results page, else returns false.
 func (it *Iterator) Next() bool {
+	ctx := context.Background()
 	if it.resultSet == nil {
-		results, err := it.makeElasticResultSet()
+		results, err := it.makeElasticResultSet(ctx)
 		if err != nil {
 			return false
 		}
@@ -173,12 +176,7 @@ func (it *Iterator) Err() error {
 
 // Reset makes a result set
 func (it *Iterator) Reset() {
-	results, err := it.makeElasticResultSet()
-	if err != nil {
-		it.err = err
-		// TODO how to handle?
-	}
-	it.resultSet = results
+	it.resultSet = nil
 	it.resultIndex = 0
 }
 
