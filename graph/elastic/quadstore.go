@@ -176,7 +176,6 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	qs.client = client
-	qs.client.OpenIndex(DefaultESIndex)
 	qs.nodeTracker = lru.New(1 << 16)
 	qs.sizes = lru.New(1 << 16)
 	return &qs, nil
@@ -263,7 +262,7 @@ func (qs *QuadStore) checkValid(key string) bool {
 	if err != nil {
 		return false
 	}
-	return(res.Found)
+	return res.Found
 }
 
 // ElasticNodeTracker - Keeping track of nodes in a quad for graph deletes
@@ -444,12 +443,12 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode ElasticNodeTra
 		} 
 
 		// Delete Node from nodes Type in elasticsearch
-		_, deleteErr := qs.client.Delete().
+		_, err = qs.client.Delete().
 			Index(DefaultESIndex).
 			Type("nodes").
 			Id(nodeId).
 			Do(context.Background())
-		if deleteErr != nil {
+		if err != nil {
 			clog.Errorf("Error deleting empty node: %v", err)
 			return err
 		}
@@ -552,7 +551,6 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		Type("nodes").
 		Query(termQuery).
 		From(0).Size(1).
-		Pretty(true).
 		Do(ctx)
 	if err != nil {
 		clog.Errorf("Error: %v", err)
@@ -595,7 +593,6 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 		Index(DefaultESIndex).
 		Sort("_timestamp", false).
 		From(0).Size(1).
-		Pretty(true).
 		Do(ctx)
 
 	if err != nil {
