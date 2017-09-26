@@ -13,6 +13,13 @@ RUN mkdir -p /fs/assets
 RUN mkdir -p /fs/bin
 RUN mkdir -p /fs/data
 
+# Copy CA certs from builder image to the filesystem of the cayley image
+RUN mkdir -p /fs/etc/ssl/certs
+RUN cp /etc/ssl/certs/ca-certificates.crt /fs/etc/ssl/certs/ca-certificates.crt
+
+RUN mkdir -p /fs/lib/x86_64-linux-gnu
+RUN cp /lib/x86_64-linux-gnu/libc-2.24.so /fs/lib/x86_64-linux-gnu/libc-2.24.so
+
 # Add assets to target fs
 COPY docs /fs/assets/docs
 COPY static /fs/assets/static
@@ -23,6 +30,8 @@ COPY templates /fs/assets/templates
 COPY . .
 RUN go build \
   -ldflags="-linkmode external -extldflags -static -X github.com/cayleygraph/cayley/version.GitHash=$(git rev-parse HEAD | cut -c1-12)" \
+  -a \
+  -installsuffix cgo \
   -o /fs/bin/cayley \
   -v \
   ./cmd/cayley
