@@ -36,6 +36,7 @@ var assetsDirs = []string{"templates", "static", "docs"}
 func hasAssets(path string) bool {
 	for _, dir := range assetsDirs {
 		if _, err := os.Stat(fmt.Sprint(path, "/", dir)); os.IsNotExist(err) {
+			fmt.Println(fmt.Sprint(path, "/", dir))
 			return false
 		}
 	}
@@ -47,7 +48,7 @@ func findAssetsPath() string {
 		if hasAssets(AssetsPath) {
 			return AssetsPath
 		}
-		clog.Fatalf("Cannot find assets at", AssetsPath, ".")
+		clog.Fatalf("Cannot find assets at %s.", AssetsPath)
 	}
 
 	if hasAssets(".") {
