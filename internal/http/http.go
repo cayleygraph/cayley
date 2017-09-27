@@ -36,7 +36,6 @@ var assetsDirs = []string{"templates", "static", "docs"}
 func hasAssets(path string) bool {
 	for _, dir := range assetsDirs {
 		if _, err := os.Stat(fmt.Sprint(path, "/", dir)); os.IsNotExist(err) {
-			fmt.Println(fmt.Sprint(path, "/", dir))
 			return false
 		}
 	}
