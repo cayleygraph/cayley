@@ -41,7 +41,8 @@ RUN /fs/bin/cayley init --config /etc/cayley.json
 
 
 FROM scratch
-MAINTAINER Barak Michener <me@barakmich.com>
+LABEL maintainer="Yannic Bonenberger" \
+           email="contact@yannic-bonenberger.com"
 
 # Expose the port and volume for configuration and data persistence. If you're
 # using a backend like bolt, make sure the file is saved to this directory.
