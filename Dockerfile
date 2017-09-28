@@ -13,12 +13,14 @@ RUN mkdir -p /fs/assets
 RUN mkdir -p /fs/bin
 RUN mkdir -p /fs/data
 
+ENV PATH /fs/bin:$PATH
+
 # Copy CA certs from builder image to the filesystem of the cayley image
 RUN mkdir -p /fs/etc/ssl/certs
 RUN cp /etc/ssl/certs/ca-certificates.crt /fs/etc/ssl/certs/ca-certificates.crt
 
 RUN mkdir -p /fs/lib/x86_64-linux-gnu
-RUN cp /lib/x86_64-linux-gnu/libc-2.24.so /fs/lib/x86_64-linux-gnu/libc-2.24.so
+RUN cp /lib/x86_64-linux-gnu/libc* /fs/lib/x86_64-linux-gnu/
 
 # Add assets to target fs
 COPY docs /fs/assets/docs
@@ -36,8 +38,8 @@ RUN go build \
   -v \
   ./cmd/cayley
 
-RUN echo '{"store":{"backend":"bolt","address":"/fs/data/cayley.db"}}' > /etc/cayley.json
-RUN /fs/bin/cayley init --config /etc/cayley.json
+RUN echo '{"store":{"backend":"bolt2","address":"/fs/data/cayley.db"}}' > /etc/cayley.json
+RUN cayley init --config /etc/cayley.json
 
 
 FROM scratch
@@ -51,4 +53,5 @@ VOLUME ["/data"]
 
 EXPOSE 64210
 
-ENTRYPOINT ["/bin/cayley", "http", "--assets", "/assets", "--host", ":64210"]
+ENTRYPOINT ["cayley"]
+CMD ["http", "--assets", "/assets", "--host", ":64210"]

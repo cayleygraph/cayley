@@ -47,7 +47,7 @@ func findAssetsPath() string {
 		if hasAssets(AssetsPath) {
 			return AssetsPath
 		}
-		clog.Fatalf("Cannot find assets at %s.", AssetsPath)
+		clog.Fatalf("Cannot find assets at %q.", AssetsPath)
 	}
 
 	if hasAssets(".") {
