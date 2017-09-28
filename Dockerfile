@@ -60,5 +60,7 @@ VOLUME ["/data"]
 
 EXPOSE 64210
 
-ENTRYPOINT ["cayley"]
-CMD ["http", "--assets", "/assets", "--host", ":64210"]
+# Adding everything to entrypoint allows us to init+load+serve
+# with default containers parameters:
+#   i.e.: `docker run quay.io/cayleygraph/cayley --init -i /data/my_data.nq`
+ENTRYPOINT ["cayley", "http", "--assets", "/assets", "--host", ":64210"]
