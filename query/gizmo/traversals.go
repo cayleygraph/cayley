@@ -105,6 +105,7 @@ func (p *pathObject) Is(call goja.FunctionCall) goja.Value {
 }
 func (p *pathObject) inout(call goja.FunctionCall, in bool) goja.Value {
 	preds, tags, ok := toViaData(exportArgs(call.Arguments))
+
 	if !ok {
 		return throwErr(p.s.vm, errNoVia)
 	}
@@ -178,7 +179,43 @@ func (p *pathObject) In(call goja.FunctionCall) goja.Value {
 //	// Result is {"id": "cool_person", "pred": "<status>"}
 //	g.V("<dani>").Out(g.V("<status>"), "pred").All()
 func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
+	fmt.Println(call)
 	return p.inout(call, false)
+}
+
+func (p *pathObject) inoutE(call goja.FunctionCall, in bool) goja.Value {
+	preds, filters, tags, ok := toViaDataE(exportArgs(call.Arguments))
+
+	fmt.Println("preds")
+	fmt.Println(preds)
+	fmt.Println("filters")
+	fmt.Println(filters)
+	fmt.Println("tags")
+	fmt.Println(tags)
+
+	if !ok {
+		return throwErr(p.s.vm, errNoVia)
+	}
+	np := p.clonePath()
+	if in {
+		np = np.InWithTags(tags, preds...)
+	} else {
+		np = np.OutEWithTags(tags, preds, filters)
+	}
+	return p.newVal(np)
+}
+
+// OutE filters out nodes that don’t have a predicate in the forward direction.
+// It only retains nodes that are in quads that satisfy the filtering expression.
+func (p *pathObject) OutE(call goja.FunctionCall) goja.Value {
+	fmt.Println("in OutE")
+	fmt.Println(call)
+	return p.inoutE(call, false)
+}
+
+// InE is the inverse of OutE
+func (p *pathObject) InE(via ...interface{}) goja.Value {
+	return p.InE(via)
 }
 
 // Both follow the predicate in either direction. Same as Out or In.

@@ -15,6 +15,8 @@
 package elastic
 
 import (
+	"fmt"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -31,7 +33,7 @@ type Iterator struct {
 	resultSet   *elastic.SearchResult
 	resultIndex int64
 	scrollId    string
-	hash        NodeHash
+	hash        graph.Value
 	size        int64
 	isAll       bool
 	resultType  string
@@ -51,19 +53,73 @@ var ctx = context.Background()
 
 // NewIterator returns a new iterator
 func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.Value) *Iterator {
-	h := val.(NodeHash)
-	query := elastic.NewTermQuery(d.String(), string(h))
-	return &Iterator{
-		uid:         iterator.NextUID(),
-		qs:          qs,
-		dir:         d,
-		resultSet:   nil,
-		resultType:  resultType,
-		resultIndex: 0,
-		query:       query,
-		size:        -1,
-		hash:        h,
-		isAll:       false,
+	if d == quad.QuadMetadata {
+		fmt.Println("elastic new iterator")
+		fmt.Println(val)
+
+		filterqueries := []elastic.Query{}
+		for key, value := range val.(QuadRefGraphValue) {
+			fmt.Println("Key:", key, "Value:", value)
+			filterqueries = append(filterqueries, elastic.NewMatchQuery(d.String()+"."+key, value))
+		}
+
+		query := elastic.NewBoolQuery().Filter(filterqueries...)
+
+		searchResult, _ := qs.client.Search().
+			Index("cayley").
+			Type("quads").
+			Query(query).
+			From(0).Size(1).
+			Pretty(true).
+			Do(context.Background())
+
+		fmt.Println("search result")
+		// fmt.Println(searchResult)
+		// fmt.Println(searchResult.Hits)
+		fmt.Println(searchResult.Hits.TotalHits)
+
+		return &Iterator{
+			uid:         iterator.NextUID(),
+			qs:          qs,
+			dir:         d,
+			resultSet:   nil,
+			resultType:  resultType,
+			resultIndex: 0,
+			query:       query,
+			size:        -1,
+			hash:        val,
+			isAll:       false,
+		}
+
+	} else {
+		h := val.(NodeHash)
+		query := elastic.NewTermQuery(d.String(), string(h))
+
+		searchResult, _ := qs.client.Search().
+			Index("cayley").
+			Type("quads").
+			Query(query).
+			From(0).Size(1).
+			Pretty(true).
+			Do(context.Background())
+
+		fmt.Println("search result")
+		fmt.Println(searchResult.Hits.TotalHits)
+		fmt.Println(d.String())
+		fmt.Println(string(h))
+
+		return &Iterator{
+			uid:         iterator.NextUID(),
+			qs:          qs,
+			dir:         d,
+			resultSet:   nil,
+			resultType:  resultType,
+			resultIndex: 0,
+			query:       query,
+			size:        -1,
+			hash:        h,
+			isAll:       false,
+		}
 	}
 }
 
@@ -87,7 +143,7 @@ func NewAllIterator(qs *QuadStore, resultType string) *Iterator {
 		resultIndex: 0,
 		size:        -1,
 		query:       query,
-		hash:        "",
+		hash:        NodeHash(""),
 		isAll:       true,
 	}
 }
@@ -137,6 +193,10 @@ func (it *Iterator) Next() bool {
 		it.resultIndex = 1
 	}
 
+	fmt.Println("-------------Iterator Next-----------")
+	fmt.Println(resultID)
+	fmt.Println(it.resultType)
+	fmt.Println(it.dir)
 	if it.resultType == "quads" {
 		it.result = QuadHash(resultID)
 	} else {
@@ -159,7 +219,9 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return graph.ContainsLogOut(it, v, true)
 	}
 	val := NodeHash(v.(QuadHash).Get(it.dir))
-	if val == it.hash {
+	fmt.Println("inside contains-------------------------------------")
+
+	if val == it.hash || it.dir == quad.QuadMetadata {
 		it.result = v
 		return graph.ContainsLogOut(it, v, true)
 	}
@@ -188,7 +250,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	if it.isAll {
 		m = NewAllIterator(it.qs, it.resultType)
 	} else {
-		m = NewIterator(it.qs, it.resultType, it.dir, NodeHash(it.hash))
+		m = NewIterator(it.qs, it.resultType, it.dir, it.hash)
 	}
 	m.tags.CopyFrom(it)
 	return m
@@ -236,9 +298,17 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 // Describe gives the graph description
 func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
+	graphName := ""
+	switch it.hash.(type) {
+	case NodeHash:
+		graphName = string(it.hash.(NodeHash))
+	case QuadRefGraphValue:
+		graphName = it.hash.(QuadRefGraphValue).String()
+	}
+
 	return graph.Description{
 		UID:  it.UID(),
-		Name: string(it.hash),
+		Name: graphName,
 		Type: it.Type(),
 		Size: size,
 	}

@@ -2,6 +2,7 @@ package shape
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
@@ -10,8 +11,10 @@ import (
 func IntersectShapes(s1, s2 Shape) Shape {
 	switch s1 := s1.(type) {
 	case AllNodes:
+		fmt.Println("allnodes")
 		return s2
 	case Intersect:
+		fmt.Println("intersect")
 		if s2, ok := s2.(Intersect); ok {
 			return append(s1, s2...)
 		}
@@ -31,6 +34,13 @@ func UnionShapes(s1, s2 Shape) Union {
 }
 
 func buildOut(from, via, labels Shape, tags []string, in bool) Shape {
+	fmt.Println("from")
+	fmt.Println(from)
+	fmt.Println("via")
+	fmt.Println(via)
+	fmt.Println("labels")
+	fmt.Println(labels)
+
 	start, goal := quad.Subject, quad.Object
 	if in {
 		start, goal = goal, start
@@ -52,11 +62,13 @@ func buildOut(from, via, labels Shape, tags []string, in bool) Shape {
 	}
 	if labels != nil {
 		if _, ok := labels.(AllNodes); !ok {
+			fmt.Println("if ok labels all nodes")
 			quads = append(quads, QuadFilter{
 				Dir: quad.Label, Values: labels,
 			})
 		}
 	}
+	fmt.Println(quads)
 	return NodesFrom{Quads: quads, Dir: goal}
 }
 
@@ -65,6 +77,64 @@ func Out(from, via, labels Shape, tags ...string) Shape {
 }
 
 func In(from, via, labels Shape, tags ...string) Shape {
+	return buildOut(from, via, labels, tags, true)
+}
+
+func buildOutE(from, via, filters, labels Shape, tags []string, in bool) Shape {
+	fmt.Println("from")
+	fmt.Println(from)
+	fmt.Println("via")
+	fmt.Println(via)
+	fmt.Println("filters")
+	fmt.Println(filters)
+
+	start, goal := quad.Subject, quad.Object
+	if in {
+		start, goal = goal, start
+	}
+	if len(tags) != 0 {
+		via = Save{From: via, Tags: tags}
+	}
+
+	quads := make(Quads, 0, 3)
+	if _, ok := from.(AllNodes); !ok {
+		quads = append(quads, QuadFilter{
+			Dir: start, Values: from,
+		})
+	}
+	if _, ok := via.(AllNodes); !ok {
+		quads = append(quads, QuadFilter{
+			Dir: quad.Predicate, Values: via,
+		})
+	}
+	if labels != nil {
+		if _, ok := labels.(AllNodes); !ok {
+			fmt.Println("if ok labels all nodes")
+			quads = append(quads, QuadFilter{
+				Dir: quad.Label, Values: labels,
+			})
+		}
+	}
+	if filters != nil {
+		if _, ok := filters.(AllNodes); !ok {
+			fmt.Println("if ok filters all nodes")
+			quads = append(quads, QuadFilter{
+				Dir: quad.QuadMetadata, Values: filters,
+			})
+		}
+	}
+	fmt.Println(quads)
+	var nodeShape = NodesFrom{Quads: quads, Dir: goal}
+	fmt.Println("node shape")
+	fmt.Println(nodeShape)
+	return nodeShape
+}
+
+func OutE(from, via, filters, labels Shape, tags ...string) Shape {
+	return buildOutE(from, via, filters, labels, tags, false)
+}
+
+func InE(from, via, labels Shape, tags ...string) Shape {
 	return buildOut(from, via, labels, tags, true)
 }
 
@@ -136,6 +206,7 @@ func Has(from, via, nodes Shape, rev bool) Shape {
 		quads = append(quads, QuadFilter{
 			Dir: quad.Predicate, Values: via,
 		})
+		fmt.Println(quads)
 	}
 	if len(quads) == 0 {
 		panic("empty has")

@@ -55,6 +55,20 @@ func (NodeHash) IsNode() bool { return false }
 // Key returns the hashed Node
 func (v NodeHash) Key() interface{} { return v }
 
+type QuadRefGraphValue map[string]string
+
+func (QuadRefGraphValue) IsNode() bool { return false }
+
+func (v QuadRefGraphValue) Key() interface{} { return v }
+
+func (v QuadRefGraphValue) String() string {
+	jsonString, err := json.Marshal(v)
+	if err != nil {
+		return "Error converting quadrefgraphvalue to string"
+	}
+	return string(jsonString)
+}
+
 // QuadHash is the hashed value of the Quad
 type QuadHash string
 
@@ -82,7 +96,7 @@ func (v QuadHash) Get(d quad.Direction) string {
 		}
 	case quad.QuadMetadata:
 		offset = (quad.HashSize * 2) * 4
-		if len(v) == offset { // no timestamp
+		if len(v) == offset { // no metadata
 			return ""
 		}
 	}
@@ -144,7 +158,7 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 					"type": "string"
 				},
 				"quadmetadata": {
-					"type": "map[string]interface{}"
+					"type": "nested"
 				}
 			}
 		},
@@ -249,6 +263,25 @@ func hashOf(s quad.Value) string {
 	}
 
 }
+
+// func hashOfGraphVal(s graph.Value) string {
+// 	if s == nil {
+// 		return ""
+// 	}
+
+// 	switch s.Key().(type) {
+// 	case QuadRefGraphValue:
+// 		var buffer bytes.Buffer
+// 		for _, value := range s.Key().(QuadRefGraphValue) {
+// 			buffer.WriteString(value)
+// 		}
+// 		return hex.EncodeToString(quad.HashOf(toQuadValue(buffer.String())))
+
+// 	default:
+// 		return "Not valid type"
+// 	}
+
+// }
 
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	id := hashOf(t.Subject)
@@ -561,7 +594,12 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 
 // ValueOf returns a Node from the quad value passed in
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return NodeHash(hashOf(s))
+	switch d := s.Native().(type) {
+	case quad.QuadRef:
+		return QuadRefGraphValue(d)
+	default:
+		return NodeHash(hashOf(s))
+	}
 }
 
 // NameOf returns the name of the Node after hashing the graph value and running a search on the backend

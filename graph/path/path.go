@@ -88,7 +88,7 @@ func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 		stack: []morphism{
 			isMorphism(nodes...),
 		},
-		qs:    qs,
+		qs: qs,
 	}
 }
 
@@ -98,7 +98,7 @@ func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
 		stack: []morphism{
 			isNodeMorphism(nodes...),
 		},
-		qs:    qs,
+		qs: qs,
 	}
 }
 
@@ -114,7 +114,7 @@ func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 // NewPath creates a new, empty Path.
 func NewPath(qs graph.QuadStore) *Path {
 	return &Path{
-		qs:    qs,
+		qs: qs,
 	}
 }
 
@@ -214,6 +214,29 @@ func (p *Path) Tag(tags ...string) *Path {
 func (p *Path) Out(via ...interface{}) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, outMorphism(nil, via...))
+	return np
+}
+
+// OutE filters out nodes that don’t have a predicate in the forward direction.
+// It only retains nodes that are in quads that satisfy the filtering expression.
+func (p *Path) OutE(via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, outEMorphism(nil, via, filters))
+	return np
+}
+
+// InE is the inverse of OutE
+func (p *Path) InE(via ...interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, inEMorphism(nil, via...))
+	return np
+}
+
+// OutEWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) OutEWithTags(tags []string, via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, outEMorphism(tags, via, filters))
 	return np
 }
 

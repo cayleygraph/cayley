@@ -292,6 +292,8 @@ func toQuadValue(o interface{}) (quad.Value, error) {
 	switch v := o.(type) {
 	case quad.Value:
 		qv = v
+	case map[string]string:
+		qv = quad.QuadRef(v)
 	case string:
 		qv = quad.StringToValue(v)
 	case bool:
@@ -387,6 +389,24 @@ func toViaData(objs []interface{}) (predicates []interface{}, tags []string, ok 
 	}
 	if len(objs) > 1 {
 		tags = toStrings(objs[1:])
+	}
+	ok = true
+	return
+}
+
+func toViaDataE(objs []interface{}) (predicates []interface{}, filters []interface{}, tags []string, ok bool) {
+	if len(objs) != 0 {
+		predicates = toVia([]interface{}{objs[0]})
+	}
+	if len(objs) > 1 {
+		convertedObj := make(map[string]string)
+		for k, v := range objs[1].(map[string]interface{}) {
+			convertedObj[k] = v.(string)
+		}
+		filters = toVia([]interface{}{convertedObj})
+	}
+	if len(objs) > 2 {
+		tags = toStrings(objs[2:])
 	}
 	ok = true
 	return
