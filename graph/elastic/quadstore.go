@@ -264,25 +264,6 @@ func hashOf(s quad.Value) string {
 
 }
 
-// func hashOfGraphVal(s graph.Value) string {
-// 	if s == nil {
-// 		return ""
-// 	}
-
-// 	switch s.Key().(type) {
-// 	case QuadRefGraphValue:
-// 		var buffer bytes.Buffer
-// 		for _, value := range s.Key().(QuadRefGraphValue) {
-// 			buffer.WriteString(value)
-// 		}
-// 		return hex.EncodeToString(quad.HashOf(toQuadValue(buffer.String())))
-
-// 	default:
-// 		return "Not valid type"
-// 	}
-
-// }
-
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	id := hashOf(t.Subject)
 	id += hashOf(t.Predicate)
