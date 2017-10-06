@@ -43,7 +43,6 @@ func ParseJSONToQuadList(jsonBody []byte) (out []quad.Quad, _ error) {
 
 	err := json.Unmarshal(jsonBody, &quads)
 	if err != nil {
-		fmt.Println("some error")
 		return nil, err
 	}
 	out = make([]quad.Quad, 0, len(quads))

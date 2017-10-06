@@ -166,7 +166,7 @@ func outMorphism(tags []string, via ...interface{}) morphism {
 func outEMorphism(tags []string, via []interface{}, filters []interface{}) morphism {
 	return morphism{
 		Name:     "outE",
-		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return inEMorphism(tags, via...), ctx },
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return inEMorphism(tags, via, filters), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.OutE(in, buildVia(via...), buildVia(filters...), ctx.labelSet, tags...), ctx
 		},
@@ -175,12 +175,12 @@ func outEMorphism(tags []string, via []interface{}, filters []interface{}) morph
 }
 
 // inEMorphism iterates backwards one RDF triple or via an entire path.
-func inEMorphism(tags []string, via ...interface{}) morphism {
+func inEMorphism(tags []string, via []interface{}, filters []interface{}) morphism {
 	return morphism{
 		Name:     "inE",
-		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return outEMorphism(tags, via, nil), ctx },
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return outEMorphism(tags, via, filters), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.InE(in, buildVia(via...), ctx.labelSet, tags...), ctx
+			return shape.InE(in, buildVia(via...), buildVia(filters...), ctx.labelSet, tags...), ctx
 		},
 		tags: tags,
 	}

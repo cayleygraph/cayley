@@ -1,7 +1,6 @@
 package shape
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -317,8 +316,6 @@ type QuadFilter struct {
 
 // buildIterator is not exposed to force to use Quads and group filters together.
 func (s QuadFilter) buildIterator(qs graph.QuadStore) graph.Iterator {
-	fmt.Println("first quadfilter")
-	fmt.Println(s.Values)
 	if s.Values == nil {
 		return iterator.NewNull()
 	} else if v, ok := One(s.Values); ok {
@@ -328,8 +325,6 @@ func (s QuadFilter) buildIterator(qs graph.QuadStore) graph.Iterator {
 		panic("direction is not set")
 	}
 	sub := s.Values.BuildIterator(qs)
-	fmt.Println("sub")
-	fmt.Println(sub)
 	return iterator.NewLinksTo(qs, sub, s.Dir)
 }
 
@@ -341,8 +336,6 @@ func (s *Quads) Intersect(q ...QuadFilter) {
 	*s = append(*s, q...)
 }
 func (s Quads) BuildIterator(qs graph.QuadStore) graph.Iterator {
-	fmt.Println("quads build iterator")
-	fmt.Println(s)
 	if len(s) == 0 {
 		return qs.QuadsAllIterator()
 	}
@@ -350,7 +343,6 @@ func (s Quads) BuildIterator(qs graph.QuadStore) graph.Iterator {
 	for _, f := range s {
 		its = append(its, f.buildIterator(qs))
 	}
-	fmt.Println("-----------------its--------------------")
 	if len(its) == 1 {
 		return its[0]
 	}
@@ -402,8 +394,6 @@ type NodesFrom struct {
 }
 
 func (s NodesFrom) BuildIterator(qs graph.QuadStore) graph.Iterator {
-	fmt.Println("in Nodes From")
-	fmt.Println(s)
 	if IsNull(s.Quads) {
 		return iterator.NewNull()
 	}
@@ -414,9 +404,6 @@ func (s NodesFrom) BuildIterator(qs graph.QuadStore) graph.Iterator {
 	return iterator.NewHasA(qs, sub, s.Dir)
 }
 func (s NodesFrom) Optimize(r Optimizer) (Shape, bool) {
-	fmt.Println("in optimize")
-	fmt.Println(s.Dir)
-	fmt.Println(s.Quads)
 	if IsNull(s.Quads) {
 		return nil, true
 	}
@@ -496,8 +483,6 @@ func (s NodesFrom) Optimize(r Optimizer) (Shape, bool) {
 			Filter: filt,
 			Save:   save,
 		}.Optimize(r)
-		fmt.Println("n == len")
-		fmt.Println(ns)
 		return ns, true
 	}
 	// TODO
@@ -688,7 +673,6 @@ type valueResolver interface {
 func (s Lookup) resolve(qs valueResolver) Shape {
 	// TODO: check if QS supports batch lookup
 	vals := make([]graph.Value, 0, len(s))
-	fmt.Println("in resolve")
 	for _, v := range s {
 		if gv := qs.ValueOf(v); gv != nil {
 			vals = append(vals, gv)

@@ -226,9 +226,9 @@ func (p *Path) OutE(via []interface{}, filters []interface{}) *Path {
 }
 
 // InE is the inverse of OutE
-func (p *Path) InE(via ...interface{}) *Path {
+func (p *Path) InE(via []interface{}, filters []interface{}) *Path {
 	np := p.clone()
-	np.stack = append(np.stack, inEMorphism(nil, via...))
+	np.stack = append(np.stack, inEMorphism(nil, via, filters))
 	return np
 }
 
@@ -237,6 +237,14 @@ func (p *Path) InE(via ...interface{}) *Path {
 func (p *Path) OutEWithTags(tags []string, via []interface{}, filters []interface{}) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, outEMorphism(tags, via, filters))
+	return np
+}
+
+// OutEWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) InEWithTags(tags []string, via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, inEMorphism(tags, via, filters))
 	return np
 }
 

@@ -15,8 +15,6 @@
 package elastic
 
 import (
-	"fmt"
-
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -54,29 +52,14 @@ var ctx = context.Background()
 // NewIterator returns a new iterator
 func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.Value) *Iterator {
 	if d == quad.QuadMetadata {
-		fmt.Println("elastic new iterator")
-		fmt.Println(val)
 
 		filterqueries := []elastic.Query{}
+
 		for key, value := range val.(QuadRefGraphValue) {
-			fmt.Println("Key:", key, "Value:", value)
 			filterqueries = append(filterqueries, elastic.NewMatchQuery(d.String()+"."+key, value))
 		}
 
 		query := elastic.NewBoolQuery().Filter(filterqueries...)
-
-		searchResult, _ := qs.client.Search().
-			Index("cayley").
-			Type("quads").
-			Query(query).
-			From(0).Size(1).
-			Pretty(true).
-			Do(context.Background())
-
-		fmt.Println("search result")
-		// fmt.Println(searchResult)
-		// fmt.Println(searchResult.Hits)
-		fmt.Println(searchResult.Hits.TotalHits)
 
 		return &Iterator{
 			uid:         iterator.NextUID(),
@@ -94,19 +77,6 @@ func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.V
 	} else {
 		h := val.(NodeHash)
 		query := elastic.NewTermQuery(d.String(), string(h))
-
-		searchResult, _ := qs.client.Search().
-			Index("cayley").
-			Type("quads").
-			Query(query).
-			From(0).Size(1).
-			Pretty(true).
-			Do(context.Background())
-
-		fmt.Println("search result")
-		fmt.Println(searchResult.Hits.TotalHits)
-		fmt.Println(d.String())
-		fmt.Println(string(h))
 
 		return &Iterator{
 			uid:         iterator.NextUID(),
@@ -193,10 +163,6 @@ func (it *Iterator) Next() bool {
 		it.resultIndex = 1
 	}
 
-	fmt.Println("-------------Iterator Next-----------")
-	fmt.Println(resultID)
-	fmt.Println(it.resultType)
-	fmt.Println(it.dir)
 	if it.resultType == "quads" {
 		it.result = QuadHash(resultID)
 	} else {
@@ -219,7 +185,6 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return graph.ContainsLogOut(it, v, true)
 	}
 	val := NodeHash(v.(QuadHash).Get(it.dir))
-	fmt.Println("inside contains-------------------------------------")
 
 	if val == it.hash || it.dir == quad.QuadMetadata {
 		it.result = v
