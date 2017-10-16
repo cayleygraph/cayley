@@ -187,7 +187,7 @@ func createNewElasticGraph(addr string, options graph.Options) error {
     }
 	}`)
 	mapping := strings.Join(allSettings, "")
-	_, err = client.CreateIndex("cayley").BodyString(mapping).Do(ctx)
+	_, err = client.CreateIndex(options["index"].(string)).BodyString(mapping).Do(ctx)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	qs.client = client
-	qs.client.OpenIndex("cayley")
+	qs.client.OpenIndex(options["index"].(string))
 	qs.nodeTracker = lru.New(1 << 16)
 	qs.sizes = lru.New(1 << 16)
 	return &qs, nil

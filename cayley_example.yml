@@ -4,12 +4,11 @@ store:
   # address or path for the database
   address: "http://127.0.0.1:9200"
   #backend: bolt
-  # address or path for the database
-  #address: "./cayley.db"
   # open database in read-only mode
   read_only: false
   # backend-specific options
   options:
+    index: "cayley"
     nosync: false
 query:
   timeout: 30s

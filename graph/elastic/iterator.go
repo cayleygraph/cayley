@@ -15,6 +15,9 @@
 package elastic
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -56,10 +59,26 @@ func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.V
 		filterqueries := []elastic.Query{}
 
 		for key, value := range val.(QuadRefGraphValue) {
-			filterqueries = append(filterqueries, elastic.NewMatchQuery(d.String()+"."+key, value))
+			if key == "timestamp" {
+				timeRange := strings.Split(value, ";")
+				filterqueries = append(filterqueries, elastic.NewRangeQuery(d.String()+"."+key).From(timeRange[0]).To(timeRange[1]))
+			} else {
+				filterqueries = append(filterqueries, elastic.NewMatchQuery(d.String()+"."+key, value))
+			}
 		}
 
 		query := elastic.NewBoolQuery().Filter(filterqueries...)
+
+		searchResult, _ := qs.client.Search().
+			Index("cayley").
+			Type("quads").
+			Query(query).
+			From(0).Size(1).
+			Pretty(true).
+			Do(context.Background())
+
+		fmt.Println("search result")
+		fmt.Println(searchResult.Hits.TotalHits)
 
 		return &Iterator{
 			uid:         iterator.NextUID(),
