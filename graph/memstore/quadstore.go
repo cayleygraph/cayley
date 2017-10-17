@@ -17,6 +17,7 @@ package memstore
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -171,12 +172,14 @@ func (qs *QuadStore) appendPrimitive(p *primitive) {
 	qs.all = append(qs.all, p)
 }
 
+const internalBNodePrefix = "memnode"
+
 func (qs *QuadStore) resolveVal(v quad.Value, add bool) (int64, bool) {
 	if v == nil {
 		return 0, false
 	}
-	if n, ok := v.(quad.BNode); ok && len(n) > 1 && n[0] == 'n' {
-		n = n[1:]
+	if n, ok := v.(quad.BNode); ok && strings.HasPrefix(string(n), internalBNodePrefix) {
+		n = n[len(internalBNodePrefix):]
 		id, err := strconv.ParseInt(string(n), 10, 64)
 		if err == nil && id != 0 {
 			_, ok := qs.prim[id]
@@ -215,7 +218,7 @@ func (qs *QuadStore) resolveQuad(q quad.Quad, add bool) (internalQuad, bool) {
 func (qs *QuadStore) lookupVal(id int64) quad.Value {
 	pv := qs.prim[id]
 	if pv == nil || pv.Value == nil {
-		return quad.BNode("n" + strconv.FormatInt(id, 10))
+		return quad.BNode(internalBNodePrefix + strconv.FormatInt(id, 10))
 	}
 	return pv.Value
 }
