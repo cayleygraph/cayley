@@ -15,9 +15,7 @@
 package elastic
 
 import (
-	"fmt"
 	"strings"
-
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -52,6 +50,7 @@ type SearchResultsIterator struct {
 
 var ctx = context.Background()
 
+
 // NewIterator returns a new iterator
 func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.Value) *Iterator {
 	if d == quad.QuadMetadata {
@@ -60,25 +59,14 @@ func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.V
 
 		for key, value := range val.(QuadRefGraphValue) {
 			if key == "timestamp" {
-				timeRange := strings.Split(value, ";")
+				timeRange := strings.Split(value, "=>")
 				filterqueries = append(filterqueries, elastic.NewRangeQuery(d.String()+"."+key).From(timeRange[0]).To(timeRange[1]))
 			} else {
-				filterqueries = append(filterqueries, elastic.NewMatchQuery(d.String()+"."+key, value))
+				filterqueries = append(filterqueries, elastic.NewRegexpQuery(d.String()+"."+key, value))
+
 			}
 		}
-
 		query := elastic.NewBoolQuery().Filter(filterqueries...)
-
-		searchResult, _ := qs.client.Search().
-			Index("cayley").
-			Type("quads").
-			Query(query).
-			From(0).Size(1).
-			Pretty(true).
-			Do(context.Background())
-
-		fmt.Println("search result")
-		fmt.Println(searchResult.Hits.TotalHits)
 
 		return &Iterator{
 			uid:         iterator.NextUID(),
@@ -115,9 +103,9 @@ func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.V
 // if iterator is empty make elastic query and return results set
 func (it *Iterator) makeElasticResultSet() (*elastic.SearchResult, error) {
 	if it.isAll {
-		return it.qs.client.Scroll("cayley").Type(it.resultType).Do(ctx)
+		return it.qs.client.Scroll(indexName).Type(it.resultType).Do(ctx)
 	}
-	return it.qs.client.Scroll("cayley").Type(it.resultType).Query(it.query).Do(ctx)
+	return it.qs.client.Scroll(indexName).Type(it.resultType).Query(it.query).Do(ctx)
 }
 
 // NewAllIterator returns an iterator over all nodes
@@ -173,7 +161,7 @@ func (it *Iterator) Next() bool {
 		resultID = it.resultSet.Hits.Hits[it.resultIndex].Id
 		it.resultIndex++
 	} else {
-		newResults, err := it.qs.client.Scroll("cayley").ScrollId(it.resultSet.ScrollId).Do(ctx)
+		newResults, err := it.qs.client.Scroll(indexName).ScrollId(it.resultSet.ScrollId).Do(ctx)
 		if err != nil || newResults.Hits.TotalHits == 0 {
 			return false
 		}

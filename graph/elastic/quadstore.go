@@ -36,6 +36,7 @@ import (
 
 // QuadStoreType describes backend
 const QuadStoreType = "elastic"
+var indexName string
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
@@ -112,6 +113,7 @@ type QuadStore struct {
 
 // dialElastic connects to elasticsearch
 func dialElastic(addr string, options graph.Options) (*elasticClient.Client, error) {
+	indexName = options["index"].(string)
 	client, err := elasticClient.NewClient(elasticClient.SetURL(addr))
 	if err != nil {
 		panic(err)
