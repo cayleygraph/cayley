@@ -265,8 +265,8 @@ func (qs *QuadStore) checkValid(key string) bool {
 	return res.Found
 }
 
-// ElasticNodeTracker - Keeping track of nodes in a quad for graph deletes
-type ElasticNodeTracker struct {
+// elasticNodeTracker - Keeping track of nodes in a quad for graph deletes
+type elasticNodeTracker struct {
 	NodeType  quad.Direction
 	DeltaFlag graph.Procedure
 }
@@ -274,9 +274,9 @@ type ElasticNodeTracker struct {
 // ApplyDeltas - A Delta is any update to the graph (an add or delete)
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 
-	// A map of quad.Value (sub, pred, obj, or label) to an ElasticNodeTracker struct
+	// A map of quad.Value (sub, pred, obj, or label) to an elasticNodeTracker struct
 	// Used to decide whether to add a node or delete it.
-	nodeTracker := make(map[quad.Value]ElasticNodeTracker)
+	nodeTracker := make(map[quad.Value]elasticNodeTracker)
 
 	// Loop through all the deltas (graph adds or deletes)
 	for _, d := range deltas {
@@ -309,18 +309,18 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 
 		// Keeps track of the graph action (add or delete) for each kind of node (sub, pred, obj, label).
 		// If d.Action is add, add the node. Else, delete it.
-		nodeTracker[d.Quad.Subject] = ElasticNodeTracker{
+		nodeTracker[d.Quad.Subject] = elasticNodeTracker{
 			quad.Subject, d.Action,
 		}
-		nodeTracker[d.Quad.Object] = ElasticNodeTracker{
+		nodeTracker[d.Quad.Object] = elasticNodeTracker{
 			quad.Object, d.Action,
 		}
-		nodeTracker[d.Quad.Predicate] = ElasticNodeTracker{
+		nodeTracker[d.Quad.Predicate] = elasticNodeTracker{
 			quad.Predicate, d.Action,
 		}
 
 		if d.Quad.Label != nil {
-			nodeTracker[d.Quad.Label] = ElasticNodeTracker{
+			nodeTracker[d.Quad.Label] = elasticNodeTracker{
 				quad.Label, d.Action,
 			}
 		}
@@ -363,13 +363,12 @@ type ElasticQuad struct {
 	Predicate string `json:"predicate"`
 	Object    string `json:"object"`
 	Label     string `json:"label"`
-	Active    string `json:"active"`
 }
 
 // ElasticNodeEntry - Node structure
 type ElasticNodeEntry struct {
-	Hash   string     `json:"hash"`
-	Node   quad.Value `json:"node"`
+	Hash string     `json:"hash"`
+	Node quad.Value `json:"node"`
 }
 
 // ElasticLogEntry - Log entry structure
@@ -388,14 +387,12 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 			Predicate: hashOf(q.Predicate),
 			Object:    hashOf(q.Object),
 			Label:     hashOf(q.Label),
-			Active:    "true",
 		}
 
 		// Add document to index with specified ID
 		_, err := qs.client.Index().Index(DefaultESIndex).Type("quads").Id(qs.getIDForQuad(q)).BodyJson(upsert).Do(context.Background())
 
 		if err != nil {
-			clog.Errorf("Error: %v", err)
 			return err
 		}
 
@@ -404,7 +401,6 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 		_, err := qs.client.Delete().Index(DefaultESIndex).Type("quads").Id(qs.getIDForQuad(q)).Do(context.Background())
 
 		if err != nil {
-			clog.Errorf("Error: %v", err)
 			return err
 		}
 	}
@@ -412,7 +408,7 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 	return nil
 }
 
-func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode ElasticNodeTracker) error {
+func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode elasticNodeTracker) error {
 	nodeVals := qs.ValueOf(nodeVal)
 	nodeId := string(nodeVals.(NodeHash)) // Get hashed value of node
 
@@ -433,14 +429,13 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode ElasticNodeTra
 			From(0).Size(1).
 			Do(ctx)
 		if err != nil {
-			clog.Errorf("Error: %v", err)
 			return err
 		}
 
 		// If the Node is present in more than one Quad, don't delete
 		if searchResult.Hits.TotalHits > 1 {
 			return nil
-		} 
+		}
 
 		// Delete Node from nodes Type in elasticsearch
 		_, err = qs.client.Delete().
@@ -449,21 +444,19 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode ElasticNodeTra
 			Id(nodeId).
 			Do(context.Background())
 		if err != nil {
-			clog.Errorf("Error deleting empty node: %v", err)
 			return err
 		}
 
 	case graph.Add:
 
 		doc := ElasticNodeEntry{
-			Hash:   nodeId,
-			Node:   nodeVal,
+			Hash: nodeId,
+			Node: nodeVal,
 		}
 
 		// Add document to index
 		_, err := qs.client.Index().Index(DefaultESIndex).Type("nodes").Id(nodeId).BodyJson(doc).Do(context.Background())
 		if err != nil {
-			clog.Errorf("Error: %v", err)
 			return err
 		}
 
@@ -490,7 +483,6 @@ func (qs *QuadStore) updateLog(d graph.Delta) error {
 	_, err := qs.client.Index().Index("log").Type("elastic").BodyJson(entry).Do(context.Background())
 
 	if err != nil {
-		clog.Errorf("Error: %v", err)
 		return err
 	}
 	return nil
@@ -545,7 +537,6 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 
 	ctx := context.Background()
 	termQuery := elastic.NewTermQuery("hash", string(hash))
-
 	searchResult, err := qs.client.Search().
 		Index(DefaultESIndex).
 		Type("nodes").
@@ -557,18 +548,18 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		return nil
 	}
 
-	if searchResult.Hits.TotalHits > 0 {
-		hit := searchResult.Hits.Hits[0]
-		// convert json to object
-		var eNode ElasticNode
-		err := json.Unmarshal(*hit.Source, &eNode)
-		if err != nil {
-			return nil
-		}
-		return toQuadValue(eNode.Name)
-	} else {
+	if searchResult.Hits.TotalHits == 0 {
 		return nil
 	}
+
+	hit := searchResult.Hits.Hits[0]
+	// convert json to object
+	var eNode ElasticNode
+	err = json.Unmarshal(*hit.Source, &eNode)
+	if err != nil {
+		return nil
+	}
+	return toQuadValue(eNode.Name)
 }
 
 // Size returns the number of quads in index cayley type quads
@@ -600,14 +591,14 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	}
 
 	var eNode ElasticNode
-	if searchResult.Hits.TotalHits > 0 {
-		hit := searchResult.Hits.Hits[0]
-		// convert json to object
-		err := json.Unmarshal(*hit.Source, &eNode)
-		if err != nil {
-			return graph.NewSequentialKey(0)
-		}
-	} else {
+	if searchResult.Hits.TotalHits == 0 {
+		return graph.NewSequentialKey(0)
+	}
+
+	hit := searchResult.Hits.Hits[0]
+	// convert json to object
+	err = json.Unmarshal(*hit.Source, &eNode)
+	if err != nil {
 		return graph.NewSequentialKey(0)
 	}
 
@@ -616,6 +607,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 		return graph.NewSequentialKey(0)
 	}
 	return graph.NewSequentialKey(eKey)
+
 }
 
 // FixedIterator returns an iterator over a fixed value
