@@ -127,16 +127,16 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 		"quads": {
 			"properties": {
 				"subject": {
-					"type": "string"
+					"type": "keyword"
 				},
 				"object": {
-					"type": "string"
+					"type": "keyword"
 				},
 				"predicate": {
-					"type": "string"
+					"type": "keyword"
 				},
 				"label": {
-					"type": "string"
+					"type": "keyword"
 				}
 			}
 		},
@@ -144,10 +144,10 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 		"nodes": {
 			"properties": {
 				"node": {
-					"type": "keyword"
+					"type": "string"
 				},
 				"hash": {
-					"type": "string"
+					"type": "keyword"
 				}
 			},
 			"dynamic_templates": [
@@ -214,6 +214,44 @@ func toQuadValue(v value) quad.Value {
 		return p.ToNative()
 	default:
 		panic(fmt.Errorf("unsupported type: %T", v))
+	}
+}
+
+func toElasticValue(v quad.Value) value {
+	if v == nil {
+		return nil
+	}
+	switch d := v.(type) {
+	case quad.Raw:
+		return string(d)
+	case quad.String:
+		return string(d)
+	case quad.IRI:
+		return string(d)
+	case quad.BNode:
+		return string(d)
+	case quad.TypedString:
+		return string(d.Value)
+	case quad.LangString:
+		return string(d.Value)
+	case quad.Int:
+		return int64(d)
+	case quad.Float:
+		return float64(d)
+	case quad.Bool:
+		return bool(d)
+	case quad.Time:
+		// TODO(dennwc): mongo supports only ms precision
+		// we can alternatively switch to protobuf serialization instead
+		// (maybe add an option for this)
+		return time.Time(d)
+	default:
+		qv := pquads.MakeValue(v)
+		data, err := qv.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		return data
 	}
 }
 
@@ -367,8 +405,8 @@ type ElasticQuad struct {
 
 // ElasticNodeEntry - Node structure
 type ElasticNodeEntry struct {
-	Hash string     `json:"hash"`
-	Node quad.Value `json:"node"`
+	Hash string `json:"hash"`
+	Node value  `json:"node"`
 }
 
 // ElasticLogEntry - Log entry structure
@@ -451,7 +489,7 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode elasticNodeTra
 
 		doc := ElasticNodeEntry{
 			Hash: nodeId,
-			Node: nodeVal,
+			Node: toElasticValue(nodeVal),
 		}
 
 		// Add document to index
