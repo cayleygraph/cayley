@@ -36,6 +36,7 @@ import (
 
 // QuadStoreType describes backend
 const QuadStoreType = "elastic"
+
 var indexName string
 
 func init() {

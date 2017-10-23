@@ -15,7 +15,9 @@
 package elastic
 
 import (
+	"fmt"
 	"strings"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -50,23 +52,64 @@ type SearchResultsIterator struct {
 
 var ctx = context.Background()
 
+func getFieldMap(qs *QuadStore) map[string]interface{} {
+	fields, err := qs.client.GetFieldMapping().Index("cayley").Type("quads").Pretty(true).Do(ctx)
+	if err != nil {
+		fmt.Println("Error getting field mapping")
+		return nil
+	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Incorrect field mapping input")
+		}
+	}()
+
+	fieldMap := fields["cayley"].(map[string]interface{})["mappings"].(map[string]interface{})["quads"].(map[string]interface{}) //[keyVal].(map[string]interface{})["mapping"].(map[string]interface{}) //[keyVal].(map[string]interface{})["type"]
+	return fieldMap
+}
+
+func isTime(fieldMap map[string]interface{}, keyVal string, quadDir quad.Direction) bool {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Incorrect time mapping input")
+		}
+	}()
+
+	result := fieldMap[quadDir.String()+"."+keyVal].(map[string]interface{})["mapping"].(map[string]interface{})[keyVal].(map[string]interface{})["type"]
+	if result == "date" {
+		return true
+	}
+
+	return false
+}
 
 // NewIterator returns a new iterator
 func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.Value) *Iterator {
 	if d == quad.QuadMetadata {
 
+		var query elastic.Query
+		elasticFieldMapping := getFieldMap(qs)
 		filterqueries := []elastic.Query{}
 
-		for key, value := range val.(QuadRefGraphValue) {
-			if key == "timestamp" {
-				timeRange := strings.Split(value, "=>")
-				filterqueries = append(filterqueries, elastic.NewRangeQuery(d.String()+"."+key).From(timeRange[0]).To(timeRange[1]))
-			} else {
-				filterqueries = append(filterqueries, elastic.NewRegexpQuery(d.String()+"."+key, value))
-
+		if len(elasticFieldMapping) != 0 {
+			for key, value := range val.(QuadRefGraphValue) {
+				if isTime(elasticFieldMapping, key, d) {
+					timeRange := strings.Split(value, "=>")
+					if len(timeRange) < 2 {
+						filterqueries = append(filterqueries, elastic.NewTermQuery("nullterm", "nullterm"))
+						break
+					}
+					filterqueries = append(filterqueries, elastic.NewRangeQuery(d.String()+"."+key).From(timeRange[0]).To(timeRange[1]))
+				} else {
+					filterqueries = append(filterqueries, elastic.NewRegexpQuery(d.String()+"."+key, value))
+				}
 			}
+
+			query = elastic.NewBoolQuery().Filter(filterqueries...)
+		} else {
+			query = elastic.NewTermQuery("nullterm", "nullterm")
 		}
-		query := elastic.NewBoolQuery().Filter(filterqueries...)
 
 		return &Iterator{
 			uid:         iterator.NextUID(),
