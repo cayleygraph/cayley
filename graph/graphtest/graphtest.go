@@ -205,8 +205,12 @@ func TestLoadOneQuad(t testing.TB, gen DatabaseFunc, c *Config) {
 	err := w.AddQuad(q)
 	require.NoError(t, err)
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
-		got := quad.StringOf(qs.NameOf(qs.ValueOf(quad.Raw(pq))))
-		require.Equal(t, pq, got, "Failed to roundtrip %q", pq)
+		tok := qs.ValueOf(quad.Raw(pq))
+		require.NotNil(t, tok, "quad store failed to find value: %q", pq)
+		val := qs.NameOf(tok)
+		require.NotNil(t, val, "quad store failed to decode value: %q", pq)
+		got := quad.StringOf(val)
+		require.Equal(t, pq, got, "quad store failed to roundtrip value: %q", pq)
 	}
 	exp := int64(5)
 	if c.NoPrimitives {
