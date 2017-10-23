@@ -53,7 +53,7 @@ type SearchResultsIterator struct {
 var ctx = context.Background()
 
 func getFieldMap(qs *QuadStore) map[string]interface{} {
-	fields, err := qs.client.GetFieldMapping().Index("cayley").Type("quads").Pretty(true).Do(ctx)
+	fields, err := qs.client.GetFieldMapping().Index(indexName).Type("quads").Pretty(true).Do(ctx)
 	if err != nil {
 		fmt.Println("Error getting field mapping")
 		return nil
@@ -65,7 +65,7 @@ func getFieldMap(qs *QuadStore) map[string]interface{} {
 		}
 	}()
 
-	fieldMap := fields["cayley"].(map[string]interface{})["mappings"].(map[string]interface{})["quads"].(map[string]interface{}) //[keyVal].(map[string]interface{})["mapping"].(map[string]interface{}) //[keyVal].(map[string]interface{})["type"]
+	fieldMap := fields[indexName].(map[string]interface{})["mappings"].(map[string]interface{})["quads"].(map[string]interface{}) //[keyVal].(map[string]interface{})["mapping"].(map[string]interface{}) //[keyVal].(map[string]interface{})["type"]
 	return fieldMap
 }
 
