@@ -213,6 +213,21 @@ func bothMorphism(tags []string, via ...interface{}) morphism {
 	}
 }
 
+func bothEMorphism(tags []string, via []interface{}, filters []interface{}) morphism {
+	return morphism{
+		Name:     "in",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return bothEMorphism(tags, via, filters), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			via := buildVia(via...)
+			return shape.Union{
+				shape.InE(in, via, buildVia(filters...), ctx.labelSet, tags...),
+				shape.OutE(in, via, buildVia(filters...), ctx.labelSet, tags...),
+			}, ctx
+		},
+		tags: tags,
+	}
+}
+
 func labelContextMorphism(tags []string, via ...interface{}) morphism {
 	var path shape.Shape
 	if len(via) == 0 {

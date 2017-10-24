@@ -226,6 +226,16 @@ func (p *pathObject) Both(call goja.FunctionCall) goja.Value {
 	np := p.clonePath().BothWithTags(tags, preds...)
 	return p.newVal(np)
 }
+
+func (p *pathObject) BothE(call goja.FunctionCall) goja.Value {
+	preds, filters, tags, ok := toViaDataE(exportArgs(call.Arguments))
+	if !ok {
+		return throwErr(p.s.vm, errNoVia)
+	}
+	np := p.clonePath().BothEWithTags(tags, preds, filters)
+	return p.newVal(np)
+}
+
 func (p *pathObject) follow(ep *pathObject, rev bool) *pathObject {
 	np := p.clonePath()
 	if rev {
