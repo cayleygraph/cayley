@@ -33,14 +33,7 @@ import (
 	"github.com/cayleygraph/cayley/query/gizmo"
 
 	// Load all supported backends.
-	_ "github.com/cayleygraph/cayley/graph/bolt"
-	_ "github.com/cayleygraph/cayley/graph/kv/bolt"
-	_ "github.com/cayleygraph/cayley/graph/kv/btree"
-	_ "github.com/cayleygraph/cayley/graph/kv/leveldb"
-	_ "github.com/cayleygraph/cayley/graph/leveldb"
-	_ "github.com/cayleygraph/cayley/graph/memstore"
-	_ "github.com/cayleygraph/cayley/graph/mongo"
-	_ "github.com/cayleygraph/cayley/graph/sql"
+	_ "github.com/cayleygraph/cayley/graph/all"
 
 	// Load writer registry
 	_ "github.com/cayleygraph/cayley/writer"
