@@ -37,7 +37,8 @@ func makeElastic(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 
 func TestElasticAll(t *testing.T) {
 	graphtest.TestAll(t, makeElastic, &graphtest.Config{
-		SkipNodeDelAfterQuadDel: true,
+		NoPrimitives:   true,
+		SkipIntHorizon: true,
 	})
 }
 

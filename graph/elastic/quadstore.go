@@ -19,7 +19,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -205,16 +204,41 @@ func toQuadValue(v value) quad.Value {
 		return quad.Bool(d)
 	case time.Time:
 		return quad.Time(d)
+	case elasticString:
+		if d.IsIRI {
+			return quad.IRI(d.Value)
+		} else if d.IsBNode {
+			return quad.BNode(d.Value)
+		} else if d.Lang != "" {
+			return quad.LangString{
+				Value: quad.String(d.Value),
+				Lang:  d.Lang,
+			}
+		} else if d.Type != "" {
+			return quad.TypedString{
+				Value: quad.String(d.Value),
+				Type:  quad.IRI(d.Type),
+			}
+		}
+		return quad.String(d.Value)
 	case []byte:
 		var p pquads.Value
 		if err := p.Unmarshal(d); err != nil {
-			clog.Errorf("Error: Cou isAdd't decode value: %v", err)
+			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil
 		}
 		return p.ToNative()
 	default:
 		panic(fmt.Errorf("unsupported type: %T", v))
 	}
+}
+
+type elasticString struct {
+	Value   string `json:"val"`
+	IsIRI   bool   `json:"iri,omitempty"`
+	IsBNode bool   `json:"bnode,omitempty"`
+	Type    string `json:"type,omitempty"`
+	Lang    string `json:"lang,omitempty"`
 }
 
 func toElasticValue(v quad.Value) value {
@@ -225,15 +249,15 @@ func toElasticValue(v quad.Value) value {
 	case quad.Raw:
 		return string(d)
 	case quad.String:
-		return string(d)
+		return elasticString{Value: string(d)}
 	case quad.IRI:
-		return string(d)
+		return elasticString{Value: string(d), IsIRI: true}
 	case quad.BNode:
-		return string(d)
+		return elasticString{Value: string(d), IsBNode: true}
 	case quad.TypedString:
-		return string(d.Value)
+		return elasticString{Value: string(d.Value), Type: string(d.Type)}
 	case quad.LangString:
-		return string(d.Value)
+		return elasticString{Value: string(d.Value), Lang: string(d.Lang)}
 	case quad.Int:
 		return int64(d)
 	case quad.Float:
@@ -392,7 +416,9 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			return &graph.DeltaError{Delta: d, Err: err}
 		}
 	}
-	return nil
+
+	_, err := qs.client.Flush(DefaultESIndex).Do(context.TODO())
+	return err
 }
 
 // ElasticQuad - Quad structure
@@ -579,7 +605,6 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		Index(DefaultESIndex).
 		Type("nodes").
 		Query(termQuery).
-		From(0).Size(1).
 		Do(ctx)
 	if err != nil {
 		clog.Errorf("Error: %v", err)
@@ -619,7 +644,8 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 	ctx := context.Background()
 	searchResult, err := qs.client.
 		Search().
-		Index(DefaultESIndex).
+		Index("log").
+		Type("elastic").
 		Sort("_timestamp", false).
 		From(0).Size(1).
 		Do(ctx)
@@ -640,12 +666,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 		return graph.NewSequentialKey(0)
 	}
 
-	eKey, err := strconv.ParseInt(eNode.ID, 10, 64)
-	if err != nil {
-		return graph.NewSequentialKey(0)
-	}
-	return graph.NewSequentialKey(eKey)
-
+	return graph.NewUniqueKey(eNode.ID)
 }
 
 // FixedIterator returns an iterator over a fixed value
