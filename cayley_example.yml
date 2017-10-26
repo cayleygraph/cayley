@@ -1,8 +1,8 @@
 store:
   # backend to use
-  backend: elastic
+  backend: bolt
   # address or path for the database
-  address: "http://127.0.0.1:9200"
+  address: "./cayley.db"
   # open database in read-only mode
   read_only: false
   # backend-specific options

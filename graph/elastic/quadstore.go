@@ -605,6 +605,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		Index(DefaultESIndex).
 		Type("nodes").
 		Query(termQuery).
+		Size(1).
 		Do(ctx)
 	if err != nil {
 		clog.Errorf("Error: %v", err)
