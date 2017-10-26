@@ -155,7 +155,6 @@ func outMorphism(tags []string, via ...interface{}) morphism {
 		Name:     "out",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return inMorphism(tags, via...), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			ctx.labelSet = shape.Save{From: buildVia("Labelnode"), Tags: nil}
 			return shape.Out(in, buildVia(via...), ctx.labelSet, tags...), ctx
 		},
 		tags: tags,
