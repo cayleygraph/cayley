@@ -204,23 +204,23 @@ func toQuadValue(v value) quad.Value {
 		return quad.Bool(d)
 	case time.Time:
 		return quad.Time(d)
-	case elasticString:
-		if d.IsIRI {
-			return quad.IRI(d.Value)
-		} else if d.IsBNode {
-			return quad.BNode(d.Value)
-		} else if d.Lang != "" {
+	case map[string]interface{}:
+		if _, ok := d["iri"].(bool); ok {
+			return quad.IRI(d["val"].(string))
+		} else if _, ok := d["bnode"].(bool); ok {
+			return quad.BNode(d["val"].(string))
+		} else if val, ok := d["lang"].(string); ok {
 			return quad.LangString{
-				Value: quad.String(d.Value),
-				Lang:  d.Lang,
+				Value: quad.String(d["val"].(string)),
+				Lang:  val,
 			}
-		} else if d.Type != "" {
+		} else if val, ok := d["type"].(string); ok {
 			return quad.TypedString{
-				Value: quad.String(d.Value),
-				Type:  quad.IRI(d.Type),
+				Value: quad.String(d["val"].(string)),
+				Type:  quad.IRI(val),
 			}
 		}
-		return quad.String(d.Value)
+		return quad.String(d["val"].(string))
 	case []byte:
 		var p pquads.Value
 		if err := p.Unmarshal(d); err != nil {
@@ -245,6 +245,7 @@ func toElasticValue(v quad.Value) value {
 	if v == nil {
 		return nil
 	}
+	fmt.Println("to elastic value-----")
 	switch d := v.(type) {
 	case quad.Raw:
 		return string(d)
