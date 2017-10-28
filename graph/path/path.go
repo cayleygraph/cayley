@@ -88,7 +88,7 @@ func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
 		stack: []morphism{
 			isMorphism(nodes...),
 		},
-		qs:    qs,
+		qs: qs,
 	}
 }
 
@@ -98,7 +98,7 @@ func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
 		stack: []morphism{
 			isNodeMorphism(nodes...),
 		},
-		qs:    qs,
+		qs: qs,
 	}
 }
 
@@ -114,7 +114,7 @@ func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
 // NewPath creates a new, empty Path.
 func NewPath(qs graph.QuadStore) *Path {
 	return &Path{
-		qs:    qs,
+		qs: qs,
 	}
 }
 
@@ -369,7 +369,7 @@ func (p *Path) FollowReverse(path *Path) *Path {
 // first time the result node was seen.
 //
 // This is a very expensive operation in practice. Be sure to use it wisely.
-func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
+func (p *Path) FollowRecursive(via interface{}, maxDepth int, depthTags []string) *Path {
 	var path *Path
 	switch v := via.(type) {
 	case string:
@@ -382,7 +382,7 @@ func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
 		panic("did not pass a string predicate or a Path to FollowRecursive")
 	}
 	np := p.clone()
-	np.stack = append(p.stack, followRecursiveMorphism(path, depthTags))
+	np.stack = append(p.stack, followRecursiveMorphism(path, maxDepth, depthTags))
 	return np
 }
 

@@ -21,6 +21,7 @@ type Recursive struct {
 	seen          map[interface{}]seenAt
 	nextIt        graph.Iterator
 	depth         int
+	maxDepth      int
 	pathMap       map[interface{}][]map[string]graph.Value
 	pathIndex     int
 	containsValue graph.Value
@@ -36,9 +37,13 @@ type seenAt struct {
 
 var _ graph.Iterator = &Recursive{}
 
-var MaxRecursiveSteps = 50
+var DefaultMaxRecursiveSteps = 50
 
-func NewRecursive(qs graph.QuadStore, it graph.Iterator, morphism graph.ApplyMorphism) *Recursive {
+func NewRecursive(qs graph.QuadStore, it graph.Iterator, morphism graph.ApplyMorphism, maxDepth int) *Recursive {
+	if maxDepth == 0 {
+		maxDepth = DefaultMaxRecursiveSteps
+	}
+
 	return &Recursive{
 		uid:   NextUID(),
 		subIt: it,
@@ -50,6 +55,7 @@ func NewRecursive(qs graph.QuadStore, it graph.Iterator, morphism graph.ApplyMor
 		baseIt:        qs.FixedIterator(),
 		pathMap:       make(map[interface{}][]map[string]graph.Value),
 		containsValue: nil,
+		maxDepth:      maxDepth,
 	}
 }
 
@@ -98,7 +104,7 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Recursive) Clone() graph.Iterator {
-	n := NewRecursive(it.qs, it.subIt.Clone(), it.morphism)
+	n := NewRecursive(it.qs, it.subIt.Clone(), it.morphism, DefaultMaxRecursiveSteps)
 	n.tags.CopyFrom(it)
 	n.depthTags.CopyFromTagger(&it.depthTags)
 	return n
@@ -124,6 +130,9 @@ func (it *Recursive) Next() bool {
 				it.pathMap[key] = append(it.pathMap[key], tags)
 			}
 		}
+	}
+	if it.depth == it.maxDepth {
+		return graph.NextLogOut(it, false)
 	}
 	for {
 		ok := it.nextIt.Next()

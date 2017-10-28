@@ -392,6 +392,20 @@ func toViaData(objs []interface{}) (predicates []interface{}, tags []string, ok 
 	return
 }
 
+func toViaDepthData(objs []interface{}) (predicates []interface{}, maxDepth int, tags []string, ok bool) {
+	if len(objs) != 0 {
+		predicates = toVia([]interface{}{objs[0]})
+	}
+	if len(objs) > 1 {
+		maxDepth = toInt(objs[1])
+	}
+	if len(objs) > 2 {
+		tags = toStrings(objs[2:])
+	}
+	ok = true
+	return
+}
+
 func throwErr(vm *goja.Runtime, err error) goja.Value {
 	panic(vm.ToValue(err))
 }
