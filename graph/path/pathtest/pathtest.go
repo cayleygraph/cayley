@@ -350,7 +350,7 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "follow recursive",
-			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, nil),
+			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, 0, nil),
 			expect:  []quad.Value{vBob, vDani, vFred, vGreg},
 		},
 		{
@@ -420,7 +420,7 @@ func testFollowRecursive(t testing.TB, fnc graphtest.DatabaseFunc) {
 	defer closer()
 
 	qu := StartPath(qs, quad.IRI("a")).FollowRecursive(
-		StartMorphism().Out(quad.IRI("parent")), nil,
+		StartMorphism().Out(quad.IRI("parent")), 0, nil,
 	).Has(quad.IRI("labels"), quad.IRI("tag"))
 
 	expect := []quad.Value{quad.IRI("c"), quad.IRI("d")}
