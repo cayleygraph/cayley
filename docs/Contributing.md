@@ -73,14 +73,12 @@ Which will also resolve the relevant static content paths for serving HTTP.
 
 First, `cd` into the `caley` project folder.
 
-For Go 1.8 and below:
-
+For Go 1.8:
 ```
 go test -v $(go list ./... | grep -v vendor/)
 ```
 
 For Go 1.9 and onwards:
-
 ```
 go test ./...
 ```
