@@ -364,7 +364,13 @@ func (p *Path) FollowReverse(path *Path) *Path {
 // ancestors", by repeatedly following the "parent" connection on the result of
 // the parent nodes.
 //
-// The second argument, "depthTags" is a set of tags that will return strings of
+// The second argument, "maxDepth" is the maximum number of recursive steps before
+// stopping and returning.
+// If -1 is passed, it will have no limit.
+// If 0 is passed, it will use the default value of 50 steps before returning.
+// If 1 is passed, it will stop after 1 step before returning, and so on.
+//
+// The third argument, "depthTags" is a set of tags that will return strings of
 // numeric values relating to how many applications of the path were applied the
 // first time the result node was seen.
 //

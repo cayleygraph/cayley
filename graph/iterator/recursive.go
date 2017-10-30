@@ -104,7 +104,7 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Recursive) Clone() graph.Iterator {
-	n := NewRecursive(it.qs, it.subIt.Clone(), it.morphism, DefaultMaxRecursiveSteps)
+	n := NewRecursive(it.qs, it.subIt.Clone(), it.morphism, it.maxDepth)
 	n.tags.CopyFrom(it)
 	n.depthTags.CopyFromTagger(&it.depthTags)
 	return n
@@ -131,7 +131,7 @@ func (it *Recursive) Next() bool {
 			}
 		}
 	}
-	if it.depth == it.maxDepth {
+	if it.depth >= it.maxDepth {
 		return graph.NextLogOut(it, false)
 	}
 	for {
