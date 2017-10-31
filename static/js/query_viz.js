@@ -61,14 +61,17 @@ function Network() {
   }
 
   var rotationTransformForLinkNode = function (d) {
-    var center_x = (d.link.source.x + d.link.target.x) / 2
-    var center_y = (d.link.source.y + d.link.target.y) / 2
-    var dx = d.link.target.x - d.link.source.x
-    var dy = d.link.target.y - d.link.source.y
-    var rotation_radians = Math.atan2(dy,dx)
-    var rotation_degrees = rotation_radians * (180 / Math.PI)
-    return "rotate(" + rotation_degrees + ", " + center_x + ", " + center_y + ")"
-
+    if (d.link) {
+      var center_x = (d.link.source.x + d.link.target.x) / 2
+      var center_y = (d.link.source.y + d.link.target.y) / 2
+      var dx = d.link.target.x - d.link.source.x
+      var dy = d.link.target.y - d.link.source.y
+      var rotation_radians = Math.atan2(dy,dx)
+      var rotation_degrees = rotation_radians * (180 / Math.PI)
+      return "rotate(" + rotation_degrees + ", " + center_x + ", " + center_y + ")"
+    } else {
+      return null
+    }
   }
 
   var updateLink = function() {
@@ -85,8 +88,10 @@ function Network() {
       .attr("cy", function(d) {return d.y})
 
     linknode.each(function(d) {
-      d.x = (d.link.source.x + d.link.target.x) / 2
-      d.y = (d.link.source.y + d.link.target.y) / 2
+      if (d.link) {
+        d.x = (d.link.source.x + d.link.target.x) / 2
+        d.y = (d.link.source.y + d.link.target.y) / 2
+      }
     })
 
     linknode
@@ -94,7 +99,9 @@ function Network() {
       .attr("cy", function(d) {return d.y })
       .attr("transform", rotationTransformForLinkNode)
 
-    link.call(updateLink);
+    if (link) {
+      link.call(updateLink);
+    }
 
     tagForceTick(e)
   }
@@ -126,6 +133,9 @@ function Network() {
   }
 
   var setupData = function (data) {
+
+    console.log('data = ', data);
+
     data.nodes.forEach(function (n) {
       n.x = randomnumber=Math.floor(Math.random()*width)
       n.y = randomnumber=Math.floor(Math.random()*height)
@@ -134,11 +144,13 @@ function Network() {
 
     var nodesMap = mapNodes(data.nodes)
 
-    data.links.forEach(function (l) {
-      l.source = nodesMap.get(l.source)
-      l.target = nodesMap.get(l.target)
-      nodesMap.get(l.link_node).link = l
-    })
+    if (data.links) {
+      data.links.forEach(function (l) {
+        l.source = nodesMap.get(l.source)
+        l.target = nodesMap.get(l.target)
+        nodesMap.get(l.link_node).link = l
+      })
+    }
 
     data.tag_links = []
     data.tag_nodes = []
@@ -299,23 +311,26 @@ function Network() {
     linknode.exit().remove();
 
 
-    force.links(curLinksData);
+    if (curLinksData) {
+      force.links(curLinksData);
 
-    link = linksG.selectAll("line.link")
-      .data(curLinksData, function(d) { return d.source.id + "_" + d.target.id});
+      link = linksG.selectAll("line.link")
+        .data(curLinksData, function(d) { return d.source.id + "_" + d.target.id});
 
-    link.enter().append("line")
-      .attr("class", "link")
-      .attr("stroke", "#222")
-      .attr("stroke-opacity", 1.0)
-      .attr("marker-end", "url(#arrowhead)")
-      .style("stroke-width", 2.0)
-      .attr("x1", function(d) {return d.source.x})
-      .attr("y1", function(d) {return d.source.y})
-      .attr("x2", function(d) {return d.target.x})
-      .attr("y2", function(d) {return d.target.y});
+      link.enter().append("line")
+        .attr("class", "link")
+        .attr("stroke", "#222")
+        .attr("stroke-opacity", 1.0)
+        .attr("marker-end", "url(#arrowhead)")
+        .style("stroke-width", 2.0)
+        .attr("x1", function(d) {return d.source.x})
+        .attr("y1", function(d) {return d.source.y})
+        .attr("x2", function(d) {return d.target.x})
+        .attr("y2", function(d) {return d.target.y});
 
-    link.exit().remove();
+      link.exit().remove();
+    }
+
     force.start();
 
     tag_force.nodes(curTagNodesData);
