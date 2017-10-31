@@ -133,9 +133,6 @@ function Network() {
   }
 
   var setupData = function (data) {
-
-    console.log('data = ', data);
-
     data.nodes.forEach(function (n) {
       n.x = randomnumber=Math.floor(Math.random()*width)
       n.y = randomnumber=Math.floor(Math.random()*height)
