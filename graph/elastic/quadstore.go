@@ -205,22 +205,24 @@ func toQuadValue(v value) quad.Value {
 	case time.Time:
 		return quad.Time(d)
 	case map[string]interface{}:
+		val, _ := d["val"].(string)
+
 		if _, ok := d["iri"].(bool); ok {
-			return quad.IRI(d["val"].(string))
+			return quad.IRI(val)
 		} else if _, ok := d["bnode"].(bool); ok {
-			return quad.BNode(d["val"].(string))
-		} else if val, ok := d["lang"].(string); ok {
+			return quad.BNode(val)
+		} else if langval, ok := d["lang"].(string); ok {
 			return quad.LangString{
-				Value: quad.String(d["val"].(string)),
-				Lang:  val,
+				Value: quad.String(val),
+				Lang:  langval,
 			}
-		} else if val, ok := d["type"].(string); ok {
+		} else if typeval, ok := d["type"].(string); ok {
 			return quad.TypedString{
-				Value: quad.String(d["val"].(string)),
-				Type:  quad.IRI(val),
+				Value: quad.String(val),
+				Type:  quad.IRI(typeval),
 			}
 		}
-		return quad.String(d["val"].(string))
+		return quad.String(val)
 	case []byte:
 		var p pquads.Value
 		if err := p.Unmarshal(d); err != nil {
