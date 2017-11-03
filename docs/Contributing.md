@@ -68,3 +68,22 @@ go build ./cmd/cayley && ./cayley <subcommand> <your options>
 Which will also resolve the relevant static content paths for serving HTTP.
 
 **Reminder:** add yourself to CONTRIBUTORS and AUTHORS.
+
+# Running Unit Tests
+
+First, `cd` into the `caley` project folder.
+
+For Go 1.8:
+```
+go test -v $(go list ./... | grep -v vendor/)
+```
+
+For Go 1.9 and onwards:
+```
+go test ./...
+```
+
+If you have a Docker installed, you can also run tests for backend implementations:
+```
+go test -tags docker ./...
+```
