@@ -82,3 +82,8 @@ For Go 1.9 and onwards:
 ```
 go test ./...
 ```
+
+If you have a Docker installed, you can also run tests for backend implementations:
+```
+go test -tags docker ./...
+```
