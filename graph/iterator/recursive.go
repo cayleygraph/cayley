@@ -81,7 +81,7 @@ func (it *Recursive) AddDepthTag(s string) {
 
 func (it *Recursive) TagResults(dst map[string]graph.Value) {
 	it.tags.TagResult(dst, it.Result())
-	it.depthTags.TagResult(dst, it.qs.ValueOf(quad.Int(it.result.depth)))
+	it.depthTags.TagResult(dst, graph.PreFetched(quad.Int(it.result.depth)))
 
 	if it.containsValue != nil {
 		paths := it.pathMap[graph.ToKey(it.containsValue)]

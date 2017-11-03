@@ -55,6 +55,10 @@ func makeTestSession(data []quad.Quad) *Session {
 	return NewSession(qs)
 }
 
+func intVal(v int) string {
+	return quad.Int(v).String()
+}
+
 var testQueries = []struct {
 	message string
 	query   string
@@ -520,6 +524,14 @@ var testQueries = []struct {
 			g.V("<charlie>").FollowRecursive("<follows>").All();
 		`,
 		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
+	},
+	{
+		message: "recursive follow tag",
+		query: `
+			g.V("<charlie>").FollowRecursive("<follows>", "depth").All();
+		`,
+		tag:    "depth",
+		expect: []string{intVal(1), intVal(1), intVal(2), intVal(2)},
 	},
 	{
 		message: "recursive follow path",
