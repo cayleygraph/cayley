@@ -61,17 +61,16 @@ function Network() {
   }
 
   var rotationTransformForLinkNode = function (d) {
-    if (d.link) {
-      var center_x = (d.link.source.x + d.link.target.x) / 2
-      var center_y = (d.link.source.y + d.link.target.y) / 2
-      var dx = d.link.target.x - d.link.source.x
-      var dy = d.link.target.y - d.link.source.y
-      var rotation_radians = Math.atan2(dy,dx)
-      var rotation_degrees = rotation_radians * (180 / Math.PI)
-      return "rotate(" + rotation_degrees + ", " + center_x + ", " + center_y + ")"
-    } else {
+    if (!d.link) {
       return null
     }
+    var center_x = (d.link.source.x + d.link.target.x) / 2
+    var center_y = (d.link.source.y + d.link.target.y) / 2
+    var dx = d.link.target.x - d.link.source.x
+    var dy = d.link.target.y - d.link.source.y
+    var rotation_radians = Math.atan2(dy,dx)
+    var rotation_degrees = rotation_radians * (180 / Math.PI)
+    return "rotate(" + rotation_degrees + ", " + center_x + ", " + center_y + ")"
   }
 
   var updateLink = function() {
