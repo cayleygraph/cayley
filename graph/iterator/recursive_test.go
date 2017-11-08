@@ -54,7 +54,7 @@ func TestRecursiveNext(t *testing.T) {
 	qs := rec_test_qs
 	start := qs.FixedIterator()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
-	r := NewRecursive(qs, start, singleHop("parent"))
+	r := NewRecursive(qs, start, singleHop("parent"), 0)
 	expected := []string{"bob", "charlie", "dani", "emily"}
 
 	var got []string
@@ -72,7 +72,7 @@ func TestRecursiveContains(t *testing.T) {
 	qs := rec_test_qs
 	start := qs.FixedIterator()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
-	r := NewRecursive(qs, start, singleHop("parent"))
+	r := NewRecursive(qs, start, singleHop("parent"), 0)
 	values := []string{"charlie", "bob", "not"}
 	expected := []bool{true, true, false}
 
@@ -94,7 +94,7 @@ func TestRecursiveNextPath(t *testing.T) {
 	fixed := qs.FixedIterator()
 	fixed.Add(graph.PreFetched(quad.Raw("alice")))
 	and.AddSubIterator(fixed)
-	r := NewRecursive(qs, and, singleHop("parent"))
+	r := NewRecursive(qs, and, singleHop("parent"), 0)
 
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string

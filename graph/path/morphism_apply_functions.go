@@ -306,16 +306,16 @@ func (s iteratorBuilder) Optimize(r shape.Optimizer) (shape.Shape, bool) {
 	return s, false
 }
 
-func followRecursiveMorphism(p *Path, depthTags []string) morphism {
+func followRecursiveMorphism(p *Path, maxDepth int, depthTags []string) morphism {
 	return morphism{
 		Name: "follow_recursive",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
-			return followRecursiveMorphism(p.Reverse(), depthTags), ctx
+			return followRecursiveMorphism(p.Reverse(), maxDepth, depthTags), ctx
 		},
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return iteratorBuilder(func(qs graph.QuadStore) graph.Iterator {
 				in := in.BuildIterator(qs)
-				it := iterator.NewRecursive(qs, in, p.Morphism())
+				it := iterator.NewRecursive(qs, in, p.Morphism(), maxDepth)
 				for _, s := range depthTags {
 					it.AddDepthTag(s)
 				}
