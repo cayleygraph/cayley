@@ -247,7 +247,6 @@ func toElasticValue(v quad.Value) value {
 	if v == nil {
 		return nil
 	}
-	fmt.Println("to elastic value-----")
 	switch d := v.(type) {
 	case quad.Raw:
 		return string(d)

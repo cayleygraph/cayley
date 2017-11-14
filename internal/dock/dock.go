@@ -3,6 +3,7 @@
 package dock
 
 import (
+	"net"
 	"testing"
 	"time"
 
@@ -69,4 +70,18 @@ func RunAndWait(t testing.TB, conf Config, check func(string) bool) (addr string
 		t.Fatal("Container check fails.")
 	}
 	return addr, closer
+}
+
+func WaitPort(port string) func(addr string) bool {
+	const wait = time.Second * 5
+	return func(addr string) bool {
+		start := time.Now()
+		c, err := net.DialTimeout("tcp", addr+":"+port, wait)
+		if err == nil {
+			c.Close()
+		} else if dt := time.Since(start); dt < wait {
+			time.Sleep(wait - dt)
+		}
+		return err == nil
+	}
 }

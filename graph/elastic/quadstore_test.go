@@ -14,12 +14,12 @@ import (
 func makeElastic(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	var conf dock.Config
 
-	conf.Image = "elastic:3"
+	conf.Image = "elasticsearch"
 	conf.OpenStdin = true
 	conf.Tty = true
 
-	addr, closer := dock.Run(t, conf)
-	addr = addr + ":9200"
+	addr, closer := dock.RunAndWait(t, conf, dock.WaitPort("9200"))
+	addr = "http://" + addr + ":9200"
 	if err := createNewElasticGraph(addr, nil); err != nil {
 		closer()
 		t.Fatal(err)
