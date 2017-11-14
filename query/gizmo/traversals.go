@@ -247,14 +247,14 @@ func (p *pathObject) FollowR(path *pathObject) *pathObject {
 //	// Returns bob and dani (from charlie), fred (from bob) and greg (from dani).
 //	g.V("<charlie>").FollowRecursive(friend).All()
 func (p *pathObject) FollowRecursive(call goja.FunctionCall) goja.Value {
-	preds, tags, ok := toViaData(exportArgs(call.Arguments))
+	preds, maxDepth, tags, ok := toViaDepthData(exportArgs(call.Arguments))
 	if !ok || len(preds) == 0 {
 		return throwErr(p.s.vm, errNoVia)
 	} else if len(preds) != 1 {
 		return throwErr(p.s.vm, fmt.Errorf("expected one predicate or path for recursive follow"))
 	}
 	np := p.clonePath()
-	np = np.FollowRecursive(preds[0], tags)
+	np = np.FollowRecursive(preds[0], maxDepth, tags)
 	return p.newVal(np)
 }
 
