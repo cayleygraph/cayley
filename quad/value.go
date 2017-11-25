@@ -153,6 +153,9 @@ func (s String) String() string {
 	//TODO(barakmich): Proper escaping.
 	return `"` + escaper.Replace(string(s)) + `"`
 }
+func (s String) GoString() string {
+	return "quad.String(" + strconv.Quote(string(s)) + ")"
+}
 func (s String) Native() interface{} { return string(s) }
 
 // TypedString is an RDF value with type (ex: "name"^^<type>).
@@ -201,7 +204,10 @@ func (s LangString) Native() interface{} { return s.Value.Native() }
 // IRI is an RDF Internationalized Resource Identifier (ex: <name>).
 type IRI string
 
-func (s IRI) String() string      { return `<` + string(s) + `>` }
+func (s IRI) String() string { return `<` + string(s) + `>` }
+func (s IRI) GoString() string {
+	return "quad.IRI(" + strconv.Quote(string(s)) + ")"
+}
 func (s IRI) Short() IRI          { return IRI(voc.ShortIRI(string(s))) }
 func (s IRI) Full() IRI           { return IRI(voc.FullIRI(string(s))) }
 func (s IRI) Native() interface{} { return s }
@@ -215,7 +221,10 @@ func (s IRI) FullWith(n *voc.Namespaces) IRI {
 // BNode is an RDF Blank Node (ex: _:name).
 type BNode string
 
-func (s BNode) String() string      { return `_:` + string(s) }
+func (s BNode) String() string { return `_:` + string(s) }
+func (s BNode) GoString() string {
+	return "quad.BNode(" + strconv.Quote(string(s)) + ")"
+}
 func (s BNode) Native() interface{} { return s }
 
 // Native support for basic types
