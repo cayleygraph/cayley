@@ -50,6 +50,7 @@ var graphTests = []struct {
 	{"deleted from iterator", TestDeletedFromIterator},
 	{"load typed quad", TestLoadTypedQuads},
 	{"add and remove", TestAddRemove},
+	{"node delete", TestNodeDelete},
 	{"iterators and next result order", TestIteratorsAndNextResultOrderA},
 	{"compare typed values", TestCompareTypedValues},
 }
@@ -859,4 +860,44 @@ func TestCompareTypedValues(t testing.TB, gen DatabaseFunc, conf *Config) {
 		}
 		ExpectIteratedValues(t, qs, nit, c.expect)
 	}
+}
+
+func TestNodeDelete(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	del := quad.Raw("D")
+
+	err := w.RemoveNode(del)
+	require.NoError(t, err)
+
+	exp := MakeQuadSet()
+	for i := 0; i < len(exp); i++ {
+		for _, d := range quad.Directions {
+			if exp[i].Get(d) == del {
+				exp = append(exp[:i], exp[i+1:]...)
+				i--
+				break
+			}
+		}
+	}
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), exp, true)
+
+	if conf.SkipNodeDelAfterQuadDel {
+		return
+	}
+	ExpectIteratedValues(t, qs, qs.NodesAllIterator(), []quad.Value{
+		quad.Raw("A"),
+		quad.Raw("B"),
+		quad.Raw("C"),
+		quad.Raw("E"),
+		quad.Raw("F"),
+		quad.Raw("G"),
+		quad.Raw("cool"),
+		quad.Raw("follows"),
+		quad.Raw("status"),
+		quad.Raw("status_graph"),
+	})
 }
