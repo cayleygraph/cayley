@@ -245,6 +245,44 @@ var optimizeCases = []struct {
 			Tags: []string{"all"},
 		},
 	},
+	{ // push fixed node from intersect into nodes.quads
+		name: "push fixed into nodes.quads",
+		from: Intersect{
+			Fixed{intVal(1)},
+			NodesFrom{
+				Dir: quad.Subject,
+				Quads: Quads{
+					{Dir: quad.Predicate, Values: Fixed{intVal(2)}},
+					{
+						Dir: quad.Object,
+						Values: NodesFrom{
+							Dir: quad.Subject,
+							Quads: Quads{
+								{Dir: quad.Predicate, Values: Fixed{intVal(2)}},
+							},
+						},
+					},
+				},
+			},
+		},
+		opt: true,
+		expect: NodesFrom{
+			Dir: quad.Subject,
+			Quads: Quads{
+				{Dir: quad.Subject, Values: Fixed{intVal(1)}},
+				{Dir: quad.Predicate, Values: Fixed{intVal(2)}},
+				{
+					Dir: quad.Object,
+					Values: QuadsAction{
+						Result: quad.Subject,
+						Filter: map[quad.Direction]graph.Value{
+							quad.Predicate: intVal(2),
+						},
+					},
+				},
+			},
+		},
+	},
 }
 
 func TestOptimize(t *testing.T) {

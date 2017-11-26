@@ -540,7 +540,7 @@ func (p *Path) Shape() shape.Shape {
 	return p.ShapeFrom(shape.AllNodes{})
 }
 func (p *Path) ShapeFrom(from shape.Shape) shape.Shape {
-	var s shape.Shape = from
+	s := from
 	ctx := &p.baseContext
 	for _, m := range p.stack {
 		s, ctx = m.Apply(s, ctx)
