@@ -1040,12 +1040,34 @@ func (s Page) Optimize(r Optimizer) (Shape, bool) {
 	if s.Skip <= 0 && s.Limit <= 0 {
 		return s.From, true
 	}
+	if p, ok := s.From.(Page); ok {
+		p2 := p.ApplyPage(s)
+		if p2 == nil {
+			return nil, true
+		}
+		s, opt = *p2, true
+	}
 	if r != nil {
 		ns, nopt := r.OptimizeShape(s)
 		return ns, opt || nopt
 	}
 	// TODO: check size
-	return s, false
+	return s, opt
+}
+func (s Page) ApplyPage(p Page) *Page {
+	s.Skip += p.Skip
+	if s.Limit > 0 {
+		s.Limit -= p.Skip
+		if s.Limit <= 0 {
+			return nil
+		}
+		if p.Limit > 0 && s.Limit > p.Limit {
+			s.Limit = p.Limit
+		}
+	} else {
+		s.Limit = p.Limit
+	}
+	return &s
 }
 
 // Unique makes query results unique.
