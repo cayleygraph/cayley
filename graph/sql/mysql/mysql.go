@@ -14,17 +14,22 @@ import (
 
 const Type = "mysql"
 
+var QueryDialect = csql.QueryDialect{
+	FieldQuote: func(name string) string {
+		return "`" + name + "`"
+	},
+	Placeholder: func(n int) string { return "?" },
+}
+
 func init() {
 	csql.Register(Type, csql.Registration{
-		Driver:      "mysql",
-		HashType:    fmt.Sprintf(`BINARY(%d)`, quad.HashSize),
-		BytesType:   `BLOB`,
-		HorizonType: `SERIAL`,
-		TimeType:    `DATETIME(6)`,
-		FieldQuote:  func(name string) string {
-			return "`"+name+"`"
-		},
-		Placeholder: func(n int) string { return "?" },
+		Driver:               "mysql",
+		HashType:             fmt.Sprintf(`BINARY(%d)`, quad.HashSize),
+		BytesType:            `BLOB`,
+		HorizonType:          `SERIAL`,
+		TimeType:             `DATETIME(6)`,
+		QueryDialect:         QueryDialect,
+		NoOffsetWithoutLimit: true,
 		Error: func(err error) error {
 			return err
 		},
