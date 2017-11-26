@@ -774,6 +774,9 @@ func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Va
 			return nil
 		}
 	}
+	if err := it.Err(); err != nil {
+		return err
+	}
 	if slice || chanl {
 		return nil
 	}
