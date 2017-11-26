@@ -5,15 +5,15 @@ import (
 	"unicode/utf8"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
+	"github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/stretchr/testify/require"
 )
 
-type Config struct{
-	TimeRound bool
+type Config struct {
+	TimeRound      bool
 	SkipIntHorizon bool
 }
 
@@ -22,22 +22,21 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 		c = &Config{}
 	}
 	create := makeDatabaseFunc(typ, fnc)
-	t.Run("graph", func(t *testing.T){
+	t.Run("graph", func(t *testing.T) {
 		t.Parallel()
 		graphtest.TestAll(t, create, &graphtest.Config{
 			NoPrimitives:            true,
 			TimeInMcs:               true,
 			TimeRound:               c.TimeRound,
-			OptimizesHasAToUnique:   true,
 			SkipNodeDelAfterQuadDel: true,
-			SkipIntHorizon: c.SkipIntHorizon,
+			SkipIntHorizon:          c.SkipIntHorizon,
 		})
 	})
-	t.Run("paths", func(t *testing.T){
+	t.Run("paths", func(t *testing.T) {
 		t.Parallel()
 		pathtest.RunTestMorphisms(t, create)
 	})
-	t.Run("zero rune", func(t *testing.T){
+	t.Run("zero rune", func(t *testing.T) {
 		t.Parallel()
 		testZeroRune(t, create)
 	})

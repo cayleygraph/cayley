@@ -2,8 +2,9 @@ package sql
 
 import (
 	"database/sql"
-	"github.com/cayleygraph/cayley/graph"
 	"fmt"
+
+	"github.com/cayleygraph/cayley/graph"
 )
 
 var types = make(map[string]Registration)
@@ -28,10 +29,11 @@ type Registration struct {
 	FillFactor         bool   // database supports fill percent on indexes
 	NoForeignKeys      bool   // database has no support for FKs
 
-	FieldQuote          func(name string) string     // function to escape field names
-	Placeholder         func(n int) string           // function to generate n-th query placeholder
-	Error               func(error) error            // error conversion function
-	Estimated           func(table string) string    // query that string that returns an estimated number of rows in table
+	QueryDialect
+	NoOffsetWithoutLimit bool // SELECT ... OFFSET can be used only with LIMIT
+
+	Error               func(error) error         // error conversion function
+	Estimated           func(table string) string // query that string that returns an estimated number of rows in table
 	RunTx               func(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error
 	NoSchemaChangesInTx bool
 }

@@ -2,7 +2,6 @@ package cockroach
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
 	csql "github.com/cayleygraph/cayley/graph/sql"
@@ -26,10 +25,9 @@ func init() {
 	FAMILY fvalue (value, value_string, datatype, language, iri, bnode,
 		value_int, value_bool, value_float, value_time)
 `,
-		FieldQuote:          pq.QuoteIdentifier,
-		Placeholder:         func(n int) string { return fmt.Sprintf("$%d", n) },
+		QueryDialect:  postgres.QueryDialect,
 		NoForeignKeys: true,
-		Error: postgres.ConvError,
+		Error:         postgres.ConvError,
 		//Estimated: func(table string) string{
 		//	return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='"+table+"';"
 		//},

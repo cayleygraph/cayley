@@ -15,6 +15,13 @@ import (
 
 const Type = "postgres"
 
+var QueryDialect = csql.QueryDialect{
+	FieldQuote: pq.QuoteIdentifier,
+	Placeholder: func(n int) string {
+		return fmt.Sprintf("$%d", n)
+	},
+}
+
 func init() {
 	csql.Register(Type, csql.Registration{
 		Driver:             "postgres",
@@ -22,8 +29,7 @@ func init() {
 		BytesType:          `BYTEA`,
 		HorizonType:        `BIGSERIAL`,
 		TimeType:           `timestamp with time zone`,
-		FieldQuote:         pq.QuoteIdentifier,
-		Placeholder:        func(n int) string { return fmt.Sprintf("$%d", n) },
+		QueryDialect:       QueryDialect,
 		ConditionalIndexes: true,
 		FillFactor:         true,
 		Error:              ConvError,
