@@ -104,6 +104,36 @@ var optimizeCases = []struct {
 		expect: AllNodes{},
 	},
 	{
+		name: "page min limit",
+		from: Page{
+			Limit: 5,
+			From: Page{
+				Limit: 3,
+				From:  AllNodes{},
+			},
+		},
+		opt: true,
+		expect: Page{
+			Limit: 3,
+			From:  AllNodes{},
+		},
+	},
+	{
+		name: "page skip and limit",
+		from: Page{
+			Skip: 3, Limit: 3,
+			From: Page{
+				Skip: 2, Limit: 5,
+				From: AllNodes{},
+			},
+		},
+		opt: true,
+		expect: Page{
+			Skip: 5, Limit: 2,
+			From: AllNodes{},
+		},
+	},
+	{
 		name: "intersect quads and lookup resolution",
 		from: Intersect{
 			Quads{
