@@ -251,6 +251,14 @@ type Select struct {
 	Offset int64
 }
 
+func (s Select) Clone() Select {
+	s.Fields = append([]Field{}, s.Fields...)
+	s.From = append([]Source{}, s.From...)
+	s.Where = append([]Where{}, s.Where...)
+	s.Params = append([]Value{}, s.Params...)
+	return s
+}
+
 func (s Select) isAll() bool {
 	return len(s.From) == 1 && len(s.Where) == 0 && len(s.Params) == 0 && !s.onlyAsSubquery()
 }
@@ -307,28 +315,32 @@ func (s Select) SQL(b *Builder) string {
 	for _, f := range s.Fields {
 		fields = append(fields, f.SQL(b))
 	}
-	parts = append(parts, "SELECT", strings.Join(fields, ", "))
+	parts = append(parts, "SELECT "+strings.Join(fields, ", "))
 
 	var tables []string
 	for _, t := range s.From {
 		tables = append(tables, t.SQL(b))
 	}
-	parts = append(parts, "FROM", strings.Join(tables, ", "))
+	parts = append(parts, "FROM "+strings.Join(tables, ", "))
 
 	if len(s.Where) != 0 {
 		var wheres []string
 		for _, w := range s.Where {
 			wheres = append(wheres, w.SQL(b))
 		}
-		parts = append(parts, "WHERE", strings.Join(wheres, " AND "))
+		parts = append(parts, "WHERE "+strings.Join(wheres, " AND "))
 	}
 	if s.Limit > 0 {
-		parts = append(parts, "LIMIT", strconv.FormatInt(s.Limit, 10))
+		parts = append(parts, "LIMIT "+strconv.FormatInt(s.Limit, 10))
 	}
 	if s.Offset > 0 {
-		parts = append(parts, "OFFSET", strconv.FormatInt(s.Offset, 10))
+		parts = append(parts, "OFFSET "+strconv.FormatInt(s.Offset, 10))
 	}
-	return strings.Join(parts, " ")
+	sep := " "
+	if len(fields) > 1 {
+		sep = "\n\t"
+	}
+	return strings.Join(parts, sep)
 }
 func (s Select) Args() []Value {
 	var args []Value
