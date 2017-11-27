@@ -15,10 +15,11 @@
 package elastic
 
 import (
+	"context"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
-	"context"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 

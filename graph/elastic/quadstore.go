@@ -143,7 +143,7 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 		"nodes": {
 			"properties": {
 				"node": {
-					"type": "string"
+					"type": "object"
 				},
 				"hash": {
 					"type": "keyword"
@@ -205,12 +205,25 @@ func toQuadValue(v value) quad.Value {
 	case time.Time:
 		return quad.Time(d)
 	case map[string]interface{}:
-		val, _ := d["val"].(string)
+
+		val, _ := d["val_str"].(string)
 
 		if _, ok := d["iri"].(bool); ok {
 			return quad.IRI(val)
 		} else if _, ok := d["bnode"].(bool); ok {
 			return quad.BNode(val)
+		} else if _, ok := d["isint"].(bool); ok {
+			val, _ := d["val_int"].(int64)
+			return quad.Int(val)
+		} else if _, ok := d["isfloat"].(bool); ok {
+			val, _ := d["val_float"].(float64)
+			return quad.Float(val)
+		} else if _, ok := d["isbool"].(bool); ok {
+			val, _ := d["val_bool"].(bool)
+			return quad.Bool(val)
+		} else if _, ok := d["istime"].(bool); ok {
+			val, _ := d["val_time"].(time.Time)
+			return quad.Time(val)
 		} else if langval, ok := d["lang"].(string); ok {
 			return quad.LangString{
 				Value: quad.String(val),
@@ -236,11 +249,19 @@ func toQuadValue(v value) quad.Value {
 }
 
 type elasticString struct {
-	Value   string `json:"val"`
-	IsIRI   bool   `json:"iri,omitempty"`
-	IsBNode bool   `json:"bnode,omitempty"`
-	Type    string `json:"type,omitempty"`
-	Lang    string `json:"lang,omitempty"`
+	StringVal string    `json:"val_str"`
+	IntVal    int64     `json:"val_int"`
+	FloatVal  float64   `json:"val_float"`
+	BoolVal   bool      `json:"val_bool"`
+	TimeVal   time.Time `json:"val_time"`
+	IsIRI     bool      `json:"iri,omitempty"`
+	IsBNode   bool      `json:"bnode,omitempty"`
+	IsInt     bool      `json:"isint,omitempty"`
+	IsFloat   bool      `json:"isfloat,omitempty"`
+	IsBool    bool      `json:"isbool,omitempty"`
+	IsTime    bool      `json:"istime,omitempty"`
+	Type      string    `json:"type,omitempty"`
+	Lang      string    `json:"lang,omitempty"`
 }
 
 func toElasticValue(v quad.Value) value {
@@ -249,28 +270,28 @@ func toElasticValue(v quad.Value) value {
 	}
 	switch d := v.(type) {
 	case quad.Raw:
-		return string(d)
+		return elasticString{StringVal: string(d)}
 	case quad.String:
-		return elasticString{Value: string(d)}
+		return elasticString{StringVal: string(d)}
 	case quad.IRI:
-		return elasticString{Value: string(d), IsIRI: true}
+		return elasticString{StringVal: string(d), IsIRI: true}
 	case quad.BNode:
-		return elasticString{Value: string(d), IsBNode: true}
+		return elasticString{StringVal: string(d), IsBNode: true}
 	case quad.TypedString:
-		return elasticString{Value: string(d.Value), Type: string(d.Type)}
+		return elasticString{StringVal: string(d.Value), Type: string(d.Type)}
 	case quad.LangString:
-		return elasticString{Value: string(d.Value), Lang: string(d.Lang)}
+		return elasticString{StringVal: string(d.Value), Lang: string(d.Lang)}
 	case quad.Int:
-		return int64(d)
+		return elasticString{IntVal: int64(d), IsInt: true}
 	case quad.Float:
-		return float64(d)
+		return elasticString{FloatVal: float64(d), IsFloat: true}
 	case quad.Bool:
-		return bool(d)
+		return elasticString{BoolVal: bool(d), IsBool: true}
 	case quad.Time:
 		// TODO(dennwc): mongo supports only ms precision
 		// we can alternatively switch to protobuf serialization instead
 		// (maybe add an option for this)
-		return time.Time(d)
+		return elasticString{TimeVal: time.Time(d), IsTime: true}
 	default:
 		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
