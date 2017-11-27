@@ -224,6 +224,17 @@ func toQuadValue(v value) quad.Value {
 		} else if _, ok := d["istime"].(bool); ok {
 			val, _ := d["val_time"].(time.Time)
 			return quad.Time(val)
+		} else if _, ok := d["israw"].(bool); ok {
+			val, _ := d["val_raw"].(string)
+			return quad.String(val)
+		} else if _, ok := d["isbyte"].(bool); ok {
+			val, _ := d["val_byte"].([]byte)
+			var p pquads.Value
+			if err := p.Unmarshal(val); err != nil {
+				clog.Errorf("Error: Couldn't decode value: %v", err)
+				return nil
+			}
+			return p.ToNative()
 		} else if langval, ok := d["lang"].(string); ok {
 			return quad.LangString{
 				Value: quad.String(val),
@@ -254,12 +265,16 @@ type elasticString struct {
 	FloatVal  float64   `json:"val_float"`
 	BoolVal   bool      `json:"val_bool"`
 	TimeVal   time.Time `json:"val_time"`
+	RawVal    string    `json:"val_raw"`
+	ByteVal   []byte    `json:"val_byte"`
 	IsIRI     bool      `json:"iri,omitempty"`
 	IsBNode   bool      `json:"bnode,omitempty"`
 	IsInt     bool      `json:"isint,omitempty"`
 	IsFloat   bool      `json:"isfloat,omitempty"`
 	IsBool    bool      `json:"isbool,omitempty"`
 	IsTime    bool      `json:"istime,omitempty"`
+	IsRaw     bool      `json:"israw,omitempty"`
+	IsByte    bool      `json:"isbyte,omitempty"`
 	Type      string    `json:"type,omitempty"`
 	Lang      string    `json:"lang,omitempty"`
 }
@@ -270,7 +285,7 @@ func toElasticValue(v quad.Value) value {
 	}
 	switch d := v.(type) {
 	case quad.Raw:
-		return elasticString{StringVal: string(d)}
+		return elasticString{RawVal: string(d), IsRaw: true}
 	case quad.String:
 		return elasticString{StringVal: string(d)}
 	case quad.IRI:
@@ -298,7 +313,7 @@ func toElasticValue(v quad.Value) value {
 		if err != nil {
 			panic(err)
 		}
-		return data
+		return elasticString{ByteVal: data, IsByte: true}
 	}
 }
 
