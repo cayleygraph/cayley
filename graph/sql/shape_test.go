@@ -37,12 +37,16 @@ var shapeCases = []struct {
 	{
 		name: "all quads",
 		s:    shape.Quads{},
-		qu:   `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label FROM quads AS t_1`,
+		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
+	FROM quads AS t_1`,
 	},
 	{
 		name: "limit quads and skip first",
 		s:    shape.Page{From: shape.Quads{}, Limit: 100, Skip: 1},
-		qu:   `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label FROM quads AS t_1 LIMIT 100 OFFSET 1`,
+		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
+	FROM quads AS t_1
+	LIMIT 100
+	OFFSET 1`,
 	},
 	{
 		name: "quads with subject and predicate",
@@ -50,7 +54,9 @@ var shapeCases = []struct {
 			{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
 			{Dir: quad.Predicate, Values: shape.Fixed{hashVal("p")}},
 		},
-		qu:   `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label FROM quads AS t_1 WHERE t_1.subject_hash = $1 AND t_1.predicate_hash = $2`,
+		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
+	FROM quads AS t_1
+	WHERE t_1.subject_hash = $1 AND t_1.predicate_hash = $2`,
 		args: hashVals("s", "p"),
 	},
 	{
@@ -65,7 +71,9 @@ var shapeCases = []struct {
 				quad.Predicate: hashVal("p"),
 			},
 		},
-		qu:   `SELECT subject_hash AS ` + tagNode + `, object_hash AS o1, object_hash AS o2, label_hash AS "l 1" FROM quads WHERE predicate_hash = $1`,
+		qu: `SELECT subject_hash AS ` + tagNode + `, object_hash AS o1, object_hash AS o2, label_hash AS "l 1"
+	FROM quads
+	WHERE predicate_hash = $1`,
 		args: hashVals("p"),
 	},
 	{
@@ -83,7 +91,9 @@ var shapeCases = []struct {
 				},
 			},
 		},
-		qu:   `SELECT subject_hash AS sub, subject_hash AS ` + tagNode + `, object_hash AS o1, object_hash AS o2, label_hash AS "l 1" FROM quads WHERE predicate_hash = $1`,
+		qu: `SELECT subject_hash AS sub, subject_hash AS ` + tagNode + `, object_hash AS o1, object_hash AS o2, label_hash AS "l 1"
+	FROM quads
+	WHERE predicate_hash = $1`,
 		args: hashVals("p"),
 	},
 	{
@@ -100,7 +110,9 @@ var shapeCases = []struct {
 				},
 			},
 		},
-		qu:   `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label FROM quads AS t_1, (SELECT subject_hash AS ` + tagNode + ` FROM quads WHERE predicate_hash = $1) AS t_2 WHERE t_1.subject_hash = $2 AND t_1.predicate_hash = t_2.` + tagNode,
+		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
+	FROM quads AS t_1, (SELECT subject_hash AS ` + tagNode + ` FROM quads WHERE predicate_hash = $1) AS t_2
+	WHERE t_1.subject_hash = $2 AND t_1.predicate_hash = t_2.` + tagNode,
 		args: hashVals("p", "s"),
 	},
 	{
@@ -123,7 +135,9 @@ var shapeCases = []struct {
 				},
 			},
 		},
-		qu:   `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label, t_2.subject_hash AS pred, t_2.object_hash AS ob FROM quads AS t_1, quads AS t_2 WHERE t_1.subject_hash = $1 AND t_2.predicate_hash = $2 AND t_1.predicate_hash = t_2.subject_hash`,
+		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label, t_2.subject_hash AS pred, t_2.object_hash AS ob
+	FROM quads AS t_1, quads AS t_2
+	WHERE t_1.subject_hash = $1 AND t_2.predicate_hash = $2 AND t_1.predicate_hash = t_2.subject_hash`,
 		args: hashVals("s", "p"),
 	},
 	{
@@ -143,7 +157,9 @@ var shapeCases = []struct {
 				},
 			},
 		},
-		qu:   `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label FROM quads AS t_1, (SELECT subject_hash AS ` + tagNode + ` FROM quads WHERE predicate_hash = $1 LIMIT 10) AS t_2 WHERE t_1.subject_hash = $2 AND t_1.predicate_hash = t_2.` + tagNode,
+		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
+	FROM quads AS t_1, (SELECT subject_hash AS ` + tagNode + ` FROM quads WHERE predicate_hash = $1 LIMIT 10) AS t_2
+	WHERE t_1.subject_hash = $2 AND t_1.predicate_hash = t_2.` + tagNode,
 		args: hashVals("p", "s"),
 	},
 	{
@@ -193,8 +209,50 @@ var shapeCases = []struct {
 				},
 			},
 		},
-		qu:   `SELECT t_1.object_hash AS ` + tagNode + `, t_2.object_hash AS ob FROM quads AS t_1, quads AS t_2 WHERE t_1.subject_hash = $1 AND t_2.predicate_hash = $2 AND t_1.predicate_hash = t_2.subject_hash`,
+		qu: `SELECT t_1.object_hash AS ` + tagNode + `, t_2.object_hash AS ob
+	FROM quads AS t_1, quads AS t_2
+	WHERE t_1.subject_hash = $1 AND t_2.predicate_hash = $2 AND t_1.predicate_hash = t_2.subject_hash`,
 		args: hashVals("s", "p"),
+	},
+	{
+		name: "intersect selects",
+		s: shape.Intersect{
+			shape.Save{
+				Tags: []string{"sub"},
+				From: shape.QuadsAction{
+					Result: quad.Subject,
+					Save: map[quad.Direction][]string{
+						quad.Object: {"o1"},
+						quad.Label:  {"l 1"},
+					},
+					Filter: map[quad.Direction]graph.Value{
+						quad.Predicate: hashVal("p1"),
+					},
+				},
+			},
+			shape.NodesFrom{
+				Dir: quad.Object,
+				Quads: shape.Quads{
+					{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
+					{
+						Dir: quad.Predicate,
+						Values: shape.QuadsAction{
+							Result: quad.Subject,
+							Save: map[quad.Direction][]string{
+								quad.Object: {"ob"},
+							},
+							Filter: map[quad.Direction]graph.Value{
+								quad.Predicate: hashVal("p2"),
+							},
+						},
+					},
+				},
+			},
+		},
+		qu: `SELECT t_3.subject_hash AS sub, t_3.subject_hash AS __node, t_3.object_hash AS o1, t_3.label_hash AS "l 1", t_2.object_hash AS ob
+	FROM quads AS t_3, quads AS t_1, quads AS t_2
+	WHERE t_3.predicate_hash = $1 AND t_1.subject_hash = $2 AND t_2.predicate_hash = $3 AND t_1.predicate_hash = t_2.subject_hash AND t_3.subject_hash = t_1.object_hash`,
+		args: hashVals("p1", "s", "p2"),
 	},
 }
 

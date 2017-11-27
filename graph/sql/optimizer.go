@@ -74,6 +74,8 @@ func (opt *Optimizer) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
 	switch s := s.(type) {
 	case shape.AllNodes:
 		return AllNodes(), true
+	case shape.Intersect:
+		return opt.optimizeIntersect(s)
 	case shape.Quads:
 		return opt.optimizeQuads(s)
 	case shape.NodesFrom:
@@ -270,4 +272,73 @@ func (opt *Optimizer) optimizePage(s shape.Page) (shape.Shape, bool) {
 	sel.Limit = p.Limit
 	sel.Offset = p.Skip
 	return sel, true
+}
+
+func (opt *Optimizer) optimizeIntersect(s shape.Intersect) (shape.Shape, bool) {
+	var (
+		sels  []Select
+		other shape.Intersect
+	)
+	// we will add our merged Select to this slot
+	other = append(other, nil)
+	for _, sub := range s {
+		// TODO: sort by onlySubquery flag first
+		if sel, ok := sub.(Select); ok && !sel.onlyAsSubquery() {
+			sels = append(sels, sel)
+		} else {
+			other = append(other, sub)
+		}
+	}
+	if len(sels) <= 1 {
+		return s, false
+	}
+	for i := range sels {
+		sels[i] = sels[i].Clone()
+		opt.ensureAliases(&sels[i])
+	}
+	pri := sels[0]
+	var head *Field
+	for i, f := range pri.Fields {
+		if f.Alias == tagNode {
+			head = &pri.Fields[i]
+			break
+		}
+	}
+	if head == nil {
+		return s, false
+	}
+	sec := sels[1:]
+
+	for _, s2 := range sec {
+		// merge From, Where and Params
+		pri.From = append(pri.From, s2.From...)
+		pri.Where = append(pri.Where, s2.Where...)
+		pri.Params = append(pri.Params, s2.Params...)
+		// also find and remove primary tag, but add the same field to WHERE
+		ok := false
+		for _, f := range s2.Fields {
+			if f.Alias == tagNode {
+				ok = true
+				pri.Where = append(pri.Where, Where{
+					Table: head.Table,
+					Field: head.Name,
+					Op:    OpEqual,
+					Value: FieldName{
+						Table: f.Table,
+						Name:  f.Name,
+					},
+				})
+			} else {
+				pri.Fields = append(pri.Fields, f)
+			}
+		}
+		if !ok {
+			return s, false
+		}
+	}
+	if len(other) == 1 {
+		return pri, true
+	}
+	other[0] = pri
+	return other, true
 }
