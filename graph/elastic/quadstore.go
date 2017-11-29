@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -184,108 +183,75 @@ type value interface{}
 
 // ElasticNode contains Node properties
 type ElasticNode struct {
-	ID   string `json:"hash"`
-	Name value  `json:"node"`
+	ID   string        `json:"hash"`
+	Name elasticString `json:"node"`
 }
 
-func toQuadValue(v value) quad.Value {
-	if v == nil {
-		return nil
-	}
+func toQuadValue(d elasticString) quad.Value {
 
-	switch d := v.(type) {
-	case string:
-		return quad.Raw(d) // compatibility
-	case int64:
-		return quad.Int(d)
-	case float64:
-		return quad.Float(d)
-	case bool:
-		return quad.Bool(d)
-	case time.Time:
-		return quad.Time(d)
-	case map[string]interface{}:
+	val := d.StringVal
 
-		val, _ := d["val_str"].(string)
-
-		if _, ok := d["iri"].(bool); ok {
-			return quad.IRI(val)
-		} else if _, ok := d["bnode"].(bool); ok {
-			return quad.BNode(val)
-		} else if _, ok := d["isint"].(bool); ok {
-			val, _ := d["val_int"].(int64)
-			return quad.Int(val)
-		} else if _, ok := d["isfloat"].(bool); ok {
-			val, _ := d["val_float"].(float64)
-			return quad.Float(val)
-		} else if _, ok := d["isbool"].(bool); ok {
-			val, _ := d["val_bool"].(bool)
-			return quad.Bool(val)
-		} else if _, ok := d["istime"].(bool); ok {
-			val, _ := d["val_time"].(time.Time)
-			return quad.Time(val)
-		} else if _, ok := d["israw"].(bool); ok {
-			val, _ := d["val_raw"].(string)
-			return quad.String(val)
-		} else if _, ok := d["isbyte"].(bool); ok {
-			val, _ := d["val_byte"].([]byte)
-			var p pquads.Value
-			if err := p.Unmarshal(val); err != nil {
-				clog.Errorf("Error: Couldn't decode value: %v", err)
-				return nil
-			}
-			return p.ToNative()
-		} else if langval, ok := d["lang"].(string); ok {
-			return quad.LangString{
-				Value: quad.String(val),
-				Lang:  langval,
-			}
-		} else if typeval, ok := d["type"].(string); ok {
-			return quad.TypedString{
-				Value: quad.String(val),
-				Type:  quad.IRI(typeval),
-			}
-		}
+	if d.IsIRI == true {
+		return quad.IRI(val)
+	} else if d.IsBNode == true {
+		return quad.BNode(val)
+	} else if d.IntVal != nil {
+		val := *d.IntVal
+		return quad.Int(val)
+	} else if d.FloatVal != nil {
+		val := *d.FloatVal
+		return quad.Float(val)
+	} else if d.BoolVal != nil {
+		val := *d.BoolVal
+		return quad.Bool(val)
+	} else if d.TimeVal != nil {
+		val := *d.TimeVal
+		return quad.Time(val)
+	} else if d.RawVal != nil {
+		val := *d.RawVal
 		return quad.String(val)
-	case []byte:
+	} else if d.ByteVal != nil {
+		val := *d.ByteVal
 		var p pquads.Value
-		if err := p.Unmarshal(d); err != nil {
+		if err := p.Unmarshal(val); err != nil {
 			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil
 		}
 		return p.ToNative()
-	default:
-		panic(fmt.Errorf("unsupported type: %T", v))
+	} else if d.Lang != nil {
+		return quad.LangString{
+			Value: quad.String(val),
+			Lang:  *d.Lang,
+		}
+	} else if d.Type != nil {
+		return quad.TypedString{
+			Value: quad.String(val),
+			Type:  quad.IRI(*d.Type),
+		}
 	}
+	return quad.String(val)
 }
 
 type elasticString struct {
-	StringVal string    `json:"val_str"`
-	IntVal    int64     `json:"val_int"`
-	FloatVal  float64   `json:"val_float"`
-	BoolVal   bool      `json:"val_bool"`
-	TimeVal   time.Time `json:"val_time"`
-	RawVal    string    `json:"val_raw"`
-	ByteVal   []byte    `json:"val_byte"`
-	IsIRI     bool      `json:"iri,omitempty"`
-	IsBNode   bool      `json:"bnode,omitempty"`
-	IsInt     bool      `json:"isint,omitempty"`
-	IsFloat   bool      `json:"isfloat,omitempty"`
-	IsBool    bool      `json:"isbool,omitempty"`
-	IsTime    bool      `json:"istime,omitempty"`
-	IsRaw     bool      `json:"israw,omitempty"`
-	IsByte    bool      `json:"isbyte,omitempty"`
-	Type      string    `json:"type,omitempty"`
-	Lang      string    `json:"lang,omitempty"`
+	StringVal string     `json:"val_str"`
+	IntVal    *int64     `json:"val_int"`
+	FloatVal  *float64   `json:"val_float"`
+	BoolVal   *bool      `json:"val_bool"`
+	TimeVal   *time.Time `json:"val_time"`
+	RawVal    *quad.Raw  `json:"val_raw"`
+	ByteVal   *[]byte    `json:"val_byte"`
+	IsIRI     bool       `json:"iri,omitempty"`
+	IsBNode   bool       `json:"bnode,omitempty"`
+	Type      *string    `json:"type,omitempty"`
+	Lang      *string    `json:"lang,omitempty"`
 }
 
-func toElasticValue(v quad.Value) value {
-	if v == nil {
-		return nil
-	}
+func toElasticValue(v quad.Value) elasticString {
+
 	switch d := v.(type) {
 	case quad.Raw:
-		return elasticString{RawVal: string(d), IsRaw: true}
+		aValTmp := quad.Raw(d)
+		return elasticString{RawVal: &aValTmp}
 	case quad.String:
 		return elasticString{StringVal: string(d)}
 	case quad.IRI:
@@ -293,27 +259,33 @@ func toElasticValue(v quad.Value) value {
 	case quad.BNode:
 		return elasticString{StringVal: string(d), IsBNode: true}
 	case quad.TypedString:
-		return elasticString{StringVal: string(d.Value), Type: string(d.Type)}
+		aValTmp := string(d.Type)
+		return elasticString{StringVal: string(d.Value), Type: &aValTmp}
 	case quad.LangString:
-		return elasticString{StringVal: string(d.Value), Lang: string(d.Lang)}
+		aValTmp := string(d.Lang)
+		return elasticString{StringVal: string(d.Value), Lang: &aValTmp}
 	case quad.Int:
-		return elasticString{IntVal: int64(d), IsInt: true}
+		aValTmp := int64(d)
+		return elasticString{IntVal: &aValTmp}
 	case quad.Float:
-		return elasticString{FloatVal: float64(d), IsFloat: true}
+		aValTmp := float64(d)
+		return elasticString{FloatVal: &aValTmp}
 	case quad.Bool:
-		return elasticString{BoolVal: bool(d), IsBool: true}
+		aValTmp := bool(d)
+		return elasticString{BoolVal: &aValTmp}
 	case quad.Time:
 		// TODO(dennwc): mongo supports only ms precision
 		// we can alternatively switch to protobuf serialization instead
 		// (maybe add an option for this)
-		return elasticString{TimeVal: time.Time(d), IsTime: true}
+		aValTmp := time.Time(d)
+		return elasticString{TimeVal: &aValTmp}
 	default:
 		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
 		}
-		return elasticString{ByteVal: data, IsByte: true}
+		return elasticString{ByteVal: &data}
 	}
 }
 
