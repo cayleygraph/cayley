@@ -191,57 +191,53 @@ func toQuadValue(d elasticString) quad.Value {
 
 	val := d.StringVal
 
-	if d.IsIRI == true {
+	switch {
+	case d.IsIRI:
 		return quad.IRI(val)
-	} else if d.IsBNode == true {
+	case d.IsBNode:
 		return quad.BNode(val)
-	} else if d.IntVal != nil {
-		val := *d.IntVal
-		return quad.Int(val)
-	} else if d.FloatVal != nil {
-		val := *d.FloatVal
-		return quad.Float(val)
-	} else if d.BoolVal != nil {
-		val := *d.BoolVal
-		return quad.Bool(val)
-	} else if d.TimeVal != nil {
-		val := *d.TimeVal
-		return quad.Time(val)
-	} else if d.RawVal != nil {
-		val := *d.RawVal
-		return quad.String(val)
-	} else if d.ByteVal != nil {
-		val := *d.ByteVal
+	case d.IntVal != nil:
+		return quad.Int(*d.IntVal)
+	case d.FloatVal != nil:
+		return quad.Float(*d.FloatVal)
+	case d.BoolVal != nil:
+		return quad.Bool(*d.BoolVal)
+	case d.TimeVal != nil:
+		return quad.Time(*d.TimeVal)
+	case d.IsRaw:
+		return quad.Raw(val)
+	case d.ByteVal != nil:
 		var p pquads.Value
-		if err := p.Unmarshal(val); err != nil {
+		if err := p.Unmarshal(*d.ByteVal); err != nil {
 			clog.Errorf("Error: Couldn't decode value: %v", err)
 			return nil
 		}
 		return p.ToNative()
-	} else if d.Lang != nil {
+	case d.Lang != nil:
 		return quad.LangString{
 			Value: quad.String(val),
 			Lang:  *d.Lang,
 		}
-	} else if d.Type != nil {
+	case d.Type != nil:
 		return quad.TypedString{
 			Value: quad.String(val),
 			Type:  quad.IRI(*d.Type),
 		}
+	default:
+		return quad.String(val)
 	}
-	return quad.String(val)
 }
 
 type elasticString struct {
-	StringVal string     `json:"val_str"`
+	StringVal string     `json:"val_str,omitempty"`
 	IntVal    *int64     `json:"val_int"`
 	FloatVal  *float64   `json:"val_float"`
 	BoolVal   *bool      `json:"val_bool"`
 	TimeVal   *time.Time `json:"val_time"`
-	RawVal    *quad.Raw  `json:"val_raw"`
 	ByteVal   *[]byte    `json:"val_byte"`
 	IsIRI     bool       `json:"iri,omitempty"`
 	IsBNode   bool       `json:"bnode,omitempty"`
+	IsRaw     bool       `json:"raw,omitempty"`
 	Type      *string    `json:"type,omitempty"`
 	Lang      *string    `json:"lang,omitempty"`
 }
@@ -250,8 +246,7 @@ func toElasticValue(v quad.Value) elasticString {
 
 	switch d := v.(type) {
 	case quad.Raw:
-		aValTmp := quad.Raw(d)
-		return elasticString{RawVal: &aValTmp}
+		return elasticString{StringVal: string(d), IsRaw: true}
 	case quad.String:
 		return elasticString{StringVal: string(d)}
 	case quad.IRI:
