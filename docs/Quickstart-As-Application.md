@@ -27,14 +27,14 @@ You can set up a full [configuration file](Configuration.md) if you'd prefer, bu
 
 Examples for each backend:
 
-  * `leveldb`:  `./cayley init -d leveldb -a /tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
-  * `bolt`:  `./cayley init -d bolt -a /tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
-  * `mongo`: `./cayley init -d mongo -a "<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
-  * `sql`: `./cayley init -d sql -a "postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
+  * `leveldb`:  `./cayley init -db leveldb -dbpath /tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
+  * `bolt`:  `./cayley init -db bolt -dbpath /tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
+  * `mongo`: `./cayley init -db mongo -dbpath "<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
+  * `sql`: `./cayley init -db sql -dbpath "postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
 
 Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley_example.yml` in the root directory.
 
-You can repeat the `--db (-i)` and `--dbpath (-a)` flags from here forward instead of the config flag, but let's assume you created `cayley_overview.yml`
+You can repeat the `--db` and `--dbpath` flags from here forward instead of the config flag, but let's assume you created `cayley_overview.yml`
 
 Note: when you specify parameters in the config file the config flags (command line arguments) are ignored.
 
@@ -43,13 +43,13 @@ Note: when you specify parameters in the config file the config flags (command l
 After the database is initialized we load the data.
 
 ```bash
-./cayley load -c cayley_overview.yml -i data/testdata.nq
+./cayley load -config cayley_overview.yml -quads data/testdata.nq
 ```
 
 And wait. It will load. If you'd like to watch it load, you can run
 
 ```bash
-./cayley load -c cayley_overview.yml -i data/testdata.nq --alsologtostderr=true
+./cayley load -config cayley_overview.yml -quads data/testdata.nq --alsologtostderr=true
 ```
 
 And watch the log output go by.
@@ -59,7 +59,7 @@ And watch the log output go by.
 Now it's loaded. We can use Cayley now to connect to the graph. As you might have guessed, that command is:
 
 ```bash
-./cayley repl -c cayley_overview.yml
+./cayley repl -config cayley_overview.yml
 ```
 
 Where you'll be given a `cayley>` prompt. It's expecting Gizmo/JS, but that can also be configured with a flag.
@@ -104,7 +104,7 @@ cayley> graph.Vertex("<dani>").Out("<follows>").All()
 Just as before:
 
 ```bash
-./cayley http -c cayley_overview.yml
+./cayley http -config cayley_overview.yml
 ```
 
 And you'll see a message not unlike
