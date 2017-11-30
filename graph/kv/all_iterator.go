@@ -24,6 +24,7 @@ import (
 type AllIterator struct {
 	nodes   bool
 	id      uint64
+	buf     []*proto.Primitive
 	prim    *proto.Primitive
 	horizon int64
 	tags    graph.Tagger
@@ -41,15 +42,13 @@ type constraint struct {
 }
 
 func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
-	qs.mu.RLock()
-	defer qs.mu.RUnlock()
 	if nodes && cons != nil {
-		panic("cannot use a bolt2 all iterator across nodes with a constraint")
+		panic("cannot use a kv all iterator across nodes with a constraint")
 	}
 	return &AllIterator{
 		nodes:   nodes,
 		qs:      qs,
-		horizon: qs.horizon,
+		horizon: qs.horizon(),
 		uid:     iterator.NextUID(),
 		cons:    cons,
 	}
@@ -92,6 +91,9 @@ func (it *AllIterator) Result() graph.Value {
 	if it.nodes {
 		return Int64Value(it.id)
 	}
+	if it.prim == nil {
+		return nil
+	}
 	return it.prim
 }
 
@@ -100,29 +102,52 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
+const nextBatch = 100
+
 func (it *AllIterator) Next() bool {
+	if it.err != nil {
+		return false
+	}
 	for {
-		it.id++
-		if it.id > uint64(it.horizon) {
-			return false
+		if len(it.buf) == 0 {
+			if it.id+1 > uint64(it.horizon) {
+				return false
+			}
+			ids := make([]uint64, 0, nextBatch)
+			for i := 0; i < nextBatch; i++ {
+				it.id++
+				if it.id > uint64(it.horizon) {
+					break
+				}
+				ids = append(ids, it.id)
+			}
+			if len(ids) == 0 {
+				return false
+			}
+			it.buf, it.err = it.qs.getPrimitives(ids)
+			if it.err != nil || len(it.buf) == 0 {
+				return false
+			}
+		} else {
+			it.buf = it.buf[1:]
 		}
-		p, ok := it.qs.getPrimitive(Int64Value(it.id))
-		it.prim = p
-		if !ok {
-			return false
-		}
-		if p.Deleted {
-			continue
-		}
-		if p.IsNode() && it.nodes {
-			return true
-		}
-		if !p.IsNode() && !it.nodes {
-			if it.cons == nil {
+		for ; len(it.buf) > 0; it.buf = it.buf[1:] {
+			p := it.buf[0]
+			it.prim = p
+			if p == nil || p.Deleted {
+				continue
+			}
+			it.id = it.prim.ID
+			if p.IsNode() && it.nodes {
 				return true
 			}
-			if Int64Value(p.GetDirection(it.cons.dir)) == it.cons.val {
-				return true
+			if !p.IsNode() && !it.nodes {
+				if it.cons == nil {
+					return true
+				}
+				if Int64Value(p.GetDirection(it.cons.dir)) == it.cons.val {
+					return true
+				}
 			}
 		}
 	}

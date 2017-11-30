@@ -3,7 +3,6 @@ language: go
 sudo: false
 
 go:
-  - 1.7
   - 1.8
   - tip
 

@@ -274,16 +274,16 @@ func exportArgs(args []goja.Value) []interface{} {
 	return out
 }
 
-func toInt(o interface{}) int {
+func toInt(o interface{}) (int, bool) {
 	switch v := o.(type) {
 	case int:
-		return v
+		return v, true
 	case int64:
-		return int(v)
+		return int(v), true
 	case float64:
-		return int(v)
+		return int(v), true
 	default:
-		return 0
+		return 0, false
 	}
 }
 
@@ -407,6 +407,24 @@ func toViaDataE(objs []interface{}) (predicates []interface{}, filters []interfa
 	}
 	if len(objs) > 2 {
 		tags = toStrings(objs[2:])
+	}
+	ok = true
+	return
+}
+
+func toViaDepthData(objs []interface{}) (predicates []interface{}, maxDepth int, tags []string, ok bool) {
+	if len(objs) != 0 {
+		predicates = toVia([]interface{}{objs[0]})
+	}
+	if len(objs) > 1 {
+		maxDepth, ok = toInt(objs[1])
+		if ok {
+			if len(objs) > 2 {
+				tags = toStrings(objs[2:])
+			}
+		} else {
+			tags = toStrings(objs[1:])
+		}
 	}
 	ok = true
 	return

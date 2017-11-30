@@ -89,7 +89,7 @@ type test struct {
 	message   string
 	path      *Path
 	expect    []quad.Value
-	expectAlt []quad.Value
+	expectAlt [][]quad.Value
 	tag       string
 }
 
@@ -236,22 +236,32 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vGreg, vDani, vBob},
 		},
 		{
-			message:   "use Limit",
-			path:      StartPath(qs).Has(vStatus, vCool).Limit(2),
-			expect:    []quad.Value{vBob, vDani},
-			expectAlt: []quad.Value{vBob, vGreg}, // TODO(dennwc): resolve this ordering issue
+			message: "use Limit",
+			path:    StartPath(qs).Has(vStatus, vCool).Limit(2),
+			// TODO(dennwc): resolve this ordering issue
+			expectAlt: [][]quad.Value{
+				{vBob, vGreg},
+				{vBob, vDani},
+				{vDani, vGreg},
+			},
 		},
 		{
-			message:   "use Skip",
-			path:      StartPath(qs).Has(vStatus, vCool).Skip(2),
-			expect:    []quad.Value{vGreg},
-			expectAlt: []quad.Value{vDani},
+			message: "use Skip",
+			path:    StartPath(qs).Has(vStatus, vCool).Skip(2),
+			expectAlt: [][]quad.Value{
+				{vBob},
+				{vDani},
+				{vGreg},
+			},
 		},
 		{
-			message:   "use Skip and Limit",
-			path:      StartPath(qs).Has(vStatus, vCool).Skip(1).Limit(1),
-			expect:    []quad.Value{vDani},
-			expectAlt: []quad.Value{vGreg},
+			message: "use Skip and Limit",
+			path:    StartPath(qs).Has(vStatus, vCool).Skip(1).Limit(1),
+			expectAlt: [][]quad.Value{
+				{vBob},
+				{vDani},
+				{vGreg},
+			},
 		},
 		{
 			message: "show Count",
@@ -350,7 +360,7 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "follow recursive",
-			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, nil),
+			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, 0, nil),
 			expect:  []quad.Value{vBob, vDani, vFred, vGreg},
 		},
 		{
@@ -393,13 +403,23 @@ func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
 					return
 				}
 				sort.Sort(quad.ByValueString(got))
-				sort.Sort(quad.ByValueString(test.expect))
-				eq := reflect.DeepEqual(got, test.expect)
-				if !eq && test.expectAlt != nil {
-					eq = reflect.DeepEqual(got, test.expectAlt)
+				var eq bool
+				exp := test.expect
+				if test.expectAlt != nil {
+					for _, alt := range test.expectAlt {
+						exp = alt
+						sort.Sort(quad.ByValueString(exp))
+						eq = reflect.DeepEqual(got, exp)
+						if eq {
+							break
+						}
+					}
+				} else {
+					sort.Sort(quad.ByValueString(test.expect))
+					eq = reflect.DeepEqual(got, test.expect)
 				}
 				if !eq {
-					t.Errorf("got: %v(%d) expected: %v(%d)", got, len(got), test.expect, len(test.expect))
+					t.Errorf("got: %v(%d) expected: %v(%d)", got, len(got), exp, len(exp))
 				} else {
 					t.Logf("%v", dt)
 				}
@@ -420,7 +440,7 @@ func testFollowRecursive(t testing.TB, fnc graphtest.DatabaseFunc) {
 	defer closer()
 
 	qu := StartPath(qs, quad.IRI("a")).FollowRecursive(
-		StartMorphism().Out(quad.IRI("parent")), nil,
+		StartMorphism().Out(quad.IRI("parent")), 0, nil,
 	).Has(quad.IRI("labels"), quad.IRI("tag"))
 
 	expect := []quad.Value{quad.IRI("c"), quad.IRI("d")}

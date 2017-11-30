@@ -43,7 +43,7 @@ func (p *pathObject) toArray(call goja.FunctionCall, withTags bool) goja.Value {
 	}
 	limit := -1
 	if len(args) > 0 {
-		limit = toInt(args[0])
+		limit, _ = toInt(args[0])
 	}
 	it := p.buildIteratorTree()
 	it.Tagger().Add(TopResultTag)
@@ -145,7 +145,7 @@ func (p *pathObject) ForEach(call goja.FunctionCall) goja.Value {
 	args := exportArgs(call.Arguments[:len(call.Arguments)-1])
 	limit := -1
 	if len(args) != 0 {
-		limit = toInt(args[0])
+		limit, _ = toInt(args[0])
 	}
 	err := p.s.runIteratorWithCallback(it, callback, call, limit)
 	if err != nil {

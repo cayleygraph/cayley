@@ -32,42 +32,74 @@ import (
 )
 
 var (
-	metaBucket     = []byte("meta")
-	subjectIndex   = []byte{quad.Subject.Prefix()}
-	objectIndex    = []byte{quad.Object.Prefix()}
-	sameAsIndex    = []byte("sameas")
-	sameNodesIndex = []byte("samenodes")
-	logIndex       = []byte("log")
+	metaBucket = []byte("meta")
+	logIndex   = []byte("log")
 
 	// List of all buckets in the current version of the database.
 	buckets = [][]byte{
 		metaBucket,
-		subjectIndex,
-		objectIndex,
-		sameAsIndex,
-		sameNodesIndex,
 		logIndex,
 	}
+
+	DefaultQuadIndexes = []QuadIndex{
+		{Dirs: []quad.Direction{quad.Subject}},
+		{Dirs: []quad.Direction{quad.Object}},
+	}
 )
+
+var quadKeyEnc = binary.BigEndian
+
+type QuadIndex struct {
+	Dirs   []quad.Direction
+	Unique bool
+}
+
+func (ind QuadIndex) Key(vals []uint64) []byte {
+	key := make([]byte, 8*len(vals))
+	n := 0
+	for i := range vals {
+		quadKeyEnc.PutUint64(key[n:], vals[i])
+		n += 8
+	}
+	return key
+}
+func (ind QuadIndex) KeyFor(p *proto.Primitive) []byte {
+	key := make([]byte, 8*len(ind.Dirs))
+	n := 0
+	for _, d := range ind.Dirs {
+		quadKeyEnc.PutUint64(key[n:], p.GetDirection(d))
+		n += 8
+	}
+	return key
+}
+func (ind QuadIndex) Bucket() []byte {
+	b := make([]byte, len(ind.Dirs))
+	for i, d := range ind.Dirs {
+		b[i] = d.Prefix()
+	}
+	return b
+}
 
 type FillBucket interface {
 	SetFillPercent(v float64)
 }
 
+func bucketForVal(i, j byte) []byte {
+	return []byte{'v', i, j}
+}
+
 func (qs *QuadStore) createBuckets(upfront bool) error {
 	err := Update(qs.db, func(tx BucketTx) error {
-		var err error
 		for _, index := range buckets {
-			_, err = tx.Bucket(index, OpCreate)
-			if err != nil {
-				return fmt.Errorf("could not create bucket %s: %s", string(index), err)
-			}
+			_ = tx.Bucket(index)
 		}
-		b, _ := tx.Bucket(logIndex, OpGet)
+		b := tx.Bucket(logIndex)
 		if f, ok := b.(FillBucket); ok {
 			f.SetFillPercent(0.9)
 		}
-		//tx.Bucket(valueIndex).FillPercent = 0.4
+		for _, ind := range qs.indexes.all {
+			_ = tx.Bucket(ind.Bucket())
+		}
 		return nil
 	})
 	if err != nil {
@@ -78,12 +110,8 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 	}
 	for i := 0; i < 256; i++ {
 		err := Update(qs.db, func(tx BucketTx) error {
-			var err error
 			for j := 0; j < 256; j++ {
-				_, err = tx.Bucket(bucketFor(byte(i), byte(j)), OpCreate)
-				if err != nil {
-					return fmt.Errorf("could not create subbucket %d %d : %s", i, j, err)
-				}
+				_ = tx.Bucket(bucketForVal(byte(i), byte(j)))
 			}
 			return nil
 		})
@@ -94,24 +122,17 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 	return nil
 }
 
-func bucketFor(i, j byte) []byte {
-	return []byte{'v', i, j}
-}
-
 func (qs *QuadStore) writeHorizonAndSize(tx BucketTx, horizon, size int64) error {
-	qs.mu.Lock()
-	defer qs.mu.Unlock()
+	qs.meta.Lock()
+	defer qs.meta.Unlock()
 	if horizon < 0 {
-		horizon, size = qs.horizon, qs.size
+		horizon, size = qs.meta.horizon, qs.meta.size
 	}
-	b, err := tx.Bucket(metaBucket, OpGet)
-	if err != nil {
-		return err
-	}
+	b := tx.Bucket(metaBucket)
 
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(size))
-	err = b.Put([]byte("size"), buf)
+	err := b.Put([]byte("size"), buf)
 
 	if err != nil {
 		clog.Errorf("Couldn't write size!")
@@ -137,57 +158,66 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		return err
 	}
 	defer tx.Rollback()
-	b, _ := tx.Bucket(logIndex, OpGet)
+	b := tx.Bucket(logIndex)
 	if f, ok := b.(FillBucket); ok {
 		f.SetFillPercent(0.9)
 	}
-	qs.mu.RLock()
-	size := qs.size
-	horizon := qs.horizon
-	qs.mu.RUnlock()
+	qs.meta.RLock()
+	size := qs.meta.size
+	horizon := qs.meta.horizon
+	qs.meta.RUnlock()
 
+	qvals := make([]quad.Value, 4)
 nextDelta:
 	for _, d := range deltas {
 		link := proto.Primitive{}
 		mustBeNew := false
+		qvals = qvals[:0]
 		for _, dir := range quad.Directions {
-			val := d.Quad.Get(dir)
-			if val == nil {
-				continue
+			if val := d.Quad.Get(dir); val != nil {
+				qvals = append(qvals, val)
 			}
-			v, err := qs.resolveQuadValue(tx, val)
-			if err != nil {
-				return err
-			}
-			if v == 0 {
-				// Not found
-				if d.Action == graph.Delete {
-					if ignoreOpts.IgnoreMissing {
-						continue nextDelta
+		}
+		ids, err := qs.resolveQuadValues(tx, qvals)
+		if err != nil {
+			return err
+		}
+		for _, dir := range quad.Directions {
+			if val := d.Quad.Get(dir); val != nil {
+				v := ids[0]
+				if v == 0 {
+					// Not found
+					if d.Action == graph.Delete {
+						if ignoreOpts.IgnoreMissing {
+							continue nextDelta
+						}
+						return fmt.Errorf("Deleting unknown quad: %s", d.Quad)
 					}
-					return fmt.Errorf("Deleting unknown quad: %s", d.Quad)
+					node, err := qs.createNodePrimitive(val)
+					if err != nil {
+						return err
+					}
+					horizon++
+					node.ID = uint64(horizon)
+					err = qs.index(tx, node, val)
+					mustBeNew = true
+					if err != nil {
+						return err
+					}
+					v = node.ID
 				}
-				node, err := qs.createNodePrimitive(val)
-				if err != nil {
-					return err
-				}
-				horizon++
-				node.ID = uint64(horizon)
-				err = qs.index(tx, node, val)
-				mustBeNew = true
-				if err != nil {
-					return err
-				}
-				v = node.ID
+				link.SetDirection(dir, v)
+				ids = ids[1:]
 			}
-			link.SetDirection(dir, v)
 		}
 		if d.Action == graph.Delete {
-			id, err := qs.hasPrimitive(tx, &link)
+			p, err := qs.hasPrimitive(tx, &link, true)
 			if err != nil {
 				return err
+			} else if p == nil {
+				continue
 			}
-			err = qs.markAsDead(tx, id)
+			err = qs.markAsDead(tx, p)
 			if err != nil {
 				return err
 			}
@@ -198,11 +228,11 @@ nextDelta:
 
 		// Check if it already exists.
 		if !mustBeNew {
-			id, err := qs.hasPrimitive(tx, &link)
+			p, err := qs.hasPrimitive(tx, &link, false)
 			if err != nil {
 				return err
 			}
-			if id != 0 {
+			if p != nil {
 				if ignoreOpts.IgnoreDup {
 					continue
 				}
@@ -232,10 +262,10 @@ nextDelta:
 	if err != nil {
 		return err
 	}
-	qs.mu.Lock()
-	qs.size = size
-	qs.horizon = horizon
-	qs.mu.Unlock()
+	qs.meta.Lock()
+	qs.meta.size = size
+	qs.meta.horizon = horizon
+	qs.meta.Unlock()
 	return nil
 }
 
@@ -254,14 +284,9 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 			return err
 		}
 	}
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	quad.HashTo(val, qs.hashBuf)
-	bucket, err := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]), OpUpsert)
-	if err != nil {
-		return err
-	}
-	err = bucket.Put(qs.hashBuf, uint64toBytes(p.ID))
+	hash := quad.HashOf(val)
+	bucket := tx.Bucket(bucketForVal(hash[0], hash[1]))
+	err = bucket.Put(hash, uint64toBytes(p.ID))
 	if err != nil {
 		return err
 	}
@@ -273,15 +298,14 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 
 func (qs *QuadStore) indexLink(tx BucketTx, p *proto.Primitive) error {
 	var err error
-	// Subject
-	err = qs.addToMapBucket(tx, "sub", p.Subject, p.ID)
-	if err != nil {
-		return err
-	}
-	// Object
-	err = qs.addToMapBucket(tx, "obj", p.Object, p.ID)
-	if err != nil {
-		return err
+	qs.indexes.RLock()
+	all := qs.indexes.all
+	qs.indexes.RUnlock()
+	for _, ind := range all {
+		err = qs.addToMapBucket(tx, ind.Bucket(), ind.KeyFor(p), p.ID)
+		if err != nil {
+			return err
+		}
 	}
 	err = qs.indexSchema(tx, p)
 	if err != nil {
@@ -290,29 +314,29 @@ func (qs *QuadStore) indexLink(tx BucketTx, p *proto.Primitive) error {
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) markAsDead(tx BucketTx, id uint64) error {
-	p, err := qs.getPrimitiveFromLog(tx, id)
-	if err != nil {
-		return err
-	}
+func (qs *QuadStore) markAsDead(tx BucketTx, p *proto.Primitive) error {
 	p.Deleted = true
 	//TODO(barakmich): Add tombstone?
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) getBucketIndex(tx BucketTx, bucket []byte, key uint64) ([]uint64, error) {
-	b, err := tx.Bucket([]byte(bucket), OpGet)
+func (qs *QuadStore) getBucketIndexes(tx BucketTx, keys []BucketKey) ([][]uint64, error) {
+	vals, err := tx.Get(keys)
 	if err != nil {
 		return nil, err
 	}
-	kbytes := uint64KeyBytes(key)
-	v, err := b.Get(kbytes)
-	if err == ErrNotFound {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
+	out := make([][]uint64, len(keys))
+	for i, v := range vals {
+		if len(v) == 0 {
+			continue
+		}
+		ind, err := decodeIndex(v)
+		if err != nil {
+			return out, err
+		}
+		out[i] = ind
 	}
-	return decodeIndex(v)
+	return out, nil
 }
 
 func decodeIndex(b []byte) ([]uint64, error) {
@@ -344,29 +368,84 @@ func appendIndex(bytelist []byte, l []uint64) []byte {
 	return b[:off]
 }
 
-func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive) (uint64, error) {
+func (qs *QuadStore) bestUnique() ([]QuadIndex, error) {
+	qs.indexes.RLock()
+	ind := qs.indexes.exists
+	qs.indexes.RUnlock()
+	if len(ind) != 0 {
+		return ind, nil
+	}
+	qs.indexes.Lock()
+	defer qs.indexes.Unlock()
+	if len(qs.indexes.exists) != 0 {
+		return qs.indexes.exists, nil
+	}
+	for _, in := range qs.indexes.all {
+		if in.Unique {
+			if clog.V(2) {
+				clog.Infof("using unique index: %v", in.Dirs)
+			}
+			qs.indexes.exists = []QuadIndex{in}
+			return qs.indexes.exists, nil
+		}
+	}
+	// TODO: find best combination of indexes
+	inds := qs.indexes.all
+	if len(inds) == 0 {
+		return nil, fmt.Errorf("no indexes defined")
+	}
+	if clog.V(2) {
+		clog.Infof("using index intersection: %v", inds)
+	}
+	qs.indexes.exists = inds
+	return qs.indexes.exists, nil
+}
+
+func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive, get bool) (*proto.Primitive, error) {
 	if !qs.testBloom(p) {
-		return 0, nil
+		return nil, nil
 	}
-	sub, err := qs.getBucketIndex(tx, subjectIndex, p.Subject)
+	inds, err := qs.bestUnique()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	obj, err := qs.getBucketIndex(tx, objectIndex, p.Object)
+	unique := len(inds) != 0 && inds[0].Unique
+	keys := make([]BucketKey, len(inds))
+	for i, in := range inds {
+		keys[i] = BucketKey{
+			Bucket: in.Bucket(),
+			Key:    in.KeyFor(p),
+		}
+	}
+	lists, err := qs.getBucketIndexes(tx, keys)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	options := intersectSortedUint64(sub, obj)
+	var options []uint64
+	for len(lists) > 0 {
+		if len(lists) == 1 {
+			options = lists[0]
+			break
+		}
+		a, b := lists[0], lists[1]
+		lists = lists[1:]
+		a = intersectSortedUint64(a, b)
+		lists[0] = a
+	}
+	if !get && unique {
+		return p, nil
+	}
 	for _, x := range options {
+		// TODO: batch
 		prim, err := qs.getPrimitiveFromLog(tx, x)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		if prim.IsSameLink(p) {
-			return prim.ID, nil
+			return prim, nil
 		}
 	}
-	return 0, nil
+	return nil, nil
 }
 
 func intersectSortedUint64(a, b []uint64) []uint64 {
@@ -395,55 +474,41 @@ outer:
 	return c
 }
 
-func (qs *QuadStore) addToMapBucket(tx BucketTx, bucket string, key, value uint64) error {
-	if key == 0 {
+func (qs *QuadStore) addToMapBucket(tx BucketTx, bucket []byte, key []byte, value uint64) error {
+	if len(key) == 0 {
 		return fmt.Errorf("trying to add to map bucket %s with key 0", bucket)
 	}
 	if qs.mapBucket == nil {
-		qs.mapBucket = make(map[string]map[uint64][]uint64)
+		qs.mapBucket = make(map[string]map[string][]uint64)
 	}
-	if _, ok := qs.mapBucket[bucket]; !ok {
-		qs.mapBucket[bucket] = make(map[uint64][]uint64)
+	m, ok := qs.mapBucket[string(bucket)]
+	if !ok {
+		m = make(map[string][]uint64)
+		qs.mapBucket[string(bucket)] = m
 	}
-
-	l := qs.mapBucket[bucket][key]
-	qs.mapBucket[bucket][key] = append(l, value)
+	m[string(key)] = append(m[string(key)], value)
 	return nil
 }
 
 func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
-	kbytes := make([]byte, 8)
 	for bucket, m := range qs.mapBucket {
-		var bname []byte
-		if bucket == "sub" {
-			bname = subjectIndex
-		} else if bucket == "obj" {
-			bname = objectIndex
-		} else {
-			return fmt.Errorf("unexpected bucket name: %q", bucket)
+		b := tx.Bucket([]byte(bucket))
+		keys := make([][]byte, 0, len(m))
+		for k := range m {
+			keys = append(keys, []byte(k))
 		}
-		b, err := tx.Bucket(bname, OpGet)
+		sort.Slice(keys, func(i, j int) bool {
+			return bytes.Compare(keys[i], keys[j]) < 0
+		})
+		vals, err := b.Get(keys)
 		if err != nil {
 			return err
 		}
-		keys := make(Int64Set, len(m))
-		i := 0
-		for k := range m {
-			keys[i] = k
-			i++
-		}
-		sort.Sort(keys)
-		for _, k := range keys {
-			l := m[k]
-			binary.BigEndian.PutUint64(kbytes, k)
-			bytelist, err := b.Get(kbytes)
-			if err == ErrNotFound {
-				err = nil
-			} else if err != nil {
-				return err
-			}
-			buf := appendIndex(bytelist, l)
-			err = b.Put(kbytes, buf)
+		for i, k := range keys {
+			l := m[string(k)]
+			list := vals[i]
+			buf := appendIndex(list, l)
+			err = b.Put(keys[i], buf)
 			if err != nil {
 				return err
 			}
@@ -462,10 +527,7 @@ func (qs *QuadStore) addToLog(tx BucketTx, p *proto.Primitive) error {
 	if err != nil {
 		return err
 	}
-	b, err := tx.Bucket(logIndex, OpGet)
-	if err != nil {
-		return err
-	}
+	b := tx.Bucket(logIndex)
 	return b.Put(uint64KeyBytes(p.ID), buf)
 }
 
@@ -481,34 +543,53 @@ func (qs *QuadStore) createNodePrimitive(v quad.Value) (*proto.Primitive, error)
 }
 
 func (qs *QuadStore) resolveQuadValue(tx BucketTx, v quad.Value) (uint64, error) {
-	var isIRI bool
-	if iri, ok := v.(quad.IRI); ok {
-		isIRI = true
-		if x, ok := qs.valueLRU.Get(string(iri)); ok {
-			return x.(uint64), nil
-		}
+	out, err := qs.resolveQuadValues(tx, []quad.Value{v})
+	if err != nil {
+		return 0, err
 	}
+	return out[0], nil
+}
 
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	quad.HashTo(v, qs.hashBuf)
-	b, err := tx.Bucket(bucketFor(qs.hashBuf[0], qs.hashBuf[1]), OpGet)
-	if err == ErrNoBucket {
-		return 0, nil
-	} else if err != nil {
-		return 0, err
+func bucketKeyForVal(v quad.Value) BucketKey {
+	hash := quad.HashOf(v)
+	return BucketKey{
+		Bucket: bucketForVal(hash[0], hash[1]),
+		Key:    hash,
 	}
-	val, err := b.Get(qs.hashBuf)
-	if err == ErrNotFound {
-		return 0, nil
-	} else if err != nil {
-		return 0, err
-	} else if val == nil {
-		return 0, nil
+}
+
+func (qs *QuadStore) resolveQuadValues(tx BucketTx, vals []quad.Value) ([]uint64, error) {
+	out := make([]uint64, len(vals))
+	inds := make([]int, 0, len(vals))
+	keys := make([]BucketKey, 0, len(vals))
+	for i, v := range vals {
+		if iri, ok := v.(quad.IRI); ok {
+			if x, ok := qs.valueLRU.Get(string(iri)); ok {
+				out[i] = x.(uint64)
+				continue
+			}
+		} else if v == nil {
+			continue
+		}
+		inds = append(inds, i)
+		keys = append(keys, bucketKeyForVal(v))
 	}
-	out, _ := binary.Uvarint(val)
-	if isIRI {
-		qs.valueLRU.Put(string(v.(quad.IRI)), out)
+	if len(keys) == 0 {
+		return out, nil
+	}
+	resp, err := tx.Get(keys)
+	if err != nil {
+		return out, err
+	}
+	for i, b := range resp {
+		if len(b) == 0 {
+			continue
+		}
+		ind := inds[i]
+		out[ind], _ = binary.Uvarint(b)
+		if iri, ok := vals[ind].(quad.IRI); ok && out[ind] != 0 {
+			qs.valueLRU.Put(string(iri), uint64(out[ind]))
+		}
 	}
 	return out, nil
 }
@@ -525,43 +606,59 @@ func uint64toBytesAt(x uint64, bytes []byte) []byte {
 
 func uint64KeyBytes(x uint64) []byte {
 	k := make([]byte, 8)
-	binary.BigEndian.PutUint64(k, x)
+	quadKeyEnc.PutUint64(k, x)
 	return k
 }
 
-func (qs *QuadStore) getPrimitiveFromLog(tx BucketTx, k uint64) (*proto.Primitive, error) {
-	p := &proto.Primitive{}
-	b, err := tx.Bucket(logIndex, OpGet)
+func (qs *QuadStore) getPrimitivesFromLog(tx BucketTx, keys []uint64) ([]*proto.Primitive, error) {
+	b := tx.Bucket(logIndex)
+	bkeys := make([][]byte, len(keys))
+	for i, k := range keys {
+		bkeys[i] = uint64KeyBytes(k)
+	}
+	vals, err := b.Get(bkeys)
 	if err != nil {
 		return nil, err
 	}
-	v, err := b.Get(uint64KeyBytes(k))
-	if err != nil && err != ErrNotFound {
-		return nil, err
-	} else if v == nil {
-		return p, fmt.Errorf("no such log entry")
+	out := make([]*proto.Primitive, len(keys))
+	var last error
+	for i, v := range vals {
+		if v == nil {
+			continue
+		}
+		var p proto.Primitive
+		if err = p.Unmarshal(v); err != nil {
+			last = err
+		} else {
+			out[i] = &p
+		}
 	}
-	err = p.Unmarshal(v)
-	return p, err
+	return out, last
+}
+
+func (qs *QuadStore) getPrimitiveFromLog(tx BucketTx, k uint64) (*proto.Primitive, error) {
+	out, err := qs.getPrimitivesFromLog(tx, []uint64{k})
+	if err != nil {
+		return nil, err
+	} else if out[0] == nil {
+		return nil, ErrNotFound
+	}
+	return out[0], nil
 }
 
 func (qs *QuadStore) initBloomFilter() error {
-	qs.exists = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
+	qs.exists.buf = make([]byte, 3*8)
+	qs.exists.DeletableBloomFilter = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
 	ctx := context.TODO()
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
 	return View(qs.db, func(tx BucketTx) error {
 		p := proto.Primitive{}
-		b, err := tx.Bucket(logIndex, OpGet)
-		if err != nil {
-			return err
-		}
+		b := tx.Bucket(logIndex)
 		it := b.Scan(nil)
 		defer it.Close()
 		for it.Next(ctx) {
 			v := it.Key()
 			p = proto.Primitive{}
-			err = p.Unmarshal(v)
+			err := p.Unmarshal(v)
 			if err != nil {
 				return err
 			}
@@ -570,38 +667,38 @@ func (qs *QuadStore) initBloomFilter() error {
 			} else if p.Deleted {
 				continue
 			}
-			writePrimToBuf(&p, qs.bloomBuf)
-			qs.exists.Add(qs.bloomBuf)
+			writePrimToBuf(&p, qs.exists.buf)
+			qs.exists.Add(qs.exists.buf)
 		}
 		return it.Err()
 	})
 }
 
 func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	writePrimToBuf(p, qs.bloomBuf)
-	return qs.exists.Test(qs.bloomBuf)
+	qs.exists.Lock()
+	defer qs.exists.Unlock()
+	writePrimToBuf(p, qs.exists.buf)
+	return qs.exists.Test(qs.exists.buf)
 }
 
 func (qs *QuadStore) bloomRemove(p *proto.Primitive) {
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	writePrimToBuf(p, qs.bloomBuf)
-	qs.exists.TestAndRemove(qs.bloomBuf)
+	qs.exists.Lock()
+	defer qs.exists.Unlock()
+	writePrimToBuf(p, qs.exists.buf)
+	qs.exists.TestAndRemove(qs.exists.buf)
 }
 
 func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
-	qs.bufLock.Lock()
-	defer qs.bufLock.Unlock()
-	writePrimToBuf(p, qs.bloomBuf)
-	qs.exists.Add(qs.bloomBuf)
+	qs.exists.Lock()
+	defer qs.exists.Unlock()
+	writePrimToBuf(p, qs.exists.buf)
+	qs.exists.Add(qs.exists.buf)
 }
 
 func writePrimToBuf(p *proto.Primitive, buf []byte) {
-	binary.BigEndian.PutUint64(buf[0:8], p.Subject)
-	binary.BigEndian.PutUint64(buf[8:16], p.Predicate)
-	binary.BigEndian.PutUint64(buf[16:24], p.Object)
+	quadKeyEnc.PutUint64(buf[0:8], p.Subject)
+	quadKeyEnc.PutUint64(buf[8:16], p.Predicate)
+	quadKeyEnc.PutUint64(buf[16:24], p.Object)
 }
 
 type Int64Set []uint64

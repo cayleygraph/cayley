@@ -233,9 +233,9 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 	for _, r := range results {
 		obj := make(map[string]interface{})
 		for k, arr := range r.fields {
-			var vals []quad.Value
-			for _, v := range arr {
-				vals = append(vals, qs.NameOf(v))
+			vals, err := graph.ValuesOf(qs, arr)
+			if err != nil {
+				return nil, err
 			}
 			if len(vals) == 1 {
 				obj[k] = vals[0]

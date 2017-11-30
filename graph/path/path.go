@@ -409,12 +409,18 @@ func (p *Path) FollowReverse(path *Path) *Path {
 // ancestors", by repeatedly following the "parent" connection on the result of
 // the parent nodes.
 //
-// The second argument, "depthTags" is a set of tags that will return strings of
+// The second argument, "maxDepth" is the maximum number of recursive steps before
+// stopping and returning.
+// If -1 is passed, it will have no limit.
+// If 0 is passed, it will use the default value of 50 steps before returning.
+// If 1 is passed, it will stop after 1 step before returning, and so on.
+//
+// The third argument, "depthTags" is a set of tags that will return strings of
 // numeric values relating to how many applications of the path were applied the
 // first time the result node was seen.
 //
 // This is a very expensive operation in practice. Be sure to use it wisely.
-func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
+func (p *Path) FollowRecursive(via interface{}, maxDepth int, depthTags []string) *Path {
 	var path *Path
 	switch v := via.(type) {
 	case string:
@@ -427,7 +433,7 @@ func (p *Path) FollowRecursive(via interface{}, depthTags []string) *Path {
 		panic("did not pass a string predicate or a Path to FollowRecursive")
 	}
 	np := p.clone()
-	np.stack = append(p.stack, followRecursiveMorphism(path, depthTags))
+	np.stack = append(p.stack, followRecursiveMorphism(path, maxDepth, depthTags))
 	return np
 }
 
