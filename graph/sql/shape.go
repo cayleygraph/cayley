@@ -185,7 +185,7 @@ func (s Subquery) SQL(b *Builder) string {
 	return q
 }
 func (s Subquery) Args() []Value {
-	return s.Query.Params
+	return s.Query.Args()
 }
 
 func (f Table) SQL(b *Builder) string {

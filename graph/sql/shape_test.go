@@ -10,14 +10,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func hashVal(s string) NodeHash {
-	return HashOf(quad.IRI(s))
+type stringVal string
+
+func (s stringVal) Key() interface{} {
+	return string(s)
 }
 
-func hashVals(arr ...string) []Value {
+func (s stringVal) SQLValue() interface{} {
+	return string(s)
+}
+
+func sVal(s string) stringVal {
+	return stringVal(s)
+}
+
+func sVals(arr ...string) []Value {
 	out := make([]Value, 0, len(arr))
 	for _, s := range arr {
-		out = append(out, hashVal(s))
+		out = append(out, sVal(s))
 	}
 	return out
 }
@@ -51,13 +61,13 @@ var shapeCases = []struct {
 	{
 		name: "quads with subject and predicate",
 		s: shape.Quads{
-			{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
-			{Dir: quad.Predicate, Values: shape.Fixed{hashVal("p")}},
+			{Dir: quad.Subject, Values: shape.Fixed{sVal("s")}},
+			{Dir: quad.Predicate, Values: shape.Fixed{sVal("p")}},
 		},
 		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
 	FROM quads AS t_1
 	WHERE t_1.subject_hash = $1 AND t_1.predicate_hash = $2`,
-		args: hashVals("s", "p"),
+		args: sVals("s", "p"),
 	},
 	{
 		name: "quad actions",
@@ -68,13 +78,13 @@ var shapeCases = []struct {
 				quad.Label:  {"l 1"},
 			},
 			Filter: map[quad.Direction]graph.Value{
-				quad.Predicate: hashVal("p"),
+				quad.Predicate: sVal("p"),
 			},
 		},
 		qu: `SELECT subject_hash AS ` + tagNode + `, object_hash AS o1, object_hash AS o2, label_hash AS "l 1"
 	FROM quads
 	WHERE predicate_hash = $1`,
-		args: hashVals("p"),
+		args: sVals("p"),
 	},
 	{
 		name: "quad actions and save",
@@ -87,25 +97,25 @@ var shapeCases = []struct {
 					quad.Label:  {"l 1"},
 				},
 				Filter: map[quad.Direction]graph.Value{
-					quad.Predicate: hashVal("p"),
+					quad.Predicate: sVal("p"),
 				},
 			},
 		},
 		qu: `SELECT subject_hash AS sub, subject_hash AS ` + tagNode + `, object_hash AS o1, object_hash AS o2, label_hash AS "l 1"
 	FROM quads
 	WHERE predicate_hash = $1`,
-		args: hashVals("p"),
+		args: sVals("p"),
 	},
 	{
 		name: "quads with subquery",
 		s: shape.Quads{
-			{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
+			{Dir: quad.Subject, Values: shape.Fixed{sVal("s")}},
 			{
 				Dir: quad.Predicate,
 				Values: shape.QuadsAction{
 					Result: quad.Subject,
 					Filter: map[quad.Direction]graph.Value{
-						quad.Predicate: hashVal("p"),
+						quad.Predicate: sVal("p"),
 					},
 				},
 			},
@@ -113,12 +123,12 @@ var shapeCases = []struct {
 		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
 	FROM quads AS t_1, (SELECT subject_hash AS ` + tagNode + ` FROM quads WHERE predicate_hash = $1) AS t_2
 	WHERE t_1.subject_hash = $2 AND t_1.predicate_hash = t_2.` + tagNode,
-		args: hashVals("p", "s"),
+		args: sVals("p", "s"),
 	},
 	{
 		name: "quads with subquery (inner tags)",
 		s: shape.Quads{
-			{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
+			{Dir: quad.Subject, Values: shape.Fixed{sVal("s")}},
 			{
 				Dir: quad.Predicate,
 				Values: shape.Save{
@@ -129,7 +139,7 @@ var shapeCases = []struct {
 							quad.Object: {"ob"},
 						},
 						Filter: map[quad.Direction]graph.Value{
-							quad.Predicate: hashVal("p"),
+							quad.Predicate: sVal("p"),
 						},
 					},
 				},
@@ -138,12 +148,12 @@ var shapeCases = []struct {
 		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label, t_2.subject_hash AS pred, t_2.object_hash AS ob
 	FROM quads AS t_1, quads AS t_2
 	WHERE t_1.subject_hash = $1 AND t_2.predicate_hash = $2 AND t_1.predicate_hash = t_2.subject_hash`,
-		args: hashVals("s", "p"),
+		args: sVals("s", "p"),
 	},
 	{
 		name: "quads with subquery (limit)",
 		s: shape.Quads{
-			{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
+			{Dir: quad.Subject, Values: shape.Fixed{sVal("s")}},
 			{
 				Dir: quad.Predicate,
 				Values: shape.Page{
@@ -151,7 +161,7 @@ var shapeCases = []struct {
 					From: shape.QuadsAction{
 						Result: quad.Subject,
 						Filter: map[quad.Direction]graph.Value{
-							quad.Predicate: hashVal("p"),
+							quad.Predicate: sVal("p"),
 						},
 					},
 				},
@@ -160,13 +170,13 @@ var shapeCases = []struct {
 		qu: `SELECT t_1.subject_hash AS __subject, t_1.predicate_hash AS __predicate, t_1.object_hash AS __object, t_1.label_hash AS __label
 	FROM quads AS t_1, (SELECT subject_hash AS ` + tagNode + ` FROM quads WHERE predicate_hash = $1 LIMIT 10) AS t_2
 	WHERE t_1.subject_hash = $2 AND t_1.predicate_hash = t_2.` + tagNode,
-		args: hashVals("p", "s"),
+		args: sVals("p", "s"),
 	},
 	{
 		skip: true, // TODO
 		name: "quads with subquery (inner tags + limit)",
 		s: shape.Quads{
-			{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
+			{Dir: quad.Subject, Values: shape.Fixed{sVal("s")}},
 			{
 				Dir: quad.Predicate,
 				Values: shape.Save{
@@ -179,7 +189,7 @@ var shapeCases = []struct {
 								quad.Object: {"ob"},
 							},
 							Filter: map[quad.Direction]graph.Value{
-								quad.Predicate: hashVal("p"),
+								quad.Predicate: sVal("p"),
 							},
 						},
 					},
@@ -194,7 +204,7 @@ var shapeCases = []struct {
 		s: shape.NodesFrom{
 			Dir: quad.Object,
 			Quads: shape.Quads{
-				{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
+				{Dir: quad.Subject, Values: shape.Fixed{sVal("s")}},
 				{
 					Dir: quad.Predicate,
 					Values: shape.QuadsAction{
@@ -203,7 +213,7 @@ var shapeCases = []struct {
 							quad.Object: {"ob"},
 						},
 						Filter: map[quad.Direction]graph.Value{
-							quad.Predicate: hashVal("p"),
+							quad.Predicate: sVal("p"),
 						},
 					},
 				},
@@ -212,7 +222,7 @@ var shapeCases = []struct {
 		qu: `SELECT t_1.object_hash AS ` + tagNode + `, t_2.object_hash AS ob
 	FROM quads AS t_1, quads AS t_2
 	WHERE t_1.subject_hash = $1 AND t_2.predicate_hash = $2 AND t_1.predicate_hash = t_2.subject_hash`,
-		args: hashVals("s", "p"),
+		args: sVals("s", "p"),
 	},
 	{
 		name: "intersect selects",
@@ -226,14 +236,14 @@ var shapeCases = []struct {
 						quad.Label:  {"l 1"},
 					},
 					Filter: map[quad.Direction]graph.Value{
-						quad.Predicate: hashVal("p1"),
+						quad.Predicate: sVal("p1"),
 					},
 				},
 			},
 			shape.NodesFrom{
 				Dir: quad.Object,
 				Quads: shape.Quads{
-					{Dir: quad.Subject, Values: shape.Fixed{hashVal("s")}},
+					{Dir: quad.Subject, Values: shape.Fixed{sVal("s")}},
 					{
 						Dir: quad.Predicate,
 						Values: shape.QuadsAction{
@@ -242,7 +252,7 @@ var shapeCases = []struct {
 								quad.Object: {"ob"},
 							},
 							Filter: map[quad.Direction]graph.Value{
-								quad.Predicate: hashVal("p2"),
+								quad.Predicate: sVal("p2"),
 							},
 						},
 					},
@@ -252,7 +262,46 @@ var shapeCases = []struct {
 		qu: `SELECT t_3.subject_hash AS sub, t_3.subject_hash AS __node, t_3.object_hash AS o1, t_3.label_hash AS "l 1", t_2.object_hash AS ob
 	FROM quads AS t_3, quads AS t_1, quads AS t_2
 	WHERE t_3.predicate_hash = $1 AND t_1.subject_hash = $2 AND t_2.predicate_hash = $3 AND t_1.predicate_hash = t_2.subject_hash AND t_3.subject_hash = t_1.object_hash`,
-		args: hashVals("p1", "s", "p2"),
+		args: sVals("p1", "s", "p2"),
+	},
+	{
+		name: "deep shape",
+		s: shape.NodesFrom{
+			Dir: quad.Object,
+			Quads: shape.Quads{
+				shape.QuadFilter{Dir: quad.Predicate, Values: shape.Fixed{sVal("s")}},
+				shape.QuadFilter{
+					Dir: quad.Subject,
+					Values: shape.NodesFrom{
+						Dir: quad.Subject,
+						Quads: shape.Quads{
+							shape.QuadFilter{Dir: quad.Predicate, Values: shape.Fixed{sVal("s")}},
+							shape.QuadFilter{
+								Dir: quad.Object,
+								Values: shape.NodesFrom{
+									Dir: quad.Subject,
+									Quads: shape.Quads{
+										shape.QuadFilter{Dir: quad.Predicate, Values: shape.Fixed{sVal("a")}},
+										shape.QuadFilter{
+											Dir: quad.Object,
+											Values: shape.QuadsAction{
+												Result: quad.Subject,
+												Filter: map[quad.Direction]graph.Value{
+													quad.Predicate: sVal("n"),
+													quad.Object:    sVal("k"),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		qu:   `SELECT t_5.object_hash AS __node FROM quads AS t_5, (SELECT t_3.subject_hash AS __node FROM quads AS t_3, (SELECT t_1.subject_hash AS __node FROM quads AS t_1, (SELECT subject_hash AS __node FROM quads WHERE predicate_hash = $1 AND object_hash = $2) AS t_2 WHERE t_1.predicate_hash = $3 AND t_1.object_hash = t_2.__node) AS t_4 WHERE t_3.predicate_hash = $4 AND t_3.object_hash = t_4.__node) AS t_6 WHERE t_5.predicate_hash = $5 AND t_5.subject_hash = t_6.__node`,
+		args: sVals("n", "k", "a", "s", "s"),
 	},
 }
 

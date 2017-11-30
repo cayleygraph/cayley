@@ -452,7 +452,7 @@ func prepare(t testing.TB) *graph.Handle {
 			"database_name": "cayley_test", // provide a default test database
 		}
 		remote = true
-	case "sql":
+	case "sql", "postgres":
 		cfg.DatabasePath = "postgres://localhost/cayley_test"
 		cfg.DatabaseOptions = map[string]interface{}{
 			"flavor": *sqlFlavor,
