@@ -91,6 +91,10 @@ type Shape interface {
 }
 
 func AllNodes() Select {
+	return Nodes(nil, nil)
+}
+
+func Nodes(where []Where, params []Value) Select {
 	return Select{
 		Fields: []Field{
 			{Name: "hash", Alias: tagNode},
@@ -98,6 +102,8 @@ func AllNodes() Select {
 		From: []Source{
 			Table{Name: "nodes"},
 		},
+		Where:  where,
+		Params: params,
 	}
 }
 
@@ -208,7 +214,13 @@ func (f Table) NameSQL() string {
 type CmpOp string
 
 const (
-	OpEqual = CmpOp("=")
+	OpEqual  = CmpOp("=")
+	OpGT     = CmpOp(">")
+	OpGTE    = CmpOp(">=")
+	OpLT     = CmpOp("<")
+	OpLTE    = CmpOp("<=")
+	OpIsNull = CmpOp("IS NULL")
+	OpIsTrue = CmpOp("IS true")
 )
 
 type Expr interface {
@@ -236,7 +248,11 @@ func (w Where) SQL(b *Builder) string {
 	if w.Table != "" {
 		name = w.Table + "." + b.EscapeField(name)
 	}
-	return strings.Join([]string{name, string(w.Op), w.Value.SQL(b)}, " ")
+	parts := []string{name, string(w.Op)}
+	if w.Value != nil {
+		parts = append(parts, w.Value.SQL(b))
+	}
+	return strings.Join(parts, " ")
 }
 
 var _ Shape = Select{}
