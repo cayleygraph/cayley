@@ -309,6 +309,12 @@ func testSet(qs graph.QuadStore) []test {
 			path:    StartPath(qs, vBob).OutPredicates(),
 			expect:  []quad.Value{vFollows, vStatus},
 		},
+		{
+			message: "SavePredicates(out)",
+			path:    StartPath(qs, vBob).SavePredicates(false, "pred"),
+			expect:  []quad.Value{vFollows},
+			tag:     "pred",
+		},
 		// Morphism tests
 		{
 			message: "show simple morphism",

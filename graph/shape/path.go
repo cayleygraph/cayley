@@ -83,6 +83,25 @@ func Predicates(from Shape, in bool) Shape {
 	}}
 }
 
+func SavePredicates(from Shape, in bool, tag string) Shape {
+	preds := Save{
+		From: AllNodes{},
+		Tags: []string{tag},
+	}
+	start := quad.Subject
+	if in {
+		start = quad.Object
+	}
+
+	var save Shape = Unique{NodesFrom{
+		Quads: Quads{
+			{Dir: quad.Predicate, Values: preds},
+		},
+		Dir: start,
+	}}
+	return IntersectShapes(from, save)
+}
+
 func Labels(from Shape) Shape {
 	return Unique{NodesFrom{
 		Quads: Union{

@@ -494,6 +494,13 @@ type QuadsAction struct {
 	Filter map[quad.Direction]graph.Value
 }
 
+func (s *QuadsAction) SetFilter(d quad.Direction, v graph.Value) {
+	if s.Filter == nil {
+		s.Filter = make(map[quad.Direction]graph.Value)
+	}
+	s.Filter[d] = v
+}
+
 func (s QuadsAction) Clone() QuadsAction {
 	if n := len(s.Save); n != 0 {
 		s2 := make(map[quad.Direction][]string, n)
@@ -896,8 +903,8 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 						}
 					}
 					sf = sf.Clone()
-					sf.Filter[sf.Result] = fv // LinksTo(HasA.Dir, fixed)
-					sf.Size = 0               // re-calculate size
+					sf.SetFilter(sf.Result, fv) // LinksTo(HasA.Dir, fixed)
+					sf.Size = 0                 // re-calculate size
 					ns, _ := sf.Optimize(r)
 					return ns, true
 				}

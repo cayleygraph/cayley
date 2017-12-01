@@ -404,6 +404,14 @@ var testQueries = []struct {
 		expect: []string{"<follows>"},
 	},
 	{
+		message: "save all bob's incoming predicates",
+		query: `
+		  g.V("<bob>").SaveInPredicates("pred").All()
+		`,
+		expect: []string{"<follows>"},
+		tag:    "pred",
+	},
+	{
 		message: "list all labels",
 		query: `
 		  g.V().Labels().All()

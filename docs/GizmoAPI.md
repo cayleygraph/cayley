@@ -491,6 +491,30 @@ g.V("<dani>", "<bob>").Save("<follows>", "target").All()
 ```
 
 
+### `path.SaveInPredicates(tag)`
+
+SaveInPredicates tags the list of predicates that are pointing in to a node.
+
+Example:
+```javascript
+// bob only has "<follows>" predicates pointing inward
+// returns {"id":"<bob>", "pred":"<follows>"}
+g.V("<bob>").SaveInPredicates("pred").All()
+```
+
+
+### `path.SaveOutPredicates(tag)`
+
+SaveOutPredicates tags the list of predicates that are pointing out from a node.
+
+Example:
+```javascript
+// bob has "<follows>" and "<status>" edges pointing outwards
+// returns {"id":"<bob>", "pred":"<follows>"}
+g.V("<bob>").SaveInPredicates("pred").All()
+```
+
+
 ### `path.SaveR(*)`
 
 SaveR is the same as Save, but tags values via reverse predicate.
