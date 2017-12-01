@@ -34,6 +34,9 @@ var AssetsPath string
 var assetsDirs = []string{"templates", "static", "docs"}
 
 func hasAssets(path string) bool {
+	if len(assetsDirs) == 0 {
+		return false
+	}
 	for _, dir := range assetsDirs {
 		if _, err := os.Stat(fmt.Sprint(path, "/", dir)); os.IsNotExist(err) {
 			return false
@@ -42,28 +45,22 @@ func hasAssets(path string) bool {
 	return true
 }
 
-func findAssetsPath() string {
+func findAssetsPath() (string, error) {
 	if AssetsPath != "" {
 		if hasAssets(AssetsPath) {
-			return AssetsPath
+			return AssetsPath, nil
 		}
-		clog.Fatalf("Cannot find assets at %q.", AssetsPath)
+		return "", fmt.Errorf("cannot find assets at %q", AssetsPath)
 	}
-
-	if hasAssets(".") {
-		return "."
+	for _, path := range []string{
+		".", "..",
+		os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley"),
+	} {
+		if hasAssets(path) {
+			return path, nil
+		}
 	}
-
-	if hasAssets("..") {
-		return ".."
-	}
-
-	gopathPath := os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley")
-	if hasAssets(gopathPath) {
-		return gopathPath
-	}
-	clog.Fatalf("Cannot find assets in any of the default search paths. Please run in the same directory, in a Go workspace, or set --assets .")
-	panic("cannot reach")
+	return "", nil
 }
 
 type statusWriter struct {
@@ -165,16 +162,8 @@ type Config struct {
 	Batch    int
 }
 
-func SetupRoutes(handle *graph.Handle, cfg *Config) {
+func SetupRoutes(handle *graph.Handle, cfg *Config) error {
 	r := httprouter.New()
-	assets := findAssetsPath()
-	if clog.V(2) {
-		clog.Infof("Found assets at %v", assets)
-	}
-	var templates = template.Must(template.ParseGlob(fmt.Sprint(assets, "/templates/*.tmpl")))
-	templates.ParseGlob(fmt.Sprint(assets, "/templates/*.html"))
-	root := &TemplateRequestHandler{templates: templates}
-	docs := &DocRequestHandler{assets: assets}
 	api := &API{config: cfg, handle: handle}
 	r.OPTIONS("/*path", CORSFunc)
 	api.APIv1(r)
@@ -189,9 +178,21 @@ func SetupRoutes(handle *graph.Handle, cfg *Config) {
 	const gephiPath = "/gephi/gs"
 	r.GET(gephiPath, CORS(gs.ServeHTTP))
 
-	r.GET("/docs/:docpage", docs.ServeHTTP)
-	r.GET("/ui/:ui_type", root.ServeHTTP)
-	r.GET("/", root.ServeHTTP)
-	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(fmt.Sprint(assets, "/static/")))))
+	if assets, err := findAssetsPath(); err != nil {
+		return err
+	} else if assets != "" {
+		clog.Infof("using assets from %q", assets)
+		docs := &DocRequestHandler{assets: assets}
+		r.GET("/docs/:docpage", docs.ServeHTTP)
+
+		var templates = template.Must(template.ParseGlob(fmt.Sprint(assets, "/templates/*.tmpl")))
+		templates.ParseGlob(fmt.Sprint(assets, "/templates/*.html"))
+		root := &TemplateRequestHandler{templates: templates}
+		r.GET("/ui/:ui_type", root.ServeHTTP)
+		r.GET("/", root.ServeHTTP)
+		http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(fmt.Sprint(assets, "/static/")))))
+	}
+
 	http.Handle("/", r)
+	return nil
 }
