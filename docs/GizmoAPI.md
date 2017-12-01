@@ -392,6 +392,11 @@ g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follo
 ```
 
 
+### `path.Labels()`
+
+Labels gets the list of inbound and outbound quad labels
+
+
 ### `path.Limit(limit)`
 
 Limit limits a number of nodes for current path.

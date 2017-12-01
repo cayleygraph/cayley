@@ -42,7 +42,7 @@ func main() {
 To use other backends, you can empty-import them, eg
 
 ```go
-import _ "github.com/cayleygraph/cayley/graph/bolt"
+import _ "github.com/cayleygraph/cayley/graph/kv/bolt"
 ```
 
 And use them with a call like
@@ -58,3 +58,5 @@ func open() {
   cayley.NewGraph("bolt", path, nil)
 }
 ```
+
+More runnable examples are available in [examples](../examples/) folder.
