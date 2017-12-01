@@ -16,6 +16,7 @@ package graph
 
 import (
 	"fmt"
+	"sort"
 )
 
 var (
@@ -91,5 +92,6 @@ func QuadStores() []string {
 	for n := range storeRegistry {
 		t = append(t, n)
 	}
+	sort.Strings(t)
 	return t
 }
