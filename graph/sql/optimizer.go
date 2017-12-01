@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -74,6 +75,10 @@ func (opt *Optimizer) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
 	switch s := s.(type) {
 	case shape.AllNodes:
 		return AllNodes(), true
+	case shape.Lookup:
+		return opt.optimizeLookup(s)
+	case shape.Filter:
+		return opt.optimizeFilters(s)
 	case shape.Intersect:
 		return opt.optimizeIntersect(s)
 	case shape.Quads:
@@ -87,7 +92,155 @@ func (opt *Optimizer) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
 	case shape.Page:
 		return opt.optimizePage(s)
 	default:
-		// TODO: optimize Intersect(SQL, SQL, ...)
+		return s, false
+	}
+}
+
+func SelectValue(v quad.Value, op CmpOp) *Select {
+	if op == OpEqual {
+		// we can use hash to check equality
+		sel := Nodes([]Where{
+			{Field: "hash", Op: op, Value: Placeholder{}},
+		}, []Value{
+			HashOf(v),
+		})
+		return &sel
+	}
+	var (
+		where  []Where
+		params []Value
+	)
+	switch v := v.(type) {
+	case quad.IRI:
+		where = []Where{
+			{Field: "value_string", Op: op, Value: Placeholder{}},
+			{Field: "iri", Op: OpIsTrue},
+		}
+		params = []Value{
+			StringVal(v),
+		}
+	case quad.BNode:
+		where = []Where{
+			{Field: "value_string", Op: op, Value: Placeholder{}},
+			{Field: "bnode", Op: OpIsTrue},
+		}
+		params = []Value{
+			StringVal(v),
+		}
+	case quad.String:
+		where = []Where{
+			{Field: "value_string", Op: op, Value: Placeholder{}},
+			{Field: "iri", Op: OpIsNull},
+			{Field: "bnode", Op: OpIsNull},
+			{Field: "datatype", Op: OpIsNull},
+			{Field: "language", Op: OpIsNull},
+		}
+		params = []Value{
+			StringVal(v),
+		}
+	case quad.LangString:
+		where = []Where{
+			{Field: "value_string", Op: op, Value: Placeholder{}},
+			{Field: "language", Op: OpEqual, Value: Placeholder{}},
+		}
+		params = []Value{
+			StringVal(v.Value),
+			StringVal(v.Lang),
+		}
+	case quad.TypedString:
+		where = []Where{
+			{Field: "value_string", Op: op, Value: Placeholder{}},
+			{Field: "datatype", Op: OpEqual, Value: Placeholder{}},
+		}
+		params = []Value{
+			StringVal(v.Value),
+			StringVal(v.Type),
+		}
+	case quad.Int:
+		where = []Where{
+			{Field: "value_int", Op: op, Value: Placeholder{}},
+		}
+		params = []Value{
+			IntVal(v),
+		}
+	case quad.Float:
+		where = []Where{
+			{Field: "value_float", Op: op, Value: Placeholder{}},
+		}
+		params = []Value{
+			FloatVal(v),
+		}
+	case quad.Bool:
+		where = []Where{
+			{Field: "value_bool", Op: op, Value: Placeholder{}},
+		}
+		params = []Value{
+			BoolVal(v),
+		}
+	case quad.Time:
+		where = []Where{
+			{Field: "value_time", Op: op, Value: Placeholder{}},
+		}
+		params = []Value{
+			TimeVal(v),
+		}
+	default:
+		return nil
+	}
+	sel := Nodes(where, params)
+	return &sel
+}
+
+func (opt *Optimizer) optimizeLookup(s shape.Lookup) (shape.Shape, bool) {
+	if len(s) != 1 {
+		// TODO: support for IN
+		return s, false
+	}
+	sel := SelectValue(s[0], OpEqual)
+	if sel == nil {
+		return s, false
+	}
+	return *sel, true
+}
+
+func (opt *Optimizer) optimizeFilters(s shape.Filter) (shape.Shape, bool) {
+	switch from := s.From.(type) {
+	case shape.AllNodes:
+	case Select:
+		if !from.isAll() {
+			return s, false
+		}
+		t, ok := from.From[0].(Table)
+		if !ok || t.Name != "nodes" {
+			return s, false
+		}
+	default:
+		return s, false
+	}
+	if len(s.Filters) != 1 {
+		return s, false
+	}
+	switch f := s.Filters[0].(type) {
+	case shape.Comparison:
+		var cmp CmpOp
+		switch f.Op {
+		case iterator.CompareGT:
+			cmp = OpGT
+		case iterator.CompareGTE:
+			cmp = OpGTE
+		case iterator.CompareLT:
+			cmp = OpLT
+		case iterator.CompareLTE:
+			cmp = OpLTE
+		default:
+			return s, false
+		}
+		sel := SelectValue(f.Val, cmp)
+		if sel == nil {
+			return s, false
+		}
+		return *sel, true
+	default:
 		return s, false
 	}
 }

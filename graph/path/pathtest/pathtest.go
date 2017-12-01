@@ -146,6 +146,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		{
+			message: "filter nodes",
+			path:    StartPath(qs).Filter(iterator.CompareGT, quad.IRI("p")),
+			expect:  []quad.Value{vPredicate, vSmartGraph, vStatus},
+		},
+		{
 			message: "use in with filter",
 			path:    StartPath(qs, vBob).In(vFollows).Filter(iterator.CompareGT, quad.IRI("c")),
 			expect:  []quad.Value{vCharlie, vDani},

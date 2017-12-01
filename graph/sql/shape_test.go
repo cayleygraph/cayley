@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/stretchr/testify/require"
@@ -43,6 +44,56 @@ var shapeCases = []struct {
 		name: "all nodes",
 		s:    shape.AllNodes{},
 		qu:   `SELECT hash AS ` + tagNode + ` FROM nodes`,
+	},
+	{
+		name: "lookup iri",
+		s:    shape.Lookup{quad.IRI("a")},
+		qu:   `SELECT hash AS ` + tagNode + ` FROM nodes WHERE hash = $1`,
+		args: []Value{HashOf(quad.IRI("a"))},
+	},
+	{
+		name: "gt iri",
+		s: shape.Filter{
+			From: shape.AllNodes{},
+			Filters: []shape.ValueFilter{
+				shape.Comparison{Op: iterator.CompareGT, Val: quad.IRI("a")},
+			},
+		},
+		qu:   `SELECT hash AS ` + tagNode + ` FROM nodes WHERE value_string > $1 AND iri IS true`,
+		args: []Value{StringVal("a")},
+	},
+	{
+		name: "gt string",
+		s: shape.Filter{
+			From: shape.AllNodes{},
+			Filters: []shape.ValueFilter{
+				shape.Comparison{Op: iterator.CompareGT, Val: quad.String("a")},
+			},
+		},
+		qu:   `SELECT hash AS ` + tagNode + ` FROM nodes WHERE value_string > $1 AND iri IS NULL AND bnode IS NULL AND datatype IS NULL AND language IS NULL`,
+		args: []Value{StringVal("a")},
+	},
+	{
+		name: "gt typed string",
+		s: shape.Filter{
+			From: shape.AllNodes{},
+			Filters: []shape.ValueFilter{
+				shape.Comparison{Op: iterator.CompareGT, Val: quad.TypedString{Value: "a", Type: "A"}},
+			},
+		},
+		qu:   `SELECT hash AS ` + tagNode + ` FROM nodes WHERE value_string > $1 AND datatype = $2`,
+		args: []Value{StringVal("a"), StringVal("A")},
+	},
+	{
+		name: "lookup int",
+		s: shape.Filter{
+			From: shape.AllNodes{},
+			Filters: []shape.ValueFilter{
+				shape.Comparison{Op: iterator.CompareGT, Val: quad.Int(42)},
+			},
+		},
+		qu:   `SELECT hash AS ` + tagNode + ` FROM nodes WHERE value_int > $1`,
+		args: []Value{IntVal(42)},
 	},
 	{
 		name: "all quads",

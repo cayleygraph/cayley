@@ -40,6 +40,38 @@ func registerQuadStore(name, typ string) {
 	})
 }
 
+var _ Value = StringVal("")
+
+type StringVal string
+
+func (v StringVal) SQLValue() interface{} {
+	return escapeNullByte(string(v))
+}
+
+type IntVal int64
+
+func (v IntVal) SQLValue() interface{} {
+	return int64(v)
+}
+
+type FloatVal float64
+
+func (v FloatVal) SQLValue() interface{} {
+	return float64(v)
+}
+
+type BoolVal bool
+
+func (v BoolVal) SQLValue() interface{} {
+	return bool(v)
+}
+
+type TimeVal time.Time
+
+func (v TimeVal) SQLValue() interface{} {
+	return time.Time(v)
+}
+
 type NodeHash [quad.HashSize]byte
 
 func (NodeHash) IsNode() bool       { return true }
