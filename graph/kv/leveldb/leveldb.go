@@ -37,7 +37,7 @@ func init() {
 }
 
 const (
-	Type = "leveldb2"
+	Type = "leveldb"
 )
 
 func newDB(d *leveldb.DB, m graph.Options) *DB {

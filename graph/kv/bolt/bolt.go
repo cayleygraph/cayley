@@ -36,7 +36,7 @@ func init() {
 }
 
 const (
-	Type = "bolt2"
+	Type = "bolt"
 )
 
 func getBoltFile(cfgpath string) string {

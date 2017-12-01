@@ -48,7 +48,7 @@ var (
 const localFillPercent = 0.7
 
 const (
-	QuadStoreType = "bolt"
+	QuadStoreType = "bolt1"
 )
 
 type Token struct {

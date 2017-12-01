@@ -44,7 +44,7 @@ func init() {
 const (
 	DefaultCacheSize       = 2
 	DefaultWriteBufferSize = 20
-	QuadStoreType          = "leveldb"
+	QuadStoreType          = "leveldb1"
 	horizonKey             = "__horizon"
 	sizeKey                = "__size"
 	versionKey             = "__version"
