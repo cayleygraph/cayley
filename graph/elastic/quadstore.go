@@ -229,12 +229,12 @@ func toQuadValue(d elasticString) quad.Value {
 }
 
 type elasticString struct {
-	StringVal string     `json:"val_str,omitempty"`
-	IntVal    *int64     `json:"val_int"`
-	FloatVal  *float64   `json:"val_float"`
-	BoolVal   *bool      `json:"val_bool"`
-	TimeVal   *time.Time `json:"val_time"`
-	ByteVal   *[]byte    `json:"val_byte"`
+	StringVal string     `json:"val_str"`
+	IntVal    *int64     `json:"val_int,omitempty"`
+	FloatVal  *float64   `json:"val_float,omitempty"`
+	BoolVal   *bool      `json:"val_bool,omitempty"`
+	TimeVal   *time.Time `json:"val_time,omitempty"`
+	ByteVal   *[]byte    `json:"val_byte,omitempty"`
 	IsIRI     bool       `json:"iri,omitempty"`
 	IsBNode   bool       `json:"bnode,omitempty"`
 	IsRaw     bool       `json:"raw,omitempty"`
