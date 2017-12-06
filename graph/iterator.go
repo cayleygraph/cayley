@@ -47,6 +47,25 @@ func (t *Tagger) Add(tag ...string) {
 	t.tags = append(t.tags, tag...)
 }
 
+// Remove tags from the iterator
+func (t *Tagger) Remove(tags []string) {
+	newTags := []string{}
+	for _, tag := range t.tags {
+		keep := true
+		for _, rem := range tags {
+			if tag == rem {
+				keep = false
+			}
+		}
+
+		if keep {
+			newTags = append(newTags, tag)
+		}
+	}
+
+	t.tags = newTags
+}
+
 func (t *Tagger) AddFixed(tag string, value Value) {
 	if t.fixedTags == nil {
 		t.fixedTags = make(map[string]Value)
