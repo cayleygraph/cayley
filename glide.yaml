@@ -28,6 +28,7 @@ import:
 - package: github.com/syndtr/gosnappy
   subpackages:
   - snappy
+- package: gopkg.in/olivere/elastic.v5
 - package: gopkg.in/mgo.v2
   subpackages:
   - bson
