@@ -12,7 +12,7 @@ If you prefer to build from source, see [Contributing.md](Contributing.md) which
 If you downloaded the correct binary the fastest way to have a peak into Cayley is to load one of the example data file in the ./data directory, and query them by the web interface.
 
 ```bash
-./cayley http -i ./data/30kmoviedata.nq.gz -d memstore --host=:64210
+./cayley http -dbpath ./data/30kmoviedata.nq.gz -db memstore
 ```
 
 ```
