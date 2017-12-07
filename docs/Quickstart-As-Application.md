@@ -12,14 +12,15 @@ If you prefer to build from source, see [Contributing.md](Contributing.md) which
 If you downloaded the correct binary the fastest way to have a peak into Cayley is to load one of the example data file in the ./data directory, and query them by the web interface.
 
 ```bash
-./cayley http -i ./data/30kmoviedata.nq.gz -d memstore --host=:64210
+./cayley http -dbpath ./data/30kmoviedata.nq.gz -db memstore
+
+# or with different host and port
+./cayley http -dbpath ./data/30kmoviedata.nq.gz -db memstore --host 127.0.0.1 --port 3330
 ```
 
 ```
-Cayley version: x.y.z
-using backend "memstore"
-loaded "./data/30kmoviedata.nq.gz"
-listening on :64210, web interface at http://localhost:64210
+Serving Gephi GraphStream at http://localhost:64210/gephi/gs
+Cayley now listening on 127.0.0.1:64210
 ```
 
 You can now open the web-interface on: [localhost:64210](http://localhost:64210/)
