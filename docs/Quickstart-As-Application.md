@@ -19,10 +19,8 @@ If you downloaded the correct binary the fastest way to have a peak into Cayley 
 ```
 
 ```
-Cayley version: x.y.z
-using backend "memstore"
-loaded "./data/30kmoviedata.nq.gz"
-listening on :64210, web interface at http://localhost:64210
+Serving Gephi GraphStream at http://localhost:64210/gephi/gs
+Cayley now listening on 127.0.0.1:64210
 ```
 
 You can now open the web-interface on: [localhost:64210](http://localhost:64210/)
