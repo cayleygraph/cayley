@@ -13,6 +13,9 @@ If you downloaded the correct binary the fastest way to have a peak into Cayley 
 
 ```bash
 ./cayley http -dbpath ./data/30kmoviedata.nq.gz -db memstore
+
+# or with different host and port
+./cayley http -dbpath ./data/30kmoviedata.nq.gz -db memstore --host 127.0.0.1 --port 3330
 ```
 
 ```
