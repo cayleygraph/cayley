@@ -71,6 +71,7 @@ var (
 	ErrQuadExists    = errors.New("quad exists")
 	ErrQuadNotExist  = errors.New("quad does not exist")
 	ErrInvalidAction = errors.New("invalid action")
+	ErrNodeNotExists = errors.New("node does not exist")
 )
 
 // DeltaError records an error and the delta that caused it.
@@ -139,6 +140,8 @@ type QuadWriter interface {
 	ApplyTransaction(*Transaction) error
 
 	// RemoveNode removes all quads which have the given node as subject, predicate, object, or label.
+	//
+	// It returns ErrNodeNotExists if node is missing.
 	RemoveNode(quad.Value) error
 
 	// Close cleans up replication and closes the writing aspect of the database.

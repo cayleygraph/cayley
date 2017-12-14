@@ -51,10 +51,13 @@ func NewHttpCmd() *cobra.Command {
 				clog.Infof("loaded %q in %v", load, time.Since(start))
 			}
 
-			chttp.SetupRoutes(h, &chttp.Config{
+			err = chttp.SetupRoutes(h, &chttp.Config{
 				Timeout:  timeout,
 				ReadOnly: ro,
 			})
+			if err != nil {
+				return err
+			}
 			host, _ := cmd.Flags().GetString("host")
 			phost := host
 			if host, port, err := net.SplitHostPort(host); err == nil && host == "" {

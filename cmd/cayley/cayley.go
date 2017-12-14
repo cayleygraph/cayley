@@ -128,7 +128,8 @@ func init() {
 	)
 	rootCmd.PersistentFlags().StringP("config", "c", "", "path to an explicit configuration file")
 
-	rootCmd.PersistentFlags().StringP("db", "d", "memstore", "database backend to use")
+	qnames := graph.QuadStores()
+	rootCmd.PersistentFlags().StringP("db", "d", "memstore", "database backend to use: "+strings.Join(qnames, ", "))
 	rootCmd.PersistentFlags().StringP("dbpath", "a", "", "path or address string for database")
 	rootCmd.PersistentFlags().Bool("read_only", false, "open database in read-only mode")
 

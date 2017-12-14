@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	elasticClient "gopkg.in/olivere/elastic.v5"
+	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -105,15 +105,15 @@ func (v QuadHash) Get(d quad.Direction) string {
 
 // QuadStore stores details needed for backend (elasticsearch in this case)
 type QuadStore struct {
-	client      *elasticClient.Client
+	client      *elastic.Client
 	nodeTracker *lru.Cache
 	sizes       *lru.Cache
 }
 
 // dialElastic connects to elasticsearch
-func dialElastic(addr string, options graph.Options) (*elasticClient.Client, error) {
+func dialElastic(addr string, options graph.Options) (*elastic.Client, error) {
 	indexName = options["index"].(string)
-	client, err := elasticClient.NewClient(elasticClient.SetURL(addr))
+	client, err := elastic.NewClient(elastic.SetURL(addr))
 	if err != nil {
 		return client, err
 	}
@@ -255,12 +255,12 @@ func toQuadValue(d elasticString) quad.Value {
 }
 
 type elasticString struct {
-	StringVal string     `json:"val_str,omitempty"`
-	IntVal    *int64     `json:"val_int"`
-	FloatVal  *float64   `json:"val_float"`
-	BoolVal   *bool      `json:"val_bool"`
-	TimeVal   *time.Time `json:"val_time"`
-	ByteVal   *[]byte    `json:"val_byte"`
+	StringVal string     `json:"val_str"`
+	IntVal    *int64     `json:"val_int,omitempty"`
+	FloatVal  *float64   `json:"val_float,omitempty"`
+	BoolVal   *bool      `json:"val_bool,omitempty"`
+	TimeVal   *time.Time `json:"val_time,omitempty"`
+	ByteVal   *[]byte    `json:"val_byte,omitempty"`
 	IsIRI     bool       `json:"iri,omitempty"`
 	IsBNode   bool       `json:"bnode,omitempty"`
 	IsRaw     bool       `json:"raw,omitempty"`
@@ -340,7 +340,7 @@ func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	return id
 }
 
-func (qs *QuadStore) getSize(resultType string, query elasticClient.Query) (int64, error) {
+func (qs *QuadStore) getSize(resultType string, query elastic.Query) (int64, error) {
 	ctx := context.Background()
 
 	searchResults, ok := qs.client.Search(indexName).
@@ -432,7 +432,6 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				quad.Label, d.Action,
 			}
 		}
-
 	}
 
 	if clog.V(2) {
@@ -531,7 +530,7 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode elasticNodeTra
 		// Construct an Elastic query to check if the Node marked for deletion is present
 		// in another Quad. If so, don't delete the Node. If not, delete the Node.
 		// Example: nodeType - subject, nodeId - 9328afb
-		termQuery := elasticClient.NewTermQuery(trackedNode.NodeType.String(), nodeId)
+		termQuery := elastic.NewTermQuery(trackedNode.NodeType.String(), nodeId)
 		ctx := context.Background()
 
 		// Elasticsearch query checking the quads Type
@@ -655,7 +654,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	}
 
 	ctx := context.Background()
-	termQuery := elasticClient.NewTermQuery("hash", string(hash))
+	termQuery := elastic.NewTermQuery("hash", string(hash))
 	searchResult, err := qs.client.Search().
 		Index(indexName).
 		Type("nodes").

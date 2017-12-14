@@ -563,6 +563,30 @@ func (p *pathObject) OutPredicates() *pathObject {
 	return p.new(np)
 }
 
+// SaveInPredicates tags the list of predicates that are pointing in to a node.
+//
+// Example:
+// 	// javascript
+//	// bob only has "<follows>" predicates pointing inward
+//	// returns {"id":"<bob>", "pred":"<follows>"}
+//	g.V("<bob>").SaveInPredicates("pred").All()
+func (p *pathObject) SaveInPredicates(tag string) *pathObject {
+	np := p.clonePath().SavePredicates(true, tag)
+	return p.new(np)
+}
+
+// SaveOutPredicates tags the list of predicates that are pointing out from a node.
+//
+// Example:
+// 	// javascript
+//	// bob has "<follows>" and "<status>" edges pointing outwards
+//	// returns {"id":"<bob>", "pred":"<follows>"}
+//	g.V("<bob>").SaveInPredicates("pred").All()
+func (p *pathObject) SaveOutPredicates(tag string) *pathObject {
+	np := p.clonePath().SavePredicates(false, tag)
+	return p.new(np)
+}
+
 // LabelContext sets (or removes) the subgraph context to consider in the following traversals.
 // Affects all In(), Out(), and Both() calls that follow it. The default LabelContext is null (all subgraphs).
 // Signature: ([labelPath], [tags])

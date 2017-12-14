@@ -500,6 +500,13 @@ type QuadsAction struct {
 	Filter map[quad.Direction]graph.Value
 }
 
+func (s *QuadsAction) SetFilter(d quad.Direction, v graph.Value) {
+	if s.Filter == nil {
+		s.Filter = make(map[quad.Direction]graph.Value)
+	}
+	s.Filter[d] = v
+}
+
 func (s QuadsAction) Clone() QuadsAction {
 	if n := len(s.Save); n != 0 {
 		s2 := make(map[quad.Direction][]string, n)
@@ -887,6 +894,7 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 			// try to push fixed down the tree
 			switch sf := s[0].(type) {
 			case QuadsAction:
+				// TODO: accept an array of Fixed values
 				if len(fix) == 1 {
 					// we have a single value in Fixed that is intersected with HasA tree
 					// this means we can add a new constraint: LinksTo(HasA.Dir, fixed)
@@ -901,10 +909,35 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 						}
 					}
 					sf = sf.Clone()
-					sf.Filter[sf.Result] = fv // LinksTo(HasA.Dir, fixed)
-					sf.Size = 0               // re-calculate size
+					sf.SetFilter(sf.Result, fv) // LinksTo(HasA.Dir, fixed)
+					sf.Size = 0                 // re-calculate size
 					ns, _ := sf.Optimize(r)
 					return ns, true
+				}
+			case NodesFrom:
+				if sq, ok := sf.Quads.(Quads); ok {
+					// an optimization above is valid for NodesFrom+Quads as well
+					// we can add the same constraint to Quads and remove Fixed
+					qi := -1
+					for i, qf := range sq {
+						if qf.Dir == sf.Dir {
+							qi = i
+							break
+						}
+					}
+					if qi < 0 {
+						// no filter on this direction - append
+						sf.Quads = append(Quads{
+							{Dir: sf.Dir, Values: fix},
+						}, sq...)
+					} else {
+						// already have a filter on this direction - push Fixed inside it
+						sq = append(Quads{}, sq...)
+						sf.Quads = sq
+						qf := &sq[qi]
+						qf.Values = IntersectShapes(fix, qf.Values)
+					}
+					return sf, true
 				}
 			}
 		}
@@ -1020,12 +1053,34 @@ func (s Page) Optimize(r Optimizer) (Shape, bool) {
 	if s.Skip <= 0 && s.Limit <= 0 {
 		return s.From, true
 	}
+	if p, ok := s.From.(Page); ok {
+		p2 := p.ApplyPage(s)
+		if p2 == nil {
+			return nil, true
+		}
+		s, opt = *p2, true
+	}
 	if r != nil {
 		ns, nopt := r.OptimizeShape(s)
 		return ns, opt || nopt
 	}
 	// TODO: check size
-	return s, false
+	return s, opt
+}
+func (s Page) ApplyPage(p Page) *Page {
+	s.Skip += p.Skip
+	if s.Limit > 0 {
+		s.Limit -= p.Skip
+		if s.Limit <= 0 {
+			return nil
+		}
+		if p.Limit > 0 && s.Limit > p.Limit {
+			s.Limit = p.Limit
+		}
+	} else {
+		s.Limit = p.Limit
+	}
+	return &s
 }
 
 // Unique makes query results unique.
@@ -1058,8 +1113,8 @@ func (s Unique) Optimize(r Optimizer) (Shape, bool) {
 
 // Save tags a results of query with provided tags.
 type Save struct {
-	From Shape
 	Tags []string
+	From Shape
 }
 
 func (s Save) BuildIterator(qs graph.QuadStore) graph.Iterator {

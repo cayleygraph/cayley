@@ -24,10 +24,22 @@ All command line flags take precedence over the configuration file.
   Determines the type of the underlying database. Options include:
 
   * `memstore`: An in-memory store, based on an initial N-Quads file. Loses all changes when the process exits.
+  
+  **Key-Value backends**
+  
+  * `btree`: An in-memory store, used mostly to quickly verify KV backend functionality.
   * `leveldb`: A persistent on-disk store backed by [LevelDB](https://github.com/google/leveldb).
-  * `bolt`: Stores the graph data on-disk in a [Bolt](http://github.com/boltdb/bolt) file. Uses more disk space and memory than LevelDB for smaller stores, but is often faster to write to and comparable for large ones, with faster average query times.
-  * `mongo`: Stores the graph data and indices in a [MongoDB](http://mongodb.org) instance. Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
-  * `sql`: Stores the graph data and indices in a [PostgreSQL](http://www.postgresql.org) instance.
+  * `bolt`: Stores the graph data on-disk in a [Bolt](https://github.com/boltdb/bolt) file. Uses more disk space and memory than LevelDB for smaller stores, but is often faster to write to and comparable for large ones, with faster average query times.
+  
+  **NoSQL backends**
+  
+  * `mongo`: Stores the graph data and indices in a [MongoDB](https://www.mongodb.com/) instance. Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
+  
+  **SQL backends**
+  
+  * `postgres`: Stores the graph data and indices in a [PostgreSQL](https://www.postgresql.org) instance.
+  * `cockroach`: Stores the graph data and indices in a [CockroachDB](https://www.cockroachlabs.com/product/cockroachdb/) cluster.
+  * `mysql`: Stores the graph data and indices in a [MySQL](https://www.mysql.com/) or [MariaDB](https://mariadb.org/) instance.
 
 #### **`store.address`**
 
@@ -40,8 +52,9 @@ All command line flags take precedence over the configuration file.
   * `memstore`: Path parameter is not supported.
   * `leveldb`: Directory to hold the LevelDB database files.
   * `bolt`: Path to the persistent single Bolt database file.
-  * `mongo`: "hostname:port" of the desired MongoDB server.
-  * `sql`: "postgres://[username:password@]host[:port]/database-name?sslmode=disable" of the desired PostgreSQL database and credentials. Sslmode is optional.
+  * `mongo`: "hostname:port" of the desired MongoDB server. More options can be provided in [mgo](https://godoc.org/gopkg.in/mgo.v2#Dial) address format.
+  * `postgres`,`cockroach`: `postgres://[username:password@]host[:port]/database-name?sslmode=disable` of the PostgreSQL database and credentials. Sslmode is optional. More option available on [pq](https://godoc.org/github.com/lib/pq) page.
+  * `mysql`: `[username:password@]tcp(host[:3306])/database-name` of the MqSQL database and credentials. More option available on [driver](https://github.com/go-sql-driver/mysql#dsn-data-source-name) page.
 
 #### **`store.read_only`**
 

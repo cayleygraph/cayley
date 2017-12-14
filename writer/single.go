@@ -95,25 +95,35 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
 }
 
-// RemoveNode removes all quads with the given value
+// RemoveNode removes all quads with the given value.
+//
+// It returns ErrNodeNotExists if node is missing.
 func (s *Single) RemoveNode(v quad.Value) error {
 	gv := s.qs.ValueOf(v)
 	if gv == nil {
-		return nil
+		return graph.ErrNodeNotExists
 	}
-	var deltas []graph.Delta
+	del := graph.NewRemover(s)
+	defer del.Close()
+
+	total := 0
 	// TODO(dennwc): QuadStore may remove node without iterations. Consider optional interface for this.
 	for _, d := range []quad.Direction{quad.Subject, quad.Predicate, quad.Object, quad.Label} {
-		it := s.qs.QuadIterator(d, gv)
-		for it.Next() {
-			deltas = append(deltas, graph.Delta{
-				Quad:   s.qs.Quad(it.Result()),
-				Action: graph.Delete,
-			})
+		r := graph.NewResultReader(s.qs, s.qs.QuadIterator(d, gv))
+		n, err := quad.Copy(del, r)
+		r.Close()
+		if err != nil {
+			return err
 		}
-		it.Close()
+		total += n
 	}
-	return s.qs.ApplyDeltas(deltas, graph.IgnoreOpts{IgnoreMissing: true})
+	if err := del.Flush(); err != nil {
+		return err
+	}
+	if total == 0 {
+		return graph.ErrNodeNotExists
+	}
+	return nil
 }
 
 func (s *Single) Close() error {

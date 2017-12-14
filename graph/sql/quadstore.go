@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -37,6 +38,38 @@ func registerQuadStore(name, typ string) {
 		},
 		IsPersistent: true,
 	})
+}
+
+var _ Value = StringVal("")
+
+type StringVal string
+
+func (v StringVal) SQLValue() interface{} {
+	return escapeNullByte(string(v))
+}
+
+type IntVal int64
+
+func (v IntVal) SQLValue() interface{} {
+	return int64(v)
+}
+
+type FloatVal float64
+
+func (v FloatVal) SQLValue() interface{} {
+	return float64(v)
+}
+
+type BoolVal bool
+
+func (v BoolVal) SQLValue() interface{} {
+	return bool(v)
+}
+
+type TimeVal time.Time
+
+func (v TimeVal) SQLValue() interface{} {
+	return time.Time(v)
 }
 
 type NodeHash [quad.HashSize]byte
@@ -102,15 +135,32 @@ func (q QuadHashes) Get(d quad.Direction) NodeHash {
 	}
 	panic(fmt.Errorf("unknown direction: %v", d))
 }
+func (q *QuadHashes) Set(d quad.Direction, h NodeHash) {
+	switch d {
+	case quad.Subject:
+		q[0] = h
+	case quad.Predicate:
+		q[1] = h
+	case quad.Object:
+		q[2] = h
+	case quad.Label:
+		q[3] = h
+	default:
+		panic(fmt.Errorf("unknown direction: %v", d))
+	}
+}
 
 type QuadStore struct {
 	db           *sql.DB
+	opt          *Optimizer
 	flavor       Registration
-	size         int64
 	ids          *lru.Cache
 	sizes        *lru.Cache
 	noSizes      bool
 	useEstimates bool
+
+	mu   sync.RWMutex
+	size int64
 }
 
 func connect(addr string, flavor string, opts graph.Options) (*sql.DB, error) {
@@ -245,33 +295,32 @@ func New(typ string, addr string, options graph.Options) (graph.QuadStore, error
 	if !ok {
 		return nil, fmt.Errorf("unsupported sql database: %s", typ)
 	}
-	var qs QuadStore
 	conn, err := connect(addr, fl.Driver, options)
 	if err != nil {
 		return nil, err
 	}
-	localOpt, localOptOk, err := options.BoolKey("local_optimize")
-	if err != nil {
-		return nil, err
+	qs := &QuadStore{
+		db:      conn,
+		opt:     NewOptimizer(),
+		flavor:  fl,
+		size:    -1,
+		sizes:   lru.New(1024),
+		ids:     lru.New(1024),
+		noSizes: true, // Skip size checking by default.
 	}
-	qs.db = conn
-	qs.flavor = fl
-	qs.size = -1
-	qs.sizes = lru.New(1024)
-	qs.ids = lru.New(1024)
+	if qs.flavor.NoOffsetWithoutLimit {
+		qs.opt.NoOffsetWithoutLimit()
+	}
 
-	// Skip size checking by default.
-	qs.noSizes = true
-	if localOptOk {
-		if localOpt {
-			qs.noSizes = false
-		}
+	if local, ok, err := options.BoolKey("local_optimize"); err != nil {
+		return nil, err
+	} else if ok && local {
+		qs.noSizes = false
 	}
-	qs.useEstimates, _, err = options.BoolKey("use_estimates")
-	if err != nil {
+	if qs.useEstimates, _, err = options.BoolKey("use_estimates"); err != nil {
 		return nil, err
 	}
-	return &qs, nil
+	return qs, nil
 }
 
 func escapeNullByte(s string) string {
@@ -343,7 +392,9 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 		tx.Rollback()
 		return err
 	}
+	qs.mu.Lock()
 	qs.size = -1 // TODO(barakmich): Sync size with writes.
+	qs.mu.Unlock()
 	return tx.Commit()
 }
 
@@ -358,15 +409,18 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return newSQLLinkIterator(qs, d, val.(NodeHash))
+	v := val.(Value)
+	sel := AllQuads("")
+	sel.WhereEq("", dirField(d), v)
+	return qs.NewIterator(sel)
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return NewAllIterator(qs, "nodes")
+	return qs.NewIterator(AllNodes())
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return NewAllIterator(qs, "quads")
+	return qs.NewIterator(AllQuads(""))
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
@@ -466,7 +520,9 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		&vfloat,
 		&vtime,
 	); err != nil {
-		clog.Errorf("Couldn't execute value lookup: %v", err)
+		if err != sql.ErrNoRows {
+			clog.Errorf("Couldn't execute value lookup: %v", err)
+		}
 		return nil
 	}
 	var val quad.Value
@@ -511,8 +567,11 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 }
 
 func (qs *QuadStore) Size() int64 {
-	if qs.size != -1 {
-		return qs.size
+	qs.mu.RLock()
+	sz := qs.size
+	qs.mu.RUnlock()
+	if sz >= 0 {
+		return sz
 	}
 
 	query := "SELECT COUNT(*) FROM quads;"
@@ -520,13 +579,15 @@ func (qs *QuadStore) Size() int64 {
 		query = qs.flavor.Estimated("quads")
 	}
 
-	c := qs.db.QueryRow(query)
-	err := c.Scan(&qs.size)
+	err := qs.db.QueryRow(query).Scan(&sz)
 	if err != nil {
 		clog.Errorf("Couldn't execute COUNT: %v", err)
 		return 0
 	}
-	return qs.size
+	qs.mu.Lock()
+	qs.size = sz
+	qs.mu.Unlock()
+	return sz
 }
 
 func (qs *QuadStore) Horizon() graph.PrimaryKey {

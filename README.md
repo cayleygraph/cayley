@@ -14,9 +14,9 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 ## Features
 
 * Community driven
-* Written in [Go](http://golang.org)
+* Written in [Go](https://golang.org)
   * can be used as a Go library
-* Easy to get running (3 or 4 commands, below)
+* Easy to get running (3 or 4 commands)
 * RESTful API
   * or a REPL if you prefer
 * Built-in query editor and visualizer

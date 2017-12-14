@@ -150,7 +150,18 @@ func (it *And) Next() bool {
 }
 
 func (it *And) Err() error {
-	return it.err
+	if err := it.err; err != nil {
+		return err
+	}
+	if err := it.primaryIt.Err(); err != nil {
+		return err
+	}
+	for _, si := range it.internalIterators {
+		if err := si.Err(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (it *And) Result() graph.Value {

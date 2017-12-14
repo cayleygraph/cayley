@@ -392,6 +392,11 @@ g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follo
 ```
 
 
+### `path.Labels()`
+
+Labels gets the list of inbound and outbound quad labels
+
+
 ### `path.Limit(limit)`
 
 Limit limits a number of nodes for current path.
@@ -483,6 +488,30 @@ Example:
 //   {"id" : "<dani>", "target": "<bob>" },
 //   {"id" : "<dani>", "target": "<greg>" }
 g.V("<dani>", "<bob>").Save("<follows>", "target").All()
+```
+
+
+### `path.SaveInPredicates(tag)`
+
+SaveInPredicates tags the list of predicates that are pointing in to a node.
+
+Example:
+```javascript
+// bob only has "<follows>" predicates pointing inward
+// returns {"id":"<bob>", "pred":"<follows>"}
+g.V("<bob>").SaveInPredicates("pred").All()
+```
+
+
+### `path.SaveOutPredicates(tag)`
+
+SaveOutPredicates tags the list of predicates that are pointing out from a node.
+
+Example:
+```javascript
+// bob has "<follows>" and "<status>" edges pointing outwards
+// returns {"id":"<bob>", "pred":"<follows>"}
+g.V("<bob>").SaveInPredicates("pred").All()
 ```
 
 

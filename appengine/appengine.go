@@ -112,5 +112,7 @@ func init() {
 	if err != nil {
 		clog.Fatalf("Error opening database: %v", err)
 	}
-	http.SetupRoutes(handle, cfg)
+	if err := http.SetupRoutes(handle, cfg); err != nil {
+		clog.Fatalf("Error setting up routes: %v", err)
+	}
 }

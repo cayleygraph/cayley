@@ -146,6 +146,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		{
+			message: "filter nodes",
+			path:    StartPath(qs).Filter(iterator.CompareGT, quad.IRI("p")),
+			expect:  []quad.Value{vPredicate, vSmartGraph, vStatus},
+		},
+		{
 			message: "use in with filter",
 			path:    StartPath(qs, vBob).In(vFollows).Filter(iterator.CompareGT, quad.IRI("c")),
 			expect:  []quad.Value{vCharlie, vDani},
@@ -303,6 +308,12 @@ func testSet(qs graph.QuadStore) []test {
 			message: "OutPredicates()",
 			path:    StartPath(qs, vBob).OutPredicates(),
 			expect:  []quad.Value{vFollows, vStatus},
+		},
+		{
+			message: "SavePredicates(out)",
+			path:    StartPath(qs, vBob).SavePredicates(false, "pred"),
+			expect:  []quad.Value{vFollows},
+			tag:     "pred",
 		},
 		// Morphism tests
 		{

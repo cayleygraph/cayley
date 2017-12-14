@@ -104,6 +104,36 @@ var optimizeCases = []struct {
 		expect: AllNodes{},
 	},
 	{
+		name: "page min limit",
+		from: Page{
+			Limit: 5,
+			From: Page{
+				Limit: 3,
+				From:  AllNodes{},
+			},
+		},
+		opt: true,
+		expect: Page{
+			Limit: 3,
+			From:  AllNodes{},
+		},
+	},
+	{
+		name: "page skip and limit",
+		from: Page{
+			Skip: 3, Limit: 3,
+			From: Page{
+				Skip: 2, Limit: 5,
+				From: AllNodes{},
+			},
+		},
+		opt: true,
+		expect: Page{
+			Skip: 5, Limit: 2,
+			From: AllNodes{},
+		},
+	},
+	{
 		name: "intersect quads and lookup resolution",
 		from: Intersect{
 			Quads{
@@ -243,6 +273,44 @@ var optimizeCases = []struct {
 		expect: Save{
 			From: Fixed{intVal(2)},
 			Tags: []string{"all"},
+		},
+	},
+	{ // push fixed node from intersect into nodes.quads
+		name: "push fixed into nodes.quads",
+		from: Intersect{
+			Fixed{intVal(1)},
+			NodesFrom{
+				Dir: quad.Subject,
+				Quads: Quads{
+					{Dir: quad.Predicate, Values: Fixed{intVal(2)}},
+					{
+						Dir: quad.Object,
+						Values: NodesFrom{
+							Dir: quad.Subject,
+							Quads: Quads{
+								{Dir: quad.Predicate, Values: Fixed{intVal(2)}},
+							},
+						},
+					},
+				},
+			},
+		},
+		opt: true,
+		expect: NodesFrom{
+			Dir: quad.Subject,
+			Quads: Quads{
+				{Dir: quad.Subject, Values: Fixed{intVal(1)}},
+				{Dir: quad.Predicate, Values: Fixed{intVal(2)}},
+				{
+					Dir: quad.Object,
+					Values: QuadsAction{
+						Result: quad.Subject,
+						Filter: map[quad.Direction]graph.Value{
+							quad.Predicate: intVal(2),
+						},
+					},
+				},
+			},
 		},
 	},
 }

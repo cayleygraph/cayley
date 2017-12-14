@@ -11,6 +11,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/nquads"
+	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,6 @@ type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 type Config struct {
 	NoPrimitives bool
 	UnTyped      bool // converts all values to Raw representation
-	NoHashes     bool // cannot exchange raw values into typed ones
 	TimeInMs     bool
 	TimeInMcs    bool
 	TimeRound    bool
@@ -50,8 +50,10 @@ var graphTests = []struct {
 	{"deleted from iterator", TestDeletedFromIterator},
 	{"load typed quad", TestLoadTypedQuads},
 	{"add and remove", TestAddRemove},
+	{"node delete", TestNodeDelete},
 	{"iterators and next result order", TestIteratorsAndNextResultOrderA},
 	{"compare typed values", TestCompareTypedValues},
+	{"schema", TestSchema},
 }
 
 func TestAll(t *testing.T, gen DatabaseFunc, conf *Config) {
@@ -330,7 +332,9 @@ func TestIterator(t testing.TB, gen DatabaseFunc, _ *Config) {
 	}
 
 	for _, pq := range expect {
-		require.True(t, it.Contains(qs.ValueOf(quad.Raw(pq))), "Failed to find and check %q correctly", pq)
+		ok := it.Contains(qs.ValueOf(quad.Raw(pq)))
+		require.NoError(t, it.Err())
+		require.True(t, ok, "Failed to find and check %q correctly", pq)
 
 	}
 	// FIXME(kortschak) Why does this fail?
@@ -377,20 +381,14 @@ func TestHasA(t testing.TB, gen DatabaseFunc, conf *Config) {
 	it, _ = it.Optimize()
 	it, _ = qs.OptimizeIterator(it)
 
-	if conf.OptimizesHasAToUnique {
-		ExpectIteratedValues(t, qs, it, []quad.Value{
-			quad.Raw("follows"), quad.Raw("status"),
-		})
-	} else {
-		var exp []quad.Value
-		for i := 0; i < 8; i++ {
-			exp = append(exp, quad.Raw("follows"))
-		}
-		for i := 0; i < 3; i++ {
-			exp = append(exp, quad.Raw("status"))
-		}
-		ExpectIteratedValues(t, qs, it, exp)
+	var exp []quad.Value
+	for i := 0; i < 8; i++ {
+		exp = append(exp, quad.Raw("follows"))
 	}
+	for i := 0; i < 3; i++ {
+		exp = append(exp, quad.Raw("status"))
+	}
+	ExpectIteratedValues(t, qs, it, exp)
 }
 
 func TestSetIterator(t testing.TB, gen DatabaseFunc, _ *Config) {
@@ -594,9 +592,7 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 				assert.True(t, eq.Equal(got), "Failed to roundtrip %q (%T), got %q (%T)", pq, pq, got, got)
 			} else {
 				assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
-				if !conf.NoHashes {
-					assert.Equal(t, pq, qs.NameOf(qs.ValueOf(quad.Raw(pq.String()))), "Failed to exchange raw value %q (%T)", pq, pq)
-				}
+				assert.Equal(t, pq, qs.NameOf(qs.ValueOf(quad.Raw(pq.String()))), "Failed to exchange raw value %q (%T)", pq, pq)
 			}
 			// check if we can get received value again (hash roundtrip)
 			got2 := qs.NameOf(qs.ValueOf(got))
@@ -859,4 +855,74 @@ func TestCompareTypedValues(t testing.TB, gen DatabaseFunc, conf *Config) {
 		}
 		ExpectIteratedValues(t, qs, nit, c.expect)
 	}
+}
+
+func TestNodeDelete(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	del := quad.Raw("D")
+
+	err := w.RemoveNode(del)
+	require.NoError(t, err)
+
+	exp := MakeQuadSet()
+	for i := 0; i < len(exp); i++ {
+		for _, d := range quad.Directions {
+			if exp[i].Get(d) == del {
+				exp = append(exp[:i], exp[i+1:]...)
+				i--
+				break
+			}
+		}
+	}
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), exp, true)
+
+	if conf.SkipNodeDelAfterQuadDel {
+		return
+	}
+	ExpectIteratedValues(t, qs, qs.NodesAllIterator(), []quad.Value{
+		quad.Raw("A"),
+		quad.Raw("B"),
+		quad.Raw("C"),
+		quad.Raw("E"),
+		quad.Raw("F"),
+		quad.Raw("G"),
+		quad.Raw("cool"),
+		quad.Raw("follows"),
+		quad.Raw("status"),
+		quad.Raw("status_graph"),
+	})
+}
+
+func TestSchema(t testing.TB, gen DatabaseFunc, conf *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	type Person struct {
+		_         struct{}   `quad:"@type > ex:Person"`
+		ID        quad.IRI   `quad:"@id" json:"id"`
+		Name      string     `quad:"ex:name" json:"name"`
+		Something []quad.IRI `quad:"isParentOf < *,optional" json:"something"`
+	}
+	p := Person{
+		ID:   quad.IRI("ex:bob"),
+		Name: "Bob",
+	}
+
+	qw := graph.NewWriter(w)
+	id, err := schema.WriteAsQuads(qw, p)
+	require.NoError(t, err)
+	err = qw.Close()
+	require.NoError(t, err)
+	require.Equal(t, p.ID, id)
+
+	var p2 Person
+	err = schema.LoadTo(nil, qs, &p2, id)
+	require.NoError(t, err)
+	require.Equal(t, p, p2)
 }

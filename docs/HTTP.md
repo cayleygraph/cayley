@@ -1,5 +1,7 @@
 # HTTP Methods
 
+This file cover deprecated v1 HTTP API. All the methods of v2 HTTP API is described in OpenAPI/Swagger [spec](./api/swagger.yml) and can be viewed by passing `https://raw.githubusercontent.com/cayleygraph/cayley/master/docs/api/swagger.yml` address to [Swagger UI demo](http://petstore.swagger.io/).
+
 ## Gephi
 
 Cayley supports streaming to Gephi via [GraphStream](GephiGraphStream.md).

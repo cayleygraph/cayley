@@ -3,8 +3,7 @@
 ## Community
 - Where is the beating heart of this community?  https://discourse.cayley.io/
 - Where is the mailing list?  https://discourse.cayley.io/ (enable mailing list mode under options)
-- Where is the chat room?  [#cayley on freenode](irc://irc.freenode.net/cayley) ([getting started on freenode](http://richard.esplins.org/siwi/2011/07/08/getting-started-freenode-irc/))
-  - Quickstart: http://webchat.freenode.net/?channels=cayley (give a nickname, click the connect button)
+- Where is the chat room? [cayleygraph.slack.com](https://cayleygraph.slack.com) -- Invite [here](https://cayley-slackin.herokuapp.com/)
 - Where should I start contributing? [Contributing.md](Contributing.md) (Also: [How to get involved!](https://discourse.cayley.io/t/how-to-get-involved/44))
 - Where is the site-content? https://github.com/cayleygraph/site-content
 - Where are issues? https://github.com/cayleygraph/cayley/issues

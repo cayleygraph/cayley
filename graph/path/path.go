@@ -352,6 +352,14 @@ func (p *Path) OutPredicates() *Path {
 	return np
 }
 
+// SavePredicates saves either forward or reverse predicates of current node
+// without changing path location.
+func (p *Path) SavePredicates(rev bool, tag string) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, savePredicatesMorphism(rev, tag))
+	return np
+}
+
 // And updates the current Path to represent the nodes that match both the
 // current Path so far, and the given Path.
 func (p *Path) And(path *Path) *Path {
@@ -585,7 +593,7 @@ func (p *Path) Shape() shape.Shape {
 	return p.ShapeFrom(shape.AllNodes{})
 }
 func (p *Path) ShapeFrom(from shape.Shape) shape.Shape {
-	var s shape.Shape = from
+	s := from
 	ctx := &p.baseContext
 	for _, m := range p.stack {
 		s, ctx = m.Apply(s, ctx)

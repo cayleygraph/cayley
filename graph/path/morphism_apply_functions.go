@@ -282,6 +282,24 @@ func predicatesMorphism(isIn bool) morphism {
 	return m
 }
 
+// savePredicatesMorphism tags either forward or reverse predicates from current node
+// without affecting path.
+func savePredicatesMorphism(isIn bool, tag string) morphism {
+	m := morphism{
+		Name: "save_out_predicates",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
+			return savePredicatesMorphism(isIn, tag), ctx
+		},
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			return shape.SavePredicates(in, isIn, tag), ctx
+		},
+	}
+	if isIn {
+		m.Name = "save_in_predicates"
+	}
+	return m
+}
+
 type iteratorShape struct {
 	it graph.Iterator
 }

@@ -12,9 +12,16 @@ If you prefer to build from source, see [Contributing.md](Contributing.md) which
 If you downloaded the correct binary the fastest way to have a peak into Cayley is to load one of the example data file in the ./data directory, and query them by the web interface.
 
 ```bash
-./cayley http --dbpath=./data/30kmoviedata.nq.gz --host 0.0.0.0 --port 64210
-Cayley now listening on 0.0.0.0:64210
-  ```
+./cayley http -i ./data/30kmoviedata.nq.gz -d memstore --host=:64210
+```
+
+```
+Cayley version: x.y.z
+using backend "memstore"
+loaded "./data/30kmoviedata.nq.gz"
+listening on :64210, web interface at http://localhost:64210
+```
+
 You can now open the web-interface on: [localhost:64210](http://localhost:64210/)
 
 Or you can directly configure a backend storage engine like defined below and create your own graph.
@@ -30,7 +37,7 @@ Examples for each backend:
   * `leveldb`:  `./cayley init -d leveldb -a /tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
   * `bolt`:  `./cayley init -d bolt -a /tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
   * `mongo`: `./cayley init -d mongo -a "<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
-  * `sql`: `./cayley init -d sql -a "postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
+  * `postgres`: `./cayley init -d postgres -a "postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
 
 Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley_example.yml` in the root directory.
 
@@ -118,7 +125,7 @@ If you visit that address (often, [http://localhost:64210](http://localhost:6421
 #### Access from other machines ####
 When you want to reach the API or UI from another machine in the network you need to specify the host argument:
 ```bash
-./cayley http --config=cayley.cfg.overview --host=0.0.0.0
+./cayley http --config=cayley.cfg.overview --host=0.0.0.0:64210
 ```
 This makes it listen on all interfaces. You can also give it the specific the IP address you want Cayley to bind to. 
 

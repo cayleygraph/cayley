@@ -30,7 +30,7 @@ $(function() {
         if (typeof(Storage) !== "undefined") {
           localStorage.setItem("cayleySavedQueries" + selectedQueryLanguage, data)
         }
-        output_editor.setValue(return_data)
+        output_editor.setValue(JSON.stringify(JSON.parse(return_data), null, '\t'))
         stopAndReset();
       })
       .fail(function(jqxhr, textStatus, errorThrown){
