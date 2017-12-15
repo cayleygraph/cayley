@@ -34,11 +34,13 @@ import (
 
 func ParseJSONToQuadList(jsonBody []byte) (out []quad.Quad, _ error) {
 	var quads []struct {
-		Subject   string `json:"subject"`
-		Predicate string `json:"predicate"`
-		Object    string `json:"object"`
-		Label     string `json:"label"`
+		Subject      string            `json:"subject"`
+		Predicate    string            `json:"predicate"`
+		Object       string            `json:"object"`
+		Label        string            `json:"label"`
+		QuadMetadata map[string]string `json:"quadmetadata"`
 	}
+
 	err := json.Unmarshal(jsonBody, &quads)
 	if err != nil {
 		return nil, err
@@ -46,11 +48,13 @@ func ParseJSONToQuadList(jsonBody []byte) (out []quad.Quad, _ error) {
 	out = make([]quad.Quad, 0, len(quads))
 	for i, jq := range quads {
 		q := quad.Quad{
-			Subject:   quad.StringToValue(jq.Subject),
-			Predicate: quad.StringToValue(jq.Predicate),
-			Object:    quad.StringToValue(jq.Object),
-			Label:     quad.StringToValue(jq.Label),
+			Subject:      quad.StringToValue(jq.Subject),
+			Predicate:    quad.StringToValue(jq.Predicate),
+			Object:       quad.StringToValue(jq.Object),
+			Label:        quad.StringToValue(jq.Label),
+			QuadMetadata: quad.QuadRef(jq.QuadMetadata),
 		}
+
 		if !q.IsValid() {
 			return nil, fmt.Errorf("invalid quad at index %d. %s", i, q)
 		}

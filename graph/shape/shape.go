@@ -1,11 +1,12 @@
 package shape
 
 import (
+	"regexp"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
-	"regexp"
 )
 
 // Shape represent a query tree shape.
@@ -69,10 +70,11 @@ func Optimize(s Shape, qs graph.QuadStore) (Shape, bool) {
 
 // InternalQuad is an internal representation of quad index in QuadStore.
 type InternalQuad struct {
-	Subject   graph.Value
-	Predicate graph.Value
-	Object    graph.Value
-	Label     graph.Value
+	Subject      graph.Value
+	Predicate    graph.Value
+	Object       graph.Value
+	Label        graph.Value
+	QuadMetadata graph.Value
 }
 
 // Get returns a specified direction of the quad.
@@ -86,6 +88,8 @@ func (q InternalQuad) Get(d quad.Direction) graph.Value {
 		return q.Object
 	case quad.Label:
 		return q.Label
+	case quad.QuadMetadata:
+		return q.QuadMetadata
 	default:
 		return nil
 	}
@@ -102,6 +106,8 @@ func (q InternalQuad) Set(d quad.Direction, v graph.Value) {
 		q.Object = v
 	case quad.Label:
 		q.Label = v
+	case quad.QuadMetadata:
+		q.QuadMetadata = v
 	default:
 		panic(d)
 	}

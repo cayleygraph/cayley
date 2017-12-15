@@ -16,6 +16,8 @@ package elastic
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -32,7 +34,7 @@ type Iterator struct {
 	resultSet   *elastic.SearchResult
 	resultIndex int64
 	scrollId    string
-	hash        NodeHash
+	hash        graph.Value
 	size        int64
 	isAll       bool
 	resultType  string
@@ -48,21 +50,96 @@ type SearchResultsIterator struct {
 	searchResults *elastic.SearchResult
 }
 
+var ctx = context.Background()
+
+func getFieldMap(qs *QuadStore) map[string]interface{} {
+	fields, err := qs.client.GetFieldMapping().Index(indexName).Type("quads").Pretty(true).Do(ctx)
+	if err != nil {
+		fmt.Println("Error getting field mapping")
+		return nil
+	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Incorrect field mapping input")
+		}
+	}()
+
+	fieldMap := fields[indexName].(map[string]interface{})["mappings"].(map[string]interface{})["quads"].(map[string]interface{}) //[keyVal].(map[string]interface{})["mapping"].(map[string]interface{}) //[keyVal].(map[string]interface{})["type"]
+	return fieldMap
+}
+
+func isTime(fieldMap map[string]interface{}, keyVal string, quadDir quad.Direction) bool {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Incorrect time mapping input")
+		}
+	}()
+
+	result := fieldMap[quadDir.String()+"."+keyVal].(map[string]interface{})["mapping"].(map[string]interface{})[keyVal].(map[string]interface{})["type"]
+	if result == "date" {
+		return true
+	}
+
+	return false
+}
+
 // NewIterator returns a new iterator
 func NewIterator(qs *QuadStore, resultType string, d quad.Direction, val graph.Value) *Iterator {
-	h := val.(NodeHash)
-	query := elastic.NewTermQuery(d.String(), string(h))
-	return &Iterator{
-		uid:         iterator.NextUID(),
-		qs:          qs,
-		dir:         d,
-		resultSet:   nil,
-		resultType:  resultType,
-		resultIndex: 0,
-		query:       query,
-		size:        -1,
-		hash:        h,
-		isAll:       false,
+	if d == quad.QuadMetadata {
+
+		var query elastic.Query
+		elasticFieldMapping := getFieldMap(qs)
+		filterqueries := []elastic.Query{}
+
+		if len(elasticFieldMapping) != 0 {
+			for key, value := range val.(QuadRefGraphValue) {
+				if isTime(elasticFieldMapping, key, d) {
+					timeRange := strings.Split(value, "=>")
+					if len(timeRange) < 2 {
+						filterqueries = append(filterqueries, elastic.NewTermQuery("nullterm", "nullterm"))
+						break
+					}
+					filterqueries = append(filterqueries, elastic.NewRangeQuery(d.String()+"."+key).From(timeRange[0]).To(timeRange[1]))
+				} else {
+					filterqueries = append(filterqueries, elastic.NewRegexpQuery(d.String()+"."+key, value))
+				}
+			}
+
+			query = elastic.NewBoolQuery().Filter(filterqueries...)
+		} else {
+			query = elastic.NewTermQuery("nullterm", "nullterm")
+		}
+
+		return &Iterator{
+			uid:         iterator.NextUID(),
+			qs:          qs,
+			dir:         d,
+			resultSet:   nil,
+			resultType:  resultType,
+			resultIndex: 0,
+			query:       query,
+			size:        -1,
+			hash:        val,
+			isAll:       false,
+		}
+
+	} else {
+		h := val.(NodeHash)
+		query := elastic.NewTermQuery(d.String(), string(h))
+
+		return &Iterator{
+			uid:         iterator.NextUID(),
+			qs:          qs,
+			dir:         d,
+			resultSet:   nil,
+			resultType:  resultType,
+			resultIndex: 0,
+			query:       query,
+			size:        -1,
+			hash:        h,
+			isAll:       false,
+		}
 	}
 }
 
@@ -90,7 +167,7 @@ func NewAllIterator(qs *QuadStore, resultType string) *Iterator {
 		resultIndex: 0,
 		size:        -1,
 		query:       query,
-		hash:        "",
+		hash:        NodeHash(""),
 		isAll:       true,
 	}
 }
@@ -132,7 +209,7 @@ func (it *Iterator) Next() bool {
 		resultID = it.resultSet.Hits.Hits[it.resultIndex].Id
 		it.resultIndex++
 	} else {
-		newResults, err := it.qs.client.Scroll("cayley").ScrollId(it.resultSet.ScrollId).Do(ctx)
+		newResults, err := it.qs.client.Scroll(indexName).ScrollId(it.resultSet.ScrollId).Do(ctx)
 		if err != nil || newResults.Hits.TotalHits == 0 {
 			return false
 		}
@@ -163,7 +240,8 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return graph.ContainsLogOut(it, v, true)
 	}
 	val := NodeHash(v.(QuadHash).Get(it.dir))
-	if val == it.hash {
+
+	if val == it.hash || it.dir == quad.QuadMetadata {
 		it.result = v
 		return graph.ContainsLogOut(it, v, true)
 	}
@@ -187,7 +265,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	if it.isAll {
 		m = NewAllIterator(it.qs, it.resultType)
 	} else {
-		m = NewIterator(it.qs, it.resultType, it.dir, NodeHash(it.hash))
+		m = NewIterator(it.qs, it.resultType, it.dir, it.hash)
 	}
 	m.tags.CopyFrom(it)
 	return m
@@ -235,9 +313,17 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 // Describe gives the graph description
 func (it *Iterator) Describe() graph.Description {
 	size, _ := it.Size()
+	graphName := ""
+	switch it.hash.(type) {
+	case NodeHash:
+		graphName = string(it.hash.(NodeHash))
+	case QuadRefGraphValue:
+		graphName = it.hash.(QuadRefGraphValue).String()
+	}
+
 	return graph.Description{
 		UID:  it.UID(),
-		Name: string(it.hash),
+		Name: graphName,
 		Type: it.Type(),
 		Size: size,
 	}

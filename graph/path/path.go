@@ -217,6 +217,37 @@ func (p *Path) Out(via ...interface{}) *Path {
 	return np
 }
 
+// OutE filters out nodes that don’t have a predicate in the forward direction.
+// It only retains nodes that are in quads that satisfy the filtering expression.
+func (p *Path) OutE(via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, outEMorphism(nil, via, filters))
+	return np
+}
+
+// InE is the inverse of OutE
+func (p *Path) InE(via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, inEMorphism(nil, via, filters))
+	return np
+}
+
+// OutEWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) OutEWithTags(tags []string, via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, outEMorphism(tags, via, filters))
+	return np
+}
+
+// OutEWithTags is exactly like In, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) InEWithTags(tags []string, via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, inEMorphism(tags, via, filters))
+	return np
+}
+
 // In updates this Path to represent the nodes that are adjacent to the
 // current nodes, via the given inbound predicate.
 //
@@ -262,11 +293,25 @@ func (p *Path) Both(via ...interface{}) *Path {
 	return np
 }
 
+func (p *Path) BothE(via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, bothEMorphism(nil, via, filters))
+	return np
+}
+
 // BothWithTags is exactly like Both, except it tags the value of the predicate
 // traversed with the tags provided.
 func (p *Path) BothWithTags(tags []string, via ...interface{}) *Path {
 	np := p.clone()
 	np.stack = append(np.stack, bothMorphism(tags, via...))
+	return np
+}
+
+// BothEWithTags is exactly like Both, except it tags the value of the predicate
+// traversed with the tags provided.
+func (p *Path) BothEWithTags(tags []string, via []interface{}, filters []interface{}) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, bothEMorphism(tags, via, filters))
 	return np
 }
 

@@ -15,6 +15,7 @@
 package elastic
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -33,7 +34,8 @@ import (
 
 // QuadStoreType describes backend
 const QuadStoreType = "elastic"
-const DefaultESIndex = "cayley"
+
+var indexName string
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
@@ -52,6 +54,20 @@ func (NodeHash) IsNode() bool { return false }
 
 // Key returns the hashed Node
 func (v NodeHash) Key() interface{} { return v }
+
+type QuadRefGraphValue map[string]string
+
+func (QuadRefGraphValue) IsNode() bool { return false }
+
+func (v QuadRefGraphValue) Key() interface{} { return v }
+
+func (v QuadRefGraphValue) String() string {
+	jsonString, err := json.Marshal(v)
+	if err != nil {
+		return "Error converting quadrefgraphvalue to string"
+	}
+	return string(jsonString)
+}
 
 // QuadHash is the hashed value of the Quad
 type QuadHash string
@@ -78,6 +94,11 @@ func (v QuadHash) Get(d quad.Direction) string {
 		if len(v) == offset { // no label
 			return ""
 		}
+	case quad.QuadMetadata:
+		offset = (quad.HashSize * 2) * 4
+		if len(v) == offset { // no metadata
+			return ""
+		}
 	}
 	return string(v[offset : quad.HashSize*2+offset])
 }
@@ -91,6 +112,7 @@ type QuadStore struct {
 
 // dialElastic connects to elasticsearch
 func dialElastic(addr string, options graph.Options) (*elastic.Client, error) {
+	indexName = options["index"].(string)
 	client, err := elastic.NewClient(elastic.SetURL(addr))
 	if err != nil {
 		return client, err
@@ -135,6 +157,9 @@ func createNewElasticGraph(addr string, options graph.Options) error {
 				},
 				"label": {
 					"type": "keyword"
+				},
+				"quadmetadata": {
+					"type": "nested"
 				}
 			}
 		},
@@ -160,7 +185,7 @@ func createNewElasticGraph(addr string, options graph.Options) error {
     }
 	}`)
 	mapping := strings.Join(allSettings, "")
-	_, err = client.CreateIndex(DefaultESIndex).BodyString(mapping).Do(ctx)
+	_, err = client.CreateIndex(options["index"].(string)).BodyString(mapping).Do(ctx)
 	if err != nil {
 		return err
 	}
@@ -174,6 +199,7 @@ func newQuadStore(addr string, options graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	}
 	qs.client = client
+	qs.client.OpenIndex(options["index"].(string))
 	qs.nodeTracker = lru.New(1 << 16)
 	qs.sizes = lru.New(1 << 16)
 	return &qs, nil
@@ -288,7 +314,21 @@ func hashOf(s quad.Value) string {
 	if s == nil {
 		return ""
 	}
-	return hex.EncodeToString(quad.HashOf(s))
+	switch s.Native().(type) {
+	case string:
+		return hex.EncodeToString(quad.HashOf(s))
+
+	case map[string]string:
+		var buffer bytes.Buffer
+		for _, value := range s.Native().(map[string]string) {
+			buffer.WriteString(value)
+		}
+		return hex.EncodeToString(quad.HashOf(quad.String(buffer.String())))
+
+	default:
+		return hex.EncodeToString(quad.HashOf(s))
+	}
+
 }
 
 func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
@@ -296,13 +336,14 @@ func (qs *QuadStore) getIDForQuad(t quad.Quad) string {
 	id += hashOf(t.Predicate)
 	id += hashOf(t.Object)
 	id += hashOf(t.Label)
+	id += hashOf(t.QuadMetadata)
 	return id
 }
 
 func (qs *QuadStore) getSize(resultType string, query elastic.Query) (int64, error) {
 	ctx := context.Background()
 
-	searchResults, ok := qs.client.Search(DefaultESIndex).
+	searchResults, ok := qs.client.Search(indexName).
 		Type(resultType).
 		Query(query).
 		Do(ctx)
@@ -325,7 +366,7 @@ func (qs *QuadStore) getSize(resultType string, query elastic.Query) (int64, err
 
 func (qs *QuadStore) checkValid(key string) bool {
 	// Check if a quad with that key already exists (meaning it is a duplicate delta). If so, return true.
-	res, err := qs.client.Get().Index(DefaultESIndex).Type("quads").Id(key).Do(context.Background())
+	res, err := qs.client.Get().Index(indexName).Type("quads").Id(key).Do(context.Background())
 	if err != nil {
 		return false
 	}
@@ -422,16 +463,17 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		}
 	}
 
-	_, err := qs.client.Flush(DefaultESIndex).Do(context.TODO())
+	_, err := qs.client.Flush(indexName).Do(context.TODO())
 	return err
 }
 
 // ElasticQuad - Quad structure
 type ElasticQuad struct {
-	Subject   string `json:"subject"`
-	Predicate string `json:"predicate"`
-	Object    string `json:"object"`
-	Label     string `json:"label"`
+	Subject      string     `json:"subject"`
+	Predicate    string     `json:"predicate"`
+	Object       string     `json:"object"`
+	Label        string     `json:"label"`
+	QuadMetadata quad.Value `json:"quadmetadata"`
 }
 
 // ElasticNodeEntry - Node structure
@@ -452,14 +494,15 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 	switch proc {
 	case graph.Add:
 		upsert := ElasticQuad{
-			Subject:   hashOf(q.Subject),
-			Predicate: hashOf(q.Predicate),
-			Object:    hashOf(q.Object),
-			Label:     hashOf(q.Label),
+			Subject:      hashOf(q.Subject),
+			Predicate:    hashOf(q.Predicate),
+			Object:       hashOf(q.Object),
+			Label:        hashOf(q.Label),
+			QuadMetadata: q.QuadMetadata,
 		}
 
 		// Add document to index with specified ID
-		_, err := qs.client.Index().Index(DefaultESIndex).Type("quads").Id(qs.getIDForQuad(q)).BodyJson(upsert).Do(context.Background())
+		_, err := qs.client.Index().Index(indexName).Type("quads").Id(qs.getIDForQuad(q)).BodyJson(upsert).Do(context.Background())
 
 		if err != nil {
 			return err
@@ -467,7 +510,7 @@ func (qs *QuadStore) updateQuad(q quad.Quad, proc graph.Procedure) error {
 
 	case graph.Delete:
 		// Delete document from index with specified ID
-		_, err := qs.client.Delete().Index(DefaultESIndex).Type("quads").Id(qs.getIDForQuad(q)).Do(context.Background())
+		_, err := qs.client.Delete().Index(indexName).Type("quads").Id(qs.getIDForQuad(q)).Do(context.Background())
 
 		if err != nil {
 			return err
@@ -492,7 +535,7 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode elasticNodeTra
 
 		// Elasticsearch query checking the quads Type
 		searchResult, err := qs.client.Search().
-			Index(DefaultESIndex).
+			Index(indexName).
 			Type("quads").
 			Query(termQuery).
 			From(0).Size(1).
@@ -508,7 +551,7 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode elasticNodeTra
 
 		// Delete Node from nodes Type in elasticsearch
 		_, err = qs.client.Delete().
-			Index(DefaultESIndex).
+			Index(indexName).
 			Type("nodes").
 			Id(nodeId).
 			Do(context.Background())
@@ -524,7 +567,7 @@ func (qs *QuadStore) updateNodeBy(nodeVal quad.Value, trackedNode elasticNodeTra
 		}
 
 		// Add document to index
-		_, err := qs.client.Index().Index(DefaultESIndex).Type("nodes").Id(nodeId).BodyJson(doc).Do(context.Background())
+		_, err := qs.client.Index().Index(indexName).Type("nodes").Id(nodeId).BodyJson(doc).Do(context.Background())
 		if err != nil {
 			return err
 		}
@@ -562,10 +605,11 @@ func (qs *QuadStore) Quad(v graph.Value) quad.Quad {
 	//the old stuff from mongo
 	h := v.(QuadHash)
 	return quad.Quad{
-		Subject:   qs.NameOf(NodeHash(h.Get(quad.Subject))),
-		Predicate: qs.NameOf(NodeHash(h.Get(quad.Predicate))),
-		Object:    qs.NameOf(NodeHash(h.Get(quad.Object))),
-		Label:     qs.NameOf(NodeHash(h.Get(quad.Label))),
+		Subject:      qs.NameOf(NodeHash(h.Get(quad.Subject))),
+		Predicate:    qs.NameOf(NodeHash(h.Get(quad.Predicate))),
+		Object:       qs.NameOf(NodeHash(h.Get(quad.Object))),
+		Label:        qs.NameOf(NodeHash(h.Get(quad.Label))),
+		QuadMetadata: qs.NameOf(NodeHash(h.Get(quad.QuadMetadata))),
 	}
 }
 
@@ -586,7 +630,12 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 
 // ValueOf returns a Node from the quad value passed in
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
-	return NodeHash(hashOf(s))
+	switch d := s.Native().(type) {
+	case quad.QuadRef:
+		return QuadRefGraphValue(d)
+	default:
+		return NodeHash(hashOf(s))
+	}
 }
 
 // NameOf returns the name of the Node after hashing the graph value and running a search on the backend
@@ -607,7 +656,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	ctx := context.Background()
 	termQuery := elastic.NewTermQuery("hash", string(hash))
 	searchResult, err := qs.client.Search().
-		Index(DefaultESIndex).
+		Index(indexName).
 		Type("nodes").
 		Query(termQuery).
 		Size(1).
@@ -635,7 +684,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 func (qs *QuadStore) Size() int64 {
 	ctx := context.Background()
 	searchResult, err := qs.client.
-		Count(DefaultESIndex).
+		Count(indexName).
 		Type("quads").
 		Do(ctx)
 	if err != nil {
@@ -682,7 +731,7 @@ func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 
 // Close closes the connection to Elasticsearch
 func (qs *QuadStore) Close() error {
-	qs.client.CloseIndex(DefaultESIndex)
+	qs.client.CloseIndex(indexName)
 	return nil
 }
 

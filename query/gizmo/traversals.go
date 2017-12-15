@@ -105,6 +105,7 @@ func (p *pathObject) Is(call goja.FunctionCall) goja.Value {
 }
 func (p *pathObject) inout(call goja.FunctionCall, in bool) goja.Value {
 	preds, tags, ok := toViaData(exportArgs(call.Arguments))
+
 	if !ok {
 		return throwErr(p.s.vm, errNoVia)
 	}
@@ -181,6 +182,32 @@ func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
 	return p.inout(call, false)
 }
 
+func (p *pathObject) inoutE(call goja.FunctionCall, in bool) goja.Value {
+	preds, filters, tags, ok := toViaDataE(exportArgs(call.Arguments))
+
+	if !ok {
+		return throwErr(p.s.vm, errNoVia)
+	}
+	np := p.clonePath()
+	if in {
+		np = np.InEWithTags(tags, preds, filters)
+	} else {
+		np = np.OutEWithTags(tags, preds, filters)
+	}
+	return p.newVal(np)
+}
+
+// OutE filters out nodes that don’t have a predicate in the forward direction.
+// It only retains nodes that are in quads that satisfy the filtering expression.
+func (p *pathObject) OutE(call goja.FunctionCall) goja.Value {
+	return p.inoutE(call, false)
+}
+
+// InE is the inverse of OutE
+func (p *pathObject) InE(call goja.FunctionCall) goja.Value {
+	return p.inoutE(call, true)
+}
+
 // Both follow the predicate in either direction. Same as Out or In.
 // Signature: ([predicatePath], [tags])
 //
@@ -196,6 +223,16 @@ func (p *pathObject) Both(call goja.FunctionCall) goja.Value {
 	np := p.clonePath().BothWithTags(tags, preds...)
 	return p.newVal(np)
 }
+
+func (p *pathObject) BothE(call goja.FunctionCall) goja.Value {
+	preds, filters, tags, ok := toViaDataE(exportArgs(call.Arguments))
+	if !ok {
+		return throwErr(p.s.vm, errNoVia)
+	}
+	np := p.clonePath().BothEWithTags(tags, preds, filters)
+	return p.newVal(np)
+}
+
 func (p *pathObject) follow(ep *pathObject, rev bool) *pathObject {
 	np := p.clonePath()
 	if rev {

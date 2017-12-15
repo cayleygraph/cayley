@@ -161,6 +161,30 @@ func outMorphism(tags []string, via ...interface{}) morphism {
 	}
 }
 
+// outEMorphism iterates forwards one RDF triple or via an entire path.
+func outEMorphism(tags []string, via []interface{}, filters []interface{}) morphism {
+	return morphism{
+		Name:     "outE",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return inEMorphism(tags, via, filters), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			return shape.OutE(in, buildVia(via...), buildVia(filters...), ctx.labelSet, tags...), ctx
+		},
+		tags: tags,
+	}
+}
+
+// inEMorphism iterates backwards one RDF triple or via an entire path.
+func inEMorphism(tags []string, via []interface{}, filters []interface{}) morphism {
+	return morphism{
+		Name:     "inE",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return outEMorphism(tags, via, filters), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			return shape.InE(in, buildVia(via...), buildVia(filters...), ctx.labelSet, tags...), ctx
+		},
+		tags: tags,
+	}
+}
+
 // inMorphism iterates backwards one RDF triple or via an entire path.
 func inMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
@@ -182,6 +206,21 @@ func bothMorphism(tags []string, via ...interface{}) morphism {
 			return shape.Union{
 				shape.In(in, via, ctx.labelSet, tags...),
 				shape.Out(in, via, ctx.labelSet, tags...),
+			}, ctx
+		},
+		tags: tags,
+	}
+}
+
+func bothEMorphism(tags []string, via []interface{}, filters []interface{}) morphism {
+	return morphism{
+		Name:     "in",
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return bothEMorphism(tags, via, filters), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			via := buildVia(via...)
+			return shape.Union{
+				shape.InE(in, via, buildVia(filters...), ctx.labelSet, tags...),
+				shape.OutE(in, via, buildVia(filters...), ctx.labelSet, tags...),
 			}, ctx
 		},
 		tags: tags,
