@@ -19,8 +19,6 @@ package gizmo
 import (
 	"fmt"
 
-	//"github.com/cayleygraph/cayley/vendor/github.com/dop251/goja"
-
 	"github.com/dop251/goja"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -181,7 +179,6 @@ func (p *pathObject) In(call goja.FunctionCall) goja.Value {
 //	// Result is {"id": "cool_person", "pred": "<status>"}
 //	g.V("<dani>").Out(g.V("<status>"), "pred").All()
 func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
-	fmt.Println(call)
 	return p.inout(call, false)
 }
 

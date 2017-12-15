@@ -7,7 +7,6 @@ store:
   read_only: false
   # backend-specific options
   options:
-    index: "cayley"
     nosync: false
 query:
   timeout: 30s
