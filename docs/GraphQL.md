@@ -201,3 +201,23 @@ Only exact match is supported for now.
 
 GraphQL names are interpreted as IRIs and string literals are interpreted as strings.
 Boolean, integer and float value are also supported and will be converted to `schema:Boolean`, `schema:Integer` and `schema:Float` accordingly.
+
+### Labels
+
+Any fields and traversals can be filtered by quad label with `@label` directive:
+
+```graphql
+{
+  nodes{
+    id
+    follows @label(v: <fb>) {
+      id, name
+      follows @label {
+        id, name
+      }
+    }
+  }
+}
+```
+
+Label will be inherited by child objects. To reset label filter add `@label` directive without parameters.

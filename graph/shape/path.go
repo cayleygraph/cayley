@@ -117,6 +117,10 @@ func Labels(from Shape) Shape {
 }
 
 func SaveVia(from, via Shape, tag string, rev, opt bool) Shape {
+	return SaveViaLabels(from, via, AllNodes{}, tag, rev, opt)
+}
+
+func SaveViaLabels(from, via, labels Shape, tag string, rev, opt bool) Shape {
 	nodes := Save{
 		From: AllNodes{},
 		Tags: []string{tag},
@@ -126,12 +130,21 @@ func SaveVia(from, via Shape, tag string, rev, opt bool) Shape {
 		start, goal = goal, start
 	}
 
+	quads := Quads{
+		{Dir: goal, Values: nodes},
+		{Dir: quad.Predicate, Values: via},
+	}
+	if labels != nil {
+		if _, ok := labels.(AllNodes); !ok {
+			quads = append(quads, QuadFilter{
+				Dir: quad.Label, Values: labels,
+			})
+		}
+	}
+
 	var save Shape = NodesFrom{
-		Quads: Quads{
-			{Dir: goal, Values: nodes},
-			{Dir: quad.Predicate, Values: via},
-		},
-		Dir: start,
+		Quads: quads,
+		Dir:   start,
 	}
 	if opt {
 		save = Optional{save}
@@ -140,12 +153,16 @@ func SaveVia(from, via Shape, tag string, rev, opt bool) Shape {
 }
 
 func Has(from, via, nodes Shape, rev bool) Shape {
+	return HasLabels(from, via, AllNodes{}, nodes, rev)
+}
+
+func HasLabels(from, via, nodes, labels Shape, rev bool) Shape {
 	start, goal := quad.Subject, quad.Object
 	if rev {
 		start, goal = goal, start
 	}
 
-	quads := make(Quads, 0, 2)
+	quads := make(Quads, 0, 3)
 	if _, ok := nodes.(AllNodes); !ok {
 		quads = append(quads, QuadFilter{
 			Dir: goal, Values: nodes,
@@ -155,6 +172,13 @@ func Has(from, via, nodes Shape, rev bool) Shape {
 		quads = append(quads, QuadFilter{
 			Dir: quad.Predicate, Values: via,
 		})
+	}
+	if labels != nil {
+		if _, ok := labels.(AllNodes); !ok {
+			quads = append(quads, QuadFilter{
+				Dir: quad.Label, Values: labels,
+			})
+		}
 	}
 	if len(quads) == 0 {
 		panic("empty has")

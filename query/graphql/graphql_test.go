@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cayleygraph/cayley/graph/graphtest"
@@ -16,6 +15,13 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/voc/rdf"
 )
+
+func iris(arr ...string) (out []quad.Value) {
+	for _, s := range arr {
+		out = append(out, quad.IRI(s))
+	}
+	return
+}
 
 var casesParse = []struct {
 	query  string
@@ -26,12 +32,13 @@ var casesParse = []struct {
 	user(id: 3500401, http://iri: http://some_iri, follow: <bob>, n: _:bob) @rev(follow: "123"){
 	id: ` + ValueKey + `,
 	type: ` + rdf.NS + "type" + `,
-	followed: follow @reverse {
-		name: <name>
+	followed: follow @reverse @label(v: <fb>) {
+		name: <name> @label(v: <google>)
 		followed: ~follow
+		sname @label
 	}
 	isViewerFriend,
-		profilePicture(size: 50)  {
+		profilePicture(size: 50) {
 			 uri,
 			 width @opt,
 			 height @rev
@@ -41,26 +48,27 @@ var casesParse = []struct {
 		[]field{{
 			Via: "user", Alias: "user",
 			Has: []has{
-				{"id", false, []quad.Value{quad.Int(3500401)}},
-				{"http://iri", false, []quad.Value{quad.IRI("http://some_iri")}},
-				{"follow", false, []quad.Value{quad.IRI("bob")}},
-				{"n", false, []quad.Value{quad.BNode("bob")}},
-				{"follow", true, []quad.Value{quad.String("123")}},
+				{"follow", true, []quad.Value{quad.String("123")}, nil},
+				{"id", false, []quad.Value{quad.Int(3500401)}, nil},
+				{"http://iri", false, iris("http://some_iri"), nil},
+				{"follow", false, iris("bob"), nil},
+				{"n", false, []quad.Value{quad.BNode("bob")}, nil},
 			},
 			Fields: []field{
 				{Via: quad.IRI(ValueKey), Alias: "id"},
 				{Via: quad.IRI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), Alias: "type"},
 				{
-					Via: "follow", Alias: "followed", Rev: true,
+					Via: "follow", Alias: "followed", Rev: true, Labels: iris("fb"),
 					Fields: []field{
-						{Via: "name", Alias: "name"},
-						{Via: "follow", Alias: "followed", Rev: true},
+						{Via: "name", Alias: "name", Labels: iris("google")},
+						{Via: "follow", Alias: "followed", Rev: true, Labels: iris("fb")},
+						{Via: "sname", Alias: "sname"},
 					},
 				},
 				{Via: "isViewerFriend", Alias: "isViewerFriend"},
 				{
 					Via: "profilePicture", Alias: "profilePicture",
-					Has: []has{{"size", false, []quad.Value{quad.Int(50)}}},
+					Has: []has{{"size", false, []quad.Value{quad.Int(50)}, nil}},
 					Fields: []field{
 						{Via: "uri", Alias: "uri"},
 						{Via: "width", Alias: "width", Opt: true},
@@ -78,16 +86,18 @@ func TestParse(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		} else if !reflect.DeepEqual(q.fields, c.expect) {
-			t.Fatalf("\n%v\nvs\n%v", q.fields, c.expect)
+			t.Fatalf("\n%#v\nvs\n%#v", q.fields, c.expect)
 		}
 	}
 }
 
 var casesExecute = []struct {
+	name   string
 	query  string
 	result map[string]interface{}
 }{
 	{
+		"cool people and friends",
 		`{
   me(status: "cool_person") {
     id: ` + ValueKey + `
@@ -142,6 +152,7 @@ var casesExecute = []struct {
 		},
 	},
 	{
+		"skip and limit",
 		`{
   me(status: "cool_person", ` + LimitKey + `: 1, ` + SkipKey + `: 1) {
     id: ` + ValueKey + `
@@ -155,6 +166,27 @@ var casesExecute = []struct {
 				"id": quad.IRI("dani"),
 				"follows": map[string]interface{}{
 					ValueKey: quad.IRI("bob"),
+				},
+			},
+		},
+	},
+	{
+		"labels",
+		`{
+  me {
+    id: ` + ValueKey + `
+    status @label(v: <smart_graph>)
+  }
+}`,
+		map[string]interface{}{
+			"me": []map[string]interface{}{
+				{
+					"id":     quad.IRI("emily"),
+					"status": quad.String("smart_person"),
+				},
+				{
+					"id":     quad.IRI("greg"),
+					"status": quad.String("smart_person"),
 				},
 			},
 		},
@@ -176,17 +208,13 @@ func TestExecute(t *testing.T) {
 	err := qw.AddQuadSet(quads)
 	require.NoError(t, err)
 
-	for i, c := range casesExecute {
-		q, err := Parse(strings.NewReader(c.query))
-		if err != nil {
-			t.Errorf("case %d failed: %v", i+1, err)
-			continue
-		}
-		out, err := q.Execute(context.Background(), qs)
-		if err != nil {
-			t.Errorf("case %d failed: %v", i+1, err)
-			continue
-		}
-		assert.Equal(t, c.result, out, "results:\n%v\n\nvs\n\n%v", toJson(c.result), toJson(out))
+	for _, c := range casesExecute {
+		t.Run(c.name, func(t *testing.T) {
+			q, err := Parse(strings.NewReader(c.query))
+			require.NoError(t, err)
+			out, err := q.Execute(context.Background(), qs)
+			require.NoError(t, err)
+			require.Equal(t, c.result, out, "results:\n%v\n\nvs\n\n%v", toJson(c.result), toJson(out))
+		})
 	}
 }

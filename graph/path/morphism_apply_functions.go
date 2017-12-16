@@ -108,7 +108,7 @@ func hasShapeMorphism(via interface{}, rev bool, nodes shape.Shape) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasShapeMorphism(via, rev, nodes), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.Has(in, buildVia(via), nodes, rev), ctx
+			return shape.HasLabels(in, buildVia(via), nodes, ctx.labelSet, rev), ctx
 		},
 	}
 }
@@ -331,7 +331,7 @@ func saveMorphism(via interface{}, tag string) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.SaveVia(in, buildVia(via), tag, false, false), ctx
+			return shape.SaveViaLabels(in, buildVia(via), ctx.labelSet, tag, false, false), ctx
 		},
 		tags: []string{tag},
 	}
@@ -379,6 +379,8 @@ func buildVia(via ...interface{}) shape.Shape {
 			return p.Shape()
 		case quad.Value:
 			return shape.Lookup{p}
+		case []quad.Value:
+			return shape.Lookup(p)
 		}
 	}
 	nodes := make([]quad.Value, 0, len(via))
