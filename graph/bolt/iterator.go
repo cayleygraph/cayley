@@ -27,6 +27,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+var _ graph.Iterator = &Iterator{}
+
 var (
 	bufferSize  = 50
 	errNotExist = errors.New("quad does not exist")
@@ -269,20 +271,8 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.size, true
 }
 
-func (it *Iterator) Describe() graph.Description {
-	nameOf := it.qs.NameOf(&Token{
-		nodes:  true,
-		bucket: it.bucket,
-		key:    it.checkID,
-	})
-	return graph.Description{
-		UID:       it.UID(),
-		Name:      quad.StringOf(nameOf),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Size:      it.size,
-		Direction: it.dir,
-	}
+func (it *Iterator) String() string {
+	return fmt.Sprintf("BoltIter(%q)", it.bucket)
 }
 
 func (it *Iterator) Type() graph.Type { return "bolt" }
@@ -301,5 +291,3 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		ExactSize:    exact,
 	}
 }
-
-var _ graph.Iterator = &Iterator{}

@@ -167,15 +167,8 @@ func (it *AllIterator) Size() (int64, bool) {
 	return int64(^uint64(0) >> 1), false
 }
 
-func (it *AllIterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Size:      size,
-		Direction: it.dir,
-	}
+func (it *AllIterator) String() string {
+	return "LeveldbAll"
 }
 
 func (it *AllIterator) Type() graph.Type { return graph.All }

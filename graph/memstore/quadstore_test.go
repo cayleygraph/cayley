@@ -173,8 +173,8 @@ func TestLinksToOptimization(t *testing.T) {
 
 	v := newIt.(*Iterator)
 	vClone := v.Clone()
-	origDesc := v.Describe()
-	cloneDesc := vClone.Describe()
+	origDesc := graph.DescribeIterator(v)
+	cloneDesc := graph.DescribeIterator(vClone)
 	origDesc.UID, cloneDesc.UID = 0, 0 // We are more strict now, so fake UID equality.
 	if !reflect.DeepEqual(cloneDesc, origDesc) {
 		t.Fatalf("Unexpected iterator description.\ngot: %#v\nexpect: %#v", cloneDesc, origDesc)

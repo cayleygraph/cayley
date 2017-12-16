@@ -24,6 +24,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+var _ graph.Iterator = &Iterator{}
+
 type Iterator struct {
 	nodes bool
 	uid   uint64
@@ -146,15 +148,8 @@ func (it *Iterator) Contains(v graph.Value) bool {
 	return graph.ContainsLogOut(it, v, false)
 }
 
-func (it *Iterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:  it.UID(),
-		Name: fmt.Sprintf("dir:%s val:%d", it.d, it.value),
-		Type: it.Type(),
-		Tags: it.tags.Tags(),
-		Size: size,
-	}
+func (it *Iterator) String() string {
+	return fmt.Sprintf("MemStore(%v)", it.d)
 }
 
 func (it *Iterator) Type() graph.Type { return "b+tree" }
@@ -173,5 +168,3 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		ExactSize:    true,
 	}
 }
-
-var _ graph.Iterator = &Iterator{}

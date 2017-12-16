@@ -125,8 +125,8 @@ func TestIterators(t *testing.T) {
 	// Test cloning an iterator
 	var it2 graph.Iterator
 	it2 = it.Clone()
-	x := it2.Describe()
-	y := it.Describe()
+	x := graph.DescribeIterator(it2)
+	y := graph.DescribeIterator(it)
 
 	require.Equal(t, y.Name, x.Name, "Iterator Clone was not successful")
 }

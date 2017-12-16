@@ -230,16 +230,8 @@ func (it *QuadIterator) Size() (int64, bool) {
 	return 1 + it.qs.Size()/2, false
 }
 
-func (it *QuadIterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Size:      size,
-		Direction: it.ind.Dirs[0],
-		Name:      fmt.Sprint(it.vals, it.ids),
-	}
+func (it *QuadIterator) String() string {
+	return fmt.Sprintf("KVQuads(%v)", it.ind)
 }
 
 func (it *QuadIterator) Type() graph.Type { return "kv_quad" }

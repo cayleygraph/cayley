@@ -1,8 +1,11 @@
 package iterator
 
 import (
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 )
+
+var _ graph.Iterator = &Skip{}
 
 // Skip iterator will skip certain number of values from primary iterator.
 type Skip struct {
@@ -122,17 +125,6 @@ func (it *Skip) Size() (int64, bool) {
 	return primarySize, exact
 }
 
-func (it *Skip) Describe() graph.Description {
-	subIts := []graph.Description{
-		it.primaryIt.Describe(),
-	}
-
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.Tagger().Tags(),
-		Iterators: subIts,
-	}
+func (it *Skip) String() string {
+	return fmt.Sprintf("Skip(%d)", it.skip)
 }
-
-var _ graph.Iterator = &Skip{}

@@ -30,9 +30,12 @@ package iterator
 // Can be seen as the dual of the HasA iterator.
 
 import (
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
+
+var _ graph.Iterator = &LinksTo{}
 
 // A LinksTo has a reference back to the graph.QuadStore (to create the iterators
 // for each node) the subiterator, and the direction the iterator comes from.
@@ -93,14 +96,8 @@ func (it *LinksTo) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }
 
-func (it *LinksTo) Describe() graph.Description {
-	primary := it.primaryIt.Describe()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Direction: it.dir,
-		Iterator:  &primary,
-	}
+func (it *LinksTo) String() string {
+	return fmt.Sprintf("LinksTo(%v)", it.dir)
 }
 
 // If it checks in the right direction for the subiterator, it is a valid link
@@ -230,5 +227,3 @@ func (it *LinksTo) Size() (int64, bool) {
 	st := it.Stats()
 	return st.Size, st.ExactSize
 }
-
-var _ graph.Iterator = &LinksTo{}

@@ -25,6 +25,8 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
+var _ graph.Iterator = &Or{}
+
 type Or struct {
 	uid               uint64
 	tags              graph.Tagger
@@ -99,17 +101,8 @@ func (it *Or) TagResults(dst map[string]graph.Value) {
 	it.internalIterators[it.currentIterator].TagResults(dst)
 }
 
-func (it *Or) Describe() graph.Description {
-	subIts := make([]graph.Description, len(it.internalIterators))
-	for i, sub := range it.internalIterators {
-		subIts[i] = sub.Describe()
-	}
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Iterators: subIts,
-	}
+func (it *Or) String() string {
+	return "Or"
 }
 
 // Add a subiterator to this Or graph.iterator. Order matters.
@@ -314,5 +307,3 @@ func (it *Or) Stats() graph.IteratorStats {
 
 // Register this as an "or" graph.iterator.
 func (it *Or) Type() graph.Type { return graph.Or }
-
-var _ graph.Iterator = &Or{}

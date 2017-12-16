@@ -70,7 +70,7 @@ func (c *IterateChain) start() {
 	if !clog.V(2) {
 		return
 	}
-	if b, err := json.MarshalIndent(c.it.Describe(), "", "  "); err != nil {
+	if b, err := json.MarshalIndent(DescribeIterator(c.it), "", "  "); err != nil {
 		clog.Infof("failed to format description: %v", err)
 	} else {
 		clog.Infof("%s", b)

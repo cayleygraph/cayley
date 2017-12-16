@@ -185,15 +185,8 @@ func (it *AllIterator) Size() (int64, bool) {
 	return it.qs.Size(), false
 }
 
-func (it *AllIterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Size:      size,
-		Direction: quad.Any,
-	}
+func (it *AllIterator) String() string {
+	return "KVAll"
 }
 
 func (it *AllIterator) Type() graph.Type {

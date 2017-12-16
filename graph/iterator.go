@@ -90,6 +90,9 @@ func (t *Tagger) CopyFromTagger(st *Tagger) {
 }
 
 type Iterator interface {
+	// String returns a short textual representation of an iterator.
+	String() string
+
 	Tagger() *Tagger
 
 	// Fills a tag-to-result-value map.
@@ -162,9 +165,6 @@ type Iterator interface {
 	// Return a slice of the subiterators for this iterator.
 	SubIterators() []Iterator
 
-	// Return a string representation of the iterator.
-	Describe() Description
-
 	// Close the iterator and do internal cleanup.
 	Close() error
 
@@ -172,15 +172,32 @@ type Iterator interface {
 	UID() uint64
 }
 
+// DescribeIterator returns a description of the iterator tree.
+func DescribeIterator(it Iterator) Description {
+	sz, _ := it.Size()
+	d := Description{
+		UID:  it.UID(),
+		Name: it.String(),
+		Type: it.Type(),
+		Tags: it.Tagger().Tags(),
+		Size: sz,
+	}
+	if sub := it.SubIterators(); len(sub) != 0 {
+		d.Iterators = make([]Description, 0, len(sub))
+		for _, sit := range sub {
+			d.Iterators = append(d.Iterators, DescribeIterator(sit))
+		}
+	}
+	return d
+}
+
 type Description struct {
-	UID       uint64         `json:",omitempty"`
-	Name      string         `json:",omitempty"`
-	Type      Type           `json:",omitempty"`
-	Tags      []string       `json:",omitempty"`
-	Size      int64          `json:",omitempty"`
-	Direction quad.Direction `json:",omitempty"`
-	Iterator  *Description   `json:",omitempty"`
-	Iterators []Description  `json:",omitempty"`
+	UID       uint64        `json:",omitempty"`
+	Name      string        `json:",omitempty"`
+	Type      Type          `json:",omitempty"`
+	Tags      []string      `json:",omitempty"`
+	Size      int64         `json:",omitempty"`
+	Iterators []Description `json:",omitempty"`
 }
 
 // ApplyMorphism is a curried function that can generates a new iterator based on some prior iterator.

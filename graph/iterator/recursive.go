@@ -264,19 +264,6 @@ func (it *Recursive) Stats() graph.IteratorStats {
 	}
 }
 
-func (it *Recursive) Describe() graph.Description {
-	base := it.qs.FixedIterator()
-	base.Add(Int64Node(20))
-	fanoutdesc := it.morphism(it.qs, base).Describe()
-	subIts := []graph.Description{
-		it.subIt.Describe(),
-		fanoutdesc,
-	}
-
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Iterators: subIts,
-	}
+func (it *Recursive) String() string {
+	return "Recursive"
 }

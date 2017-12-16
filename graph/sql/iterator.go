@@ -296,14 +296,8 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) Describe() graph.Description {
-	return graph.Description{
-		UID:  it.UID(),
-		Name: it.query.SQL(NewBuilder(it.qs.flavor.QueryDialect)),
-		Type: it.Type(),
-		Tags: it.tagger.Tags(),
-		Size: it.query.Limit,
-	}
+func (it *Iterator) String() string {
+	return it.query.SQL(NewBuilder(it.qs.flavor.QueryDialect))
 }
 
 func (it *Iterator) Close() error {

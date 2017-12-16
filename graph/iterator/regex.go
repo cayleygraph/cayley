@@ -17,9 +17,12 @@ package iterator
 import (
 	"regexp"
 
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
+
+var _ graph.Iterator = &Regex{}
 
 // Regex is a unary operator -- a filter across the values in the relevant
 // subiterator. It works similarly to gremlin's filter{it.matches('exp')},
@@ -164,13 +167,8 @@ func (it *Regex) Type() graph.Type {
 	return graph.Regex
 }
 
-func (it *Regex) Describe() graph.Description {
-	primary := it.subIt.Describe()
-	return graph.Description{
-		UID:      it.UID(),
-		Type:     it.Type(),
-		Iterator: &primary,
-	}
+func (it *Regex) String() string {
+	return fmt.Sprintf("Regexp(%v)", it.re.String())
 }
 
 // There's nothing to optimize, locally, for a Regex iterator.
@@ -200,5 +198,3 @@ func (it *Regex) TagResults(dst map[string]graph.Value) {
 func (it *Regex) Size() (int64, bool) {
 	return 0, false
 }
-
-var _ graph.Iterator = &Regex{}

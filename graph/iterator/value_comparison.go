@@ -27,6 +27,7 @@ package iterator
 // In MQL terms, this is the [{"age>=": 21}] concept.
 
 import (
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 	"time"
@@ -41,6 +42,8 @@ const (
 	CompareGTE
 	// Why no Equals? Because that's usually an AndIterator.
 )
+
+var _ graph.Iterator = &Comparison{}
 
 type Comparison struct {
 	uid    uint64
@@ -253,13 +256,8 @@ func (it *Comparison) TagResults(dst map[string]graph.Value) {
 // Registers the value-comparison iterator.
 func (it *Comparison) Type() graph.Type { return graph.Comparison }
 
-func (it *Comparison) Describe() graph.Description {
-	primary := it.subIt.Describe()
-	return graph.Description{
-		UID:      it.UID(),
-		Type:     it.Type(),
-		Iterator: &primary,
-	}
+func (it *Comparison) String() string {
+	return fmt.Sprintf("Comparison(%v, %v)", it.op, it.val)
 }
 
 // There's nothing to optimize, locally, for a value-comparison iterator.
@@ -283,5 +281,3 @@ func (it *Comparison) Stats() graph.IteratorStats {
 func (it *Comparison) Size() (int64, bool) {
 	return 0, false
 }
-
-var _ graph.Iterator = &Comparison{}

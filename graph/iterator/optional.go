@@ -31,6 +31,11 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
+var (
+	_ graph.Iterator = &Optional{}
+	_ graph.NoNext   = &Optional{}
+)
+
 // An optional iterator has the sub-constraint iterator we wish to be optional
 // and whether the last check we received was true or false.
 type Optional struct {
@@ -131,14 +136,8 @@ func (it *Optional) TagResults(dst map[string]graph.Value) {
 // Registers the optional iterator.
 func (it *Optional) Type() graph.Type { return graph.Optional }
 
-func (it *Optional) Describe() graph.Description {
-	primary := it.subIt.Describe()
-	return graph.Description{
-		UID:      it.UID(),
-		Type:     it.Type(),
-		Tags:     it.tags.Tags(),
-		Iterator: &primary,
-	}
+func (it *Optional) String() string {
+	return "Optional"
 }
 
 // There's nothing to optimize for an optional. Optimize the subiterator and
@@ -167,8 +166,3 @@ func (it *Optional) Stats() graph.IteratorStats {
 func (it *Optional) Size() (int64, bool) {
 	return it.Stats().Size, false
 }
-
-var (
-	_ graph.Iterator = &Optional{}
-	_ graph.NoNext   = &Optional{}
-)

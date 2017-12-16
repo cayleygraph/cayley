@@ -16,11 +16,12 @@ package elastic
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
-	elastic "gopkg.in/olivere/elastic.v5"
+	"gopkg.in/olivere/elastic.v5"
 )
 
 // Iterator struct used for elastic backend
@@ -232,15 +233,8 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-// Describe gives the graph description
-func (it *Iterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:  it.UID(),
-		Name: string(it.hash),
-		Type: it.Type(),
-		Size: size,
-	}
+func (it *Iterator) String() string {
+	return fmt.Sprintf("Elastic(%v)", it.resultType)
 }
 
 // Close closes the iterator

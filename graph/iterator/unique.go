@@ -4,6 +4,8 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
+var _ graph.Iterator = &Unique{}
+
 // Unique iterator removes duplicate values from it's subiterator.
 type Unique struct {
 	uid      uint64
@@ -136,17 +138,6 @@ func (it *Unique) Size() (int64, bool) {
 	return st.Size, st.ExactSize
 }
 
-func (it *Unique) Describe() graph.Description {
-	subIts := []graph.Description{
-		it.subIt.Describe(),
-	}
-
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Iterators: subIts,
-	}
+func (it *Unique) String() string {
+	return "Unique"
 }
-
-var _ graph.Iterator = &Unique{}

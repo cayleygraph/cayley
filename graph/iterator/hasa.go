@@ -36,9 +36,12 @@ package iterator
 import (
 	"github.com/cayleygraph/cayley/clog"
 
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
+
+var _ graph.Iterator = &HasA{}
 
 // A HasA consists of a reference back to the graph.QuadStore that it references,
 // a primary subiterator, a direction in which the quads for that subiterator point,
@@ -123,15 +126,8 @@ func (it *HasA) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }
 
-func (it *HasA) Describe() graph.Description {
-	primary := it.primaryIt.Describe()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Direction: it.dir,
-		Iterator:  &primary,
-	}
+func (it *HasA) String() string {
+	return fmt.Sprintf("HasA(%v)", it.dir)
 }
 
 // Check a value against our internal iterator. In order to do this, we must first open a new
@@ -281,5 +277,3 @@ func (it *HasA) Size() (int64, bool) {
 	st := it.Stats()
 	return st.Size, st.ExactSize
 }
-
-var _ graph.Iterator = &HasA{}

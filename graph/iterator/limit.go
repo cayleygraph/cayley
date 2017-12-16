@@ -1,8 +1,11 @@
 package iterator
 
 import (
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 )
+
+var _ graph.Iterator = &Limit{}
 
 // Limit iterator will stop iterating if certain a number of values were encountered.
 // Zero and negative limit values means no limit.
@@ -119,17 +122,6 @@ func (it *Limit) Size() (int64, bool) {
 	return primarySize, exact
 }
 
-func (it *Limit) Describe() graph.Description {
-	subIts := []graph.Description{
-		it.primaryIt.Describe(),
-	}
-
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.Tagger().Tags(),
-		Iterators: subIts,
-	}
+func (it *Limit) String() string {
+	return fmt.Sprintf("Limit(%d)", it.limit)
 }
-
-var _ graph.Iterator = &Limit{}

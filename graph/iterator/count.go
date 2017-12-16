@@ -5,6 +5,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+var _ graph.Iterator = &Count{}
+
 // Count iterator returns one element with size of underlying iterator.
 type Count struct {
 	uid    uint64
@@ -128,16 +130,4 @@ func (it *Count) Size() (int64, bool) {
 	return 1, true
 }
 
-func (it *Count) Describe() graph.Description {
-	subIts := []graph.Description{
-		it.it.Describe(),
-	}
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.Tagger().Tags(),
-		Iterators: subIts,
-	}
-}
-
-var _ graph.Iterator = &Count{}
+func (it *Count) String() string { return "Count" }

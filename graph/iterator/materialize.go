@@ -22,6 +22,8 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
+var _ graph.Iterator = &Materialize{}
+
 const MaterializeLimit = 1000
 
 type result struct {
@@ -115,15 +117,8 @@ func (it *Materialize) Clone() graph.Iterator {
 	return out
 }
 
-func (it *Materialize) Describe() graph.Description {
-	primary := it.subIt.Describe()
-	return graph.Description{
-		UID:      it.UID(),
-		Type:     it.Type(),
-		Tags:     it.tags.Tags(),
-		Size:     int64(len(it.values)),
-		Iterator: &primary,
-	}
+func (it *Materialize) String() string {
+	return "Materialize"
 }
 
 // Register this iterator as a Materialize iterator.
@@ -316,5 +311,3 @@ func (it *Materialize) materializeSet() {
 	}
 	it.hasRun = true
 }
-
-var _ graph.Iterator = &Materialize{}

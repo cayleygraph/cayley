@@ -297,16 +297,8 @@ func (it *Iterator) Type() graph.Type {
 }
 func (it *Iterator) Sorted() bool                     { return false }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
-func (it *Iterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:       it.UID(),
-		Name:      fmt.Sprintf("%s/%s", it.name, it.hash),
-		Type:      it.Type(),
-		Size:      size,
-		Tags:      it.tags.Tags(),
-		Direction: it.dir,
-	}
+func (it *Iterator) String() string {
+	return fmt.Sprintf("GAE(%s/%s)", it.name, it.hash)
 }
 
 // TODO (panamafrancis) calculate costs

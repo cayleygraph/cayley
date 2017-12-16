@@ -19,6 +19,8 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
+var _ graph.Iterator = &And{}
+
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type And struct {
@@ -100,19 +102,8 @@ func (it *And) SubIterators() []graph.Iterator {
 	return iters
 }
 
-func (it *And) Describe() graph.Description {
-	subIts := make([]graph.Description, len(it.internalIterators))
-	for i, sub := range it.internalIterators {
-		subIts[i] = sub.Describe()
-	}
-	primary := it.primaryIt.Describe()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Iterator:  &primary,
-		Iterators: subIts,
-	}
+func (it *And) String() string {
+	return "And"
 }
 
 // Add a subiterator to this And iterator.
@@ -306,5 +297,3 @@ func (it *And) Close() error {
 
 // Register this as an "and" iterator.
 func (it *And) Type() graph.Type { return graph.And }
-
-var _ graph.Iterator = &And{}

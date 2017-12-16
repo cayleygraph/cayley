@@ -4,6 +4,8 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
+var _ graph.Iterator = &Not{}
+
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type Not struct {
@@ -157,18 +159,6 @@ func (it *Not) Size() (int64, bool) {
 	return st.Size, st.ExactSize
 }
 
-func (it *Not) Describe() graph.Description {
-	subIts := []graph.Description{
-		it.primaryIt.Describe(),
-		it.allIt.Describe(),
-	}
-
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Iterators: subIts,
-	}
+func (it *Not) String() string {
+	return "Not"
 }
-
-var _ graph.Iterator = &Not{}

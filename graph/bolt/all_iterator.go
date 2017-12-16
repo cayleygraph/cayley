@@ -26,6 +26,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+var _ graph.Iterator = &AllIterator{}
+
 type AllIterator struct {
 	nodes  bool
 	uid    uint64
@@ -176,15 +178,8 @@ func (it *AllIterator) Size() (int64, bool) {
 	return it.qs.Size(), true
 }
 
-func (it *AllIterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Size:      size,
-		Direction: it.dir,
-	}
+func (it *AllIterator) String() string {
+	return fmt.Sprintf("BoltAll(%q)", it.bucket)
 }
 
 func (it *AllIterator) Type() graph.Type { return graph.All }
@@ -203,5 +198,3 @@ func (it *AllIterator) Stats() graph.IteratorStats {
 		ExactSize:    exact,
 	}
 }
-
-var _ graph.Iterator = &AllIterator{}

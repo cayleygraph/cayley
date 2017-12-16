@@ -139,12 +139,8 @@ func (it *AllIterator) UID() uint64 {
 	return it.uid
 }
 func (it *AllIterator) Type() graph.Type { return graph.All }
-func (it *AllIterator) Describe() graph.Description {
-	return graph.Description{
-		UID:  it.UID(),
-		Type: it.Type(),
-		Tags: it.tags.Tags(),
-	}
+func (it *AllIterator) String() string {
+	return "MemStoreAll"
 }
 func (it *AllIterator) NextPath() bool { return false }
 

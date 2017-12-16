@@ -18,11 +18,14 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"fmt"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
+
+var _ graph.Iterator = &Iterator{}
 
 type Iterator struct {
 	uid        uint64
@@ -209,14 +212,8 @@ func (it *Iterator) Type() graph.Type {
 func (it *Iterator) Sorted() bool                     { return true }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 
-func (it *Iterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:  it.UID(),
-		Name: string(it.hash),
-		Type: it.Type(),
-		Size: size,
-	}
+func (it *Iterator) String() string {
+	return fmt.Sprintf("Mongo(%v)", it.dir)
 }
 
 func (it *Iterator) Stats() graph.IteratorStats {
@@ -228,5 +225,3 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		ExactSize:    exact,
 	}
 }
-
-var _ graph.Iterator = &Iterator{}

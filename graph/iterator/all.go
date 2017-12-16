@@ -23,8 +23,11 @@ package iterator
 // the base iterators, and it helps just to see it here.
 
 import (
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 )
+
+var _ graph.Iterator = &Int64{}
 
 // An All iterator across a range of int64 values, from `max` to `min`.
 type Int64 struct {
@@ -88,12 +91,8 @@ func (it *Int64) TagResults(dst map[string]graph.Value) {
 	it.tags.TagResult(dst, it.Result())
 }
 
-func (it *Int64) Describe() graph.Description {
-	return graph.Description{
-		UID:  it.UID(),
-		Type: it.Type(),
-		Tags: it.tags.Tags(),
-	}
+func (it *Int64) String() string {
+	return fmt.Sprintf("Int64(%d-%d)", it.min, it.max)
 }
 
 // Next() on an Int64 all iterator is a simple incrementing counter.
@@ -140,8 +139,8 @@ func (it *Int64) SubIterators() []graph.Iterator {
 // The number of elements in an Int64 is the size of the range.
 // The size is exact.
 func (it *Int64) Size() (int64, bool) {
-	Size := ((it.max - it.min) + 1)
-	return Size, true
+	sz := (it.max - it.min) + 1
+	return sz, true
 }
 
 func valToInt64(v graph.Value) int64 {
@@ -184,5 +183,3 @@ func (it *Int64) Stats() graph.IteratorStats {
 		Contains:     it.runstats.Contains,
 	}
 }
-
-var _ graph.Iterator = &Int64{}

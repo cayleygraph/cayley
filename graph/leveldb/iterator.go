@@ -26,6 +26,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+var _ graph.Iterator = &Iterator{}
+
 type Iterator struct {
 	uid            uint64
 	tags           graph.Tagger
@@ -239,16 +241,8 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.qs.SizeOf(Token(it.checkID)), true
 }
 
-func (it *Iterator) Describe() graph.Description {
-	size, _ := it.Size()
-	return graph.Description{
-		UID:       it.UID(),
-		Name:      quad.StringOf(it.qs.NameOf(Token(it.checkID))),
-		Type:      it.Type(),
-		Tags:      it.tags.Tags(),
-		Size:      size,
-		Direction: it.dir,
-	}
+func (it *Iterator) String() string {
+	return "Leveldb"
 }
 
 func (it *Iterator) Type() graph.Type { return "leveldb" }
@@ -267,5 +261,3 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		ExactSize:    exact,
 	}
 }
-
-var _ graph.Iterator = &Iterator{}

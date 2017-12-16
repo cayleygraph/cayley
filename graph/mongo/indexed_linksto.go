@@ -18,6 +18,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -200,14 +201,8 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 	return graph.ContainsLogOut(it, val, false)
 }
 
-func (it *LinksTo) Describe() graph.Description {
-	primary := it.primaryIt.Describe()
-	return graph.Description{
-		UID:       it.UID(),
-		Type:      it.Type(),
-		Direction: it.dir,
-		Iterator:  &primary,
-	}
+func (it *LinksTo) String() string {
+	return fmt.Sprintf("MongoLinks(%v)", it.lset)
 }
 
 func (it *LinksTo) Reset() {

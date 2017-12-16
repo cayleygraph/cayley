@@ -22,10 +22,11 @@ package iterator
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/cayleygraph/cayley/graph"
 )
+
+var _ graph.Iterator = &Fixed{}
 
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
 // an equality function.
@@ -93,23 +94,8 @@ func (it *Fixed) Add(v graph.Value) {
 	it.values = append(it.values, v)
 }
 
-func (it *Fixed) Describe() graph.Description {
-	var value string
-	if len(it.values) > 0 {
-		value = fmt.Sprint(it.values[0])
-	}
-	fixed := make([]string, 0, len(it.tags.Fixed()))
-	for k := range it.tags.Fixed() {
-		fixed = append(fixed, k)
-	}
-	sort.Strings(fixed)
-	return graph.Description{
-		UID:  it.UID(),
-		Name: value,
-		Type: it.Type(),
-		Tags: fixed,
-		Size: int64(len(it.values)),
-	}
+func (it *Fixed) String() string {
+	return fmt.Sprintf("Fixed(%v)", it.values)
 }
 
 // Register this iterator as a Fixed iterator.
@@ -186,5 +172,3 @@ func (it *Fixed) Stats() graph.IteratorStats {
 		ExactSize:    exact,
 	}
 }
-
-var _ graph.Iterator = &Fixed{}

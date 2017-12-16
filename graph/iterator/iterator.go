@@ -19,6 +19,7 @@ package iterator
 import (
 	"sync/atomic"
 
+	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 )
 
@@ -76,11 +77,8 @@ func (it *Null) Type() graph.Type { return graph.Null }
 // Null has nothing it needs to do.
 func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
 
-func (it *Null) Describe() graph.Description {
-	return graph.Description{
-		UID:  it.UID(),
-		Type: it.Type(),
-	}
+func (it *Null) String() string {
+	return "Null"
 }
 
 func (it *Null) Next() bool {
@@ -152,11 +150,8 @@ func (it *Error) Type() graph.Type { return graph.Null }
 
 func (it *Error) Optimize() (graph.Iterator, bool) { return it, false }
 
-func (it *Error) Describe() graph.Description {
-	return graph.Description{
-		UID:  it.UID(),
-		Type: it.Type(),
-	}
+func (it *Error) String() string {
+	return fmt.Sprintf("Error(%v)", it.err)
 }
 
 func (it *Error) Next() bool {
