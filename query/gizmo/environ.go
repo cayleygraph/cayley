@@ -25,6 +25,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/cayley/voc"
@@ -149,7 +150,7 @@ func cmpOpType(op iterator.Operator) func(vm *goja.Runtime, call goja.FunctionCa
 		if err != nil {
 			return throwErr(vm, err)
 		}
-		return vm.ToValue(cmpOperator{op: op, val: qv})
+		return vm.ToValue(valFilter{f: shape.Comparison{Op: op, Val: qv}})
 	}
 }
 
@@ -186,25 +187,11 @@ func cmpRegexp(vm *goja.Runtime, call goja.FunctionCall) goja.Value {
 	default:
 		return throwErr(vm, fmt.Errorf("regexp: unsupported type: %T", v))
 	}
-	return vm.ToValue(cmpOperator{regex: true, val: v})
-}
-
-type cmpOperator struct {
-	op    iterator.Operator
-	val   quad.Value
-	regex bool
-}
-
-func (op cmpOperator) apply(p *path.Path) (*path.Path, error) {
-	if !op.regex {
-		p = p.Filter(op.op, op.val)
-		return p, nil
-	}
 	var (
 		s    string
 		refs bool
 	)
-	switch v := op.val.(type) {
+	switch v := v.(type) {
 	case quad.String:
 		s = string(v)
 	case quad.IRI:
@@ -212,18 +199,17 @@ func (op cmpOperator) apply(p *path.Path) (*path.Path, error) {
 	case quad.BNode:
 		s, refs = string(v), true
 	default:
-		return p, fmt.Errorf("regexp from non-string value: %T", op.val)
+		return throwErr(vm, fmt.Errorf("regexp from non-string value: %T", v))
 	}
 	re, err := regexp.Compile(string(s))
 	if err != nil {
-		return p, err
+		return throwErr(vm, err)
 	}
-	if refs {
-		p = p.RegexWithRefs(re)
-	} else {
-		p = p.Regex(re)
-	}
-	return p, nil
+	return vm.ToValue(valFilter{f: shape.Regexp{Re: re, Refs: refs}})
+}
+
+type valFilter struct {
+	f shape.ValueFilter
 }
 
 var defaultEnv = map[string]func(vm *goja.Runtime, call goja.FunctionCall) goja.Value{

@@ -24,6 +24,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
+	"github.com/cayleygraph/cayley/graph/shape"
 )
 
 // pathObject is a Path object in Gizmo.
@@ -367,7 +368,7 @@ func (p *pathObject) As(tags ...string) *pathObject {
 // Arguments:
 //
 // * `predicate`: A string for a predicate node.
-// * `object`: A string for a object node.
+// * `object`: A string for a object node or a set of filters to find it.
 //
 // Example:
 // 	// javascript
@@ -375,6 +376,8 @@ func (p *pathObject) As(tags ...string) *pathObject {
 //	g.V().Has("<follows>", "<bob>").All()
 //	// People charlie follows who then follow fred. Results in bob.
 //	g.V("<charlie>").Out("<follows>").Has("<follows>", "<fred>").All()
+//	// People with friends who have names sorting lower then "f".
+//	g.V().Has("<follows>", gt("<f>")).All()
 func (p *pathObject) Has(call goja.FunctionCall) goja.Value {
 	return p.has(call, false)
 }
@@ -389,6 +392,7 @@ func (p *pathObject) has(call goja.FunctionCall, rev bool) goja.Value {
 		return throwErr(p.s.vm, errArgCount{Got: len(args)})
 	}
 	via := args[0]
+	args = args[1:]
 	if vp, ok := via.(*pathObject); ok {
 		via = vp.path
 	} else {
@@ -398,7 +402,30 @@ func (p *pathObject) has(call goja.FunctionCall, rev bool) goja.Value {
 			return throwErr(p.s.vm, err)
 		}
 	}
-	qv, err := toQuadValues(args[1:])
+	if len(args) > 0 {
+		var filt []shape.ValueFilter
+	loop:
+		for _, a := range args {
+			switch a := a.(type) {
+			case valFilter:
+				filt = append(filt, a.f)
+			case []valFilter:
+				for _, s := range a {
+					filt = append(filt, s.f)
+				}
+			default:
+				filt = nil
+				// failed to collect all argument as filters - switch back to nodes-only mode
+				break loop
+			}
+		}
+		if len(filt) > 0 {
+			np := p.clonePath()
+			np = np.HasFilter(via, rev, filt...)
+			return p.newVal(np)
+		}
+	}
+	qv, err := toQuadValues(args)
 	if err != nil {
 		return throwErr(p.s.vm, err)
 	}
@@ -581,18 +608,15 @@ func (p *pathObject) LabelContext(call goja.FunctionCall) goja.Value {
 }
 
 // Filter applies constraints to a set of nodes. Can be used to filter values by range or match strings.
-func (p *pathObject) Filter(args ...cmpOperator) (*pathObject, error) {
+func (p *pathObject) Filter(args ...valFilter) (*pathObject, error) {
 	if len(args) == 0 {
 		return nil, errArgCount{Got: len(args)}
 	}
-	np := p.clonePath()
-	for _, op := range args {
-		var err error
-		np, err = op.apply(np)
-		if err != nil {
-			return nil, err
-		}
+	filt := make([]shape.ValueFilter, 0, len(args))
+	for _, f := range args {
+		filt = append(filt, f.f)
 	}
+	np := p.clonePath().Filters(filt...)
 	return p.new(np), nil
 }
 

@@ -273,7 +273,7 @@ Usually useful for starting with all nodes, or limiting to a subset depending on
 Arguments:
 
 * `predicate`: A string for a predicate node.
-* `object`: A string for a object node.
+* `object`: A string for a object node or a set of filters to find it.
 
 Example:
 ```javascript
@@ -281,6 +281,8 @@ Example:
 g.V().Has("<follows>", "<bob>").All()
 // People charlie follows who then follow fred. Results in bob.
 g.V("<charlie>").Out("<follows>").Has("<follows>", "<fred>").All()
+// People with friends who have names sorting lower then "f".
+g.V().Has("<follows>", gt("<f>")).All()
 ```
 
 

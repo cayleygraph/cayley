@@ -27,7 +27,7 @@ import (
 type applyMorphism func(shape.Shape, *pathContext) (shape.Shape, *pathContext)
 
 type morphism struct {
-	Name     string
+	IsTag    bool
 	Reversal func(*pathContext) (morphism, *pathContext)
 	Apply    applyMorphism
 	tags     []string
@@ -163,9 +163,7 @@ func (p *Path) Is(nodes ...quad.Value) *Path {
 // Regex represents the nodes that are matching provided regexp pattern.
 // It will only include Raw and String values.
 func (p *Path) Regex(pattern *regexp.Regexp) *Path {
-	np := p.clone()
-	np.stack = append(np.stack, regexMorphism(pattern, false))
-	return np
+	return p.Filters(shape.Regexp{Re: pattern, Refs: false})
 }
 
 // RegexWithRefs is the same as Regex, but also matches IRIs and BNodes.
@@ -182,15 +180,18 @@ func (p *Path) Regex(pattern *regexp.Regexp) *Path {
 // The right way is to explicitly link graph nodes and query them by this relation:
 // 	<http://example.org/page/foo> <type> <http://example.org/page>
 func (p *Path) RegexWithRefs(pattern *regexp.Regexp) *Path {
-	np := p.clone()
-	np.stack = append(np.stack, regexMorphism(pattern, true))
-	return np
+	return p.Filters(shape.Regexp{Re: pattern, Refs: true})
 }
 
 // Filter represents the nodes that are passing comparison with provided value.
 func (p *Path) Filter(op iterator.Operator, node quad.Value) *Path {
+	return p.Filters(shape.Comparison{Op: op, Val: node})
+}
+
+// Filters represents the nodes that are passing provided filters.
+func (p *Path) Filters(filters ...shape.ValueFilter) *Path {
 	np := p.clone()
-	np.stack = append(np.stack, cmpMorphism(op, node))
+	np.stack = append(np.stack, filterMorphism(filters))
 	return np
 }
 
@@ -439,7 +440,7 @@ func (p *Path) SaveOptionalReverse(via interface{}, tag string) *Path {
 // to some known node.
 func (p *Path) Has(via interface{}, nodes ...quad.Value) *Path {
 	np := p.clone()
-	np.stack = append(np.stack, hasMorphism(via, nodes...))
+	np.stack = append(np.stack, hasMorphism(via, false, nodes...))
 	return np
 }
 
@@ -447,7 +448,15 @@ func (p *Path) Has(via interface{}, nodes ...quad.Value) *Path {
 // to the current nodes.
 func (p *Path) HasReverse(via interface{}, nodes ...quad.Value) *Path {
 	np := p.clone()
-	np.stack = append(np.stack, hasReverseMorphism(via, nodes...))
+	np.stack = append(np.stack, hasMorphism(via, true, nodes...))
+	return np
+}
+
+// HasFilter limits the paths to be ones where the current nodes have some linkage
+// to some nodes that pass provided filters.
+func (p *Path) HasFilter(via interface{}, rev bool, filt ...shape.ValueFilter) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, hasFilterMorphism(via, rev, filt))
 	return np
 }
 
@@ -480,7 +489,7 @@ func (p *Path) Back(tag string) *Path {
 		if i < 0 {
 			return p.Reverse()
 		}
-		if p.stack[i].Name == "tag" {
+		if p.stack[i].IsTag {
 			for _, x := range p.stack[i].tags {
 				if x == tag {
 					// Found what we're looking for.

@@ -310,6 +310,13 @@ var testQueries = []struct {
 		`,
 		expect: []string{"<bob>"},
 	},
+	{
+		message: "show a Has with filter",
+		query: `
+				g.V().Has("<follows>", gt("<f>")).All()
+		`,
+		expect: []string{"<bob>", "<dani>", "<emily>", "<fred>"},
+	},
 
 	// Skip/Limit tests.
 	{

@@ -16,7 +16,6 @@ package path
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -40,7 +39,6 @@ func join(its ...shape.Shape) shape.Shape {
 // acts as a passthrough for the previous iterator.
 func isMorphism(nodes ...quad.Value) morphism {
 	return morphism{
-		Name:     "is",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return isMorphism(nodes...), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			if len(nodes) == 0 {
@@ -60,25 +58,10 @@ func isMorphism(nodes ...quad.Value) morphism {
 	}
 }
 
-func regexMorphism(pattern *regexp.Regexp, refs bool) morphism {
-	return morphism{
-		Name:     "regex",
-		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return regexMorphism(pattern, refs), ctx },
-		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.Filter{From: in,
-				Filters: []shape.ValueFilter{
-					shape.Regexp{Re: pattern, Refs: refs},
-				},
-			}, ctx
-		},
-	}
-}
-
 // isNodeMorphism represents all nodes passed in-- if there are none, this function
 // acts as a passthrough for the previous iterator.
 func isNodeMorphism(nodes ...graph.Value) morphism {
 	return morphism{
-		Name:     "is",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return isNodeMorphism(nodes...), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			if len(nodes) == 0 {
@@ -94,17 +77,14 @@ func isNodeMorphism(nodes ...graph.Value) morphism {
 	}
 }
 
-// cmpMorphism is the set of nodes that passes comparison iterator with the same parameters.
-func cmpMorphism(op iterator.Operator, node quad.Value) morphism {
+// filterMorphism is the set of nodes that passes filters.
+func filterMorphism(filt []shape.ValueFilter) morphism {
 	return morphism{
-		Name:     "cmp",
-		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return cmpMorphism(op, node), ctx },
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return filterMorphism(filt), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.Filter{
-				From: in,
-				Filters: []shape.ValueFilter{
-					shape.Comparison{Op: op, Val: node},
-				},
+				From:    in,
+				Filters: filt,
 			}, ctx
 		},
 	}
@@ -112,35 +92,39 @@ func cmpMorphism(op iterator.Operator, node quad.Value) morphism {
 
 // hasMorphism is the set of nodes that is reachable via either a *Path, a
 // single node.(string) or a list of nodes.([]string).
-func hasMorphism(via interface{}, nodes ...quad.Value) morphism {
+func hasMorphism(via interface{}, rev bool, nodes ...quad.Value) morphism {
+	var node shape.Shape
+	if len(nodes) == 0 {
+		node = shape.AllNodes{}
+	} else {
+		node = shape.Lookup(nodes)
+	}
+	return hasShapeMorphism(via, rev, node)
+}
+
+// hasShapeMorphism is the set of nodes that is reachable via either a *Path, a
+// single node.(string) or a list of nodes.([]string).
+func hasShapeMorphism(via interface{}, rev bool, nodes shape.Shape) morphism {
 	return morphism{
-		Name:     "has",
-		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasMorphism(via, nodes...), ctx },
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasShapeMorphism(via, rev, nodes), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			var node shape.Shape
-			if len(nodes) == 0 {
-				node = shape.AllNodes{}
-			} else {
-				node = shape.Lookup(nodes)
-			}
-			return shape.Has(in, buildVia(via), node, false), ctx
+			return shape.Has(in, buildVia(via), nodes, rev), ctx
 		},
 	}
 }
 
-func hasReverseMorphism(via interface{}, nodes ...quad.Value) morphism {
-	return morphism{
-		Name:     "hasr",
-		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasMorphism(via, nodes...), ctx },
-		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.Has(in, buildVia(via), shape.Lookup(nodes), true), ctx
-		},
-	}
+// hasFilterMorphism is the set of nodes that is reachable via either a *Path, a
+// single node.(string) or a list of nodes.([]string) and that passes provided filters.
+func hasFilterMorphism(via interface{}, rev bool, filt []shape.ValueFilter) morphism {
+	return hasShapeMorphism(via, rev, shape.Filter{
+		From:    shape.AllNodes{},
+		Filters: filt,
+	})
 }
 
 func tagMorphism(tags ...string) morphism {
 	return morphism{
-		Name:     "tag",
+		IsTag:    true,
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return tagMorphism(tags...), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.Save{From: in, Tags: tags}, ctx
@@ -152,7 +136,6 @@ func tagMorphism(tags ...string) morphism {
 // outMorphism iterates forward one RDF triple or via an entire path.
 func outMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
-		Name:     "out",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return inMorphism(tags, via...), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.Out(in, buildVia(via...), ctx.labelSet, tags...), ctx
@@ -164,7 +147,6 @@ func outMorphism(tags []string, via ...interface{}) morphism {
 // inMorphism iterates backwards one RDF triple or via an entire path.
 func inMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
-		Name:     "in",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return outMorphism(tags, via...), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.In(in, buildVia(via...), ctx.labelSet, tags...), ctx
@@ -175,7 +157,6 @@ func inMorphism(tags []string, via ...interface{}) morphism {
 
 func bothMorphism(tags []string, via ...interface{}) morphism {
 	return morphism{
-		Name:     "in",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return bothMorphism(tags, via...), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			via := buildVia(via...)
@@ -196,7 +177,6 @@ func labelContextMorphism(tags []string, via ...interface{}) morphism {
 		path = shape.Save{From: buildVia(via...), Tags: tags}
 	}
 	return morphism{
-		Name: "label_context",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
 			out := ctx.copy()
 			ctx.labelSet = path
@@ -215,7 +195,6 @@ func labelContextMorphism(tags []string, via ...interface{}) morphism {
 // the given set of nodes in the path.
 func labelsMorphism() morphism {
 	return morphism{
-		Name: "labels",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
 			panic("not implemented")
 		},
@@ -228,8 +207,7 @@ func labelsMorphism() morphism {
 // predicatesMorphism iterates to the uniqified set of predicates from
 // the given set of nodes in the path.
 func predicatesMorphism(isIn bool) morphism {
-	m := morphism{
-		Name: "out_predicates",
+	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
 			panic("not implemented: need a function from predicates to their associated edges")
 		},
@@ -237,17 +215,12 @@ func predicatesMorphism(isIn bool) morphism {
 			return shape.Predicates(in, isIn), ctx
 		},
 	}
-	if isIn {
-		m.Name = "in_predicates"
-	}
-	return m
 }
 
 // savePredicatesMorphism tags either forward or reverse predicates from current node
 // without affecting path.
 func savePredicatesMorphism(isIn bool, tag string) morphism {
-	m := morphism{
-		Name: "save_out_predicates",
+	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
 			return savePredicatesMorphism(isIn, tag), ctx
 		},
@@ -255,10 +228,6 @@ func savePredicatesMorphism(isIn bool, tag string) morphism {
 			return shape.SavePredicates(in, isIn, tag), ctx
 		},
 	}
-	if isIn {
-		m.Name = "save_in_predicates"
-	}
-	return m
 }
 
 type iteratorShape struct {
@@ -275,7 +244,6 @@ func (s iteratorShape) Optimize(r shape.Optimizer) (shape.Shape, bool) {
 // iteratorMorphism simply tacks the input iterator onto the chain.
 func iteratorMorphism(it graph.Iterator) morphism {
 	return morphism{
-		Name:     "iterator",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return iteratorMorphism(it), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return join(iteratorShape{it}, in), ctx
@@ -286,7 +254,6 @@ func iteratorMorphism(it graph.Iterator) morphism {
 // andMorphism sticks a path onto the current iterator chain.
 func andMorphism(p *Path) morphism {
 	return morphism{
-		Name:     "and",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return andMorphism(p), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return join(in, p.Shape()), ctx
@@ -297,7 +264,6 @@ func andMorphism(p *Path) morphism {
 // orMorphism is the union, vice intersection, of a path and the current iterator.
 func orMorphism(p *Path) morphism {
 	return morphism{
-		Name:     "or",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return orMorphism(p), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.Union{in, p.Shape()}, ctx
@@ -307,7 +273,6 @@ func orMorphism(p *Path) morphism {
 
 func followMorphism(p *Path) morphism {
 	return morphism{
-		Name:     "follow",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return followMorphism(p.Reverse()), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return p.ShapeFrom(in), ctx
@@ -326,7 +291,6 @@ func (s iteratorBuilder) Optimize(r shape.Optimizer) (shape.Shape, bool) {
 
 func followRecursiveMorphism(p *Path, maxDepth int, depthTags []string) morphism {
 	return morphism{
-		Name: "follow_recursive",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) {
 			return followRecursiveMorphism(p.Reverse(), maxDepth, depthTags), ctx
 		},
@@ -346,7 +310,6 @@ func followRecursiveMorphism(p *Path, maxDepth int, depthTags []string) morphism
 // exceptMorphism removes all results on p.(*Path) from the current iterators.
 func exceptMorphism(p *Path) morphism {
 	return morphism{
-		Name:     "except",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return exceptMorphism(p), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return join(in, shape.Except{From: shape.AllNodes{}, Exclude: p.Shape()}), ctx
@@ -357,7 +320,6 @@ func exceptMorphism(p *Path) morphism {
 // uniqueMorphism removes duplicate values from current path.
 func uniqueMorphism() morphism {
 	return morphism{
-		Name:     "unique",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return uniqueMorphism(), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.Unique{in}, ctx
@@ -367,7 +329,6 @@ func uniqueMorphism() morphism {
 
 func saveMorphism(via interface{}, tag string) morphism {
 	return morphism{
-		Name:     "save",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.SaveVia(in, buildVia(via), tag, false, false), ctx
@@ -378,7 +339,6 @@ func saveMorphism(via interface{}, tag string) morphism {
 
 func saveReverseMorphism(via interface{}, tag string) morphism {
 	return morphism{
-		Name:     "saver",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveReverseMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.SaveVia(in, buildVia(via), tag, true, false), ctx
@@ -389,7 +349,6 @@ func saveReverseMorphism(via interface{}, tag string) morphism {
 
 func saveOptionalMorphism(via interface{}, tag string) morphism {
 	return morphism{
-		Name:     "saveo",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveOptionalMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.SaveVia(in, buildVia(via), tag, false, true), ctx
@@ -400,7 +359,6 @@ func saveOptionalMorphism(via interface{}, tag string) morphism {
 
 func saveOptionalReverseMorphism(via interface{}, tag string) morphism {
 	return morphism{
-		Name:     "saveor",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveOptionalReverseMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.SaveVia(in, buildVia(via), tag, true, true), ctx
@@ -438,7 +396,6 @@ func buildVia(via ...interface{}) shape.Shape {
 // acts as a passthrough for the previous iterator.
 func skipMorphism(v int64) morphism {
 	return morphism{
-		Name:     "skip",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return skipMorphism(v), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			if v == 0 {
@@ -454,7 +411,6 @@ func skipMorphism(v int64) morphism {
 // acts as a passthrough for the previous iterator.
 func limitMorphism(v int64) morphism {
 	return morphism{
-		Name:     "limit",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return limitMorphism(v), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			if v <= 0 {
@@ -469,7 +425,6 @@ func limitMorphism(v int64) morphism {
 // countMorphism will return count of values.
 func countMorphism() morphism {
 	return morphism{
-		Name:     "count",
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return countMorphism(), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return shape.Count{Values: in}, ctx
