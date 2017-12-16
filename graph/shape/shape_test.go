@@ -15,6 +15,7 @@
 package shape_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -22,6 +23,7 @@ import (
 	. "github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func intVal(v int) graph.Value {
@@ -324,4 +326,35 @@ func TestOptimize(t *testing.T) {
 			assert.Equal(t, c.opt, opt)
 		})
 	}
+}
+
+func TestWalk(t *testing.T) {
+	var s Shape = NodesFrom{
+		Dir: quad.Subject,
+		Quads: Quads{
+			{Dir: quad.Subject, Values: Fixed{intVal(1)}},
+			{Dir: quad.Predicate, Values: Fixed{intVal(2)}},
+			{
+				Dir: quad.Object,
+				Values: QuadsAction{
+					Result: quad.Subject,
+					Filter: map[quad.Direction]graph.Value{
+						quad.Predicate: intVal(2),
+					},
+				},
+			},
+		},
+	}
+	var types []string
+	Walk(s, func(s Shape) bool {
+		types = append(types, reflect.TypeOf(s).String())
+		return true
+	})
+	require.Equal(t, []string{
+		"shape.NodesFrom",
+		"shape.Quads",
+		"shape.Fixed",
+		"shape.Fixed",
+		"shape.QuadsAction",
+	}, types)
 }
