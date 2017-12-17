@@ -16,6 +16,10 @@ import (
 
 const Type = "mongo"
 
+var (
+	_ nosql.BatchInserter = (*DB)(nil)
+)
+
 func init() {
 	nosql.Register(Type, nosql.Registration{
 		NewFunc:      Open,
@@ -259,6 +263,30 @@ func (c *collection) convDoc(m bson.M) nosql.Document {
 	return fromBsonDoc(m)
 }
 
+func getOrGenID(key nosql.Key) (nosql.Key, string) {
+	var mid string
+	if key == nil {
+		// TODO: maybe allow to pass custom key types as nosql.Key
+		oid := objidString(bson.NewObjectId())
+		mid = oid
+		key = nosql.Key{oid}
+	} else {
+		mid = compKey(key)
+	}
+	return key, mid
+}
+
+func (c *collection) convIns(key nosql.Key, d nosql.Document) (nosql.Key, bson.M) {
+	m := toBsonDoc(d)
+
+	var mid string
+	key, mid = getOrGenID(key)
+	m[idField] = mid
+	c.setKey(m, key)
+
+	return key, m
+}
+
 func objidString(id bson.ObjectId) string {
 	return hex.EncodeToString([]byte(id))
 }
@@ -271,22 +299,11 @@ func compKey(key nosql.Key) string {
 }
 
 func (db *DB) Insert(ctx context.Context, col string, key nosql.Key, d nosql.Document) (nosql.Key, error) {
-	m := toBsonDoc(d)
-	var mid string
-	if key == nil {
-		// TODO: maybe allow to pass custom key types as nosql.Key
-		oid := objidString(bson.NewObjectId())
-		mid = oid
-		key = nosql.Key{oid}
-	} else {
-		mid = compKey(key)
-	}
 	c, ok := db.colls[col]
 	if !ok {
 		return nil, fmt.Errorf("collection %q not found", col)
 	}
-	m[idField] = mid
-	c.setKey(m, key)
+	key, m := c.convIns(key, d)
 	if err := c.c.Insert(m); err != nil {
 		return nil, err
 	}
@@ -509,4 +526,55 @@ func (u *Update) Do(ctx context.Context) error {
 		err = u.col.c.UpdateId(key, u.update)
 	}
 	return err
+}
+
+func (db *DB) BatchInsert(col string) nosql.DocWriter {
+	c := db.colls[col]
+	return &inserter{col: &c}
+}
+
+const batchSize = 100
+
+type inserter struct {
+	col   *collection
+	buf   []interface{}
+	ikeys []nosql.Key
+	keys  []nosql.Key
+	err   error
+}
+
+func (w *inserter) WriteDoc(ctx context.Context, key nosql.Key, d nosql.Document) error {
+	if len(w.buf) >= batchSize {
+		if err := w.Flush(ctx); err != nil {
+			return err
+		}
+	}
+	key, m := w.col.convIns(key, d)
+	w.buf = append(w.buf, m)
+	w.ikeys = append(w.ikeys, key)
+	return nil
+}
+
+func (w *inserter) Flush(ctx context.Context) error {
+	if len(w.buf) == 0 {
+		return w.err
+	}
+	if err := w.col.c.Insert(w.buf...); err != nil {
+		w.err = err
+		return err
+	}
+	w.keys = append(w.keys, w.ikeys...)
+	w.ikeys = w.ikeys[:0]
+	w.buf = w.buf[:0]
+	return w.err
+}
+
+func (w *inserter) Keys() []nosql.Key {
+	return w.keys
+}
+
+func (w *inserter) Close() error {
+	w.ikeys = nil
+	w.buf = nil
+	return w.err
 }

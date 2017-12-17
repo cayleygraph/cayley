@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -176,7 +177,7 @@ func ensureIndexes(ctx context.Context, db Database) error {
 	return nil
 }
 
-func (qs *QuadStore) getIDForQuad(t quad.Quad) Key {
+func getIDForQuad(t quad.Quad) Key {
 	return Key{
 		hashOf(t.Subject),
 		hashOf(t.Predicate),
@@ -196,12 +197,6 @@ type node struct {
 	ID   string   `json:"id"`
 	Name Document `json:"Name"`
 	Size int      `json:"Size"`
-}
-
-type logEntry struct {
-	ID     string `json:"id"`
-	Action string `json:"Action"`
-	Key    string `json:"Key"`
 }
 
 func (qs *QuadStore) updateNodeBy(ctx context.Context, name quad.Value, inc int) error {
@@ -228,7 +223,7 @@ func (qs *QuadStore) updateNodeBy(ctx context.Context, name quad.Value, inc int)
 	return err
 }
 
-func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, key Key, proc graph.Procedure) error {
+func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, proc graph.Procedure) error {
 	var setname string
 	if proc == graph.Add {
 		setname = fldAdded
@@ -243,11 +238,7 @@ func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, key Key, proc 
 	if l := hashOf(q.Label); l != "" {
 		doc[fldLabel] = String(l)
 	}
-	if len(key) != 1 {
-		// we should not push vector keys to arrays
-		panic(fmt.Errorf("unexpected key: %v", key))
-	}
-	err := qs.db.Update(colQuads, qs.getIDForQuad(q)).Upsert(doc).
+	err := qs.db.Update(colQuads, getIDForQuad(q)).Upsert(doc).
 		Inc(setname, 1).Do(ctx)
 	if err != nil {
 		clog.Errorf("Error: %v", err)
@@ -273,18 +264,35 @@ func (qs *QuadStore) checkValidQuad(ctx context.Context, key Key) bool {
 	return checkQuadValid(q)
 }
 
-func (qs *QuadStore) updateLog(ctx context.Context, d *graph.Delta) (Key, error) {
-	var action string
-	if d.Action == graph.Add {
-		action = "Add"
-	} else {
-		action = "Delete"
+func (qs *QuadStore) batchInsert(col string) DocWriter {
+	return BatchInsert(qs.db, col)
+}
+
+func (qs *QuadStore) appendLog(ctx context.Context, deltas []graph.Delta) ([]Key, error) {
+	w := qs.batchInsert(colLog)
+	defer w.Close()
+	for _, d := range deltas {
+		data, err := pquads.MakeQuad(d.Quad).Marshal()
+		if err != nil {
+			return w.Keys(), err
+		}
+		var action string
+		if d.Action == graph.Add {
+			action = "Add"
+		} else {
+			action = "Delete"
+		}
+		err = w.WriteDoc(ctx, nil, Document{
+			"Action": String(action),
+			"Quad":   Bytes(data),
+			"ts":     Time(time.Now().UTC()),
+		})
+		if err != nil {
+			return w.Keys(), err
+		}
 	}
-	_ = logEntry{}
-	return qs.db.Insert(ctx, colLog, nil, Document{
-		"Action": String(action),
-		"Key":    qs.getIDForQuad(d.Quad).Value(),
-	})
+	err := w.Flush(ctx)
+	return w.Keys(), err
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
@@ -295,7 +303,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		if d.Action != graph.Add && d.Action != graph.Delete {
 			return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
-		key := qs.getIDForQuad(d.Quad)
+		key := getIDForQuad(d.Quad)
 		switch d.Action {
 		case graph.Add:
 			if qs.checkValidQuad(ctx, key) {
@@ -330,13 +338,11 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	if clog.V(2) {
 		clog.Infof("Existence verified. Proceeding.")
 	}
-	oids := make([]Key, 0, len(deltas))
-	for i, d := range deltas {
-		id, err := qs.updateLog(ctx, &deltas[i])
-		if err != nil {
-			return &graph.DeltaError{Delta: d, Err: err}
+	if oids, err := qs.appendLog(ctx, deltas); err != nil {
+		if i := len(oids); i < len(deltas) {
+			return &graph.DeltaError{Delta: deltas[i], Err: err}
 		}
-		oids = append(oids, id)
+		return &graph.DeltaError{Err: err}
 	}
 	// make sure to create all nodes before writing any quads
 	// concurrent reads may observe broken quads in other case
@@ -346,8 +352,8 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			return err
 		}
 	}
-	for i, d := range deltas {
-		err := qs.updateQuad(ctx, d.Quad, oids[i], d.Action)
+	for _, d := range deltas {
+		err := qs.updateQuad(ctx, d.Quad, d.Action)
 		if err != nil {
 			return &graph.DeltaError{Delta: d, Err: err}
 		}
@@ -525,7 +531,6 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 		}
 		clog.Errorf("could not get horizon: %v", err)
 	}
-	_ = logEntry{}
 	var id string
 	if v, ok := log[fldID].(String); ok {
 		id = string(v)
