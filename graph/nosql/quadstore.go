@@ -212,9 +212,8 @@ func (qs *QuadStore) updateNodeBy(ctx context.Context, key Key, name quad.Value,
 	if inc == 0 {
 		return nil
 	}
-	err := qs.db.Update(colNodes, key).Upsert(Document{
-		fldValue: toDocumentValue(name),
-	}).Inc(fldSize, inc).Do(ctx)
+	d := toDocumentValue(name)
+	err := qs.db.Update(colNodes, key).Upsert(d).Inc(fldSize, inc).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("error updating node: %v", err)
 	}
@@ -384,35 +383,37 @@ func toDocumentValue(v quad.Value) Document {
 	if v == nil {
 		return nil
 	}
+	var doc Document
 	switch d := v.(type) {
 	case quad.String:
-		return Document{fldValData: String(d)}
+		doc = Document{fldValData: String(d)}
 	case quad.Raw:
-		return Document{fldValData: String(d), fldRaw: Bool(true)}
+		doc = Document{fldValData: String(d), fldRaw: Bool(true)}
 	case quad.IRI:
-		return Document{fldValData: String(d), fldIRI: Bool(true)}
+		doc = Document{fldValData: String(d), fldIRI: Bool(true)}
 	case quad.BNode:
-		return Document{fldValData: String(d), fldBNode: Bool(true)}
+		doc = Document{fldValData: String(d), fldBNode: Bool(true)}
 	case quad.TypedString:
-		return Document{fldValData: String(d.Value), fldType: String(d.Type)}
+		doc = Document{fldValData: String(d.Value), fldType: String(d.Type)}
 	case quad.LangString:
-		return Document{fldValData: String(d.Value), fldLang: String(d.Lang)}
+		doc = Document{fldValData: String(d.Value), fldLang: String(d.Lang)}
 	case quad.Int:
-		return Document{fldValInt: Int(d)}
+		doc = Document{fldValInt: Int(d)}
 	case quad.Float:
-		return Document{fldValFloat: Float(d)}
+		doc = Document{fldValFloat: Float(d)}
 	case quad.Bool:
-		return Document{fldValBool: Bool(d)}
+		doc = Document{fldValBool: Bool(d)}
 	case quad.Time:
-		return Document{fldValTime: Time(time.Time(d).UTC())}
+		doc = Document{fldValTime: Time(time.Time(d).UTC())}
 	default:
 		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
 		}
-		return Document{fldValPb: Bytes(data)}
+		doc = Document{fldValPb: Bytes(data)}
 	}
+	return Document{fldValue: doc}
 }
 
 func toQuadValue(d Document) (quad.Value, error) {
@@ -517,7 +518,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return NewIterator(qs, "quads", d, val)
+	return NewLinksToIterator(qs, "quads", []Linkage{{Dir: d, Val: val.(NodeHash)}})
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
@@ -610,8 +611,6 @@ func (qs *QuadStore) Close() error {
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
 	return NodeHash(in.(QuadHash).Get(d))
 }
-
-// TODO(barakmich): Rewrite bulk loader. For now, iterating around blocks is the way we'll go about it.
 
 func (qs *QuadStore) getSize(col string, constraints []FieldFilter) (int64, error) {
 	cacheKey := ""

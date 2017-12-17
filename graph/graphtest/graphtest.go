@@ -9,6 +9,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/nquads"
 	"github.com/cayleygraph/cayley/schema"
@@ -845,14 +846,15 @@ func TestCompareTypedValues(t testing.TB, gen DatabaseFunc, conf *Config) {
 	}
 
 	for _, c := range casesCompare {
-		it := iterator.NewComparison(qs.NodesAllIterator(), c.op, c.val, qs)
-		nit, ok := qs.OptimizeIterator(it)
+		s := shape.Compare(shape.AllNodes{}, c.op, c.val)
+		ns, ok := shape.Optimize(s, qs)
 		require.Equal(t, conf.OptimizesComparison, ok)
 		if conf.OptimizesComparison {
-			require.NotEqual(t, it, nit)
+			require.NotEqual(t, s, ns)
 		} else {
-			require.Equal(t, it, nit)
+			require.Equal(t, s, ns)
 		}
+		nit := shape.BuildIterator(qs, ns)
 		ExpectIteratedValues(t, qs, nit, c.expect)
 	}
 }

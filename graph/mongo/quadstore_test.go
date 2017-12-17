@@ -44,7 +44,6 @@ func TestMongoAll(t *testing.T) {
 	graphtest.TestAll(t, makeMongo, &graphtest.Config{
 		NoPrimitives:             true,
 		TimeInMs:                 true,
-		OptimizesComparison:      true,
 		SkipDeletedFromIterator:  true,
 		SkipSizeCheckAfterDelete: true,
 	})
