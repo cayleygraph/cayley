@@ -32,7 +32,7 @@ import (
 )
 
 const DefaultDBName = "cayley"
-const QuadStoreType = "mongo"
+const QuadStoreType = "mongo1"
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
