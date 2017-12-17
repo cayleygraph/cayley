@@ -27,6 +27,11 @@ type Optimizer interface {
 	OptimizeShape(s Shape) (Shape, bool)
 }
 
+// Composite shape can be simplified to a tree of more basic shapes.
+type Composite interface {
+	Simplify() Shape
+}
+
 // WalkFunc is used to visit all shapes in the tree.
 // If false is returned, branch will not be traversed further.
 type WalkFunc func(Shape) bool
@@ -42,6 +47,9 @@ func (r resolveValues) OptimizeShape(s Shape) (Shape, bool) {
 	return s, false
 }
 
+// Optimize applies generic optimizations for the tree.
+// If quad store is specified it will also resolve Lookups and apply any specific optimizations.
+// Should not be used with Simplify - it will fold query to a compact form again.
 func Optimize(s Shape, qs graph.QuadStore) (Shape, bool) {
 	if s == nil {
 		return nil, false
@@ -546,6 +554,8 @@ func (s NodesFrom) Optimize(r Optimizer) (Shape, bool) {
 	return s, opt
 }
 
+var _ Composite = QuadsAction{}
+
 // QuadsAction represents a set of actions that can be done to a set of quads in a single scan pass.
 // It filters quads according to Filter constraints (equivalent of LinksTo), tags directions using tags in Save field
 // and returns a specified quad direction as result of the iterator (equivalent of HasA).
@@ -585,7 +595,7 @@ func (s QuadsAction) Clone() QuadsAction {
 	}
 	return s
 }
-func (s QuadsAction) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s QuadsAction) simplify() NodesFrom {
 	q := make(Quads, 0, len(s.Save)+len(s.Filter))
 	for dir, val := range s.Filter {
 		q = append(q, QuadFilter{Dir: dir, Values: Fixed{val}})
@@ -593,7 +603,13 @@ func (s QuadsAction) BuildIterator(qs graph.QuadStore) graph.Iterator {
 	for dir, tags := range s.Save {
 		q = append(q, QuadFilter{Dir: dir, Values: Save{From: AllNodes{}, Tags: tags}})
 	}
-	h := NodesFrom{Dir: s.Result, Quads: q}
+	return NodesFrom{Dir: s.Result, Quads: q}
+}
+func (s QuadsAction) Simplify() Shape {
+	return s.simplify()
+}
+func (s QuadsAction) BuildIterator(qs graph.QuadStore) graph.Iterator {
+	h := s.simplify()
 	return h.BuildIterator(qs)
 }
 func (s QuadsAction) Optimize(r Optimizer) (Shape, bool) {

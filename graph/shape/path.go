@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -186,6 +187,29 @@ func HasLabels(from, via, nodes, labels Shape, rev bool) Shape {
 	return IntersectShapes(from, NodesFrom{
 		Quads: quads, Dir: start,
 	})
+}
+
+func AddFilters(nodes Shape, filters ...ValueFilter) Shape {
+	if len(filters) == 0 {
+		return nodes
+	}
+	if s, ok := nodes.(Filter); ok {
+		arr := make([]ValueFilter, 0, len(s.Filters)+len(filters))
+		arr = append(arr, s.Filters...)
+		arr = append(arr, filters...)
+		return Filter{From: s.From, Filters: arr}
+	}
+	if nodes == nil {
+		nodes = AllNodes{}
+	}
+	return Filter{
+		From:    nodes,
+		Filters: filters,
+	}
+}
+
+func Compare(nodes Shape, op iterator.Operator, v quad.Value) Shape {
+	return AddFilters(nodes, Comparison{Op: op, Val: v})
 }
 
 func Iterate(ctx context.Context, qs graph.QuadStore, s Shape) *graph.IterateChain {

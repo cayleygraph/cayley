@@ -82,10 +82,7 @@ func filterMorphism(filt []shape.ValueFilter) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return filterMorphism(filt), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.Filter{
-				From:    in,
-				Filters: filt,
-			}, ctx
+			return shape.AddFilters(in, filt...), ctx
 		},
 	}
 }
