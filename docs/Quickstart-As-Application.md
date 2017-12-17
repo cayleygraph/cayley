@@ -32,12 +32,7 @@ Now that Cayley is downloaded (or built), let's create our database. `init` is t
 
 You can set up a full [configuration file](Configuration.md) if you'd prefer, but it will also work from the command line.
 
-Examples for each backend:
-
-  * `leveldb`:  `./cayley init -d leveldb -a /tmp/moviedb` -- where /tmp/moviedb is the path you'd like to store your data.
-  * `bolt`:  `./cayley init -d bolt -a /tmp/moviedb` -- where /tmp/moviedb is the filename where you'd like to store your data.
-  * `mongo`: `./cayley init -d mongo -a "<HOSTNAME>:<PORT>"` -- where HOSTNAME and PORT point to your Mongo instance.
-  * `postgres`: `./cayley init -d postgres -a "postgres://[USERNAME:PASSWORD@]HOST[:PORT]/DATABASE_NAME?sslmode=disable"` -- where HOSTNAME, PORT and DATABASE_NAME point to your PostgreSQL database and USERNAME, PASSWORD have write access. The value of the `dbpath` flag is a connection string of parameters from [pq](https://github.com/lib/pq). See https://godoc.org/github.com/lib/pq for more information.
+Examples for each backend can be found in `store.address` format from [config file](Configuration.md).
 
 Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley_example.yml` in the root directory.
 

@@ -33,7 +33,10 @@ All command line flags take precedence over the configuration file.
   
   **NoSQL backends**
   
-  * `mongo`: Stores the graph data and indices in a [MongoDB](https://www.mongodb.com/) instance. Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
+  Slower, as it incurs network traffic, but multiple Cayley instances can disappear and reconnect at will, across a potentially horizontally-scaled store.
+  
+  * `mongo`: Stores the graph data and indices in a [MongoDB](https://www.mongodb.com/) instance.
+  * `elastic`: Stores the graph data and indices in a [ElasticSearch](https://www.elastic.co/products/elasticsearch) instance.
   
   **SQL backends**
   
@@ -53,6 +56,7 @@ All command line flags take precedence over the configuration file.
   * `leveldb`: Directory to hold the LevelDB database files.
   * `bolt`: Path to the persistent single Bolt database file.
   * `mongo`: "hostname:port" of the desired MongoDB server. More options can be provided in [mgo](https://godoc.org/gopkg.in/mgo.v2#Dial) address format.
+  * `elastic`: "http://host:port" of the desired ElasticSearch server.
   * `postgres`,`cockroach`: `postgres://[username:password@]host[:port]/database-name?sslmode=disable` of the PostgreSQL database and credentials. Sslmode is optional. More option available on [pq](https://godoc.org/github.com/lib/pq) page.
   * `mysql`: `[username:password@]tcp(host[:3306])/database-name` of the MqSQL database and credentials. More option available on [driver](https://github.com/go-sql-driver/mysql#dsn-data-source-name) page.
 
