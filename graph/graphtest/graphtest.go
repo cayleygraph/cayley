@@ -28,8 +28,6 @@ type Config struct {
 	TimeRound    bool
 
 	OptimizesComparison bool
-	// TODO(dennwc): some stores return duplicates entries for HasA, some optimizes them to be unique
-	OptimizesHasAToUnique bool
 
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool

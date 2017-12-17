@@ -319,7 +319,6 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vFollows, vStatus},
 		},
 		{
-			skip:    true, // FIXME
 			message: "SavePredicates(out)",
 			path:    StartPath(qs, vBob).SavePredicates(false, "pred"),
 			expect:  []quad.Value{vFollows},
