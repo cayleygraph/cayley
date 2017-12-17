@@ -149,7 +149,6 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 	default:
 		return it, false
 	}
-	const base = fldValue
 	fieldPath := func(s string) []string {
 		return []string{fldValue, s}
 	}
@@ -161,6 +160,7 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 			{Path: fieldPath(fldValData), Filter: filter, Value: String(v)},
 			{Path: fieldPath(fldIRI), Filter: NotEqual, Value: Bool(true)},
 			{Path: fieldPath(fldBNode), Filter: NotEqual, Value: Bool(true)},
+			{Path: fieldPath(fldRaw), Filter: NotEqual, Value: Bool(true)},
 		}
 	case quad.IRI:
 		constraints = []FieldFilter{
@@ -174,15 +174,15 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 		}
 	case quad.Int:
 		constraints = []FieldFilter{
-			{Path: []string{base}, Filter: filter, Value: Int(v)},
+			{Path: fieldPath(fldValInt), Filter: filter, Value: Int(v)},
 		}
 	case quad.Float:
 		constraints = []FieldFilter{
-			{Path: []string{base}, Filter: filter, Value: Float(v)},
+			{Path: fieldPath(fldValFloat), Filter: filter, Value: Float(v)},
 		}
 	case quad.Time:
 		constraints = []FieldFilter{
-			{Path: []string{base}, Filter: filter, Value: Time(v)},
+			{Path: fieldPath(fldValTime), Filter: filter, Value: Time(v)},
 		}
 	default:
 		return it, false

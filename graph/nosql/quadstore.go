@@ -16,6 +16,7 @@ package nosql
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -92,6 +93,7 @@ type NodeHash string
 
 func (NodeHash) IsNode() bool       { return false }
 func (v NodeHash) Key() interface{} { return v }
+func (v NodeHash) key() Key         { return Key{string(v)} }
 
 type QuadHash [4]string
 
@@ -118,22 +120,30 @@ const (
 	colNodes = "nodes"
 	colQuads = "quads"
 
-	fldSubject   = "subject"
-	fldPredicate = "predicate"
-	fldObject    = "object"
-	fldLabel     = "label"
+	fldLogID = "id"
 
-	fldID      = "id"
-	fldValue   = "Name"
-	fldSize    = "Size"
-	fldAdded   = "Added"
-	fldDeleted = "Deleted"
+	fldSubject     = "subject"
+	fldPredicate   = "predicate"
+	fldObject      = "object"
+	fldLabel       = "label"
+	fldQuadAdded   = "added"
+	fldQuadDeleted = "deleted"
 
-	fldValData = "val"
-	fldIRI     = "iri"
-	fldBNode   = "bnode"
-	fldType    = "type"
-	fldLang    = "lang"
+	fldHash  = "hash"
+	fldValue = "value"
+	fldSize  = "refs"
+
+	fldValData  = "str"
+	fldIRI      = "iri"
+	fldBNode    = "bnode"
+	fldType     = "type"
+	fldLang     = "lang"
+	fldRaw      = "raw"
+	fldValInt   = "int"
+	fldValFloat = "float"
+	fldValBool  = "bool"
+	fldValTime  = "ts"
+	fldValPb    = "pb"
 )
 
 type QuadStore struct {
@@ -144,14 +154,14 @@ type QuadStore struct {
 
 func ensureIndexes(ctx context.Context, db Database) error {
 	err := db.EnsureIndex(ctx, colLog, Index{
-		Fields: []string{fldID},
+		Fields: []string{fldLogID},
 		Type:   StringExact,
 	}, nil)
 	if err != nil {
 		return err
 	}
 	err = db.EnsureIndex(ctx, colNodes, Index{
-		Fields: []string{fldID},
+		Fields: []string{fldHash},
 		Type:   StringExact,
 	}, nil)
 	if err != nil {
@@ -177,7 +187,7 @@ func ensureIndexes(ctx context.Context, db Database) error {
 	return nil
 }
 
-func getIDForQuad(t quad.Quad) Key {
+func getKeyForQuad(t quad.Quad) Key {
 	return Key{
 		hashOf(t.Subject),
 		hashOf(t.Predicate),
@@ -193,32 +203,32 @@ func hashOf(s quad.Value) string {
 	return hex.EncodeToString(quad.HashOf(s))
 }
 
-type node struct {
-	ID   string   `json:"id"`
-	Name Document `json:"Name"`
-	Size int      `json:"Size"`
+func (qs *QuadStore) nameToKey(name quad.Value) Key {
+	node := qs.hashOf(name)
+	return node.key()
 }
 
-func (qs *QuadStore) updateNodeBy(ctx context.Context, name quad.Value, inc int) error {
-	_ = node{}
-	node := qs.ValueOf(name)
-	key := Key{string(node.(NodeHash))}
-
+func (qs *QuadStore) updateNodeBy(ctx context.Context, key Key, name quad.Value, inc int) error {
+	if inc == 0 {
+		return nil
+	}
 	err := qs.db.Update(colNodes, key).Upsert(Document{
 		fldValue: toDocumentValue(name),
 	}).Inc(fldSize, inc).Do(ctx)
 	if err != nil {
-		clog.Errorf("Error updating node: %v", err)
+		return fmt.Errorf("error updating node: %v", err)
 	}
-	if inc < 0 {
-		err = qs.db.Delete(colNodes).Keys(key).WithFields(FieldFilter{
-			Path:   []string{fldSize},
-			Filter: Equal,
-			Value:  Int(0),
-		}).Do(ctx)
-		if err != nil {
-			clog.Errorf("Error deleting empty node: %v", err)
-		}
+	return nil
+}
+
+func (qs *QuadStore) cleanupNodes(ctx context.Context, keys []Key) error {
+	err := qs.db.Delete(colNodes).Keys(keys...).WithFields(FieldFilter{
+		Path:   []string{fldSize},
+		Filter: Equal,
+		Value:  Int(0),
+	}).Do(ctx)
+	if err != nil {
+		err = fmt.Errorf("error cleaning up nodes: %v", err)
 	}
 	return err
 }
@@ -226,9 +236,9 @@ func (qs *QuadStore) updateNodeBy(ctx context.Context, name quad.Value, inc int)
 func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, proc graph.Procedure) error {
 	var setname string
 	if proc == graph.Add {
-		setname = fldAdded
+		setname = fldQuadAdded
 	} else if proc == graph.Delete {
-		setname = fldDeleted
+		setname = fldQuadDeleted
 	}
 	doc := Document{
 		fldSubject:   String(hashOf(q.Subject)),
@@ -238,30 +248,30 @@ func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, proc graph.Pro
 	if l := hashOf(q.Label); l != "" {
 		doc[fldLabel] = String(l)
 	}
-	err := qs.db.Update(colQuads, getIDForQuad(q)).Upsert(doc).
+	err := qs.db.Update(colQuads, getKeyForQuad(q)).Upsert(doc).
 		Inc(setname, 1).Do(ctx)
 	if err != nil {
-		clog.Errorf("Error: %v", err)
+		err = fmt.Errorf("quad update failed: %v", err)
 	}
 	return err
 }
 
 func checkQuadValid(q Document) bool {
-	added, _ := q[fldAdded].(Int)
-	deleted, _ := q[fldDeleted].(Int)
+	added, _ := q[fldQuadAdded].(Int)
+	deleted, _ := q[fldQuadDeleted].(Int)
 	return added > deleted
 }
 
-func (qs *QuadStore) checkValidQuad(ctx context.Context, key Key) bool {
+func (qs *QuadStore) checkValidQuad(ctx context.Context, key Key) (bool, error) {
 	q, err := qs.db.FindByKey(ctx, colQuads, key)
 	if err == ErrNotFound {
-		return false
+		return false, nil
 	}
 	if err != nil {
-		clog.Errorf("Other error checking valid quad: %s %v.", key, err)
-		return false
+		err = fmt.Errorf("error checking quad validity: %v", err)
+		return false, err
 	}
-	return checkQuadValid(q)
+	return checkQuadValid(q), nil
 }
 
 func (qs *QuadStore) batchInsert(col string) DocWriter {
@@ -278,14 +288,14 @@ func (qs *QuadStore) appendLog(ctx context.Context, deltas []graph.Delta) ([]Key
 		}
 		var action string
 		if d.Action == graph.Add {
-			action = "Add"
+			action = "AddQuadPQ"
 		} else {
-			action = "Delete"
+			action = "DeleteQuadPQ"
 		}
 		err = w.WriteDoc(ctx, nil, Document{
-			"Action": String(action),
-			"Quad":   Bytes(data),
-			"ts":     Time(time.Now().UTC()),
+			"op":   String(action),
+			"data": Bytes(data),
+			"ts":   Time(time.Now().UTC()),
 		})
 		if err != nil {
 			return w.Keys(), err
@@ -303,10 +313,13 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		if d.Action != graph.Add && d.Action != graph.Delete {
 			return &graph.DeltaError{Delta: d, Err: graph.ErrInvalidAction}
 		}
-		key := getIDForQuad(d.Quad)
+		valid, err := qs.checkValidQuad(ctx, getKeyForQuad(d.Quad))
+		if err != nil {
+			return &graph.DeltaError{Delta: d, Err: err}
+		}
 		switch d.Action {
 		case graph.Add:
-			if qs.checkValidQuad(ctx, key) {
+			if valid {
 				if ignoreOpts.IgnoreDup {
 					continue
 				} else {
@@ -314,7 +327,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				}
 			}
 		case graph.Delete:
-			if !qs.checkValidQuad(ctx, key) {
+			if !valid {
 				if ignoreOpts.IgnoreMissing {
 					continue
 				} else {
@@ -335,9 +348,6 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 			ids[d.Quad.Label] += dn
 		}
 	}
-	if clog.V(2) {
-		clog.Infof("Existence verified. Proceeding.")
-	}
 	if oids, err := qs.appendLog(ctx, deltas); err != nil {
 		if i := len(oids); i < len(deltas) {
 			return &graph.DeltaError{Delta: deltas[i], Err: err}
@@ -346,11 +356,20 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	}
 	// make sure to create all nodes before writing any quads
 	// concurrent reads may observe broken quads in other case
-	for k, v := range ids {
-		err := qs.updateNodeBy(ctx, k, v)
+	var gc []Key
+	for name, dn := range ids {
+		key := qs.nameToKey(name)
+		err := qs.updateNodeBy(ctx, key, name, dn)
 		if err != nil {
 			return err
 		}
+		if dn < 0 {
+			gc = append(gc, key)
+		}
+	}
+	// gc nodes that has negative ref counter
+	if err := qs.cleanupNodes(ctx, gc); err != nil {
+		return err
 	}
 	for _, d := range deltas {
 		err := qs.updateQuad(ctx, d.Quad, d.Action)
@@ -361,24 +380,15 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
-type nodeValue struct {
-	Value   string `json:"val"`
-	IsIRI   bool   `json:"iri,omitempty"`
-	IsBNode bool   `json:"bnode,omitempty"`
-	Type    string `json:"type,omitempty"`
-	Lang    string `json:"lang,omitempty"`
-}
-
-func toDocumentValue(v quad.Value) Value {
+func toDocumentValue(v quad.Value) Document {
 	if v == nil {
 		return nil
 	}
-	_ = nodeValue{}
 	switch d := v.(type) {
-	case quad.Raw:
-		return String(d) // compatibility
 	case quad.String:
 		return Document{fldValData: String(d)}
+	case quad.Raw:
+		return Document{fldValData: String(d), fldRaw: Bool(true)}
 	case quad.IRI:
 		return Document{fldValData: String(d), fldIRI: Bool(true)}
 	case quad.BNode:
@@ -388,74 +398,112 @@ func toDocumentValue(v quad.Value) Value {
 	case quad.LangString:
 		return Document{fldValData: String(d.Value), fldLang: String(d.Lang)}
 	case quad.Int:
-		return Int(d)
+		return Document{fldValInt: Int(d)}
 	case quad.Float:
-		return Float(d)
+		return Document{fldValFloat: Float(d)}
 	case quad.Bool:
-		return Bool(d)
+		return Document{fldValBool: Bool(d)}
 	case quad.Time:
-		return Time(d)
+		return Document{fldValTime: Time(time.Time(d).UTC())}
 	default:
 		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
 		}
-		return Bytes(data)
+		return Document{fldValPb: Bytes(data)}
 	}
 }
 
-func toQuadValue(v Value) quad.Value {
-	if v == nil {
-		return nil
+func toQuadValue(d Document) (quad.Value, error) {
+	if len(d) == 0 {
+		return nil, nil
 	}
-	_ = nodeValue{}
-	switch d := v.(type) {
-	case String:
-		return quad.Raw(d) // compatibility
-	case Int:
-		return quad.Int(d)
-	case Float:
-		return quad.Float(d)
-	case Bool:
-		return quad.Bool(d)
-	case Time:
-		return quad.Time(d)
-	case Document: // TODO(dennwc): use raw document instead?
-		s, ok := d[fldValData].(String)
-		if !ok {
-			clog.Errorf("Error: Empty value in map: %v", v)
-			return nil
+	var err error
+	if v, ok := d[fldValPb]; ok {
+		var b []byte
+		switch v := v.(type) {
+		case String:
+			b, err = base64.StdEncoding.DecodeString(string(v))
+		case Bytes:
+			b = []byte(v)
+		default:
+			err = fmt.Errorf("unexpected type for pb field: %T", v)
 		}
-		if len(d) == 1 {
-			return quad.String(s)
+		if err != nil {
+			return nil, err
 		}
-		if o, ok := d[fldIRI].(Bool); ok && bool(o) {
-			return quad.IRI(s)
-		} else if o, ok := d[fldBNode].(Bool); ok && bool(o) {
-			return quad.BNode(s)
-		} else if o, ok := d[fldLang].(String); ok && o != "" {
-			return quad.LangString{
-				Value: quad.String(s),
-				Lang:  string(o),
-			}
-		} else if o, ok := d[fldType].(String); ok && o != "" {
-			return quad.TypedString{
-				Value: quad.String(s),
-				Type:  quad.IRI(string(o)),
-			}
-		}
-		return quad.String(s)
-	case Bytes:
 		var p pquads.Value
-		if err := p.Unmarshal(d); err != nil {
-			clog.Errorf("Error: Couldn't decode value: %v", err)
-			return nil
+		if err := p.Unmarshal(b); err != nil {
+			return nil, fmt.Errorf("couldn't decode value: %v", err)
 		}
-		return p.ToNative()
-	default:
-		panic(fmt.Errorf("unsupported type: %T", v))
+		return p.ToNative(), nil
+	} else if v, ok := d[fldValInt]; ok {
+		var vi quad.Int
+		switch v := v.(type) {
+		case Int:
+			vi = quad.Int(v)
+		case Float:
+			vi = quad.Int(v)
+		default:
+			return nil, fmt.Errorf("unexpected type for int field: %T", v)
+		}
+		return vi, nil
+	} else if v, ok := d[fldValFloat]; ok {
+		var vf quad.Float
+		switch v := v.(type) {
+		case Int:
+			vf = quad.Float(v)
+		case Float:
+			vf = quad.Float(v)
+		default:
+			return nil, fmt.Errorf("unexpected type for float field: %T", v)
+		}
+		return vf, nil
+	} else if v, ok := d[fldValBool]; ok {
+		var vb quad.Bool
+		switch v := v.(type) {
+		case Bool:
+			vb = quad.Bool(v)
+		default:
+			return nil, fmt.Errorf("unexpected type for bool field: %T", v)
+		}
+		return vb, nil
+	} else if v, ok := d[fldValTime]; ok {
+		var vt quad.Time
+		switch v := v.(type) {
+		case Time:
+			vt = quad.Time(v)
+		case String:
+			var t time.Time
+			if err := t.UnmarshalJSON([]byte(`"` + string(v) + `"`)); err != nil {
+				return nil, err
+			}
+			vt = quad.Time(t)
+		default:
+			return nil, fmt.Errorf("unexpected type for bool field: %T", v)
+		}
+		return vt, nil
 	}
+	vs, ok := d[fldValData].(String)
+	if !ok {
+		return nil, fmt.Errorf("unknown value format: %T", d[fldValData])
+	}
+	if len(d) == 1 {
+		return quad.String(vs), nil
+	}
+	if ok, _ := d[fldIRI].(Bool); ok {
+		return quad.IRI(vs), nil
+	} else if ok, _ := d[fldBNode].(Bool); ok {
+		return quad.BNode(vs), nil
+	} else if ok, _ := d[fldRaw].(Bool); ok {
+		return quad.Raw(vs), nil
+	} else if typ, ok := d[fldType].(String); ok {
+		return quad.TypedString{Value: quad.String(vs), Type: quad.IRI(typ)}, nil
+	} else if typ, ok := d[fldLang].(String); ok {
+		return quad.LangString{Value: quad.String(vs), Lang: string(typ)}, nil
+	}
+	return nil, fmt.Errorf("unsupported value: %#v", d)
 }
 
 func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
@@ -480,8 +528,15 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return NewAllIterator(qs, "quads")
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
+func (qs *QuadStore) hashOf(s quad.Value) NodeHash {
 	return NodeHash(hashOf(s))
+}
+
+func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
+	if s == nil {
+		return nil
+	}
+	return qs.hashOf(s)
 }
 
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
@@ -497,15 +552,18 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	if val, ok := qs.ids.Get(string(hash)); ok {
 		return val.(quad.Value)
 	}
-	_ = node{}
-	nd, err := qs.db.FindByKey(context.TODO(), colNodes, Key{string(hash)})
+	nd, err := qs.db.FindByKey(context.TODO(), colNodes, hash.key())
 	if err != nil {
-		clog.Errorf("Error: Couldn't retrieve node %s %v", v, err)
+		clog.Errorf("couldn't retrieve node %v: %v", v, err)
+		return nil
 	}
-	id, _ := nd[fldID].(String)
-	dv, _ := nd[fldValue]
-	qv := toQuadValue(dv)
-	if id != "" && qv != nil {
+	dv, _ := nd[fldValue].(Document)
+	qv, err := toQuadValue(dv)
+	if err != nil {
+		clog.Errorf("couldn't convert node %v: %v", v, err)
+		return nil
+	}
+	if id, _ := nd[fldHash].(String); id == String(hash) && qv != nil {
 		qs.ids.Put(string(hash), qv)
 	}
 	return qv
@@ -532,7 +590,7 @@ func (qs *QuadStore) Horizon() graph.PrimaryKey {
 		clog.Errorf("could not get horizon: %v", err)
 	}
 	var id string
-	if v, ok := log[fldID].(String); ok {
+	if v, ok := log[fldLogID].(String); ok {
 		id = string(v)
 	}
 	if id == "" {
