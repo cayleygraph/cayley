@@ -299,6 +299,8 @@ func testInsert(t *testing.T, c tableConf) {
 	_, err := c.FindByKey(c.kt.Gen())
 	require.Equal(t, nosql.ErrNotFound, err)
 
+	c.expectAll(t, nil)
+
 	type insert struct {
 		Key nosql.Key
 		Doc nosql.Document

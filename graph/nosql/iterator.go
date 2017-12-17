@@ -158,7 +158,7 @@ func (it *Iterator) Next() bool {
 			string(sh), string(ph), string(oh), string(lh),
 		}
 	} else {
-		id, _ := doc[fldID].(String)
+		id, _ := doc[fldHash].(String)
 		it.result = NodeHash(id)
 	}
 	return true
