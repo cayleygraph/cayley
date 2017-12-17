@@ -3,8 +3,8 @@ package nosql
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/pborman/uuid"
-	"time"
 )
 
 var (
@@ -59,8 +59,32 @@ type Database interface {
 // FilterOp is a comparison operation type used for value filters.
 type FilterOp int
 
+func (op FilterOp) String() string {
+	name := ""
+	switch op {
+	case Equal:
+		name = "Equal"
+	case NotEqual:
+		name = "NotEqual"
+	case GT:
+		name = "GT"
+	case GTE:
+		name = "GTE"
+	case LT:
+		name = "LT"
+	case LTE:
+		name = "LTE"
+	default:
+		return fmt.Sprintf("FilterOp(%d)", int(op))
+	}
+	return name
+}
+func (op FilterOp) GoString() string {
+	return "nosql." + op.String()
+}
+
 const (
-	Equal = FilterOp(iota)
+	Equal = FilterOp(iota + 1)
 	NotEqual
 	GT
 	GTE
@@ -73,6 +97,56 @@ type FieldFilter struct {
 	Path   []string // path is a path to specific field in the document
 	Filter FilterOp // comparison operation
 	Value  Value    // value that will be compared with field of the document
+}
+
+func (f FieldFilter) Matches(d Document) bool {
+	if f.Filter == NotEqual {
+		// not equal is special - it allows parent fields to not exist
+		path := f.Path
+		var val Value = d
+		for len(path) > 0 {
+			d, ok := val.(Document)
+			if !ok {
+				return true
+			}
+			v, ok := d[path[0]]
+			if !ok {
+				return true
+			}
+			val, path = v, path[1:]
+		}
+		return !ValuesEqual(val, f.Value)
+	}
+	path := f.Path
+	var val Value = d
+	for len(path) > 0 {
+		d, ok := val.(Document)
+		if !ok {
+			return false
+		}
+		v, ok := d[path[0]]
+		if !ok {
+			return false
+		}
+		val, path = v, path[1:]
+	}
+	switch f.Filter {
+	case Equal:
+		return ValuesEqual(val, f.Value)
+	case GT, GTE, LT, LTE:
+		dn := CompareValues(val, f.Value)
+		switch f.Filter {
+		case GT:
+			return dn > 0
+		case GTE:
+			return dn >= 0
+		case LT:
+			return dn < 0
+		case LTE:
+			return dn <= 0
+		}
+	}
+	panic(fmt.Errorf("unsupported operation: %v", f.Filter))
 }
 
 // Query is a query builder object.
@@ -199,60 +273,3 @@ type Index struct {
 	Fields []string // an ordered set of fields used in index
 	Type   IndexType
 }
-
-// Value is a interface that limits a set of types that nosql database can handle.
-type Value interface {
-	isValue()
-}
-
-// Document is a type of item stored in nosql database.
-type Document map[string]Value
-
-func (Document) isValue() {}
-
-// String is an UTF8 string value.
-type String string
-
-func (String) isValue() {}
-
-// Int is an int value.
-//
-// Some databases might not distinguish Int value from Float.
-// In this case implementation will take care of converting it to a correct type.
-type Int int64
-
-func (Int) isValue() {}
-
-// Float is an floating point value.
-//
-// Some databases might not distinguish Int value from Float.
-// In this case the package will take care of converting it to a correct type.
-type Float float64
-
-func (Float) isValue() {}
-
-// Bool is a boolean value.
-type Bool bool
-
-func (Bool) isValue() {}
-
-// Time is a timestamp value.
-//
-// Some databases has no type to represent time values.
-// In this case string/json representation can be used and package will take care of converting it.
-type Time time.Time
-
-func (Time) isValue() {}
-
-// Bytes is a raw binary data.
-//
-// Some databases has no type to represent binary data.
-// In this case base64 representation can be used and package will take care of converting it.
-type Bytes []byte
-
-func (Bytes) isValue() {}
-
-// Strings is an array of strings. Used mostly to store Keys.
-type Strings []string
-
-func (Strings) isValue() {}

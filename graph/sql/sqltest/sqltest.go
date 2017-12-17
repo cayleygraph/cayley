@@ -28,6 +28,7 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 			NoPrimitives:            true,
 			TimeInMcs:               true,
 			TimeRound:               c.TimeRound,
+			OptimizesComparison:     true,
 			SkipNodeDelAfterQuadDel: true,
 			SkipIntHorizon:          c.SkipIntHorizon,
 		})

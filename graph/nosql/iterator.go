@@ -24,76 +24,64 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
+var _ graph.Iterator = (*Iterator)(nil)
+
+type Linkage struct {
+	Dir quad.Direction
+	Val NodeHash
+}
+
 type Iterator struct {
 	uid        uint64
 	tags       graph.Tagger
 	qs         *QuadStore
-	dir        quad.Direction
-	iter       DocIterator
-	hash       NodeHash
-	size       int64
-	isAll      bool
-	constraint []FieldFilter
 	collection string
-	result     graph.Value
-	err        error
+	limit      int64
+	constraint []FieldFilter
+	links      []Linkage // used in Contains
+
+	iter   DocIterator
+	result graph.Value
+	size   int64
+	err    error
 }
 
-func NewIterator(qs *QuadStore, collection string, d quad.Direction, val graph.Value) *Iterator {
-	h := val.(NodeHash)
-
-	constraints := []FieldFilter{{
-		Path:   []string{d.String()},
-		Filter: Equal,
-		Value:  String(h),
-	}}
-
-	return &Iterator{
-		uid:        iterator.NextUID(),
-		constraint: constraints,
-		collection: collection,
-		qs:         qs,
-		dir:        d,
-		iter:       nil,
-		size:       -1,
-		hash:       h,
-		isAll:      false,
+func NewLinksToIterator(qs *QuadStore, collection string, links []Linkage) *Iterator {
+	filters := make([]FieldFilter, 0, len(links))
+	for _, l := range links {
+		filters = append(filters, FieldFilter{
+			Path:   []string{l.Dir.String()},
+			Filter: Equal,
+			Value:  String(l.Val),
+		})
 	}
+	it := NewIterator(qs, collection, filters...)
+	it.links = links
+	return it
 }
 
 func (it *Iterator) makeIterator() DocIterator {
 	q := it.qs.db.Query(it.collection)
-	if !it.isAll {
+	if len(it.constraint) != 0 {
 		q = q.WithFields(it.constraint...)
+	}
+	if it.limit > 0 {
+		q = q.Limit(int(it.limit))
 	}
 	return q.Iterate()
 }
 
 func NewAllIterator(qs *QuadStore, collection string) *Iterator {
-	return &Iterator{
-		uid:        iterator.NextUID(),
-		qs:         qs,
-		dir:        quad.Any,
-		constraint: nil,
-		collection: collection,
-		iter:       nil,
-		size:       -1,
-		hash:       "",
-		isAll:      true,
-	}
+	return NewIterator(qs, collection)
 }
 
-func NewIteratorWithConstraints(qs *QuadStore, collection string, constraints []FieldFilter) *Iterator {
+func NewIterator(qs *QuadStore, collection string, constraints ...FieldFilter) *Iterator {
 	return &Iterator{
 		uid:        iterator.NextUID(),
 		qs:         qs,
-		dir:        quad.Any,
 		constraint: constraints,
 		collection: collection,
-		iter:       nil,
 		size:       -1,
-		hash:       "",
-		isAll:      false,
 	}
 }
 
@@ -104,7 +92,6 @@ func (it *Iterator) UID() uint64 {
 func (it *Iterator) Reset() {
 	it.Close()
 	it.iter = it.makeIterator()
-
 }
 
 func (it *Iterator) Close() error {
@@ -124,30 +111,34 @@ func (it *Iterator) TagResults(dst map[string]graph.Value) {
 
 func (it *Iterator) Clone() graph.Iterator {
 	var m *Iterator
-	if it.isAll {
-		m = NewAllIterator(it.qs, it.collection)
+	if len(it.links) == 0 {
+		m = NewIterator(it.qs, it.collection, it.constraint...)
 	} else {
-		m = NewIterator(it.qs, it.collection, it.dir, NodeHash(it.hash))
+		m = NewLinksToIterator(it.qs, it.collection, it.links)
 	}
 	m.tags.CopyFrom(it)
 	return m
 }
 
 func (it *Iterator) Next() bool {
+	ctx := context.TODO()
 	if it.iter == nil {
 		it.iter = it.makeIterator()
 	}
-	if !it.iter.Next(context.TODO()) {
-		err := it.iter.Err()
-		if err != nil {
-			it.err = err
-			clog.Errorf("Error Nexting Iterator: %v", err)
+	var doc Document
+	for {
+		if !it.iter.Next(ctx) {
+			if err := it.iter.Err(); err != nil {
+				it.err = err
+				clog.Errorf("error nexting iterator: %v", err)
+			}
+			return false
 		}
-		return false
-	}
-	doc := it.iter.Doc()
-	if it.collection == colQuads && !checkQuadValid(doc) {
-		return it.Next()
+		doc = it.iter.Doc()
+		if it.collection == colQuads && !checkQuadValid(doc) {
+			continue
+		}
+		break
 	}
 	if it.collection == colQuads {
 		sh, _ := doc[fldSubject].(String)
@@ -176,23 +167,37 @@ func (it *Iterator) NextPath() bool {
 	return false
 }
 
-// SubIterators returns no subiterators for a Mongo iterator.
 func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
 func (it *Iterator) Contains(v graph.Value) bool {
-	graph.ContainsLogIn(it, v)
-	if it.isAll {
+	if len(it.links) != 0 {
+		qh := v.(QuadHash)
+		for _, l := range it.links {
+			if l.Val != NodeHash(qh.Get(l.Dir)) {
+				return false
+			}
+		}
 		it.result = v
-		return graph.ContainsLogOut(it, v, true)
+		return true
 	}
-	val := NodeHash(v.(QuadHash).Get(it.dir))
-	if val == it.hash {
+	if len(it.constraint) == 0 {
 		it.result = v
-		return graph.ContainsLogOut(it, v, true)
+		return true
 	}
-	return graph.ContainsLogOut(it, v, false)
+	qv := it.qs.NameOf(v)
+	if qv == nil {
+		return false
+	}
+	d := toDocumentValue(qv)
+	for _, f := range it.constraint {
+		if !f.Matches(d) {
+			return false
+		}
+	}
+	it.result = v
+	return true
 }
 
 func (it *Iterator) Size() (int64, bool) {
@@ -203,11 +208,14 @@ func (it *Iterator) Size() (int64, bool) {
 			it.err = err
 		}
 	}
+	if it.limit > 0 && it.size > it.limit {
+		it.size = it.limit
+	}
 	return it.size, true
 }
 
 func (it *Iterator) Type() graph.Type {
-	if it.isAll {
+	if len(it.constraint) == 0 {
 		return graph.All
 	}
 	return "nosql"
@@ -229,5 +237,3 @@ func (it *Iterator) Stats() graph.IteratorStats {
 		ExactSize:    exact,
 	}
 }
-
-var _ graph.Iterator = &Iterator{}
