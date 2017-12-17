@@ -24,82 +24,11 @@ func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) 
 	switch it.Type() {
 	case graph.LinksTo:
 		return qs.optimizeLinksTo(it.(*iterator.LinksTo))
-	//case graph.And:
-	//	return qs.optimizeAndIterator(it.(*iterator.And))
 	case graph.Comparison:
 		return qs.optimizeComparison(it.(*iterator.Comparison))
 	}
 	return it, false
 }
-
-//func (qs *QuadStore) optimizeAndIterator(it *iterator.And) (graph.Iterator, bool) {
-//	// Fail fast if nothing can happen
-//	if clog.V(4) {
-//		clog.Infof("Entering optimizeAndIterator %v", it.UID())
-//	}
-//	found := false
-//	for _, it := range it.SubIterators() {
-//		if clog.V(4) {
-//			clog.Infof("%v", it.Type())
-//		}
-//		if _, ok := it.(*Iterator); ok {
-//			found = true
-//		}
-//	}
-//	if !found {
-//		if clog.V(4) {
-//			clog.Infof("Aborting optimizeAndIterator")
-//		}
-//		return it, false
-//	}
-//
-//	newAnd := iterator.NewAnd(qs)
-//	var mongoIt *Iterator
-//	for _, it := range it.SubIterators() {
-//		if sit, ok := it.(*Iterator); ok {
-//			if mongoIt == nil {
-//				mongoIt = sit
-//			} else {
-//				newAnd.AddSubIterator(it)
-//			}
-//			continue
-//		}
-//		switch it.Type() {
-//		case graph.LinksTo:
-//			continue
-//		default:
-//			newAnd.AddSubIterator(it)
-//		}
-//	}
-//	stats := mongoIt.Stats()
-//
-//	lset := []graph.Linkage{
-//		{
-//			Dir:   mongoIt.dir,
-//			Value: mongoIt.hash,
-//		},
-//	}
-//
-//	n := 0
-//	for _, it := range it.SubIterators() {
-//		if it.Type() == graph.LinksTo {
-//			lto := it.(*iterator.LinksTo)
-//			// Is it more effective to do the replacement, or let the mongo check the linksto?
-//			ltostats := lto.Stats()
-//			if (ltostats.ContainsCost+stats.NextCost)*stats.Size > (ltostats.NextCost+stats.ContainsCost)*ltostats.Size {
-//				continue
-//			}
-//			newLto := NewLinksTo(qs, lto.SubIterators()[0], "quads", lto.Direction(), lset)
-//			newAnd.AddSubIterator(newLto)
-//			n++
-//		}
-//	}
-//	if n == 0 {
-//		return it, false
-//	}
-//
-//	return newAnd.Optimize()
-//}
 
 func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool) {
 	subs := it.SubIterators()
@@ -136,7 +65,7 @@ func (qs *QuadStore) optimizeComparison(it *iterator.Comparison) (graph.Iterator
 	if !ok || !mit.isAll {
 		return it, false
 	}
-	var filter Filter
+	var filter FilterOp
 	switch it.Operator() {
 	case iterator.CompareGT:
 		filter = GT
