@@ -415,7 +415,7 @@ var testQueries = []struct {
 		query: `
 		  g.V("<bob>").SaveInPredicates("pred").All()
 		`,
-		expect: []string{"<follows>"},
+		expect: []string{"<follows>", "<follows>", "<follows>"},
 		tag:    "pred",
 	},
 	{

@@ -319,9 +319,15 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vFollows, vStatus},
 		},
 		{
+			message: "SavePredicates(in)",
+			path:    StartPath(qs, vBob).SavePredicates(true, "pred"),
+			expect:  []quad.Value{vFollows, vFollows, vFollows},
+			tag:     "pred",
+		},
+		{
 			message: "SavePredicates(out)",
 			path:    StartPath(qs, vBob).SavePredicates(false, "pred"),
-			expect:  []quad.Value{vFollows},
+			expect:  []quad.Value{vFollows, vStatus},
 			tag:     "pred",
 		},
 		// Morphism tests
@@ -392,7 +398,7 @@ func testSet(qs graph.QuadStore) []test {
 }
 
 func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
-	for _, ftest := range []func(testing.TB, graphtest.DatabaseFunc){
+	for _, ftest := range []func(*testing.T, graphtest.DatabaseFunc){
 		testFollowRecursive,
 	} {
 		ftest(t, fnc)
@@ -451,7 +457,7 @@ func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
 	}
 }
 
-func testFollowRecursive(t testing.TB, fnc graphtest.DatabaseFunc) {
+func testFollowRecursive(t *testing.T, fnc graphtest.DatabaseFunc) {
 	qs, closer := makeTestStore(t, fnc, []quad.Quad{
 		quad.MakeIRI("a", "parent", "b", ""),
 		quad.MakeIRI("b", "parent", "c", ""),
@@ -471,19 +477,21 @@ func testFollowRecursive(t testing.TB, fnc graphtest.DatabaseFunc) {
 	const msg = "follows recursive order"
 
 	for _, opt := range []bool{true, false} {
-		got, err := runTopLevel(qs, qu, opt)
 		unopt := ""
 		if !opt {
 			unopt = " (unoptimized)"
 		}
-		if err != nil {
-			t.Errorf("Failed to check %s%s: %v", msg, unopt, err)
-			continue
-		}
-		sort.Sort(quad.ByValueString(got))
-		sort.Sort(quad.ByValueString(expect))
-		if !reflect.DeepEqual(got, expect) {
-			t.Errorf("Failed to %s%s, got: %v(%d) expected: %v(%d)", msg, unopt, got, len(got), expect, len(expect))
-		}
+		t.Run(msg+unopt, func(t *testing.T) {
+			got, err := runTopLevel(qs, qu, opt)
+			if err != nil {
+				t.Errorf("Failed to check %s%s: %v", msg, unopt, err)
+				return
+			}
+			sort.Sort(quad.ByValueString(got))
+			sort.Sort(quad.ByValueString(expect))
+			if !reflect.DeepEqual(got, expect) {
+				t.Errorf("Failed to %s%s, got: %v(%d) expected: %v(%d)", msg, unopt, got, len(got), expect, len(expect))
+			}
+		})
 	}
 }

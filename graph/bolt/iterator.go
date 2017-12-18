@@ -51,7 +51,7 @@ type Iterator struct {
 
 func NewIterator(bucket []byte, d quad.Direction, value graph.Value, qs *QuadStore) *Iterator {
 	tok := value.(*Token)
-	if !bytes.Equal(tok.bucket, nodeBucket) {
+	if !bytes.Equal(tok.bucket, nodeBucket) || !tok.nodes {
 		clog.Errorf("creating an iterator from a non-node value")
 		return &Iterator{done: true}
 	}
@@ -272,7 +272,7 @@ func (it *Iterator) Size() (int64, bool) {
 }
 
 func (it *Iterator) String() string {
-	return fmt.Sprintf("BoltIter(%q)", it.bucket)
+	return fmt.Sprintf("BoltIter(%q, %x)", it.bucket, it.checkID)
 }
 
 func (it *Iterator) Type() graph.Type { return "bolt" }

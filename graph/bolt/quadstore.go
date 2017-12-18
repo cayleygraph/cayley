@@ -460,6 +460,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	return &Token{
+		nodes:  true,
 		bucket: nodeBucket,
 		key:    qs.createValueKeyFor(s),
 	}
@@ -571,6 +572,7 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	offset := PositionOf(v, d, qs)
 	if offset != -1 {
 		return &Token{
+			nodes:  true,
 			bucket: nodeBucket,
 			key:    v.key[offset : offset+quad.HashSize],
 		}

@@ -94,12 +94,12 @@ func SavePredicates(from Shape, in bool, tag string) Shape {
 		start = quad.Object
 	}
 
-	var save Shape = Unique{NodesFrom{
+	var save Shape = NodesFrom{
 		Quads: Quads{
 			{Dir: quad.Predicate, Values: preds},
 		},
 		Dir: start,
-	}}
+	}
 	return IntersectShapes(from, save)
 }
 
