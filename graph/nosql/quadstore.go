@@ -17,7 +17,6 @@ package nosql
 import (
 	"context"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -200,7 +199,8 @@ func hashOf(s quad.Value) string {
 	if s == nil {
 		return ""
 	}
-	return hex.EncodeToString(quad.HashOf(s))
+	h := quad.HashOf(s)
+	return base64.StdEncoding.EncodeToString(h)
 }
 
 func (qs *QuadStore) nameToKey(name quad.Value) Key {

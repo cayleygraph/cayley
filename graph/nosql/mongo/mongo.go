@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -288,7 +288,7 @@ func (c *collection) convIns(key nosql.Key, d nosql.Document) (nosql.Key, bson.M
 }
 
 func objidString(id bson.ObjectId) string {
-	return hex.EncodeToString([]byte(id))
+	return base64.StdEncoding.EncodeToString([]byte(id))
 }
 
 func compKey(key nosql.Key) string {
