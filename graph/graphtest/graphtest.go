@@ -655,7 +655,7 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	err = w.RemoveQuad(toRemove)
 	require.Nil(t, err, "RemoveQuad failed")
 	err = w.RemoveQuad(toRemove)
-	require.True(t, graph.IsQuadNotExist(err), "expected not exists error")
+	require.True(t, graph.IsQuadNotExist(err), "expected not exists error, got: %v", err)
 
 	if !conf.SkipNodeDelAfterQuadDel {
 		expect = []string{

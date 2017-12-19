@@ -191,7 +191,7 @@ nextDelta:
 						if ignoreOpts.IgnoreMissing {
 							continue nextDelta
 						}
-						return fmt.Errorf("Deleting unknown quad: %s", d.Quad)
+						return &graph.DeltaError{Delta: d, Err: graph.ErrQuadNotExist}
 					}
 					node, err := qs.createNodePrimitive(val)
 					if err != nil {
@@ -214,7 +214,10 @@ nextDelta:
 			p, err := qs.hasPrimitive(tx, &link, true)
 			if err != nil {
 				return err
-			} else if p == nil {
+			} else if p == nil || p.Deleted {
+				if !ignoreOpts.IgnoreMissing {
+					return &graph.DeltaError{Delta: d, Err: graph.ErrQuadNotExist}
+				}
 				continue
 			}
 			err = qs.markAsDead(tx, p)
