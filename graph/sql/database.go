@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 var types = make(map[string]Registration)
@@ -16,6 +17,17 @@ func Register(name string, f Registration) {
 	types[name] = f
 
 	registerQuadStore(name, name)
+}
+
+type NodeUpdate struct {
+	Hash   NodeHash
+	Val    quad.Value
+	RefInc int
+}
+
+type QuadUpdate struct {
+	Quad QuadHashes
+	Del  bool
 }
 
 type Registration struct {
@@ -34,7 +46,8 @@ type Registration struct {
 
 	Error               func(error) error         // error conversion function
 	Estimated           func(table string) string // query that string that returns an estimated number of rows in table
-	RunTx               func(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error
+	RunTx               func(tx *sql.Tx, nodes []NodeUpdate, quads []QuadUpdate, opts graph.IgnoreOpts) error
+	TxRetry             func(tx *sql.Tx, stmts func() error) error
 	NoSchemaChangesInTx bool
 }
 
@@ -57,6 +70,7 @@ func (r Registration) nodesTable() string {
 	}
 	return `CREATE TABLE nodes (
 	hash ` + htyp + ` PRIMARY KEY,
+	refs INT NOT NULL,
 	value ` + btyp + `,
 	value_string TEXT,
 	datatype TEXT,

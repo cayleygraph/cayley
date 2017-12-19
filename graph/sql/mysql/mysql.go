@@ -38,131 +38,86 @@ func init() {
 	})
 }
 
-func runTxMysql(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
+func runTxMysql(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts graph.IgnoreOpts) error {
+	// update node ref counts and insert nodes
+	var (
+		// prepared statements for each value type
+		insertValue = make(map[csql.ValueType]*sql.Stmt)
+		updateValue *sql.Stmt
+	)
+	for _, n := range nodes {
+		if n.RefInc >= 0 {
+			nodeKey, values, err := csql.NodeValues(n.Hash, n.Val)
+			if err != nil {
+				return err
+			}
+			values = append([]interface{}{n.RefInc}, values...)
+			values = append(values, n.RefInc) // one more time for UPDATE
+			stmt, ok := insertValue[nodeKey]
+			if !ok {
+				var ph = make([]string, len(values)-1) // excluding last increment
+				for i := range ph {
+					ph[i] = "?"
+				}
+				stmt, err = tx.Prepare(`INSERT INTO nodes(refs, hash, ` +
+					strings.Join(nodeKey.Columns(), ", ") +
+					`) VALUES (` + strings.Join(ph, ", ") +
+					`) ON DUPLICATE KEY UPDATE refs = refs + ?;`)
+				if err != nil {
+					return err
+				}
+				insertValue[nodeKey] = stmt
+			}
+			_, err = stmt.Exec(values...)
+			err = convInsertErrorMySql(err)
+			if err != nil {
+				clog.Errorf("couldn't exec INSERT statement: %v", err)
+				return err
+			}
+		} else {
+			panic("unexpected node update")
+		}
+	}
+	for _, s := range insertValue {
+		s.Close()
+	}
+	if s := updateValue; s != nil {
+		s.Close()
+	}
+	insertValue = nil
+	updateValue = nil
+
+	// now we can deal with quads
 	ignore := ""
 	if opts.IgnoreDup {
 		ignore = " IGNORE"
 	}
 
 	var (
-		insertQuad  *sql.Stmt
-		insertValue map[csql.ValueType]*sql.Stmt // prepared statements for each value type
-		inserted    map[csql.NodeHash]struct{}   // tracks already inserted values
-
-		deleteQuad   *sql.Stmt
-		deleteTriple *sql.Stmt
+		insertQuad *sql.Stmt
+		err        error
 	)
-
-	var err error
-	for _, d := range in {
-		switch d.Action {
-		case graph.Add:
+	for _, d := range quads {
+		dirs := make([]interface{}, 0, len(quad.Directions))
+		for _, h := range d.Quad {
+			dirs = append(dirs, h.SQLValue())
+		}
+		if !d.Del {
 			if insertQuad == nil {
 				insertQuad, err = tx.Prepare(`INSERT` + ignore + ` INTO quads(subject_hash, predicate_hash, object_hash, label_hash, ts) VALUES (?, ?, ?, ?, now());`)
 				if err != nil {
 					return err
 				}
 				insertValue = make(map[csql.ValueType]*sql.Stmt)
-				inserted = make(map[csql.NodeHash]struct{}, len(in))
 			}
-			var hs, hp, ho, hl csql.NodeHash
-			for _, dir := range quad.Directions {
-				v := d.Quad.Get(dir)
-				if v == nil {
-					continue
-				}
-				h := csql.HashOf(v)
-				switch dir {
-				case quad.Subject:
-					hs = h
-				case quad.Predicate:
-					hp = h
-				case quad.Object:
-					ho = h
-				case quad.Label:
-					hl = h
-				}
-				if !h.Valid() {
-					continue
-				} else if _, ok := inserted[h]; ok {
-					continue
-				}
-				nodeKey, values, err := csql.NodeValues(h, v)
-				if err != nil {
-					return err
-				}
-				stmt, ok := insertValue[nodeKey]
-				if !ok {
-					var ph = make([]string, len(values)-1)
-					for i := range ph {
-						ph[i] = "?"
-					}
-					stmt, err = tx.Prepare(`INSERT IGNORE INTO nodes(hash, ` +
-						strings.Join(nodeKey.Columns(), ", ") +
-						`) VALUES (?, ` +
-						strings.Join(ph, ", ") +
-						`);`)
-					if err != nil {
-						return err
-					}
-					insertValue[nodeKey] = stmt
-				}
-				_, err = stmt.Exec(values...)
-				err = convInsertErrorMySql(err)
-				if err != nil {
-					clog.Errorf("couldn't exec INSERT statement: %v", err)
-					return err
-				}
-				inserted[h] = struct{}{}
-			}
-			_, err := insertQuad.Exec(
-				hs.SQLValue(), hp.SQLValue(), ho.SQLValue(), hl.SQLValue(),
-			)
+			_, err := insertQuad.Exec(dirs...)
 			err = convInsertErrorMySql(err)
 			if err != nil {
 				clog.Errorf("couldn't exec INSERT statement: %v", err)
 				return err
 			}
-		case graph.Delete:
-			if deleteQuad == nil {
-				deleteQuad, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=? and predicate_hash=? and object_hash=? and label_hash=?;`)
-				if err != nil {
-					return err
-				}
-				deleteTriple, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=? and predicate_hash=? and object_hash=? and label_hash is null;`)
-				if err != nil {
-					return err
-				}
-			}
-			var result sql.Result
-			if d.Quad.Label == nil {
-				result, err = deleteTriple.Exec(
-					csql.HashOf(d.Quad.Subject).SQLValue(),
-					csql.HashOf(d.Quad.Predicate).SQLValue(),
-					csql.HashOf(d.Quad.Object).SQLValue(),
-				)
-			} else {
-				result, err = deleteQuad.Exec(
-					csql.HashOf(d.Quad.Subject).SQLValue(),
-					csql.HashOf(d.Quad.Predicate).SQLValue(),
-					csql.HashOf(d.Quad.Object).SQLValue(),
-					csql.HashOf(d.Quad.Label).SQLValue(),
-				)
-			}
-			if err != nil {
-				clog.Errorf("couldn't exec DELETE statement: %v", err)
-				return err
-			}
-			affected, err := result.RowsAffected()
-			if err != nil {
-				clog.Errorf("couldn't get DELETE RowsAffected: %v", err)
-				return err
-			}
-			if affected != 1 && !opts.IgnoreMissing {
-				return graph.ErrQuadNotExist
-			}
-		default:
-			panic("unknown action")
+		} else {
+			panic("unexpected quad delete")
 		}
 	}
 	return nil

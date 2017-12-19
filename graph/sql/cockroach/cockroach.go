@@ -22,6 +22,7 @@ func init() {
 		TimeType:    `timestamp with time zone`,
 		NodesTableExtra: `
 	FAMILY fhash (hash),
+	FAMILY frefs (refs),
 	FAMILY fvalue (value, value_string, datatype, language, iri, bnode,
 		value_int, value_bool, value_float, value_time)
 `,
@@ -32,8 +33,14 @@ func init() {
 		//	return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='"+table+"';"
 		//},
 		RunTx:               runTxCockroach,
+		TxRetry:             retryTxCockroach,
 		NoSchemaChangesInTx: true,
 	})
+}
+
+func runTxCockroach(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts graph.IgnoreOpts) error {
+	// FIXME: on conflict for SPOL; blocked by CockroachDB not supporting empty ON CONFLICT statements
+	return postgres.RunTx(tx, nodes, quads, opts, `(subject_hash, predicate_hash, object_hash)`)
 }
 
 // AmbiguousCommitError represents an error that left a transaction in an
@@ -42,9 +49,9 @@ type AmbiguousCommitError struct {
 	error
 }
 
-// runTxCockroach runs the transaction and will retry in case of a retryable error.
+// retryTxCockroach runs the transaction and will retry in case of a retryable error.
 // https://www.cockroachlabs.com/docs/transactions.html#client-side-transaction-retries
-func runTxCockroach(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
+func retryTxCockroach(tx *sql.Tx, stmts func() error) error {
 	// Specify that we intend to retry this txn in case of CockroachDB retryable
 	// errors.
 	if _, err := tx.Exec("SAVEPOINT cockroach_restart"); err != nil {
@@ -54,8 +61,7 @@ func runTxCockroach(tx *sql.Tx, in []graph.Delta, opts graph.IgnoreOpts) error {
 	for {
 		released := false
 
-		// FIXME: on conflict for SPOL; blocked by CockroachDB not supporting empty ON CONFLICT statements
-		err := postgres.RunTx(tx, in, opts, `(subject_hash, predicate_hash, object_hash)`)
+		err := stmts()
 
 		if err == nil {
 			// RELEASE acts like COMMIT in CockroachDB. We use it since it gives us an

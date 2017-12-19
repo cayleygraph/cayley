@@ -25,12 +25,11 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 	t.Run("graph", func(t *testing.T) {
 		t.Parallel()
 		graphtest.TestAll(t, create, &graphtest.Config{
-			NoPrimitives:            true,
-			TimeInMcs:               true,
-			TimeRound:               c.TimeRound,
-			OptimizesComparison:     true,
-			SkipNodeDelAfterQuadDel: true,
-			SkipIntHorizon:          c.SkipIntHorizon,
+			NoPrimitives:        true,
+			TimeInMcs:           true,
+			TimeRound:           c.TimeRound,
+			OptimizesComparison: true,
+			SkipIntHorizon:      c.SkipIntHorizon,
 		})
 	})
 	t.Run("zero rune", func(t *testing.T) {

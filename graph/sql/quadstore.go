@@ -382,16 +382,145 @@ func NodeValues(h NodeHash, v quad.Value) (ValueType, []interface{}, error) {
 }
 
 func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error {
+	// first calculate values ref deltas
+	hnodes := make(map[NodeHash]*NodeUpdate, len(in)*2)
+	quadIns := make([]QuadUpdate, 0, len(in))
+	quadDel := make([]QuadUpdate, 0, len(in)/2)
+	var nadd, ndel int
+	for _, d := range in {
+		dn := 0
+		switch d.Action {
+		case graph.Add:
+			dn = +1
+			nadd++
+		case graph.Delete:
+			dn = -1
+			ndel++
+		default:
+			panic("unknown action")
+		}
+		var q QuadHashes
+		for _, dir := range quad.Directions {
+			v := d.Quad.Get(dir)
+			if v == nil {
+				continue
+			}
+			h := HashOf(v)
+			q.Set(dir, h)
+			n := hnodes[h]
+			if n == nil {
+				n = &NodeUpdate{Hash: h, Val: v}
+				hnodes[h] = n
+			}
+			n.RefInc += dn
+		}
+		u := QuadUpdate{Quad: q, Del: d.Action == graph.Delete}
+		if !u.Del {
+			quadIns = append(quadIns, u)
+		} else {
+			quadDel = append(quadDel, u)
+		}
+	}
+	insNodes := make([]NodeUpdate, 0, nadd)
+	updNodes := make([]NodeUpdate, 0, ndel)
+	for _, n := range hnodes {
+		if n.RefInc >= 0 {
+			insNodes = append(insNodes, *n)
+		} else {
+			updNodes = append(updNodes, *n)
+		}
+	}
+	hnodes = nil
+
 	tx, err := qs.db.Begin()
 	if err != nil {
 		clog.Errorf("couldn't begin write transaction: %v", err)
 		return err
 	}
-	err = qs.flavor.RunTx(tx, in, opts)
+
+	retry := qs.flavor.TxRetry
+	if retry == nil {
+		retry = func(tx *sql.Tx, stmts func() error) error {
+			return stmts()
+		}
+	}
+	p := make([]string, 4)
+	for i := range p {
+		p[i] = qs.flavor.Placeholder(i + 1)
+	}
+
+	err = retry(tx, func() error {
+		// node update SQL is generic enough to run it here
+		updateNode, err := tx.Prepare(`UPDATE nodes SET refs = refs + ` + p[0] + ` WHERE hash = ` + p[1] + `;`)
+		if err != nil {
+			return err
+		}
+		for _, n := range updNodes {
+			_, err := updateNode.Exec(n.RefInc, n.Hash.SQLValue())
+			if err != nil {
+				clog.Errorf("couldn't exec UPDATE statement: %v", err)
+				return err
+			}
+		}
+		err = qs.flavor.RunTx(tx, insNodes, quadIns, opts)
+		if err != nil {
+			return err
+		}
+		// quad delete is also generic, execute here
+		var (
+			deleteQuad   *sql.Stmt
+			deleteTriple *sql.Stmt
+		)
+		for _, d := range quadDel {
+			dirs := make([]interface{}, 0, len(quad.Directions))
+			for _, h := range d.Quad {
+				dirs = append(dirs, h.SQLValue())
+			}
+			if deleteQuad == nil {
+				deleteQuad, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=` + p[0] + ` and predicate_hash=` + p[1] + ` and object_hash=` + p[2] + ` and label_hash=` + p[3] + `;`)
+				if err != nil {
+					return err
+				}
+				deleteTriple, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=` + p[0] + ` and predicate_hash=` + p[1] + ` and object_hash=` + p[2] + ` and label_hash is null;`)
+				if err != nil {
+					return err
+				}
+			}
+			stmt := deleteQuad
+			if i := len(dirs) - 1; dirs[i] == nil {
+				stmt = deleteTriple
+				dirs = dirs[:i]
+			}
+			result, err := stmt.Exec(dirs...)
+			if err != nil {
+				clog.Errorf("couldn't exec DELETE statement: %v", err)
+				return err
+			}
+			affected, err := result.RowsAffected()
+			if err != nil {
+				clog.Errorf("couldn't get DELETE RowsAffected: %v", err)
+				return err
+			}
+			if affected != 1 && !opts.IgnoreMissing {
+				return graph.ErrQuadNotExist
+			}
+		}
+		if ndel == 0 {
+			return nil
+		}
+		// and remove unused nodes at last
+		_, err = tx.Exec(`DELETE FROM nodes WHERE refs <= 0;`)
+		if err != nil {
+			clog.Errorf("couldn't exec DELETE nodes statement: %v", err)
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	qs.mu.Lock()
 	qs.size = -1 // TODO(barakmich): Sync size with writes.
 	qs.mu.Unlock()

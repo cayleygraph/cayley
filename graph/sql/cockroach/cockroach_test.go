@@ -3,19 +3,19 @@
 package cockroach
 
 import (
-	"testing"
 	"database/sql"
+	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/dock"
 	"github.com/cayleygraph/cayley/graph/sql/sqltest"
+	"github.com/cayleygraph/cayley/internal/dock"
 	"github.com/lib/pq"
 )
 
 func makeCockroach(t testing.TB) (string, graph.Options, func()) {
 	var conf dock.Config
 
-	conf.Image = "cockroachdb/cockroach:v1.0.5"
+	conf.Image = "cockroachdb/cockroach:v1.1.2"
 	conf.Cmd = []string{"start", "--insecure"}
 
 	addr, closer := dock.RunAndWait(t, conf, func(addr string) bool {
@@ -26,19 +26,19 @@ func makeCockroach(t testing.TB) (string, graph.Options, func()) {
 		conn.Close()
 		return true
 	})
-	addr = `postgresql://root@`+addr+`:26257`
-	db, err := sql.Open(driverName,addr+`?sslmode=disable`)
+	addr = `postgresql://root@` + addr + `:26257`
+	db, err := sql.Open(driverName, addr+`?sslmode=disable`)
 	if err != nil {
 		closer()
 		t.Fatal(err)
 	}
 	defer db.Close()
 	const dbName = "cayley"
-	if _, err = db.Exec("CREATE DATABASE "+dbName); err != nil {
+	if _, err = db.Exec("CREATE DATABASE " + dbName); err != nil {
 		closer()
 		t.Fatal(err)
 	}
-	addr = addr + `/`+dbName+`?sslmode=disable`
+	addr = addr + `/` + dbName + `?sslmode=disable`
 	return addr, nil, func() {
 		closer()
 	}
@@ -46,7 +46,7 @@ func makeCockroach(t testing.TB) (string, graph.Options, func()) {
 
 func TestCockroach(t *testing.T) {
 	sqltest.TestAll(t, Type, makeCockroach, &sqltest.Config{
-		TimeRound:               true,
-		SkipIntHorizon:          true,
+		TimeRound:      true,
+		SkipIntHorizon: true,
 	})
 }
