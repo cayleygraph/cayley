@@ -1,4 +1,5 @@
 // +build appenginevm
+
 package main
 
 //go:generate ./sync-assets.sh
