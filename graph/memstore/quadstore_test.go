@@ -56,7 +56,7 @@ var simpleGraph = []quad.Quad{
 
 func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 	seen := make(map[string]struct{})
-	qs := newQuadStore()
+	qs := New()
 	var (
 		val int64
 		ind []pair
@@ -78,11 +78,12 @@ func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 	return qs, writer, ind
 }
 
-func TestMemstoreAll(t *testing.T) {
+func TestMemstore(t *testing.T) {
 	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-		return newQuadStore(), nil, func() {}
+		return New(), nil, func() {}
 	}, &graphtest.Config{
 		SkipNodeDelAfterQuadDel: true,
+		AlwaysRunIntegration:    true,
 	})
 }
 
@@ -91,7 +92,7 @@ type pair struct {
 	value int64
 }
 
-func TestMemstore(t *testing.T) {
+func TestMemstoreValueOf(t *testing.T) {
 	qs, _, index := makeTestStore(simpleGraph)
 	require.Equal(t, int64(22), qs.Size())
 

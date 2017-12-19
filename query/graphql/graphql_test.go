@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/voc/rdf"
@@ -203,8 +203,8 @@ func toJson(o interface{}) string {
 
 func TestExecute(t *testing.T) {
 	qs := memstore.New()
-	qw := graphtest.MakeWriter(t, qs, nil)
-	quads := graphtest.LoadGraph(t, "../../data/testdata.nq")
+	qw := testutil.MakeWriter(t, qs, nil)
+	quads := testutil.LoadGraph(t, "../../data/testdata.nq")
 	err := qw.AddQuadSet(quads)
 	require.NoError(t, err)
 

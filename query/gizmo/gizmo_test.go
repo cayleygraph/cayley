@@ -22,13 +22,13 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphtest"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
 
 	// register global namespace for tests
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	_ "github.com/cayleygraph/cayley/voc/rdf"
 )
 
@@ -595,7 +595,7 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string,
 }
 
 func TestGizmo(t *testing.T) {
-	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
+	simpleGraph := testutil.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
 		t.Run(test.message, func(t *testing.T) {
 			rec := func() {

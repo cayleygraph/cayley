@@ -1,24 +1,20 @@
 package graphtest
 
 import (
-	"os"
-	"path/filepath"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/nquads"
 	"github.com/cayleygraph/cayley/schema"
-	"github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
 
 type Config struct {
 	NoPrimitives bool
@@ -29,6 +25,8 @@ type Config struct {
 
 	OptimizesComparison bool
 
+	AlwaysRunIntegration bool // always run integration tests
+
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool
 	SkipIntHorizon           bool
@@ -38,7 +36,7 @@ type Config struct {
 
 var graphTests = []struct {
 	name string
-	test func(t testing.TB, gen DatabaseFunc, conf *Config)
+	test func(t testing.TB, gen testutil.DatabaseFunc, conf *Config)
 }{
 	{"load one quad", TestLoadOneQuad},
 	{"delete quad", TestDeleteQuad},
@@ -55,7 +53,7 @@ var graphTests = []struct {
 	{"schema", TestSchema},
 }
 
-func TestAll(t *testing.T, gen DatabaseFunc, conf *Config) {
+func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
 	if conf == nil {
 		conf = &Config{}
 	}
@@ -64,41 +62,12 @@ func TestAll(t *testing.T, gen DatabaseFunc, conf *Config) {
 			gt.test(t, gen, conf)
 		})
 	}
-}
-
-func MakeWriter(t testing.TB, qs graph.QuadStore, opts graph.Options, data ...quad.Quad) graph.QuadWriter {
-	w, err := writer.NewSingleReplication(qs, opts)
-	require.NoError(t, err)
-	if len(data) > 0 {
-		err = w.AddQuadSet(data)
-		require.NoError(t, err)
-	}
-	return w
-}
-
-func LoadGraph(t testing.TB, path string) []quad.Quad {
-	var (
-		f   *os.File
-		err error
-	)
-	const levels = 5
-	for i := 0; i < levels; i++ {
-		f, err = os.Open(path)
-		if i+1 < levels && os.IsNotExist(err) {
-			path = filepath.Join("../", path)
-		} else if err != nil {
-			t.Fatalf("Failed to open %q: %v", path, err)
-		} else {
-			break
-		}
-	}
-	defer f.Close()
-	dec := nquads.NewReader(f, false)
-	quads, err := quad.ReadAll(dec)
-	if err != nil {
-		t.Fatalf("Failed to Unmarshal: %v", err)
-	}
-	return quads
+	t.Run("paths", func(t *testing.T) {
+		pathtest.RunTestMorphisms(t, gen)
+	})
+	t.Run("integration", func(t *testing.T) {
+		TestIntegration(t, gen, conf.AlwaysRunIntegration)
+	})
 }
 
 // This is a simple test graph.
@@ -190,11 +159,11 @@ func IteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.
 	return res
 }
 
-func TestLoadOneQuad(t testing.TB, gen DatabaseFunc, c *Config) {
+func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts)
+	w := testutil.MakeWriter(t, qs, opts)
 
 	q := quad.MakeRaw(
 		"Something",
@@ -226,14 +195,14 @@ type ValueSizer interface {
 	SizeOf(graph.Value) int64
 }
 
-func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestHorizonInt(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	if conf.SkipIntHorizon {
 		t.SkipNow()
 	}
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts)
+	w := testutil.MakeWriter(t, qs, opts)
 
 	horizon, ok := qs.Horizon().Int()
 	if !ok && graph.NewSequentialKey(0) != qs.Horizon() {
@@ -287,11 +256,11 @@ func TestHorizonInt(t testing.TB, gen DatabaseFunc, conf *Config) {
 	}
 }
 
-func TestIterator(t testing.TB, gen DatabaseFunc, _ *Config) {
+func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	MakeWriter(t, qs, opts, MakeQuadSet()...)
+	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	var it graph.Iterator
 
@@ -366,11 +335,11 @@ func TestIterator(t testing.TB, gen DatabaseFunc, _ *Config) {
 	require.True(t, ok, "Failed to find %q during iteration, got:%q", q, set)
 }
 
-func TestHasA(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestHasA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	MakeWriter(t, qs, opts, MakeQuadSet()...)
+	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	var it graph.Iterator = iterator.NewHasA(qs,
 		iterator.NewLinksTo(qs, qs.NodesAllIterator(), quad.Predicate),
@@ -390,11 +359,11 @@ func TestHasA(t testing.TB, gen DatabaseFunc, conf *Config) {
 	ExpectIteratedValues(t, qs, it, exp)
 }
 
-func TestSetIterator(t testing.TB, gen DatabaseFunc, _ *Config) {
+func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	MakeWriter(t, qs, opts, MakeQuadSet()...)
+	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	expectIteratedQuads := func(it graph.Iterator, exp []quad.Quad) {
 		ExpectIteratedQuads(t, qs, it, exp, false)
@@ -477,11 +446,11 @@ func TestSetIterator(t testing.TB, gen DatabaseFunc, _ *Config) {
 	})
 }
 
-func TestDeleteQuad(t testing.TB, gen DatabaseFunc, _ *Config) {
+func TestDeleteQuad(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	vn := qs.ValueOf(quad.Raw("E"))
 	require.NotNil(t, vn)
@@ -515,14 +484,14 @@ func TestDeleteQuad(t testing.TB, gen DatabaseFunc, _ *Config) {
 	it.Close()
 }
 
-func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestDeletedFromIterator(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	if conf.SkipDeletedFromIterator {
 		t.SkipNow()
 	}
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	// Subject iterator.
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
@@ -538,11 +507,11 @@ func TestDeletedFromIterator(t testing.TB, gen DatabaseFunc, conf *Config) {
 	ExpectIteratedQuads(t, qs, it, nil, false)
 }
 
-func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts)
+	w := testutil.MakeWriter(t, qs, opts)
 
 	values := []quad.Value{
 		quad.BNode("A"), quad.IRI("name"), quad.String("B"), quad.IRI("graph"),
@@ -609,7 +578,7 @@ func TestLoadTypedQuads(t testing.TB, gen DatabaseFunc, conf *Config) {
 
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
 // returns ErrQuadExists, ErrQuadNotExists is doing rollback.
-func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
@@ -618,7 +587,7 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 	}
 	opts["ignore_duplicate"] = true
 
-	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	sz := int64(22)
 	if conf.NoPrimitives {
@@ -714,11 +683,11 @@ func TestAddRemove(t testing.TB, gen DatabaseFunc, conf *Config) {
 	ExpectIteratedRawStrings(t, qs, all, expect)
 }
 
-func TestIteratorsAndNextResultOrderA(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	MakeWriter(t, qs, opts, MakeQuadSet()...)
+	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	sz := int64(22)
 	if conf.NoPrimitives {
@@ -815,14 +784,14 @@ var casesCompare = []struct {
 	}},
 }
 
-func TestCompareTypedValues(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestCompareTypedValues(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	if conf.UnTyped {
 		t.SkipNow()
 	}
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts)
+	w := testutil.MakeWriter(t, qs, opts)
 
 	t1 := tzero
 	t2 := t1.Add(time.Hour)
@@ -857,11 +826,11 @@ func TestCompareTypedValues(t testing.TB, gen DatabaseFunc, conf *Config) {
 	}
 }
 
-func TestNodeDelete(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestNodeDelete(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	del := quad.Raw("D")
 
@@ -897,11 +866,11 @@ func TestNodeDelete(t testing.TB, gen DatabaseFunc, conf *Config) {
 	})
 }
 
-func TestSchema(t testing.TB, gen DatabaseFunc, conf *Config) {
+func TestSchema(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
-	w := MakeWriter(t, qs, opts, MakeQuadSet()...)
+	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	type Person struct {
 		_         struct{}   `quad:"@type > ex:Person"`

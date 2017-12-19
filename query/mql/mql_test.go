@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
@@ -172,7 +172,7 @@ func runQuery(g []quad.Quad, qu string) interface{} {
 }
 
 func TestMQL(t *testing.T) {
-	simpleGraph := graphtest.LoadGraph(t, "../../data/testdata.nq")
+	simpleGraph := testutil.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
 		t.Run(test.message, func(t *testing.T) {
 			got := runQuery(simpleGraph, test.query)

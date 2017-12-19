@@ -55,7 +55,9 @@ func QuadReaderFor(path, typ string) (quad.ReadCloser, error) {
 			path = filepath.Join(u.Host, u.Path)
 		}
 		f, err := os.Open(path)
-		if err != nil {
+		if os.IsNotExist(err) {
+			return nil, err
+		} else if err != nil {
 			return nil, fmt.Errorf("could not open file %q: %v", path, err)
 		}
 		r, c = f, f

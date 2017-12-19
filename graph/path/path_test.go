@@ -17,6 +17,7 @@ package path_test
 import (
 	"testing"
 
+	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/graph/path/pathtest"
 )
 

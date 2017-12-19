@@ -23,6 +23,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/stretchr/testify/require"
 
@@ -102,7 +103,7 @@ func TestIterators(t *testing.T) {
 	qs, opts, closer := makeGAE(t)
 	defer closer()
 
-	graphtest.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
+	testutil.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
 
 	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
 

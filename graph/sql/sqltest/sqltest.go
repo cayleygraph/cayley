@@ -6,7 +6,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
-	"github.com/cayleygraph/cayley/graph/path/pathtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/stretchr/testify/require"
@@ -33,10 +33,6 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 			SkipIntHorizon:          c.SkipIntHorizon,
 		})
 	})
-	t.Run("paths", func(t *testing.T) {
-		t.Parallel()
-		pathtest.RunTestMorphisms(t, create)
-	})
 	t.Run("zero rune", func(t *testing.T) {
 		t.Parallel()
 		testZeroRune(t, create)
@@ -45,7 +41,7 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 
 type DatabaseFunc func(t testing.TB) (string, graph.Options, func())
 
-func makeDatabaseFunc(typ string, create DatabaseFunc) graphtest.DatabaseFunc {
+func makeDatabaseFunc(typ string, create DatabaseFunc) testutil.DatabaseFunc {
 	return func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 		addr, opts, closer := create(t)
 		if err := sql.Init(typ, addr, opts); err != nil {
@@ -64,11 +60,11 @@ func makeDatabaseFunc(typ string, create DatabaseFunc) graphtest.DatabaseFunc {
 	}
 }
 
-func testZeroRune(t testing.TB, create graphtest.DatabaseFunc) {
+func testZeroRune(t testing.TB, create testutil.DatabaseFunc) {
 	qs, opts, closer := create(t)
 	defer closer()
 
-	w := graphtest.MakeWriter(t, qs, opts)
+	w := testutil.MakeWriter(t, qs, opts)
 
 	obj := quad.String("AB\u0000CD")
 	if !utf8.ValidString(string(obj)) {

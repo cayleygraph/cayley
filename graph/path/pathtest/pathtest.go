@@ -25,9 +25,8 @@ import (
 	. "github.com/cayleygraph/cayley/graph/path"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	_ "github.com/cayleygraph/cayley/writer"
@@ -46,9 +45,9 @@ import (
 //        \-->| #dani# |------------>+--------+
 //            +--------+
 
-func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc, quads ...quad.Quad) (graph.QuadStore, func()) {
+func makeTestStore(t testing.TB, fnc testutil.DatabaseFunc, quads ...quad.Quad) (graph.QuadStore, func()) {
 	if len(quads) == 0 {
-		quads = graphtest.LoadGraph(t, "data/testdata.nq")
+		quads = testutil.LoadGraph(t, "data/testdata.nq")
 	}
 	var (
 		qs     graph.QuadStore
@@ -60,7 +59,7 @@ func makeTestStore(t testing.TB, fnc graphtest.DatabaseFunc, quads ...quad.Quad)
 	} else {
 		qs, _ = graph.NewQuadStore("memstore", "", nil)
 	}
-	_ = graphtest.MakeWriter(t, qs, opts, quads...)
+	_ = testutil.MakeWriter(t, qs, opts, quads...)
 	return qs, closer
 }
 
@@ -123,27 +122,27 @@ var (
 func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
-			message: "use out",
+			message: "out",
 			path:    StartPath(qs, vAlice).Out(vFollows),
 			expect:  []quad.Value{vBob},
 		},
 		{
-			message: "use out (any)",
+			message: "out (any)",
 			path:    StartPath(qs, vBob).Out(),
 			expect:  []quad.Value{vFred, vCool},
 		},
 		{
-			message: "use out (raw)",
+			message: "out (raw)",
 			path:    StartPath(qs, quad.Raw(vAlice.String())).Out(quad.Raw(vFollows.String())),
 			expect:  []quad.Value{vBob},
 		},
 		{
-			message: "use in",
+			message: "in",
 			path:    StartPath(qs, vBob).In(vFollows),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		{
-			message: "use in (any)",
+			message: "in (any)",
 			path:    StartPath(qs, vBob).In(),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
@@ -153,38 +152,38 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vPredicate, vSmartGraph, vStatus},
 		},
 		{
-			message: "use in with filter",
+			message: "in with filter",
 			path:    StartPath(qs, vBob).In(vFollows).Filter(iterator.CompareGT, quad.IRI("c")),
 			expect:  []quad.Value{vCharlie, vDani},
 		},
 		{
-			message: "use in with regex",
+			message: "in with regex",
 			path:    StartPath(qs, vBob).In(vFollows).Regex(regexp.MustCompile("ar?li.*e")),
 			expect:  nil,
 		},
 		{
-			message: "use in with regex (include IRIs)",
+			message: "in with regex (include IRIs)",
 			path:    StartPath(qs, vBob).In(vFollows).RegexWithRefs(regexp.MustCompile("ar?li.*e")),
 			expect:  []quad.Value{vAlice, vCharlie},
 		},
 		{
-			message: "use path Out",
+			message: "path Out",
 			path:    StartPath(qs, vBob).Out(StartPath(qs, vPredicate).Out(vAre)),
 			expect:  []quad.Value{vFred, vCool},
 		},
 		{
-			message: "use path Out (raw)",
+			message: "path Out (raw)",
 			path:    StartPath(qs, quad.Raw(vBob.String())).Out(StartPath(qs, quad.Raw(vPredicate.String())).Out(quad.Raw(vAre.String()))),
 			expect:  []quad.Value{vFred, vCool},
 		},
 		{
-			message: "use And",
+			message: "And",
 			path: StartPath(qs, vDani).Out(vFollows).And(
 				StartPath(qs, vCharlie).Out(vFollows)),
 			expect: []quad.Value{vBob},
 		},
 		{
-			message: "use Or",
+			message: "Or",
 			path: StartPath(qs, vFred).Out(vFollows).Or(
 				StartPath(qs, vAlice).Out(vFollows)),
 			expect: []quad.Value{vBob, vGreg},
@@ -211,34 +210,34 @@ func testSet(qs graph.QuadStore) []test {
 			tag:     "first",
 		},
 		{
-			message: "use Except to filter out a single vertex",
+			message: "Except to filter out a single vertex",
 			path:    StartPath(qs, vAlice, vBob).Except(StartPath(qs, vAlice)),
 			expect:  []quad.Value{vBob},
 		},
 		{
-			message: "use chained Except",
+			message: "chained Except",
 			path:    StartPath(qs, vAlice, vBob, vCharlie).Except(StartPath(qs, vBob)).Except(StartPath(qs, vAlice)),
 			expect:  []quad.Value{vCharlie},
 		},
 		{
-			message: "use Unique",
+			message: "Unique",
 			path:    StartPath(qs, vAlice, vBob, vCharlie).Out(vFollows).Unique(),
 			expect:  []quad.Value{vBob, vDani, vFred},
 		},
 		{
-			message: "show a simple save",
+			message: "simple save",
 			path:    StartPath(qs).Save(vStatus, "somecool"),
 			tag:     "somecool",
 			expect:  []quad.Value{vCool, vCool, vCool, vSmart, vSmart},
 		},
 		{
-			message: "show a simple saveR",
+			message: "simple saveR",
 			path:    StartPath(qs, vCool).SaveReverse(vStatus, "who"),
 			tag:     "who",
 			expect:  []quad.Value{vGreg, vDani, vBob},
 		},
 		{
-			message: "show a simple Has",
+			message: "simple Has",
 			path:    StartPath(qs).Has(vStatus, vCool),
 			expect:  []quad.Value{vGreg, vDani, vBob},
 		},
@@ -250,7 +249,7 @@ func testSet(qs graph.QuadStore) []test {
 			expect: []quad.Value{vBob, vDani, vEmily, vFred},
 		},
 		{
-			message: "use Limit",
+			message: "Limit",
 			path:    StartPath(qs).Has(vStatus, vCool).Limit(2),
 			// TODO(dennwc): resolve this ordering issue
 			expectAlt: [][]quad.Value{
@@ -260,7 +259,7 @@ func testSet(qs graph.QuadStore) []test {
 			},
 		},
 		{
-			message: "use Skip",
+			message: "Skip",
 			path:    StartPath(qs).Has(vStatus, vCool).Skip(2),
 			expectAlt: [][]quad.Value{
 				{vBob},
@@ -269,7 +268,7 @@ func testSet(qs graph.QuadStore) []test {
 			},
 		},
 		{
-			message: "use Skip and Limit",
+			message: "Skip and Limit",
 			path:    StartPath(qs).Has(vStatus, vCool).Skip(1).Limit(1),
 			expectAlt: [][]quad.Value{
 				{vBob},
@@ -278,22 +277,22 @@ func testSet(qs graph.QuadStore) []test {
 			},
 		},
 		{
-			message: "show Count",
+			message: "Count",
 			path:    StartPath(qs).Has(vStatus).Count(),
 			expect:  []quad.Value{quad.Int(5)},
 		},
 		{
-			message: "show a double Has",
+			message: "double Has",
 			path:    StartPath(qs).Has(vStatus, vCool).Has(vFollows, vFred),
 			expect:  []quad.Value{vBob},
 		},
 		{
-			message: "show a simple HasReverse",
+			message: "simple HasReverse",
 			path:    StartPath(qs).HasReverse(vStatus, vBob),
 			expect:  []quad.Value{vCool},
 		},
 		{
-			message: "use .Tag()-.Is()-.Back()",
+			message: ".Tag()-.Is()-.Back()",
 			path:    StartPath(qs, vBob).In(vFollows).Tag("foo").Out(vStatus).Is(vCool).Back("foo"),
 			expect:  []quad.Value{vDani},
 		},
@@ -332,12 +331,12 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		// Morphism tests
 		{
-			message: "show simple morphism",
+			message: "simple morphism",
 			path:    StartPath(qs, vCharlie).Follow(grandfollows),
 			expect:  []quad.Value{vGreg, vFred, vBob},
 		},
 		{
-			message: "show reverse morphism",
+			message: "reverse morphism",
 			path:    StartPath(qs, vFred).FollowReverse(grandfollows),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
@@ -397,8 +396,8 @@ func testSet(qs graph.QuadStore) []test {
 	}
 }
 
-func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
-	for _, ftest := range []func(*testing.T, graphtest.DatabaseFunc){
+func RunTestMorphisms(t *testing.T, fnc testutil.DatabaseFunc) {
+	for _, ftest := range []func(*testing.T, testutil.DatabaseFunc){
 		testFollowRecursive,
 	} {
 		ftest(t, fnc)
@@ -450,14 +449,14 @@ func RunTestMorphisms(t *testing.T, fnc graphtest.DatabaseFunc) {
 				if !eq {
 					t.Errorf("got: %v(%d) expected: %v(%d)", got, len(got), exp, len(exp))
 				} else {
-					t.Logf("%v", dt)
+					t.Logf("%12v %v", dt, name)
 				}
 			})
 		}
 	}
 }
 
-func testFollowRecursive(t *testing.T, fnc graphtest.DatabaseFunc) {
+func testFollowRecursive(t *testing.T, fnc testutil.DatabaseFunc) {
 	qs, closer := makeTestStore(t, fnc, []quad.Quad{
 		quad.MakeIRI("a", "parent", "b", ""),
 		quad.MakeIRI("b", "parent", "c", ""),

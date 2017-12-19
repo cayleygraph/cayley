@@ -26,6 +26,8 @@ func makeBtree(t testing.TB) (kv.BucketKV, graph.Options, func()) {
 	return New(), nil, func() {}
 }
 
-func TestBtreeAll(t *testing.T) {
-	kvtest.TestAll(t, makeBtree, nil)
+func TestBtree(t *testing.T) {
+	kvtest.TestAll(t, makeBtree, &kvtest.Config{
+		AlwaysRunIntegration: true,
+	})
 }

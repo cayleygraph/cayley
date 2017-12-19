@@ -10,7 +10,6 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
-	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/internal/dock"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -39,7 +38,7 @@ func makeMongo(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	}
 }
 
-func TestMongoAll(t *testing.T) {
+func TestMongo(t *testing.T) {
 	t.Parallel()
 	graphtest.TestAll(t, makeMongo, &graphtest.Config{
 		NoPrimitives:             true,
@@ -47,11 +46,6 @@ func TestMongoAll(t *testing.T) {
 		SkipDeletedFromIterator:  true,
 		SkipSizeCheckAfterDelete: true,
 	})
-}
-
-func TestMongoPaths(t *testing.T) {
-	t.Parallel()
-	pathtest.RunTestMorphisms(t, makeMongo)
 }
 
 func randString() string {

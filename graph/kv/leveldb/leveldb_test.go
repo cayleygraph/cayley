@@ -40,6 +40,6 @@ func makeLeveldb(t testing.TB) (kv.BucketKV, graph.Options, func()) {
 	}
 }
 
-func TestLeveldbAll(t *testing.T) {
+func TestLeveldb(t *testing.T) {
 	kvtest.TestAll(t, makeLeveldb, nil)
 }

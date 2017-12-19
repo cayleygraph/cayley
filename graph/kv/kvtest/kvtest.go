@@ -6,22 +6,31 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/kv"
-	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/stretchr/testify/require"
 )
 
 type DatabaseFunc func(t testing.TB) (kv.BucketKV, graph.Options, func())
 
-type Config struct{}
+type Config struct {
+	AlwaysRunIntegration bool
+}
 
 func (c Config) quadStore() *graphtest.Config {
 	return &graphtest.Config{
 		NoPrimitives:            true,
 		SkipNodeDelAfterQuadDel: true,
 		SkipIntHorizon:          true,
+		AlwaysRunIntegration:    c.AlwaysRunIntegration,
+	}
+}
+
+func NewQuadStoreFunc(gen DatabaseFunc) testutil.DatabaseFunc {
+	return func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+		return NewQuadStore(t, gen)
 	}
 }
 
@@ -49,18 +58,12 @@ func TestAll(t *testing.T, gen DatabaseFunc, conf *Config) {
 	if conf == nil {
 		conf = &Config{}
 	}
+	qsgen := NewQuadStoreFunc(gen)
 	t.Run("qs", func(t *testing.T) {
-		graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-			return NewQuadStore(t, gen)
-		}, conf.quadStore())
+		graphtest.TestAll(t, qsgen, conf.quadStore())
 	})
 	t.Run("optimize", func(t *testing.T) {
 		testOptimize(t, gen, conf)
-	})
-	t.Run("paths", func(t *testing.T) {
-		pathtest.RunTestMorphisms(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-			return NewQuadStore(t, gen)
-		})
 	})
 }
 
@@ -68,7 +71,7 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 	qs, opts, closer := NewQuadStore(t, gen)
 	defer closer()
 
-	graphtest.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
+	testutil.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
 
 	// With an linksto-fixed pair
 	fixed := qs.FixedIterator()

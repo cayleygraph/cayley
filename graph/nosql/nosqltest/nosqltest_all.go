@@ -10,8 +10,8 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/nosql"
-	"github.com/cayleygraph/cayley/graph/path/pathtest"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -70,14 +70,6 @@ func TestAll(t *testing.T, gen DatabaseFunc, conf *Config) {
 			return NewQuadStore(t, gen)
 		}, conf.quadStore())
 	})
-	t.Run("paths", func(t *testing.T) {
-		if parallel {
-			t.Parallel()
-		}
-		pathtest.RunTestMorphisms(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-			return NewQuadStore(t, gen)
-		})
-	})
 	t.Run("concurrent", func(t *testing.T) {
 		if testing.Short() {
 			t.SkipNow()
@@ -107,7 +99,7 @@ func testConcurrent(t testing.TB, gen DatabaseFunc) {
 		opts = make(graph.Options)
 	}
 	opts["ignore_duplicate"] = true
-	qw := graphtest.MakeWriter(t, qs, opts)
+	qw := testutil.MakeWriter(t, qs, opts)
 
 	const n = 1000
 	subjects := make([]string, 0, n/4)

@@ -40,6 +40,6 @@ func makeBolt(t testing.TB) (kv.BucketKV, graph.Options, func()) {
 	}
 }
 
-func TestBoltAll(t *testing.T) {
+func TestBolt(t *testing.T) {
 	kvtest.TestAll(t, makeBolt, nil)
 }
