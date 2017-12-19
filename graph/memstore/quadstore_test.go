@@ -82,8 +82,7 @@ func TestMemstore(t *testing.T) {
 	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 		return New(), nil, func() {}
 	}, &graphtest.Config{
-		SkipNodeDelAfterQuadDel: true,
-		AlwaysRunIntegration:    true,
+		AlwaysRunIntegration: true,
 	})
 }
 

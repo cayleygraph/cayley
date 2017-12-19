@@ -240,8 +240,15 @@ func TestHorizonInt(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		"",
 	))
 	require.NoError(t, err)
+	err = w.RemoveQuad(quad.MakeRaw(
+		"A",
+		"follows",
+		"B",
+		"",
+	))
+	require.True(t, graph.IsQuadNotExist(err))
 	if !conf.SkipSizeCheckAfterDelete {
-		exp = int64(21)
+		exp = int64(20)
 		if conf.NoPrimitives {
 			exp = 10
 		}
@@ -647,6 +654,8 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	toRemove := quad.MakeRaw("X", "follows", "B", "")
 	err = w.RemoveQuad(toRemove)
 	require.Nil(t, err, "RemoveQuad failed")
+	err = w.RemoveQuad(toRemove)
+	require.True(t, graph.IsQuadNotExist(err), "expected not exists error")
 
 	if !conf.SkipNodeDelAfterQuadDel {
 		expect = []string{

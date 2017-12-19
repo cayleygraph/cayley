@@ -90,6 +90,7 @@ type primitive struct {
 	ID    int64
 	Quad  internalQuad
 	Value quad.Value
+	refs  int
 }
 
 type internalQuad struct {
@@ -136,6 +137,7 @@ type QuadStore struct {
 	quads   map[internalQuad]int64
 	prim    map[int64]*primitive
 	all     []*primitive // might not be sorted by id
+	reading bool         // someone else might be reading "all" slice - next insert/delete should clone it
 	index   QuadDirectionIndex
 	horizon int64 // used only to assign ids to tx
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
@@ -159,17 +161,29 @@ func newQuadStore() *QuadStore {
 	}
 }
 
+func (qs *QuadStore) cloneAll() []*primitive {
+	qs.reading = true
+	return qs.all
+}
+
 func (qs *QuadStore) addPrimitive(p *primitive) int64 {
 	qs.last++
 	id := qs.last
 	p.ID = id
+	p.refs = 1
 	qs.appendPrimitive(p)
 	return id
 }
 
 func (qs *QuadStore) appendPrimitive(p *primitive) {
 	qs.prim[p.ID] = p
-	qs.all = append(qs.all, p)
+	if !qs.reading {
+		qs.all = append(qs.all, p)
+	} else {
+		n := len(qs.all)
+		qs.all = append(qs.all[:n:n], p) // reallocate slice
+		qs.reading = false               // this is a new slice
+	}
 }
 
 const internalBNodePrefix = "memnode"
@@ -182,16 +196,21 @@ func (qs *QuadStore) resolveVal(v quad.Value, add bool) (int64, bool) {
 		n = n[len(internalBNodePrefix):]
 		id, err := strconv.ParseInt(string(n), 10, 64)
 		if err == nil && id != 0 {
-			_, ok := qs.prim[id]
-			if ok || !add {
+			if p, ok := qs.prim[id]; ok || !add {
+				if add {
+					p.refs++
+				}
 				return id, ok
 			}
-			qs.appendPrimitive(&primitive{ID: id})
+			qs.appendPrimitive(&primitive{ID: id, refs: 1})
 			return id, true
 		}
 	}
 	vs := v.String()
 	if id, exists := qs.vals[vs]; exists || !add {
+		if exists && add {
+			qs.prim[id].refs++
+		}
 		return id, exists
 	}
 	id := qs.addPrimitive(&primitive{Value: v})
@@ -285,6 +304,22 @@ func (qs *QuadStore) WriteQuad(q quad.Quad) error {
 	return nil
 }
 
+func (qs *QuadStore) deleteQuadNodes(q internalQuad) {
+	for dir := quad.Subject; dir <= quad.Label; dir++ {
+		id := q.Dir(dir)
+		if id == 0 {
+			continue
+		}
+		if p := qs.prim[id]; p != nil {
+			p.refs--
+			if p.refs < 0 {
+				panic("remove of deleted node")
+			} else if p.refs == 0 {
+				qs.Delete(id)
+			}
+		}
+	}
+}
 func (qs *QuadStore) Delete(id int64) bool {
 	p := qs.prim[id]
 	if p == nil {
@@ -301,12 +336,25 @@ func (qs *QuadStore) Delete(id int64) bool {
 	delete(qs.quads, p.Quad)
 	// remove primitive
 	delete(qs.prim, id)
+	di := -1
 	for i, p2 := range qs.all {
 		if p == p2 {
-			qs.all = append(qs.all[:i], qs.all[i+1:]...)
+			di = i
 			break
 		}
 	}
+	if di >= 0 {
+		if !qs.reading {
+			qs.all = append(qs.all[:di], qs.all[di+1:]...)
+		} else {
+			all := make([]*primitive, 0, len(qs.all)-1)
+			all = append(all, qs.all[:di]...)
+			all = append(all, qs.all[di+1:]...)
+			qs.all = all
+			qs.reading = false // this is a new slice
+		}
+	}
+	qs.deleteQuadNodes(p.Quad)
 	return true
 }
 

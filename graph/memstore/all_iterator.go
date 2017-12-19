@@ -26,6 +26,7 @@ type AllIterator struct {
 	tags graph.Tagger
 
 	qs    *QuadStore
+	all   []*primitive
 	maxid int64 // id of last observed insert (prim id)
 	nodes bool
 
@@ -37,7 +38,7 @@ type AllIterator struct {
 func newAllIterator(qs *QuadStore, nodes bool, maxid int64) *AllIterator {
 	return &AllIterator{
 		uid: iterator.NextUID(),
-		qs:  qs, nodes: nodes,
+		qs:  qs, all: qs.cloneAll(), nodes: nodes,
 		i: -1, maxid: maxid,
 	}
 }
@@ -70,7 +71,7 @@ func (it *AllIterator) Next() bool {
 	if it.done {
 		return false
 	}
-	all := it.qs.all
+	all := it.all
 	if it.i >= len(all) {
 		it.done = true
 		return false
@@ -122,6 +123,7 @@ func (it *AllIterator) Result() graph.Value {
 func (it *AllIterator) Err() error { return nil }
 func (it *AllIterator) Close() error {
 	it.done = true
+	it.all = nil
 	return nil
 }
 func (it *AllIterator) Tagger() *graph.Tagger {
