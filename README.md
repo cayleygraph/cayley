@@ -45,4 +45,4 @@ Rough performance testing shows that, on 2014 consumer hardware and an average d
 
 ## Documentation
 
-* See the [docs folder](docs/)
+* See the [docs folder](docs/) for v0.7 docs.
