@@ -96,9 +96,11 @@ func (it *And) Clone() graph.Iterator {
 
 // Returns a slice of the subiterators, in order (primary iterator first).
 func (it *And) SubIterators() []graph.Iterator {
-	iters := make([]graph.Iterator, len(it.internalIterators)+1)
-	iters[0] = it.primaryIt
-	copy(iters[1:], it.internalIterators)
+	iters := make([]graph.Iterator, 0, len(it.internalIterators)+1)
+	if it.primaryIt != nil {
+		iters = append(iters, it.primaryIt)
+	}
+	iters = append(iters, it.internalIterators...)
 	return iters
 }
 

@@ -58,8 +58,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
-	out := it.optimizeReplacement(its)
-	if out != nil {
+	if out := it.optimizeReplacement(its); out != nil {
 		// ...Move the tags to the replacement...
 		moveTagsTo(out, it)
 		// ...Close everyone except `out`, our replacement...
@@ -157,7 +156,7 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	var (
 		// bad contains iterators that can't be (efficiently) nexted, such as
 		// graph.Optional or graph.Not. Separate them out and tack them on at the end.
-		out, bad []graph.Iterator
+		bad      []graph.Iterator
 		best     graph.Iterator
 		bestCost = int64(1 << 62)
 	)
@@ -200,6 +199,7 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	// Contains() order based on probability of getting a false Contains() first is
 	// useful (fail faster).
 
+	var out []graph.Iterator
 	// Put the best iterator (the one we wish to Next()) at the front...
 	out = append(out, best)
 
