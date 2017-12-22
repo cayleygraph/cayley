@@ -21,10 +21,9 @@ type Config struct {
 
 func (c Config) quadStore() *graphtest.Config {
 	return &graphtest.Config{
-		NoPrimitives:            true,
-		SkipNodeDelAfterQuadDel: true,
-		SkipIntHorizon:          true,
-		AlwaysRunIntegration:    c.AlwaysRunIntegration,
+		NoPrimitives:         true,
+		SkipIntHorizon:       true,
+		AlwaysRunIntegration: c.AlwaysRunIntegration,
 	}
 }
 

@@ -134,7 +134,7 @@ func (it *Iterator) scanValue(r *sql.Rows) bool {
 	it.tags = make(map[string]graph.Value)
 	for i, name := range it.cols {
 		if !strings.Contains(name, tagPref) {
-			it.tags[name] = nodes[i]
+			it.tags[name] = nodes[i].ValueHash
 		}
 	}
 	if len(it.cind) > 1 {
@@ -145,7 +145,7 @@ func (it *Iterator) scanValue(r *sql.Rows) bool {
 				it.err = fmt.Errorf("cannot find quad %v in query output (columns: %v)", d, it.cols)
 				return false
 			}
-			q.Set(d, nodes[i])
+			q.Set(d, nodes[i].ValueHash)
 		}
 		it.res = q
 		return true
@@ -204,7 +204,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 				continue
 			}
 			f := it.query.Fields[i]
-			sel.WhereEq(f.Table, f.Name, h)
+			sel.WhereEq(f.Table, f.Name, NodeHash{h})
 		}
 	default:
 		return false

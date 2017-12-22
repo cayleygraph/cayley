@@ -8,6 +8,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/log"
 	csql "github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/lib/pq"
@@ -104,11 +105,11 @@ func convInsertErrorPG(err error) error {
 //	return nil
 //}
 
-func RunTxPostgres(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts graph.IgnoreOpts) error {
+func RunTxPostgres(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate, opts graph.IgnoreOpts) error {
 	return RunTx(tx, nodes, quads, opts, "")
 }
 
-func RunTx(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts graph.IgnoreOpts, onConflict string) error {
+func RunTx(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate, opts graph.IgnoreOpts, onConflict string) error {
 	// update node ref counts and insert nodes
 	var (
 		// prepared statements for each value type
@@ -117,7 +118,7 @@ func RunTx(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts gr
 	)
 	for _, n := range nodes {
 		if n.RefInc >= 0 {
-			nodeKey, values, err := csql.NodeValues(n.Hash, n.Val)
+			nodeKey, values, err := csql.NodeValues(csql.NodeHash{n.Hash}, n.Val)
 			if err != nil {
 				return err
 			}
@@ -174,8 +175,8 @@ func RunTx(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts gr
 	)
 	for _, d := range quads {
 		dirs := make([]interface{}, 0, len(quad.Directions))
-		for _, h := range d.Quad {
-			dirs = append(dirs, h.SQLValue())
+		for _, h := range d.Quad.Dirs() {
+			dirs = append(dirs, csql.NodeHash{h}.SQLValue())
 		}
 		if !d.Del {
 			if insertQuad == nil {

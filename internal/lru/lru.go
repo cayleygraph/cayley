@@ -57,6 +57,17 @@ func (lru *Cache) Put(key string, value interface{}) {
 	lru.cache[key] = lru.priority.Front()
 }
 
+func (lru *Cache) Del(key string) {
+	lru.mu.Lock()
+	defer lru.mu.Unlock()
+	e := lru.cache[key]
+	if e == nil {
+		return
+	}
+	delete(lru.cache, key)
+	lru.priority.Remove(e)
+}
+
 func (lru *Cache) Get(key string) (interface{}, bool) {
 	lru.mu.Lock()
 	defer lru.mu.Unlock()

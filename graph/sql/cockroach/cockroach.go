@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/log"
 	csql "github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/graph/sql/postgres"
 	"github.com/lib/pq"
@@ -38,7 +39,7 @@ func init() {
 	})
 }
 
-func runTxCockroach(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts graph.IgnoreOpts) error {
+func runTxCockroach(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate, opts graph.IgnoreOpts) error {
 	// FIXME: on conflict for SPOL; blocked by CockroachDB not supporting empty ON CONFLICT statements
 	return postgres.RunTx(tx, nodes, quads, opts, `(subject_hash, predicate_hash, object_hash)`)
 }

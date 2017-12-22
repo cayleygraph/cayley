@@ -3,7 +3,6 @@ package sql
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
@@ -72,24 +72,15 @@ func (v TimeVal) SQLValue() interface{} {
 	return time.Time(v)
 }
 
-type NodeHash [quad.HashSize]byte
-
-func (NodeHash) IsNode() bool       { return true }
-func (h NodeHash) Key() interface{} { return h }
-func (h NodeHash) Valid() bool {
-	return h != NodeHash{}
+type NodeHash struct {
+	graph.ValueHash
 }
+
 func (h NodeHash) SQLValue() interface{} {
 	if !h.Valid() {
 		return nil
 	}
-	return []byte(h[:])
-}
-func (h NodeHash) String() string {
-	if !h.Valid() {
-		return ""
-	}
-	return hex.EncodeToString(h[:])
+	return []byte(h.ValueHash[:])
 }
 func (h *NodeHash) Scan(src interface{}) error {
 	if src == nil {
@@ -106,48 +97,16 @@ func (h *NodeHash) Scan(src interface{}) error {
 	} else if len(b) != quad.HashSize {
 		return fmt.Errorf("unexpected hash length: %d", len(b))
 	}
-	copy((*h)[:], b)
+	copy(h.ValueHash[:], b)
 	return nil
 }
 
-func HashOf(s quad.Value) (out NodeHash) {
-	if s == nil {
-		return
-	}
-	quad.HashTo(s, out[:])
-	return
+func HashOf(s quad.Value) NodeHash {
+	return NodeHash{graph.HashOf(s)}
 }
 
-type QuadHashes [4]NodeHash
-
-func (QuadHashes) IsNode() bool       { return false }
-func (q QuadHashes) Key() interface{} { return q }
-func (q QuadHashes) Get(d quad.Direction) NodeHash {
-	switch d {
-	case quad.Subject:
-		return q[0]
-	case quad.Predicate:
-		return q[1]
-	case quad.Object:
-		return q[2]
-	case quad.Label:
-		return q[3]
-	}
-	panic(fmt.Errorf("unknown direction: %v", d))
-}
-func (q *QuadHashes) Set(d quad.Direction, h NodeHash) {
-	switch d {
-	case quad.Subject:
-		q[0] = h
-	case quad.Predicate:
-		q[1] = h
-	case quad.Object:
-		q[2] = h
-	case quad.Label:
-		q[3] = h
-	default:
-		panic(fmt.Errorf("unknown direction: %v", d))
-	}
+type QuadHashes struct {
+	graph.QuadHash
 }
 
 type QuadStore struct {
@@ -383,54 +342,7 @@ func NodeValues(h NodeHash, v quad.Value) (ValueType, []interface{}, error) {
 
 func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error {
 	// first calculate values ref deltas
-	hnodes := make(map[NodeHash]*NodeUpdate, len(in)*2)
-	quadIns := make([]QuadUpdate, 0, len(in))
-	quadDel := make([]QuadUpdate, 0, len(in)/2)
-	var nadd, ndel int
-	for _, d := range in {
-		dn := 0
-		switch d.Action {
-		case graph.Add:
-			dn = +1
-			nadd++
-		case graph.Delete:
-			dn = -1
-			ndel++
-		default:
-			panic("unknown action")
-		}
-		var q QuadHashes
-		for _, dir := range quad.Directions {
-			v := d.Quad.Get(dir)
-			if v == nil {
-				continue
-			}
-			h := HashOf(v)
-			q.Set(dir, h)
-			n := hnodes[h]
-			if n == nil {
-				n = &NodeUpdate{Hash: h, Val: v}
-				hnodes[h] = n
-			}
-			n.RefInc += dn
-		}
-		u := QuadUpdate{Quad: q, Del: d.Action == graph.Delete}
-		if !u.Del {
-			quadIns = append(quadIns, u)
-		} else {
-			quadDel = append(quadDel, u)
-		}
-	}
-	insNodes := make([]NodeUpdate, 0, nadd)
-	updNodes := make([]NodeUpdate, 0, ndel)
-	for _, n := range hnodes {
-		if n.RefInc >= 0 {
-			insNodes = append(insNodes, *n)
-		} else {
-			updNodes = append(updNodes, *n)
-		}
-	}
-	hnodes = nil
+	deltas := graphlog.SplitDeltas(in)
 
 	tx, err := qs.db.Begin()
 	if err != nil {
@@ -455,14 +367,14 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 		if err != nil {
 			return err
 		}
-		for _, n := range updNodes {
-			_, err := updateNode.Exec(n.RefInc, n.Hash.SQLValue())
+		for _, n := range deltas.DecNode {
+			_, err := updateNode.Exec(n.RefInc, NodeHash{n.Hash}.SQLValue())
 			if err != nil {
 				clog.Errorf("couldn't exec UPDATE statement: %v", err)
 				return err
 			}
 		}
-		err = qs.flavor.RunTx(tx, insNodes, quadIns, opts)
+		err = qs.flavor.RunTx(tx, deltas.IncNode, deltas.QuadAdd, opts)
 		if err != nil {
 			return err
 		}
@@ -471,10 +383,10 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 			deleteQuad   *sql.Stmt
 			deleteTriple *sql.Stmt
 		)
-		for _, d := range quadDel {
+		for _, d := range deltas.QuadDel {
 			dirs := make([]interface{}, 0, len(quad.Directions))
-			for _, h := range d.Quad {
-				dirs = append(dirs, h.SQLValue())
+			for _, h := range d.Quad.Dirs() {
+				dirs = append(dirs, NodeHash{h}.SQLValue())
 			}
 			if deleteQuad == nil {
 				deleteQuad, err = tx.Prepare(`DELETE FROM quads WHERE subject_hash=` + p[0] + ` and predicate_hash=` + p[1] + ` and object_hash=` + p[2] + ` and label_hash=` + p[3] + `;`)
@@ -505,7 +417,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 				return graph.ErrQuadNotExist
 			}
 		}
-		if ndel == 0 {
+		if len(deltas.DecNode) == 0 {
 			return nil
 		}
 		// and remove unused nodes at last
@@ -602,7 +514,17 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	} else if v, ok := v.(graph.PreFetchedValue); ok {
 		return v.NameOf()
 	}
-	hash := v.(NodeHash)
+	var hash NodeHash
+	switch h := v.(type) {
+	case graph.PreFetchedValue:
+		return h.NameOf()
+	case NodeHash:
+		hash = h
+	case graph.ValueHash:
+		hash = NodeHash{h}
+	default:
+		panic(fmt.Errorf("unexpected token: %T", v))
+	}
 	if !hash.Valid() {
 		if clog.V(2) {
 			clog.Infof("NameOf was nil")
@@ -740,7 +662,7 @@ func (qs *QuadStore) Close() error {
 }
 
 func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
-	return NodeHash(in.(QuadHashes).Get(d))
+	return NodeHash{in.(QuadHashes).Get(d)}
 }
 
 func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, hash NodeHash) int64 {

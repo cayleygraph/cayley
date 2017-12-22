@@ -7,6 +7,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/log"
 	csql "github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/quad"
 	_ "github.com/go-sql-driver/mysql"
@@ -38,7 +39,7 @@ func init() {
 	})
 }
 
-func runTxMysql(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, opts graph.IgnoreOpts) error {
+func runTxMysql(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate, opts graph.IgnoreOpts) error {
 	// update node ref counts and insert nodes
 	var (
 		// prepared statements for each value type
@@ -47,7 +48,7 @@ func runTxMysql(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, op
 	)
 	for _, n := range nodes {
 		if n.RefInc >= 0 {
-			nodeKey, values, err := csql.NodeValues(n.Hash, n.Val)
+			nodeKey, values, err := csql.NodeValues(csql.NodeHash{n.Hash}, n.Val)
 			if err != nil {
 				return err
 			}
@@ -99,8 +100,8 @@ func runTxMysql(tx *sql.Tx, nodes []csql.NodeUpdate, quads []csql.QuadUpdate, op
 	)
 	for _, d := range quads {
 		dirs := make([]interface{}, 0, len(quad.Directions))
-		for _, h := range d.Quad {
-			dirs = append(dirs, h.SQLValue())
+		for _, h := range d.Quad.Dirs() {
+			dirs = append(dirs, csql.NodeHash{h}.SQLValue())
 		}
 		if !d.Del {
 			if insertQuad == nil {

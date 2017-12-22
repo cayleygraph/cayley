@@ -72,7 +72,7 @@ func Register(name string, r Registration) {
 }
 
 const (
-	latestDataVersion = 1
+	latestDataVersion = 2
 	nilDataVersion    = 1
 )
 
@@ -92,12 +92,6 @@ type QuadStore struct {
 
 	writer    sync.Mutex
 	mapBucket map[string]map[string][]uint64
-
-	meta struct {
-		sync.RWMutex
-		size    int64
-		horizon int64
-	}
 
 	exists struct {
 		sync.Mutex
@@ -155,35 +149,44 @@ func setVersion(kv BucketKV, version int64) error {
 	})
 }
 
+func (qs *QuadStore) getMetaInt(key string) (int64, error) {
+	var v int64
+	err := View(qs.db, func(tx BucketTx) error {
+		b := tx.Bucket(metaBucket)
+		var err error
+		vals, err := b.Get([][]byte{
+			[]byte(key),
+		})
+		if err != nil {
+			return err
+		} else if vals[0] == nil {
+			return ErrNoBucket
+		}
+		v, err = asInt64(vals[0], 0)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return v, err
+}
+
 func (qs *QuadStore) Size() int64 {
-	qs.meta.RLock()
-	sz := qs.meta.size
-	qs.meta.RUnlock()
+	sz, _ := qs.getMetaInt("size")
 	return sz
 }
 
 func (qs *QuadStore) Close() error {
-	err := Update(qs.db, func(tx BucketTx) error {
-		return qs.writeHorizonAndSize(tx, -1, -1)
-	})
-	if err != nil {
-		qs.db.Close()
-		return err
-	}
 	return qs.db.Close()
 }
 
 func (qs *QuadStore) getMetadata() (int64, error) {
-	qs.meta.Lock()
-	defer qs.meta.Unlock()
 	var vers int64
 	err := View(qs.db, func(tx BucketTx) error {
 		b := tx.Bucket(metaBucket)
 		var err error
 		vals, err := b.Get([][]byte{
 			[]byte("version"),
-			[]byte("size"),
-			[]byte("horizon"),
 		})
 		if err == ErrNotFound {
 			return ErrNoBucket
@@ -192,16 +195,7 @@ func (qs *QuadStore) getMetadata() (int64, error) {
 		} else if vals[0] == nil {
 			return ErrNoBucket
 		}
-
 		vers, err = asInt64(vals[0], nilDataVersion)
-		if err != nil {
-			return err
-		}
-		qs.meta.size, err = asInt64(vals[1], 0)
-		if err != nil {
-			return err
-		}
-		qs.meta.horizon, err = asInt64(vals[2], 0)
 		if err != nil {
 			return err
 		}
@@ -221,9 +215,7 @@ func asInt64(b []byte, empty int64) (int64, error) {
 }
 
 func (qs *QuadStore) horizon() int64 {
-	qs.meta.RLock()
-	h := qs.meta.horizon
-	qs.meta.RUnlock()
+	h, _ := qs.getMetaInt("horizon")
 	return h
 }
 

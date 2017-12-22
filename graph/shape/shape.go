@@ -1063,6 +1063,9 @@ func (s Union) Optimize(r Optimizer) (Shape, bool) {
 	// optimize subiterators
 	for i := 0; i < len(s); i++ {
 		c := s[i]
+		if c == nil {
+			continue
+		}
 		v, ok := c.Optimize(r)
 		if !ok {
 			continue
