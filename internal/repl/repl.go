@@ -14,7 +14,7 @@
 
 // +build !appengine
 
-package db
+package repl
 
 import (
 	"context"

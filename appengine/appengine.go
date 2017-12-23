@@ -22,9 +22,8 @@ import (
 	"time"
 
 	"github.com/cayleygraph/cayley/clog"
-
+	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal/config"
-	"github.com/cayleygraph/cayley/internal/db"
 	"github.com/cayleygraph/cayley/internal/http"
 
 	_ "github.com/cayleygraph/cayley/graph/gaedatastore"
@@ -102,13 +101,29 @@ func configFrom(file string) (*config.Config, error) {
 	return cfg, nil
 }
 
+func open(cfg *config.Config) (*graph.Handle, error) {
+	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
+	// override error to make it more informative
+	if os.IsNotExist(err) {
+		err = fmt.Errorf("file does not exist: %s. Please use with --init or run ./cayley init when it is a new database (see docs for more information)", cfg.DatabasePath)
+	}
+	if err != nil {
+		return nil, err
+	}
+	qw, err := graph.NewQuadWriter(cfg.ReplicationType, qs, cfg.ReplicationOptions)
+	if err != nil {
+		return nil, err
+	}
+	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
+}
+
 func init() {
 	cfg, err := configFrom("cayley_appengine.cfg")
 	if err != nil {
 		clog.Fatalf("Error loading config: %v", err)
 	}
 
-	handle, err := db.Open(cfg)
+	handle, err := open(cfg)
 	if err != nil {
 		clog.Fatalf("Error opening database: %v", err)
 	}

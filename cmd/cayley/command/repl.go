@@ -16,7 +16,7 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal"
-	"github.com/cayleygraph/cayley/internal/db"
+	"github.com/cayleygraph/cayley/internal/repl"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 )
@@ -93,7 +93,7 @@ func NewReplCmd() *cobra.Command {
 
 			timeout := viper.GetDuration("timeout")
 			lang, _ := cmd.Flags().GetString("lang")
-			return db.Repl(ctx, h, lang, timeout)
+			return repl.Repl(ctx, h, lang, timeout)
 		},
 	}
 	registerQueryFlags(cmd)
