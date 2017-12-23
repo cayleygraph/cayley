@@ -8,12 +8,6 @@ import (
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
-type Iterator graph.Iterator
-type QuadStore graph.QuadStore
-type QuadWriter graph.QuadWriter
-
-type Path path.Path
-
 var (
 	StartMorphism = path.StartMorphism
 	StartPath     = path.StartPath
