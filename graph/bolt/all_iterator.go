@@ -16,6 +16,7 @@ package bolt
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/boltdb/bolt"
@@ -76,7 +77,7 @@ func (it *AllIterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *AllIterator) Next() bool {
+func (it *AllIterator) Next(ctx context.Context) bool {
 	if it.done {
 		return false
 	}
@@ -153,7 +154,7 @@ func (it *AllIterator) Result() graph.Value {
 	return &Token{nodes: it.nodes, bucket: it.bucket, key: it.buffer[it.offset]}
 }
 
-func (it *AllIterator) NextPath() bool {
+func (it *AllIterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -162,7 +163,7 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *AllIterator) Contains(v graph.Value) bool {
+func (it *AllIterator) Contains(ctx context.Context, v graph.Value) bool {
 	it.result = v.(*Token)
 	return true
 }

@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"testing"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
@@ -138,12 +139,13 @@ var comparisonTests = []struct {
 }
 
 func TestValueComparison(t *testing.T) {
+	ctx := context.TODO()
 	for _, test := range comparisonTests {
 		qs := test.qs
 		vc := NewComparison(test.iterator(), test.operator, test.operand, qs)
 
 		var got []quad.Value
-		for vc.Next() {
+		for vc.Next(ctx) {
 			got = append(got, qs.NameOf(vc.Result()))
 		}
 		if !reflect.DeepEqual(got, test.expect) {
@@ -227,9 +229,10 @@ var vciContainsTests = []struct {
 }
 
 func TestVCIContains(t *testing.T) {
+	ctx := context.TODO()
 	for _, test := range vciContainsTests {
 		vc := NewComparison(test.iterator(), test.operator, test.val, test.qs)
-		if vc.Contains(test.check) != test.expect {
+		if vc.Contains(ctx, test.check) != test.expect {
 			t.Errorf("Failed to show %s", test.message)
 		}
 	}
@@ -253,13 +256,14 @@ var comparisonIteratorTests = []struct {
 }
 
 func TestComparisonIteratorErr(t *testing.T) {
+	ctx := context.TODO()
 	wantErr := errors.New("unique")
 	errIt := newTestIterator(false, wantErr)
 
 	for _, test := range comparisonIteratorTests {
 		vc := NewComparison(errIt, CompareLT, test.val, test.qs)
 
-		if vc.Next() != false {
+		if vc.Next(ctx) != false {
 			t.Errorf("Comparison iterator did not pass through initial 'false': %s", test.message)
 		}
 		if vc.Err() != wantErr {

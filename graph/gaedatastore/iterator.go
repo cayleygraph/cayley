@@ -21,6 +21,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 
+	"context"
 	"github.com/cayleygraph/cayley/clog"
 	"google.golang.org/appengine/datastore"
 )
@@ -141,7 +142,7 @@ func (it *Iterator) Close() error {
 func (it *Iterator) Tagger() *graph.Tagger {
 	return &it.tags
 }
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if it.isAll {
 		// The result needs to be set, so when contains is called, the result can be retrieved
@@ -194,7 +195,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	return m
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -207,7 +208,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) Next() bool {
+func (it *Iterator) Next(ctx context.Context) bool {
 	if it.offset+1 < len(it.buffer) {
 		it.offset++
 		it.result = &Token{Kind: it.kind, Hash: it.buffer[it.offset]}

@@ -18,6 +18,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"context"
 	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -97,7 +98,7 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 	return it, false
 }
 
-func (it *LinksTo) Next() bool {
+func (it *LinksTo) Next(ctx context.Context) bool {
 	var result struct {
 		ID      string     `bson:"_id"`
 		Added   []bson.Raw `bson:"Added"`
@@ -125,7 +126,7 @@ next:
 
 		}
 		// Subiterator is empty, get another one
-		if !it.primaryIt.Next() {
+		if !it.primaryIt.Next(ctx) {
 			// Possibly save error
 			it.err = it.primaryIt.Err()
 
@@ -163,8 +164,8 @@ func (it *LinksTo) Close() error {
 	return err
 }
 
-func (it *LinksTo) NextPath() bool {
-	ok := it.primaryIt.NextPath()
+func (it *LinksTo) NextPath(ctx context.Context) bool {
+	ok := it.primaryIt.NextPath(ctx)
 	if !ok {
 		it.err = it.primaryIt.Err()
 	}
@@ -181,7 +182,7 @@ func (it *LinksTo) Clone() graph.Iterator {
 	return m
 }
 
-func (it *LinksTo) Contains(val graph.Value) bool {
+func (it *LinksTo) Contains(ctx context.Context, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 
@@ -193,7 +194,7 @@ func (it *LinksTo) Contains(val graph.Value) bool {
 	}
 
 	node := it.qs.QuadDirection(val, it.dir)
-	if it.primaryIt.Contains(node) {
+	if it.primaryIt.Contains(ctx, node) {
 		it.result = val
 		return graph.ContainsLogOut(it, val, true)
 	}

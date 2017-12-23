@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/kv/btree"
@@ -303,8 +304,8 @@ type txHook struct {
 	tx kv.BucketTx
 }
 
-func (h txHook) Commit() error {
-	return h.tx.Commit()
+func (h txHook) Commit(ctx context.Context) error {
+	return h.tx.Commit(ctx)
 }
 
 func (h txHook) Rollback() error {
@@ -315,8 +316,8 @@ func (h txHook) Bucket(name []byte) kv.Bucket {
 	return bucketHook{h: h.h, name: string(name), b: h.tx.Bucket(name)}
 }
 
-func (h txHook) Get(keys []kv.BucketKey) ([][]byte, error) {
-	vals, err := h.tx.Get(keys)
+func (h txHook) Get(ctx context.Context, keys []kv.BucketKey) ([][]byte, error) {
+	vals, err := h.tx.Get(ctx, keys)
 	if err != nil {
 		return nil, err
 	}
@@ -336,8 +337,8 @@ type bucketHook struct {
 	b    kv.Bucket
 }
 
-func (h bucketHook) Get(keys [][]byte) ([][]byte, error) {
-	vals, err := h.b.Get(keys)
+func (h bucketHook) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
+	vals, err := h.b.Get(ctx, keys)
 	if err != nil {
 		return nil, err
 	}

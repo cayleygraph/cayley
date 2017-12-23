@@ -72,7 +72,7 @@ func clone(p []byte) []byte {
 	return b
 }
 
-func (tx *Tx) Get(keys []kv.BucketKey) ([][]byte, error) {
+func (tx *Tx) Get(ctx context.Context, keys []kv.BucketKey) ([][]byte, error) {
 	vals := make([][]byte, len(keys))
 	for i, k := range keys {
 		if t := tx.db.m[string(k.Bucket)]; t != nil {
@@ -84,7 +84,7 @@ func (tx *Tx) Get(keys []kv.BucketKey) ([][]byte, error) {
 	return vals, nil
 }
 
-func (tx *Tx) Commit() error {
+func (tx *Tx) Commit(ctx context.Context) error {
 	return nil
 }
 func (tx *Tx) Rollback() error {
@@ -107,7 +107,7 @@ type Bucket struct {
 	err  error
 }
 
-func (b *Bucket) Get(keys [][]byte) ([][]byte, error) {
+func (b *Bucket) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 	if b.err != nil {
 		return nil, b.err
 	} else if b.tree == nil {

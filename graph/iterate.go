@@ -42,7 +42,7 @@ func (c *IterateChain) next() bool {
 		return false
 	default:
 	}
-	ok := (c.limit < 0 || c.n < c.limit) && c.it.Next()
+	ok := (c.limit < 0 || c.n < c.limit) && c.it.Next(c.ctx)
 	if ok {
 		c.n++
 	}
@@ -54,7 +54,7 @@ func (c *IterateChain) nextPath() bool {
 		return false
 	default:
 	}
-	ok := c.paths && (c.limit < 0 || c.n < c.limit) && c.it.NextPath()
+	ok := c.paths && (c.limit < 0 || c.n < c.limit) && c.it.NextPath(c.ctx)
 	if ok {
 		c.n++
 	}

@@ -1,6 +1,7 @@
 package iterator_test
 
 import (
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -21,7 +22,7 @@ func newTestIterator(next bool, err error) graph.Iterator {
 	}
 }
 
-func (it *testIterator) Next() bool {
+func (it *testIterator) Next(ctx context.Context) bool {
 	return it.NextVal
 }
 

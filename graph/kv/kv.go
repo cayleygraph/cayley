@@ -14,19 +14,19 @@ var (
 )
 
 type Tx interface {
-	Commit() error
+	Commit(ctx context.Context) error
 	Rollback() error
 }
 
 type Bucket interface {
-	Get(keys [][]byte) ([][]byte, error)
+	Get(ctx context.Context, keys [][]byte) ([][]byte, error)
 	Put(k, v []byte) error
 	Del(k []byte) error
 	Scan(pref []byte) KVIterator
 }
 
-func GetOne(b Bucket, key []byte) ([]byte, error) {
-	out, err := b.Get([][]byte{key})
+func GetOne(ctx context.Context, b Bucket, key []byte) ([]byte, error) {
+	out, err := b.Get(ctx, [][]byte{key})
 	if err != nil {
 		return nil, err
 	} else if len(out) == 0 || out[0] == nil {
@@ -50,7 +50,7 @@ type BucketKey struct {
 type BucketTx interface {
 	Tx
 	Bucket(name []byte) Bucket
-	Get(keys []BucketKey) ([][]byte, error)
+	Get(ctx context.Context, keys []BucketKey) ([][]byte, error)
 }
 
 type FlatTx interface {
@@ -73,7 +73,7 @@ type FlatKV interface {
 	Tx(update bool) (FlatTx, error)
 }
 
-func Update(kv BucketKV, update func(tx BucketTx) error) error {
+func Update(ctx context.Context, kv BucketKV, update func(tx BucketTx) error) error {
 	tx, err := kv.Tx(true)
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ func Update(kv BucketKV, update func(tx BucketTx) error) error {
 	if err = update(tx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	return tx.Commit(ctx)
 }
 
 func View(kv BucketKV, view func(tx BucketTx) error) error {
@@ -137,16 +137,16 @@ type flatTx struct {
 	buckets map[string]*flatBucket
 }
 
-func (v *flatTx) Get(keys []BucketKey) ([][]byte, error) {
+func (v *flatTx) Get(ctx context.Context, keys []BucketKey) ([][]byte, error) {
 	ks := make([][]byte, len(keys))
 	for i, k := range keys {
 		ks[i] = v.bucketKey(k.Bucket, k.Key)
 	}
-	return v.tx.Get(ks)
+	return v.tx.Get(ctx, ks)
 }
 
-func (v *flatTx) Commit() error {
-	return v.tx.Commit()
+func (v *flatTx) Commit(ctx context.Context) error {
+	return v.tx.Commit(ctx)
 }
 func (v *flatTx) Rollback() error {
 	return v.tx.Rollback()
@@ -186,17 +186,17 @@ func (b *flatBucket) key(k []byte) []byte {
 	copy(key[n:], k)
 	return key
 }
-func (b *flatBucket) Get(keys [][]byte) ([][]byte, error) {
+func (b *flatBucket) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 	if len(keys) == 0 {
 		return nil, nil
 	} else if len(keys) == 1 {
-		return b.tx.Get([][]byte{b.key(keys[0])})
+		return b.tx.Get(ctx, [][]byte{b.key(keys[0])})
 	}
 	nk := make([][]byte, len(keys))
 	for i, k := range keys {
 		nk[i] = b.key(k)
 	}
-	return b.tx.Get(nk)
+	return b.tx.Get(ctx, nk)
 }
 func (b *flatBucket) Put(k, v []byte) error {
 	if b.ro {

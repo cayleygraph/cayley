@@ -237,7 +237,7 @@ func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream,
 	defer it.Close()
 
 	var sh, oh valHash
-	for i := 0; (limit < 0 || i < limit) && it.Next(); i++ {
+	for i := 0; (limit < 0 || i < limit) && it.Next(ctx); i++ {
 		qv := it.Result()
 		if qv == nil {
 			continue
@@ -308,7 +308,7 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 
 		predIt := s.QS.QuadIterator(quad.Subject, nodes.Result())
 		defer predIt.Close()
-		for predIt.Next() {
+		for predIt.Next(ictx) {
 			// this check helps us ignore nodes with no links
 			if sid == "" {
 				sid = gs.addNode(nv, h, props)

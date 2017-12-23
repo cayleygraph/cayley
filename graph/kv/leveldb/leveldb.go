@@ -109,7 +109,7 @@ type Tx struct {
 	err error
 }
 
-func (tx *Tx) Commit() error {
+func (tx *Tx) Commit(ctx context.Context) error {
 	if tx.err != nil {
 		return tx.err
 	}
@@ -128,7 +128,7 @@ func (tx *Tx) Rollback() error {
 	}
 	return tx.err
 }
-func (tx *Tx) Get(keys [][]byte) ([][]byte, error) {
+func (tx *Tx) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 	vals := make([][]byte, len(keys))
 	var err error
 	var get func(k []byte, ro *opt.ReadOptions) ([]byte, error)

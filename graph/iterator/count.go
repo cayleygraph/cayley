@@ -1,6 +1,7 @@
 package iterator
 
 import (
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -57,14 +58,14 @@ func (it *Count) SubIterators() []graph.Iterator {
 }
 
 // Next counts a number of results in underlying iterator.
-func (it *Count) Next() bool {
+func (it *Count) Next(ctx context.Context) bool {
 	if it.done {
 		return false
 	}
 	size, exact := it.it.Size()
 	if !exact {
-		for size = 0; it.it.Next(); size++ {
-			for ; it.it.NextPath(); size++ {
+		for size = 0; it.it.Next(ctx); size++ {
+			for ; it.it.NextPath(ctx); size++ {
 			}
 		}
 	}
@@ -84,9 +85,9 @@ func (it *Count) Result() graph.Value {
 	return graph.PreFetched(it.result)
 }
 
-func (it *Count) Contains(val graph.Value) bool {
+func (it *Count) Contains(ctx context.Context, val graph.Value) bool {
 	if !it.done {
-		it.Next()
+		it.Next(ctx)
 	}
 	if v, ok := val.(graph.PreFetchedValue); ok {
 		return v.NameOf() == it.result
@@ -97,7 +98,7 @@ func (it *Count) Contains(val graph.Value) bool {
 	return false
 }
 
-func (it *Count) NextPath() bool {
+func (it *Count) NextPath(ctx context.Context) bool {
 	return false
 }
 

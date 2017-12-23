@@ -1,6 +1,7 @@
 package iterator
 
 import (
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 )
 
@@ -62,11 +63,11 @@ func (it *Unique) SubIterators() []graph.Iterator {
 
 // Next advances the subiterator, continuing until it returns a value which it
 // has not previously seen.
-func (it *Unique) Next() bool {
+func (it *Unique) Next(ctx context.Context) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
-	for it.subIt.Next() {
+	for it.subIt.Next(ctx) {
 		curr := it.subIt.Result()
 		key := graph.ToKey(curr)
 		if ok := it.seen[key]; !ok {
@@ -89,16 +90,16 @@ func (it *Unique) Result() graph.Value {
 
 // Contains checks whether the passed value is part of the primary iterator,
 // which is irrelevant for uniqueness.
-func (it *Unique) Contains(val graph.Value) bool {
+func (it *Unique) Contains(ctx context.Context, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
-	return graph.ContainsLogOut(it, val, it.subIt.Contains(val))
+	return graph.ContainsLogOut(it, val, it.subIt.Contains(ctx, val))
 }
 
 // NextPath for unique always returns false. If we were to return multiple
 // paths, we'd no longer be a unique result, so we have to choose only the first
 // path that got us here. Unique is serious on this point.
-func (it *Unique) NextPath() bool {
+func (it *Unique) NextPath(ctx context.Context) bool {
 	return false
 }
 

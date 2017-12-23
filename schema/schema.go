@@ -705,7 +705,7 @@ func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Va
 	defer it.Close()
 
 	ctx = context.WithValue(ctx, fieldsCtxKey{}, fields)
-	for it.Next() {
+	for it.Next(ctx) {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -724,7 +724,7 @@ func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Va
 		for k, v := range mp {
 			mo[k] = []graph.Value{v}
 		}
-		for it.NextPath() {
+		for it.NextPath(ctx) {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -785,7 +785,7 @@ func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Va
 		list.Reset()
 		and := iterator.NewAnd(qs, list, qs.NodesAllIterator())
 		defer and.Close()
-		if and.Next() {
+		if and.Next(ctx) {
 			return errRequiredFieldIsMissing
 		}
 	}

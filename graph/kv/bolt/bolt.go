@@ -99,7 +99,7 @@ type Tx struct {
 	err error
 }
 
-func (tx *Tx) Get(keys []kv.BucketKey) ([][]byte, error) {
+func (tx *Tx) Get(ctx context.Context, keys []kv.BucketKey) ([][]byte, error) {
 	vals := make([][]byte, len(keys))
 	for i, k := range keys {
 		if b := tx.Tx.Bucket(k.Bucket); b != nil {
@@ -109,7 +109,7 @@ func (tx *Tx) Get(keys []kv.BucketKey) ([][]byte, error) {
 	return vals, nil
 }
 
-func (tx *Tx) Commit() error {
+func (tx *Tx) Commit(ctx context.Context) error {
 	if tx.err != nil {
 		_ = tx.Tx.Rollback()
 		return tx.err
@@ -143,7 +143,7 @@ type Bucket struct {
 	err    error
 }
 
-func (b *Bucket) Get(keys [][]byte) ([][]byte, error) {
+func (b *Bucket) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 	if b.err != nil {
 		return nil, b.err
 	} else if b.Bucket == nil {

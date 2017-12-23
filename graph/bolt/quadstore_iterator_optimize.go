@@ -15,6 +15,7 @@
 package bolt
 
 import (
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -33,11 +34,12 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 	if len(subs) != 1 {
 		return it, false
 	}
+	ctx := context.TODO()
 	primary := subs[0]
 	if primary.Type() == graph.Fixed {
 		size, _ := primary.Size()
 		if size == 1 {
-			if !primary.Next() {
+			if !primary.Next(ctx) {
 				panic("unexpected size during optimize")
 			}
 			val := primary.Result()

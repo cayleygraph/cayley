@@ -93,8 +93,8 @@ func bucketForValRefs(i, j byte) []byte {
 	return []byte{'n', i, j}
 }
 
-func (qs *QuadStore) createBuckets(upfront bool) error {
-	err := Update(qs.db, func(tx BucketTx) error {
+func (qs *QuadStore) createBuckets(ctx context.Context, upfront bool) error {
+	err := Update(ctx, qs.db, func(tx BucketTx) error {
 		for _, index := range buckets {
 			_ = tx.Bucket(index)
 		}
@@ -114,7 +114,7 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 		return nil
 	}
 	for i := 0; i < 256; i++ {
-		err := Update(qs.db, func(tx BucketTx) error {
+		err := Update(ctx, qs.db, func(tx BucketTx) error {
 			for j := 0; j < 256; j++ {
 				_ = tx.Bucket(bucketForVal(byte(i), byte(j)))
 				_ = tx.Bucket(bucketForValRefs(byte(i), byte(j)))
@@ -128,12 +128,12 @@ func (qs *QuadStore) createBuckets(upfront bool) error {
 	return nil
 }
 
-func (qs *QuadStore) incSize(tx BucketTx, size int64) error {
-	_, err := qs.incMetaInt(tx, "size", size)
+func (qs *QuadStore) incSize(ctx context.Context, tx BucketTx, size int64) error {
+	_, err := qs.incMetaInt(ctx, tx, "size", size)
 	return err
 }
 
-func (qs *QuadStore) resolveValDeltas(tx BucketTx, deltas []graphlog.NodeUpdate, fnc func(i int, id uint64)) error {
+func (qs *QuadStore) resolveValDeltas(ctx context.Context, tx BucketTx, deltas []graphlog.NodeUpdate, fnc func(i int, id uint64)) error {
 	inds := make([]int, 0, len(deltas))
 	keys := make([]BucketKey, 0, len(deltas))
 	for i, d := range deltas {
@@ -152,7 +152,7 @@ func (qs *QuadStore) resolveValDeltas(tx BucketTx, deltas []graphlog.NodeUpdate,
 	if len(keys) == 0 {
 		return nil
 	}
-	resp, err := tx.Get(keys)
+	resp, err := tx.Get(ctx, keys)
 	if err != nil {
 		return err
 	}
@@ -173,9 +173,9 @@ func (qs *QuadStore) resolveValDeltas(tx BucketTx, deltas []graphlog.NodeUpdate,
 	return nil
 }
 
-func (qs *QuadStore) getMetaIntTx(tx BucketTx, key string) (int64, error) {
+func (qs *QuadStore) getMetaIntTx(ctx context.Context, tx BucketTx, key string) (int64, error) {
 	b := tx.Bucket(metaBucket)
-	vals, err := b.Get([][]byte{[]byte(key)})
+	vals, err := b.Get(ctx, [][]byte{[]byte(key)})
 	if err != nil {
 		return 0, fmt.Errorf("cannot get horizon value")
 	} else if vals[0] == nil {
@@ -184,11 +184,11 @@ func (qs *QuadStore) getMetaIntTx(tx BucketTx, key string) (int64, error) {
 	return int64(binary.LittleEndian.Uint64(vals[0])), nil
 }
 
-func (qs *QuadStore) incMetaInt(tx BucketTx, key string, n int64) (int64, error) {
+func (qs *QuadStore) incMetaInt(ctx context.Context, tx BucketTx, key string, n int64) (int64, error) {
 	if n == 0 {
 		return 0, nil
 	}
-	v, err := qs.getMetaIntTx(tx, key)
+	v, err := qs.getMetaIntTx(ctx, tx, key)
 	if err != nil && err != ErrNotFound {
 		return 0, fmt.Errorf("cannot get %s: %v", key, err)
 	}
@@ -206,11 +206,11 @@ func (qs *QuadStore) incMetaInt(tx BucketTx, key string, n int64) (int64, error)
 	return start, nil
 }
 
-func (qs *QuadStore) genIDs(tx BucketTx, n int) (uint64, error) {
+func (qs *QuadStore) genIDs(ctx context.Context, tx BucketTx, n int) (uint64, error) {
 	if n == 0 {
 		return 0, nil
 	}
-	start, err := qs.incMetaInt(tx, "horizon", int64(n))
+	start, err := qs.incMetaInt(ctx, tx, "horizon", int64(n))
 	if err != nil {
 		return 0, err
 	}
@@ -223,12 +223,12 @@ type nodeUpdate struct {
 	graphlog.NodeUpdate
 }
 
-func (qs *QuadStore) incNodesCnt(tx BucketTx, deltas []nodeUpdate) ([]int, error) {
+func (qs *QuadStore) incNodesCnt(ctx context.Context, tx BucketTx, deltas []nodeUpdate) ([]int, error) {
 	keys := make([]BucketKey, 0, len(deltas))
 	for _, d := range deltas {
 		keys = append(keys, bucketKeyForHashRefs(d.Hash))
 	}
-	sizes, err := tx.Get(keys)
+	sizes, err := tx.Get(ctx, keys)
 	if err != nil {
 		return nil, err
 	}
@@ -264,13 +264,13 @@ type resolvedNode struct {
 	New bool
 }
 
-func (qs *QuadStore) incNodes(tx BucketTx, deltas []graphlog.NodeUpdate) (map[graph.ValueHash]resolvedNode, error) {
+func (qs *QuadStore) incNodes(ctx context.Context, tx BucketTx, deltas []graphlog.NodeUpdate) (map[graph.ValueHash]resolvedNode, error) {
 	var (
 		ins []nodeUpdate
 		upd = make([]nodeUpdate, 0, len(deltas))
 		ids = make(map[graph.ValueHash]resolvedNode, len(deltas))
 	)
-	err := qs.resolveValDeltas(tx, deltas, func(i int, id uint64) {
+	err := qs.resolveValDeltas(ctx, tx, deltas, func(i int, id uint64) {
 		if id == 0 {
 			// not exists, should create
 			ins = append(ins, nodeUpdate{Ind: i, NodeUpdate: deltas[i]})
@@ -285,7 +285,7 @@ func (qs *QuadStore) incNodes(tx BucketTx, deltas []graphlog.NodeUpdate) (map[gr
 	}
 	if len(ins) != 0 {
 		// preallocate IDs
-		start, err := qs.genIDs(tx, len(ins))
+		start, err := qs.genIDs(ctx, tx, len(ins))
 		if err != nil {
 			return ids, err
 		}
@@ -307,10 +307,10 @@ func (qs *QuadStore) incNodes(tx BucketTx, deltas []graphlog.NodeUpdate) (map[gr
 		upd = append(upd, ins...)
 		ins = nil
 	}
-	_, err = qs.incNodesCnt(tx, upd)
+	_, err = qs.incNodesCnt(ctx, tx, upd)
 	return ids, err
 }
-func (qs *QuadStore) decNodes(tx BucketTx, deltas []graphlog.NodeUpdate, nodes map[graph.ValueHash]uint64) error {
+func (qs *QuadStore) decNodes(ctx context.Context, tx BucketTx, deltas []graphlog.NodeUpdate, nodes map[graph.ValueHash]uint64) error {
 	upds := make([]nodeUpdate, 0, len(deltas))
 	for i, d := range deltas {
 		id := nodes[d.Hash]
@@ -319,7 +319,7 @@ func (qs *QuadStore) decNodes(tx BucketTx, deltas []graphlog.NodeUpdate, nodes m
 		}
 		upds = append(upds, nodeUpdate{Ind: i, ID: id, NodeUpdate: d})
 	}
-	del, err := qs.incNodesCnt(tx, upds)
+	del, err := qs.incNodesCnt(ctx, tx, upds)
 	if err != nil {
 		return err
 	}
@@ -340,6 +340,7 @@ func (qs *QuadStore) decNodes(tx BucketTx, deltas []graphlog.NodeUpdate, nodes m
 }
 
 func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	ctx := context.TODO()
 	qs.writer.Lock()
 	defer qs.writer.Unlock()
 	tx, err := qs.db.Tx(true)
@@ -354,7 +355,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 
 	deltas := graphlog.SplitDeltas(in)
 	// first add all new nodes
-	nodes, err := qs.incNodes(tx, deltas.IncNode)
+	nodes, err := qs.incNodes(ctx, tx, deltas.IncNode)
 	if err != nil {
 		return err
 	}
@@ -373,7 +374,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			link.SetDirection(dir, n.ID)
 		}
 		if !mustBeNew {
-			p, err := qs.hasPrimitive(tx, &link, false)
+			p, err := qs.hasPrimitive(ctx, tx, &link, false)
 			if err != nil {
 				return err
 			}
@@ -388,7 +389,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	}
 	deltas.QuadAdd = nil
 
-	qstart, err := qs.genIDs(tx, len(links))
+	qstart, err := qs.genIDs(ctx, tx, len(links))
 	if err != nil {
 		return err
 	}
@@ -396,7 +397,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		links[i].ID = qstart + uint64(i)
 		links[i].Timestamp = time.Now().UnixNano()
 	}
-	if err := qs.indexLinks(tx, links); err != nil {
+	if err := qs.indexLinks(ctx, tx, links); err != nil {
 		return err
 	}
 	links = links[:0]
@@ -404,7 +405,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	if len(deltas.QuadDel) != 0 || len(deltas.DecNode) != 0 {
 		// resolve all nodes that will be removed
 		dnodes := make(map[graph.ValueHash]uint64, len(deltas.DecNode))
-		if err := qs.resolveValDeltas(tx, deltas.DecNode, func(i int, id uint64) {
+		if err := qs.resolveValDeltas(ctx, tx, deltas.DecNode, func(i int, id uint64) {
 			dnodes[deltas.DecNode[i].Hash] = id
 		}); err != nil {
 			return err
@@ -429,7 +430,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 				link.SetDirection(dir, n.ID)
 			}
 			if exists {
-				p, err := qs.hasPrimitive(tx, &link, true)
+				p, err := qs.hasPrimitive(ctx, tx, &link, true)
 				if err != nil {
 					return err
 				} else if p == nil || p.Deleted {
@@ -447,25 +448,25 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			links = append(links, link)
 		}
 		deltas.QuadDel = nil
-		if err := qs.markLinksDead(tx, links); err != nil {
+		if err := qs.markLinksDead(ctx, tx, links); err != nil {
 			return err
 		}
 		links = nil
 		nodes = nil
 
 		// finally decrement and remove nodes
-		if err := qs.decNodes(tx, deltas.DecNode, dnodes); err != nil {
+		if err := qs.decNodes(ctx, tx, deltas.DecNode, dnodes); err != nil {
 			return err
 		}
 		deltas = nil
 		dnodes = nil
 	}
 	// flush quad indexes and commit
-	err = qs.flushMapBucket(tx)
+	err = qs.flushMapBucket(ctx, tx)
 	if err != nil {
 		return err
 	}
-	return tx.Commit()
+	return tx.Commit(ctx)
 }
 
 func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) error {
@@ -488,13 +489,13 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 	return qs.addToLog(tx, p)
 }
 
-func (qs *QuadStore) indexLinks(tx BucketTx, links []proto.Primitive) error {
+func (qs *QuadStore) indexLinks(ctx context.Context, tx BucketTx, links []proto.Primitive) error {
 	for _, p := range links {
 		if err := qs.indexLink(tx, &p); err != nil {
 			return err
 		}
 	}
-	return qs.incSize(tx, int64(len(links)))
+	return qs.incSize(ctx, tx, int64(len(links)))
 }
 func (qs *QuadStore) indexLink(tx BucketTx, p *proto.Primitive) error {
 	var err error
@@ -526,17 +527,17 @@ func (qs *QuadStore) delLog(tx BucketTx, id uint64) error {
 	return tx.Bucket(logIndex).Del(uint64KeyBytes(id))
 }
 
-func (qs *QuadStore) markLinksDead(tx BucketTx, links []proto.Primitive) error {
+func (qs *QuadStore) markLinksDead(ctx context.Context, tx BucketTx, links []proto.Primitive) error {
 	for _, p := range links {
 		if err := qs.markAsDead(tx, &p); err != nil {
 			return err
 		}
 	}
-	return qs.incSize(tx, -int64(len(links)))
+	return qs.incSize(ctx, tx, -int64(len(links)))
 }
 
-func (qs *QuadStore) getBucketIndexes(tx BucketTx, keys []BucketKey) ([][]uint64, error) {
-	vals, err := tx.Get(keys)
+func (qs *QuadStore) getBucketIndexes(ctx context.Context, tx BucketTx, keys []BucketKey) ([][]uint64, error) {
+	vals, err := tx.Get(ctx, keys)
 	if err != nil {
 		return nil, err
 	}
@@ -616,7 +617,7 @@ func (qs *QuadStore) bestUnique() ([]QuadIndex, error) {
 	return qs.indexes.exists, nil
 }
 
-func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive, get bool) (*proto.Primitive, error) {
+func (qs *QuadStore) hasPrimitive(ctx context.Context, tx BucketTx, p *proto.Primitive, get bool) (*proto.Primitive, error) {
 	if !qs.testBloom(p) {
 		return nil, nil
 	}
@@ -632,7 +633,7 @@ func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive, get bool) (*p
 			Key:    in.KeyFor(p),
 		}
 	}
-	lists, err := qs.getBucketIndexes(tx, keys)
+	lists, err := qs.getBucketIndexes(ctx, tx, keys)
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +653,7 @@ func (qs *QuadStore) hasPrimitive(tx BucketTx, p *proto.Primitive, get bool) (*p
 	}
 	for _, x := range options {
 		// TODO: batch
-		prim, err := qs.getPrimitiveFromLog(tx, x)
+		prim, err := qs.getPrimitiveFromLog(ctx, tx, x)
 		if err != nil {
 			return nil, err
 		}
@@ -705,7 +706,7 @@ func (qs *QuadStore) addToMapBucket(tx BucketTx, bucket []byte, key []byte, valu
 	return nil
 }
 
-func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
+func (qs *QuadStore) flushMapBucket(ctx context.Context, tx BucketTx) error {
 	bs := make([]string, 0, len(qs.mapBucket))
 	for k := range qs.mapBucket {
 		bs = append(bs, k)
@@ -721,7 +722,7 @@ func (qs *QuadStore) flushMapBucket(tx BucketTx) error {
 		sort.Slice(keys, func(i, j int) bool {
 			return bytes.Compare(keys[i], keys[j]) < 0
 		})
-		vals, err := b.Get(keys)
+		vals, err := b.Get(ctx, keys)
 		if err != nil {
 			return err
 		}
@@ -763,8 +764,8 @@ func createNodePrimitive(v quad.Value) (*proto.Primitive, error) {
 	return p, nil
 }
 
-func (qs *QuadStore) resolveQuadValue(tx BucketTx, v quad.Value) (uint64, error) {
-	out, err := qs.resolveQuadValues(tx, []quad.Value{v})
+func (qs *QuadStore) resolveQuadValue(ctx context.Context, tx BucketTx, v quad.Value) (uint64, error) {
+	out, err := qs.resolveQuadValues(ctx, tx, []quad.Value{v})
 	if err != nil {
 		return 0, err
 	}
@@ -790,7 +791,7 @@ func bucketKeyForHashRefs(h graph.ValueHash) BucketKey {
 	}
 }
 
-func (qs *QuadStore) resolveQuadValues(tx BucketTx, vals []quad.Value) ([]uint64, error) {
+func (qs *QuadStore) resolveQuadValues(ctx context.Context, tx BucketTx, vals []quad.Value) ([]uint64, error) {
 	out := make([]uint64, len(vals))
 	inds := make([]int, 0, len(vals))
 	keys := make([]BucketKey, 0, len(vals))
@@ -809,7 +810,7 @@ func (qs *QuadStore) resolveQuadValues(tx BucketTx, vals []quad.Value) ([]uint64
 	if len(keys) == 0 {
 		return out, nil
 	}
-	resp, err := tx.Get(keys)
+	resp, err := tx.Get(ctx, keys)
 	if err != nil {
 		return out, err
 	}
@@ -842,13 +843,13 @@ func uint64KeyBytes(x uint64) []byte {
 	return k
 }
 
-func (qs *QuadStore) getPrimitivesFromLog(tx BucketTx, keys []uint64) ([]*proto.Primitive, error) {
+func (qs *QuadStore) getPrimitivesFromLog(ctx context.Context, tx BucketTx, keys []uint64) ([]*proto.Primitive, error) {
 	b := tx.Bucket(logIndex)
 	bkeys := make([][]byte, len(keys))
 	for i, k := range keys {
 		bkeys[i] = uint64KeyBytes(k)
 	}
-	vals, err := b.Get(bkeys)
+	vals, err := b.Get(ctx, bkeys)
 	if err != nil {
 		return nil, err
 	}
@@ -868,8 +869,8 @@ func (qs *QuadStore) getPrimitivesFromLog(tx BucketTx, keys []uint64) ([]*proto.
 	return out, last
 }
 
-func (qs *QuadStore) getPrimitiveFromLog(tx BucketTx, k uint64) (*proto.Primitive, error) {
-	out, err := qs.getPrimitivesFromLog(tx, []uint64{k})
+func (qs *QuadStore) getPrimitiveFromLog(ctx context.Context, tx BucketTx, k uint64) (*proto.Primitive, error) {
+	out, err := qs.getPrimitivesFromLog(ctx, tx, []uint64{k})
 	if err != nil {
 		return nil, err
 	} else if out[0] == nil {
@@ -878,10 +879,9 @@ func (qs *QuadStore) getPrimitiveFromLog(tx BucketTx, k uint64) (*proto.Primitiv
 	return out[0], nil
 }
 
-func (qs *QuadStore) initBloomFilter() error {
+func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
 	qs.exists.buf = make([]byte, 3*8)
 	qs.exists.DeletableBloomFilter = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
-	ctx := context.TODO()
 	return View(qs.db, func(tx BucketTx) error {
 		p := proto.Primitive{}
 		b := tx.Bucket(logIndex)

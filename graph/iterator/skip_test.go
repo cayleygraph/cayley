@@ -4,10 +4,12 @@ import (
 	"reflect"
 	"testing"
 
+	"context"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
 func TestSkipIteratorBasics(t *testing.T) {
+	ctx := context.TODO()
 	allIt := NewFixed(Identity,
 		Int64Node(1),
 		Int64Node(2),
@@ -39,7 +41,7 @@ func TestSkipIteratorBasics(t *testing.T) {
 	}
 
 	for _, v := range []int{1, 2, 3, 4, 5} {
-		if !u.Contains(Int64Node(v)) {
+		if !u.Contains(ctx, Int64Node(v)) {
 			t.Errorf("Failed to find a correct value in the Skip iterator.")
 		}
 	}

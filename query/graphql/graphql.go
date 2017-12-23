@@ -216,7 +216,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			return out, ctx.Err()
 		default:
 		}
-		if !it.Next() {
+		if !it.Next(ctx) {
 			break
 		}
 		tags := make(map[string]graph.Value)
@@ -228,7 +228,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 		for k, v := range tags {
 			obj.fields[k] = []graph.Value{v}
 		}
-		for it.NextPath() {
+		for it.NextPath(ctx) {
 			select {
 			case <-ctx.Done():
 				return out, ctx.Err()
@@ -254,7 +254,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 	for _, r := range results {
 		obj := make(map[string]interface{})
 		for k, arr := range r.fields {
-			vals, err := graph.ValuesOf(qs, arr)
+			vals, err := graph.ValuesOf(ctx, qs, arr)
 			if err != nil {
 				return nil, err
 			}

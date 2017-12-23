@@ -19,6 +19,7 @@ import (
 	"sort"
 	"testing"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -107,6 +108,7 @@ func TestMemstoreValueOf(t *testing.T) {
 }
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
+	ctx := context.TODO()
 	qs, _, _ := makeTestStore(simpleGraph)
 
 	fixed := qs.FixedIterator()
@@ -125,7 +127,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
 	outerAnd := iterator.NewAnd(qs, fixed, hasa)
 
-	if !outerAnd.Next() {
+	if !outerAnd.Next(ctx) {
 		t.Error("Expected one matching subtree")
 	}
 	val := outerAnd.Result()
@@ -139,7 +141,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	)
 	for {
 		got = append(got, quad.StringOf(qs.NameOf(all.Result())))
-		if !outerAnd.NextPath() {
+		if !outerAnd.NextPath(ctx) {
 			break
 		}
 	}
@@ -149,7 +151,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		t.Errorf("Unexpected result, got:%q expect:%q", got, expect)
 	}
 
-	if outerAnd.Next() {
+	if outerAnd.Next(ctx) {
 		t.Error("More than one possible top level output?")
 	}
 }
@@ -186,6 +188,7 @@ func TestLinksToOptimization(t *testing.T) {
 }
 
 func TestRemoveQuad(t *testing.T) {
+	ctx := context.TODO()
 	qs, w, _ := makeTestStore(simpleGraph)
 
 	err := w.RemoveQuad(quad.MakeRaw(
@@ -213,7 +216,7 @@ func TestRemoveQuad(t *testing.T) {
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Object)
 
 	newIt, _ := hasa.Optimize()
-	if newIt.Next() {
+	if newIt.Next(ctx) {
 		t.Error("E should not have any followers.")
 	}
 }

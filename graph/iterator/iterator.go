@@ -19,6 +19,7 @@ package iterator
 import (
 	"sync/atomic"
 
+	"context"
 	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -64,7 +65,7 @@ func (it *Null) TagResults(dst map[string]graph.Value) {
 	it.tags.TagResult(dst, it.Result())
 }
 
-func (it *Null) Contains(graph.Value) bool {
+func (it *Null) Contains(ctx context.Context, v graph.Value) bool {
 	return false
 }
 
@@ -81,7 +82,7 @@ func (it *Null) String() string {
 	return "Null"
 }
 
-func (it *Null) Next() bool {
+func (it *Null) Next(ctx context.Context) bool {
 	return false
 }
 
@@ -97,7 +98,7 @@ func (it *Null) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Null) NextPath() bool {
+func (it *Null) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -140,7 +141,7 @@ func (it *Error) TagResults(dst map[string]graph.Value) {
 	it.tags.TagResult(dst, it.Result())
 }
 
-func (it *Error) Contains(graph.Value) bool {
+func (it *Error) Contains(ctx context.Context, v graph.Value) bool {
 	return false
 }
 
@@ -154,7 +155,7 @@ func (it *Error) String() string {
 	return fmt.Sprintf("Error(%v)", it.err)
 }
 
-func (it *Error) Next() bool {
+func (it *Error) Next(ctx context.Context) bool {
 	return false
 }
 
@@ -170,7 +171,7 @@ func (it *Error) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Error) NextPath() bool {
+func (it *Error) NextPath(ctx context.Context) bool {
 	return false
 }
 

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"context"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	_ "github.com/cayleygraph/cayley/graph/kv/bolt"
@@ -49,8 +50,9 @@ func main() {
 	// remember to cleanup after yourself
 	defer it.Close()
 
+	ctx := context.TODO()
 	// While we have items
-	for it.Next() {
+	for it.Next(ctx) {
 		token := it.Result()                // get a ref to a node (backend-specific)
 		value := store.NameOf(token)        // get the value in the node (RDF)
 		nativeValue := quad.NativeOf(value) // convert value to normal Go type

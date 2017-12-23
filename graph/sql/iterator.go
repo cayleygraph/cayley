@@ -159,12 +159,12 @@ func (it *Iterator) scanValue(r *sql.Rows) bool {
 	return true
 }
 
-func (it *Iterator) Next() bool {
+func (it *Iterator) Next(ctx context.Context) bool {
 	if it.err != nil {
 		return false
 	}
 	if it.cursor == nil {
-		it.cursor, it.err = it.qs.Query(context.TODO(), it.query)
+		it.cursor, it.err = it.qs.Query(ctx, it.query)
 	}
 	if it.err != nil {
 		return false
@@ -177,11 +177,11 @@ func (it *Iterator) Next() bool {
 	return it.scanValue(it.cursor)
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	it.ensureColumns()
 	sel := it.query
 	sel.Where = append([]Where{}, sel.Where...)
@@ -210,7 +210,7 @@ func (it *Iterator) Contains(v graph.Value) bool {
 		return false
 	}
 
-	rows, err := it.qs.Query(context.TODO(), sel)
+	rows, err := it.qs.Query(ctx, sel)
 	if err != nil {
 		it.err = err
 		return false

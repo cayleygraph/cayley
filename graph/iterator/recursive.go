@@ -3,6 +3,7 @@ package iterator
 import (
 	"math"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -114,17 +115,17 @@ func (it *Recursive) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.subIt}
 }
 
-func (it *Recursive) Next() bool {
+func (it *Recursive) Next(ctx context.Context) bool {
 	it.pathIndex = 0
 	if it.depth == 0 {
-		for it.subIt.Next() {
+		for it.subIt.Next(ctx) {
 			res := it.subIt.Result()
 			it.depthCache = append(it.depthCache, it.subIt.Result())
 			tags := make(map[string]graph.Value)
 			it.subIt.TagResults(tags)
 			key := graph.ToKey(res)
 			it.pathMap[key] = append(it.pathMap[key], tags)
-			for it.subIt.NextPath() {
+			for it.subIt.NextPath(ctx) {
 				tags := make(map[string]graph.Value)
 				it.subIt.TagResults(tags)
 				it.pathMap[key] = append(it.pathMap[key], tags)
@@ -135,7 +136,7 @@ func (it *Recursive) Next() bool {
 		return graph.NextLogOut(it, false)
 	}
 	for {
-		ok := it.nextIt.Next()
+		ok := it.nextIt.Next(ctx)
 		if !ok {
 			if len(it.depthCache) == 0 {
 				return graph.NextLogOut(it, false)
@@ -193,7 +194,7 @@ func (it *Recursive) getBaseValue(val graph.Value) graph.Value {
 	return at.val
 }
 
-func (it *Recursive) Contains(val graph.Value) bool {
+func (it *Recursive) Contains(ctx context.Context, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.pathIndex = 0
 	key := graph.ToKey(val)
@@ -203,7 +204,7 @@ func (it *Recursive) Contains(val graph.Value) bool {
 		it.result.val = val
 		return graph.ContainsLogOut(it, val, true)
 	}
-	for it.Next() {
+	for it.Next(ctx) {
 		if graph.ToKey(it.Result()) == key {
 			return graph.ContainsLogOut(it, val, true)
 		}
@@ -211,7 +212,7 @@ func (it *Recursive) Contains(val graph.Value) bool {
 	return graph.ContainsLogOut(it, val, false)
 }
 
-func (it *Recursive) NextPath() bool {
+func (it *Recursive) NextPath(ctx context.Context) bool {
 	if it.pathIndex+1 >= len(it.pathMap[graph.ToKey(it.containsValue)]) {
 		return false
 	}

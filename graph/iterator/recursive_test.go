@@ -19,6 +19,7 @@ import (
 	"sort"
 	"testing"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
@@ -51,6 +52,7 @@ var rec_test_qs = &graphmock.Store{
 }
 
 func TestRecursiveNext(t *testing.T) {
+	ctx := context.TODO()
 	qs := rec_test_qs
 	start := qs.FixedIterator()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
@@ -58,7 +60,7 @@ func TestRecursiveNext(t *testing.T) {
 	expected := []string{"bob", "charlie", "dani", "emily"}
 
 	var got []string
-	for r.Next() {
+	for r.Next(ctx) {
 		got = append(got, qs.NameOf(r.Result()).String())
 	}
 	sort.Strings(expected)
@@ -69,6 +71,7 @@ func TestRecursiveNext(t *testing.T) {
 }
 
 func TestRecursiveContains(t *testing.T) {
+	ctx := context.TODO()
 	qs := rec_test_qs
 	start := qs.FixedIterator()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
@@ -77,7 +80,7 @@ func TestRecursiveContains(t *testing.T) {
 	expected := []bool{true, true, false}
 
 	for i, v := range values {
-		ok := r.Contains(qs.ValueOf(quad.Raw(v)))
+		ok := r.Contains(ctx, qs.ValueOf(quad.Raw(v)))
 		if expected[i] != ok {
 			t.Errorf("Failed to %s, value: %s, got: %v, expected: %v", "check basic recursive contains", v, ok, expected[i])
 		}
@@ -85,6 +88,7 @@ func TestRecursiveContains(t *testing.T) {
 }
 
 func TestRecursiveNextPath(t *testing.T) {
+	ctx := context.TODO()
 	qs := rec_test_qs
 	start := qs.NodesAllIterator()
 	start.Tagger().Add("person")
@@ -98,11 +102,11 @@ func TestRecursiveNextPath(t *testing.T) {
 
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string
-	for r.Next() {
+	for r.Next(ctx) {
 		res := make(map[string]graph.Value)
 		r.TagResults(res)
 		got = append(got, qs.NameOf(res["person"]).String())
-		for r.NextPath() {
+		for r.NextPath(ctx) {
 			res := make(map[string]graph.Value)
 			r.TagResults(res)
 			got = append(got, qs.NameOf(res["person"]).String())

@@ -20,6 +20,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 
+	"context"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/writer"
 )
@@ -55,6 +56,7 @@ var testQueries = []struct {
 }
 
 func TestMemstoreBackedSexp(t *testing.T) {
+	ctx := context.TODO()
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
 	emptyIt := BuildIteratorTreeForQuery(qs, "()")
@@ -70,7 +72,7 @@ func TestMemstoreBackedSexp(t *testing.T) {
 			if it.Type() != test.typ {
 				t.Errorf("Incorrect type for %s, got:%q expect %q", test.message, it.Type(), test.expect)
 			}
-			if !it.Next() {
+			if !it.Next(ctx) {
 				t.Errorf("Failed to %s", test.message)
 			}
 			got := it.Result()
@@ -82,6 +84,7 @@ func TestMemstoreBackedSexp(t *testing.T) {
 }
 
 func TestTreeConstraintParse(t *testing.T) {
+	ctx := context.TODO()
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
 	w.AddQuad(quad.MakeRaw("i", "like", "food", ""))
@@ -93,7 +96,7 @@ func TestTreeConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Errorf("Odd iterator tree. Got: %#v", graph.DescribeIterator(it))
 	}
-	if !it.Next() {
+	if !it.Next(ctx) {
 		t.Error("Got no results")
 	}
 	out := it.Result()
@@ -103,6 +106,7 @@ func TestTreeConstraintParse(t *testing.T) {
 }
 
 func TestTreeConstraintTagParse(t *testing.T) {
+	ctx := context.TODO()
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
 	w.AddQuad(quad.MakeRaw("i", "like", "food", ""))
@@ -111,7 +115,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 		"(:like\n" +
 		"($a (:is :good))))"
 	it := BuildIteratorTreeForQuery(qs, query)
-	if !it.Next() {
+	if !it.Next(ctx) {
 		t.Error("Got no results")
 	}
 	tags := make(map[string]graph.Value)
@@ -123,6 +127,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 }
 
 func TestMultipleConstraintParse(t *testing.T) {
+	ctx := context.TODO()
 	qs, _ := graph.NewQuadStore("memstore", "", nil)
 	w, _ := graph.NewQuadWriter("single", qs, nil)
 	for _, tv := range []quad.Quad{
@@ -141,14 +146,14 @@ func TestMultipleConstraintParse(t *testing.T) {
 	if it.Type() != graph.And {
 		t.Errorf("Odd iterator tree. Got: %#v", graph.DescribeIterator(it))
 	}
-	if !it.Next() {
+	if !it.Next(ctx) {
 		t.Error("Got no results")
 	}
 	out := it.Result()
 	if out != qs.ValueOf(quad.Raw("i")) {
 		t.Errorf("Got %d, expected %d", out, qs.ValueOf(quad.Raw("i")))
 	}
-	if it.Next() {
+	if it.Next(ctx) {
 		t.Error("Too many results")
 	}
 }

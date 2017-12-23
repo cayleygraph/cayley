@@ -36,6 +36,7 @@ package iterator
 import (
 	"github.com/cayleygraph/cayley/clog"
 
+	"context"
 	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
@@ -133,7 +134,7 @@ func (it *HasA) String() string {
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "quads that have `val` in our direction", given to us by the quad store,
 // and then Next() values out of that iterator and Contains() them against our subiterator.
-func (it *HasA) Contains(val graph.Value) bool {
+func (it *HasA) Contains(ctx context.Context, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	if clog.V(4) {
@@ -144,7 +145,7 @@ func (it *HasA) Contains(val graph.Value) bool {
 		it.resultIt.Close()
 	}
 	it.resultIt = it.qs.QuadIterator(it.dir, val)
-	ok := it.NextContains()
+	ok := it.NextContains(ctx)
 	if it.err != nil {
 		return false
 	}
@@ -154,17 +155,17 @@ func (it *HasA) Contains(val graph.Value) bool {
 // NextContains() is shared code between Contains() and GetNextResult() -- calls next on the
 // result iterator (a quad iterator based on the last checked value) and returns true if
 // another match is made.
-func (it *HasA) NextContains() bool {
+func (it *HasA) NextContains(ctx context.Context) bool {
 	if it.resultIt == nil {
 		return false
 	}
-	for it.resultIt.Next() {
+	for it.resultIt.Next(ctx) {
 		it.runstats.ContainsNext += 1
 		link := it.resultIt.Result()
 		if clog.V(4) {
 			clog.Infof("Quad is %v", it.qs.Quad(link))
 		}
-		if it.primaryIt.Contains(link) {
+		if it.primaryIt.Contains(ctx, link) {
 			it.result = it.qs.QuadDirection(link, it.dir)
 			return true
 		}
@@ -174,7 +175,7 @@ func (it *HasA) NextContains() bool {
 }
 
 // Get the next result that matches this branch.
-func (it *HasA) NextPath() bool {
+func (it *HasA) NextPath(ctx context.Context) bool {
 	// Order here is important. If the subiterator has a NextPath, then we
 	// need do nothing -- there is a next result, and we shouldn't move forward.
 	// However, we then need to get the next result from our last Contains().
@@ -184,7 +185,7 @@ func (it *HasA) NextPath() bool {
 	if clog.V(4) {
 		clog.Infof("HASA %v NextPath", it.UID())
 	}
-	if it.primaryIt.NextPath() {
+	if it.primaryIt.NextPath(ctx) {
 		return true
 	}
 	it.err = it.primaryIt.Err()
@@ -192,7 +193,7 @@ func (it *HasA) NextPath() bool {
 		return false
 	}
 
-	result := it.NextContains() // Sets it.err if there's an error
+	result := it.NextContains(ctx) // Sets it.err if there's an error
 	if it.err != nil {
 		return false
 	}
@@ -205,14 +206,14 @@ func (it *HasA) NextPath() bool {
 // Next advances the iterator. This is simpler than Contains. We have a
 // subiterator we can get a value from, and we can take that resultant quad,
 // pull our direction out of it, and return that.
-func (it *HasA) Next() bool {
+func (it *HasA) Next(ctx context.Context) bool {
 	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	if it.resultIt != nil {
 		it.resultIt.Close()
 	}
 
-	if !it.primaryIt.Next() {
+	if !it.primaryIt.Next(ctx) {
 		it.err = it.primaryIt.Err()
 		return graph.NextLogOut(it, false)
 	}

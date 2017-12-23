@@ -19,6 +19,7 @@ import (
 	"io"
 	"math"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -80,7 +81,7 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Next() bool {
+func (it *Iterator) Next(ctx context.Context) bool {
 	graph.NextLogIn(it)
 	if it.iter == nil {
 		it.iter, it.err = it.tree.SeekFirst()
@@ -115,7 +116,7 @@ func (it *Iterator) Result() graph.Value {
 	return qprim{p: it.cur}
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -128,7 +129,7 @@ func (it *Iterator) Size() (int64, bool) {
 	return int64(it.tree.Len()), true
 }
 
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if v == nil {
 		return graph.ContainsLogOut(it, v, false)

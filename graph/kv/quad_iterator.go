@@ -50,7 +50,7 @@ func NewQuadIterator(qs *QuadStore, ind QuadIndex, vals []uint64) *QuadIterator 
 	return &QuadIterator{
 		qs:      qs,
 		ind:     ind,
-		horizon: qs.horizon(),
+		horizon: qs.horizon(context.TODO()),
 		uid:     iterator.NextUID(),
 		vals:    vals,
 		size:    -1,
@@ -126,7 +126,7 @@ func (it *QuadIterator) ensureTx() bool {
 	return true
 }
 
-func (it *QuadIterator) Next() bool {
+func (it *QuadIterator) Next(ctx context.Context) bool {
 	it.prim = nil
 	if it.err != nil || it.done {
 		return false
@@ -147,7 +147,7 @@ func (it *QuadIterator) Next() bool {
 				it.off = 0
 				it.ids = nil
 				it.buf = nil
-				if !it.it.Next(context.TODO()) {
+				if !it.it.Next(ctx) {
 					it.Close()
 					it.done = true
 					return false
@@ -161,7 +161,7 @@ func (it *QuadIterator) Next() bool {
 			if len(ids) > nextBatch {
 				ids = ids[:nextBatch]
 			}
-			it.buf, it.err = it.qs.getPrimitivesFromLog(it.tx, ids)
+			it.buf, it.err = it.qs.getPrimitivesFromLog(ctx, it.tx, ids)
 			if it.err != nil {
 				return false
 			}
@@ -179,11 +179,11 @@ func (it *QuadIterator) Next() bool {
 	}
 }
 
-func (it *QuadIterator) NextPath() bool {
+func (it *QuadIterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *QuadIterator) Contains(v graph.Value) bool {
+func (it *QuadIterator) Contains(ctx context.Context, v graph.Value) bool {
 	it.prim = nil
 	p, ok := v.(*proto.Primitive)
 	if !ok {
@@ -207,11 +207,12 @@ func (it *QuadIterator) Size() (int64, bool) {
 	} else if it.size >= 0 {
 		return it.size, true
 	}
+	ctx := context.TODO()
 	if len(it.ind.Dirs) == len(it.vals) {
 		var ids []uint64
 		it.err = View(it.qs.db, func(tx BucketTx) error {
 			b := tx.Bucket(it.ind.Bucket())
-			vals, err := b.Get([][]byte{it.ind.Key(it.vals)})
+			vals, err := b.Get(ctx, [][]byte{it.ind.Key(it.vals)})
 			if err != nil {
 				return err
 			}

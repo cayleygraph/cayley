@@ -15,6 +15,7 @@
 package kv
 
 import (
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
@@ -48,7 +49,7 @@ func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
 	return &AllIterator{
 		nodes:   nodes,
 		qs:      qs,
-		horizon: qs.horizon(),
+		horizon: qs.horizon(context.TODO()),
 		uid:     iterator.NextUID(),
 		cons:    cons,
 	}
@@ -104,7 +105,7 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 
 const nextBatch = 100
 
-func (it *AllIterator) Next() bool {
+func (it *AllIterator) Next(ctx context.Context) bool {
 	if it.err != nil {
 		return false
 	}
@@ -124,7 +125,7 @@ func (it *AllIterator) Next() bool {
 			if len(ids) == 0 {
 				return false
 			}
-			it.buf, it.err = it.qs.getPrimitives(ids)
+			it.buf, it.err = it.qs.getPrimitives(ctx, ids)
 			if it.err != nil || len(it.buf) == 0 {
 				return false
 			}
@@ -153,11 +154,11 @@ func (it *AllIterator) Next() bool {
 	}
 }
 
-func (it *AllIterator) NextPath() bool {
+func (it *AllIterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *AllIterator) Contains(v graph.Value) bool {
+func (it *AllIterator) Contains(ctx context.Context, v graph.Value) bool {
 	if it.nodes {
 		x, ok := v.(Int64Value)
 		if !ok {

@@ -143,7 +143,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 		it := qs.QuadIterator(quad.Subject, s)
 		defer it.Close()
 		m := make(map[interface{}]property)
-		for it.Next() {
+		for it.Next(ictx) {
 			q := it.Result()
 			p := qs.QuadDirection(q, quad.Predicate)
 			o := qs.QuadDirection(q, quad.Object)
@@ -162,7 +162,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 			seen[ph] = s
 			return
 		}
-		if gerr = dedupValueTx(h, tx, s, id); gerr != nil {
+		if gerr = dedupValueTx(ictx, h, tx, s, id); gerr != nil {
 			cancel()
 		}
 		txn++
@@ -178,11 +178,11 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 	return err
 }
 
-func dedupValueTx(h *graph.Handle, tx *graph.Transaction, a, b graph.Value) error {
+func dedupValueTx(ctx context.Context, h *graph.Handle, tx *graph.Transaction, a, b graph.Value) error {
 	v := h.NameOf(b)
 	it := h.QuadIterator(quad.Object, a)
 	defer it.Close()
-	for it.Next() {
+	for it.Next(ctx) {
 		// TODO(dennwc): we should be able to add "raw" quads without getting values for directions
 		q := h.Quad(it.Result())
 		tx.RemoveQuad(q)
@@ -196,7 +196,7 @@ func dedupValueTx(h *graph.Handle, tx *graph.Transaction, a, b graph.Value) erro
 
 	it = h.QuadIterator(quad.Subject, a)
 	defer it.Close()
-	for it.Next() {
+	for it.Next(ctx) {
 		q := h.Quad(it.Result())
 		tx.RemoveQuad(q)
 	}

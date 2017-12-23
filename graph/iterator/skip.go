@@ -1,6 +1,7 @@
 package iterator
 
 import (
+	"context"
 	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -52,14 +53,14 @@ func (it *Skip) SubIterators() []graph.Iterator {
 
 // Next advances the Skip iterator. It will skip all initial values
 // before returning actual result.
-func (it *Skip) Next() bool {
+func (it *Skip) Next(ctx context.Context) bool {
 	graph.NextLogIn(it)
 	for ; it.skipped < it.skip; it.skipped++ {
-		if !it.primaryIt.Next() {
+		if !it.primaryIt.Next(ctx) {
 			return graph.NextLogOut(it, false)
 		}
 	}
-	if it.primaryIt.Next() {
+	if it.primaryIt.Next(ctx) {
 		return graph.NextLogOut(it, true)
 	}
 	return graph.NextLogOut(it, false)
@@ -73,19 +74,19 @@ func (it *Skip) Result() graph.Value {
 	return it.primaryIt.Result()
 }
 
-func (it *Skip) Contains(val graph.Value) bool {
-	return it.primaryIt.Contains(val) // FIXME(dennwc): will not skip anything in this case
+func (it *Skip) Contains(ctx context.Context, val graph.Value) bool {
+	return it.primaryIt.Contains(ctx, val) // FIXME(dennwc): will not skip anything in this case
 }
 
 // NextPath checks whether there is another path. It will skip first paths
 // according to iterator parameter.
-func (it *Skip) NextPath() bool {
+func (it *Skip) NextPath(ctx context.Context) bool {
 	for ; it.skipped < it.skip; it.skipped++ {
-		if !it.primaryIt.NextPath() {
+		if !it.primaryIt.NextPath(ctx) {
 			return false
 		}
 	}
-	return it.primaryIt.NextPath()
+	return it.primaryIt.NextPath(ctx)
 }
 
 // Close closes the primary and all iterators.  It closes all subiterators

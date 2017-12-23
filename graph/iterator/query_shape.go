@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -129,7 +130,7 @@ func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 		}
 	case graph.Fixed:
 		n.IsFixed = true
-		for it.Next() {
+		for it.Next(context.TODO()) {
 			n.Values = append(n.Values, s.qs.NameOf(it.Result()).String())
 		}
 	case graph.HasA:

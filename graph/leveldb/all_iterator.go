@@ -20,6 +20,7 @@ import (
 	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -95,7 +96,7 @@ func (it *AllIterator) Clone() graph.Iterator {
 	return out
 }
 
-func (it *AllIterator) Next() bool {
+func (it *AllIterator) Next(ctx context.Context) bool {
 	if it.iter == nil {
 		it.result = nil
 		return false
@@ -136,7 +137,7 @@ func (it *AllIterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *AllIterator) NextPath() bool {
+func (it *AllIterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -145,7 +146,7 @@ func (it *AllIterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *AllIterator) Contains(v graph.Value) bool {
+func (it *AllIterator) Contains(ctx context.Context, v graph.Value) bool {
 	it.result = v
 	return true
 }

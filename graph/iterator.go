@@ -17,6 +17,7 @@ package graph
 // Define the general iterator interface.
 
 import (
+	"context"
 	"strings"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -105,7 +106,7 @@ type Iterator interface {
 	// the Result method. It returns false if no further advancement is possible, or if an
 	// error was encountered during iteration.  Err should be consulted to distinguish
 	// between the two cases.
-	Next() bool
+	Next(ctx context.Context) bool
 
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
@@ -125,10 +126,10 @@ type Iterator interface {
 	//
 	// NextPath() advances iterators that may have more than one valid result,
 	// from the bottom up.
-	NextPath() bool
+	NextPath(ctx context.Context) bool
 
 	// Contains returns whether the value is within the set held by the iterator.
-	Contains(Value) bool
+	Contains(ctx context.Context, v Value) bool
 
 	// Err returns any error that was encountered by the Iterator.
 	Err() error

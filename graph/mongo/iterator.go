@@ -18,6 +18,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"context"
 	"fmt"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -131,7 +132,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	return m
 }
 
-func (it *Iterator) Next() bool {
+func (it *Iterator) Next(ctx context.Context) bool {
 	var result struct {
 		ID      string     `bson:"_id"`
 		Added   []bson.Raw `bson:"Added"`
@@ -150,7 +151,7 @@ func (it *Iterator) Next() bool {
 		return false
 	}
 	if it.collection == "quads" && len(result.Added) <= len(result.Deleted) {
-		return it.Next()
+		return it.Next(ctx)
 	}
 	if it.collection == "quads" {
 		it.result = QuadHash(result.ID)
@@ -168,7 +169,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -177,7 +178,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	graph.ContainsLogIn(it, v)
 	if it.isAll {
 		it.result = v

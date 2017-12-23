@@ -15,6 +15,7 @@
 package memstore
 
 import (
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -66,7 +67,7 @@ func (it *AllIterator) ok(p *primitive) bool {
 	return false
 }
 
-func (it *AllIterator) Next() bool {
+func (it *AllIterator) Next(ctx context.Context) bool {
 	it.cur = nil
 	if it.done {
 		return false
@@ -91,7 +92,7 @@ func (it *AllIterator) Next() bool {
 	return false
 }
 
-func (it *AllIterator) Contains(v graph.Value) bool {
+func (it *AllIterator) Contains(ctx context.Context, v graph.Value) bool {
 	it.cur = nil
 	if it.done {
 		return false
@@ -144,7 +145,7 @@ func (it *AllIterator) Type() graph.Type { return graph.All }
 func (it *AllIterator) String() string {
 	return "MemStoreAll"
 }
-func (it *AllIterator) NextPath() bool { return false }
+func (it *AllIterator) NextPath(ctx context.Context) bool { return false }
 
 func (it *AllIterator) Size() (int64, bool) {
 	// TODO: use maxid?

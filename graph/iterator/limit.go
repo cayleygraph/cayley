@@ -1,6 +1,7 @@
 package iterator
 
 import (
+	"context"
 	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -52,12 +53,12 @@ func (it *Limit) SubIterators() []graph.Iterator {
 }
 
 // Next advances the Limit iterator. It will stop iteration if limit was reached.
-func (it *Limit) Next() bool {
+func (it *Limit) Next(ctx context.Context) bool {
 	graph.NextLogIn(it)
 	if it.limit > 0 && it.count >= it.limit {
 		return graph.NextLogOut(it, false)
 	}
-	if it.primaryIt.Next() {
+	if it.primaryIt.Next(ctx) {
 		it.count++
 		return graph.NextLogOut(it, true)
 	}
@@ -72,17 +73,17 @@ func (it *Limit) Result() graph.Value {
 	return it.primaryIt.Result()
 }
 
-func (it *Limit) Contains(val graph.Value) bool {
-	return it.primaryIt.Contains(val) // FIXME(dennwc): limit is ignored in this case
+func (it *Limit) Contains(ctx context.Context, val graph.Value) bool {
+	return it.primaryIt.Contains(ctx, val) // FIXME(dennwc): limit is ignored in this case
 }
 
 // NextPath checks whether there is another path. Will call primary iterator
 // if limit is not reached yet.
-func (it *Limit) NextPath() bool {
+func (it *Limit) NextPath(ctx context.Context) bool {
 	if it.limit > 0 && it.count >= it.limit {
 		return false
 	}
-	if it.primaryIt.NextPath() {
+	if it.primaryIt.NextPath(ctx) {
 		it.count++
 		return true
 	}

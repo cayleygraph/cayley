@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
@@ -93,6 +94,7 @@ func randString() string {
 }
 
 func testConcurrent(t testing.TB, gen DatabaseFunc) {
+	ctx := context.TODO()
 	qs, opts, closer := NewQuadStore(t, gen)
 	defer closer()
 	if opts == nil {
@@ -134,7 +136,7 @@ func testConcurrent(t testing.TB, gen DatabaseFunc) {
 			}
 			n1 := subjects[rand.Intn(len(subjects))]
 			it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.String(n1)))
-			for it.Next() {
+			for it.Next(ctx) {
 				q := qs.Quad(it.Result())
 				_ = q.Subject.Native()
 				_ = q.Predicate.Native()

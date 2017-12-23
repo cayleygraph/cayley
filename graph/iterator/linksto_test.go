@@ -17,12 +17,14 @@ package iterator_test
 import (
 	"testing"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 func TestLinksTo(t *testing.T) {
+	ctx := context.TODO()
 	qs := &graphmock.Oldstore{
 		Data: []string{1: "cool"},
 		Iter: NewFixed(Identity),
@@ -35,7 +37,7 @@ func TestLinksTo(t *testing.T) {
 	}
 	fixed.Add(val)
 	lto := NewLinksTo(qs, fixed, quad.Object)
-	if !lto.Next() {
+	if !lto.Next(ctx) {
 		t.Error("At least one quad matches the fixed object")
 	}
 	val = lto.Result()

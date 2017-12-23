@@ -14,6 +14,7 @@ import (
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/cayley/voc"
 	// Import RDF vocabulary definitions to be able to expand IRIs like rdf:label.
+	"context"
 	_ "github.com/cayleygraph/cayley/voc/core"
 )
 
@@ -117,8 +118,9 @@ func main() {
 
 	// Print quads
 	fmt.Println("\nquads:")
+	ctx := context.TODO()
 	it := store.QuadsAllIterator()
-	for it.Next() {
+	for it.Next(ctx) {
 		fmt.Println(store.Quad(it.Result()))
 	}
 }

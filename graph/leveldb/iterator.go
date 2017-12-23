@@ -21,6 +21,7 @@ import (
 	ldbit "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
@@ -112,7 +113,7 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Next() bool {
+func (it *Iterator) Next(ctx context.Context) bool {
 	if it.iter == nil {
 		it.result = nil
 		return false
@@ -155,7 +156,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -216,7 +217,7 @@ func PositionOf(prefix []byte, d quad.Direction, qs *QuadStore) int {
 	panic("unreachable")
 }
 
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	val := v.(Token)
 	if val.IsNode() {
 		return false

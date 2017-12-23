@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -100,8 +101,9 @@ func MakeQuadSet() []quad.Quad {
 }
 
 func IteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Quad {
+	ctx := context.TODO()
 	var res quad.ByQuadString
-	for it.Next() {
+	for it.Next(ctx) {
 		res = append(res, qs.Quad(it.Result()))
 	}
 	require.Nil(t, it.Err())
@@ -140,8 +142,9 @@ func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator, e
 }
 
 func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []string {
+	ctx := context.TODO()
 	var res []string
-	for it.Next() {
+	for it.Next(ctx) {
 		res = append(res, quad.StringOf(qs.NameOf(it.Result())))
 	}
 	require.Nil(t, it.Err())
@@ -150,8 +153,9 @@ func IteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterator) []s
 }
 
 func IteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Value {
+	ctx := context.TODO()
 	var res []quad.Value
-	for it.Next() {
+	for it.Next(ctx) {
 		res = append(res, qs.NameOf(it.Result()))
 	}
 	require.Nil(t, it.Err())
@@ -264,6 +268,7 @@ func TestHorizonInt(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 }
 
 func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
+	ctx := context.TODO()
 	qs, opts, closer := gen(t)
 	defer closer()
 
@@ -307,7 +312,7 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	}
 
 	for _, pq := range expect {
-		ok := it.Contains(qs.ValueOf(quad.Raw(pq)))
+		ok := it.Contains(ctx, qs.ValueOf(quad.Raw(pq)))
 		require.NoError(t, it.Err())
 		require.True(t, ok, "Failed to find and check %q correctly", pq)
 
@@ -326,7 +331,7 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	optIt, changed = it.Optimize()
 	require.True(t, !changed && optIt == it, "Optimize unexpectedly changed iterator: %v, %T", changed, optIt)
 
-	require.True(t, it.Next())
+	require.True(t, it.Next(ctx))
 
 	q := qs.Quad(it.Result())
 	require.Nil(t, it.Err())
@@ -693,6 +698,7 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 }
 
 func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
+	ctx := context.TODO()
 	qs, opts, closer := gen(t)
 	defer closer()
 
@@ -720,7 +726,7 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
 	outerAnd := iterator.NewAnd(qs, fixed, hasa)
 
-	require.True(t, outerAnd.Next(), "Expected one matching subtree")
+	require.True(t, outerAnd.Next(ctx), "Expected one matching subtree")
 
 	val := outerAnd.Result()
 	require.Equal(t, quad.Raw("C"), qs.NameOf(val))
@@ -731,7 +737,7 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	)
 	for {
 		got = append(got, quad.StringOf(qs.NameOf(all.Result())))
-		if !outerAnd.NextPath() {
+		if !outerAnd.NextPath(ctx) {
 			break
 		}
 	}
@@ -739,7 +745,7 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 
 	require.Equal(t, expect, got)
 
-	require.True(t, !outerAnd.Next(), "More than one possible top level output?")
+	require.True(t, !outerAnd.Next(ctx), "More than one possible top level output?")
 }
 
 const lt, lte, gt, gte = iterator.CompareLT, iterator.CompareLTE, iterator.CompareGT, iterator.CompareGTE

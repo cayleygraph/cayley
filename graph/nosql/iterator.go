@@ -120,8 +120,7 @@ func (it *Iterator) Clone() graph.Iterator {
 	return m
 }
 
-func (it *Iterator) Next() bool {
-	ctx := context.TODO()
+func (it *Iterator) Next(ctx context.Context) bool {
 	if it.iter == nil {
 		it.iter = it.makeIterator()
 	}
@@ -163,7 +162,7 @@ func (it *Iterator) Result() graph.Value {
 	return it.result
 }
 
-func (it *Iterator) NextPath() bool {
+func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
@@ -171,7 +170,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) Contains(v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	if len(it.links) != 0 {
 		qh := v.(QuadHash)
 		for _, l := range it.links {

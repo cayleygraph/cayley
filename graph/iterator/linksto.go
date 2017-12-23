@@ -30,6 +30,7 @@ package iterator
 // Can be seen as the dual of the HasA iterator.
 
 import (
+	"context"
 	"fmt"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
@@ -102,11 +103,11 @@ func (it *LinksTo) String() string {
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
-func (it *LinksTo) Contains(val graph.Value) bool {
+func (it *LinksTo) Contains(ctx context.Context, val graph.Value) bool {
 	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	node := it.qs.QuadDirection(val, it.dir)
-	if it.primaryIt.Contains(node) {
+	if it.primaryIt.Contains(ctx, node) {
 		it.result = val
 		return graph.ContainsLogOut(it, val, true)
 	}
@@ -141,11 +142,11 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 }
 
 // Next()ing a LinksTo operates as described above.
-func (it *LinksTo) Next() bool {
+func (it *LinksTo) Next(ctx context.Context) bool {
 	for {
 		graph.NextLogIn(it)
 		it.runstats.Next += 1
-		if it.nextIt.Next() {
+		if it.nextIt.Next(ctx) {
 			it.runstats.ContainsNext += 1
 			it.result = it.nextIt.Result()
 			return graph.NextLogOut(it, true)
@@ -158,7 +159,7 @@ func (it *LinksTo) Next() bool {
 		}
 
 		// Subiterator is empty, get another one
-		if !it.primaryIt.Next() {
+		if !it.primaryIt.Next(ctx) {
 			// Possibly save error
 			it.err = it.primaryIt.Err()
 
@@ -194,8 +195,8 @@ func (it *LinksTo) Close() error {
 }
 
 // We won't ever have a new result, but our subiterators might.
-func (it *LinksTo) NextPath() bool {
-	ok := it.primaryIt.NextPath()
+func (it *LinksTo) NextPath(ctx context.Context) bool {
+	ok := it.primaryIt.NextPath(ctx)
 	if !ok {
 		it.err = it.primaryIt.Err()
 	}

@@ -26,16 +26,17 @@ import (
 	"fmt"
 	"reflect"
 
+	"context"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 type BatchQuadStore interface {
-	ValuesOf([]Value) ([]quad.Value, error)
+	ValuesOf(ctx context.Context, vals []Value) ([]quad.Value, error)
 }
 
-func ValuesOf(qs QuadStore, vals []Value) ([]quad.Value, error) {
+func ValuesOf(ctx context.Context, qs QuadStore, vals []Value) ([]quad.Value, error) {
 	if bq, ok := qs.(BatchQuadStore); ok {
-		return bq.ValuesOf(vals)
+		return bq.ValuesOf(ctx, vals)
 	}
 	out := make([]quad.Value, len(vals))
 	for i, v := range vals {
@@ -47,7 +48,7 @@ func ValuesOf(qs QuadStore, vals []Value) ([]quad.Value, error) {
 type QuadStore interface {
 	// The only way in is through building a transaction, which
 	// is done by a replication strategy.
-	ApplyDeltas([]Delta, IgnoreOpts) error
+	ApplyDeltas(in []Delta, opts IgnoreOpts) error
 
 	// Given an opaque token, returns the quad for that token from the store.
 	Quad(Value) quad.Quad

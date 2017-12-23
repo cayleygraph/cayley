@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
@@ -165,6 +166,7 @@ func TestLoadDatabase(t *testing.T) {
 }
 
 func TestOptimize(t *testing.T) {
+	ctx := context.TODO()
 	qs, opts, closer := makeBolt(t)
 	defer closer()
 
@@ -191,10 +193,10 @@ func TestOptimize(t *testing.T) {
 		t.Errorf("Optimized iteration does not match original")
 	}
 
-	oldIt.Next()
+	oldIt.Next(ctx)
 	oldResults := make(map[string]graph.Value)
 	oldIt.TagResults(oldResults)
-	newIt.Next()
+	newIt.Next(ctx)
 	newResults := make(map[string]graph.Value)
 	newIt.TagResults(newResults)
 	if !reflect.DeepEqual(newResults, oldResults) {
