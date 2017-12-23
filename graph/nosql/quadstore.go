@@ -136,7 +136,6 @@ const (
 	fldBNode    = "bnode"
 	fldType     = "type"
 	fldLang     = "lang"
-	fldRaw      = "raw"
 	fldValInt   = "int"
 	fldValFloat = "float"
 	fldValBool  = "bool"
@@ -386,8 +385,6 @@ func toDocumentValue(v quad.Value) Document {
 	switch d := v.(type) {
 	case quad.String:
 		doc = Document{fldValData: String(d)}
-	case quad.Raw:
-		doc = Document{fldValData: String(d), fldRaw: Bool(true)}
 	case quad.IRI:
 		doc = Document{fldValData: String(d), fldIRI: Bool(true)}
 	case quad.BNode:
@@ -496,8 +493,6 @@ func toQuadValue(d Document) (quad.Value, error) {
 		return quad.IRI(vs), nil
 	} else if ok, _ := d[fldBNode].(Bool); ok {
 		return quad.BNode(vs), nil
-	} else if ok, _ := d[fldRaw].(Bool); ok {
-		return quad.Raw(vs), nil
 	} else if typ, ok := d[fldType].(String); ok {
 		return quad.TypedString{Value: quad.String(vs), Type: quad.IRI(typ)}, nil
 	} else if typ, ok := d[fldLang].(String); ok {

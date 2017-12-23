@@ -93,7 +93,6 @@ func toFieldFilter(c shape.Comparison) ([]FieldFilter, bool) {
 			{Path: fieldPath(fldValData), Filter: op, Value: String(v)},
 			{Path: fieldPath(fldIRI), Filter: NotEqual, Value: Bool(true)},
 			{Path: fieldPath(fldBNode), Filter: NotEqual, Value: Bool(true)},
-			{Path: fieldPath(fldRaw), Filter: NotEqual, Value: Bool(true)},
 		}
 	case quad.IRI:
 		filters = []FieldFilter{

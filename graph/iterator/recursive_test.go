@@ -61,7 +61,7 @@ func TestRecursiveNext(t *testing.T) {
 
 	var got []string
 	for r.Next(ctx) {
-		got = append(got, qs.NameOf(r.Result()).String())
+		got = append(got, quad.ToString(qs.NameOf(r.Result())))
 	}
 	sort.Strings(expected)
 	sort.Strings(got)
@@ -105,11 +105,11 @@ func TestRecursiveNextPath(t *testing.T) {
 	for r.Next(ctx) {
 		res := make(map[string]graph.Value)
 		r.TagResults(res)
-		got = append(got, qs.NameOf(res["person"]).String())
+		got = append(got, quad.ToString(qs.NameOf(res["person"])))
 		for r.NextPath(ctx) {
 			res := make(map[string]graph.Value)
 			r.TagResults(res)
-			got = append(got, qs.NameOf(res["person"]).String())
+			got = append(got, quad.ToString(qs.NameOf(res["person"])))
 		}
 	}
 	sort.Strings(expected)

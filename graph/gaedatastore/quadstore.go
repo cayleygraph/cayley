@@ -461,11 +461,15 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 			clog.Errorf("Error: %v", err)
 		}
 	}
-	return quad.MakeRaw(
+	var label interface{}
+	if q.Label != "" {
+		label = q.Label
+	}
+	return quad.Make(
 		q.Subject,
 		q.Predicate,
 		q.Object,
-		q.Label,
+		label,
 	)
 }
 

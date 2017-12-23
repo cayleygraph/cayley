@@ -48,6 +48,9 @@ const (
 )
 
 func TestIntegration(t *testing.T, gen testutil.DatabaseFunc, force bool) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	if !force && os.Getenv("RUN_INTEGRATION") != "true" {
 		t.Skip("skipping integration tests; set RUN_INTEGRATION=true to run them")
 	}

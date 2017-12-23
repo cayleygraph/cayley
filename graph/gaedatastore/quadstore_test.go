@@ -107,8 +107,8 @@ func TestIterators(t *testing.T) {
 	require.Equal(t, int64(11), qs.Size(), "Incorrect number of quads")
 
 	var expected = []quad.Quad{
-		quad.MakeRaw("C", "follows", "B", ""),
-		quad.MakeRaw("C", "follows", "D", ""),
+		quad.Make("C", "follows", "B", ""),
+		quad.Make("C", "follows", "D", ""),
 	}
 
 	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("C")))
@@ -117,7 +117,7 @@ func TestIterators(t *testing.T) {
 	// Test contains
 	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.Raw("status_graph")))
 	gqs := qs.(*QuadStore)
-	key := gqs.createKeyForQuad(quad.MakeRaw("G", "status", "cool", "status_graph"))
+	key := gqs.createKeyForQuad(quad.Make("G", "status", "cool", "status_graph"))
 	token := &Token{quadKind, key.StringID()}
 
 	require.True(t, it.Contains(token), "Contains failed")

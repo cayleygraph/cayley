@@ -80,8 +80,6 @@ func (it *Comparison) Operator() Operator { return it.op }
 func (it *Comparison) doComparison(val graph.Value) bool {
 	qval := it.qs.NameOf(val)
 	switch cVal := it.val.(type) {
-	case quad.Raw:
-		return RunStrOp(quad.StringOf(qval), it.op, string(cVal))
 	case quad.Int:
 		if cVal2, ok := qval.(quad.Int); ok {
 			return RunIntOp(cVal2, it.op, cVal)

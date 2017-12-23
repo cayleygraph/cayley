@@ -120,7 +120,7 @@ func TestTreeConstraintTagParse(t *testing.T) {
 	}
 	tags := make(map[string]graph.Value)
 	it.TagResults(tags)
-	if qs.NameOf(tags["$a"]).String() != "food" {
+	if quad.ToString(qs.NameOf(tags["$a"])) != "food" {
 		t.Errorf("Got %s, expected food", qs.NameOf(tags["$a"]))
 	}
 

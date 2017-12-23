@@ -121,7 +121,7 @@ var writeTests = []struct {
 			quad.MakeRaw("foo", "bar", `"baz"`, ""),
 		},
 		expect: `[
-	{"subject":"foo","predicate":"bar","object":"\"baz\""}
+	{"subject":"foo","predicate":"bar","object":"baz"}
 ]
 `,
 		err: nil,

@@ -16,8 +16,7 @@ import (
 )
 
 func IsValidValue(v Value) bool {
-	rv, ok := v.(Raw)
-	return v != nil && (!ok || rv != "")
+	return v != nil
 }
 
 // Value is a type used by all quad directions.
@@ -125,6 +124,8 @@ func StringToValue(v string) Value {
 	if len(v) > 2 {
 		if v[0] == '<' && v[len(v)-1] == '>' {
 			return IRI(v[1 : len(v)-1])
+		} else if v[0] == '"' && v[len(v)-1] == '"' {
+			return String(v[1 : len(v)-1])
 		} else if v[:2] == "_:" {
 			return BNode(v[2:])
 		}
@@ -132,11 +133,20 @@ func StringToValue(v string) Value {
 	return String(v)
 }
 
-// Raw is a Turtle/NQuads-encoded value.
-type Raw string
+// ToString casts a values to String or falls back to StringOf.
+func ToString(v Value) string {
+	if s, ok := v.(String); ok {
+		return string(s)
+	}
+	return StringOf(v)
+}
 
-func (s Raw) String() string      { return string(s) }
-func (s Raw) Native() interface{} { return s }
+// Raw is a Turtle/NQuads-encoded value.
+//
+// Deprecated: use IRI or String instead.
+func Raw(s string) Value {
+	return StringToValue(s)
+}
 
 // String is an RDF string value (ex: "name").
 type String string

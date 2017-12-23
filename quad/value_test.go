@@ -9,7 +9,6 @@ var hashCases = []struct {
 	val  Value
 	hash string
 }{
-	{Raw(`abc`), "a9993e364706816aba3e25717850c26c9cd0d89d"},
 	{String(`abc`), "b87f4bf9b7b07f594430548b653b4998e4b40402"},
 	{Raw(`"abc"`), "b87f4bf9b7b07f594430548b653b4998e4b40402"},
 	{BNode(`abc`), "3603f98d3203a037ffa6b8780b97ef8bc964fd94"},

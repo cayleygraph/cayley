@@ -66,18 +66,20 @@ func Make(subject, predicate, object, label interface{}) (q Quad) {
 }
 
 // MakeRaw creates a quad with provided raw values (nquads-escaped).
+//
+// Deprecated: use Make pr MakeIRI instead.
 func MakeRaw(subject, predicate, object, label string) (q Quad) {
 	if subject != "" {
-		q.Subject = Raw(subject)
+		q.Subject = StringToValue(subject)
 	}
 	if predicate != "" {
-		q.Predicate = Raw(predicate)
+		q.Predicate = StringToValue(predicate)
 	}
 	if object != "" {
-		q.Object = Raw(object)
+		q.Object = StringToValue(object)
 	}
 	if label != "" {
-		q.Label = Raw(label)
+		q.Label = StringToValue(label)
 	}
 	return
 }
@@ -121,12 +123,12 @@ type rawQuad struct {
 
 func (q Quad) MarshalJSON() ([]byte, error) {
 	rq := rawQuad{
-		Subject:   q.Subject.String(),
-		Predicate: q.Predicate.String(),
-		Object:    q.Object.String(),
+		Subject:   ToString(q.Subject),
+		Predicate: ToString(q.Predicate),
+		Object:    ToString(q.Object),
 	}
 	if q.Label != nil {
-		rq.Label = q.Label.String()
+		rq.Label = ToString(q.Label)
 	}
 	return json.Marshal(rq)
 }

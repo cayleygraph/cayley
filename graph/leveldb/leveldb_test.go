@@ -109,7 +109,7 @@ func TestLoadDatabase(t *testing.T) {
 		t.Fatal("Failed to add quad:", err)
 	}
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
-		if got := quad.StringOf(qs.NameOf(qs.ValueOf(quad.Raw(pq)))); got != pq {
+		if got := quad.ToString(qs.NameOf(qs.ValueOf(quad.Raw(pq)))); got != pq {
 			t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)
 		}
 	}

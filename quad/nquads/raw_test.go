@@ -537,7 +537,7 @@ func TestRDFWorkingGroupSuitRaw(t *testing.T) {
 func TestUnescapeRaw(t *testing.T) {
 	for _, test := range escapeSequenceTests {
 		got := unEscapeRaw([]rune(test.input), true)
-		if got == nil || got.String() != test.expect {
+		if got == nil || quad.ToString(got) != test.expect {
 			t.Errorf("Failed to properly unescape %q, got:%q expect:%q", test.input, got, test.expect)
 		}
 	}

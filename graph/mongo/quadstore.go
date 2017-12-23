@@ -378,8 +378,6 @@ func toMongoValue(v quad.Value) value {
 		return nil
 	}
 	switch d := v.(type) {
-	case quad.Raw:
-		return string(d) // compatibility
 	case quad.String:
 		return mongoString{Value: string(d)}
 	case quad.IRI:

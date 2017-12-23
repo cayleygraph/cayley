@@ -44,7 +44,7 @@ func (qs *Oldstore) ValueOf(s quad.Value) graph.Value {
 		return nil
 	}
 	for i := range qs.Data {
-		if s.String() == qs.valueAt(i).String() {
+		if va := qs.valueAt(i); va != nil && s.String() == va.String() {
 			return iterator.Int64Node(i)
 		}
 	}
@@ -75,7 +75,7 @@ func (qs *Oldstore) NameOf(v graph.Value) quad.Value {
 		if qs.Parse {
 			return quad.String(v.(StringNode))
 		}
-		return quad.Raw(v.(StringNode))
+		return quad.Raw(string(v.(StringNode)))
 	default:
 		return nil
 	}

@@ -828,7 +828,7 @@ var escapeSequenceTests = []struct {
 func TestUnescape(t *testing.T) {
 	for _, test := range escapeSequenceTests {
 		got := unEscape([]rune(test.input), -1, false, true)
-		if got == nil || got.String() != test.expect {
+		if got == nil || quad.ToString(got) != test.expect {
 			t.Errorf("Failed to properly unescape %q, got:%q expect:%q", test.input, got, test.expect)
 		}
 	}

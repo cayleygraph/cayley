@@ -100,14 +100,14 @@ func TestLoadDatabase(t *testing.T) {
 	}
 
 	w, _ := writer.NewSingleReplication(qs, nil)
-	w.AddQuad(quad.MakeRaw(
+	w.AddQuad(quad.Make(
 		"Something",
 		"points_to",
 		"Something Else",
 		"context",
 	))
 	for _, pq := range []string{"Something", "points_to", "Something Else", "context"} {
-		if got := qs.NameOf(qs.ValueOf(quad.Raw(pq))).String(); got != pq {
+		if got := quad.ToString(qs.NameOf(qs.ValueOf(quad.Raw(pq)))); got != pq {
 			t.Errorf("Failed to roundtrip %q, got:%q expect:%q", pq, got, pq)
 		}
 	}
@@ -139,11 +139,11 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
 	}
 
-	w.RemoveQuad(quad.MakeRaw(
+	w.RemoveQuad(quad.Make(
 		"A",
 		"follows",
 		"B",
-		"",
+		nil,
 	))
 	if s := qs.Size(); s != 11 {
 		t.Errorf("Unexpected quadstore size after RemoveQuad, got:%d expect:11", s)

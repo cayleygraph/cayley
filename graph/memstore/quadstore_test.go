@@ -140,7 +140,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, quad.StringOf(qs.NameOf(all.Result())))
+		got = append(got, quad.ToString(qs.NameOf(all.Result())))
 		if !outerAnd.NextPath(ctx) {
 			break
 		}
@@ -191,11 +191,11 @@ func TestRemoveQuad(t *testing.T) {
 	ctx := context.TODO()
 	qs, w, _ := makeTestStore(simpleGraph)
 
-	err := w.RemoveQuad(quad.MakeRaw(
+	err := w.RemoveQuad(quad.Make(
 		"E",
 		"follows",
 		"F",
-		"",
+		nil,
 	))
 
 	if err != nil {
@@ -226,16 +226,16 @@ func TestTransaction(t *testing.T) {
 	size := qs.Size()
 
 	tx := graph.NewTransaction()
-	tx.AddQuad(quad.MakeRaw(
+	tx.AddQuad(quad.Make(
 		"E",
 		"follows",
 		"G",
-		""))
-	tx.RemoveQuad(quad.MakeRaw(
+		nil))
+	tx.RemoveQuad(quad.Make(
 		"Non",
 		"existent",
 		"quad",
-		""))
+		nil))
 
 	err := w.ApplyTransaction(tx)
 	if err == nil {

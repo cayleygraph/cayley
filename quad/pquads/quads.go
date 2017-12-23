@@ -15,8 +15,8 @@ func MakeValue(qv quad.Value) *Value {
 		return nil
 	}
 	switch v := qv.(type) {
-	case quad.Raw:
-		return &Value{&Value_Raw{[]byte(v)}}
+	//case quad.Raw:
+	//	return &Value{&Value_Raw{[]byte(v)}}
 	case quad.String:
 		return &Value{&Value_Str{string(v)}}
 	case quad.IRI:
@@ -79,7 +79,7 @@ func (m *Value) ToNative() (qv quad.Value) {
 	}
 	switch v := m.Value.(type) {
 	case *Value_Raw:
-		return quad.Raw(v.Raw)
+		return quad.StringToValue(string(v.Raw))
 	case *Value_Str:
 		return quad.String(v.Str)
 	case *Value_Iri:
@@ -188,22 +188,22 @@ func (m *Quad) ToNative() (q quad.Quad) {
 	if m.SubjectValue != nil {
 		q.Subject = m.SubjectValue.ToNative()
 	} else if m.Subject != "" {
-		q.Subject = quad.Raw(m.Subject)
+		q.Subject = quad.StringToValue(m.Subject)
 	}
 	if m.PredicateValue != nil {
 		q.Predicate = m.PredicateValue.ToNative()
 	} else if m.Predicate != "" {
-		q.Predicate = quad.Raw(m.Predicate)
+		q.Predicate = quad.StringToValue(m.Predicate)
 	}
 	if m.ObjectValue != nil {
 		q.Object = m.ObjectValue.ToNative()
 	} else if m.Object != "" {
-		q.Object = quad.Raw(m.Object)
+		q.Object = quad.StringToValue(m.Object)
 	}
 	if m.LabelValue != nil {
 		q.Label = m.LabelValue.ToNative()
 	} else if m.Label != "" {
-		q.Label = quad.Raw(m.Label)
+		q.Label = quad.StringToValue(m.Label)
 	}
 	return
 }
@@ -250,19 +250,19 @@ func (m *WireQuad) ToNative() (q quad.Quad) {
 
 func (m *Quad) Upgrade() {
 	if m.SubjectValue == nil {
-		m.SubjectValue = MakeValue(quad.Raw(m.Subject))
+		m.SubjectValue = MakeValue(quad.StringToValue(m.Subject))
 		m.Subject = ""
 	}
 	if m.PredicateValue == nil {
-		m.PredicateValue = MakeValue(quad.Raw(m.Predicate))
+		m.PredicateValue = MakeValue(quad.StringToValue(m.Predicate))
 		m.Predicate = ""
 	}
 	if m.ObjectValue == nil {
-		m.ObjectValue = MakeValue(quad.Raw(m.Object))
+		m.ObjectValue = MakeValue(quad.StringToValue(m.Object))
 		m.Object = ""
 	}
 	if m.LabelValue == nil && m.Label != "" {
-		m.LabelValue = MakeValue(quad.Raw(m.Label))
+		m.LabelValue = MakeValue(quad.StringToValue(m.Label))
 		m.Label = ""
 	}
 }

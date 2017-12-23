@@ -70,8 +70,6 @@ func (it *Regex) testRegex(val graph.Value) bool {
 	// Type switch to avoid coercing and testing numeric types
 	v := it.qs.NameOf(val)
 	switch v := v.(type) {
-	case quad.Raw:
-		return it.re.MatchString(string(v))
 	case quad.String:
 		return it.re.MatchString(string(v))
 	case quad.TypedString:
