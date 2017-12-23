@@ -29,9 +29,9 @@ func TestTag(t *testing.T) {
 	ctx := context.TODO()
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
-	fix1 := NewFixed(Identity, Int64Node(234))
+	fix1 := NewFixed(Int64Node(234))
 	fix1.Tagger().Add("foo")
 	and := NewAnd(qs, fix1)
 	and.Tagger().Add("bar")
@@ -65,15 +65,15 @@ func TestAndAndFixedIterators(t *testing.T) {
 	ctx := context.TODO()
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
-	fix1 := NewFixed(Identity,
+	fix1 := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
 		Int64Node(3),
 		Int64Node(4),
 	)
-	fix2 := NewFixed(Identity,
+	fix2 := NewFixed(
 		Int64Node(3),
 		Int64Node(4),
 		Int64Node(5),
@@ -108,15 +108,15 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 	ctx := context.TODO()
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
-	fix1 := NewFixed(Identity,
+	fix1 := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
 		Int64Node(3),
 		Int64Node(4),
 	)
-	fix2 := NewFixed(Identity,
+	fix2 := NewFixed(
 		Int64Node(5),
 		Int64Node(6),
 		Int64Node(7),
@@ -141,7 +141,7 @@ func TestAllIterators(t *testing.T) {
 	ctx := context.TODO()
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
 	all1 := NewInt64(1, 5, true)
 	all2 := NewInt64(4, 10, true)
@@ -164,7 +164,7 @@ func TestAndIteratorErr(t *testing.T) {
 	ctx := context.TODO()
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
 	wantErr := errors.New("unique")
 	allErr := newTestIterator(false, wantErr)

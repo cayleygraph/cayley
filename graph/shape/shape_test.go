@@ -62,9 +62,6 @@ func (ValLookup) NameOf(_ graph.Value) quad.Value {
 func (ValLookup) Size() int64 {
 	panic("not implemented")
 }
-func (ValLookup) FixedIterator() graph.FixedIterator {
-	panic("not implemented")
-}
 func (ValLookup) OptimizeIterator(_ graph.Iterator) (graph.Iterator, bool) {
 	panic("not implemented")
 }

@@ -25,7 +25,6 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
@@ -531,10 +530,6 @@ func (qs *QuadStore) Size() int64 {
 		return 0
 	}
 	return int64(count)
-}
-
-func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(iterator.Identity)
 }
 
 func (qs *QuadStore) Close() error {

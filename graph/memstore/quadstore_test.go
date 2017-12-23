@@ -111,10 +111,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	ctx := context.TODO()
 	qs, _, _ := makeTestStore(simpleGraph)
 
-	fixed := qs.FixedIterator()
+	fixed := iterator.NewFixed()
 	fixed.Add(qs.ValueOf(quad.Raw("C")))
 
-	fixed2 := qs.FixedIterator()
+	fixed2 := iterator.NewFixed()
 	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
 
 	all := qs.NodesAllIterator()
@@ -159,7 +159,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 func TestLinksToOptimization(t *testing.T) {
 	qs, _, _ := makeTestStore(simpleGraph)
 
-	fixed := qs.FixedIterator()
+	fixed := iterator.NewFixed()
 	fixed.Add(qs.ValueOf(quad.Raw("cool")))
 
 	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
@@ -202,10 +202,10 @@ func TestRemoveQuad(t *testing.T) {
 		t.Error("Couldn't remove quad", err)
 	}
 
-	fixed := qs.FixedIterator()
+	fixed := iterator.NewFixed()
 	fixed.Add(qs.ValueOf(quad.Raw("E")))
 
-	fixed2 := qs.FixedIterator()
+	fixed2 := iterator.NewFixed()
 	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
 
 	innerAnd := iterator.NewAnd(qs,

@@ -36,12 +36,12 @@ func iterated(it graph.Iterator) []int {
 func TestOrIteratorBasics(t *testing.T) {
 	ctx := context.TODO()
 	or := NewOr()
-	f1 := NewFixed(Identity,
+	f1 := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
 		Int64Node(3),
 	)
-	f2 := NewFixed(Identity,
+	f2 := NewFixed(
 		Int64Node(3),
 		Int64Node(9),
 		Int64Node(20),
@@ -85,12 +85,12 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	ctx := context.TODO()
 	var or *Or
 
-	f1 := NewFixed(Identity,
+	f1 := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
 		Int64Node(3),
 	)
-	f2 := NewFixed(Identity,
+	f2 := NewFixed(
 		Int64Node(3),
 		Int64Node(9),
 		Int64Node(20),
@@ -143,7 +143,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 
 	// Check that it pulls the second iterator's numbers if the first is empty.
 	or = NewShortCircuitOr()
-	or.AddSubIterator(NewFixed(Identity))
+	or.AddSubIterator(NewFixed())
 	or.AddSubIterator(f2)
 	expect = []int{3, 9, 20, 21}
 	for i := 0; i < 2; i++ {
@@ -164,7 +164,7 @@ func TestOrIteratorErr(t *testing.T) {
 	wantErr := errors.New("unique")
 	orErr := newTestIterator(false, wantErr)
 
-	fix1 := NewFixed(Identity, Int64Node(1))
+	fix1 := NewFixed(Int64Node(1))
 
 	or := NewOr(
 		fix1,

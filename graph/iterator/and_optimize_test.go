@@ -30,10 +30,10 @@ import (
 func TestIteratorPromotion(t *testing.T) {
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
 	all := NewInt64(1, 3, true)
-	fixed := NewFixed(Identity, Int64Node(3))
+	fixed := NewFixed(Int64Node(3))
 	a := NewAnd(qs, all, fixed)
 	all.Tagger().Add("a")
 	fixed.Tagger().Add("b")
@@ -56,7 +56,7 @@ func TestIteratorPromotion(t *testing.T) {
 func TestNullIteratorAnd(t *testing.T) {
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
 	all := NewInt64(1, 3, true)
 	null := NewNull()
@@ -73,7 +73,7 @@ func TestNullIteratorAnd(t *testing.T) {
 func TestAllPromotion(t *testing.T) {
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
 	all := NewInt64(100, 300, true)
 	all.Tagger().Add("good")
@@ -105,11 +105,11 @@ func TestAllPromotion(t *testing.T) {
 func TestReorderWithTag(t *testing.T) {
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
-	all := NewFixed(Identity, Int64Node(3))
+	all := NewFixed(Int64Node(3))
 	all.Tagger().Add("good")
-	all2 := NewFixed(Identity,
+	all2 := NewFixed(
 		Int64Node(3),
 		Int64Node(4),
 		Int64Node(5),
@@ -144,7 +144,7 @@ func TestReorderWithTag(t *testing.T) {
 func TestAndStatistics(t *testing.T) {
 	qs := &graphmock.Oldstore{
 		Data: []string{},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
 	all := NewInt64(100, 300, true)
 	all.Tagger().Add("good")

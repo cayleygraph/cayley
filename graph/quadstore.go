@@ -73,9 +73,6 @@ type QuadStore interface {
 	// Returns the number of quads currently stored.
 	Size() int64
 
-	// Creates a fixed iterator which can compare Values
-	FixedIterator() FixedIterator
-
 	// Optimize an iterator in the context of the quad store.
 	// Suppose we have a better index for the passed tree; this
 	// gives the QuadStore the opportunity to replace it

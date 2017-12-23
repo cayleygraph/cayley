@@ -16,10 +16,6 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return NewAllIterator(false, qs, nil)
 }
 
-func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(iterator.Identity)
-}
-
 func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Value) graph.Iterator {
 	if v == nil {
 		return iterator.NewNull()

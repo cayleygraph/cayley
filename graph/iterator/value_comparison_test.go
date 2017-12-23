@@ -33,7 +33,7 @@ var (
 )
 
 func simpleFixedIterator() *Fixed {
-	f := NewFixed(Identity)
+	f := NewFixed()
 	for i := 0; i < 5; i++ {
 		f.Add(Int64Node(i))
 	}
@@ -41,7 +41,7 @@ func simpleFixedIterator() *Fixed {
 }
 
 func stringFixedIterator() *Fixed {
-	f := NewFixed(Identity)
+	f := NewFixed()
 	for _, value := range stringStore.Data {
 		f.Add(graphmock.StringNode(value))
 	}
@@ -49,7 +49,7 @@ func stringFixedIterator() *Fixed {
 }
 
 func mixedFixedIterator() *Fixed {
-	f := NewFixed(Identity)
+	f := NewFixed()
 	for i := 0; i < len(mixedStore.Data); i++ {
 		f.Add(Int64Node(i))
 	}

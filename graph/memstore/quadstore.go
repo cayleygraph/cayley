@@ -489,10 +489,6 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return newAllIterator(qs, false, qs.last)
 }
 
-func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(iterator.Identity)
-}
-
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
 	q, ok := qs.quad(val)
 	if !ok {

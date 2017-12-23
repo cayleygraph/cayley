@@ -222,7 +222,7 @@ func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream,
 			if len(vals) == 0 {
 				return
 			}
-			fixed := s.QS.FixedIterator()
+			fixed := iterator.NewFixed()
 			for _, v := range vals {
 				fixed.Add(s.QS.ValueOf(v))
 			}

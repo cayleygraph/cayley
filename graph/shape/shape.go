@@ -674,7 +674,7 @@ func (s *Fixed) Add(v ...graph.Value) {
 	*s = append(*s, v...)
 }
 func (s Fixed) BuildIterator(qs graph.QuadStore) graph.Iterator {
-	it := qs.FixedIterator()
+	it := iterator.NewFixed()
 	for _, v := range s {
 		if _, ok := v.(quad.Value); ok {
 			panic("quad value in fixed iterator")

@@ -53,7 +53,7 @@ func NewRecursive(qs graph.QuadStore, it graph.Iterator, morphism graph.ApplyMor
 		morphism:      morphism,
 		seen:          make(map[interface{}]seenAt),
 		nextIt:        &Null{},
-		baseIt:        qs.FixedIterator(),
+		baseIt:        NewFixed(),
 		pathMap:       make(map[interface{}][]map[string]graph.Value),
 		containsValue: nil,
 		maxDepth:      maxDepth,
@@ -74,7 +74,7 @@ func (it *Recursive) Reset() {
 	it.containsValue = nil
 	it.pathIndex = 0
 	it.nextIt = &Null{}
-	it.baseIt = it.qs.FixedIterator()
+	it.baseIt = NewFixed()
 	it.depth = 0
 }
 
@@ -142,7 +142,7 @@ func (it *Recursive) Next(ctx context.Context) bool {
 				return graph.NextLogOut(it, false)
 			}
 			it.depth++
-			it.baseIt = it.qs.FixedIterator()
+			it.baseIt = NewFixed()
 			for _, x := range it.depthCache {
 				it.baseIt.Add(x)
 			}
@@ -248,7 +248,7 @@ func (it *Recursive) Size() (int64, bool) {
 }
 
 func (it *Recursive) Stats() graph.IteratorStats {
-	base := it.qs.FixedIterator()
+	base := NewFixed()
 	base.Add(Int64Node(20))
 	fanoutit := it.morphism(it.qs, base)
 	fanoutStats := fanoutit.Stats()

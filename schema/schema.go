@@ -513,7 +513,7 @@ func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, dep
 			var sv reflect.Value
 			if recursive {
 				sv = reflect.New(ft).Elem()
-				sit := qs.FixedIterator()
+				sit := iterator.NewFixed()
 				sit.Add(fv)
 				err := loadIteratorToDepth(ctx, qs, sv, depth-1, sit)
 				if err == errRequiredFieldIsMissing {
@@ -631,7 +631,7 @@ func LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interface{}, depth
 	}
 	var it graph.Iterator
 	if len(ids) != 0 {
-		fixed := qs.FixedIterator()
+		fixed := iterator.NewFixed()
 		for _, id := range ids {
 			fixed.Add(qs.ValueOf(id))
 		}

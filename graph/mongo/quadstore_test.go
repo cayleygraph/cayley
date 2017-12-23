@@ -8,8 +8,11 @@ import (
 	"sync"
 	"testing"
 
+	"context"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/internal/dock"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -62,13 +65,14 @@ func TestMongoConcurrent(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	ctx := context.TODO()
 	qs, opts, closer := makeMongo(t)
 	defer closer()
 	if opts == nil {
 		opts = make(graph.Options)
 	}
 	opts["ignore_duplicate"] = true
-	qw := graphtest.MakeWriter(t, qs, opts)
+	qw := testutil.MakeWriter(t, qs, opts)
 
 	const n = 1000
 	subjects := make([]string, 0, n/4)
@@ -103,7 +107,7 @@ func TestMongoConcurrent(t *testing.T) {
 			}
 			n1 := subjects[rand.Intn(len(subjects))]
 			it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.String(n1)))
-			for it.Next() {
+			for it.Next(ctx) {
 				q := qs.Quad(it.Result())
 				_ = q.Subject.Native()
 				_ = q.Predicate.Native()

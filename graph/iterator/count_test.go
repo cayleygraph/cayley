@@ -11,7 +11,7 @@ import (
 
 func TestCount(t *testing.T) {
 	ctx := context.TODO()
-	fixed := NewFixed(Identity,
+	fixed := NewFixed(
 		graph.PreFetched(quad.String("a")),
 		graph.PreFetched(quad.String("b")),
 		graph.PreFetched(quad.String("c")),
@@ -27,7 +27,7 @@ func TestCount(t *testing.T) {
 
 	fixed.Reset()
 
-	fixed2 := NewFixed(Identity,
+	fixed2 := NewFixed(
 		graph.PreFetched(quad.String("b")),
 		graph.PreFetched(quad.String("d")),
 	)

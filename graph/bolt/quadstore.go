@@ -23,10 +23,9 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
-	"github.com/cayleygraph/cayley/clog"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
@@ -60,7 +59,7 @@ type Token struct {
 func (t *Token) IsNode() bool { return t.nodes }
 
 func (t *Token) Key() interface{} {
-	return fmt.Sprint(t.bucket, t.key)
+	return string(bytes.Join([][]byte{t.bucket, t.key}, []byte{0}))
 }
 
 func clone(b []byte) []byte {
@@ -574,14 +573,4 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 		}
 	}
 	return qs.ValueOf(qs.Quad(v).Get(d))
-}
-
-func compareTokens(a, b graph.Value) bool {
-	atok := a.(*Token)
-	btok := b.(*Token)
-	return bytes.Equal(atok.key, btok.key) && bytes.Equal(atok.bucket, btok.bucket)
-}
-
-func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(compareTokens)
 }

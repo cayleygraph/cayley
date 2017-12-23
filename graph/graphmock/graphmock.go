@@ -89,10 +89,6 @@ func (qs *Oldstore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	return &iterator.Null{}, false
 }
 
-func (qs *Oldstore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(iterator.Identity)
-}
-
 func (qs *Oldstore) Close() error { return nil }
 
 func (qs *Oldstore) QuadDirection(graph.Value, quad.Direction) graph.Value {
@@ -144,16 +140,12 @@ func (qs *Store) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
 	return &iterator.Null{}, false
 }
 
-func (qs *Store) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(iterator.Identity)
-}
-
 func (qs *Store) Close() error { return nil }
 
 func (qs *Store) DebugPrint() {}
 
 func (qs *Store) QuadIterator(d quad.Direction, i graph.Value) graph.Iterator {
-	fixed := qs.FixedIterator()
+	fixed := iterator.NewFixed()
 	v := i.(graph.PreFetchedValue).NameOf()
 	for _, q := range qs.Data {
 		if q.Get(d) == v {
@@ -173,15 +165,15 @@ func (qs *Store) NodesAllIterator() graph.Iterator {
 			}
 		}
 	}
-	fixed := qs.FixedIterator()
-	for k, _ := range set {
+	fixed := iterator.NewFixed()
+	for k := range set {
 		fixed.Add(graph.PreFetched(quad.Raw(k)))
 	}
 	return fixed
 }
 
 func (qs *Store) QuadsAllIterator() graph.Iterator {
-	fixed := qs.FixedIterator()
+	fixed := iterator.NewFixed()
 	for _, q := range qs.Data {
 		fixed.Add(quadValue{q})
 	}

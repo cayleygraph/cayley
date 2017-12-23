@@ -197,7 +197,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 			if tree.Children[0].Children[0].Name == "ColonIdentifier" {
 				n = nodeID[1:]
 			}
-			fixed := qs.FixedIterator()
+			fixed := iterator.NewFixed()
 			fixed.Add(qs.ValueOf(quad.Raw(n)))
 			out = fixed
 		}

@@ -165,7 +165,7 @@ func TestOptimize(t *testing.T) {
 	testutil.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
 
 	// With an linksto-fixed pair
-	fixed := qs.FixedIterator()
+	fixed := iterator.NewFixed()
 	fixed.Add(qs.ValueOf(quad.Raw("F")))
 	fixed.Tagger().Add("internal")
 	lto := iterator.NewLinksTo(qs, fixed, quad.Object)

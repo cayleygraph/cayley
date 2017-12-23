@@ -36,24 +36,14 @@ type Fixed struct {
 	tags      graph.Tagger
 	values    []graph.Value
 	lastIndex int
-	cmp       Equality
 	result    graph.Value
 }
 
-// Define the signature of an equality function.
-type Equality func(a, b graph.Value) bool
-
-// Define an equality function of purely ==, which works for native types.
-func Identity(a, b graph.Value) bool {
-	return a == b
-}
-
 // Creates a new Fixed iterator with a custom comparator.
-func NewFixed(cmp Equality, vals ...graph.Value) *Fixed {
+func NewFixed(vals ...graph.Value) *Fixed {
 	it := &Fixed{
 		uid:    NextUID(),
 		values: make([]graph.Value, 0, 20),
-		cmp:    cmp,
 	}
 	for _, v := range vals {
 		it.Add(v)
@@ -84,7 +74,7 @@ func (it *Fixed) TagResults(dst map[string]graph.Value) {
 func (it *Fixed) Clone() graph.Iterator {
 	vals := make([]graph.Value, len(it.values))
 	copy(vals, it.values)
-	out := NewFixed(it.cmp, vals...)
+	out := NewFixed(vals...)
 	out.tags.CopyFrom(it)
 	return out
 }
@@ -108,8 +98,9 @@ func (it *Fixed) Contains(ctx context.Context, v graph.Value) bool {
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.
 	graph.ContainsLogIn(it, v)
+	vk := graph.ToKey(v)
 	for _, x := range it.values {
-		if it.cmp(x, v) {
+		if graph.ToKey(x) == vk {
 			it.result = x
 			return graph.ContainsLogOut(it, v, true)
 		}

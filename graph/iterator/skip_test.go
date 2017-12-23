@@ -10,7 +10,7 @@ import (
 
 func TestSkipIteratorBasics(t *testing.T) {
 	ctx := context.TODO()
-	allIt := NewFixed(Identity,
+	allIt := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
 		Int64Node(3),

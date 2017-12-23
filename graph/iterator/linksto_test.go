@@ -27,10 +27,10 @@ func TestLinksTo(t *testing.T) {
 	ctx := context.TODO()
 	qs := &graphmock.Oldstore{
 		Data: []string{1: "cool"},
-		Iter: NewFixed(Identity),
+		Iter: NewFixed(),
 	}
 	qs.Iter.(*Fixed).Add(Int64Quad(2))
-	fixed := NewFixed(Identity)
+	fixed := NewFixed()
 	val := qs.ValueOf(quad.Raw("cool"))
 	if val.(Int64Node) != 1 {
 		t.Fatalf("Failed to return correct value, got:%v expect:1", val)

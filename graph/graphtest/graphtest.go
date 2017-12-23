@@ -690,11 +690,9 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	}
 	require.Equal(t, sz, qs.Size(), "Incorrect number of quads")
 
-	fixed := qs.FixedIterator()
-	fixed.Add(qs.ValueOf(quad.Raw("C")))
+	fixed := iterator.NewFixed(qs.ValueOf(quad.Raw("C")))
 
-	fixed2 := qs.FixedIterator()
-	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
+	fixed2 := iterator.NewFixed(qs.ValueOf(quad.Raw("follows")))
 
 	all := qs.NodesAllIterator()
 

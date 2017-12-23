@@ -17,7 +17,7 @@ type testIterator struct {
 
 func newTestIterator(next bool, err error) graph.Iterator {
 	return &testIterator{
-		Fixed:   NewFixed(Identity),
+		Fixed:   NewFixed(),
 		NextVal: next,
 		ErrVal:  err,
 	}

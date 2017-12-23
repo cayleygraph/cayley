@@ -11,14 +11,14 @@ import (
 
 func TestNotIteratorBasics(t *testing.T) {
 	ctx := context.TODO()
-	allIt := NewFixed(Identity,
+	allIt := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
 		Int64Node(3),
 		Int64Node(4),
 	)
 
-	toComplementIt := NewFixed(Identity,
+	toComplementIt := NewFixed(
 		Int64Node(2),
 		Int64Node(4),
 	)
@@ -55,7 +55,7 @@ func TestNotIteratorErr(t *testing.T) {
 	wantErr := errors.New("unique")
 	allIt := newTestIterator(false, wantErr)
 
-	toComplementIt := NewFixed(Identity)
+	toComplementIt := NewFixed()
 
 	not := NewNot(toComplementIt, allIt)
 

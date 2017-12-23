@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/schema"
@@ -555,7 +556,7 @@ func TestLoadIteratorTo(t *testing.T) {
 			out := reflect.New(reflect.TypeOf(c.expect))
 			var it graph.Iterator
 			if c.from != nil {
-				fixed := qs.FixedIterator()
+				fixed := iterator.NewFixed()
 				for _, id := range c.from {
 					fixed.Add(qs.ValueOf(id))
 				}

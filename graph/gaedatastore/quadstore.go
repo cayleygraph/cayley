@@ -29,7 +29,6 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/http"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -498,16 +497,6 @@ func (qs *QuadStore) NodeSize() int64 {
 		return 0
 	}
 	return foundMetadata.NodeCount
-}
-
-func compareTokens(a, b graph.Value) bool {
-	atok := a.(*Token)
-	btok := b.(*Token)
-	return atok.Kind == btok.Kind && atok.Hash == btok.Hash
-}
-
-func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(compareTokens)
 }
 
 func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {

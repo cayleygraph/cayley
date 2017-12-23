@@ -20,13 +20,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
@@ -560,12 +559,4 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 	v := val.(Token)
 	offset := PositionOf(v[0:2], d, qs)
 	return Token(append([]byte("z"), v[offset:offset+quad.HashSize]...))
-}
-
-func compareBytes(a, b graph.Value) bool {
-	return bytes.Equal(a.(Token), b.(Token))
-}
-
-func (qs *QuadStore) FixedIterator() graph.FixedIterator {
-	return iterator.NewFixed(compareBytes)
 }
