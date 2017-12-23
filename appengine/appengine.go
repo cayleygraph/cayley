@@ -23,7 +23,6 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/internal/http"
 
 	_ "github.com/cayleygraph/cayley/graph/gaedatastore"
@@ -51,7 +50,7 @@ var (
 	timeout            = 30 * time.Second
 )
 
-func configFrom(file string) (*config.Config, error) {
+func configFrom(file string) (*Config, error) {
 	// Find the file...
 	if file != "" {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
@@ -63,7 +62,7 @@ func configFrom(file string) (*config.Config, error) {
 	if file == "" {
 		clog.Infof("Couldn't find a config file appengine.cfg. Going by flag defaults only.")
 	}
-	cfg, err := config.Load(file)
+	cfg, err := LoadConf(file)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +100,7 @@ func configFrom(file string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func open(cfg *config.Config) (*graph.Handle, error) {
+func open(cfg *Config) (*graph.Handle, error) {
 	qs, err := graph.NewQuadStore(cfg.DatabaseType, cfg.DatabasePath, cfg.DatabaseOptions)
 	// override error to make it more informative
 	if os.IsNotExist(err) {

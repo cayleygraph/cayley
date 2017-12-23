@@ -29,13 +29,15 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/internal"
-	"github.com/cayleygraph/cayley/internal/config"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/gizmo"
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
-const format = "cquad"
+const (
+	format  = "cquad"
+	timeout = 300 * time.Second
+)
 
 const (
 	nSpeed = "Speed"
@@ -49,10 +51,10 @@ func TestIntegration(t *testing.T, gen testutil.DatabaseFunc, force bool) {
 	if !force && os.Getenv("RUN_INTEGRATION") != "true" {
 		t.Skip("skipping integration tests; set RUN_INTEGRATION=true to run them")
 	}
-	h, cfg, closer := prepare(t, gen)
+	h, closer := prepare(t, gen)
 	defer closer()
 
-	checkQueries(t, h, cfg)
+	checkQueries(t, h, timeout)
 }
 
 func costarTag(id, c1, c1m, c2, c2m string) map[string]string {
@@ -446,15 +448,10 @@ var m1_actors = movie1.Save("<name>","movie1").Follow(filmToActor)
 var m2_actors = movie2.Save("<name>","movie2").Follow(filmToActor)
 `
 
-func prepare(t testing.TB, gen testutil.DatabaseFunc) (*graph.Handle, *config.Config, func()) {
+func prepare(t testing.TB, gen testutil.DatabaseFunc) (*graph.Handle, func()) {
 	qs, _, closer := gen(t)
 
-	cfg := &config.Config{
-		ReplicationType: "single",
-		Timeout:         300 * time.Second,
-	}
-
-	qw, err := graph.NewQuadWriter(cfg.ReplicationType, qs, cfg.ReplicationOptions)
+	qw, err := graph.NewQuadWriter("single", qs, nil)
 	if err != nil {
 		closer()
 		require.NoError(t, err)
@@ -467,7 +464,7 @@ func prepare(t testing.TB, gen testutil.DatabaseFunc) (*graph.Handle, *config.Co
 		start := time.Now()
 		var err error
 		for _, p := range []string{"./", "../"} {
-			err = internal.Load(h.QuadWriter, cfg.LoadSize, filepath.Join(p, "../../data/30kmoviedata.nq.gz"), format)
+			err = internal.Load(h.QuadWriter, 0, filepath.Join(p, "../../data/30kmoviedata.nq.gz"), format)
 			if err == nil || !os.IsNotExist(err) {
 				break
 			}
@@ -479,13 +476,13 @@ func prepare(t testing.TB, gen testutil.DatabaseFunc) (*graph.Handle, *config.Co
 		}
 		t.Logf("loaded data in %v", time.Since(start))
 	}
-	return h, cfg, func() {
+	return h, func() {
 		qw.Close()
 		closer()
 	}
 }
 
-func checkQueries(t *testing.T, h *graph.Handle, cfg *config.Config) {
+func checkQueries(t *testing.T, h *graph.Handle, timeout time.Duration) {
 	if h == nil {
 		t.Fatal("not initialized")
 	}
@@ -501,9 +498,9 @@ func checkQueries(t *testing.T, h *graph.Handle, cfg *config.Config) {
 			ses := gizmo.NewSession(h.QuadStore)
 			c := make(chan query.Result, 5)
 			ctx := context.Background()
-			if cfg.Timeout > 0 {
+			if timeout > 0 {
 				var cancel func()
-				ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
+				ctx, cancel = context.WithTimeout(ctx, timeout)
 				defer cancel()
 			}
 			go ses.Execute(ctx, test.query, c, 100)
@@ -561,7 +558,7 @@ func convertToStringList(in []interface{}) []string {
 }
 
 func BenchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
-	h, cfg, closer := prepare(b, gen)
+	h, closer := prepare(b, gen)
 	defer closer()
 
 	for _, bench := range queries {
@@ -575,8 +572,8 @@ func BenchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
 				c := make(chan query.Result, 5)
 				ctx := context.Background()
 				var cancel func()
-				if cfg.Timeout > 0 {
-					ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
+				if timeout > 0 {
+					ctx, cancel = context.WithTimeout(ctx, timeout)
 				}
 				ses := gizmo.NewSession(h.QuadStore)
 				b.StartTimer()

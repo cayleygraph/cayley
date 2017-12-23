@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package gaedatastore
 
 import (
 	"encoding/json"
@@ -122,7 +122,7 @@ func (d *duration) MarshalJSON() ([]byte, error) {
 
 // Load reads a JSON-encoded config contained in the given file. A zero value
 // config is returned if the filename is empty.
-func Load(file string) (*Config, error) {
+func LoadConf(file string) (*Config, error) {
 	config := &Config{}
 	if file == "" {
 		return config, nil
