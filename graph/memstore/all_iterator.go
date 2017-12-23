@@ -150,7 +150,7 @@ func (it *AllIterator) NextPath(ctx context.Context) bool { return false }
 
 func (it *AllIterator) Size() (int64, bool) {
 	// TODO: use maxid?
-	return int64(len(it.qs.all)), true
+	return int64(len(it.all)), true
 }
 func (it *AllIterator) Stats() graph.IteratorStats {
 	st := graph.IteratorStats{NextCost: 1, ContainsCost: 1}
