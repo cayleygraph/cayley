@@ -83,8 +83,6 @@ func (qs *Oldstore) NameOf(v graph.Value) quad.Value {
 
 func (qs *Oldstore) Size() int64 { return 0 }
 
-func (qs *Oldstore) Horizon() graph.PrimaryKey { return graph.NewSequentialKey(0) }
-
 func (qs *Oldstore) DebugPrint() {}
 
 func (qs *Oldstore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
@@ -151,8 +149,6 @@ func (qs *Store) FixedIterator() graph.FixedIterator {
 }
 
 func (qs *Store) Close() error { return nil }
-
-func (qs *Store) Horizon() graph.PrimaryKey { return graph.NewSequentialKey(0) }
 
 func (qs *Store) DebugPrint() {}
 

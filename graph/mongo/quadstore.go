@@ -533,18 +533,6 @@ func (qs *QuadStore) Size() int64 {
 	return int64(count)
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	var log MongoLogEntry
-	err := qs.db.C("log").Find(nil).Sort("-_id").One(&log)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			return graph.NewSequentialKey(0)
-		}
-		clog.Errorf("Could not get Horizon from Mongo: %v", err)
-	}
-	return graph.NewUniqueKey(objidString(log.ID))
-}
-
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(iterator.Identity)
 }

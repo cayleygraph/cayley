@@ -131,22 +131,12 @@ func TestLoadDatabase(t *testing.T) {
 		t.Errorf("Could not convert from generic to Bolt QuadStore")
 	}
 
-	//Test horizon
-	horizon := qs.Horizon()
-	if v, _ := horizon.Int(); v != 1 {
-		t.Errorf("Unexpected horizon value, got:%d expect:1", v)
-	}
-
 	w.AddQuadSet(graphtest.MakeQuadSet())
 	if s := qs.Size(); s != 12 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:12", s)
 	}
 	if s := ts2.SizeOf(qs.ValueOf(quad.Raw("B"))); s != 5 {
 		t.Errorf("Unexpected quadstore size, got:%d expect:5", s)
-	}
-	horizon = qs.Horizon()
-	if v, _ := horizon.Int(); v != 12 {
-		t.Errorf("Unexpected horizon value, got:%d expect:12", v)
 	}
 
 	w.RemoveQuad(quad.MakeRaw(

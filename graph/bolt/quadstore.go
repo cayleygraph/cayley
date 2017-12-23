@@ -187,10 +187,6 @@ func (qs *QuadStore) Size() int64 {
 	return sz
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return graph.NewSequentialKey(qs.horizon)
-}
-
 func (qs *QuadStore) createDeltaKeyFor(id int64) []byte {
 	return []byte(fmt.Sprintf("%018x", id))
 }

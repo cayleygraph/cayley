@@ -641,18 +641,6 @@ func (qs *QuadStore) Size() int64 {
 	return sz
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	var horizon int64
-	err := qs.db.QueryRow("SELECT horizon FROM quads ORDER BY horizon DESC LIMIT 1;").Scan(&horizon)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			clog.Errorf("Couldn't execute horizon: %v", err)
-		}
-		return graph.NewSequentialKey(0)
-	}
-	return graph.NewSequentialKey(horizon)
-}
-
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(iterator.Identity)
 }

@@ -500,22 +500,6 @@ func (qs *QuadStore) NodeSize() int64 {
 	return foundMetadata.NodeCount
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	if qs.context == nil {
-		clog.Warningf("Warning: HTTP Request context is nil, cannot get horizon from datastore.")
-		return graph.NewUniqueKey("")
-	}
-	// Query log for last entry...
-	q := datastore.NewQuery("logentry").Order("-Timestamp").Limit(1)
-	var logEntries []LogEntry
-	keys, err := q.GetAll(qs.context, &logEntries)
-	if err != nil || len(logEntries) == 0 {
-		// Error fetching horizon, probably graph is empty
-		return graph.NewUniqueKey("")
-	}
-	return graph.NewSequentialKey(keys[0].IntID())
-}
-
 func compareTokens(a, b graph.Value) bool {
 	atok := a.(*Token)
 	btok := b.(*Token)

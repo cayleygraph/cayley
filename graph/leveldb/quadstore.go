@@ -203,10 +203,6 @@ func (qs *QuadStore) Size() int64 {
 	return qs.size
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return graph.NewSequentialKey(qs.horizon)
-}
-
 func createKeyFor(d [4]quad.Direction, q quad.Quad) []byte {
 	key := make([]byte, 2+(quad.HashSize*4))
 	key[0] = d[0].Prefix()

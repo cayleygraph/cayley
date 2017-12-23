@@ -73,9 +73,6 @@ type QuadStore interface {
 	// Returns the number of quads currently stored.
 	Size() int64
 
-	// The last replicated transaction ID that this quadstore has verified.
-	Horizon() PrimaryKey
-
 	// Creates a fixed iterator which can compare Values
 	FixedIterator() FixedIterator
 

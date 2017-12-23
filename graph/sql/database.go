@@ -88,7 +88,6 @@ func (r Registration) quadsTable() string {
 	predicate_hash ` + htyp + ` NOT NULL,
 	object_hash ` + htyp + ` NOT NULL,
 	label_hash ` + htyp + `,
-	id BIGINT,
 	ts timestamp
 );`
 }

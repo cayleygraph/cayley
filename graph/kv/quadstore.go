@@ -222,10 +222,6 @@ func (qs *QuadStore) horizon(ctx context.Context) int64 {
 	return h
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return graph.NewSequentialKey(qs.horizon(context.TODO()))
-}
-
 func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Value) ([]quad.Value, error) {
 	out := make([]quad.Value, len(vals))
 	var (

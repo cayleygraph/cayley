@@ -30,7 +30,6 @@ type Config struct {
 
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool
-	SkipIntHorizon           bool
 	// TODO(dennwc): these stores are not garbage-collecting nodes after quad removal
 	SkipNodeDelAfterQuadDel bool
 }
@@ -41,7 +40,7 @@ var graphTests = []struct {
 }{
 	{"load one quad", TestLoadOneQuad},
 	{"delete quad", TestDeleteQuad},
-	{"horizon int", TestHorizonInt},
+	{"sizes", TestSizes},
 	{"iterator", TestIterator},
 	{"hasa", TestHasA},
 	{"set iterator", TestSetIterator},
@@ -199,20 +198,11 @@ type ValueSizer interface {
 	SizeOf(graph.Value) int64
 }
 
-func TestHorizonInt(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
-	if conf.SkipIntHorizon {
-		t.SkipNow()
-	}
+func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	qs, opts, closer := gen(t)
 	defer closer()
 
 	w := testutil.MakeWriter(t, qs, opts)
-
-	horizon, ok := qs.Horizon().Int()
-	if !ok && graph.NewSequentialKey(0) != qs.Horizon() {
-		t.Skip("horizon is not int")
-	}
-	require.Equal(t, int64(0), horizon, "Unexpected horizon value")
 
 	err := w.AddQuadSet(MakeQuadSet())
 	require.NoError(t, err)
@@ -226,16 +216,6 @@ func TestHorizonInt(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		s := qss.SizeOf(qs.ValueOf(quad.Raw("B")))
 		require.Equal(t, int64(5), s, "Unexpected quadstore value size")
 	}
-
-	horizon, ok = qs.Horizon().Int()
-	if !ok {
-		t.SkipNow()
-	}
-	exp = int64(1)
-	if conf.NoPrimitives {
-		exp = 11
-	}
-	require.Equal(t, exp, horizon, "Unexpected horizon value")
 
 	err = w.RemoveQuad(quad.MakeRaw(
 		"A",

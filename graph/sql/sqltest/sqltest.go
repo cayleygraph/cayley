@@ -29,7 +29,7 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 			TimeInMcs:           true,
 			TimeRound:           c.TimeRound,
 			OptimizesComparison: true,
-			SkipIntHorizon:      c.SkipIntHorizon,
+			//SkipIntHorizon:      c.SkipIntHorizon,
 		})
 	})
 	t.Run("zero rune", func(t *testing.T) {

@@ -454,10 +454,6 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 	return iterator.NewNull()
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	return graph.NewSequentialKey(qs.horizon)
-}
-
 func (qs *QuadStore) Size() int64 {
 	return int64(len(qs.prim))
 }

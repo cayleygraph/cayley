@@ -580,26 +580,6 @@ func (qs *QuadStore) Size() int64 {
 	return count
 }
 
-func (qs *QuadStore) Horizon() graph.PrimaryKey {
-	// FIXME: this picks a random record; we need to sort at least on timestamp,
-	// or emulate a global counter and use it as an id for log entries
-	log, err := qs.db.Query(colLog).One(context.TODO())
-	if err != nil {
-		if err == ErrNotFound {
-			return graph.NewSequentialKey(0)
-		}
-		clog.Errorf("could not get horizon: %v", err)
-	}
-	var id string
-	if v, ok := log[fldLogID].(String); ok {
-		id = string(v)
-	}
-	if id == "" {
-		return graph.PrimaryKey{}
-	}
-	return graph.NewUniqueKey(id)
-}
-
 func (qs *QuadStore) FixedIterator() graph.FixedIterator {
 	return iterator.NewFixed(iterator.Identity)
 }
