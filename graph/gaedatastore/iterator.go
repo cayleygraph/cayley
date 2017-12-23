@@ -15,14 +15,14 @@
 package gaedatastore
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 
-	"context"
-	"github.com/cayleygraph/cayley/clog"
 	"google.golang.org/appengine/datastore"
 )
 

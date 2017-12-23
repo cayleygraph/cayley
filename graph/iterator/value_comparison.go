@@ -29,9 +29,10 @@ package iterator
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
-	"time"
 )
 
 type Operator int

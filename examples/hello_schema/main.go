@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,8 +14,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/cayley/voc"
+
 	// Import RDF vocabulary definitions to be able to expand IRIs like rdf:label.
-	"context"
 	_ "github.com/cayleygraph/cayley/voc/core"
 )
 

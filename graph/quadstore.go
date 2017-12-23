@@ -22,11 +22,11 @@ package graph
 // quad backing store we prefer.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
 
-	"context"
 	"github.com/cayleygraph/cayley/quad"
 )
 

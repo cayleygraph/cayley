@@ -15,11 +15,11 @@
 package memstore
 
 import (
+	"context"
 	"reflect"
 	"sort"
 	"testing"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"

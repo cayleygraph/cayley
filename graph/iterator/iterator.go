@@ -17,10 +17,10 @@ package iterator
 // Define the general iterator interface.
 
 import (
-	"sync/atomic"
-
 	"context"
 	"fmt"
+	"sync/atomic"
+
 	"github.com/cayleygraph/cayley/graph"
 )
 

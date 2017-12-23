@@ -21,9 +21,9 @@ package iterator
 // opaque Quad store value, may not answer to ==.
 
 import (
+	"context"
 	"fmt"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 )
 

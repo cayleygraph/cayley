@@ -1,10 +1,10 @@
 package iterator_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
-	"context"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 

@@ -15,12 +15,12 @@
 package sexp
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 
-	"context"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/writer"
 )

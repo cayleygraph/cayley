@@ -15,9 +15,9 @@
 package iterator_test
 
 import (
+	"context"
 	"testing"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"

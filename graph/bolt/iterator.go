@@ -16,13 +16,13 @@ package bolt
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/boltdb/bolt"
 	"github.com/cayleygraph/cayley/clog"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"

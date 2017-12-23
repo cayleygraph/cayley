@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/sql/sqltest"
 	"github.com/cayleygraph/cayley/internal/dock"
 	"github.com/lib/pq"
-	"github.com/cayleygraph/cayley/graph/sql/sqltest"
 )
 
 func makePostgres(t testing.TB) (string, graph.Options, func()) {

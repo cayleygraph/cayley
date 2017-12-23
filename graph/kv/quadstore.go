@@ -15,12 +15,12 @@
 package kv
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
 
-	"context"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/proto"

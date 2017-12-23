@@ -3,6 +3,7 @@ package iterator
 import (
 	"context"
 	"fmt"
+
 	"github.com/cayleygraph/cayley/graph"
 )
 

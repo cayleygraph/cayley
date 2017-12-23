@@ -2,13 +2,13 @@ package nosqltest
 
 import (
 	"bytes"
+	"context"
 	"math/rand"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"

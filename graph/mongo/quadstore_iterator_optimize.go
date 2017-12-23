@@ -15,11 +15,11 @@
 package mongo
 
 import (
+	"context"
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
 
-	"context"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"

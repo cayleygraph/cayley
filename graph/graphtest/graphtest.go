@@ -1,11 +1,11 @@
 package graphtest
 
 import (
+	"context"
 	"sort"
 	"testing"
 	"time"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"

@@ -15,10 +15,10 @@
 package iterator
 
 import (
-	"regexp"
-
 	"context"
 	"fmt"
+	"regexp"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )

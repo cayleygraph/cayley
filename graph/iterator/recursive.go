@@ -1,9 +1,9 @@
 package iterator
 
 import (
+	"context"
 	"math"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )

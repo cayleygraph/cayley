@@ -1,10 +1,10 @@
 package kvtest
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"

@@ -30,12 +30,13 @@ package pio_test
 
 import (
 	"bytes"
-	io "github.com/cayleygraph/cayley/quad/pquads/pio"
-	"github.com/gogo/protobuf/test"
 	goio "io"
 	"math/rand"
 	"testing"
 	"time"
+
+	io "github.com/cayleygraph/cayley/quad/pquads/pio"
+	"github.com/gogo/protobuf/test"
 )
 
 func iotest(writer io.Writer, reader io.Reader) error {

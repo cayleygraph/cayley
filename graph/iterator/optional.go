@@ -28,6 +28,7 @@ package iterator
 
 import (
 	"context"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 )

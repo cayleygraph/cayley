@@ -3,6 +3,7 @@ package graph
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/cayleygraph/cayley/quad"
 )
 

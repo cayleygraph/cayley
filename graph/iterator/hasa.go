@@ -34,10 +34,10 @@ package iterator
 // Alternatively, can be seen as the dual of the LinksTo iterator.
 
 import (
-	"github.com/cayleygraph/cayley/clog"
-
 	"context"
 	"fmt"
+
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )

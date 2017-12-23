@@ -2,9 +2,10 @@ package graphlog
 
 import (
 	"bytes"
+	"sort"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
-	"sort"
 )
 
 type Op interface {

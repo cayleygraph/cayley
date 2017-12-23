@@ -2,6 +2,7 @@ package kv_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	henc "encoding/hex"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/kv/btree"

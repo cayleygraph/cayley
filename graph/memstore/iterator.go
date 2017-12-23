@@ -15,11 +15,11 @@
 package memstore
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math"
 
-	"context"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"

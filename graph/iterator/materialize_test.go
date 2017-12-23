@@ -15,10 +15,10 @@
 package iterator_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
-	"context"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 

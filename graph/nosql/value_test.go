@@ -1,8 +1,9 @@
 package nosql
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var filterMatch = []struct {
