@@ -36,28 +36,14 @@ func NewSingle(qs graph.QuadStore, opts graph.IgnoreOpts) (graph.QuadWriter, err
 }
 
 func NewSingleReplication(qs graph.QuadStore, opts graph.Options) (graph.QuadWriter, error) {
-	var (
-		ignoreMissing   bool
-		ignoreDuplicate bool
-		err             error
-	)
-
-	if graph.IgnoreMissing {
-		ignoreMissing = true
-	} else {
-		ignoreMissing, _, err = opts.BoolKey("ignore_missing")
-		if err != nil {
-			return nil, err
-		}
+	ignoreMissing, err := opts.BoolKey("ignore_missing", graph.IgnoreMissing)
+	if err != nil {
+		return nil, err
 	}
 
-	if graph.IgnoreDuplicates {
-		ignoreDuplicate = true
-	} else {
-		ignoreDuplicate, _, err = opts.BoolKey("ignore_duplicate")
-		if err != nil {
-			return nil, err
-		}
+	ignoreDuplicate, err := opts.BoolKey("ignore_duplicate", graph.IgnoreDuplicates)
+	if err != nil {
+		return nil, err
 	}
 
 	return NewSingle(qs, graph.IgnoreOpts{

@@ -43,11 +43,9 @@ func dialDB(addr string, opt graph.Options) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	ind, _, err := opt.StringKey("index")
+	ind, err := opt.StringKey("index", nosql.DefaultDBName)
 	if err != nil {
 		return nil, err
-	} else if ind == "" {
-		ind = nosql.DefaultDBName
 	}
 	settings := `{
 			"number_of_shards":1,

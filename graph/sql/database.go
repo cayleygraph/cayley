@@ -114,11 +114,7 @@ func (r Registration) quadIndexes(options graph.Options) []string {
 		)
 	}
 	if r.FillFactor {
-		const defaultFillFactor = 50
-		factor, ok, _ := options.IntKey("db_fill_factor")
-		if !ok {
-			factor = defaultFillFactor
-		}
+		factor, _ := options.IntKey("db_fill_factor", 50)
 		indexes = append(indexes,
 			fmt.Sprintf(`CREATE INDEX spo_index ON quads (subject_hash) WITH (FILLFACTOR = %d);`, factor),
 			fmt.Sprintf(`CREATE INDEX pos_index ON quads (predicate_hash) WITH (FILLFACTOR = %d);`, factor),

@@ -165,13 +165,8 @@ var nodeInsertColumns = [][]string{
 	{"value_time"},
 }
 
-const defaultFlavor = "postgres"
-
 func typeFromOpts(opts graph.Options) string {
-	flavor, _, _ := opts.StringKey("flavor")
-	if flavor == "" {
-		flavor = defaultFlavor
-	}
+	flavor, _ := opts.StringKey("flavor", "postgres")
 	return flavor
 }
 
@@ -270,12 +265,12 @@ func New(typ string, addr string, options graph.Options) (graph.QuadStore, error
 		qs.opt.NoOffsetWithoutLimit()
 	}
 
-	if local, ok, err := options.BoolKey("local_optimize"); err != nil {
+	if local, err := options.BoolKey("local_optimize", false); err != nil {
 		return nil, err
 	} else if ok && local {
 		qs.noSizes = false
 	}
-	if qs.useEstimates, _, err = options.BoolKey("use_estimates"); err != nil {
+	if qs.useEstimates, err = options.BoolKey("use_estimates", false); err != nil {
 		return nil, err
 	}
 	return qs, nil

@@ -45,7 +45,7 @@ func newDB(d *leveldb.DB, m graph.Options) *DB {
 		DB: d,
 		wo: &opt.WriteOptions{},
 	}
-	nosync, _, _ := m.BoolKey("nosync")
+	nosync, _ := m.BoolKey("nosync", false)
 	db.wo.Sync = !nosync
 	return db
 }

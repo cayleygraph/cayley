@@ -115,7 +115,10 @@ func Init(kv BucketKV, opt graph.Options) error {
 	} else if err != ErrNoBucket {
 		return err
 	}
-	upfront, _, _ := opt.BoolKey("upfront")
+	upfront, err := opt.BoolKey("upfront", false)
+	if err != nil {
+		return err
+	}
 	if err := qs.createBuckets(ctx, upfront); err != nil {
 		return err
 	}

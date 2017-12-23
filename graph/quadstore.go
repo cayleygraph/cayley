@@ -101,41 +101,40 @@ var (
 	typeInt = reflect.TypeOf(int(0))
 )
 
-func (d Options) IntKey(key string) (int, bool, error) {
+func (d Options) IntKey(key string, def int) (int, error) {
 	if val, ok := d[key]; ok {
 		if reflect.TypeOf(val).ConvertibleTo(typeInt) {
 			i := reflect.ValueOf(val).Convert(typeInt).Int()
-			return int(i), true, nil
+			return int(i), nil
 		}
 
-		return 0, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
+		return def, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 	}
-
-	return 0, false, nil
+	return def, nil
 }
 
-func (d Options) StringKey(key string) (string, bool, error) {
+func (d Options) StringKey(key string, def string) (string, error) {
 	if val, ok := d[key]; ok {
 		if v, ok := val.(string); ok {
-			return v, true, nil
+			return v, nil
 		}
 
-		return "", false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
+		return def, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 	}
 
-	return "", false, nil
+	return def, nil
 }
 
-func (d Options) BoolKey(key string) (bool, bool, error) {
+func (d Options) BoolKey(key string, def bool) (bool, error) {
 	if val, ok := d[key]; ok {
 		if v, ok := val.(bool); ok {
-			return v, true, nil
+			return v, nil
 		}
 
-		return false, false, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
+		return def, fmt.Errorf("Invalid %s parameter type from config: %T", key, val)
 	}
 
-	return false, false, nil
+	return def, nil
 }
 
 var (

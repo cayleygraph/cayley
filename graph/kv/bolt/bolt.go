@@ -63,7 +63,7 @@ func Open(path string, opt graph.Options) (kv.BucketKV, error) {
 		return nil, err
 	}
 	// BoolKey returns false on non-existence. IE, Sync by default.
-	db.NoSync, _, err = opt.BoolKey("nosync")
+	db.NoSync, err = opt.BoolKey("nosync", false)
 	if err != nil {
 		db.Close()
 		return nil, err

@@ -115,26 +115,19 @@ func createNewLevelDB(path string, _ graph.Options) error {
 
 func newQuadStore(path string, options graph.Options) (graph.QuadStore, error) {
 	var qs QuadStore
-	var err error
 	qs.path = path
-	cacheSize := DefaultCacheSize
-	val, ok, err := options.IntKey("cache_size_mb")
+	cacheSize, err := options.IntKey("cache_size_mb", DefaultCacheSize)
 	if err != nil {
 		return nil, err
-	} else if ok {
-		cacheSize = val
 	}
 	qs.dbOpts = &opt.Options{
 		BlockCacheCapacity: cacheSize * opt.MiB,
 	}
 	qs.dbOpts.ErrorIfMissing = true
 
-	writeBufferSize := DefaultWriteBufferSize
-	val, ok, err = options.IntKey("writeBufferSize")
+	writeBufferSize, err := options.IntKey("writeBufferSize", DefaultWriteBufferSize)
 	if err != nil {
 		return nil, err
-	} else if ok {
-		writeBufferSize = val
 	}
 	qs.dbOpts.WriteBuffer = writeBufferSize * opt.MiB
 	qs.writeopts = &opt.WriteOptions{
