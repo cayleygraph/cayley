@@ -36,7 +36,7 @@ import (
 
 var (
 	quadFile           = ""
-	quadType           = "cquad"
+	quadType           = "nquads"
 	cpuprofile         = ""
 	queryLanguage      = "gizmo"
 	configFile         = ""

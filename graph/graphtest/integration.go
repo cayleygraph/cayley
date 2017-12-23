@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	format  = "cquad"
+	format  = "nquads"
 	timeout = 300 * time.Second
 )
 

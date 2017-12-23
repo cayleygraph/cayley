@@ -83,10 +83,8 @@ func QuadReaderFor(path, typ string) (quad.ReadCloser, error) {
 
 	var qr quad.ReadCloser
 	switch typ {
-	case "cquad":
+	case "cquad", "nquad": // legacy
 		qr = nquads.NewReader(r, false)
-	case "nquad":
-		qr = nquads.NewReader(r, true)
 	default:
 		var format *quad.Format
 		if typ == "" {
