@@ -57,6 +57,15 @@ And wait. It will load. If you'd like to watch it load, you can run
 
 And watch the log output go by.
 
+If you plan to import a large dataset into Cayley and try multiple backends, it makes sense to first convert the dataset
+to Cayley-specific binary format by running:
+
+```bash
+./cayley conv -i dataset.nq.gz -o dataset.pq.gz
+```
+
+This will minimize parsing overhead on future imports and will compress dataset a bit better.
+
 ### Connect a REPL To Your Graph
 
 Now it's loaded. We can use Cayley now to connect to the graph. As you might have guessed, that command is:
