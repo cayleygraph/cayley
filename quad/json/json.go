@@ -16,6 +16,18 @@ func init() {
 		Mime:   []string{"application/json"},
 		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w) },
 		Reader: func(r io.Reader) quad.ReadCloser { return NewReader(r) },
+		MarshalValue: func(v quad.Value) ([]byte, error) {
+			return json.Marshal(quad.ToString(v))
+		},
+		UnmarshalValue: func(b []byte) (quad.Value, error) {
+			var s *string
+			if err := json.Unmarshal(b, &s); err != nil {
+				return nil, err
+			} else if s == nil {
+				return nil, nil
+			}
+			return quad.StringToValue(*s), nil
+		},
 	})
 	quad.RegisterFormat(quad.Format{
 		Name:   "json-stream",

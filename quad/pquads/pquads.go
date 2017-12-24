@@ -24,10 +24,12 @@ const ContentType = "application/x-protobuf"
 func init() {
 	quad.RegisterFormat(quad.Format{
 		Name: "pquads", Binary: true,
-		Ext:    []string{".pq"},
-		Mime:   []string{ContentType, "application/octet-stream"},
-		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w, nil) },
-		Reader: func(r io.Reader) quad.ReadCloser { return NewReader(r, DefaultMaxSize) },
+		Ext:            []string{".pq"},
+		Mime:           []string{ContentType, "application/octet-stream"},
+		Writer:         func(w io.Writer) quad.WriteCloser { return NewWriter(w, nil) },
+		Reader:         func(r io.Reader) quad.ReadCloser { return NewReader(r, DefaultMaxSize) },
+		MarshalValue:   MarshalValue,
+		UnmarshalValue: UnmarshalValue,
 	})
 }
 

@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/stretchr/testify/require"
 )
 
 var readTests = []struct {
@@ -145,5 +146,31 @@ func TestWriteJSON(t *testing.T) {
 		if got := buf.String(); got != test.expect {
 			t.Errorf("Failed to %v, got:%v expect:%v", test.message, got, test.expect)
 		}
+	}
+}
+
+func TestValueEncoding(t *testing.T) {
+	vals := []quad.Value{
+		quad.String("some val"),
+		quad.IRI("iri"),
+		quad.BNode("bnode"),
+		quad.TypedString{Value: "10", Type: "int"},
+		quad.LangString{Value: "val", Lang: "en"},
+	}
+	enc := []string{
+		`"some val"`,
+		`"\u003ciri\u003e"`,
+		`"_:bnode"`,
+		`"\"10\"^^\u003cint\u003e"`,
+		`"\"val\"@en"`,
+	}
+	f := quad.FormatByName("json")
+	for i, v := range vals {
+		data, err := f.MarshalValue(v)
+		require.NoError(t, err)
+		require.Equal(t, enc[i], string(data), string(data))
+		v2, err := f.UnmarshalValue(data)
+		require.NoError(t, err)
+		require.Equal(t, v, v2)
 	}
 }

@@ -1,7 +1,7 @@
 openapi: "3.0.0"
 info:
   description: ""
-  version: "2.0.0"
+  version: "2.1.0"
   title: "Cayley API"
   license:
     name: "Apache 2.0"
@@ -35,20 +35,29 @@ paths:
                 type: "object"
                 properties:
                   id:
+                    description: "unique name of the format"
                     type: "string"
                   read:
+                    description: "format is supported for loading quads"
                     type: "boolean"
                   write:
+                    description: "format is supported for exporting quads"
+                    type: "boolean"
+                  nodes:
+                    description: "format can be used to describe nodes"
                     type: "boolean"
                   ext:
+                    description: "typical file extensions for this format"
                     type: "array"
                     items:
                       type: "string"
                   mime:
+                    description: "typical content types for this format"
                     type: "array"
                     items:
                       type: "string"
                   binary:
+                    description: "format uses binary encoding"
                     type: "boolean"
         default:
           description: "Unexpected error"
@@ -158,6 +167,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/v2/node/delete:
+    post:
+      tags:
+      - "data"
+      summary: "Removes a node add all associated quads"
+      description: ""
+      operationId: "deleteNode"
+      requestBody:
+        description: "File in one of formats specified in Content-Type."
+        required: true
+        content:
+          'application/n-quads':
+            schema:
+              $ref: '#/components/schemas/NQuadsNode'
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/JsonNode'
+          'application/x-protobuf':
+            schema:
+              $ref: '#/components/schemas/PNode'
+      parameters:
+      - name: "format"
+        in: "query"
+        description: "Data decoder to use for request. Overrides Content-Type."
+        required: false
+        schema:
+          type: "string"
+      responses:
+        200:
+          description: "delete successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  result:
+                    type: "string"
+                    description: "legacy success message"
+                  count:
+                    type: "integer"
+                    description: "number of nodes deleted"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v2/delete:
     post:
       tags:
@@ -217,7 +273,7 @@ paths:
       - "queries"
       summary: "Query the graph"
       description: ""
-      operationId: "readQuads"
+      operationId: "query"
       parameters:
       - name: "lang"
         in: "query"
@@ -319,6 +375,10 @@ components:
         <predicates> <are> <status> .
         <emily> <status> "smart_person" <smart_graph> .
         <greg> <status> "smart_person" <smart_graph> .
+    NQuadsNode:
+      type: "string"
+      format: "binary"
+      example: "<alice>"
     JSONLD:
       type: "string"
       format: "binary"
@@ -356,6 +416,8 @@ components:
             type: "string"
           label:
             type: "string"
+    JsonNode:
+      type: "string"
     JsonQuadsStream:
       type: "string"
       format: "binary"
@@ -364,6 +426,10 @@ components:
       type: "string"
       format: "binary"
       description: "Cayley-specific binary encoding of quads based on protobuf"
+    PNode:
+      type: "string"
+      format: "binary"
+      description: "Cayley-specific binary encoding of node value based on protobuf"
     Error:
       type: "object"
       properties:

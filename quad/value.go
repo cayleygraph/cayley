@@ -128,6 +128,10 @@ func StringToValue(v string) Value {
 			return String(v[1 : len(v)-1])
 		} else if v[:2] == "_:" {
 			return BNode(v[2:])
+		} else if i := strings.Index(v, `"^^<`); i > 0 && v[0] == '"' && v[len(v)-1] == '>' {
+			return TypedString{Value: String(v[1:i]), Type: IRI(v[i+4 : len(v)-1])}
+		} else if i := strings.Index(v, `"@`); i > 0 && v[0] == '"' && v[len(v)-1] != '"' {
+			return LangString{Value: String(v[1:i]), Lang: v[i+2:]}
 		}
 	}
 	return String(v)

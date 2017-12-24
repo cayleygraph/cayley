@@ -19,6 +19,10 @@ type Format struct {
 	Writer func(io.Writer) WriteCloser
 	// Binary is set to true if format is not human-readable.
 	Binary bool
+	// MarshalValue encodes one value in specific a format.
+	MarshalValue func(v Value) ([]byte, error)
+	// UnmarshalValue decodes a value from specific format.
+	UnmarshalValue func(b []byte) (Value, error)
 }
 
 var (

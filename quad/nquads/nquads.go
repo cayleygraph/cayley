@@ -55,6 +55,27 @@ func init() {
 			return NewReader(r, DecodeRaw)
 		},
 		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w) },
+		MarshalValue: func(v quad.Value) ([]byte, error) {
+			if v == nil {
+				return nil, nil
+			}
+			return []byte(v.String()), nil
+		},
+		UnmarshalValue: func(b []byte) (quad.Value, error) {
+			// TODO: proper parser for a single value
+			r := NewReader(bytes.NewReader(bytes.Join([][]byte{
+				[]byte("<s> <p> "),
+				b,
+				[]byte(" <l> .\n"),
+			}, nil)), false)
+			q, err := r.ReadQuad()
+			if err == io.EOF {
+				return nil, quad.ErrInvalid
+			} else if err != nil {
+				return nil, err
+			}
+			return q.Object, nil
+		},
 	})
 }
 

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/stretchr/testify/require"
 )
 
 var testNQuads = []struct {
@@ -839,5 +840,31 @@ var result quad.Quad
 func BenchmarkParser(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		result, _ = Parse("<http://example/s> <http://example/p> \"object of some real\\tlength\"@en . # comment")
+	}
+}
+
+func TestValueEncoding(t *testing.T) {
+	vals := []quad.Value{
+		quad.String("some val"),
+		quad.IRI("iri"),
+		quad.BNode("bnode"),
+		quad.TypedString{Value: "10", Type: "int"},
+		quad.LangString{Value: "val", Lang: "en"},
+	}
+	enc := []string{
+		`"some val"`,
+		`<iri>`,
+		`_:bnode`,
+		`"10"^^<int>`,
+		`"val"@en`,
+	}
+	f := quad.FormatByName("nquads")
+	for i, v := range vals {
+		data, err := f.MarshalValue(v)
+		require.NoError(t, err)
+		require.Equal(t, enc[i], string(data), string(data))
+		v2, err := f.UnmarshalValue(data)
+		require.NoError(t, err)
+		require.Equal(t, v, v2)
 	}
 }

@@ -91,6 +91,7 @@ func (api *APIv2) RegisterDataOn(r *httprouter.Router, wrappers ...HandlerWrappe
 	if !api.ro {
 		r.POST("/api/v2/write", wrap(api.ServeWrite, wrappers))
 		r.POST("/api/v2/delete", wrap(api.ServeDelete, wrappers))
+		r.POST("/api/v2/node/delete", wrap(api.ServeNodeDelete, wrappers))
 	}
 	r.POST("/api/v2/read", wrap(api.ServeRead, wrappers))
 	r.GET("/api/v2/read", wrap(api.ServeRead, wrappers))
@@ -216,7 +217,7 @@ func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	format := getFormat(r, "", hdrContentType)
 	if format == nil || format.Reader == nil {
-		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
+		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading quads"))
 		return
 	}
 	rd, err := readerFrom(r, hdrContentEncoding)
@@ -241,6 +242,50 @@ func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set(hdrContentType, contentTypeJSON)
 	fmt.Fprintf(w, `{"result": "Successfully deleted %d quads.", "count": %d}`+"\n", n, n)
+}
+
+func (api *APIv2) ServeNodeDelete(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	if api.ro {
+		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
+		return
+	}
+	format := getFormat(r, "", hdrContentType)
+	if format == nil || format.UnmarshalValue == nil {
+		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading nodes"))
+		return
+	}
+	const limit = 128*1024 + 1
+	rd := io.LimitReader(r.Body, limit)
+	data, err := ioutil.ReadAll(rd)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
+	} else if len(data) == limit {
+		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("request data is too large"))
+		return
+	}
+	v, err := format.UnmarshalValue(data)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
+	} else if v == nil {
+		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("cannot remove nil value"))
+		return
+	}
+	h, err := api.handleForRequest(r)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	err = h.RemoveNode(v)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	w.Header().Set(hdrContentType, contentTypeJSON)
+	const n = 1
+	fmt.Fprintf(w, `{"result": "Successfully deleted %d nodes.", "count": %d}`+"\n", n, n)
 }
 
 type checkWriter struct {
@@ -296,6 +341,7 @@ func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 		Id     string   `json:"id"`
 		Read   bool     `json:"read,omitempty"`
 		Write  bool     `json:"write,omitempty"`
+		Nodes  bool     `json:"nodes,omitempty"`
 		Ext    []string `json:"ext,omitempty"`
 		Mime   []string `json:"mime,omitempty"`
 		Binary bool     `json:"binary,omitempty"`
@@ -307,6 +353,7 @@ func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 			Id:  f.Name,
 			Ext: f.Ext, Mime: f.Mime,
 			Read: f.Reader != nil, Write: f.Writer != nil,
+			Nodes:  f.UnmarshalValue != nil,
 			Binary: f.Binary,
 		})
 	}
