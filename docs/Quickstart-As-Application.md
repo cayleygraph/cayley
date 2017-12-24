@@ -5,6 +5,7 @@
 This guide will take you through starting a persistent graph based on the provided data, with some hints for each backend.
 
 Grab the latest [release binary](http://github.com/cayleygraph/cayley/releases) and extract it wherever you like.
+If you have Docker installed you can check [guide](Container.md) for running Cayley in container.
 
 If you prefer to build from source, see [Contributing.md](Contributing.md) which has instructions. 
 

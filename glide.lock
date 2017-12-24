@@ -174,4 +174,8 @@ imports:
   - internal/json
 - name: gopkg.in/yaml.v2
   version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
+- name: gopkg.in/olivere/elastic.v5
+  version: 79ff368708b3a2a9da641dc831d95fd0782bf4ef
+- name: github.com/pkg/errors
+  version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
 devImports: []

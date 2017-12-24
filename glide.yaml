@@ -47,3 +47,4 @@ import:
 - package: github.com/go-sql-driver/mysql
 - package: github.com/dennwc/graphql
 - package: github.com/tylertreat/BoomFilters
+- package: gopkg.in/olivere/elastic.v5

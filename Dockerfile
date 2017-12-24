@@ -1,4 +1,4 @@
-FROM golang:latest as builder
+FROM golang:1.9 as builder
 
 # Set up workdir
 WORKDIR /go/src/github.com/cayleygraph/cayley
@@ -11,7 +11,7 @@ RUN glide install
 # This will be used to init cayley and as config file in the final image.
 # Make sure you start every path with %PREFIX% to make it available in both 
 # the builder image and the final image.
-RUN echo '{"store":{"backend":"bolt2","address":"%PREFIX%/data/cayley.db"}}' > config.json
+RUN echo '{"store":{"backend":"bolt","address":"%PREFIX%/data/cayley.db"}}' > config.json
 
 # Create filesystem for minimal image
 RUN mkdir -p /fs/assets
