@@ -91,8 +91,11 @@ func NewLoadDatabaseCmd() *cobra.Command {
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
 			load, _ := cmd.Flags().GetString(flagLoad)
+			if load == "" && len(args) == 1 {
+				load = args[0]
+			}
 			if load == "" {
-				return errors.New("quads file must be specified")
+				return errors.New("one quads file must be specified")
 			}
 			if init, err := cmd.Flags().GetBool("init"); err != nil {
 				return err
@@ -135,8 +138,11 @@ func NewDumpDatabaseCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			printBackendInfo()
 			dump, _ := cmd.Flags().GetString(flagDump)
+			if dump == "" && len(args) == 1 {
+				dump = args[0]
+			}
 			if dump == "" {
-				return errors.New("quads file must be specified")
+				return errors.New("one quads file must be specified")
 			}
 			h, err := openDatabase()
 			if err != nil {
