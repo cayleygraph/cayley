@@ -82,6 +82,9 @@ type DeltaError struct {
 }
 
 func (e *DeltaError) Error() string {
+	if !e.Delta.Quad.IsValid() {
+		return e.Err.Error()
+	}
 	return e.Delta.Action.String() + " " + e.Delta.Quad.String() + ": " + e.Err.Error()
 }
 

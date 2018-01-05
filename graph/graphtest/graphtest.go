@@ -13,6 +13,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/schema"
+	"github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,6 +61,9 @@ func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
 			gt.test(t, gen, conf)
 		})
 	}
+	t.Run("writers", func(t *testing.T) {
+		TestWriters(t, gen, conf)
+	})
 	t.Run("paths", func(t *testing.T) {
 		pathtest.RunTestMorphisms(t, gen)
 	})
@@ -189,6 +193,80 @@ func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
 
 	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), []quad.Quad{q}, false)
+}
+
+func TestWriters(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
+	for _, mis := range []bool{false, true} {
+		for _, dup := range []bool{false, true} {
+			name := []byte("__")
+			if dup {
+				name[0] = 'd'
+			}
+			if mis {
+				name[1] = 'm'
+			}
+			t.Run(string(name), func(t *testing.T) {
+				qs, _, closer := gen(t)
+				defer closer()
+
+				w, err := writer.NewSingle(qs, graph.IgnoreOpts{
+					IgnoreDup: dup, IgnoreMissing: mis,
+				})
+				require.NoError(t, err)
+
+				quads := func(arr ...quad.Quad) {
+					ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), arr, false)
+				}
+
+				deltaErr := func(exp, err error) {
+					if exp == graph.ErrQuadNotExist && mis {
+						require.NoError(t, err)
+						return
+					} else if exp == graph.ErrQuadExists && dup {
+						require.NoError(t, err)
+						return
+					}
+					e, ok := err.(*graph.DeltaError)
+					require.True(t, ok, "expected delta error, got: %T (%v)", err, err)
+					require.Equal(t, exp, e.Err)
+				}
+
+				// add one quad
+				q := quad.Make("a", "b", "c", nil)
+				err = w.AddQuad(q)
+				require.NoError(t, err)
+				quads(q)
+
+				// try to add the same quad again
+				err = w.AddQuad(q)
+				deltaErr(graph.ErrQuadExists, err)
+				quads(q)
+
+				// remove quad with non-existent node
+				err = w.RemoveQuad(quad.Make("a", "b", "not-existent", nil))
+				deltaErr(graph.ErrQuadNotExist, err)
+
+				// remove non-existent quads
+				err = w.RemoveQuad(quad.Make("a", "c", "b", nil))
+				deltaErr(graph.ErrQuadNotExist, err)
+				err = w.RemoveQuad(quad.Make("c", "b", "a", nil))
+				deltaErr(graph.ErrQuadNotExist, err)
+
+				// make sure store is still in correct state
+				quads(q)
+
+				// remove existing quad
+				err = w.RemoveQuad(q)
+				require.NoError(t, err)
+				quads()
+
+				// add the same quad again
+				err = w.AddQuad(q)
+				require.NoError(t, err)
+				quads(q)
+			})
+		}
+	}
 }
 
 type ValueSizer interface {
