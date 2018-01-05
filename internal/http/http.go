@@ -31,7 +31,11 @@ import (
 )
 
 var AssetsPath string
-var defaultAssetPaths = []string{".", "..", "./assets", "/usr/local/share/cayley/assets", os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley")}
+var defaultAssetPaths = []string{
+  ".", "..", "./assets",
+  "/usr/local/share/cayley/assets",
+  os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley"),
+}
 var assetsDirs = []string{"templates", "static", "docs"}
 
 func hasAssets(path string) bool {
