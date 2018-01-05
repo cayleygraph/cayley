@@ -254,8 +254,8 @@ func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, proc graph.Pro
 }
 
 func checkQuadValid(q Document) bool {
-	added, _ := q[fldQuadAdded].(Int)
-	deleted, _ := q[fldQuadDeleted].(Int)
+	added, _ := asInt(q[fldQuadAdded])
+	deleted, _ := asInt(q[fldQuadDeleted])
 	return added > deleted
 }
 
@@ -305,6 +305,11 @@ func (qs *QuadStore) appendLog(ctx context.Context, deltas []graph.Delta) ([]Key
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	ctx := context.TODO()
 	ids := make(map[quad.Value]int)
+
+	var validDeltas []graph.Delta
+	if ignoreOpts.IgnoreDup || ignoreOpts.IgnoreMissing {
+		validDeltas = make([]graph.Delta, 0, len(deltas))
+	}
 	// Pre-check the existence condition.
 	for _, d := range deltas {
 		if d.Action != graph.Add && d.Action != graph.Delete {
@@ -332,6 +337,9 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 				}
 			}
 		}
+		if validDeltas != nil {
+			validDeltas = append(validDeltas, d)
+		}
 		var dn int
 		if d.Action == graph.Add {
 			dn = 1
@@ -344,6 +352,9 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 		if d.Quad.Label != nil {
 			ids[d.Quad.Label] += dn
 		}
+	}
+	if validDeltas != nil {
+		deltas = validDeltas
 	}
 	if oids, err := qs.appendLog(ctx, deltas); err != nil {
 		if i := len(oids); i < len(deltas) {
@@ -412,6 +423,19 @@ func toDocumentValue(v quad.Value) Document {
 	return Document{fldValue: doc}
 }
 
+func asInt(v Value) (Int, error) {
+	var vi Int
+	switch v := v.(type) {
+	case Int:
+		vi = v
+	case Float:
+		vi = Int(v)
+	default:
+		return 0, fmt.Errorf("unexpected type for int field: %T", v)
+	}
+	return vi, nil
+}
+
 func toQuadValue(d Document) (quad.Value, error) {
 	if len(d) == 0 {
 		return nil, nil
@@ -436,16 +460,11 @@ func toQuadValue(d Document) (quad.Value, error) {
 		}
 		return p.ToNative(), nil
 	} else if v, ok := d[fldValInt]; ok {
-		var vi quad.Int
-		switch v := v.(type) {
-		case Int:
-			vi = quad.Int(v)
-		case Float:
-			vi = quad.Int(v)
-		default:
-			return nil, fmt.Errorf("unexpected type for int field: %T", v)
+		vi, err := asInt(v)
+		if err != nil {
+			return nil, err
 		}
-		return vi, nil
+		return quad.Int(vi), nil
 	} else if v, ok := d[fldValFloat]; ok {
 		var vf quad.Float
 		switch v := v.(type) {
