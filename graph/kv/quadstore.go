@@ -281,20 +281,23 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 }
 
 func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
-	var v quad.Quad
 	key, ok := k.(*proto.Primitive)
 	if !ok {
 		clog.Errorf("passed value was not a quad primitive: %T", k)
 		return quad.Quad{}
 	}
 	ctx := context.TODO()
+	var v quad.Quad
 	err := View(qs.db, func(tx BucketTx) error {
 		var err error
 		v, err = qs.primitiveToQuad(ctx, tx, key)
 		return err
 	})
 	if err != nil {
-		clog.Errorf("error fetching quad %#v: %s", key, err)
+		if err != ErrNotFound {
+			clog.Errorf("error fetching quad %#v: %s", key, err)
+		}
+		return quad.Quad{}
 	}
 	return v
 }

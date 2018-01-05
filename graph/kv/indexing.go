@@ -314,7 +314,7 @@ func (qs *QuadStore) decNodes(ctx context.Context, tx BucketTx, deltas []graphlo
 	upds := make([]nodeUpdate, 0, len(deltas))
 	for i, d := range deltas {
 		id := nodes[d.Hash]
-		if id == 0 {
+		if id == 0 || d.RefInc == 0 {
 			continue
 		}
 		upds = append(upds, nodeUpdate{Ind: i, ID: id, NodeUpdate: d})
@@ -380,7 +380,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			}
 			if p != nil {
 				if ignoreOpts.IgnoreDup {
-					continue // already exists, no need to isert
+					continue // already exists, no need to insert
 				}
 				return &graph.DeltaError{Delta: in[q.Ind], Err: graph.ErrQuadExists}
 			}
@@ -411,7 +411,8 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 			return err
 		}
 
-		// delete quads
+		// check for existence and delete quads
+		fixNodes := make(map[graph.ValueHash]int)
 		for _, q := range deltas.QuadDel {
 			var link proto.Primitive
 			exists := true
@@ -443,6 +444,12 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 				if !ignoreOpts.IgnoreMissing {
 					return &graph.DeltaError{Delta: in[q.Ind], Err: graph.ErrQuadNotExist}
 				}
+				// revert counters for all directions of this quad
+				for _, dir := range quad.Directions {
+					if h := q.Quad.Get(dir); h.Valid() {
+						fixNodes[h]++
+					}
+				}
 				continue
 			}
 			links = append(links, link)
@@ -453,6 +460,15 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		}
 		links = nil
 		nodes = nil
+
+		// we decremented some nodes that has non-existent quads - let's fix this
+		if len(fixNodes) != 0 {
+			for i, n := range deltas.DecNode {
+				if dn := fixNodes[n.Hash]; dn != 0 {
+					deltas.DecNode[i].RefInc += dn
+				}
+			}
+		}
 
 		// finally decrement and remove nodes
 		if err := qs.decNodes(ctx, tx, deltas.DecNode, dnodes); err != nil {
