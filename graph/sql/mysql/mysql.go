@@ -10,7 +10,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/log"
 	csql "github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/quad"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 )
 
 const Type = "mysql"
@@ -70,7 +70,7 @@ func runTxMysql(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUp
 				insertValue[nodeKey] = stmt
 			}
 			_, err = stmt.Exec(values...)
-			err = convInsertErrorMySql(err)
+			err = convInsertError(err)
 			if err != nil {
 				clog.Errorf("couldn't exec INSERT statement: %v", err)
 				return err
@@ -112,9 +112,11 @@ func runTxMysql(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUp
 				insertValue = make(map[csql.ValueType]*sql.Stmt)
 			}
 			_, err := insertQuad.Exec(dirs...)
-			err = convInsertErrorMySql(err)
+			err = convInsertError(err)
 			if err != nil {
-				clog.Errorf("couldn't exec INSERT statement: %v", err)
+				if _, ok := err.(*graph.DeltaError); !ok {
+					clog.Errorf("couldn't exec INSERT statement: %v", err)
+				}
 				return err
 			}
 		} else {
@@ -124,6 +126,15 @@ func runTxMysql(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUp
 	return nil
 }
 
-func convInsertErrorMySql(err error) error {
-	return err // TODO
+func convInsertError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if e, ok := err.(*mysql.MySQLError); ok {
+		if e.Number == 1062 {
+			// TODO: reference to delta
+			return &graph.DeltaError{Err: graph.ErrQuadExists}
+		}
+	}
+	return err
 }

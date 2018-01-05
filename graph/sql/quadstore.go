@@ -356,18 +356,6 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 	}
 
 	err = retry(tx, func() error {
-		// node update SQL is generic enough to run it here
-		updateNode, err := tx.Prepare(`UPDATE nodes SET refs = refs + ` + p[0] + ` WHERE hash = ` + p[1] + `;`)
-		if err != nil {
-			return err
-		}
-		for _, n := range deltas.DecNode {
-			_, err := updateNode.Exec(n.RefInc, NodeHash{n.Hash}.SQLValue())
-			if err != nil {
-				clog.Errorf("couldn't exec UPDATE statement: %v", err)
-				return err
-			}
-		}
 		err = qs.flavor.RunTx(tx, deltas.IncNode, deltas.QuadAdd, opts)
 		if err != nil {
 			return err
@@ -377,6 +365,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 			deleteQuad   *sql.Stmt
 			deleteTriple *sql.Stmt
 		)
+		fixNodes := make(map[graph.ValueHash]int)
 		for _, d := range deltas.QuadDel {
 			dirs := make([]interface{}, 0, len(quad.Directions))
 			for _, h := range d.Quad.Dirs() {
@@ -407,12 +396,37 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 				clog.Errorf("couldn't get DELETE RowsAffected: %v", err)
 				return err
 			}
-			if affected != 1 && !opts.IgnoreMissing {
-				return graph.ErrQuadNotExist
+			if affected != 1 {
+				if !opts.IgnoreMissing {
+					// TODO: reference to delta
+					return &graph.DeltaError{Err: graph.ErrQuadNotExist}
+				}
+				// revert counters for all directions of this quad
+				for _, dir := range quad.Directions {
+					if h := d.Quad.Get(dir); h.Valid() {
+						fixNodes[h]++
+					}
+				}
 			}
 		}
 		if len(deltas.DecNode) == 0 {
 			return nil
+		}
+		// node update SQL is generic enough to run it here
+		updateNode, err := tx.Prepare(`UPDATE nodes SET refs = refs + ` + p[0] + ` WHERE hash = ` + p[1] + `;`)
+		if err != nil {
+			return err
+		}
+		for _, n := range deltas.DecNode {
+			n.RefInc += fixNodes[n.Hash]
+			if n.RefInc == 0 {
+				continue
+			}
+			_, err := updateNode.Exec(n.RefInc, NodeHash{n.Hash}.SQLValue())
+			if err != nil {
+				clog.Errorf("couldn't exec UPDATE statement: %v", err)
+				return err
+			}
 		}
 		// and remove unused nodes at last
 		_, err = tx.Exec(`DELETE FROM nodes WHERE refs <= 0;`)

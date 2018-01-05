@@ -22,7 +22,7 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 		c = &Config{}
 	}
 	create := makeDatabaseFunc(typ, fnc)
-	t.Run("graph", func(t *testing.T) {
+	t.Run("qs", func(t *testing.T) {
 		t.Parallel()
 		graphtest.TestAll(t, create, &graphtest.Config{
 			NoPrimitives:        true,

@@ -53,13 +53,14 @@ func ConvError(err error) error {
 	return err
 }
 
-func convInsertErrorPG(err error) error {
+func convInsertError(err error) error {
 	if err == nil {
 		return err
 	}
 	if pe, ok := err.(*pq.Error); ok {
 		if pe.Code == "23505" {
-			return graph.ErrQuadExists
+			// TODO: reference to delta
+			return &graph.DeltaError{Err: graph.ErrQuadExists}
 		}
 	}
 	return err
@@ -139,7 +140,7 @@ func RunTx(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate,
 				insertValue[nodeKey] = stmt
 			}
 			_, err = stmt.Exec(values...)
-			err = convInsertErrorPG(err)
+			err = convInsertError(err)
 			if err != nil {
 				clog.Errorf("couldn't exec INSERT statement: %v", err)
 				return err
@@ -187,9 +188,11 @@ func RunTx(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate,
 				insertValue = make(map[csql.ValueType]*sql.Stmt)
 			}
 			_, err := insertQuad.Exec(dirs...)
-			err = convInsertErrorPG(err)
+			err = convInsertError(err)
 			if err != nil {
-				clog.Errorf("couldn't exec INSERT statement: %v", err)
+				if _, ok := err.(*graph.DeltaError); !ok {
+					clog.Errorf("couldn't exec INSERT statement: %v", err)
+				}
 				return err
 			}
 		} else {
