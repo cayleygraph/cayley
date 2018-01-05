@@ -139,7 +139,9 @@ func New(kv BucketKV, _ graph.Options) (graph.QuadStore, error) {
 		return nil, errors.New("kv: data version is out of date. Run cayleyupgrade for your config to update the data.")
 	}
 	qs.valueLRU = lru.New(2000)
-	qs.initBloomFilter(ctx)
+	if err := qs.initBloomFilter(ctx); err != nil {
+		return nil, err
+	}
 	return qs, nil
 }
 

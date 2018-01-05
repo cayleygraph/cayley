@@ -904,7 +904,7 @@ func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
 		it := b.Scan(nil)
 		defer it.Close()
 		for it.Next(ctx) {
-			v := it.Key()
+			v := it.Val()
 			p = proto.Primitive{}
 			err := p.Unmarshal(v)
 			if err != nil {
