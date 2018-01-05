@@ -31,6 +31,11 @@ import (
 )
 
 var AssetsPath string
+var defaultAssetPaths = []string{
+  ".", "..", "./assets",
+  "/usr/local/share/cayley/assets",
+  os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley"),
+}
 var assetsDirs = []string{"templates", "static", "docs"}
 
 func hasAssets(path string) bool {
@@ -52,10 +57,7 @@ func findAssetsPath() (string, error) {
 		}
 		return "", fmt.Errorf("cannot find assets at %q", AssetsPath)
 	}
-	for _, path := range []string{
-		".", "..",
-		os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley"),
-	} {
+	for _, path := range defaultAssetPaths {
 		if hasAssets(path) {
 			return path, nil
 		}
