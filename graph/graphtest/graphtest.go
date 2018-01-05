@@ -30,8 +30,6 @@ type Config struct {
 
 	SkipDeletedFromIterator  bool
 	SkipSizeCheckAfterDelete bool
-	// TODO(dennwc): these stores are not garbage-collecting nodes after quad removal
-	SkipNodeDelAfterQuadDel bool
 }
 
 var graphTests = []struct {
@@ -640,35 +638,18 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	err = w.RemoveQuad(toRemove)
 	require.True(t, graph.IsQuadNotExist(err), "expected not exists error, got: %v", err)
 
-	if !conf.SkipNodeDelAfterQuadDel {
-		expect = []string{
-			"A",
-			"B",
-			"C",
-			"D",
-			"E",
-			"F",
-			"G",
-			"cool",
-			"follows",
-			"status",
-			"status_graph",
-		}
-	} else {
-		expect = []string{
-			"A",
-			"B",
-			"C",
-			"D",
-			"E",
-			"F",
-			"G",
-			"X",
-			"cool",
-			"follows",
-			"status",
-			"status_graph",
-		}
+	expect = []string{
+		"A",
+		"B",
+		"C",
+		"D",
+		"E",
+		"F",
+		"G",
+		"cool",
+		"follows",
+		"status",
+		"status_graph",
 	}
 	ExpectIteratedRawStrings(t, qs, all, nil)
 	all = qs.NodesAllIterator()
@@ -840,9 +821,6 @@ func TestNodeDelete(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	}
 	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), exp, true)
 
-	if conf.SkipNodeDelAfterQuadDel {
-		return
-	}
 	ExpectIteratedValues(t, qs, qs.NodesAllIterator(), []quad.Value{
 		quad.Raw("A"),
 		quad.Raw("B"),
