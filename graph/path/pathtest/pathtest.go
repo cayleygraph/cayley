@@ -256,11 +256,13 @@ func testSet(qs graph.QuadStore) []test {
 			expect: []quad.Value{vBob},
 		},
 		{
-			message: "three letters",
+			message: "three letters and range",
 			path: StartPath(qs).Filters(shape.Wildcard{
 				Pattern: `???`,
+			}, shape.Comparison{
+				Op: iterator.CompareGT, Val: quad.IRI("b"),
 			}),
-			expect: []quad.Value{vAre, vBob},
+			expect: []quad.Value{vBob},
 		},
 		{
 			message: "part in string",
