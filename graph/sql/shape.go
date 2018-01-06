@@ -35,6 +35,7 @@ var DefaultDialect = QueryDialect{
 }
 
 type QueryDialect struct {
+	RegexpOp    CmpOp
 	FieldQuote  func(string) string
 	Placeholder func(int) string
 }

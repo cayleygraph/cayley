@@ -16,6 +16,7 @@ import (
 const Type = "mysql"
 
 var QueryDialect = csql.QueryDialect{
+	RegexpOp: "REGEXP",
 	FieldQuote: func(name string) string {
 		return "`" + name + "`"
 	},

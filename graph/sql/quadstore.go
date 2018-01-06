@@ -261,6 +261,7 @@ func New(typ string, addr string, options graph.Options) (graph.QuadStore, error
 		ids:     lru.New(1024),
 		noSizes: true, // Skip size checking by default.
 	}
+	qs.opt.SetRegexpOp(qs.flavor.RegexpOp)
 	if qs.flavor.NoOffsetWithoutLimit {
 		qs.opt.NoOffsetWithoutLimit()
 	}

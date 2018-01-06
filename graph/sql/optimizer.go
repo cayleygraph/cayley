@@ -31,7 +31,12 @@ func NewOptimizer() *Optimizer {
 type Optimizer struct {
 	tableInd int
 
+	regexpOp             CmpOp
 	noOffsetWithoutLimit bool // blame mysql
+}
+
+func (opt *Optimizer) SetRegexpOp(op CmpOp) {
+	opt.regexpOp = op
 }
 
 func (opt *Optimizer) NoOffsetWithoutLimit() {
@@ -203,6 +208,10 @@ func (opt *Optimizer) optimizeLookup(s shape.Lookup) (shape.Shape, bool) {
 	return *sel, true
 }
 
+func convRegexp(re string) string {
+	return re // TODO: convert regular expression
+}
+
 func (opt *Optimizer) optimizeFilters(s shape.Filter) (shape.Shape, bool) {
 	switch from := s.From.(type) {
 	case shape.AllNodes:
@@ -240,6 +249,31 @@ func (opt *Optimizer) optimizeFilters(s shape.Filter) (shape.Shape, bool) {
 			return s, false
 		}
 		return *sel, true
+	case shape.Wildcard:
+		if opt.regexpOp == "" {
+			return s, false
+		}
+		return Nodes([]Where{
+			{Field: "value_string", Op: opt.regexpOp, Value: Placeholder{}},
+		}, []Value{
+			StringVal(convRegexp(f.Regexp())),
+		}), true
+	case shape.Regexp:
+		if opt.regexpOp == "" {
+			return s, false
+		}
+		where := []Where{
+			{Field: "value_string", Op: opt.regexpOp, Value: Placeholder{}},
+		}
+		if !f.Refs {
+			where = append(where, []Where{
+				{Field: "iri", Op: OpIsNull},
+				{Field: "bnode", Op: OpIsNull},
+			}...)
+		}
+		return Nodes(where, []Value{
+			StringVal(convRegexp(f.Re.String())),
+		}), true
 	default:
 		return s, false
 	}

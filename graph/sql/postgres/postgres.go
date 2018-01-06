@@ -17,6 +17,7 @@ import (
 const Type = "postgres"
 
 var QueryDialect = csql.QueryDialect{
+	RegexpOp:   "~",
 	FieldQuote: pq.QuoteIdentifier,
 	Placeholder: func(n int) string {
 		return fmt.Sprintf("$%d", n)
