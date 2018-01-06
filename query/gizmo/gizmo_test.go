@@ -138,6 +138,20 @@ var testQueries = []struct {
 		expect: nil,
 	},
 	{
+		message: "use .In() with .Filter(prefix)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(like("al%")).All()
+		`,
+		expect: []string{"<alice>"},
+	},
+	{
+		message: "use .In() with .Filter(wildcard)",
+		query: `
+			g.V("<bob>").In("<follows>").Filter(like("a?i%e")).All()
+		`,
+		expect: []string{"<alice>"},
+	},
+	{
 		message: "use .In() with .Filter(regex with IRIs)",
 		query: `
 			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true)).All()
