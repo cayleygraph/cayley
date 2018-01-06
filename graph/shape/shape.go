@@ -3,6 +3,7 @@ package shape
 import (
 	"reflect"
 	"regexp"
+	"strings"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -330,6 +331,8 @@ func (f Comparison) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.I
 var _ ValueFilter = Regexp{}
 
 // Regexp filters values using regular expression.
+//
+// Since regexp patterns can not be optimized in most cases, Wildcard should be used if possible.
 type Regexp struct {
 	Re   *regexp.Regexp
 	Refs bool // allow to match IRIs
@@ -338,6 +341,55 @@ type Regexp struct {
 func (f Regexp) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
 	rit := iterator.NewRegex(it, f.Re, qs)
 	rit.AllowRefs(f.Refs)
+	return rit
+}
+
+var _ ValueFilter = Wildcard{}
+
+// Wildcard is a filter for string patterns.
+//
+//   % - zero or more characters
+//   ? - exactly one character
+type Wildcard struct {
+	Pattern string // allowed wildcards are: % and ?
+}
+
+// Regexp returns an analog regexp pattern in format accepted by Go stdlib (RE2).
+func (f Wildcard) Regexp() string {
+	const any = `%`
+	// escape all meta-characters in pattern string
+	pattern := regexp.QuoteMeta(f.Pattern)
+	// if the pattern is anchored, add regexp analog for it
+	if !strings.HasPrefix(pattern, any) {
+		pattern = "^" + pattern
+	} else {
+		pattern = strings.TrimPrefix(pattern, any)
+	}
+	if !strings.HasSuffix(pattern, any) {
+		pattern = pattern + "$"
+	} else {
+		pattern = strings.TrimSuffix(pattern, any)
+	}
+	// replace wildcards
+	pattern = strings.NewReplacer(
+		any, `.*`,
+		`\?`, `.`,
+	).Replace(pattern)
+	return pattern
+}
+
+func (f Wildcard) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
+	if f.Pattern == "" {
+		return iterator.NewNull()
+	} else if strings.Trim(f.Pattern, "%") == "" {
+		return it
+	}
+	re, err := regexp.Compile(f.Regexp())
+	if err != nil {
+		return iterator.NewError(err)
+	}
+	rit := iterator.NewRegex(it, re, qs)
+	rit.AllowRefs(true)
 	return rit
 }
 

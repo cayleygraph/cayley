@@ -249,6 +249,27 @@ func testSet(qs graph.QuadStore) []test {
 			expect: []quad.Value{vBob, vDani, vEmily, vFred},
 		},
 		{
+			message: "string prefix",
+			path: StartPath(qs).Filters(shape.Wildcard{
+				Pattern: `bo%`,
+			}),
+			expect: []quad.Value{vBob},
+		},
+		{
+			message: "three letters",
+			path: StartPath(qs).Filters(shape.Wildcard{
+				Pattern: `???`,
+			}),
+			expect: []quad.Value{vAre, vBob},
+		},
+		{
+			message: "part in string",
+			path: StartPath(qs).Filters(shape.Wildcard{
+				Pattern: `%ed%`,
+			}),
+			expect: []quad.Value{vFred, vPredicate},
+		},
+		{
 			message: "Limit",
 			path:    StartPath(qs).Has(vStatus, vCool).Limit(2),
 			// TODO(dennwc): resolve this ordering issue

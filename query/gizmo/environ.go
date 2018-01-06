@@ -154,6 +154,18 @@ func cmpOpType(op iterator.Operator) func(vm *goja.Runtime, call goja.FunctionCa
 	}
 }
 
+func cmpWildcard(vm *goja.Runtime, call goja.FunctionCall) goja.Value {
+	args := exportArgs(call.Arguments)
+	if len(args) != 1 {
+		return throwErr(vm, errArgCount2{Expected: 1, Got: len(args)})
+	}
+	pattern, ok := args[0].(string)
+	if !ok {
+		return throwErr(vm, fmt.Errorf("wildcard: unsupported type: %T", args[0]))
+	}
+	return vm.ToValue(valFilter{f: shape.Wildcard{Pattern: pattern}})
+}
+
 func cmpRegexp(vm *goja.Runtime, call goja.FunctionCall) goja.Value {
 	args := exportArgs(call.Arguments)
 	if len(args) != 1 && len(args) != 2 {
@@ -230,6 +242,7 @@ var defaultEnv = map[string]func(vm *goja.Runtime, call goja.FunctionCall) goja.
 	"gt":    cmpOpType(iterator.CompareGT),
 	"gte":   cmpOpType(iterator.CompareGTE),
 	"regex": cmpRegexp,
+	"like":  cmpWildcard,
 }
 
 func unwrap(o interface{}) interface{} {
