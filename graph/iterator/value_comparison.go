@@ -279,5 +279,6 @@ func (it *Comparison) Stats() graph.IteratorStats {
 }
 
 func (it *Comparison) Size() (int64, bool) {
-	return 0, false
+	sz, _ := it.subIt.Size()
+	return sz / 2, false
 }

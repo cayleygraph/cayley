@@ -195,5 +195,6 @@ func (it *Regex) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Regex) Size() (int64, bool) {
-	return 0, false
+	sz, _ := it.subIt.Size()
+	return sz / 2, false
 }
