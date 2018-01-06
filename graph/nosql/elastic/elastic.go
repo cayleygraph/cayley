@@ -350,6 +350,24 @@ func (db *DB) Delete(col string) nosql.Delete {
 	return &Delete{indexRef: db.indexRef(col)}
 }
 
+func convRegexp(o interface{}) interface{} {
+	s, ok := o.(string)
+	if !ok {
+		return o
+	}
+	if strings.HasPrefix(s, "^") {
+		s = s[1:]
+	} else {
+		s = ".*" + s
+	}
+	if strings.HasSuffix(s, "$") {
+		s = s[:len(s)-1]
+	} else {
+		s = s + ".*"
+	}
+	return s
+}
+
 type elasticQuery struct {
 	Keys    []nosql.Key
 	Filters []nosql.FieldFilter
@@ -391,9 +409,15 @@ func (q elasticQuery) Source() (interface{}, error) {
 		val := toElasticValue(f.Value)
 		switch f.Filter {
 		case nosql.Equal:
-			filters = append(filters, term(name, toElasticValue(f.Value)))
+			filters = append(filters, term(name, val))
+		case nosql.Regexp:
+			filters = append(filters, map[string]interface{}{
+				"regexp": map[string]interface{}{
+					name: convRegexp(val),
+				},
+			})
 		case nosql.NotEqual:
-			not = append(not, term(name, toElasticValue(f.Value)))
+			not = append(not, term(name, val))
 		case nosql.GT, nosql.GTE, nosql.LT, nosql.LTE:
 			r := ranges[name]
 			switch f.Filter {
