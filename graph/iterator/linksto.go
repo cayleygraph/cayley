@@ -85,6 +85,7 @@ func (it *LinksTo) Tagger() *graph.Tagger {
 func (it *LinksTo) Clone() graph.Iterator {
 	out := NewLinksTo(it.qs, it.primaryIt.Clone(), it.dir)
 	out.tags.CopyFrom(it)
+	out.runstats.Size, out.runstats.ExactSize = it.runstats.Size, it.runstats.ExactSize
 	return out
 }
 
@@ -211,21 +212,43 @@ func (it *LinksTo) Type() graph.Type { return graph.LinksTo }
 func (it *LinksTo) Stats() graph.IteratorStats {
 	subitStats := it.primaryIt.Stats()
 	// TODO(barakmich): These should really come from the quadstore itself
-	fanoutFactor := int64(20)
 	checkConstant := int64(1)
 	nextConstant := int64(2)
-	return graph.IteratorStats{
+	st := graph.IteratorStats{
 		NextCost:     nextConstant + subitStats.NextCost,
 		ContainsCost: checkConstant + subitStats.ContainsCost,
-		Size:         fanoutFactor * subitStats.Size,
-		ExactSize:    false,
 		Next:         it.runstats.Next,
 		Contains:     it.runstats.Contains,
 		ContainsNext: it.runstats.ContainsNext,
 	}
+	st.Size, st.ExactSize = it.Size()
+	return st
 }
 
 func (it *LinksTo) Size() (int64, bool) {
-	st := it.Stats()
-	return st.Size, st.ExactSize
+	if it.runstats.Size != 0 {
+		return it.runstats.Size, it.runstats.ExactSize
+	}
+	if fixed, ok := it.primaryIt.(*Fixed); ok {
+		// get real sizes from sub iterators
+		var (
+			sz    int64
+			exact = true
+		)
+		for _, v := range fixed.Values() {
+			sit := it.qs.QuadIterator(it.dir, v)
+			n, ex := sit.Size()
+			sit.Close()
+			sz += n
+			exact = exact && ex
+		}
+		it.runstats.Size, it.runstats.ExactSize = sz, exact
+		return sz, exact
+	}
+	// TODO(barakmich): It should really come from the quadstore itself
+	const fanoutFactor = 20
+	sz, _ := it.primaryIt.Size()
+	sz *= fanoutFactor
+	it.runstats.Size, it.runstats.ExactSize = sz, false
+	return sz, false
 }

@@ -175,13 +175,13 @@ type Iterator interface {
 
 // DescribeIterator returns a description of the iterator tree.
 func DescribeIterator(it Iterator) Description {
-	sz, _ := it.Size()
+	sz, exact := it.Size()
 	d := Description{
 		UID:  it.UID(),
 		Name: it.String(),
 		Type: it.Type(),
 		Tags: it.Tagger().Tags(),
-		Size: sz,
+		Size: sz, Exact: exact,
 	}
 	if sub := it.SubIterators(); len(sub) != 0 {
 		d.Iterators = make([]Description, 0, len(sub))
@@ -198,6 +198,7 @@ type Description struct {
 	Type      Type          `json:",omitempty"`
 	Tags      []string      `json:",omitempty"`
 	Size      int64         `json:",omitempty"`
+	Exact     bool          `json:",omitempty"`
 	Iterators []Description `json:",omitempty"`
 }
 

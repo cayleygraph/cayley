@@ -85,6 +85,11 @@ func (it *Fixed) Add(v graph.Value) {
 	it.values = append(it.values, v)
 }
 
+// Values returns a list of values stored in iterator. Slice should not be modified.
+func (it *Fixed) Values() []graph.Value {
+	return it.values
+}
+
 func (it *Fixed) String() string {
 	return fmt.Sprintf("Fixed(%v)", it.values)
 }
