@@ -101,15 +101,14 @@ func (opt *Optimizer) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
 	}
 }
 
-func SelectValue(v quad.Value, op CmpOp) *Select {
+func selectValueQuery(v quad.Value, op CmpOp) ([]Where, []Value, bool) {
 	if op == OpEqual {
 		// we can use hash to check equality
-		sel := Nodes([]Where{
-			{Field: "hash", Op: op, Value: Placeholder{}},
-		}, []Value{
-			HashOf(v),
-		})
-		return &sel
+		return []Where{
+				{Field: "hash", Op: op, Value: Placeholder{}},
+			}, []Value{
+				HashOf(v),
+			}, true
 	}
 	var (
 		where  []Where
@@ -190,6 +189,14 @@ func SelectValue(v quad.Value, op CmpOp) *Select {
 			TimeVal(v),
 		}
 	default:
+		return nil, nil, false
+	}
+	return where, params, true
+}
+
+func SelectValue(v quad.Value, op CmpOp) *Select {
+	where, params, ok := selectValueQuery(v, op)
+	if !ok {
 		return nil
 	}
 	sel := Nodes(where, params)
@@ -212,6 +219,52 @@ func convRegexp(re string) string {
 	return re // TODO: convert regular expression
 }
 
+func (opt *Optimizer) optimizeFilter(from shape.Shape, f shape.ValueFilter) ([]Where, []Value, bool) {
+	switch f := f.(type) {
+	case shape.Comparison:
+		var cmp CmpOp
+		switch f.Op {
+		case iterator.CompareGT:
+			cmp = OpGT
+		case iterator.CompareGTE:
+			cmp = OpGTE
+		case iterator.CompareLT:
+			cmp = OpLT
+		case iterator.CompareLTE:
+			cmp = OpLTE
+		default:
+			return nil, nil, false
+		}
+		return selectValueQuery(f.Val, cmp)
+	case shape.Wildcard:
+		if opt.regexpOp == "" {
+			return nil, nil, false
+		}
+		return []Where{
+				{Field: "value_string", Op: opt.regexpOp, Value: Placeholder{}},
+			}, []Value{
+				StringVal(convRegexp(f.Regexp())),
+			}, true
+	case shape.Regexp:
+		if opt.regexpOp == "" {
+			return nil, nil, false
+		}
+		where := []Where{
+			{Field: "value_string", Op: opt.regexpOp, Value: Placeholder{}},
+		}
+		if !f.Refs {
+			where = append(where, []Where{
+				{Field: "iri", Op: OpIsNull},
+				{Field: "bnode", Op: OpIsNull},
+			}...)
+		}
+		return where, []Value{
+			StringVal(convRegexp(f.Re.String())),
+		}, true
+	default:
+		return nil, nil, false
+	}
+}
 func (opt *Optimizer) optimizeFilters(s shape.Filter) (shape.Shape, bool) {
 	switch from := s.From.(type) {
 	case shape.AllNodes:
@@ -226,57 +279,30 @@ func (opt *Optimizer) optimizeFilters(s shape.Filter) (shape.Shape, bool) {
 	default:
 		return s, false
 	}
-	if len(s.Filters) != 1 {
+	var (
+		where  []Where
+		params []Value
+	)
+	left := shape.Filter{
+		From: s.From,
+	}
+	for _, f := range s.Filters {
+		if w, p, ok := opt.optimizeFilter(s.From, f); ok {
+			where = append(where, w...)
+			params = append(params, p...)
+		} else {
+			left.Filters = append(left.Filters, f)
+		}
+	}
+	if len(where) == 0 {
 		return s, false
 	}
-	switch f := s.Filters[0].(type) {
-	case shape.Comparison:
-		var cmp CmpOp
-		switch f.Op {
-		case iterator.CompareGT:
-			cmp = OpGT
-		case iterator.CompareGTE:
-			cmp = OpGTE
-		case iterator.CompareLT:
-			cmp = OpLT
-		case iterator.CompareLTE:
-			cmp = OpLTE
-		default:
-			return s, false
-		}
-		sel := SelectValue(f.Val, cmp)
-		if sel == nil {
-			return s, false
-		}
-		return *sel, true
-	case shape.Wildcard:
-		if opt.regexpOp == "" {
-			return s, false
-		}
-		return Nodes([]Where{
-			{Field: "value_string", Op: opt.regexpOp, Value: Placeholder{}},
-		}, []Value{
-			StringVal(convRegexp(f.Regexp())),
-		}), true
-	case shape.Regexp:
-		if opt.regexpOp == "" {
-			return s, false
-		}
-		where := []Where{
-			{Field: "value_string", Op: opt.regexpOp, Value: Placeholder{}},
-		}
-		if !f.Refs {
-			where = append(where, []Where{
-				{Field: "iri", Op: OpIsNull},
-				{Field: "bnode", Op: OpIsNull},
-			}...)
-		}
-		return Nodes(where, []Value{
-			StringVal(convRegexp(f.Re.String())),
-		}), true
-	default:
-		return s, false
+	sel := Nodes(where, params)
+	if len(left.Filters) == 0 {
+		return sel, true
 	}
+	left.From = sel
+	return left, true
 }
 
 func (opt *Optimizer) optimizeQuads(s shape.Quads) (shape.Shape, bool) {

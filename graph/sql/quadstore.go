@@ -10,6 +10,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
@@ -459,7 +460,10 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	v := val.(Value)
+	v, ok := val.(Value)
+	if !ok {
+		return iterator.NewNull()
+	}
 	sel := AllQuads("")
 	sel.WhereEq("", dirField(d), v)
 	return qs.NewIterator(sel)
