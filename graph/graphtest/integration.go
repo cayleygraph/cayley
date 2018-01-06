@@ -47,17 +47,26 @@ const (
 	KeanuR  = "Keanu Reeves"
 )
 
-func TestIntegration(t *testing.T, gen testutil.DatabaseFunc, force bool) {
+func checkIntegration(t testing.TB, force bool) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 	if !force && os.Getenv("RUN_INTEGRATION") != "true" {
 		t.Skip("skipping integration tests; set RUN_INTEGRATION=true to run them")
 	}
+}
+
+func TestIntegration(t *testing.T, gen testutil.DatabaseFunc, force bool) {
+	checkIntegration(t, force)
 	h, closer := prepare(t, gen)
 	defer closer()
 
 	checkQueries(t, h, timeout)
+}
+
+func BenchmarkIntegration(t *testing.B, gen testutil.DatabaseFunc, force bool) {
+	checkIntegration(t, force)
+	benchmarkQueries(t, gen)
 }
 
 func costarTag(id, c1, c1m, c2, c2m string) map[string]string {
@@ -560,7 +569,7 @@ func convertToStringList(in []interface{}) []string {
 	return out
 }
 
-func BenchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
+func benchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
 	h, closer := prepare(b, gen)
 	defer closer()
 

@@ -104,3 +104,13 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 		t.Errorf("Discordant tag results, new:%v old:%v", newResults, oldResults)
 	}
 }
+
+func BenchmarkAll(t *testing.B, gen DatabaseFunc, conf *Config) {
+	if conf == nil {
+		conf = &Config{}
+	}
+	qsgen := NewQuadStoreFunc(gen)
+	t.Run("qs", func(t *testing.B) {
+		graphtest.BenchmarkAll(t, qsgen, conf.quadStore())
+	})
+}

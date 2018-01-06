@@ -33,8 +33,14 @@ func makePostgres(t testing.TB) (string, graph.Options, func()) {
 	}
 }
 
+var conf = &sqltest.Config{
+	TimeRound: true,
+}
+
 func TestPostgres(t *testing.T) {
-	sqltest.TestAll(t, Type, makePostgres, &sqltest.Config{
-		TimeRound: true,
-	})
+	sqltest.TestAll(t, Type, makePostgres, conf)
+}
+
+func BenchmarkPostgres(t *testing.B) {
+	sqltest.BenchmarkAll(t, Type, makePostgres, conf)
 }

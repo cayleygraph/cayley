@@ -13,8 +13,16 @@ import (
 )
 
 type Config struct {
-	TimeRound      bool
-	SkipIntHorizon bool
+	TimeRound bool
+}
+
+func (c Config) quadStore() *graphtest.Config {
+	return &graphtest.Config{
+		NoPrimitives:        true,
+		TimeInMcs:           true,
+		TimeRound:           c.TimeRound,
+		OptimizesComparison: true,
+	}
 }
 
 func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
@@ -24,17 +32,21 @@ func TestAll(t *testing.T, typ string, fnc DatabaseFunc, c *Config) {
 	create := makeDatabaseFunc(typ, fnc)
 	t.Run("qs", func(t *testing.T) {
 		t.Parallel()
-		graphtest.TestAll(t, create, &graphtest.Config{
-			NoPrimitives:        true,
-			TimeInMcs:           true,
-			TimeRound:           c.TimeRound,
-			OptimizesComparison: true,
-			//SkipIntHorizon:      c.SkipIntHorizon,
-		})
+		graphtest.TestAll(t, create, c.quadStore())
 	})
 	t.Run("zero rune", func(t *testing.T) {
 		t.Parallel()
 		testZeroRune(t, create)
+	})
+}
+
+func BenchmarkAll(t *testing.B, typ string, fnc DatabaseFunc, c *Config) {
+	if c == nil {
+		c = &Config{}
+	}
+	create := makeDatabaseFunc(typ, fnc)
+	t.Run("qs", func(t *testing.B) {
+		graphtest.BenchmarkAll(t, create, c.quadStore())
 	})
 }
 

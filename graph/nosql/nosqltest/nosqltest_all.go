@@ -83,6 +83,14 @@ func TestAll(t *testing.T, gen DatabaseFunc, conf *Config) {
 	})
 }
 
+func BenchmarkAll(t *testing.B, gen DatabaseFunc, conf *Config) {
+	t.Run("qs", func(t *testing.B) {
+		graphtest.BenchmarkAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+			return NewQuadStore(t, gen)
+		}, conf.quadStore())
+	})
+}
+
 func randString() string {
 	const n = 60
 	b := bytes.NewBuffer(nil)

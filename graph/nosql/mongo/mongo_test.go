@@ -32,8 +32,14 @@ func makeMongo(t testing.TB) (nosql.Database, graph.Options, func()) {
 	}
 }
 
+var conf = &nosqltest.Config{
+	TimeInMs: true,
+}
+
 func TestMongo(t *testing.T) {
-	nosqltest.TestAll(t, makeMongo, &nosqltest.Config{
-		TimeInMs: true,
-	})
+	nosqltest.TestAll(t, makeMongo, conf)
+}
+
+func BenchmarkMongo(t *testing.B) {
+	nosqltest.BenchmarkAll(t, makeMongo, conf)
 }

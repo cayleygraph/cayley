@@ -32,8 +32,14 @@ func makeElastic(t testing.TB) (nosql.Database, graph.Options, func()) {
 	}
 }
 
+var conf = &nosqltest.Config{
+	FloatToInt: true,
+}
+
 func TestElastic(t *testing.T) {
-	nosqltest.TestAll(t, makeElastic, &nosqltest.Config{
-		FloatToInt: true,
-	})
+	nosqltest.TestAll(t, makeElastic, conf)
+}
+
+func BenchmarkElastic(t *testing.B) {
+	nosqltest.BenchmarkAll(t, makeElastic, conf)
 }

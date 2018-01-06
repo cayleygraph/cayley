@@ -29,10 +29,23 @@ func makeMysqlVersion(image string) sqltest.DatabaseFunc {
 	}
 }
 
+const (
+	mysqlImage   = "mysql:5.7"
+	mariadbImage = "mariadb:10"
+)
+
 func TestMysql(t *testing.T) {
-	sqltest.TestAll(t, Type, makeMysqlVersion("mysql:5.7"), nil)
+	sqltest.TestAll(t, Type, makeMysqlVersion(mysqlImage), nil)
 }
 
 func TestMariaDB(t *testing.T) {
-	sqltest.TestAll(t, Type, makeMysqlVersion("mariadb:10"), nil)
+	sqltest.TestAll(t, Type, makeMysqlVersion(mariadbImage), nil)
+}
+
+func BenchmarkMysql(t *testing.B) {
+	sqltest.BenchmarkAll(t, Type, makeMysqlVersion(mysqlImage), nil)
+}
+
+func BenchmarkMariadb(t *testing.B) {
+	sqltest.BenchmarkAll(t, Type, makeMysqlVersion(mariadbImage), nil)
 }

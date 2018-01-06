@@ -44,9 +44,14 @@ func makeCockroach(t testing.TB) (string, graph.Options, func()) {
 	}
 }
 
+var conf = &sqltest.Config{
+	TimeRound: true,
+}
+
 func TestCockroach(t *testing.T) {
-	sqltest.TestAll(t, Type, makeCockroach, &sqltest.Config{
-		TimeRound:      true,
-		SkipIntHorizon: true,
-	})
+	sqltest.TestAll(t, Type, makeCockroach, conf)
+}
+
+func BenchmarkCockroach(t *testing.B) {
+	sqltest.BenchmarkAll(t, Type, makeCockroach, conf)
 }

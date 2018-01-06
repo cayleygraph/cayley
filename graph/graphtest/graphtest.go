@@ -72,6 +72,12 @@ func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
 	})
 }
 
+func BenchmarkAll(t *testing.B, gen testutil.DatabaseFunc, conf *Config) {
+	t.Run("integration", func(t *testing.B) {
+		BenchmarkIntegration(t, gen, conf.AlwaysRunIntegration)
+	})
+}
+
 // This is a simple test graph.
 //
 //    +---+                        +---+
