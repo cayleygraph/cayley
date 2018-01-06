@@ -22,6 +22,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
@@ -531,7 +532,11 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
-	return NewLinksToIterator(qs, "quads", []Linkage{{Dir: d, Val: val.(NodeHash)}})
+	h, ok := val.(NodeHash)
+	if !ok {
+		return iterator.NewNull()
+	}
+	return NewLinksToIterator(qs, "quads", []Linkage{{Dir: d, Val: h}})
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {

@@ -130,6 +130,9 @@ func (qs *QuadStore) optimizeFilter(s shape.Filter) (shape.Shape, bool) {
 		filters []FieldFilter
 		left    []shape.ValueFilter
 	)
+	fieldPath := func(s string) []string {
+		return []string{fldValue, s}
+	}
 	for _, f := range s.Filters {
 		switch f := f.(type) {
 		case shape.Comparison:
@@ -137,6 +140,22 @@ func (qs *QuadStore) optimizeFilter(s shape.Filter) (shape.Shape, bool) {
 				filters = append(filters, fld...)
 				continue
 			}
+		case shape.Wildcard:
+			filters = append(filters, []FieldFilter{
+				{Path: fieldPath(fldValData), Filter: Regexp, Value: String(f.Regexp())},
+			}...)
+			continue
+		case shape.Regexp:
+			filters = append(filters, []FieldFilter{
+				{Path: fieldPath(fldValData), Filter: Regexp, Value: String(f.Re.String())},
+			}...)
+			if !f.Refs {
+				filters = append(filters, []FieldFilter{
+					{Path: fieldPath(fldIRI), Filter: NotEqual, Value: Bool(true)},
+					{Path: fieldPath(fldBNode), Filter: NotEqual, Value: Bool(true)},
+				}...)
+			}
+			continue
 		}
 		left = append(left, f)
 	}

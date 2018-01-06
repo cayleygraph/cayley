@@ -329,25 +329,44 @@ func (db *DB) Delete(col string) nosql.Delete {
 func buildFilters(filters []nosql.FieldFilter) bson.M {
 	m := make(bson.M, len(filters))
 	for _, f := range filters {
+		name := strings.Join(f.Path, ".")
 		v := toBsonValue(f.Value)
-		var mf interface{}
+		if f.Filter == nosql.Equal {
+			m[name] = v
+			continue
+		}
+		var mf bson.M
+		switch mp := m[name].(type) {
+		case nil:
+		case bson.M:
+			mf = mp
+		default:
+			continue
+		}
+		if mf == nil {
+			mf = make(bson.M)
+		}
 		switch f.Filter {
-		case nosql.Equal:
-			mf = v
 		case nosql.NotEqual:
-			mf = bson.M{"$ne": v}
+			mf["$ne"] = v
 		case nosql.GT:
-			mf = bson.M{"$gt": v}
+			mf["$gt"] = v
 		case nosql.GTE:
-			mf = bson.M{"$gte": v}
+			mf["$gte"] = v
 		case nosql.LT:
-			mf = bson.M{"$lt": v}
+			mf["$lt"] = v
 		case nosql.LTE:
-			mf = bson.M{"$lte": v}
+			mf["$lte"] = v
+		case nosql.Regexp:
+			pattern, ok := f.Value.(nosql.String)
+			if !ok {
+				panic(fmt.Errorf("unsupported regexp argument: %v", f.Value))
+			}
+			mf["$regex"] = pattern
 		default:
 			panic(fmt.Errorf("unsupported filter: %v", f.Filter))
 		}
-		m[strings.Join(f.Path, ".")] = mf
+		m[name] = mf
 	}
 	return m
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/pborman/uuid"
 )
@@ -91,6 +92,7 @@ const (
 	GTE
 	LT
 	LTE
+	Regexp
 )
 
 // FieldFilter represents a single field comparison operation.
@@ -146,6 +148,17 @@ func (f FieldFilter) Matches(d Document) bool {
 		case LTE:
 			return dn <= 0
 		}
+	case Regexp:
+		pattern, ok := f.Value.(String)
+		if !ok {
+			return false
+		}
+		s, ok := val.(String)
+		if !ok {
+			return false
+		}
+		ok, _ = regexp.MatchString(string(pattern), string(s))
+		return ok
 	}
 	panic(fmt.Errorf("unsupported operation: %v", f.Filter))
 }
