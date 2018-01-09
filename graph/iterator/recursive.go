@@ -132,7 +132,7 @@ func (it *Recursive) Next(ctx context.Context) bool {
 			}
 		}
 	}
-	if it.depth >= it.maxDepth {
+	if it.depth >= it.maxDepth && it.maxDepth != -1 {
 		return graph.NextLogOut(it, false)
 	}
 	for {
