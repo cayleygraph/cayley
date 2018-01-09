@@ -14,7 +14,9 @@
 
 $(function() {
   $("#sbVisualize").addClass("active");
-
+// make sure the user sees javascript errors
+  window.onerror = function(msg){alert(msg);};
+	
   var createGraphVisualization = function(results) {
     if (window.sigmaGraph !== undefined) {
       sigmaGraph.stopForceAtlas2()
@@ -96,6 +98,10 @@ $(function() {
 
   $("#run_button").click(function() {
     var data = editor.getValue()
+    if (data.indexOf("target") == -1 || data.indexOf("source") == -1){
+      alert('Query should have Tag("source") and Tag("target") to be able to visualize')
+      return;
+    }
     animate();
     $.post("/api/v1/query/" + selectedQueryLanguage, data)
       .done(function(return_data) {
