@@ -12,3 +12,5 @@ type QuadStore = graph.QuadStore
 type QuadWriter = graph.QuadWriter
 
 type Path = path.Path
+
+type Handle = graph.Handle

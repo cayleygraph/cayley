@@ -12,3 +12,14 @@ type QuadStore graph.QuadStore
 type QuadWriter graph.QuadWriter
 
 type Path path.Path
+
+type Handle struct {
+	graph.QuadStore
+	graph.QuadWriter
+}
+
+func (h *Handle) Close() error {
+	err := h.QuadWriter.Close()
+	h.QuadStore.Close()
+	return err
+}

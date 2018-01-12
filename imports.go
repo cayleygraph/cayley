@@ -15,11 +15,6 @@ var (
 	NewTransaction = graph.NewTransaction
 )
 
-type Handle struct {
-	graph.QuadStore
-	graph.QuadWriter
-}
-
 func Triple(subject, predicate, object interface{}) quad.Quad {
 	return Quad(subject, predicate, object, nil)
 }
@@ -42,10 +37,4 @@ func NewGraph(name, dbpath string, opts graph.Options) (*Handle, error) {
 
 func NewMemoryGraph() (*Handle, error) {
 	return NewGraph("memstore", "", nil)
-}
-
-func (h *Handle) Close() error {
-	err := h.QuadWriter.Close()
-	h.QuadStore.Close()
-	return err
 }
