@@ -366,7 +366,6 @@ func TestRecursiveDuplicates(t testing.TB, gen testutil.DatabaseFunc, _ *Config)
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSetForRecursive()...)
 
-
 	defer closer()
 
 	// Note: this query does not work when the start node has only one outgoing node.
