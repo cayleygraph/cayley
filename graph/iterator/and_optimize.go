@@ -129,7 +129,7 @@ func closeIteratorList(its []graph.Iterator, except graph.Iterator) {
 func (*And) optimizeReplacement(its []graph.Iterator) graph.Iterator {
 	// If we were created with no SubIterators, we're as good as Null.
 	if len(its) == 0 {
-		return &Null{}
+		return NewNull()
 	}
 	if len(its) == 1 {
 		// When there's only one iterator, there's only one choice.
@@ -139,7 +139,7 @@ func (*And) optimizeReplacement(its []graph.Iterator) graph.Iterator {
 	// there's no point in continuing the branch, we will have no results
 	// and we are null as well.
 	if hasAnyNullIterators(its) {
-		return &Null{}
+		return NewNull()
 	}
 
 	// If we have one useful iterator, use that.

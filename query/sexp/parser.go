@@ -267,6 +267,6 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 		}
 		return hasa
 	default:
-		return &iterator.Null{}
+		return iterator.NewNull()
 	}
 }
