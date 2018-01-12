@@ -164,7 +164,15 @@ g.V("<fred>").Both("<follows>").All()
 
 ### `path.Count()`
 
-Count returns a number of results.
+Count returns a number of results and returns it as a value.
+
+Example:
+```javascript
+// Save count as a variable
+var n = g.V().Count()
+// Send it as a query result
+g.Emit(n)
+```
 
 
 ### `path.Difference(path)`

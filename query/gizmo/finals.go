@@ -154,7 +154,14 @@ func (p *pathObject) ForEach(call goja.FunctionCall) goja.Value {
 	return goja.Null()
 }
 
-// Count returns a number of results.
+// Count returns a number of results and returns it as a value.
+//
+// Example:
+//	// javascript
+//	// Save count as a variable
+//	var n = g.V().Count()
+//	// Send it as a query result
+//	g.Emit(n)
 func (p *pathObject) Count() (int64, error) {
 	it := p.buildIteratorTree()
 	return p.s.countResults(it)
