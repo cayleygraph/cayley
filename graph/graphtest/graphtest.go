@@ -17,6 +17,7 @@ import (
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/cayleygraph/cayley/graph/path"
 )
 
 type Config struct {
@@ -52,6 +53,7 @@ var graphTests = []struct {
 	{"iterators and next result order", TestIteratorsAndNextResultOrderA},
 	{"compare typed values", TestCompareTypedValues},
 	{"schema", TestSchema},
+	{"recursive_duplicates", TestRecursiveDuplicates},
 }
 
 func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
@@ -112,6 +114,33 @@ func MakeQuadSet() []quad.Quad {
 	}
 }
 
+// This is a simple test graph: for Recursion test.
+//
+//    +---+                        +---+
+//    | A |-------               ->| F |<--
+//    +---+       \------>+---+-/  +---+   \--+---+
+//                 ------>|#B#|      |        | E |
+//    +---+-------/      >+---+      |        +---+
+//    | C |                          v
+//    +---+                        +---+
+//      ----    +---+              |#G#|
+//          \-->|#D#|------------->+---+
+//              +---+
+//
+func MakeQuadSetForRecursive() []quad.Quad {
+	return []quad.Quad{
+		quad.Make("A", "follows", "B", nil),
+		quad.Make("C", "follows", "B", nil),
+		quad.Make("C", "follows", "D", nil),
+		quad.Make("B", "follows", "F", nil),
+		quad.Make("F", "follows", "G", nil),
+		quad.Make("D", "follows", "G", nil),
+		quad.Make("E", "follows", "F", nil),
+		quad.Make("B", "status", "cool", "status_graph"),
+		quad.Make("D", "status", "cool", "status_graph"),
+		quad.Make("G", "status", "cool", "status_graph"),
+	}
+}
 func IteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Quad {
 	ctx := context.TODO()
 	var res quad.ByQuadString
@@ -368,6 +397,45 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		s := qss.SizeOf(qs.ValueOf(quad.String("B")))
 		require.Equal(t, int64(4), s, "Unexpected quadstore value size")
 	}
+}
+
+
+
+// TestRecursiveDuplicates tests if, when following two paths that share the same node, the node is still returned
+func TestRecursiveDuplicates(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
+	ctx := context.TODO()
+	qs, opts, closer := gen(t)
+
+	testutil.MakeWriter(t, qs, opts, MakeQuadSetForRecursive()...)
+
+	defer closer()
+
+	// Note: this query does not work when the start node has only one outgoing node.
+	// So starting from D does results in one path
+	p := path.StartPath(qs,  quad.String("C")).Tag("person").Out(quad.String("follows")).Tag("direction").
+		FollowRecursive(quad.String("follows"), -1, nil).
+		Tag("friend")
+
+	// map of persons with their follow chain
+	persons := make(map[string][]string, 0)
+
+	p.Iterate(ctx).Paths(true).TagValues(nil, func(m map[string]quad.Value) {
+		dir := m["direction"].Native().(string) // for some weird reason .String() gives different unwanted result
+		person := m["person"].Native().(string)
+		friend := m["friend"].Native().(string)
+		if len(persons[dir]) == 0 {
+			persons[dir] = append(persons[dir], person, dir)
+		}
+		persons[dir] = append(persons[dir], friend)
+
+	})
+
+	expectDirectionB := []string{"C", "B", "F", "G"}
+	expectDirectionG := []string{"C", "D", "G"}
+
+	require.Equal(t, true, testEqStringSlices(expectDirectionB, persons["B"]), "Paths not equal expected path B to be: %s got: %s" , expectDirectionB, persons["B"])
+	require.Equal(t, true, testEqStringSlices(expectDirectionG, persons["D"]), "Paths not equal expected path D to be: %s got: %s" , expectDirectionG, persons["D"])
+
 }
 
 func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
@@ -1021,4 +1089,27 @@ func TestSchema(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	err = sch.LoadTo(nil, qs, &p2, id)
 	require.NoError(t, err)
 	require.Equal(t, p, p2)
+}
+
+func testEqStringSlices(a, b []string) bool {
+
+	if a == nil && b == nil {
+		return true;
+	}
+
+	if a == nil || b == nil {
+		return false;
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }
