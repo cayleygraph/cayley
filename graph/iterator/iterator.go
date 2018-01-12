@@ -145,9 +145,9 @@ func (it *Error) Contains(ctx context.Context, v graph.Value) bool {
 	return false
 }
 
-func (it *Error) Clone() graph.Iterator { return NewNull() }
+func (it *Error) Clone() graph.Iterator { return NewError(it.err) }
 
-func (it *Error) Type() graph.Type { return graph.Null }
+func (it *Error) Type() graph.Type { return graph.Err }
 
 func (it *Error) Optimize() (graph.Iterator, bool) { return it, false }
 

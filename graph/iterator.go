@@ -261,6 +261,7 @@ const (
 	LinksTo     = Type("linksto")
 	Comparison  = Type("comparison")
 	Null        = Type("null")
+	Err         = Type("error")
 	Fixed       = Type("fixed")
 	Not         = Type("not")
 	Optional    = Type("optional")
