@@ -14,7 +14,7 @@ import (
 	"github.com/go-kivik/kivik"
 )
 
-const Type = "ouch"
+const Type = driverName
 
 func init() {
 	nosql.Register(Type, nosql.Registration{
@@ -26,8 +26,6 @@ func init() {
 
 func dialDB(create bool, addr string, opt graph.Options) (*DB, error) {
 	ctx := context.TODO() // TODO - replace with parameter value
-
-	driver := defaultDriverName
 
 	addrParsed, err := url.Parse(addr)
 	if err != nil {
@@ -41,29 +39,26 @@ func dialDB(create bool, addr string, opt graph.Options) (*DB, error) {
 	} else {
 		return nil, errors.New("unable to decypher database name from: " + addr)
 	}
-	dsn := strings.TrimSuffix(addr, dbName)
+	dsn := strings.TrimSuffix(addr, "/"+dbName)
 
-	client, err := kivik.New(ctx, driver, dsn)
+	client, err := kivik.New(ctx, driverName, dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot open driver: %v", err)
 	}
 
+	var db *kivik.DB
 	if create {
-		err := client.CreateDB(ctx, dbName)
-		if err != nil {
-			return nil, err
-		}
+		db, err = client.CreateDB(ctx, dbName)
+	} else {
+		db, err = client.DB(ctx, dbName)
 	}
-
-	db, err := client.DB(ctx, dbName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot open db %q: %v", dbName, err)
 	}
 
 	return &DB{
-		db:     db,
-		colls:  make(map[string]collection),
-		driver: driver,
+		db:    db,
+		colls: make(map[string]collection),
 	}, nil
 }
 
@@ -81,9 +76,8 @@ type collection struct {
 }
 
 type DB struct {
-	db     *kivik.DB
-	colls  map[string]collection
-	driver string
+	db    *kivik.DB
+	colls map[string]collection
 }
 
 func (db *DB) Close() error {
@@ -135,7 +129,7 @@ const (
 	collectionField = "Collection"
 )
 
-func compKey(col string, key nosql.Key) string {
+func compKey(key nosql.Key) string {
 	return "K" + strings.Join(key, "|")
 }
 
@@ -173,7 +167,7 @@ func (db *DB) insert(ctx context.Context, col string, key nosql.Key, d nosql.Doc
 		}
 	}
 
-	interfaceDoc := toOuchDoc(col, toOuchValue(idField, key.Value()).(string), rev, d)
+	interfaceDoc := toOuchDoc(col, toOuchValue(key.Value()).(string), rev, d)
 
 	_, rev, err := db.db.CreateDoc(ctx, interfaceDoc)
 	if err != nil {
@@ -189,14 +183,13 @@ func (db *DB) FindByKey(ctx context.Context, col string, key nosql.Key) (nosql.D
 }
 
 func (db *DB) findByKey(ctx context.Context, col string, key nosql.Key) (nosql.Document, string, string, error) {
-	cK := compKey(col, key)
+	cK := compKey(key)
 	return db.findByOuchKey(ctx, cK)
 }
 
 func (db *DB) findByOuchKey(ctx context.Context, cK string) (nosql.Document, string, string, error) {
-
-	row, err := db.db.Get(ctx, cK)
-	if err != nil {
+	row := db.db.Get(ctx, cK)
+	if err := row.Err; err != nil {
 		if kivik.StatusCode(err) == kivik.StatusNotFound {
 			return nil, "", "", nosql.ErrNotFound
 		}
@@ -204,7 +197,7 @@ func (db *DB) findByOuchKey(ctx context.Context, cK string) (nosql.Document, str
 	}
 
 	rowDoc := make(map[string]interface{})
-	err = row.ScanDoc(&rowDoc)
+	err := row.ScanDoc(&rowDoc)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -218,13 +211,13 @@ func (db *DB) Query(col string) nosql.Query {
 		db:          db,
 		col:         col,
 		pathFilters: make(map[string][]nosql.FieldFilter),
-		ouchQuery: map[string]interface{}{
+		qu: map[string]interface{}{
 			"selector": map[string]interface{}{},
 			"limit":    1000000, // million row limit, default is 25 TODO is 1M enough?
 		},
 	}
 	if col != "" {
-		qry.ouchQuery["selector"].(map[string]interface{})[collectionField] = col
+		qry.qu["selector"].(map[string]interface{})[collectionField] = col
 	}
 	return qry
 }
@@ -240,8 +233,8 @@ type ouchQuery map[string]interface{}
 type Query struct {
 	db          *DB
 	col         string
+	qu          ouchQuery
 	pathFilters map[string][]nosql.FieldFilter
-	ouchQuery
 }
 
 func (q *Query) WithFields(filters ...nosql.FieldFilter) nosql.Query {
@@ -249,7 +242,6 @@ func (q *Query) WithFields(filters ...nosql.FieldFilter) nosql.Query {
 		j := strings.Join(filter.Path, keySeparator)
 		q.pathFilters[j] = append(q.pathFilters[j], filter)
 	}
-
 	return q
 }
 
@@ -258,7 +250,7 @@ func (q *Query) buildFilters() nosql.Query {
 		term := map[string]interface{}{}
 		for _, filter := range filterList {
 			test := ""
-			testValue := toOuchValue(".", filter.Value)
+			testValue := toOuchValue(filter.Value)
 			if stringValue, isString := testValue.(string); isString && len(stringValue) > 0 {
 				typeChar := stringValue[0]
 				typeCharNext := typeChar + 1
@@ -296,18 +288,18 @@ func (q *Query) buildFilters() nosql.Query {
 				test = "$lt"
 			case nosql.LTE:
 				test = "$lte"
+			case nosql.Regexp:
+				test = "$regex" // TODO: convert pattern
 			default:
-				msg := fmt.Sprintf("unknown nosqlFilter %v", filter.Filter)
-				fmt.Println(msg)
-				panic(msg)
+				panic(fmt.Errorf("unknown nosqlFilter %v", filter.Filter))
 			}
 			term[test] = testValue
 		}
-		q.ouchQuery["selector"].(map[string]interface{})[jp] = term
+		q.qu["selector"].(map[string]interface{})[jp] = term
 	}
 
 	if len(q.pathFilters) == 0 {
-		q.ouchQuery["use_index"] = collectionIndex
+		q.qu["use_index"] = collectionIndex
 	} else {
 		// NOTE primary is redundant, as the same as the _id
 		c, haveCol := q.db.colls[q.col]
@@ -320,7 +312,7 @@ func (q *Query) buildFilters() nosql.Query {
 					}
 				}
 				if useSecondary {
-					q.ouchQuery["use_index"] = fmt.Sprintf(secondaryIndexFmt, q.col, si)
+					q.qu["use_index"] = fmt.Sprintf(secondaryIndexFmt, q.col, si)
 					break
 				}
 			}
@@ -331,23 +323,27 @@ func (q *Query) buildFilters() nosql.Query {
 }
 
 func (q *Query) Limit(n int) nosql.Query {
-	q.ouchQuery["limit"] = n
+	q.qu["limit"] = n
 	return q
 }
 
 func (q *Query) Count(ctx context.Context) (int64, error) {
-	// TODO it shoud be possible to use map/reduce logic, rather than a mango query, to speed this up, at least for some cases
+	// TODO it should be possible to use map/reduce logic, rather than a mango query, to speed this up, at least for some cases
 
 	// don't pull back any fields in the query, to reduce bandwidth
-	q.ouchQuery["fields"] = []interface{}{}
+	q.qu["fields"] = []interface{}{}
 
 	it := q.Iterate().(*Iterator)
-	//defer it.Close() // closed automatically at the last Next()
+	if !it.open(ctx) {
+		return 0, it.Err()
+	}
+	defer it.Close()
+
 	var count int64
 	for it.rows.Next() { // for speed, use the native Next
 		count++
 	}
-	return count, it.err
+	return count, it.Err()
 }
 
 func (q *Query) One(ctx context.Context) (nosql.Document, error) {
@@ -357,13 +353,12 @@ func (q *Query) One(ctx context.Context) (nosql.Document, error) {
 		return nil, err
 	}
 	if it.Next(ctx) {
-		return it.Doc(), it.(*Iterator).err
+		return it.Doc(), it.Err()
 	}
 	return nil, nosql.ErrNotFound
 }
 
 func (q *Query) Iterate() nosql.DocIterator {
-	ctx := context.TODO() // TODO - replace with parameter value
 	q.buildFilters()
 
 	// NOTE: to see that the query actually is using an index, uncomment the lines below
@@ -373,11 +368,12 @@ func (q *Query) Iterate() nosql.DocIterator {
 	// 	fmt.Println(debug)
 	// }
 
-	rows, err := q.db.db.Find(ctx, q.ouchQuery)
-	return &Iterator{rows: rows, err: err}
+	return &Iterator{db: q.db, qu: q.qu}
 }
 
 type Iterator struct {
+	db      *DB
+	qu      ouchQuery
 	err     error
 	rows    *kivik.Rows
 	doc     map[string]interface{}
@@ -385,9 +381,19 @@ type Iterator struct {
 	closed  bool
 }
 
+func (it *Iterator) open(ctx context.Context) bool {
+	it.rows, it.err = it.db.db.Find(ctx, it.qu)
+	if it.err != nil {
+		return false
+	}
+	return true
+}
 func (it *Iterator) Next(ctx context.Context) bool {
 	it.hadNext = true
 	if it.err != nil || it.closed {
+		return false
+	}
+	if it.rows == nil && !it.open(ctx) {
 		return false
 	}
 	it.doc = nil
@@ -412,10 +418,14 @@ func (it *Iterator) Err() error {
 }
 
 func (it *Iterator) Close() error {
-	if it.err == nil && !it.closed {
-		it.err = it.rows.Close()
-	}
 	it.closed = true
+	if it.rows == nil {
+		return it.err
+	}
+	if err := it.rows.Close(); err != nil && it.err == nil {
+		it.err = err
+	}
+	it.rows = nil
 	return it.err
 }
 
@@ -468,7 +478,7 @@ func (d *Delete) WithFields(filters ...nosql.FieldFilter) nosql.Delete {
 }
 func (d *Delete) Keys(keys ...nosql.Key) nosql.Delete {
 	for _, k := range keys {
-		id := toOuchValue("?", k.Value()).(string)
+		id := toOuchValue(k.Value()).(string)
 		d.keys = append(d.keys, id)
 	}
 	return d
@@ -490,11 +500,11 @@ func (d *Delete) Do(ctx context.Context) error {
 			}
 			deleteSet[id] = rev
 		} else {
-			d.q.ouchQuery["selector"].(map[string]interface{})[idField] = map[string]interface{}{"$eq": d.keys[0]}
+			d.q.qu["selector"].(map[string]interface{})[idField] = map[string]interface{}{"$eq": d.keys[0]}
 		}
 
 	default:
-		d.q.ouchQuery["selector"].(map[string]interface{})[idField] = map[string]interface{}{"$in": d.keys}
+		d.q.qu["selector"].(map[string]interface{})[idField] = map[string]interface{}{"$in": d.keys}
 	}
 
 	// NOTE even when using idField in a Mango query, it still has to base its query on an index
@@ -502,20 +512,17 @@ func (d *Delete) Do(ctx context.Context) error {
 	if len(deleteSet) == 0 { // did not hit the special case, so must do a mango query
 
 		// only pull back the _id & _rev fields in the query
-		d.q.ouchQuery["fields"] = []interface{}{idField, revField}
+		d.q.qu["fields"] = []interface{}{idField, revField}
 
 		it := d.q.Iterate().(*Iterator)
-		if it.Err() != nil {
-			return it.Err()
-		}
-
 		for it.Next(ctx) {
 			id := it.doc[idField].(string)
 			rev := it.doc[revField].(string)
 			deleteSet[id] = rev
 		}
-		if it.err != nil {
-			return it.err
+		if err := it.Err(); err != nil {
+			it.Close()
+			return err
 		}
 		if err := it.Close(); err != nil {
 			return err
@@ -568,7 +575,7 @@ func (u *Update) Do(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		id = toOuchValue(idField, idKey.Value()).(string)
+		id = toOuchValue(idKey.Value()).(string)
 	} else {
 		if err != nil {
 			return err
@@ -595,6 +602,6 @@ func (u *Update) Do(ctx context.Context) error {
 		orig[k] = val
 	}
 
-	_, err = u.db.db.Put(ctx, compKey(u.col, u.key), toOuchDoc(u.col, id, rev, orig))
+	_, err = u.db.db.Put(ctx, compKey(u.key), toOuchDoc(u.col, id, rev, orig))
 	return err
 }

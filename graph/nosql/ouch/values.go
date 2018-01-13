@@ -35,7 +35,7 @@ func stoi(s string) int64 {
 }
 
 // toOuchValue serializes nosql.Value -> native json values.
-func toOuchValue(k string, v nosql.Value) interface{} {
+func toOuchValue(v nosql.Value) interface{} {
 	switch v := v.(type) {
 	case nil:
 		return nil
@@ -81,10 +81,10 @@ func toOuchDoc(col, id, rev string, d nosql.Document) map[string]interface{} {
 		if subDoc, found := v.(nosql.Document); found {
 			for subK, subV := range subDoc {
 				subPath := k + keySeparator + subK
-				m[subPath] = toOuchValue(subPath, subV)
+				m[subPath] = toOuchValue(subV)
 			}
 		} else {
-			m[k] = toOuchValue(k, v)
+			m[k] = toOuchValue(v)
 		}
 	}
 
