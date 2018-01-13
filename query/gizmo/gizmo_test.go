@@ -21,14 +21,16 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
 
 	// register global namespace for tests
-	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	_ "github.com/cayleygraph/cayley/voc/rdf"
 )
 
@@ -675,4 +677,13 @@ func TestIssue160(t *testing.T) {
 	if !reflect.DeepEqual(got, expect) {
 		t.Errorf("Unexpected result, got: %q expected: %q", got, expect)
 	}
+}
+
+func TestShapeOf(t *testing.T) {
+	ses := makeTestSession(nil)
+	const query = `g.V().ForEach(function(x){
+g.Emit({id: x.id})
+})`
+	_, err := ses.ShapeOf(query)
+	require.NoError(t, err)
 }

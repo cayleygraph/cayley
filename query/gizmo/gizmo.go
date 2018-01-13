@@ -48,7 +48,8 @@ func init() {
 
 func NewSession(qs graph.QuadStore) *Session {
 	s := &Session{
-		qs: qs, limit: -1,
+		ctx: context.Background(),
+		qs:  qs, limit: -1,
 	}
 	if err := s.buildEnv(); err != nil {
 		panic(err)
