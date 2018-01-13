@@ -6,4 +6,4 @@ import (
 	_ "github.com/go-kivik/pouchdb" // The PouchDB driver
 )
 
-var defaultDriverName = "pouch"
+const driverName = "pouch"
