@@ -8,6 +8,7 @@ import (
 	"runtime/pprof"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -206,6 +207,50 @@ func openDatabase() (*graph.Handle, error) {
 		return nil, err
 	}
 	return &graph.Handle{QuadStore: qs, QuadWriter: qw}, nil
+}
+
+func openForQueries(cmd *cobra.Command) (*graph.Handle, error) {
+	if init, err := cmd.Flags().GetBool("init"); err != nil {
+		return nil, err
+	} else if init {
+		if err = initDatabase(); err == graph.ErrDatabaseExists {
+			clog.Infof("database already initialized, skipping init")
+		} else if err != nil {
+			return nil, err
+		}
+	}
+	var load string
+	h, err := openDatabase()
+	if err == graph.ErrQuadStoreNotPersistent {
+		load = viper.GetString(KeyAddress)
+		viper.Set(KeyAddress, "")
+		h, err = openDatabase()
+	}
+	if err == graph.ErrQuadStoreNotPersistent {
+		return nil, fmt.Errorf("%v; did you mean -i flag?", err)
+	} else if err != nil {
+		return nil, err
+	}
+	defer h.Close()
+
+	if load2, _ := cmd.Flags().GetString(flagLoad); load2 != "" {
+		if load != "" {
+			h.Close()
+			return nil, fmt.Errorf("both -a and -i flags cannot be specified")
+		}
+		load = load2
+	}
+	if load != "" {
+		typ, _ := cmd.Flags().GetString(flagLoadFormat)
+		// TODO: check read-only flag in config before that?
+		start := time.Now()
+		if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
+			h.Close()
+			return nil, err
+		}
+		clog.Infof("loaded %q in %v", load, time.Since(start))
+	}
+	return h, nil
 }
 
 type profileData struct {

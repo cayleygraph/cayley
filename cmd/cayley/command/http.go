@@ -9,10 +9,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal"
 	chttp "github.com/cayleygraph/cayley/internal/http"
-	"github.com/cayleygraph/cayley/quad"
 )
 
 func NewHttpCmd() *cobra.Command {
@@ -24,36 +21,15 @@ func NewHttpCmd() *cobra.Command {
 			p := mustSetupProfile(cmd)
 			defer mustFinishProfile(p)
 
-			timeout := viper.GetDuration(keyQueryTimeout)
-			if init, err := cmd.Flags().GetBool("init"); err != nil {
-				return err
-			} else if init {
-				if err = initDatabase(); err == graph.ErrDatabaseExists {
-					clog.Infof("database already initialized, skipping init")
-				} else if err != nil {
-					return err
-				}
-			}
-			h, err := openDatabase()
+			h, err := openForQueries(cmd)
 			if err != nil {
 				return err
 			}
 			defer h.Close()
 
-			ro := viper.GetBool(KeyReadOnly)
-			if load, _ := cmd.Flags().GetString(flagLoad); load != "" {
-				typ, _ := cmd.Flags().GetString(flagLoadFormat)
-				// TODO: check read-only flag in config before that?
-				start := time.Now()
-				if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
-					return err
-				}
-				clog.Infof("loaded %q in %v", load, time.Since(start))
-			}
-
 			err = chttp.SetupRoutes(h, &chttp.Config{
-				Timeout:  timeout,
-				ReadOnly: ro,
+				Timeout:  viper.GetDuration(keyQueryTimeout),
+				ReadOnly: viper.GetBool(KeyReadOnly),
 			})
 			if err != nil {
 				return err

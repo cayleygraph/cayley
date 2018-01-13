@@ -15,7 +15,6 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/internal"
 	"github.com/cayleygraph/cayley/internal/repl"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
@@ -38,30 +37,6 @@ func getContext() (context.Context, func()) {
 		cancel()
 	}()
 	return ctx, cancel
-}
-
-func openForQueries(cmd *cobra.Command) (*graph.Handle, error) {
-	if init, err := cmd.Flags().GetBool("init"); err != nil {
-		return nil, err
-	} else if init {
-		if err = initDatabase(); err != nil {
-			return nil, err
-		}
-	}
-	h, err := openDatabase()
-	if err != nil {
-		return nil, err
-	}
-
-	if load, _ := cmd.Flags().GetString(flagLoad); load != "" {
-		typ, _ := cmd.Flags().GetString(flagLoadFormat)
-		// TODO: check read-only flag in config before that?
-		if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
-			h.Close()
-			return nil, err
-		}
-	}
-	return h, nil
 }
 
 func registerQueryFlags(cmd *cobra.Command) {

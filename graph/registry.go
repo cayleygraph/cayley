@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	ErrQuadStoreNotRegistred = fmt.Errorf("This QuadStore is not registered.")
-	ErrOperationNotSupported = fmt.Errorf("This Operation is not supported.")
+	ErrQuadStoreNotRegistred  = fmt.Errorf("This QuadStore is not registered.")
+	ErrQuadStoreNotPersistent = fmt.Errorf("cannot specify address for non-persistent backend")
+	ErrOperationNotSupported  = fmt.Errorf("This Operation is not supported.")
 )
 
 var storeRegistry = make(map[string]QuadStoreRegistration)
@@ -53,6 +54,8 @@ func NewQuadStore(name string, dbpath string, opts Options) (QuadStore, error) {
 	r, registered := storeRegistry[name]
 	if !registered {
 		return nil, ErrQuadStoreNotRegistred
+	} else if dbpath != "" && !r.IsPersistent {
+		return nil, ErrQuadStoreNotPersistent
 	}
 	return r.NewFunc(dbpath, opts)
 }
