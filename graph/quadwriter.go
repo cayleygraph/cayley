@@ -53,6 +53,15 @@ type Delta struct {
 	Action Procedure
 }
 
+// Unwrap returns an original QuadStore value if it was wrapped by Handle.
+// This prevents shadowing of optional interface implementations.
+func Unwrap(qs QuadStore) QuadStore {
+	if h, ok := qs.(*Handle); ok {
+		return h.QuadStore
+	}
+	return qs
+}
+
 type Handle struct {
 	QuadStore
 	QuadWriter

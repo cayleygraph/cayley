@@ -82,40 +82,32 @@ func StartMorphism(nodes ...quad.Value) *Path {
 	return StartPath(nil, nodes...)
 }
 
+func newPath(qs graph.QuadStore, m ...morphism) *Path {
+	qs = graph.Unwrap(qs)
+	return &Path{
+		stack: m,
+		qs:    qs,
+	}
+}
+
 // StartPath creates a new Path from a set of nodes and an underlying QuadStore.
 func StartPath(qs graph.QuadStore, nodes ...quad.Value) *Path {
-	return &Path{
-		stack: []morphism{
-			isMorphism(nodes...),
-		},
-		qs: qs,
-	}
+	return newPath(qs, isMorphism(nodes...))
 }
 
 // StartPathNodes creates a new Path from a set of nodes and an underlying QuadStore.
 func StartPathNodes(qs graph.QuadStore, nodes ...graph.Value) *Path {
-	return &Path{
-		stack: []morphism{
-			isNodeMorphism(nodes...),
-		},
-		qs: qs,
-	}
+	return newPath(qs, isNodeMorphism(nodes...))
 }
 
+// PathFromIterator creates a new Path from a set of nodes contained in iterator.
 func PathFromIterator(qs graph.QuadStore, it graph.Iterator) *Path {
-	return &Path{
-		stack: []morphism{
-			iteratorMorphism(it),
-		},
-		qs: qs,
-	}
+	return newPath(qs, iteratorMorphism(it))
 }
 
 // NewPath creates a new, empty Path.
 func NewPath(qs graph.QuadStore) *Path {
-	return &Path{
-		qs: qs,
-	}
+	return newPath(qs)
 }
 
 // Clone returns a clone of the current path.

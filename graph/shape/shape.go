@@ -55,6 +55,7 @@ func Optimize(s Shape, qs graph.QuadStore) (Shape, bool) {
 	if s == nil {
 		return nil, false
 	}
+	qs = graph.Unwrap(qs)
 	var opt bool
 	if qs != nil {
 		// resolve all lookups earlier
@@ -198,6 +199,7 @@ func IsNull(s Shape) bool {
 
 // BuildIterator optimizes the shape and builds a corresponding iterator tree.
 func BuildIterator(qs graph.QuadStore, s Shape) graph.Iterator {
+	qs = graph.Unwrap(qs)
 	if s != nil {
 		if clog.V(2) {
 			clog.Infof("shape: %#v", s)
