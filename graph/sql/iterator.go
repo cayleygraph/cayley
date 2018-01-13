@@ -239,7 +239,9 @@ func (it *Iterator) Reset() {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	return it.qs.NewIterator(it.query)
+	it2 := it.qs.NewIterator(it.query)
+	it2.tagger.CopyFrom(it)
+	return it2
 }
 
 func (it *Iterator) Stats() graph.IteratorStats {
