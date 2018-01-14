@@ -24,16 +24,16 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-func hasaWithTag(qs graph.QuadStore, tag string, target string) *HasA {
+func hasaWithTag(namer graph.Namer, quads graph.QuadIndexer, tag string, target string) *HasA {
 	and := NewAnd()
 
-	obj := NewFixed(qs.ValueOf(quad.Raw(target)))
-	and.AddSubIterator(NewLinksTo(qs, Tag(obj, tag), quad.Object))
+	obj := NewFixed(namer.ValueOf(quad.Raw(target)))
+	and.AddSubIterator(NewLinksTo(quads, Tag(obj, tag), quad.Object))
 
-	pred := NewFixed(qs.ValueOf(quad.Raw("status")))
-	and.AddSubIterator(NewLinksTo(qs, pred, quad.Predicate))
+	pred := NewFixed(namer.ValueOf(quad.Raw("status")))
+	and.AddSubIterator(NewLinksTo(quads, pred, quad.Predicate))
 
-	return NewHasA(qs, and, quad.Subject)
+	return NewHasA(quads, and, quad.Subject)
 }
 
 func TestQueryShape(t *testing.T) {
@@ -45,7 +45,7 @@ func TestQueryShape(t *testing.T) {
 	}}
 
 	// Given a single linkage iterator's shape.
-	var hasa graph.Iterator = hasaWithTag(qs, "tag", "cool")
+	var hasa graph.Iterator = hasaWithTag(qs, qs, "tag", "cool")
 	hasa = Tag(hasa, "top")
 
 	shape := make(map[string]interface{})
@@ -90,11 +90,11 @@ func TestQueryShape(t *testing.T) {
 	// Given a name-of-an-and-iterator's shape.
 	andInternal := NewAnd()
 
-	var hasa1 graph.Iterator = hasaWithTag(qs, "tag1", "cool")
+	var hasa1 graph.Iterator = hasaWithTag(qs, qs, "tag1", "cool")
 	hasa1 = Tag(hasa1, "hasa1")
 	andInternal.AddSubIterator(hasa1)
 
-	var hasa2 graph.Iterator = hasaWithTag(qs, "tag2", "fun")
+	var hasa2 graph.Iterator = hasaWithTag(qs, qs, "tag2", "fun")
 	hasa2 = Tag(hasa2, "hasa2")
 	andInternal.AddSubIterator(hasa2)
 

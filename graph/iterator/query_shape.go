@@ -39,13 +39,13 @@ type Link struct {
 type queryShape struct {
 	nodes    []Node
 	links    []Link
-	qs       graph.QuadStore
+	qs       graph.Namer
 	nodeID   int
 	hasaIDs  []int
 	hasaDirs []quad.Direction
 }
 
-func OutputQueryShapeForIterator(it graph.Iterator, qs graph.QuadStore, outputMap map[string]interface{}) {
+func OutputQueryShapeForIterator(it graph.Iterator, qs graph.Namer, outputMap map[string]interface{}) {
 	s := &queryShape{
 		qs:     qs,
 		nodeID: 1,

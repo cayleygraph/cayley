@@ -39,6 +39,8 @@ var (
 	_ graph.Iterator = &Error{}
 )
 
+type Morphism func(graph.Iterator) graph.Iterator
+
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.

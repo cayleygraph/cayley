@@ -44,7 +44,7 @@ var _ graph.Iterator = &LinksTo{}
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
 	uid       uint64
-	qs        graph.QuadStore
+	qs        graph.QuadIndexer
 	primaryIt graph.Iterator
 	dir       quad.Direction
 	nextIt    graph.Iterator
@@ -55,7 +55,7 @@ type LinksTo struct {
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func NewLinksTo(qs graph.QuadStore, it graph.Iterator, d quad.Direction) *LinksTo {
+func NewLinksTo(qs graph.QuadIndexer, it graph.Iterator, d quad.Direction) *LinksTo {
 	return &LinksTo{
 		uid:       NextUID(),
 		qs:        qs,
@@ -122,14 +122,6 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 			it.nextIt.Close()
 			return it.primaryIt, true
 		}
-	}
-	// Ask the graph.QuadStore if we can be replaced. Often times, this is a great
-	// optimization opportunity (there's a fixed iterator underneath us, for
-	// example).
-	newReplacement, hasOne := it.qs.OptimizeIterator(it)
-	if hasOne {
-		it.Close()
-		return newReplacement, true
 	}
 	return it, false
 }

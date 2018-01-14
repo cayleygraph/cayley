@@ -61,7 +61,7 @@ var comparisonTests = []struct {
 	operand  quad.Value
 	operator Operator
 	expect   []quad.Value
-	qs       graph.QuadStore
+	qs       graph.Namer
 	iterator func() *Fixed
 }{
 	{
@@ -159,7 +159,7 @@ var vciContainsTests = []struct {
 	operator Operator
 	check    graph.Value
 	expect   bool
-	qs       graph.QuadStore
+	qs       graph.Namer
 	val      quad.Value
 	iterator func() *Fixed
 }{
@@ -240,7 +240,7 @@ func TestVCIContains(t *testing.T) {
 
 var comparisonIteratorTests = []struct {
 	message string
-	qs      graph.QuadStore
+	qs      graph.Namer
 	val     quad.Value
 }{
 	{

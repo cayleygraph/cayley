@@ -294,7 +294,7 @@ func followRecursiveMorphism(p *Path, maxDepth int, depthTags []string) morphism
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return iteratorBuilder(func(qs graph.QuadStore) graph.Iterator {
 				in := in.BuildIterator(qs)
-				it := iterator.NewRecursive(qs, in, p.Morphism(), maxDepth)
+				it := iterator.NewRecursive(in, p.MorphismFor(qs), maxDepth)
 				for _, s := range depthTags {
 					it.AddDepthTag(s)
 				}

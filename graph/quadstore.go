@@ -35,7 +35,7 @@ type BatchQuadStore interface {
 	RefsOf(ctx context.Context, nodes []quad.Value) ([]Value, error)
 }
 
-func ValuesOf(ctx context.Context, qs QuadStore, vals []Value) ([]quad.Value, error) {
+func ValuesOf(ctx context.Context, qs Namer, vals []Value) ([]quad.Value, error) {
 	if bq, ok := qs.(BatchQuadStore); ok {
 		return bq.ValuesOf(ctx, vals)
 	}
@@ -61,11 +61,15 @@ func RefsOf(ctx context.Context, qs QuadStore, nodes []quad.Value) ([]Value, err
 	return values, nil
 }
 
-type QuadStore interface {
-	// The only way in is through building a transaction, which
-	// is done by a replication strategy.
-	ApplyDeltas(in []Delta, opts IgnoreOpts) error
+type Namer interface {
+	// Given a node ID, return the opaque token used by the QuadStore
+	// to represent that id.
+	ValueOf(quad.Value) Value
+	// Given an opaque token, return the node that it represents.
+	NameOf(Value) quad.Value
+}
 
+type QuadIndexer interface {
 	// Given an opaque token, returns the quad for that token from the store.
 	Quad(Value) quad.Quad
 
@@ -73,18 +77,31 @@ type QuadStore interface {
 	// that node token in that directional field.
 	QuadIterator(quad.Direction, Value) Iterator
 
+	// Convenience function for speed. Given a quad token and a direction
+	// return the node token for that direction. Sometimes, a QuadStore
+	// can do this without going all the way to the backing store, and
+	// gives the QuadStore the opportunity to make this optimization.
+	//
+	// Iterators will call this. At worst, a valid implementation is
+	//
+	//  qs.ValueOf(qs.Quad(id).Get(dir))
+	//
+	QuadDirection(id Value, d quad.Direction) Value
+}
+
+type QuadStore interface {
+	Namer
+	QuadIndexer
+
+	// The only way in is through building a transaction, which
+	// is done by a replication strategy.
+	ApplyDeltas(in []Delta, opts IgnoreOpts) error
+
 	// Returns an iterator enumerating all nodes in the graph.
 	NodesAllIterator() Iterator
 
 	// Returns an iterator enumerating all links in the graph.
 	QuadsAllIterator() Iterator
-
-	// Given a node ID, return the opaque token used by the QuadStore
-	// to represent that id.
-	ValueOf(quad.Value) Value
-
-	// Given an opaque token, return the node that it represents.
-	NameOf(Value) quad.Value
 
 	// Returns the number of quads currently stored.
 	Size() int64
@@ -98,17 +115,6 @@ type QuadStore interface {
 	// Close the quad store and clean up. (Flush to disk, cleanly
 	// sever connections, etc)
 	Close() error
-
-	// Convenience function for speed. Given a quad token and a direction
-	// return the node token for that direction. Sometimes, a QuadStore
-	// can do this without going all the way to the backing store, and
-	// gives the QuadStore the opportunity to make this optimization.
-	//
-	// Iterators will call this. At worst, a valid implementation is
-	//
-	//  qs.ValueOf(qs.Quad(id).Get(dir))
-	//
-	QuadDirection(id Value, d quad.Direction) Value
 }
 
 type Options map[string]interface{}

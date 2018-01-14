@@ -49,7 +49,7 @@ var _ graph.Iterator = &HasA{}
 // and a temporary holder for the iterator generated on Contains().
 type HasA struct {
 	uid       uint64
-	qs        graph.QuadStore
+	qs        graph.QuadIndexer
 	primaryIt graph.Iterator
 	dir       quad.Direction
 	resultIt  graph.Iterator
@@ -60,7 +60,7 @@ type HasA struct {
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func NewHasA(qs graph.QuadStore, subIt graph.Iterator, d quad.Direction) *HasA {
+func NewHasA(qs graph.QuadIndexer, subIt graph.Iterator, d quad.Direction) *HasA {
 	return &HasA{
 		uid:       NextUID(),
 		qs:        qs,
@@ -102,14 +102,6 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 			return it.primaryIt, true
 		}
 	}
-	// Ask the graph.QuadStore if we can be replaced. Often times, this is a great
-	// optimization opportunity (there's a fixed iterator underneath us, for
-	// example).
-	newReplacement, hasOne := it.qs.OptimizeIterator(it)
-	if hasOne {
-		it.Close()
-		return newReplacement, true
-	}
 	return it, false
 }
 
@@ -128,7 +120,7 @@ func (it *HasA) String() string {
 func (it *HasA) Contains(ctx context.Context, val graph.Value) bool {
 	it.runstats.Contains += 1
 	if clog.V(4) {
-		clog.Infof("Id is %v", it.qs.NameOf(val))
+		clog.Infof("Id is %v", val)
 	}
 	// TODO(barakmich): Optimize this
 	if it.resultIt != nil {

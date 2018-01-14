@@ -26,8 +26,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-func singleHop(pred string) graph.ApplyMorphism {
-	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
+func singleHop(qs graph.QuadIndexer, pred string) Morphism {
+	return func(it graph.Iterator) graph.Iterator {
 		fixed := NewFixed()
 		fixed.Add(graph.PreFetched(quad.Raw(pred)))
 		predlto := NewLinksTo(qs, fixed, quad.Predicate)
@@ -56,7 +56,7 @@ func TestRecursiveNext(t *testing.T) {
 	qs := rec_test_qs
 	start := NewFixed()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
-	r := NewRecursive(qs, start, singleHop("parent"), 0)
+	r := NewRecursive(start, singleHop(qs, "parent"), 0)
 	expected := []string{"bob", "charlie", "dani", "emily"}
 
 	var got []string
@@ -75,7 +75,7 @@ func TestRecursiveContains(t *testing.T) {
 	qs := rec_test_qs
 	start := NewFixed()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
-	r := NewRecursive(qs, start, singleHop("parent"), 0)
+	r := NewRecursive(start, singleHop(qs, "parent"), 0)
 	values := []string{"charlie", "bob", "not"}
 	expected := []bool{true, true, false}
 
@@ -92,13 +92,13 @@ func TestRecursiveNextPath(t *testing.T) {
 	qs := rec_test_qs
 	start := qs.NodesAllIterator()
 	start = Tag(start, "person")
-	it := singleHop("follows")(qs, start)
+	it := singleHop(qs, "follows")(start)
 	and := NewAnd()
 	and.AddSubIterator(it)
 	fixed := NewFixed()
 	fixed.Add(graph.PreFetched(quad.Raw("alice")))
 	and.AddSubIterator(fixed)
-	r := NewRecursive(qs, and, singleHop("parent"), 0)
+	r := NewRecursive(and, singleHop(qs, "parent"), 0)
 
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string

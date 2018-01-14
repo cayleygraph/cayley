@@ -16,8 +16,7 @@ type Recursive struct {
 	runstats graph.IteratorStats
 	err      error
 
-	qs            graph.QuadStore
-	morphism      graph.ApplyMorphism
+	morphism      Morphism
 	seen          map[interface{}]seenAt
 	nextIt        graph.Iterator
 	depth         int
@@ -39,7 +38,7 @@ var _ graph.Iterator = &Recursive{}
 
 var DefaultMaxRecursiveSteps = 50
 
-func NewRecursive(qs graph.QuadStore, it graph.Iterator, morphism graph.ApplyMorphism, maxDepth int) *Recursive {
+func NewRecursive(it graph.Iterator, morphism Morphism, maxDepth int) *Recursive {
 	if maxDepth == 0 {
 		maxDepth = DefaultMaxRecursiveSteps
 	}
@@ -48,7 +47,6 @@ func NewRecursive(qs graph.QuadStore, it graph.Iterator, morphism graph.ApplyMor
 		uid:   NextUID(),
 		subIt: it,
 
-		qs:            qs,
 		morphism:      morphism,
 		seen:          make(map[interface{}]seenAt),
 		nextIt:        &Null{},
@@ -101,7 +99,7 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 }
 
 func (it *Recursive) Clone() graph.Iterator {
-	n := NewRecursive(it.qs, it.subIt.Clone(), it.morphism, it.maxDepth)
+	n := NewRecursive(it.subIt.Clone(), it.morphism, it.maxDepth)
 	n.depthTags = append([]string{}, n.depthTags...)
 	return n
 }
@@ -141,7 +139,7 @@ func (it *Recursive) Next(ctx context.Context) bool {
 			if it.nextIt != nil {
 				it.nextIt.Close()
 			}
-			it.nextIt = it.morphism(it.qs, Tag(it.baseIt, "__base_recursive"))
+			it.nextIt = it.morphism(Tag(it.baseIt, "__base_recursive"))
 			continue
 		}
 		val := it.nextIt.Result()
@@ -240,7 +238,7 @@ func (it *Recursive) Size() (int64, bool) {
 func (it *Recursive) Stats() graph.IteratorStats {
 	base := NewFixed()
 	base.Add(Int64Node(20))
-	fanoutit := it.morphism(it.qs, base)
+	fanoutit := it.morphism(base)
 	fanoutStats := fanoutit.Stats()
 	subitStats := it.subIt.Stats()
 

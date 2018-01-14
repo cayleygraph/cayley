@@ -15,12 +15,12 @@ type Count struct {
 	it     graph.Iterator
 	done   bool
 	result quad.Value
-	qs     graph.QuadStore
+	qs     graph.Namer
 }
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
 // qs may be nil - it's used to check if count Contains (is) a given value.
-func NewCount(it graph.Iterator, qs graph.QuadStore) *Count {
+func NewCount(it graph.Iterator, qs graph.Namer) *Count {
 	return &Count{
 		uid: NextUID(),
 		it:  it, qs: qs,

@@ -27,14 +27,14 @@ type ValueFilter struct {
 	uid    uint64
 	sub    graph.Iterator
 	filter ValueFilterFunc
-	qs     graph.QuadStore
+	qs     graph.Namer
 	result graph.Value
 	err    error
 }
 
 type ValueFilterFunc func(quad.Value) (bool, error)
 
-func NewValueFilter(qs graph.QuadStore, sub graph.Iterator, filter ValueFilterFunc) *ValueFilter {
+func NewValueFilter(qs graph.Namer, sub graph.Iterator, filter ValueFilterFunc) *ValueFilter {
 	return &ValueFilter{
 		uid:    NextUID(),
 		sub:    sub,

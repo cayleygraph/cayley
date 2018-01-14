@@ -523,6 +523,13 @@ func (p *Path) Morphism() graph.ApplyMorphism {
 	}
 }
 
+// MorphismFor is the same as Morphism but binds returned function to a specific QuadStore.
+func (p *Path) MorphismFor(qs graph.QuadStore) iterator.Morphism {
+	return func(it graph.Iterator) graph.Iterator {
+		return p.ShapeFrom(iteratorShape{it}).BuildIterator(qs)
+	}
+}
+
 // Skip will omit a number of values from result set.
 func (p *Path) Skip(v int64) *Path {
 	p.stack = append(p.stack, skipMorphism(v))
