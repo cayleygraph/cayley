@@ -135,7 +135,6 @@ func (it *HasA) String() string {
 // iterator of "quads that have `val` in our direction", given to us by the quad store,
 // and then Next() values out of that iterator and Contains() them against our subiterator.
 func (it *HasA) Contains(ctx context.Context, val graph.Value) bool {
-	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	if clog.V(4) {
 		clog.Infof("Id is %v", it.qs.NameOf(val))
@@ -149,7 +148,7 @@ func (it *HasA) Contains(ctx context.Context, val graph.Value) bool {
 	if it.err != nil {
 		return false
 	}
-	return graph.ContainsLogOut(it, val, ok)
+	return ok
 }
 
 // NextContains() is shared code between Contains() and GetNextResult() -- calls next on the
@@ -207,7 +206,6 @@ func (it *HasA) NextPath(ctx context.Context) bool {
 // subiterator we can get a value from, and we can take that resultant quad,
 // pull our direction out of it, and return that.
 func (it *HasA) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	if it.resultIt != nil {
 		it.resultIt.Close()
@@ -215,12 +213,12 @@ func (it *HasA) Next(ctx context.Context) bool {
 
 	if !it.primaryIt.Next(ctx) {
 		it.err = it.primaryIt.Err()
-		return graph.NextLogOut(it, false)
+		return false
 	}
 	tID := it.primaryIt.Result()
 	val := it.qs.QuadDirection(tID, it.dir)
 	it.result = val
-	return graph.NextLogOut(it, true)
+	return true
 }
 
 func (it *HasA) Err() error {

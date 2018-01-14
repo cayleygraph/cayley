@@ -18,9 +18,7 @@ package graph
 
 import (
 	"context"
-	"strings"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -299,42 +297,4 @@ func DumpStats(it Iterator) StatsContainer {
 		out.SubIts = append(out.SubIts, DumpStats(sub))
 	}
 	return out
-}
-
-// Utility logging functions for when an iterator gets called Next upon, or Contains upon, as
-// well as what they return. Highly useful for tracing the execution path of a query.
-
-func ContainsLogIn(it Iterator, val Value) {
-	if clog.V(4) {
-		clog.Infof("%s %d CHECK CONTAINS %v", strings.ToUpper(it.Type().String()), it.UID(), val)
-	}
-}
-
-func ContainsLogOut(it Iterator, val Value, good bool) bool {
-	if clog.V(4) {
-		if good {
-			clog.Infof("%s %d CHECK CONTAINS %v GOOD", strings.ToUpper(it.Type().String()), it.UID(), val)
-		} else {
-			clog.Infof("%s %d CHECK CONTAINS %v BAD", strings.ToUpper(it.Type().String()), it.UID(), val)
-		}
-	}
-	return good
-}
-
-func NextLogIn(it Iterator) {
-	if clog.V(4) {
-		clog.Infof("%s %d NEXT", strings.ToUpper(it.Type().String()), it.UID())
-	}
-}
-
-func NextLogOut(it Iterator, ok bool) bool {
-	if clog.V(4) {
-		if ok {
-			val := it.Result()
-			clog.Infof("%s %d NEXT IS %v (%T)", strings.ToUpper(it.Type().String()), it.UID(), val, val)
-		} else {
-			clog.Infof("%s %d NEXT DONE", strings.ToUpper(it.Type().String()), it.UID())
-		}
-	}
-	return ok
 }

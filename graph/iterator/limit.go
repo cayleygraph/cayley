@@ -55,15 +55,14 @@ func (it *Limit) SubIterators() []graph.Iterator {
 
 // Next advances the Limit iterator. It will stop iteration if limit was reached.
 func (it *Limit) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	if it.limit > 0 && it.count >= it.limit {
-		return graph.NextLogOut(it, false)
+		return false
 	}
 	if it.primaryIt.Next(ctx) {
 		it.count++
-		return graph.NextLogOut(it, true)
+		return true
 	}
-	return graph.NextLogOut(it, false)
+	return false
 }
 
 func (it *Limit) Err() error {

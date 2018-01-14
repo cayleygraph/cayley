@@ -102,27 +102,25 @@ func (it *Fixed) Contains(ctx context.Context, v graph.Value) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.
-	graph.ContainsLogIn(it, v)
 	vk := graph.ToKey(v)
 	for _, x := range it.values {
 		if graph.ToKey(x) == vk {
 			it.result = x
-			return graph.ContainsLogOut(it, v, true)
+			return true
 		}
 	}
-	return graph.ContainsLogOut(it, v, false)
+	return false
 }
 
 // Next advances the iterator.
 func (it *Fixed) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	if it.lastIndex == len(it.values) {
-		return graph.NextLogOut(it, false)
+		return false
 	}
 	out := it.values[it.lastIndex]
 	it.result = out
 	it.lastIndex++
-	return graph.NextLogOut(it, true)
+	return true
 }
 
 func (it *Fixed) Err() error {

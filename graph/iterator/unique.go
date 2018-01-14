@@ -65,7 +65,6 @@ func (it *Unique) SubIterators() []graph.Iterator {
 // Next advances the subiterator, continuing until it returns a value which it
 // has not previously seen.
 func (it *Unique) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	it.runstats.Next += 1
 
 	for it.subIt.Next(ctx) {
@@ -74,11 +73,11 @@ func (it *Unique) Next(ctx context.Context) bool {
 		if ok := it.seen[key]; !ok {
 			it.result = curr
 			it.seen[key] = true
-			return graph.NextLogOut(it, true)
+			return true
 		}
 	}
 	it.err = it.subIt.Err()
-	return graph.NextLogOut(it, false)
+	return false
 }
 
 func (it *Unique) Err() error {
@@ -92,9 +91,8 @@ func (it *Unique) Result() graph.Value {
 // Contains checks whether the passed value is part of the primary iterator,
 // which is irrelevant for uniqueness.
 func (it *Unique) Contains(ctx context.Context, val graph.Value) bool {
-	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
-	return graph.ContainsLogOut(it, val, it.subIt.Contains(ctx, val))
+	return it.subIt.Contains(ctx, val)
 }
 
 // NextPath for unique always returns false. If we were to return multiple

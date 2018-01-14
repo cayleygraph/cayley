@@ -55,16 +55,15 @@ func (it *Skip) SubIterators() []graph.Iterator {
 // Next advances the Skip iterator. It will skip all initial values
 // before returning actual result.
 func (it *Skip) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	for ; it.skipped < it.skip; it.skipped++ {
 		if !it.primaryIt.Next(ctx) {
-			return graph.NextLogOut(it, false)
+			return false
 		}
 	}
 	if it.primaryIt.Next(ctx) {
-		return graph.NextLogOut(it, true)
+		return true
 	}
-	return graph.NextLogOut(it, false)
+	return false
 }
 
 func (it *Skip) Err() error {

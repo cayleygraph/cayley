@@ -131,17 +131,16 @@ func (it *And) AddSubIterator(sub graph.Iterator) {
 // this value against the subiterators. A productive choice of primary iterator
 // is therefore very important.
 func (it *And) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	for it.primaryIt.Next(ctx) {
 		curr := it.primaryIt.Result()
 		if it.subItsContain(ctx, curr, nil) {
 			it.result = curr
-			return graph.NextLogOut(it, true)
+			return true
 		}
 	}
 	it.err = it.primaryIt.Err()
-	return graph.NextLogOut(it, false)
+	return false
 }
 
 func (it *And) Err() error {
@@ -213,12 +212,11 @@ func (it *And) checkContainsList(ctx context.Context, val graph.Value, lastResul
 	if ok {
 		it.result = val
 	}
-	return graph.ContainsLogOut(it, val, ok)
+	return ok
 }
 
 // Check a value against the entire iterator, in order.
 func (it *And) Contains(ctx context.Context, val graph.Value) bool {
-	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	lastResult := it.result
 	if it.checkList != nil {
@@ -229,13 +227,13 @@ func (it *And) Contains(ctx context.Context, val graph.Value) bool {
 		othersGood := it.subItsContain(ctx, val, lastResult)
 		if othersGood {
 			it.result = val
-			return graph.ContainsLogOut(it, val, true)
+			return true
 		}
 	}
 	if lastResult != nil {
 		it.primaryIt.Contains(ctx, lastResult)
 	}
-	return graph.ContainsLogOut(it, val, false)
+	return false
 }
 
 // Returns the approximate size of the And iterator. Because we're dealing

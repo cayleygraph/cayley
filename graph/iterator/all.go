@@ -100,10 +100,9 @@ func (it *Int64) String() string {
 // Next() on an Int64 all iterator is a simple incrementing counter.
 // Return the next integer, and mark it as the result.
 func (it *Int64) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	it.runstats.Next += 1
 	if it.at == -1 {
-		return graph.NextLogOut(it, false)
+		return false
 	}
 	val := it.at
 	it.at = it.at + 1
@@ -111,7 +110,7 @@ func (it *Int64) Next(ctx context.Context) bool {
 		it.at = -1
 	}
 	it.result = val
-	return graph.NextLogOut(it, true)
+	return true
 }
 
 func (it *Int64) Err() error {
@@ -155,14 +154,13 @@ func valToInt64(v graph.Value) int64 {
 // Contains() for an Int64 is merely seeing if the passed value is
 // within the range, assuming the value is an int64.
 func (it *Int64) Contains(ctx context.Context, tsv graph.Value) bool {
-	graph.ContainsLogIn(it, tsv)
 	it.runstats.Contains += 1
 	v := valToInt64(tsv)
 	if it.min <= v && v <= it.max {
 		it.result = v
-		return graph.ContainsLogOut(it, it.toValue(v), true)
+		return true
 	}
-	return graph.ContainsLogOut(it, it.toValue(v), false)
+	return false
 }
 
 // The type of this iterator is an "all". This is important, as it puts it in

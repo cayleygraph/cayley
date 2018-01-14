@@ -106,15 +106,14 @@ func (it *LinksTo) String() string {
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
 func (it *LinksTo) Contains(ctx context.Context, val graph.Value) bool {
-	graph.ContainsLogIn(it, val)
 	it.runstats.Contains += 1
 	node := it.qs.QuadDirection(val, it.dir)
 	if it.primaryIt.Contains(ctx, node) {
 		it.result = val
-		return graph.ContainsLogOut(it, val, true)
+		return true
 	}
 	it.err = it.primaryIt.Err()
-	return graph.ContainsLogOut(it, val, false)
+	return false
 }
 
 // Return a list containing only our subiterator.
@@ -146,12 +145,11 @@ func (it *LinksTo) Optimize() (graph.Iterator, bool) {
 // Next()ing a LinksTo operates as described above.
 func (it *LinksTo) Next(ctx context.Context) bool {
 	for {
-		graph.NextLogIn(it)
 		it.runstats.Next += 1
 		if it.nextIt.Next(ctx) {
 			it.runstats.ContainsNext += 1
 			it.result = it.nextIt.Result()
-			return graph.NextLogOut(it, true)
+			return true
 		}
 
 		// If there's an error in the 'next' iterator, we save it and we're done.
@@ -166,7 +164,7 @@ func (it *LinksTo) Next(ctx context.Context) bool {
 			it.err = it.primaryIt.Err()
 
 			// We're out of nodes in our subiterator, so we're done as well.
-			return graph.NextLogOut(it, false)
+			return false
 		}
 		it.nextIt.Close()
 		it.nextIt = it.qs.QuadIterator(it.dir, it.primaryIt.Result())

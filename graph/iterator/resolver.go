@@ -112,7 +112,6 @@ func (it *Resolver) resolve(ctx context.Context) error {
 
 // Check if the passed value is equal to one of the order stored in the iterator.
 func (it *Resolver) Contains(ctx context.Context, value graph.Value) bool {
-	graph.ContainsLogIn(it, value)
 	if !it.cached {
 		it.err = it.resolve(ctx)
 		if it.err != nil {
@@ -120,15 +119,14 @@ func (it *Resolver) Contains(ctx context.Context, value graph.Value) bool {
 		}
 	}
 	_, ok := it.nodes[value.Key()]
-	return graph.ContainsLogOut(it, value, ok)
+	return ok
 }
 
 // Next advances the iterator.
 func (it *Resolver) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	if it.index >= len(it.order) {
 		it.result = nil
-		return graph.NextLogOut(it, false)
+		return false
 	}
 	if !it.cached {
 		it.err = it.resolve(ctx)
@@ -141,11 +139,11 @@ func (it *Resolver) Next(ctx context.Context) bool {
 	if !ok {
 		it.result = nil
 		it.err = fmt.Errorf("not found: %v", node)
-		return graph.NextLogOut(it, false)
+		return false
 	}
 	it.result = value
 	it.index++
-	return graph.NextLogOut(it, true)
+	return true
 }
 
 func (it *Resolver) Err() error {

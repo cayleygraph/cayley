@@ -82,14 +82,13 @@ func (it *Iterator) Close() error {
 }
 
 func (it *Iterator) Next(ctx context.Context) bool {
-	graph.NextLogIn(it)
 	if it.iter == nil {
 		it.iter, it.err = it.tree.SeekFirst()
 		if it.err == io.EOF || it.iter == nil {
 			it.err = nil
-			return graph.NextLogOut(it, false)
+			return false
 		} else if it.err != nil {
-			return graph.NextLogOut(it, false)
+			return false
 		}
 	}
 	for {
@@ -98,10 +97,10 @@ func (it *Iterator) Next(ctx context.Context) bool {
 			if err != io.EOF {
 				it.err = err
 			}
-			return graph.NextLogOut(it, false)
+			return false
 		}
 		it.cur = p
-		return graph.NextLogOut(it, true)
+		return true
 	}
 }
 
@@ -130,23 +129,22 @@ func (it *Iterator) Size() (int64, bool) {
 }
 
 func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
-	graph.ContainsLogIn(it, v)
 	if v == nil {
-		return graph.ContainsLogOut(it, v, false)
+		return false
 	}
 	switch v := v.(type) {
 	case bnode:
 		if p, ok := it.tree.Get(int64(v)); ok {
 			it.cur = p
-			return graph.ContainsLogOut(it, v, true)
+			return true
 		}
 	case qprim:
 		if v.p.Quad.Dir(it.d) == it.value {
 			it.cur = v.p
-			return graph.ContainsLogOut(it, v, true)
+			return true
 		}
 	}
-	return graph.ContainsLogOut(it, v, false)
+	return false
 }
 
 func (it *Iterator) String() string {

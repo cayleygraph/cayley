@@ -143,20 +143,19 @@ func (it *Iterator) Tagger() *graph.Tagger {
 	return &it.tags
 }
 func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
-	graph.ContainsLogIn(it, v)
 	if it.isAll {
 		// The result needs to be set, so when contains is called, the result can be retrieved
 		it.result = v
-		return graph.ContainsLogOut(it, v, true)
+		return true
 	}
 	t := v.(*Token)
 	if t == nil {
 		clog.Errorf("Could not cast to token")
-		return graph.ContainsLogOut(it, v, false)
+		return false
 	}
 	if t.Kind == nodeKind {
 		clog.Errorf("Contains does not work with node values")
-		return graph.ContainsLogOut(it, v, false)
+		return false
 	}
 	// Contains is for when you want to know that an iterator refers to a quad
 	var offset int
@@ -172,9 +171,9 @@ func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	}
 	val := t.Hash[offset : offset+(quad.HashSize*2)]
 	if val == it.hash {
-		return graph.ContainsLogOut(it, v, true)
+		return true
 	}
-	return graph.ContainsLogOut(it, v, false)
+	return false
 }
 
 func (it *Iterator) TagResults(dst map[string]graph.Value) {
