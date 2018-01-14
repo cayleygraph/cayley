@@ -14,7 +14,6 @@ type Count struct {
 	uid    uint64
 	it     graph.Iterator
 	done   bool
-	tags   graph.Tagger
 	result quad.Value
 	qs     graph.QuadStore
 }
@@ -39,18 +38,10 @@ func (it *Count) Reset() {
 	it.it.Reset()
 }
 
-func (it *Count) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
-func (it *Count) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Count) TagResults(dst map[string]graph.Value) {}
 
 func (it *Count) Clone() graph.Iterator {
-	it2 := NewCount(it.it.Clone(), it.qs)
-	it2.Tagger().CopyFrom(it)
-	return it2
+	return NewCount(it.it.Clone(), it.qs)
 }
 
 // SubIterators returns a slice of the sub iterators.

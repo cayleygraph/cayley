@@ -94,7 +94,6 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 	// With an linksto-fixed pair
 	fixed := iterator.NewFixed()
 	fixed.Add(qs.ValueOf(quad.Raw("F")))
-	fixed.Tagger().Add("internal")
 	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
 
 	oldIt := lto.Clone()
@@ -103,7 +102,7 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 		t.Errorf("Failed to optimize iterator")
 	}
 	if _, ok := newIt.(*kv.QuadIterator); !ok {
-		t.Errorf("Optimized iterator type does not match original, got:%T", newIt)
+		t.Errorf("Optimized iterator type does not match original, got: %T", newIt)
 	}
 
 	newQuads := graphtest.IteratedQuads(t, qs, newIt)

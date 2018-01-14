@@ -42,7 +42,6 @@ var (
 // and whether the last check we received was true or false.
 type Optional struct {
 	uid       uint64
-	tags      graph.Tagger
 	subIt     graph.Iterator
 	lastCheck bool
 	result    graph.Value
@@ -70,14 +69,8 @@ func (it *Optional) Close() error {
 	return it.subIt.Close()
 }
 
-func (it *Optional) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *Optional) Clone() graph.Iterator {
-	out := NewOptional(it.subIt.Clone())
-	out.tags.CopyFrom(it)
-	return out
+	return NewOptional(it.subIt.Clone())
 }
 
 func (it *Optional) Err() error {
@@ -129,8 +122,6 @@ func (it *Optional) Contains(ctx context.Context, val graph.Value) bool {
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
 func (it *Optional) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	if it.lastCheck == false {
 		return
 	}

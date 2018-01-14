@@ -59,8 +59,6 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
 	if out := it.optimizeReplacement(its); out != nil {
-		// ...Move the tags to the replacement...
-		moveTagsTo(out, it)
 		// ...Close everyone except `out`, our replacement...
 		closeIteratorList(its, out)
 		// ...And return it.
@@ -83,9 +81,6 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	for _, sub := range its {
 		newAnd.AddSubIterator(sub)
 	}
-
-	// Move the tags hanging on us (like any good replacement).
-	newAnd.tags.CopyFrom(it)
 
 	newAnd.optimizeContains()
 	if clog.V(3) {
@@ -234,38 +229,6 @@ func (it *And) optimizeContains() {
 	// Generally this is a worthwhile thing to do in other places as well.
 	it.checkList = it.SubIterators()
 	sort.Sort(byCost(it.checkList))
-}
-
-// If we're replacing ourselves by a single iterator, we need to grab the
-// result tags from the iterators that, while still valid and would hold
-// the same values as this and, are not going to stay.
-// getSubTags() returns a map of the tags for all the subiterators.
-func (it *And) getSubTags() map[string]struct{} {
-	tags := make(map[string]struct{})
-	for _, sub := range it.SubIterators() {
-		for _, tag := range sub.Tagger().Tags() {
-			tags[tag] = struct{}{}
-		}
-	}
-	for _, tag := range it.tags.Tags() {
-		tags[tag] = struct{}{}
-	}
-	return tags
-}
-
-// moveTagsTo() gets the tags for all of the src's subiterators and the
-// src itself, and moves them to dst.
-func moveTagsTo(dst graph.Iterator, src *And) {
-	tags := src.getSubTags()
-	for _, tag := range dst.Tagger().Tags() {
-		if _, ok := tags[tag]; ok {
-			delete(tags, tag)
-		}
-	}
-	dt := dst.Tagger()
-	for k := range tags {
-		dt.Add(k)
-	}
 }
 
 // optimizeSubIterators(l) takes a list of iterators and calls Optimize() on all

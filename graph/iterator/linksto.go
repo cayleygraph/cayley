@@ -44,7 +44,6 @@ var _ graph.Iterator = &LinksTo{}
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
 	uid       uint64
-	tags      graph.Tagger
 	qs        graph.QuadStore
 	primaryIt graph.Iterator
 	dir       quad.Direction
@@ -78,13 +77,8 @@ func (it *LinksTo) Reset() {
 	it.nextIt = &Null{}
 }
 
-func (it *LinksTo) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *LinksTo) Clone() graph.Iterator {
 	out := NewLinksTo(it.qs, it.primaryIt.Clone(), it.dir)
-	out.tags.CopyFrom(it)
 	out.runstats.Size, out.runstats.ExactSize = it.runstats.Size, it.runstats.ExactSize
 	return out
 }
@@ -94,8 +88,6 @@ func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
 func (it *LinksTo) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	it.primaryIt.TagResults(dst)
 }
 

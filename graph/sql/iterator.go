@@ -63,10 +63,9 @@ func (qs *QuadStore) NewIterator(s Select) *Iterator {
 }
 
 type Iterator struct {
-	qs     *QuadStore
-	uid    uint64
-	tagger graph.Tagger
-	query  Select
+	qs    *QuadStore
+	uid   uint64
+	query Select
 
 	cols []string
 	cind map[quad.Direction]int
@@ -81,15 +80,10 @@ func (it *Iterator) UID() uint64 {
 	return it.uid
 }
 
-func (it *Iterator) Tagger() *graph.Tagger {
-	return &it.tagger
-}
-
 func (it *Iterator) TagResults(m map[string]graph.Value) {
 	for tag, val := range it.tags {
 		m[tag] = val
 	}
-	it.tagger.TagResult(m, it.Result())
 }
 
 func (it *Iterator) Result() graph.Value {
@@ -239,9 +233,7 @@ func (it *Iterator) Reset() {
 }
 
 func (it *Iterator) Clone() graph.Iterator {
-	it2 := it.qs.NewIterator(it.query)
-	it2.tagger.CopyFrom(it)
-	return it2
+	return it.qs.NewIterator(it.query)
 }
 
 func (it *Iterator) Stats() graph.IteratorStats {

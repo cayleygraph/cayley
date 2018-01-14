@@ -766,11 +766,11 @@ func (s FixedTags) BuildIterator(qs graph.QuadStore) graph.Iterator {
 		return iterator.NewNull()
 	}
 	it := s.On.BuildIterator(qs)
-	tg := it.Tagger()
+	sv := iterator.NewSave(it)
 	for k, v := range s.Tags {
-		tg.AddFixed(k, v)
+		sv.AddFixedTag(k, v)
 	}
-	return it
+	return sv
 }
 func (s FixedTags) Optimize(r Optimizer) (Shape, bool) {
 	if IsNull(s.On) {
@@ -1372,9 +1372,8 @@ func (s Save) BuildIterator(qs graph.QuadStore) graph.Iterator {
 		return iterator.NewNull()
 	}
 	it := s.From.BuildIterator(qs)
-	tg := it.Tagger()
 	if len(s.Tags) != 0 {
-		tg.Add(s.Tags...)
+		return iterator.NewSave(it, s.Tags...)
 	}
 	return it
 }

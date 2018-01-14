@@ -33,7 +33,6 @@ type Linkage struct {
 
 type Iterator struct {
 	uid        uint64
-	tags       graph.Tagger
 	qs         *QuadStore
 	collection string
 	limit      int64
@@ -101,13 +100,7 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
-func (it *Iterator) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Iterator) TagResults(dst map[string]graph.Value) {}
 
 func (it *Iterator) Clone() graph.Iterator {
 	var m *Iterator
@@ -116,7 +109,6 @@ func (it *Iterator) Clone() graph.Iterator {
 	} else {
 		m = NewLinksToIterator(it.qs, it.collection, it.links)
 	}
-	m.tags.CopyFrom(it)
 	return m
 }
 

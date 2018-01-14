@@ -33,7 +33,7 @@ func (q *Query) buildFixed(s string) graph.Iterator {
 
 func (q *Query) buildResultIterator(path Path) graph.Iterator {
 	all := q.ses.qs.NodesAllIterator()
-	all.Tagger().Add(string(path))
+	all = iterator.Tag(all, string(path))
 	return all
 }
 
@@ -97,7 +97,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 	if err != nil {
 		return nil, false, err
 	}
-	it.Tagger().Add(string(path))
+	it = iterator.Tag(it, string(path))
 	return it, optional, nil
 }
 

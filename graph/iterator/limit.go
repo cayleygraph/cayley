@@ -36,10 +36,6 @@ func (it *Limit) Reset() {
 	it.primaryIt.Reset()
 }
 
-func (it *Limit) Tagger() *graph.Tagger {
-	return it.primaryIt.Tagger()
-}
-
 func (it *Limit) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }

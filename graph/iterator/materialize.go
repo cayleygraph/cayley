@@ -34,7 +34,6 @@ type result struct {
 
 type Materialize struct {
 	uid         uint64
-	tags        graph.Tagger
 	containsMap map[interface{}]int
 	values      [][]result
 	actualSize  int64
@@ -78,26 +77,16 @@ func (it *Materialize) Close() error {
 	return it.subIt.Close()
 }
 
-func (it *Materialize) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *Materialize) TagResults(dst map[string]graph.Value) {
 	if !it.hasRun {
 		return
 	}
 	if it.aborted {
 		it.subIt.TagResults(dst)
-		for _, tag := range it.tags.Tags() {
-			dst[tag] = it.Result()
-		}
 		return
 	}
 	if it.Result() == nil {
 		return
-	}
-	for _, tag := range it.tags.Tags() {
-		dst[tag] = it.Result()
 	}
 	for tag, value := range it.values[it.index][it.subindex].tags {
 		dst[tag] = value
@@ -106,7 +95,6 @@ func (it *Materialize) TagResults(dst map[string]graph.Value) {
 
 func (it *Materialize) Clone() graph.Iterator {
 	out := NewMaterialize(it.subIt.Clone())
-	out.tags.CopyFrom(it)
 	if it.hasRun {
 		out.hasRun = true
 		out.aborted = it.aborted

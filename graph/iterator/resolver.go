@@ -72,9 +72,7 @@ func (it *Resolver) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
-func (it *Resolver) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Resolver) TagResults(dst map[string]graph.Value) {}
 
 func (it *Resolver) Clone() graph.Iterator {
 	out := NewResolver(it.qs, it.order...)
@@ -84,7 +82,6 @@ func (it *Resolver) Clone() graph.Iterator {
 		out.values[node] = value
 		out.nodes[value.Key()] = node
 	}
-	out.tags.CopyFrom(it)
 	return out
 }
 

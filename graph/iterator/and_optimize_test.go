@@ -18,8 +18,6 @@ package iterator_test
 // nonetheless cover a lot of basic cases.
 
 import (
-	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -35,21 +33,12 @@ func TestIteratorPromotion(t *testing.T) {
 	all := NewInt64(1, 3, true)
 	fixed := NewFixed(Int64Node(3))
 	a := NewAnd(qs, all, fixed)
-	all.Tagger().Add("a")
-	fixed.Tagger().Add("b")
-	a.Tagger().Add("c")
 	newIt, changed := a.Optimize()
 	if !changed {
 		t.Error("Iterator didn't optimize")
 	}
 	if newIt.Type() != graph.Fixed {
 		t.Error("Expected fixed iterator")
-	}
-	tagsExpected := []string{"a", "b", "c"}
-	tags := newIt.Tagger().Tags()
-	sort.Strings(tags)
-	if !reflect.DeepEqual(tags, tagsExpected) {
-		t.Fatal("Tags don't match")
 	}
 }
 
@@ -76,9 +65,7 @@ func TestAllPromotion(t *testing.T) {
 		Iter: NewFixed(),
 	}
 	all := NewInt64(100, 300, true)
-	all.Tagger().Add("good")
 	all2 := NewInt64(1, 30000, true)
-	all2.Tagger().Add("slow")
 	a := NewAnd(qs)
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
@@ -91,15 +78,6 @@ func TestAllPromotion(t *testing.T) {
 	if newIt.Type() != graph.All {
 		t.Error("Should have promoted the All iterator")
 	}
-	expectedTags := []string{"good", "slow"}
-	tagsOut := make([]string, 0)
-	for _, x := range newIt.Tagger().Tags() {
-		tagsOut = append(tagsOut, x)
-	}
-	sort.Strings(tagsOut)
-	if !reflect.DeepEqual(expectedTags, tagsOut) {
-		t.Fatalf("Tags don't match: expected: %#v, got: %#v", expectedTags, tagsOut)
-	}
 }
 
 func TestReorderWithTag(t *testing.T) {
@@ -108,14 +86,12 @@ func TestReorderWithTag(t *testing.T) {
 		Iter: NewFixed(),
 	}
 	all := NewFixed(Int64Node(3))
-	all.Tagger().Add("good")
 	all2 := NewFixed(
 		Int64Node(3),
 		Int64Node(4),
 		Int64Node(5),
 		Int64Node(6),
 	)
-	all2.Tagger().Add("slow")
 	a := NewAnd(qs)
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
@@ -125,20 +101,7 @@ func TestReorderWithTag(t *testing.T) {
 	if !changed {
 		t.Error("Expected new iterator")
 	}
-	expectedTags := []string{"good", "slow"}
-	tagsOut := make([]string, 0)
-	for _, sub := range newIt.SubIterators() {
-		for _, x := range sub.Tagger().Tags() {
-			tagsOut = append(tagsOut, x)
-		}
-	}
-	for _, x := range newIt.Tagger().Tags() {
-		tagsOut = append(tagsOut, x)
-	}
-	sort.Strings(tagsOut)
-	if !reflect.DeepEqual(expectedTags, tagsOut) {
-		t.Fatalf("Tags don't match: expected: %#v, got: %#v", expectedTags, tagsOut)
-	}
+	newIt.Close()
 }
 
 func TestAndStatistics(t *testing.T) {
@@ -147,9 +110,7 @@ func TestAndStatistics(t *testing.T) {
 		Iter: NewFixed(),
 	}
 	all := NewInt64(100, 300, true)
-	all.Tagger().Add("good")
 	all2 := NewInt64(1, 30000, true)
-	all2.Tagger().Add("slow")
 	a := NewAnd(qs)
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)

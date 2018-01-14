@@ -163,7 +163,6 @@ func TestLinksToOptimization(t *testing.T) {
 	fixed.Add(qs.ValueOf(quad.Raw("cool")))
 
 	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
-	lto.Tagger().Add("foo")
 
 	newIt, changed := lto.Optimize()
 	if !changed {
@@ -180,10 +179,6 @@ func TestLinksToOptimization(t *testing.T) {
 	origDesc.UID, cloneDesc.UID = 0, 0 // We are more strict now, so fake UID equality.
 	if !reflect.DeepEqual(cloneDesc, origDesc) {
 		t.Fatalf("Unexpected iterator description.\ngot: %#v\nexpect: %#v", cloneDesc, origDesc)
-	}
-	vt := vClone.Tagger()
-	if len(vt.Tags()) < 1 || vt.Tags()[0] != "foo" {
-		t.Fatal("Tag on LinksTo did not persist")
 	}
 }
 

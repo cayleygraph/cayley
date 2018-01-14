@@ -110,11 +110,19 @@ func (s *queryShape) StealNode(left *Node, right *Node) {
 
 func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 	n := Node{ID: s.nodeID}
-	for _, tag := range it.Tagger().Tags() {
-		n.Tags = append(n.Tags, tag)
-	}
-	for k := range it.Tagger().Fixed() {
-		n.Tags = append(n.Tags, k)
+	return s.makeNode(&n, it)
+}
+func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
+	if tg, ok := it.(graph.Tagger); ok {
+		for _, tag := range tg.Tags() {
+			n.Tags = append(n.Tags, tag)
+		}
+		for k := range tg.FixedTags() {
+			n.Tags = append(n.Tags, k)
+		}
+		if sub := tg.SubIterators(); len(sub) == 1 {
+			return s.makeNode(n, sub[0])
+		}
 	}
 
 	switch it.Type() {
@@ -123,7 +131,7 @@ func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 			s.nodeID++
 			newNode := s.MakeNode(sub)
 			if sub.Type() != graph.Or {
-				s.StealNode(&n, newNode)
+				s.StealNode(n, newNode)
 			} else {
 				s.AddNode(newNode)
 				s.AddLink(&Link{n.ID, newNode.ID, 0, 0})
@@ -146,7 +154,7 @@ func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 			s.nodeID++
 			newNode := s.MakeNode(sub)
 			if sub.Type() == graph.Or {
-				s.StealNode(&n, newNode)
+				s.StealNode(n, newNode)
 			} else {
 				s.AddNode(newNode)
 				s.AddLink(&Link{n.ID, newNode.ID, 0, 0})
@@ -167,7 +175,7 @@ func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 				s.AddLink(&Link{newNode.ID, hasaID, 0, n.ID})
 			}
 		} else if lto.primaryIt.Type() == graph.Fixed {
-			s.StealNode(&n, newNode)
+			s.StealNode(n, newNode)
 		} else {
 			s.AddNode(newNode)
 		}
@@ -176,5 +184,5 @@ func (s *queryShape) MakeNode(it graph.Iterator) *Node {
 		fallthrough
 	case graph.All:
 	}
-	return &n
+	return n
 }

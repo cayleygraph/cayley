@@ -22,11 +22,6 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-type Tagger struct {
-	tags      []string
-	fixedTags map[string]Value
-}
-
 // TODO(barakmich): Linkage is general enough that there are places we take
 //the combined arguments `quad.Direction, graph.Value` that it may be worth
 //converting these into Linkages. If nothing else, future indexed iterators may
@@ -41,58 +36,19 @@ type Linkage struct {
 
 // TODO(barakmich): Helper functions as needed, eg, ValuesForDirection(quad.Direction) []Value
 
-// Add a tag to the iterator.
-func (t *Tagger) Add(tag ...string) {
-	t.tags = append(t.tags, tag...)
-}
-
-func (t *Tagger) AddFixed(tag string, value Value) {
-	if t.fixedTags == nil {
-		t.fixedTags = make(map[string]Value)
-	}
-	t.fixedTags[tag] = value
-}
-
-// Tags returns the tags held in the tagger. The returned value must not be mutated.
-func (t *Tagger) Tags() []string {
-	return t.tags
-}
-
-// Fixed returns the fixed tags held in the tagger. The returned value must not be mutated.
-func (t *Tagger) Fixed() map[string]Value {
-	return t.fixedTags
-}
-
-func (t *Tagger) TagResult(dst map[string]Value, v Value) {
-	for _, tag := range t.Tags() {
-		dst[tag] = v
-	}
-
-	for tag, value := range t.Fixed() {
-		dst[tag] = value
-	}
-}
-
-func (t *Tagger) CopyFrom(src Iterator) {
-	t.CopyFromTagger(src.Tagger())
-}
-
-func (t *Tagger) CopyFromTagger(st *Tagger) {
-	t.tags = append(t.tags, st.tags...)
-
-	if t.fixedTags == nil {
-		t.fixedTags = make(map[string]Value, len(st.fixedTags))
-	}
-	for k, v := range st.fixedTags {
-		t.fixedTags[k] = v
-	}
+// Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
+type Tagger interface {
+	Iterator
+	Tags() []string
+	FixedTags() map[string]Value
+	AddTags(tag ...string)
+	AddFixedTag(tag string, value Value)
+	CopyFromTagger(st Tagger)
 }
 
 type Iterator interface {
 	// String returns a short textual representation of an iterator.
 	String() string
-
-	Tagger() *Tagger
 
 	// Fills a tag-to-result-value map.
 	TagResults(map[string]Value)
@@ -178,8 +134,10 @@ func DescribeIterator(it Iterator) Description {
 		UID:  it.UID(),
 		Name: it.String(),
 		Type: it.Type(),
-		Tags: it.Tagger().Tags(),
 		Size: sz, Exact: exact,
+	}
+	if tg, ok := it.(Tagger); ok {
+		d.Tags = tg.Tags()
 	}
 	if sub := it.SubIterators(); len(sub) != 0 {
 		d.Iterators = make([]Description, 0, len(sub))
@@ -261,6 +219,7 @@ const (
 	Null        = Type("null")
 	Err         = Type("error")
 	Fixed       = Type("fixed")
+	Save        = Type("save")
 	Not         = Type("not")
 	Optional    = Type("optional")
 	Materialize = Type("materialize")

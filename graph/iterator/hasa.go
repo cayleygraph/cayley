@@ -49,7 +49,6 @@ var _ graph.Iterator = &HasA{}
 // and a temporary holder for the iterator generated on Contains().
 type HasA struct {
 	uid       uint64
-	tags      graph.Tagger
 	qs        graph.QuadStore
 	primaryIt graph.Iterator
 	dir       quad.Direction
@@ -86,14 +85,8 @@ func (it *HasA) Reset() {
 	}
 }
 
-func (it *HasA) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *HasA) Clone() graph.Iterator {
-	out := NewHasA(it.qs, it.primaryIt.Clone(), it.dir)
-	out.tags.CopyFrom(it)
-	return out
+	return NewHasA(it.qs, it.primaryIt.Clone(), it.dir)
 }
 
 // Direction accessor.
@@ -122,8 +115,6 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 
 // Pass the TagResults down the chain.
 func (it *HasA) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	it.primaryIt.TagResults(dst)
 }
 

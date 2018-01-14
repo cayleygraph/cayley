@@ -31,7 +31,6 @@ type Iterator struct {
 	nodes bool
 	uid   uint64
 	qs    *QuadStore
-	tags  graph.Tagger
 	tree  *Tree
 
 	iter *Enumerator
@@ -63,18 +62,10 @@ func (it *Iterator) Reset() {
 	it.cur = nil
 }
 
-func (it *Iterator) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
-func (it *Iterator) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Iterator) TagResults(dst map[string]graph.Value) {}
 
 func (it *Iterator) Clone() graph.Iterator {
-	m := NewIterator(it.tree, it.qs, it.d, it.value)
-	m.tags.CopyFrom(it)
-	return m
+	return NewIterator(it.tree, it.qs, it.d, it.value)
 }
 
 func (it *Iterator) Close() error {

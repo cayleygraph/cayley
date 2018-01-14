@@ -91,7 +91,7 @@ func TestRecursiveNextPath(t *testing.T) {
 	ctx := context.TODO()
 	qs := rec_test_qs
 	start := qs.NodesAllIterator()
-	start.Tagger().Add("person")
+	start = Tag(start, "person")
 	it := singleHop("follows")(qs, start)
 	and := NewAnd(qs)
 	and.AddSubIterator(it)

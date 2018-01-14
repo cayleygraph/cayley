@@ -35,7 +35,6 @@ var _ graph.Iterator = &Int64{}
 type Int64 struct {
 	node     bool
 	uid      uint64
-	tags     graph.Tagger
 	max, min int64
 	at       int64
 	result   int64
@@ -79,19 +78,10 @@ func (it *Int64) Close() error {
 }
 
 func (it *Int64) Clone() graph.Iterator {
-	out := NewInt64(it.min, it.max, it.node)
-	out.tags.CopyFrom(it)
-	return out
+	return NewInt64(it.min, it.max, it.node)
 }
 
-func (it *Int64) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
-// Fill the map based on the tags assigned to this iterator.
-func (it *Int64) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Int64) TagResults(dst map[string]graph.Value) {}
 
 func (it *Int64) String() string {
 	return fmt.Sprintf("Int64(%d-%d)", it.min, it.max)

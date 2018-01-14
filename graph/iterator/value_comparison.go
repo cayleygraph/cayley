@@ -64,7 +64,6 @@ var _ graph.Iterator = &Comparison{}
 
 type Comparison struct {
 	uid    uint64
-	tags   graph.Tagger
 	subIt  graph.Iterator
 	op     Operator
 	val    quad.Value
@@ -200,14 +199,8 @@ func (it *Comparison) Reset() {
 	it.result = nil
 }
 
-func (it *Comparison) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *Comparison) Clone() graph.Iterator {
-	out := NewComparison(it.subIt.Clone(), it.op, it.val, it.qs)
-	out.tags.CopyFrom(it)
-	return out
+	return NewComparison(it.subIt.Clone(), it.op, it.val, it.qs)
 }
 
 func (it *Comparison) Next(ctx context.Context) bool {
@@ -263,8 +256,6 @@ func (it *Comparison) Contains(ctx context.Context, val graph.Value) bool {
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
 func (it *Comparison) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	it.subIt.TagResults(dst)
 }
 

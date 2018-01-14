@@ -190,7 +190,7 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 		nodeID := getIdentString(tree)
 		if tree.Children[0].Name == "Variable" {
 			allIt := qs.NodesAllIterator()
-			allIt.Tagger().Add(nodeID)
+			allIt = iterator.Tag(allIt, nodeID)
 			out = allIt
 		} else {
 			n := nodeID

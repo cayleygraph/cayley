@@ -27,7 +27,6 @@ var _ graph.Iterator = &And{}
 // be Next()ed if next is called.
 type And struct {
 	uid               uint64
-	tags              graph.Tagger
 	internalIterators []graph.Iterator
 	itCount           int
 	primaryIt         graph.Iterator
@@ -66,15 +65,9 @@ func (it *And) Reset() {
 	it.checkList = nil
 }
 
-func (it *And) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 // An extended TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
 func (it *And) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)
 	}
@@ -86,7 +79,6 @@ func (it *And) TagResults(dst map[string]graph.Value) {
 func (it *And) Clone() graph.Iterator {
 	and := NewAnd(it.qs)
 	and.AddSubIterator(it.primaryIt.Clone())
-	and.tags.CopyFrom(it)
 	for _, sub := range it.internalIterators {
 		and.AddSubIterator(sub.Clone())
 	}

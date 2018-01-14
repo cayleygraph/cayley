@@ -28,8 +28,7 @@ func hasaWithTag(qs graph.QuadStore, tag string, target string) *HasA {
 	and := NewAnd(qs)
 
 	obj := NewFixed(qs.ValueOf(quad.Raw(target)))
-	obj.Tagger().Add(tag)
-	and.AddSubIterator(NewLinksTo(qs, obj, quad.Object))
+	and.AddSubIterator(NewLinksTo(qs, Tag(obj, tag), quad.Object))
 
 	pred := NewFixed(qs.ValueOf(quad.Raw("status")))
 	and.AddSubIterator(NewLinksTo(qs, pred, quad.Predicate))
@@ -46,8 +45,8 @@ func TestQueryShape(t *testing.T) {
 	}}
 
 	// Given a single linkage iterator's shape.
-	hasa := hasaWithTag(qs, "tag", "cool")
-	hasa.Tagger().Add("top")
+	var hasa graph.Iterator = hasaWithTag(qs, "tag", "cool")
+	hasa = Tag(hasa, "top")
 
 	shape := make(map[string]interface{})
 	OutputQueryShapeForIterator(hasa, qs, shape)
@@ -91,12 +90,12 @@ func TestQueryShape(t *testing.T) {
 	// Given a name-of-an-and-iterator's shape.
 	andInternal := NewAnd(qs)
 
-	hasa1 := hasaWithTag(qs, "tag1", "cool")
-	hasa1.Tagger().Add("hasa1")
+	var hasa1 graph.Iterator = hasaWithTag(qs, "tag1", "cool")
+	hasa1 = Tag(hasa1, "hasa1")
 	andInternal.AddSubIterator(hasa1)
 
-	hasa2 := hasaWithTag(qs, "tag2", "fun")
-	hasa2.Tagger().Add("hasa2")
+	var hasa2 graph.Iterator = hasaWithTag(qs, "tag2", "fun")
+	hasa2 = Tag(hasa2, "hasa2")
 	andInternal.AddSubIterator(hasa2)
 
 	pred := NewFixed(qs.ValueOf(quad.Raw("name")))

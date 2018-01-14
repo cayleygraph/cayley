@@ -31,7 +31,6 @@ var _ graph.Iterator = &Or{}
 
 type Or struct {
 	uid               uint64
-	tags              graph.Tagger
 	isShortCircuiting bool
 	internalIterators []graph.Iterator
 	currentIterator   int
@@ -72,10 +71,6 @@ func (it *Or) Reset() {
 	it.currentIterator = -1
 }
 
-func (it *Or) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *Or) Clone() graph.Iterator {
 	var or *Or
 	if it.isShortCircuiting {
@@ -86,7 +81,6 @@ func (it *Or) Clone() graph.Iterator {
 	for _, sub := range it.internalIterators {
 		or.AddSubIterator(sub.Clone())
 	}
-	or.tags.CopyFrom(it)
 	return or
 }
 
@@ -98,8 +92,6 @@ func (it *Or) SubIterators() []graph.Iterator {
 // Overrides BaseIterator TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
 func (it *Or) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	it.internalIterators[it.currentIterator].TagResults(dst)
 }
 
@@ -266,9 +258,6 @@ func (it *Or) Optimize() (graph.Iterator, bool) {
 	for _, o := range optIts {
 		newOr.AddSubIterator(o)
 	}
-
-	// Move the tags hanging on us (like any good replacement).
-	newOr.tags.CopyFrom(it)
 
 	// And close ourselves but not our subiterators -- some may still be alive in
 	// the new And (they were unchanged upon calling Optimize() on them, at the

@@ -17,6 +17,7 @@ package gizmo
 import (
 	"github.com/dop251/goja"
 
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -25,7 +26,7 @@ const TopResultTag = "id"
 // GetLimit is the same as All, but limited to the first N unique nodes at the end of the path, and each of their possible traversals.
 func (p *pathObject) GetLimit(limit int) error {
 	it := p.buildIteratorTree()
-	it.Tagger().Add(TopResultTag)
+	it = iterator.Tag(it, TopResultTag)
 	p.s.limit = limit
 	p.s.count = 0
 	return p.s.runIterator(it)
@@ -46,7 +47,7 @@ func (p *pathObject) toArray(call goja.FunctionCall, withTags bool) goja.Value {
 		limit, _ = toInt(args[0])
 	}
 	it := p.buildIteratorTree()
-	it.Tagger().Add(TopResultTag)
+	it = iterator.Tag(it, TopResultTag)
 	var (
 		array interface{}
 		err   error
@@ -85,7 +86,7 @@ func (p *pathObject) TagArray(call goja.FunctionCall) goja.Value {
 }
 func (p *pathObject) toValue(withTags bool) (interface{}, error) {
 	it := p.buildIteratorTree()
-	it.Tagger().Add(TopResultTag)
+	it = iterator.Tag(it, TopResultTag)
 	const limit = 1
 	if !withTags {
 		array, err := p.s.runIteratorToArrayNoTags(it, limit)
@@ -137,7 +138,7 @@ func (p *pathObject) Map(call goja.FunctionCall) goja.Value {
 //	graph.V("<alice>").ForEach(function(d) { g.Emit(d) } )
 func (p *pathObject) ForEach(call goja.FunctionCall) goja.Value {
 	it := p.buildIteratorTree()
-	it.Tagger().Add(TopResultTag)
+	it = iterator.Tag(it, TopResultTag)
 	if n := len(call.Arguments); n != 1 && n != 2 {
 		return throwErr(p.s.vm, errArgCount{Got: len(call.Arguments)})
 	}

@@ -12,7 +12,6 @@ var _ graph.Iterator = &Not{}
 // It will return all the vertices which are not part of the primary iterator.
 type Not struct {
 	uid       uint64
-	tags      graph.Tagger
 	primaryIt graph.Iterator
 	allIt     graph.Iterator
 	result    graph.Value
@@ -39,22 +38,14 @@ func (it *Not) Reset() {
 	it.allIt.Reset()
 }
 
-func (it *Not) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *Not) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)
 	}
 }
 
 func (it *Not) Clone() graph.Iterator {
-	not := NewNot(it.primaryIt.Clone(), it.allIt.Clone())
-	not.tags.CopyFrom(it)
-	return not
+	return NewNot(it.primaryIt.Clone(), it.allIt.Clone())
 }
 
 // SubIterators returns a slice of the sub iterators.

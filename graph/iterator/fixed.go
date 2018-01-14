@@ -33,7 +33,6 @@ var _ graph.Iterator = &Fixed{}
 // an equality function.
 type Fixed struct {
 	uid       uint64
-	tags      graph.Tagger
 	values    []graph.Value
 	lastIndex int
 	result    graph.Value
@@ -63,20 +62,10 @@ func (it *Fixed) Close() error {
 	return nil
 }
 
-func (it *Fixed) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
-func (it *Fixed) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Fixed) TagResults(dst map[string]graph.Value) {}
 
 func (it *Fixed) Clone() graph.Iterator {
-	vals := make([]graph.Value, len(it.values))
-	copy(vals, it.values)
-	out := NewFixed(vals...)
-	out.tags.CopyFrom(it)
-	return out
+	return NewFixed(it.values...)
 }
 
 // Add a value to the iterator. The array now contains this value.

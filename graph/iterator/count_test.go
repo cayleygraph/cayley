@@ -37,11 +37,4 @@ func TestCount(t *testing.T) {
 	require.False(t, it.Next(ctx))
 	require.False(t, it.Contains(ctx, graph.PreFetched(quad.Int(5))))
 	require.True(t, it.Contains(ctx, graph.PreFetched(quad.Int(2))))
-
-	it.Reset()
-	it.Tagger().Add("count")
-	require.True(t, it.Next(ctx))
-	m := make(map[string]graph.Value)
-	it.TagResults(m)
-	require.Equal(t, map[string]graph.Value{"count": graph.PreFetched(quad.Int(2))}, m)
 }

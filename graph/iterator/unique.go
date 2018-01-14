@@ -11,7 +11,6 @@ var _ graph.Iterator = &Unique{}
 // Unique iterator removes duplicate values from it's subiterator.
 type Unique struct {
 	uid      uint64
-	tags     graph.Tagger
 	subIt    graph.Iterator
 	result   graph.Value
 	runstats graph.IteratorStats
@@ -38,22 +37,14 @@ func (it *Unique) Reset() {
 	it.seen = make(map[interface{}]bool)
 }
 
-func (it *Unique) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *Unique) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	if it.subIt != nil {
 		it.subIt.TagResults(dst)
 	}
 }
 
 func (it *Unique) Clone() graph.Iterator {
-	uniq := NewUnique(it.subIt.Clone())
-	uniq.tags.CopyFrom(it)
-	return uniq
+	return NewUnique(it.subIt.Clone())
 }
 
 // SubIterators returns a slice of the sub iterators. The first iterator is the

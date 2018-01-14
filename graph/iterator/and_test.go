@@ -32,16 +32,8 @@ func TestTag(t *testing.T) {
 		Iter: NewFixed(),
 	}
 	fix1 := NewFixed(Int64Node(234))
-	fix1.Tagger().Add("foo")
-	and := NewAnd(qs, fix1)
-	and.Tagger().Add("bar")
-	out := fix1.Tagger().Tags()
-	if len(out) != 1 {
-		t.Errorf("Expected length 1, got %d", len(out))
-	}
-	if out[0] != "foo" {
-		t.Errorf("Cannot get tag back, got %s", out[0])
-	}
+	var and graph.Iterator = NewAnd(qs, Tag(fix1, "foo"))
+	and = Tag(and, "bar")
 
 	if !and.Next(ctx) {
 		t.Errorf("And did not next")

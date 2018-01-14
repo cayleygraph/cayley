@@ -43,8 +43,7 @@ var (
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
 type Null struct {
-	uid  uint64
-	tags graph.Tagger
+	uid uint64
 }
 
 // Fairly useless New function.
@@ -56,14 +55,8 @@ func (it *Null) UID() uint64 {
 	return it.uid
 }
 
-func (it *Null) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 // Fill the map based on the tags assigned to this iterator.
-func (it *Null) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Null) TagResults(dst map[string]graph.Value) {}
 
 func (it *Null) Contains(ctx context.Context, v graph.Value) bool {
 	return false
@@ -119,9 +112,8 @@ func (it *Null) Stats() graph.IteratorStats {
 
 // Error iterator always returns a single error with no other results.
 type Error struct {
-	uid  uint64
-	tags graph.Tagger
-	err  error
+	uid uint64
+	err error
 }
 
 func NewError(err error) *Error {
@@ -132,14 +124,8 @@ func (it *Error) UID() uint64 {
 	return it.uid
 }
 
-func (it *Error) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 // Fill the map based on the tags assigned to this iterator.
-func (it *Error) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *Error) TagResults(dst map[string]graph.Value) {}
 
 func (it *Error) Contains(ctx context.Context, v graph.Value) bool {
 	return false

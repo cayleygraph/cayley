@@ -25,7 +25,6 @@ import (
 
 type QuadIterator struct {
 	uid     uint64
-	tags    graph.Tagger
 	qs      *QuadStore
 	ind     QuadIndex
 	horizon int64
@@ -72,17 +71,10 @@ func (it *QuadIterator) Reset() {
 	}
 }
 
-func (it *QuadIterator) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
-func (it *QuadIterator) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *QuadIterator) TagResults(dst map[string]graph.Value) {}
 
 func (it *QuadIterator) Clone() graph.Iterator {
 	out := NewQuadIterator(it.qs, it.ind, it.vals)
-	out.tags.CopyFrom(it)
 	out.ids = it.ids
 	out.horizon = it.horizon
 	return out

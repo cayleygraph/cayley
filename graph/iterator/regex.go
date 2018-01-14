@@ -31,7 +31,6 @@ var _ graph.Iterator = &Regex{}
 // regular expression test.
 type Regex struct {
 	uid       uint64
-	tags      graph.Tagger
 	subIt     graph.Iterator
 	re        *regexp.Regexp
 	qs        graph.QuadStore
@@ -101,14 +100,8 @@ func (it *Regex) Reset() {
 	it.result = nil
 }
 
-func (it *Regex) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
 func (it *Regex) Clone() graph.Iterator {
-	out := NewRegex(it.subIt.Clone(), it.re, it.qs)
-	out.tags.CopyFrom(it)
-	return out
+	return NewRegex(it.subIt.Clone(), it.re, it.qs)
 }
 
 func (it *Regex) Next(ctx context.Context) bool {
@@ -189,8 +182,6 @@ func (it *Regex) Stats() graph.IteratorStats {
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
 func (it *Regex) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-
 	it.subIt.TagResults(dst)
 }
 

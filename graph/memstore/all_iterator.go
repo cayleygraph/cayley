@@ -24,8 +24,7 @@ import (
 var _ graph.Iterator = (*AllIterator)(nil)
 
 type AllIterator struct {
-	uid  uint64
-	tags graph.Tagger
+	uid uint64
 
 	qs    *QuadStore
 	all   []*primitive
@@ -46,9 +45,7 @@ func newAllIterator(qs *QuadStore, nodes bool, maxid int64) *AllIterator {
 }
 
 func (it *AllIterator) Clone() graph.Iterator {
-	it2 := newAllIterator(it.qs, it.nodes, it.maxid)
-	it2.tags.CopyFrom(it)
-	return it2
+	return newAllIterator(it.qs, it.nodes, it.maxid)
 }
 
 func (it *AllIterator) Reset() {
@@ -128,13 +125,8 @@ func (it *AllIterator) Close() error {
 	it.all = nil
 	return nil
 }
-func (it *AllIterator) Tagger() *graph.Tagger {
-	return &it.tags
-}
 
-func (it *AllIterator) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *AllIterator) TagResults(dst map[string]graph.Value) {}
 
 func (it *AllIterator) SubIterators() []graph.Iterator   { return nil }
 func (it *AllIterator) Optimize() (graph.Iterator, bool) { return it, false }

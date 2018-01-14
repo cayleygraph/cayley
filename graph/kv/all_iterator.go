@@ -29,7 +29,6 @@ type AllIterator struct {
 	buf     []*proto.Primitive
 	prim    *proto.Primitive
 	horizon int64
-	tags    graph.Tagger
 	qs      *QuadStore
 	err     error
 	uid     uint64
@@ -64,18 +63,10 @@ func (it *AllIterator) Reset() {
 	it.id = 0
 }
 
-func (it *AllIterator) Tagger() *graph.Tagger {
-	return &it.tags
-}
-
-func (it *AllIterator) TagResults(dst map[string]graph.Value) {
-	it.tags.TagResult(dst, it.Result())
-}
+func (it *AllIterator) TagResults(dst map[string]graph.Value) {}
 
 func (it *AllIterator) Clone() graph.Iterator {
-	out := NewAllIterator(it.nodes, it.qs, it.cons)
-	out.tags.CopyFrom(it)
-	return out
+	return NewAllIterator(it.nodes, it.qs, it.cons)
 }
 
 func (it *AllIterator) Close() error {

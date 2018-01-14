@@ -44,14 +44,8 @@ func (qs *QuadStore) optimizeLinksTo(it *iterator.LinksTo) (graph.Iterator, bool
 				panic("unexpected size during optimize")
 			}
 			val := primary.Result()
-			newIt := qs.QuadIterator(it.Direction(), val)
-			nt := newIt.Tagger()
-			nt.CopyFrom(it)
-			for _, tag := range primary.Tagger().Tags() {
-				nt.AddFixed(tag, val)
-			}
 			it.Close()
-			return newIt, true
+			return qs.QuadIterator(it.Direction(), val), true
 		}
 	}
 	return it, false
