@@ -20,21 +20,19 @@ import (
 	"math"
 	"strings"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 )
 
-func (q *Query) buildFixed(s string) graph.Iterator {
-	f := iterator.NewFixed()
-	f.Add(q.ses.qs.ValueOf(quad.StringToValue(s)))
-	return f
+func buildFixed(s string) shape.Shape {
+	return shape.Lookup{quad.StringToValue(s)}
 }
 
-func (q *Query) buildResultIterator(path Path) graph.Iterator {
-	all := q.ses.qs.NodesAllIterator()
-	all = iterator.Tag(all, string(path))
-	return all
+func buildAllResult(path Path) shape.Shape {
+	return shape.Save{
+		From: shape.AllNodes{},
+		Tags: []string{string(path)},
+	}
 }
 
 func (q *Query) BuildIteratorTree(query interface{}) {
@@ -43,53 +41,52 @@ func (q *Query) BuildIteratorTree(query interface{}) {
 	q.queryResult = make(map[ResultPath]map[string]interface{})
 	q.queryResult[""] = make(map[string]interface{})
 
-	var isOptional bool
-	q.it, isOptional, q.err = q.buildIteratorTreeInternal(query, NewPath())
-	if isOptional {
+	var (
+		opt bool
+		s   shape.Shape
+	)
+	s, opt, q.err = q.buildShape(query, NewPath())
+	if q.err == nil && opt {
 		q.err = errors.New("optional iterator at the top level")
 	}
+	q.it = shape.BuildIterator(q.ses.qs, s)
 }
 
-func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it graph.Iterator, optional bool, err error) {
+func (q *Query) buildShape(query interface{}, path Path) (s shape.Shape, optional bool, err error) {
 	err = nil
 	optional = false
 	switch t := query.(type) {
 	case bool:
 		// for JSON booleans
-		// Treat the bool as a string and call it a day.
-		// Things which are really bool-like are special cases and will be dealt with separately.
-		if t {
-			it = q.buildFixed("true")
-		}
-		it = q.buildFixed("false")
+		s = shape.Lookup{quad.Bool(t)}
 	case float64:
 		// for JSON numbers
 		// Damn you, Javascript, and your lack of integer values.
 		if math.Floor(t) == t {
 			// Treat it like an integer.
-			it = q.buildFixed(fmt.Sprintf("%0.f", t))
+			s = shape.Lookup{quad.Int(t)}
 		} else {
-			it = q.buildFixed(fmt.Sprintf("%f", t))
+			s = shape.Lookup{quad.Float(t)}
 		}
 	case string:
 		// for JSON strings
-		it = q.buildFixed(t)
+		s = buildFixed(t)
 	case []interface{}:
 		// for JSON arrays
 		q.isRepeated[path] = true
 		if len(t) == 0 {
-			it = q.buildResultIterator(path)
+			s = buildAllResult(path)
 			optional = true
 		} else if len(t) == 1 {
-			it, optional, err = q.buildIteratorTreeInternal(t[0], path)
+			s, optional, err = q.buildShape(t[0], path)
 		} else {
 			err = fmt.Errorf("multiple fields at location root %s", path.DisplayString())
 		}
 	case map[string]interface{}:
 		// for JSON objects
-		it, err = q.buildIteratorTreeMapInternal(t, path)
+		s, err = q.buildShapeMap(t, path)
 	case nil:
-		it = q.buildResultIterator(path)
+		s = buildAllResult(path)
 		optional = true
 	default:
 		err = fmt.Errorf("Unknown JSON type: %T", query)
@@ -97,15 +94,19 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 	if err != nil {
 		return nil, false, err
 	}
-	it = iterator.Tag(it, string(path))
-	return it, optional, nil
+	s = shape.Save{
+		From: s,
+		Tags: []string{string(path)},
+	}
+	return s, optional, nil
 }
 
-func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path Path) (graph.Iterator, error) {
-	it := iterator.NewAnd()
-	it.AddSubIterator(q.ses.qs.NodesAllIterator())
-	var err error
-	err = nil
+func (q *Query) buildShapeMap(query map[string]interface{}, path Path) (shape.Shape, error) {
+	it := shape.IntersectOpt{
+		Sub: shape.Intersect{
+			shape.AllNodes{},
+		},
+	}
 	outputStructure := make(map[string]interface{})
 	for key, subquery := range query {
 		optional := false
@@ -124,44 +125,44 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 		}
 
 		// Other special constructs here
-		var subit graph.Iterator
+		var subit shape.Shape
 		if key == "id" {
-			subit, optional, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
+			var err error
+			subit, optional, err = q.buildShape(subquery, path.Follow(key))
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			var builtIt graph.Iterator
-			builtIt, optional, err = q.buildIteratorTreeInternal(subquery, path.Follow(key))
+			var (
+				builtIt shape.Shape
+				err     error
+			)
+			builtIt, optional, err = q.buildShape(subquery, path.Follow(key))
 			if err != nil {
 				return nil, err
 			}
-			subAnd := iterator.NewAnd()
-			predFixed := iterator.NewFixed()
-			predFixed.Add(q.ses.qs.ValueOf(quad.StringToValue(pred)))
-			subAnd.AddSubIterator(iterator.NewLinksTo(q.ses.qs, predFixed, quad.Predicate))
+			from, to := quad.Subject, quad.Object
 			if reverse {
-				lto := iterator.NewLinksTo(q.ses.qs, builtIt, quad.Subject)
-				subAnd.AddSubIterator(lto)
-				hasa := iterator.NewHasA(q.ses.qs, subAnd, quad.Object)
-				subit = hasa
-			} else {
-				lto := iterator.NewLinksTo(q.ses.qs, builtIt, quad.Object)
-				subAnd.AddSubIterator(lto)
-				hasa := iterator.NewHasA(q.ses.qs, subAnd, quad.Subject)
-				subit = hasa
+				from, to = to, from
+			}
+			subit = shape.NodesFrom{
+				Dir: from,
+				Quads: shape.Quads{
+					{Dir: quad.Predicate, Values: buildFixed(pred)},
+					{Dir: to, Values: builtIt},
+				},
 			}
 		}
 		if optional {
-			it.AddOptionalIterator(subit)
+			it.Opt = append(it.Opt, subit)
 		} else {
-			it.AddSubIterator(subit)
+			it.Sub = append(it.Sub, subit)
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
 	q.queryStructure[path] = outputStructure
+	if len(it.Opt) == 0 {
+		return it.Sub, nil
+	}
 	return it, nil
 }
 
