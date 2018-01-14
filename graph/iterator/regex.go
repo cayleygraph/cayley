@@ -15,40 +15,42 @@
 package iterator
 
 import (
-	"context"
-	"fmt"
 	"regexp"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var _ graph.Iterator = &Regex{}
+func newRegex(qs graph.QuadStore, sub graph.Iterator, re *regexp.Regexp, refs bool) graph.Iterator {
+	return NewValueFilter(qs, sub, func(v quad.Value) (bool, error) {
+		switch v := v.(type) {
+		case quad.String:
+			return re.MatchString(string(v)), nil
+		case quad.TypedString:
+			return re.MatchString(string(v.Value)), nil
+		default:
+			if refs {
+				switch v := v.(type) {
+				case quad.BNode:
+					return re.MatchString(string(v)), nil
+				case quad.IRI:
+					return re.MatchString(string(v)), nil
+				}
+			}
+		}
+		return false, nil
+	})
+}
 
-// Regex is a unary operator -- a filter across the values in the relevant
+// NewRegex returns an unary operator -- a filter across the values in the relevant
 // subiterator. It works similarly to gremlin's filter{it.matches('exp')},
 // reducing the iterator set to values whose string representation passes a
 // regular expression test.
-type Regex struct {
-	uid       uint64
-	subIt     graph.Iterator
-	re        *regexp.Regexp
-	qs        graph.QuadStore
-	result    graph.Value
-	err       error
-	allowRefs bool
+func NewRegex(sub graph.Iterator, re *regexp.Regexp, qs graph.QuadStore) graph.Iterator {
+	return newRegex(qs, sub, re, false)
 }
 
-func NewRegex(sub graph.Iterator, re *regexp.Regexp, qs graph.QuadStore) *Regex {
-	return &Regex{
-		uid:   NextUID(),
-		subIt: sub,
-		re:    re,
-		qs:    qs,
-	}
-}
-
-// AllowRefs allows regexp iterator to match IRIs and BNodes.
+// NewRegexWithRefs is like NewRegex but allows regexp iterator to match IRIs and BNodes.
 //
 // Consider using it carefully. In most cases it's better to reconsider
 // your graph structure instead of relying on slow unoptimizable regexp.
@@ -61,131 +63,6 @@ func NewRegex(sub graph.Iterator, re *regexp.Regexp, qs graph.QuadStore) *Regex 
 //
 // The right way is to explicitly link graph nodes and query them by this relation:
 // 	<http://example.org/page/foo> <type> <http://example.org/page>
-func (it *Regex) AllowRefs(v bool) {
-	it.allowRefs = v
-}
-
-func (it *Regex) testRegex(val graph.Value) bool {
-	// Type switch to avoid coercing and testing numeric types
-	v := it.qs.NameOf(val)
-	switch v := v.(type) {
-	case quad.String:
-		return it.re.MatchString(string(v))
-	case quad.TypedString:
-		return it.re.MatchString(string(v.Value))
-	default:
-		if it.allowRefs {
-			switch v := v.(type) {
-			case quad.BNode:
-				return it.re.MatchString(string(v))
-			case quad.IRI:
-				return it.re.MatchString(string(v))
-			}
-		}
-	}
-	return false
-}
-
-func (it *Regex) UID() uint64 {
-	return it.uid
-}
-
-func (it *Regex) Close() error {
-	return it.subIt.Close()
-}
-
-func (it *Regex) Reset() {
-	it.subIt.Reset()
-	it.err = nil
-	it.result = nil
-}
-
-func (it *Regex) Clone() graph.Iterator {
-	return NewRegex(it.subIt.Clone(), it.re, it.qs)
-}
-
-func (it *Regex) Next(ctx context.Context) bool {
-	for it.subIt.Next(ctx) {
-		val := it.subIt.Result()
-		if it.testRegex(val) {
-			it.result = val
-			return true
-		}
-	}
-	it.err = it.subIt.Err()
-	return false
-}
-
-func (it *Regex) Err() error {
-	return it.err
-}
-
-func (it *Regex) Result() graph.Value {
-	return it.result
-}
-
-func (it *Regex) NextPath(ctx context.Context) bool {
-	for {
-		hasNext := it.subIt.NextPath(ctx)
-		if !hasNext {
-			it.err = it.subIt.Err()
-			return false
-		}
-		if it.testRegex(it.subIt.Result()) {
-			break
-		}
-	}
-	it.result = it.subIt.Result()
-	return true
-}
-
-func (it *Regex) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.subIt}
-}
-
-func (it *Regex) Contains(ctx context.Context, val graph.Value) bool {
-	if !it.testRegex(val) {
-		return false
-	}
-	ok := it.subIt.Contains(ctx, val)
-	if !ok {
-		it.err = it.subIt.Err()
-	}
-	return ok
-}
-
-// Registers the Regex iterator.
-func (it *Regex) Type() graph.Type {
-	return graph.Regex
-}
-
-func (it *Regex) String() string {
-	return fmt.Sprintf("Regexp(%v)", it.re.String())
-}
-
-// There's nothing to optimize, locally, for a Regex iterator.
-// Replace the underlying iterator if need be.
-func (it *Regex) Optimize() (graph.Iterator, bool) {
-	newSub, changed := it.subIt.Optimize()
-	if changed {
-		it.subIt.Close()
-		it.subIt = newSub
-	}
-	return it, false
-}
-
-// We're only as expensive as our subiterator.
-func (it *Regex) Stats() graph.IteratorStats {
-	return it.subIt.Stats()
-}
-
-// If we failed the check, then the subiterator should not contribute to the result
-// set. Otherwise, go ahead and tag it.
-func (it *Regex) TagResults(dst map[string]graph.Value) {
-	it.subIt.TagResults(dst)
-}
-
-func (it *Regex) Size() (int64, bool) {
-	sz, _ := it.subIt.Size()
-	return sz / 2, false
+func NewRegexWithRefs(sub graph.Iterator, re *regexp.Regexp, qs graph.QuadStore) graph.Iterator {
+	return newRegex(qs, sub, re, true)
 }

@@ -347,9 +347,10 @@ type Regexp struct {
 }
 
 func (f Regexp) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-	rit := iterator.NewRegex(it, f.Re, qs)
-	rit.AllowRefs(f.Refs)
-	return rit
+	if f.Refs {
+		return iterator.NewRegexWithRefs(it, f.Re, qs)
+	}
+	return iterator.NewRegex(it, f.Re, qs)
 }
 
 var _ ValueFilter = Wildcard{}
@@ -396,9 +397,7 @@ func (f Wildcard) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Ite
 	if err != nil {
 		return iterator.NewError(err)
 	}
-	rit := iterator.NewRegex(it, re, qs)
-	rit.AllowRefs(true)
-	return rit
+	return iterator.NewRegexWithRefs(it, re, qs)
 }
 
 // Count returns a count of objects in source as a single value. It always returns exactly one value.

@@ -27,7 +27,6 @@ package iterator
 // In MQL terms, this is the [{"age>=": 21}] concept.
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -60,77 +59,43 @@ const (
 	// Why no Equals? Because that's usually an AndIterator.
 )
 
-var _ graph.Iterator = &Comparison{}
-
-type Comparison struct {
-	uid    uint64
-	subIt  graph.Iterator
-	op     Operator
-	val    quad.Value
-	qs     graph.QuadStore
-	result graph.Value
-	err    error
-}
-
-func NewComparison(sub graph.Iterator, op Operator, val quad.Value, qs graph.QuadStore) *Comparison {
-	return &Comparison{
-		uid:   NextUID(),
-		subIt: sub,
-		op:    op,
-		val:   val,
-		qs:    qs,
-	}
-}
-
-func (it *Comparison) UID() uint64 {
-	return it.uid
-}
-
-func (it *Comparison) Value() quad.Value  { return it.val }
-func (it *Comparison) Operator() Operator { return it.op }
-
-// Here's the non-boilerplate part of the ValueComparison iterator. Given a value
-// and our operator, determine whether or not we meet the requirement.
-func (it *Comparison) doComparison(val graph.Value) bool {
-	qval := it.qs.NameOf(val)
-	switch cVal := it.val.(type) {
-	case quad.Int:
-		if cVal2, ok := qval.(quad.Int); ok {
-			return RunIntOp(cVal2, it.op, cVal)
+func NewComparison(sub graph.Iterator, op Operator, val quad.Value, qs graph.QuadStore) graph.Iterator {
+	return NewValueFilter(qs, sub, func(qval quad.Value) (bool, error) {
+		switch cVal := val.(type) {
+		case quad.Int:
+			if cVal2, ok := qval.(quad.Int); ok {
+				return RunIntOp(cVal2, op, cVal), nil
+			}
+			return false, nil
+		case quad.Float:
+			if cVal2, ok := qval.(quad.Float); ok {
+				return RunFloatOp(cVal2, op, cVal), nil
+			}
+			return false, nil
+		case quad.String:
+			if cVal2, ok := qval.(quad.String); ok {
+				return RunStrOp(string(cVal2), op, string(cVal)), nil
+			}
+			return false, nil
+		case quad.BNode:
+			if cVal2, ok := qval.(quad.BNode); ok {
+				return RunStrOp(string(cVal2), op, string(cVal)), nil
+			}
+			return false, nil
+		case quad.IRI:
+			if cVal2, ok := qval.(quad.IRI); ok {
+				return RunStrOp(string(cVal2), op, string(cVal)), nil
+			}
+			return false, nil
+		case quad.Time:
+			if cVal2, ok := qval.(quad.Time); ok {
+				return RunTimeOp(time.Time(cVal2), op, time.Time(cVal)), nil
+			}
+			return false, nil
+		default:
+			return RunStrOp(quad.StringOf(qval), op, quad.StringOf(val)), nil
 		}
-		return false
-	case quad.Float:
-		if cVal2, ok := qval.(quad.Float); ok {
-			return RunFloatOp(cVal2, it.op, cVal)
-		}
-		return false
-	case quad.String:
-		if cVal2, ok := qval.(quad.String); ok {
-			return RunStrOp(string(cVal2), it.op, string(cVal))
-		}
-		return false
-	case quad.BNode:
-		if cVal2, ok := qval.(quad.BNode); ok {
-			return RunStrOp(string(cVal2), it.op, string(cVal))
-		}
-		return false
-	case quad.IRI:
-		if cVal2, ok := qval.(quad.IRI); ok {
-			return RunStrOp(string(cVal2), it.op, string(cVal))
-		}
-		return false
-	case quad.Time:
-		if cVal2, ok := qval.(quad.Time); ok {
-			return RunTimeOp(time.Time(cVal2), it.op, time.Time(cVal))
-		}
-		return false
-	default:
-		return RunStrOp(quad.StringOf(qval), it.op, quad.StringOf(it.val))
-	}
-}
-
-func (it *Comparison) Close() error {
-	return it.subIt.Close()
+	})
 }
 
 func RunIntOp(a quad.Int, op Operator, b quad.Int) bool {
@@ -191,100 +156,4 @@ func RunTimeOp(a time.Time, op Operator, b time.Time) bool {
 	default:
 		panic("Unknown operator type")
 	}
-}
-
-func (it *Comparison) Reset() {
-	it.subIt.Reset()
-	it.err = nil
-	it.result = nil
-}
-
-func (it *Comparison) Clone() graph.Iterator {
-	return NewComparison(it.subIt.Clone(), it.op, it.val, it.qs)
-}
-
-func (it *Comparison) Next(ctx context.Context) bool {
-	for it.subIt.Next(ctx) {
-		val := it.subIt.Result()
-		if it.doComparison(val) {
-			it.result = val
-			return true
-		}
-	}
-	it.err = it.subIt.Err()
-	return false
-}
-
-func (it *Comparison) Err() error {
-	return it.err
-}
-
-func (it *Comparison) Result() graph.Value {
-	return it.result
-}
-
-func (it *Comparison) NextPath(ctx context.Context) bool {
-	for {
-		hasNext := it.subIt.NextPath(ctx)
-		if !hasNext {
-			it.err = it.subIt.Err()
-			return false
-		}
-		if it.doComparison(it.subIt.Result()) {
-			break
-		}
-	}
-	it.result = it.subIt.Result()
-	return true
-}
-
-func (it *Comparison) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.subIt}
-}
-
-func (it *Comparison) Contains(ctx context.Context, val graph.Value) bool {
-	if !it.doComparison(val) {
-		return false
-	}
-	ok := it.subIt.Contains(ctx, val)
-	if !ok {
-		it.err = it.subIt.Err()
-	}
-	return ok
-}
-
-// If we failed the check, then the subiterator should not contribute to the result
-// set. Otherwise, go ahead and tag it.
-func (it *Comparison) TagResults(dst map[string]graph.Value) {
-	it.subIt.TagResults(dst)
-}
-
-// Registers the value-comparison iterator.
-func (it *Comparison) Type() graph.Type { return graph.Comparison }
-
-func (it *Comparison) String() string {
-	return fmt.Sprintf("Comparison(%v, %v)", it.op, it.val)
-}
-
-// There's nothing to optimize, locally, for a value-comparison iterator.
-// Replace the underlying iterator if need be.
-// potentially replace it.
-func (it *Comparison) Optimize() (graph.Iterator, bool) {
-	newSub, changed := it.subIt.Optimize()
-	if changed {
-		it.subIt.Close()
-		it.subIt = newSub
-	}
-	return it, false
-}
-
-// We're only as expensive as our subiterator.
-// Again, optimized value comparison iterators should do better.
-func (it *Comparison) Stats() graph.IteratorStats {
-	return it.subIt.Stats()
-}
-
-func (it *Comparison) Size() (int64, bool) {
-	sz, _ := it.subIt.Size()
-	return sz / 2, false
 }
