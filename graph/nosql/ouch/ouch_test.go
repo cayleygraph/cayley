@@ -40,7 +40,6 @@ func TestIntStr(t *testing.T) {
 
 func TestOuchAll(t *testing.T) {
 	nosqltest.TestAll(t, makeOuch, &nosqltest.Config{
-		TimeInMs:   false,
-		FloatToInt: false,
+		IntToFloat: true,
 	})
 }

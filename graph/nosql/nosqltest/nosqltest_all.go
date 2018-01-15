@@ -20,6 +20,7 @@ type DatabaseFunc func(t testing.TB) (nosql.Database, graph.Options, func())
 
 type Config struct {
 	FloatToInt bool // database silently converts all float values to ints, if possible
+	IntToFloat bool // database always converts all int values to floats
 	TimeInMs   bool
 	Recreate   bool // tests should re-create database instance from scratch on each run
 }

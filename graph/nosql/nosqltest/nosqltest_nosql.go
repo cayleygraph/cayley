@@ -210,6 +210,17 @@ func fixDoc(conf *Config, d nosql.Document) {
 				d[k] = nosql.Int(f)
 			}
 		}
+	} else if conf.IntToFloat {
+		for k, v := range d {
+			if f, ok := v.(nosql.Int); ok {
+				d[k] = nosql.Float(f)
+			}
+		}
+	}
+	for _, v := range d {
+		if f, ok := v.(nosql.Document); ok {
+			fixDoc(conf, f)
+		}
 	}
 }
 
@@ -420,6 +431,7 @@ func testUpdate(t *testing.T, c tableConf) {
 	}
 	for i, k := range keys {
 		c.kt.SetKey(exp[i], k)
+		fixDoc(c.conf, exp[i])
 	}
 	c.expectAll(t, exp)
 
@@ -464,6 +476,7 @@ func testUpdate(t *testing.T, c tableConf) {
 	}
 	for i, k := range keys {
 		c.kt.SetKey(exp[i], k)
+		fixDoc(c.conf, exp[i])
 	}
 	c.expectAll(t, exp)
 }
@@ -480,6 +493,9 @@ func testDeleteQuery(t *testing.T, c tableConf) {
 			},
 		}
 	})
+	for _, d := range docs {
+		fixDoc(c.conf, d)
+	}
 
 	lt := 1
 	delLt := func(keys []nosql.Key, field ...string) {
