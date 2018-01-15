@@ -13,7 +13,6 @@ import (
 const (
 	int64Adjust  = 1 << 63
 	keySeparator = "|"
-	timeFormat   = time.RFC3339Nano // seconds resolution only without Nano
 )
 
 // itos serializes int64 into a sortable string 13 chars long.
@@ -39,21 +38,20 @@ func toOuchValue(v nosql.Value) interface{} {
 	switch v := v.(type) {
 	case nil:
 		return nil
-	case nosql.Strings: // special handling here, as type can't be inferred from json
-		return "K" + strings.Join(v, keySeparator)
+	case nosql.Strings:
+		return []string(v)
 	case nosql.String:
-		return "S" + string(v) // need leading "S"
-	case nosql.Int: // special handling here, as type can't be inferred from json
-		return "I" + itos(int64(v))
+		return string(v)
+	case nosql.Int:
+		return int64(v)
 	case nosql.Float:
 		return float64(v)
 	case nosql.Bool:
 		return bool(v)
-	case nosql.Time: // special handling here, as type can't be inferred from json
-		ret := "T" + time.Time(v).UTC().Format(timeFormat)
-		return ret
-	case nosql.Bytes: // special handling here, as type can't be inferred from json
-		return "B" + base64.StdEncoding.EncodeToString(v)
+	case nosql.Time:
+		return time.Time(v).UTC().Format(time.RFC3339Nano)
+	case nosql.Bytes:
+		return base64.StdEncoding.EncodeToString(v)
 	default:
 		panic(fmt.Errorf("unsupported type: %T", v))
 	}
@@ -78,10 +76,10 @@ func toOuchDoc(col, id, rev string, d nosql.Document) map[string]interface{} {
 		if len(k) == 0 {
 			continue
 		}
-		if subDoc, found := v.(nosql.Document); found {
-			for subK, subV := range subDoc {
-				subPath := k + keySeparator + subK
-				m[subPath] = toOuchValue(subV)
+		if sub, ok := v.(nosql.Document); ok {
+			for sk, sv := range sub {
+				path := k + keySeparator + sk
+				m[path] = toOuchValue(sv)
 			}
 		} else {
 			m[k] = toOuchValue(v)
@@ -91,52 +89,22 @@ func toOuchDoc(col, id, rev string, d nosql.Document) map[string]interface{} {
 	return m
 }
 
-func fromOuchValue(k string, v interface{}) nosql.Value {
+func fromOuchValue(v interface{}) nosql.Value {
 	switch v := v.(type) {
 	case nil:
 		return nil
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, o := range v {
+			s, ok := o.(string)
+			if !ok {
+				panic(fmt.Errorf("unexpected type in array: %T", o))
+			}
+			out = append(out, s)
+		}
+		return nosql.Strings(out)
 	case string:
-		if len(v) == 0 {
-			return nil
-		}
-		typ := v[0]
-		v = v[1:]
-		switch typ {
-		case 'S':
-			return nosql.String(v)
-
-		case 'K':
-			parts := strings.Split(v, keySeparator)
-			key := make(nosql.Key, 0, len(parts))
-			for _, part := range parts {
-				key = append(key, part)
-			}
-			return key.Value()
-
-		case 'B':
-			byts, err := base64.StdEncoding.DecodeString(v)
-			if err != nil {
-				// TODO consider how to handle this error properly
-				return nosql.Bytes(nil)
-			}
-			return nosql.Bytes(byts)
-
-		case 'T':
-			var time0 nosql.Time
-			tim, err := time.Parse(timeFormat, v)
-			if err != nil {
-				// TODO consider how to handle this error properly
-				fmt.Println("DEBUG Time parse", tim, err)
-				return time0
-			}
-			return nosql.Time(tim)
-
-		case 'I':
-			return nosql.Int(stoi(v))
-
-		default:
-			panic(fmt.Errorf("unsupported serialized type: %v%v", typ, v))
-		}
+		return nosql.String(v)
 	case float64:
 		return nosql.Float(v)
 	case bool:
@@ -165,9 +133,9 @@ func fromOuchDoc(d map[string]interface{}) nosql.Document {
 				if _, found := m[path[0]]; !found {
 					m[path[0]] = make(nosql.Document)
 				}
-				m[path[0]].(nosql.Document)[path[1]] = fromOuchValue(k, v)
+				m[path[0]].(nosql.Document)[path[1]] = fromOuchValue(v)
 			} else {
-				m[k] = fromOuchValue(k, v)
+				m[k] = fromOuchValue(v)
 			}
 		}
 	}

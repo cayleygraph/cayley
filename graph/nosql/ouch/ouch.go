@@ -39,7 +39,7 @@ func dialDB(create bool, addr string, opt graph.Options) (*DB, error) {
 	} else {
 		return nil, errors.New("unable to decypher database name from: " + addr)
 	}
-	dsn := strings.TrimSuffix(addr, "/"+dbName)
+	dsn := strings.TrimSuffix(addr, dbName)
 
 	client, err := kivik.New(ctx, driverName, dsn)
 	if err != nil {
@@ -130,7 +130,7 @@ const (
 )
 
 func compKey(key nosql.Key) string {
-	return "K" + strings.Join(key, "|")
+	return strings.Join(key, "|")
 }
 
 func (db *DB) Insert(ctx context.Context, col string, key nosql.Key, d nosql.Document) (nosql.Key, error) {
@@ -167,7 +167,7 @@ func (db *DB) insert(ctx context.Context, col string, key nosql.Key, d nosql.Doc
 		}
 	}
 
-	interfaceDoc := toOuchDoc(col, toOuchValue(key.Value()).(string), rev, d)
+	interfaceDoc := toOuchDoc(col, compKey(key), rev, d)
 
 	_, rev, err := db.db.CreateDoc(ctx, interfaceDoc)
 	if err != nil {
@@ -239,32 +239,18 @@ type Query struct {
 
 func (q *Query) WithFields(filters ...nosql.FieldFilter) nosql.Query {
 	for _, filter := range filters {
-		j := strings.Join(filter.Path, keySeparator)
-		q.pathFilters[j] = append(q.pathFilters[j], filter)
+		path := strings.Join(filter.Path, keySeparator)
+		q.pathFilters[path] = append(q.pathFilters[path], filter)
 	}
 	return q
 }
 
-func (q *Query) buildFilters() nosql.Query {
+func (q *Query) buildFilters() {
 	for jp, filterList := range q.pathFilters {
 		term := map[string]interface{}{}
 		for _, filter := range filterList {
-			test := ""
 			testValue := toOuchValue(filter.Value)
-			if stringValue, isString := testValue.(string); isString && len(stringValue) > 0 {
-				typeChar := stringValue[0]
-				typeCharNext := typeChar + 1
-				switch filter.Filter {
-				case nosql.Equal, nosql.NotEqual:
-				// nothing to do as not a relative test
-				case nosql.LT, nosql.LTE:
-					term["$gte"] = string(typeChar) // set the lower bound
-				case nosql.GT, nosql.GTE:
-					term["$lt"] = string(typeCharNext) // set the upper bound
-				default:
-					// panic in the switch below
-				}
-			}
+			test := ""
 			switch filter.Filter {
 			case nosql.Equal:
 				test = "$eq"
@@ -289,7 +275,7 @@ func (q *Query) buildFilters() nosql.Query {
 			case nosql.LTE:
 				test = "$lte"
 			case nosql.Regexp:
-				test = "$regex" // TODO: convert pattern
+				test = "$regex"
 			default:
 				panic(fmt.Errorf("unknown nosqlFilter %v", filter.Filter))
 			}
@@ -318,8 +304,6 @@ func (q *Query) buildFilters() nosql.Query {
 			}
 		}
 	}
-
-	return q
 }
 
 func (q *Query) Limit(n int) nosql.Query {
@@ -368,11 +352,12 @@ func (q *Query) Iterate() nosql.DocIterator {
 	// 	fmt.Println(debug)
 	// }
 
-	return &Iterator{db: q.db, qu: q.qu}
+	return &Iterator{db: q.db, col: q.col, qu: q.qu}
 }
 
 type Iterator struct {
 	db      *DB
+	col     string
 	qu      ouchQuery
 	err     error
 	rows    *kivik.Rows
@@ -437,14 +422,11 @@ func (it *Iterator) Key() nosql.Key {
 		it.err = errors.New("call to Iterator.Key before Iterator.Next")
 		return nil
 	}
-
-	id, haveID := it.doc[idField].(string)
-	if !haveID {
-		it.err = fmt.Errorf("Iterator.Key ID empty")
-		return nil
+	var k nosql.Key
+	for _, f := range it.db.colls[it.col].primary.Fields {
+		k = append(k, string(fromOuchValue(it.doc[f]).(nosql.String)))
 	}
-	ret := nosql.Key([]string(fromOuchValue("?", id).(nosql.Strings)))
-	return ret
+	return k
 }
 
 func (it *Iterator) Doc() nosql.Document {
@@ -469,7 +451,7 @@ type Delete struct {
 	db   *DB
 	col  string
 	q    *Query
-	keys []interface{}
+	keys []string
 }
 
 func (d *Delete) WithFields(filters ...nosql.FieldFilter) nosql.Delete {
@@ -478,8 +460,7 @@ func (d *Delete) WithFields(filters ...nosql.FieldFilter) nosql.Delete {
 }
 func (d *Delete) Keys(keys ...nosql.Key) nosql.Delete {
 	for _, k := range keys {
-		id := toOuchValue(k.Value()).(string)
-		d.keys = append(d.keys, id)
+		d.keys = append(d.keys, compKey(k))
 	}
 	return d
 }
@@ -494,7 +475,7 @@ func (d *Delete) Do(ctx context.Context) error {
 		if len(d.q.pathFilters) == 0 {
 			// this special case is optimised not to use the query/iterate route at all,
 			// but rather to fetch the _id and _rev directly from the given key.
-			_, id, rev, err := d.db.findByOuchKey(ctx, d.keys[0].(string))
+			_, id, rev, err := d.db.findByOuchKey(ctx, d.keys[0])
 			if err != nil {
 				return err
 			}
@@ -575,7 +556,7 @@ func (u *Update) Do(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		id = toOuchValue(idKey.Value()).(string)
+		id = compKey(idKey)
 	} else {
 		if err != nil {
 			return err
