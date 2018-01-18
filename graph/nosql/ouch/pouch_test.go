@@ -16,12 +16,12 @@ import (
 	"github.com/go-kivik/kivik"
 )
 
-func makeCouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makeCouchDB(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	t.SkipNow()
-	return nil, nil, nil
+	return nil, nil, nil, nil
 }
 
-func makePouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makePouchDB(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	if runtime.GOARCH != "js" {
 		panic("not js")
 	}
@@ -39,7 +39,7 @@ func makePouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
 		t.Fatal(err)
 	}
 
-	return qs, nil, func() {
+	return qs, &nosqlOptions, nil, func() {
 		qs.Close()
 		ctx := context.TODO()
 		if c, err := kivik.New(ctx, driverName, dir); err == nil {

@@ -11,7 +11,7 @@ import (
 	"github.com/cayleygraph/cayley/internal/dock"
 )
 
-func makeMongo(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makeMongo(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	var conf dock.Config
 
 	conf.Image = "mongo:3"
@@ -26,7 +26,7 @@ func makeMongo(t testing.TB) (nosql.Database, graph.Options, func()) {
 		closer()
 		t.Fatal(err)
 	}
-	return qs, nil, func() {
+	return qs, nil, nil, func() {
 		qs.Close()
 		closer()
 	}

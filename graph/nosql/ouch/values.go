@@ -3,7 +3,6 @@ package ouch
 import (
 	"encoding/base64"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -11,27 +10,8 @@ import (
 )
 
 const (
-	int64Adjust  = 1 << 63
 	keySeparator = "|"
 )
-
-// itos serializes int64 into a sortable string 13 chars long.
-// NOTE: in JS there are no native 64bit integers.
-func itos(i int64) string {
-	s := strconv.FormatUint(uint64(i)+int64Adjust, 32)
-	const z = "0000000000000"
-	return z[len(s):] + s
-}
-
-// stoi de-serializes int64 from a sortable string 13 chars long.
-func stoi(s string) int64 {
-	ret, err := strconv.ParseUint(s, 32, 64)
-	if err != nil {
-		//TODO handle error?
-		return 0
-	}
-	return int64(ret - int64Adjust)
-}
 
 // toOuchValue serializes nosql.Value -> native json values.
 func toOuchValue(v nosql.Value) interface{} {

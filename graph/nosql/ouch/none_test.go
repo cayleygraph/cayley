@@ -13,12 +13,12 @@ func selectImpl(t testing.TB) {
 	t.Skipf("enable docker build tag or test via gopherjs")
 }
 
-func makeCouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makeCouchDB(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	selectImpl(t)
-	return nil, nil, nil
+	return nil, nil, nil, nil
 }
 
-func makePouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makePouchDB(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	selectImpl(t)
-	return nil, nil, nil
+	return nil, nil, nil, nil
 }
