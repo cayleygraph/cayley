@@ -18,9 +18,8 @@ func makeMongo(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, fun
 	conf.OpenStdin = true
 	conf.Tty = true
 
-	addr, closer := dock.Run(t, conf)
+	addr, closer := dock.RunAndWait(t, conf, "27017", nil)
 
-	addr = addr + ":27017"
 	qs, err := dialDB(addr, nil)
 	if err != nil {
 		closer()

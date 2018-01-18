@@ -21,8 +21,8 @@ func makeMysqlVersion(image string) sqltest.DatabaseFunc {
 			`MYSQL_DATABASE=testdb`,
 		}
 
-		addr, closer := dock.RunAndWait(t, conf, dock.WaitPort("3306"))
-		addr = `root:root@tcp(` + addr + `:3306)/testdb`
+		addr, closer := dock.RunAndWait(t, conf, "3306", nil)
+		addr = `root:root@tcp(` + addr + `)/testdb`
 		return addr, nil, func() {
 			closer()
 		}

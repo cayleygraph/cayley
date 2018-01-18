@@ -18,8 +18,8 @@ func makeElastic(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, f
 	conf.OpenStdin = true
 	conf.Tty = true
 
-	addr, closer := dock.RunAndWait(t, conf, dock.WaitPort("9200"))
-	addr = "http://" + addr + ":9200"
+	addr, closer := dock.RunAndWait(t, conf, "9200", nil)
+	addr = "http://" + addr
 
 	db, err := dialDB(addr, nil)
 	if err != nil {

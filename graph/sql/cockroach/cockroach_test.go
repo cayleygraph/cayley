@@ -18,15 +18,15 @@ func makeCockroach(t testing.TB) (string, graph.Options, func()) {
 	conf.Image = "cockroachdb/cockroach:v1.1.2"
 	conf.Cmd = []string{"start", "--insecure"}
 
-	addr, closer := dock.RunAndWait(t, conf, func(addr string) bool {
-		conn, err := pq.Open(`postgresql://root@` + addr + `:26257?sslmode=disable`)
+	addr, closer := dock.RunAndWait(t, conf, "26257", func(addr string) bool {
+		conn, err := pq.Open(`postgresql://root@` + addr + `?sslmode=disable`)
 		if err != nil {
 			return false
 		}
 		conn.Close()
 		return true
 	})
-	addr = `postgresql://root@` + addr + `:26257`
+	addr = `postgresql://root@` + addr
 	db, err := sql.Open(driverName, addr+`?sslmode=disable`)
 	if err != nil {
 		closer()
