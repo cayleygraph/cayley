@@ -37,6 +37,21 @@ import (
 
 type Operator int
 
+func (op Operator) String() string {
+	switch op {
+	case CompareLT:
+		return "<"
+	case CompareLTE:
+		return "<="
+	case CompareGT:
+		return ">"
+	case CompareGTE:
+		return ">="
+	default:
+		return fmt.Sprintf("op(%d)", int(op))
+	}
+}
+
 const (
 	CompareLT Operator = iota
 	CompareLTE
