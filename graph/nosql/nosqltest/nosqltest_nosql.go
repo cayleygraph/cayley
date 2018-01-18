@@ -161,7 +161,7 @@ func TestNoSQL(t *testing.T, gen DatabaseFunc, conf *Config) {
 		closer func()
 	)
 	if !conf.Recreate {
-		db, _, closer = gen(t)
+		db, _, _, closer = gen(t)
 		defer closer()
 	}
 
@@ -173,7 +173,7 @@ func TestNoSQL(t *testing.T, gen DatabaseFunc, conf *Config) {
 					db := db
 					if conf.Recreate {
 						var closer func()
-						db, _, closer = gen(t)
+						db, _, _, closer = gen(t)
 						defer closer()
 					}
 					c.t(t, tableConf{

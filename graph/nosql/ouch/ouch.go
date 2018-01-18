@@ -16,11 +16,16 @@ import (
 
 const Type = driverName
 
+var nosqlOptions = nosql.Options{
+	Number32: true,
+}
+
 func init() {
 	nosql.Register(Type, nosql.Registration{
 		NewFunc:      Open,
 		InitFunc:     Create,
 		IsPersistent: true,
+		Options:      nosqlOptions,
 	})
 }
 

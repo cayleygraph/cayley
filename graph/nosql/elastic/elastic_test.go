@@ -11,7 +11,7 @@ import (
 	"github.com/cayleygraph/cayley/internal/dock"
 )
 
-func makeElastic(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makeElastic(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	var conf dock.Config
 
 	conf.Image = "elasticsearch"
@@ -26,7 +26,7 @@ func makeElastic(t testing.TB) (nosql.Database, graph.Options, func()) {
 		closer()
 		t.Fatal(err)
 	}
-	return db, nil, func() {
+	return db, nil, nil, func() {
 		db.Close()
 		closer()
 	}

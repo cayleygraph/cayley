@@ -2,6 +2,8 @@ package nosql
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -68,7 +70,26 @@ func (s Quads) Optimize(r shape.Optimizer) (shape.Shape, bool) {
 	return s, false
 }
 
-func toFieldFilter(c shape.Comparison) ([]FieldFilter, bool) {
+const int64Adjust = 1 << 63
+
+// itos serializes int64 into a sortable string 13 chars long.
+func itos(i int64) string {
+	s := strconv.FormatUint(uint64(i)+int64Adjust, 32)
+	const z = "0000000000000"
+	return z[len(s):] + s
+}
+
+// stoi de-serializes int64 from a sortable string 13 chars long.
+func stoi(s string) int64 {
+	ret, err := strconv.ParseUint(s, 32, 64)
+	if err != nil {
+		//TODO handle error?
+		return 0
+	}
+	return int64(ret - int64Adjust)
+}
+
+func (opt Options) toFieldFilter(c shape.Comparison) ([]FieldFilter, bool) {
 	var op FilterOp
 	switch c.Op {
 	case iterator.CompareGT:
@@ -105,8 +126,15 @@ func toFieldFilter(c shape.Comparison) ([]FieldFilter, bool) {
 			{Path: fieldPath(fldBNode), Filter: Equal, Value: Bool(true)},
 		}
 	case quad.Int:
-		filters = []FieldFilter{
-			{Path: fieldPath(fldValInt), Filter: op, Value: Int(v)},
+		if opt.Number32 && (v < math.MinInt32 || v > math.MaxInt32) {
+			// switch to range on string values
+			filters = []FieldFilter{
+				{Path: fieldPath(fldValStrInt), Filter: op, Value: String(itos(int64(v)))},
+			}
+		} else {
+			filters = []FieldFilter{
+				{Path: fieldPath(fldValInt), Filter: op, Value: Int(v)},
+			}
 		}
 	case quad.Float:
 		filters = []FieldFilter{
@@ -136,7 +164,7 @@ func (qs *QuadStore) optimizeFilter(s shape.Filter) (shape.Shape, bool) {
 	for _, f := range s.Filters {
 		switch f := f.(type) {
 		case shape.Comparison:
-			if fld, ok := toFieldFilter(f); ok {
+			if fld, ok := qs.opt.toFieldFilter(f); ok {
 				filters = append(filters, fld...)
 				continue
 			}

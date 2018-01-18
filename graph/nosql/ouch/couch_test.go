@@ -13,7 +13,7 @@ import (
 	"github.com/go-kivik/kivik"
 )
 
-func makeCouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makeCouchDB(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	var conf dock.Config
 
 	conf.Image = "couchdb:2"
@@ -28,7 +28,7 @@ func makeCouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
 		closer()
 		t.Fatal(err)
 	}
-	return qs, nil, func() {
+	return qs, &nosqlOptions, nil, func() {
 		qs.Close()
 		closer()
 	}
@@ -36,7 +36,7 @@ func makeCouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
 
 var dbId int // PouchDB requires a different DB name each time, or it uses cached data!
 
-func makePouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makePouchDB(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	ctx := context.TODO()
 	// TODO add remote db access tests
 	name := fmt.Sprintf("pouchdb%d.test", dbId) // see dbId comment
@@ -56,7 +56,7 @@ func makePouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
 		t.Fatal(err)
 	}
 
-	return qs, nil, func() {
+	return qs, &nosqlOptions, nil, func() {
 		qs.Close()
 	}
 }
