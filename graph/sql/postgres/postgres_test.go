@@ -19,7 +19,7 @@ func makePostgres(t testing.TB) (string, graph.Options, func()) {
 	conf.Tty = true
 	conf.Env = []string{`POSTGRES_PASSWORD=postgres`}
 
-	addr, closer := dock.RunAndWait(t, conf, func(addr string) bool {
+	addr, closer := dock.RunAndWait(t, conf, "5432", func(addr string) bool {
 		conn, err := pq.Open(`postgres://postgres:postgres@` + addr + `/postgres?sslmode=disable`)
 		if err != nil {
 			return false
