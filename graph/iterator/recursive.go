@@ -133,20 +133,15 @@ func (it *Recursive) Next(ctx context.Context) bool {
 		}
 	}
 
-	if it.maxDepth > 0 && it.depth >= it.maxDepth {
-		return graph.NextLogOut(it, false)
-	}
 	for {
-		ok := it.nextIt.Next(ctx)
-		if !ok {
-			if len(it.depthCache) == 0 {
+		if !it.nextIt.Next(ctx) {
+			if it.maxDepth > 0 && it.depth >= it.maxDepth {
+				return graph.NextLogOut(it, false)
+			} else if len(it.depthCache) == 0 {
 				return graph.NextLogOut(it, false)
 			}
 			it.depth++
-			it.baseIt = NewFixed()
-			for _, x := range it.depthCache {
-				it.baseIt.Add(x)
-			}
+			it.baseIt = NewFixed(it.depthCache...)
 			it.baseIt.Tagger().Add("__base_recursive")
 			it.depthCache = nil
 			it.nextIt = it.morphism(it.qs, it.baseIt)
@@ -156,20 +151,18 @@ func (it *Recursive) Next(ctx context.Context) bool {
 		results := make(map[string]graph.Value)
 		it.nextIt.TagResults(results)
 		key := graph.ToKey(val)
-		if _, ok := it.seen[key]; ok {
-			continue
+		if _, seen := it.seen[key]; !seen {
+			it.seen[key] = seenAt{
+				val:   results["__base_recursive"],
+				depth: it.depth,
+			}
+			it.result.depth = it.depth
+			it.result.val = val
+			it.containsValue = it.getBaseValue(val)
+			it.depthCache = append(it.depthCache, val)
+			return graph.NextLogOut(it, true)
 		}
-		it.seen[key] = seenAt{
-			val:   results["__base_recursive"],
-			depth: it.depth,
-		}
-		it.result.depth = it.depth
-		it.result.val = val
-		it.containsValue = it.getBaseValue(val)
-		it.depthCache = append(it.depthCache, val)
-		break
 	}
-	return graph.NextLogOut(it, true)
 }
 
 func (it *Recursive) Err() error {

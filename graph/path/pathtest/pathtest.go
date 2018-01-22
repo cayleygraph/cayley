@@ -412,6 +412,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vBob, vDani, vFred, vGreg},
 		},
 		{
+			message: "follow recursive (limit depth)",
+			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, 1, nil),
+			expect:  []quad.Value{vBob, vDani},
+		},
+		{
 			message: "find non-existent",
 			path:    StartPath(qs, quad.IRI("<not-existing>")),
 			expect:  nil,
