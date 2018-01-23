@@ -231,7 +231,6 @@ func openForQueries(cmd *cobra.Command) (*graph.Handle, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	defer h.Close()
 
 	if load2, _ := cmd.Flags().GetString(flagLoad); load2 != "" {
 		if load != "" {
