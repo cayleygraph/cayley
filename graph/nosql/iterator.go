@@ -210,6 +210,9 @@ func (it *Iterator) Size() (int64, bool) {
 	if it.limit > 0 && it.size > it.limit {
 		it.size = it.limit
 	}
+	if it.size < 0 {
+		return it.qs.Size(), false
+	}
 	return it.size, true
 }
 
