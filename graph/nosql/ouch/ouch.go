@@ -212,12 +212,11 @@ func (db *DB) Query(col string) nosql.Query {
 		col:         col,
 		pathFilters: make(map[string][]nosql.FieldFilter),
 		qu: map[string]interface{}{
-			"selector": map[string]interface{}{},
-			"limit":    1000000, // million row limit, default is 25 TODO is 1M enough?
+			"selector": make(map[string]interface{}),
 		},
 	}
 	if col != "" {
-		qry.qu["selector"].(map[string]interface{})[collectionField] = col
+		qry.qu.putSelector(collectionField, col)
 	}
 	return qry
 }
@@ -229,6 +228,45 @@ func (db *DB) Delete(col string) nosql.Delete {
 }
 
 type ouchQuery map[string]interface{}
+
+func (q ouchQuery) clone() ouchQuery {
+	if q == nil {
+		return nil
+	}
+	out := make(ouchQuery, len(q))
+	for k, v := range q {
+		if m, ok := v.(map[string]interface{}); ok {
+			v = map[string]interface{}(ouchQuery(m).clone())
+		} else if m, ok := v.(ouchQuery); ok {
+			v = m.clone()
+		}
+		out[k] = v
+	}
+	return out
+}
+
+func (q ouchQuery) putSelector(field string, v interface{}) {
+	sel := q["selector"].(map[string]interface{})
+	fs, ok := sel[field]
+	if !ok {
+		sel[field] = v
+		return
+	}
+	fsel, ok := fs.(map[string]interface{})
+	if !ok {
+		// exact match in first filter - ignore second one
+		return
+	}
+	fsel2, ok := v.(map[string]interface{})
+	if !ok {
+		// exact match - override filter
+		sel[field] = v
+		return
+	}
+	for k, v := range fsel2 {
+		fsel[k] = v
+	}
+}
 
 type Query struct {
 	db          *DB
@@ -281,7 +319,7 @@ func (q *Query) buildFilters() {
 			}
 			term[test] = testValue
 		}
-		q.qu["selector"].(map[string]interface{})[jp] = term
+		q.qu.putSelector(jp, term)
 	}
 
 	if len(q.pathFilters) == 0 {
@@ -314,10 +352,10 @@ func (q *Query) Limit(n int) nosql.Query {
 func (q *Query) Count(ctx context.Context) (int64, error) {
 	// TODO it should be possible to use map/reduce logic, rather than a mango query, to speed this up, at least for some cases
 
-	// don't pull back any fields in the query, to reduce bandwidth
-	q.qu["fields"] = []interface{}{}
-
 	it := q.Iterate().(*Iterator)
+	it.qu = it.qu.clone()
+	// don't pull back any fields in the query, to reduce bandwidth
+	it.qu["fields"] = []interface{}{}
 	if !it.open(ctx) {
 		return 0, it.Err()
 	}
@@ -356,46 +394,55 @@ func (q *Query) Iterate() nosql.DocIterator {
 }
 
 type Iterator struct {
-	db      *DB
-	col     string
-	qu      ouchQuery
-	err     error
-	rows    *kivik.Rows
-	doc     map[string]interface{}
-	hadNext bool
-	closed  bool
+	db     *DB
+	col    string
+	qu     ouchQuery
+	err    error
+	rows   *kivik.Rows
+	doc    map[string]interface{}
+	prevID interface{}
+	closed bool
 }
 
 func (it *Iterator) open(ctx context.Context) bool {
 	it.rows, it.err = it.db.db.Find(ctx, it.qu)
+	return it.err == nil
+}
+func (it *Iterator) next(ctx context.Context) bool {
+	it.doc = nil
+	haveNext := it.rows.Next()
+	it.err = it.rows.Err()
 	if it.err != nil {
 		return false
+	} else if !haveNext {
+		return false
 	}
-	return true
+	it.scanDoc()
+	return it.err == nil
 }
 func (it *Iterator) Next(ctx context.Context) bool {
-	it.hadNext = true
 	if it.err != nil || it.closed {
 		return false
 	}
 	if it.rows == nil && !it.open(ctx) {
 		return false
 	}
-	it.doc = nil
-	haveNext := it.rows.Next()
-	it.err = it.rows.Err()
-	if it.err != nil {
-		return false
+	next := it.next(ctx)
+	if next {
+		return true
 	}
-	if haveNext {
-		it.scanDoc()
-		if it.err != nil {
-			return false
+	if id := it.prevID; id != nil {
+		it.qu = it.qu.clone()
+		it.qu.putSelector(idField, map[string]interface{}{"$gt": id})
+		if it.open(ctx) {
+			next = it.next(ctx)
 		}
-	} else {
-		it.closed = true // auto-closed at end of iteration by API
 	}
-	return haveNext
+	if next {
+		return true
+	}
+	it.closed = true // auto-closed at end of iteration by API
+	return false
 }
 
 func (it *Iterator) Err() error {
@@ -417,9 +464,7 @@ func (it *Iterator) Close() error {
 func (it *Iterator) Key() nosql.Key {
 	if it.err != nil || it.closed {
 		return nil
-	}
-	if !it.hadNext {
-		it.err = errors.New("call to Iterator.Key before Iterator.Next")
+	} else if len(it.doc) == 0 {
 		return nil
 	}
 	var k nosql.Key
@@ -433,10 +478,6 @@ func (it *Iterator) Doc() nosql.Document {
 	if it.err != nil || it.closed {
 		return nil
 	}
-	if !it.hadNext {
-		it.err = errors.New("Iterator.Doc called before Iterator.Next")
-		return nil
-	}
 	return fromOuchDoc(it.doc)
 }
 
@@ -444,6 +485,7 @@ func (it *Iterator) scanDoc() {
 	if it.doc == nil && it.err == nil && !it.closed {
 		it.doc = map[string]interface{}{}
 		it.err = it.rows.ScanDoc(&it.doc)
+		it.prevID = it.doc[idField]
 	}
 }
 
@@ -481,11 +523,11 @@ func (d *Delete) Do(ctx context.Context) error {
 			}
 			deleteSet[id] = rev
 		} else {
-			d.q.qu["selector"].(map[string]interface{})[idField] = map[string]interface{}{"$eq": d.keys[0]}
+			d.q.qu.putSelector(idField, map[string]interface{}{"$eq": d.keys[0]})
 		}
 
 	default:
-		d.q.qu["selector"].(map[string]interface{})[idField] = map[string]interface{}{"$in": d.keys}
+		d.q.qu.putSelector(idField, map[string]interface{}{"$in": d.keys})
 	}
 
 	// NOTE even when using idField in a Mango query, it still has to base its query on an index

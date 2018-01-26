@@ -23,6 +23,7 @@ type Config struct {
 	IntToFloat bool // database always converts all int values to floats
 	TimeInMs   bool
 	Recreate   bool // tests should re-create database instance from scratch on each run
+	PageSize   int  // result page size for pagination (large iterator) tests
 }
 
 func (c Config) quadStore() *graphtest.Config {

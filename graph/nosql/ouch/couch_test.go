@@ -22,9 +22,7 @@ func makeCouchDB(t testing.TB) (nosql.Database, graph.Options, func()) {
 		"COUCHDB_PASSWORD=cayley",
 	}
 	const port = "5984"
-	addr, closer := dock.RunAndWait(t, conf, dock.WaitPort(port))
-
-	addr = addr + ":" + port
+	addr, closer := dock.RunAndWait(t, conf, port, nil)
 	qs, err := dialDB(true, "http://cayley:cayley@"+addr+"/cayley", nil)
 	if err != nil {
 		closer()
