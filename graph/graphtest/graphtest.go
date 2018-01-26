@@ -24,6 +24,7 @@ type Config struct {
 	TimeInMs     bool
 	TimeInMcs    bool
 	TimeRound    bool
+	PageSize     int // result page size for pagination (large iterator) tests
 
 	OptimizesComparison bool
 
@@ -63,6 +64,9 @@ func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
 	}
 	t.Run("writers", func(t *testing.T) {
 		TestWriters(t, gen, conf)
+	})
+	t.Run("1k", func(t *testing.T) {
+		Test1K(t, gen, conf)
 	})
 	t.Run("paths", func(t *testing.T) {
 		pathtest.RunTestMorphisms(t, gen)
@@ -279,6 +283,32 @@ func TestWriters(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
 			})
 		}
 	}
+}
+
+func Test1K(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
+	qs, _, closer := gen(t)
+	defer closer()
+
+	pg := c.PageSize
+	if pg == 0 {
+		pg = 100
+	}
+	n := pg*3 + 1
+
+	w, err := writer.NewSingle(qs, graph.IgnoreOpts{})
+	require.NoError(t, err)
+
+	qw := graph.NewWriter(w)
+	exp := make([]quad.Quad, 0, n)
+	for i := 0; i < n; i++ {
+		q := quad.Make(i, i, i, nil)
+		exp = append(exp, q)
+		qw.WriteQuad(q)
+	}
+	err = qw.Flush()
+	require.NoError(t, err)
+
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), exp, true)
 }
 
 type ValueSizer interface {
