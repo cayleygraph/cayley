@@ -176,6 +176,12 @@ imports:
   version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
 - name: gopkg.in/olivere/elastic.v5
   version: 79ff368708b3a2a9da641dc831d95fd0782bf4ef
+- name: github.com/go-kivik/couchdb
+  version: 74d231fe43245e77840213724894264f0f61ffd3
+- name: github.com/go-kivik/kivik
+  version: 2a1f6b9dd407886bc59c0c28faed28fbce3b0ece
+- name: github.com/imdario/mergo
+  version: 0d4b488675fdec1dde48751b05ab530cf0b630e1
 - name: github.com/pkg/errors
   version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
 devImports: []

@@ -48,3 +48,5 @@ import:
 - package: github.com/dennwc/graphql
 - package: github.com/tylertreat/BoomFilters
 - package: gopkg.in/olivere/elastic.v5
+- package: github.com/go-kivik/kivik
+- package: github.com/go-kivik/couchdb
