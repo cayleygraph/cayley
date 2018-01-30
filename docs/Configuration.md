@@ -37,7 +37,9 @@ All command line flags take precedence over the configuration file.
   
   * `mongo`: Stores the graph data and indices in a [MongoDB](https://www.mongodb.com/) instance.
   * `elastic`: Stores the graph data and indices in a [ElasticSearch](https://www.elastic.co/products/elasticsearch) instance.
-  
+  * `couch`: Stores the graph data and indices in a [CouchDB](http://couchdb.apache.org/) instance.
+  * `pouch`: Stores the graph data and indices in a [PouchDB](https://pouchdb.com/). Requires building with [GopherJS](https://github.com/gopherjs/gopherjs).
+
   **SQL backends**
   
   * `postgres`: Stores the graph data and indices in a [PostgreSQL](https://www.postgresql.org) instance.
@@ -56,7 +58,8 @@ All command line flags take precedence over the configuration file.
   * `leveldb`: Directory to hold the LevelDB database files.
   * `bolt`: Path to the persistent single Bolt database file.
   * `mongo`: "hostname:port" of the desired MongoDB server. More options can be provided in [mgo](https://godoc.org/gopkg.in/mgo.v2#Dial) address format.
-  * `elastic`: "http://host:port" of the desired ElasticSearch server.
+  * `elastic`: `http://host:port` of the desired ElasticSearch server.
+  * `couch`: `http://user:pass@host:port/dbname` of the desired CouchDB server.
   * `postgres`,`cockroach`: `postgres://[username:password@]host[:port]/database-name?sslmode=disable` of the PostgreSQL database and credentials. Sslmode is optional. More option available on [pq](https://godoc.org/github.com/lib/pq) page.
   * `mysql`: `[username:password@]tcp(host[:3306])/database-name` of the MqSQL database and credentials. More option available on [driver](https://github.com/go-sql-driver/mysql#dsn-data-source-name) page.
 
