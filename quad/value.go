@@ -394,7 +394,7 @@ type Int int64
 func (s Int) String() string {
 	return s.TypedString().String()
 }
-func (s Int) Native() interface{} { return int(s) }
+func (s Int) Native() interface{} { return int64(s) }
 func (s Int) TypedString() TypedString {
 	return TypedString{
 		Value: String(strconv.Itoa(int(s))),
