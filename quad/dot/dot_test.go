@@ -35,11 +35,18 @@ var testData = []struct {
 				},
 				Label: nil,
 			},
+			{
+				Subject:   quad.BNode("subject1"),
+				Predicate: quad.IRI("text"),
+				Object:    quad.String(`some "text"`),
+				Label:     nil,
+			},
 		},
 		`digraph cayley_graph {
 	"_:subject1" -> "\"Tomas de Torquemada\"" [ label = "</film/performance/character>" ];
 	"_:subject1" -> "\"object1\"" [ label = "<http://an.example/predicate1>" ];
 	"<http://example.org/bob#me>" -> "\"1990-07-04\"^^<http://www.w3.org/2001/XMLSchema#date>" [ label = "<http://schema.org/birthDate>" ];
+	"_:subject1" -> "\"some \\\"text\\\"\"" [ label = "<text>" ];
 }
 `,
 	},

@@ -12,7 +12,7 @@ import (
 func init() {
 	quad.RegisterFormat(quad.Format{
 		Name:   "graphviz",
-		Ext:    []string{".gv"},
+		Ext:    []string{".gv", ".dot"},
 		Writer: func(w io.Writer) quad.WriteCloser { return NewWriter(w) },
 	})
 }
@@ -28,6 +28,7 @@ type Writer struct {
 }
 
 var escaper = strings.NewReplacer(
+	`\`, `\\`,
 	`"`, `\"`,
 )
 
