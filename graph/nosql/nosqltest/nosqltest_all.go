@@ -16,12 +16,14 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-type DatabaseFunc func(t testing.TB) (nosql.Database, graph.Options, func())
+type DatabaseFunc func(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func())
 
 type Config struct {
 	FloatToInt bool // database silently converts all float values to ints, if possible
+	IntToFloat bool // database always converts all int values to floats
 	TimeInMs   bool
 	Recreate   bool // tests should re-create database instance from scratch on each run
+	PageSize   int  // result page size for pagination (large iterator) tests
 }
 
 func (c Config) quadStore() *graphtest.Config {
@@ -35,14 +37,14 @@ func (c Config) quadStore() *graphtest.Config {
 }
 
 func NewQuadStore(t testing.TB, gen DatabaseFunc) (graph.QuadStore, graph.Options, func()) {
-	db, opt, closer := gen(t)
+	db, nopt, opt, closer := gen(t)
 	err := nosql.Init(db, opt)
 	if err != nil {
 		db.Close()
 		closer()
 		require.Fail(t, "init failed", "%v", err)
 	}
-	kdb, err := nosql.New(db, opt)
+	kdb, err := nosql.NewQuadStore(db, nopt, opt)
 	if err != nil {
 		db.Close()
 		closer()

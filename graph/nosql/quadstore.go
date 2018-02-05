@@ -34,6 +34,11 @@ type Registration struct {
 	NewFunc      NewFunc
 	InitFunc     InitFunc
 	IsPersistent bool
+	Options
+}
+
+type Options struct {
+	Number32 bool // store is limited to 32 bit precision
 }
 
 type InitFunc func(string, graph.Options) (Database, error)
@@ -66,7 +71,12 @@ func Register(name string, r Registration) {
 					return nil, err
 				}
 			}
-			return New(db, opt)
+			nopt := r.Options
+			qs, err := NewQuadStore(db, &nopt, opt)
+			if err != nil {
+				return nil, err
+			}
+			return qs, nil
 		},
 		IsPersistent: r.IsPersistent,
 	})
@@ -76,7 +86,7 @@ func Init(db Database, opt graph.Options) error {
 	return ensureIndexes(context.TODO(), db)
 }
 
-func New(db Database, opt graph.Options) (graph.QuadStore, error) {
+func NewQuadStore(db Database, nopt *Options, opt graph.Options) (*QuadStore, error) {
 	if err := ensureIndexes(context.TODO(), db); err != nil {
 		return nil, err
 	}
@@ -84,6 +94,9 @@ func New(db Database, opt graph.Options) (graph.QuadStore, error) {
 		db:    db,
 		ids:   lru.New(1 << 16),
 		sizes: lru.New(1 << 16),
+	}
+	if nopt != nil {
+		qs.opt = *nopt
 	}
 	return qs, nil
 }
@@ -132,22 +145,24 @@ const (
 	fldValue = "value"
 	fldSize  = "refs"
 
-	fldValData  = "str"
-	fldIRI      = "iri"
-	fldBNode    = "bnode"
-	fldType     = "type"
-	fldLang     = "lang"
-	fldValInt   = "int"
-	fldValFloat = "float"
-	fldValBool  = "bool"
-	fldValTime  = "ts"
-	fldValPb    = "pb"
+	fldValData   = "str"
+	fldIRI       = "iri"
+	fldBNode     = "bnode"
+	fldType      = "type"
+	fldLang      = "lang"
+	fldValInt    = "int"
+	fldValStrInt = "int_str"
+	fldValFloat  = "float"
+	fldValBool   = "bool"
+	fldValTime   = "ts"
+	fldValPb     = "pb"
 )
 
 type QuadStore struct {
 	db    Database
 	ids   *lru.Cache
 	sizes *lru.Cache
+	opt   Options
 }
 
 func ensureIndexes(ctx context.Context, db Database) error {
@@ -211,7 +226,7 @@ func (qs *QuadStore) updateNodeBy(ctx context.Context, key Key, name quad.Value,
 	if inc == 0 {
 		return nil
 	}
-	d := toDocumentValue(name)
+	d := qs.opt.toDocumentValue(name)
 	err := qs.db.Update(colNodes, key).Upsert(d).Inc(fldSize, inc).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("error updating node: %v", err)
@@ -389,11 +404,19 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
-func toDocumentValue(v quad.Value) Document {
+func (opt Options) toDocumentValue(v quad.Value) Document {
 	if v == nil {
 		return nil
 	}
 	var doc Document
+	encPb := func() {
+		qv := pquads.MakeValue(v)
+		data, err := qv.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		doc[fldValPb] = Bytes(data)
+	}
 	switch d := v.(type) {
 	case quad.String:
 		doc = Document{fldValData: String(d)}
@@ -407,19 +430,22 @@ func toDocumentValue(v quad.Value) Document {
 		doc = Document{fldValData: String(d.Value), fldLang: String(d.Lang)}
 	case quad.Int:
 		doc = Document{fldValInt: Int(d)}
+		if opt.Number32 {
+			// store sortable string representation for range queries
+			doc[fldValStrInt] = String(itos(int64(d)))
+			encPb()
+		}
 	case quad.Float:
 		doc = Document{fldValFloat: Float(d)}
+		if opt.Number32 {
+			encPb()
+		}
 	case quad.Bool:
 		doc = Document{fldValBool: Bool(d)}
 	case quad.Time:
 		doc = Document{fldValTime: Time(time.Time(d).UTC())}
 	default:
-		qv := pquads.MakeValue(v)
-		data, err := qv.Marshal()
-		if err != nil {
-			panic(err)
-		}
-		doc = Document{fldValPb: Bytes(data)}
+		encPb()
 	}
 	return Document{fldValue: doc}
 }
@@ -437,11 +463,12 @@ func asInt(v Value) (Int, error) {
 	return vi, nil
 }
 
-func toQuadValue(d Document) (quad.Value, error) {
+func (opt Options) toQuadValue(d Document) (quad.Value, error) {
 	if len(d) == 0 {
 		return nil, nil
 	}
 	var err error
+	// prefer protobuf representation
 	if v, ok := d[fldValPb]; ok {
 		var b []byte
 		switch v := v.(type) {
@@ -461,6 +488,13 @@ func toQuadValue(d Document) (quad.Value, error) {
 		}
 		return p.ToNative(), nil
 	} else if v, ok := d[fldValInt]; ok {
+		if opt.Number32 {
+			// parse from string, so we are confident that we will get exactly the same value
+			if vs, ok := d[fldValStrInt].(String); ok {
+				iv := quad.Int(stoi(string(vs)))
+				return iv, nil
+			}
+		}
 		vi, err := asInt(v)
 		if err != nil {
 			return nil, err
@@ -577,7 +611,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		return nil
 	}
 	dv, _ := nd[fldValue].(Document)
-	qv, err := toQuadValue(dv)
+	qv, err := qs.opt.toQuadValue(dv)
 	if err != nil {
 		clog.Errorf("couldn't convert node %v: %v", v, err)
 		return nil

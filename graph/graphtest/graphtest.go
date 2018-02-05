@@ -2,6 +2,7 @@ package graphtest
 
 import (
 	"context"
+	"math"
 	"sort"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ type Config struct {
 	TimeInMs     bool
 	TimeInMcs    bool
 	TimeRound    bool
+	PageSize     int // result page size for pagination (large iterator) tests
 
 	OptimizesComparison bool
 
@@ -63,6 +65,9 @@ func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
 	}
 	t.Run("writers", func(t *testing.T) {
 		TestWriters(t, gen, conf)
+	})
+	t.Run("1k", func(t *testing.T) {
+		Test1K(t, gen, conf)
 	})
 	t.Run("paths", func(t *testing.T) {
 		pathtest.RunTestMorphisms(t, gen)
@@ -115,6 +120,9 @@ func IteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator) []quad.Q
 	}
 	require.Nil(t, it.Err())
 	sort.Sort(res)
+	if res == nil {
+		return []quad.Quad(nil) // GopherJS seems to have a bug with this type conversion for a nil value
+	}
 	return res
 }
 
@@ -123,6 +131,9 @@ func ExpectIteratedQuads(t testing.TB, qs graph.QuadStore, it graph.Iterator, ex
 	if sortQuads {
 		sort.Sort(quad.ByQuadString(exp))
 		sort.Sort(quad.ByQuadString(got))
+	}
+	if len(exp) == 0 {
+		exp = nil // GopherJS seems to have a bug with nil value
 	}
 	require.Equal(t, exp, got)
 }
@@ -134,16 +145,21 @@ func ExpectIteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.Iterato
 	require.Equal(t, exp, got)
 }
 
-func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator, exp []quad.Value) {
+func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.Iterator, exp []quad.Value, sortVals bool) {
 	//sort.Strings(exp)
 	got := IteratedValues(t, qs, it)
 	//sort.Strings(got)
+	if sortVals {
+		exp = append([]quad.Value{}, exp...)
+		sort.Sort(quad.ByValueString(exp))
+	}
+
 	require.Equal(t, len(exp), len(got), "%v\nvs\n%v", exp, got)
 	for i := range exp {
 		if eq, ok := exp[i].(quad.Equaler); ok {
 			require.True(t, eq.Equal(got[i]))
 		} else {
-			require.True(t, exp[i] == got[i])
+			require.True(t, exp[i] == got[i], "%v\nvs\n%v\n\n%v\nvs\n%v", exp[i], got[i], exp, got)
 		}
 	}
 }
@@ -273,6 +289,32 @@ func TestWriters(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
 			})
 		}
 	}
+}
+
+func Test1K(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
+	qs, _, closer := gen(t)
+	defer closer()
+
+	pg := c.PageSize
+	if pg == 0 {
+		pg = 100
+	}
+	n := pg*3 + 1
+
+	w, err := writer.NewSingle(qs, graph.IgnoreOpts{})
+	require.NoError(t, err)
+
+	qw := graph.NewWriter(w)
+	exp := make([]quad.Quad, 0, n)
+	for i := 0; i < n; i++ {
+		q := quad.Make(i, i, i, nil)
+		exp = append(exp, q)
+		qw.WriteQuad(q)
+	}
+	err = qw.Flush()
+	require.NoError(t, err)
+
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), exp, true)
 }
 
 type ValueSizer interface {
@@ -429,7 +471,7 @@ func TestHasA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	for i := 0; i < 3; i++ {
 		exp = append(exp, quad.Raw("status"))
 	}
-	ExpectIteratedValues(t, qs, it, exp)
+	ExpectIteratedValues(t, qs, it, exp, false)
 }
 
 func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
@@ -823,20 +865,35 @@ var casesCompare = []struct {
 		quad.IRI("alice"), quad.IRI("bob"),
 	}},
 	{gte, quad.Int(111), []quad.Value{
-		quad.Int(112),
+		quad.Int(112), quad.Int(math.MaxInt64 - 1), quad.Int(math.MaxInt64),
 	}},
 	{gte, quad.Int(110), []quad.Value{
-		quad.Int(110), quad.Int(112),
+		quad.Int(110), quad.Int(112), quad.Int(math.MaxInt64 - 1), quad.Int(math.MaxInt64),
 	}},
-	{lt, quad.Int(20), nil},
+	{lt, quad.Int(20), []quad.Value{
+		quad.Int(math.MinInt64 + 1), quad.Int(math.MinInt64),
+	}},
 	{lte, quad.Int(20), []quad.Value{
-		quad.Int(20),
+		quad.Int(math.MinInt64 + 1), quad.Int(math.MinInt64), quad.Int(20),
 	}},
 	{lte, quad.Time(tzero.Add(time.Hour)), []quad.Value{
 		quad.Time(tzero), quad.Time(tzero.Add(time.Hour)),
 	}},
 	{gt, quad.Time(tzero.Add(time.Hour)), []quad.Value{
 		quad.Time(tzero.Add(time.Hour * 49)), quad.Time(tzero.Add(time.Hour * 24 * 365)),
+	}},
+	// precision tests
+	{gt, quad.Int(math.MaxInt64 - 1), []quad.Value{
+		quad.Int(math.MaxInt64),
+	}},
+	{gte, quad.Int(math.MaxInt64 - 1), []quad.Value{
+		quad.Int(math.MaxInt64 - 1), quad.Int(math.MaxInt64),
+	}},
+	{lt, quad.Int(math.MinInt64 + 1), []quad.Value{
+		quad.Int(math.MinInt64),
+	}},
+	{lte, quad.Int(math.MinInt64 + 1), []quad.Value{
+		quad.Int(math.MinInt64 + 1), quad.Int(math.MinInt64),
 	}},
 }
 
@@ -854,18 +911,33 @@ func TestCompareTypedValues(t testing.TB, gen testutil.DatabaseFunc, conf *Confi
 	t3 := t2.Add(time.Hour * 48)
 	t4 := t1.Add(time.Hour * 24 * 365)
 
-	err := w.AddQuadSet([]quad.Quad{
+	quads := []quad.Quad{
 		{quad.BNode("alice"), quad.BNode("bob"), quad.BNode("charlie"), quad.BNode("dani")},
 		{quad.IRI("alice"), quad.IRI("bob"), quad.IRI("charlie"), quad.IRI("dani")},
 		{quad.String("alice"), quad.String("bob"), quad.String("charlie"), quad.String("dani")},
 		{quad.Int(100), quad.Int(112), quad.Int(110), quad.Int(20)},
 		{quad.Time(t1), quad.Time(t2), quad.Time(t3), quad.Time(t4)},
-	})
+		// test precision as well
+		{quad.Int(math.MaxInt64), quad.Int(math.MaxInt64 - 1), quad.Int(math.MinInt64 + 1), quad.Int(math.MinInt64)},
+	}
+
+	err := w.AddQuadSet(quads)
 	require.NoError(t, err)
 
+	var vals []quad.Value
+	for _, q := range quads {
+		for _, d := range quad.Directions {
+			if v := q.Get(d); v != nil {
+				vals = append(vals, v)
+			}
+		}
+	}
+	ExpectIteratedValues(t, qs, qs.NodesAllIterator(), vals, true)
+
 	for _, c := range casesCompare {
+		//t.Log(c.op, c.val)
 		it := iterator.NewComparison(qs.NodesAllIterator(), c.op, c.val, qs)
-		ExpectIteratedValues(t, qs, it, c.expect)
+		ExpectIteratedValues(t, qs, it, c.expect, true)
 	}
 
 	for _, c := range casesCompare {
@@ -878,7 +950,7 @@ func TestCompareTypedValues(t testing.TB, gen testutil.DatabaseFunc, conf *Confi
 			require.Equal(t, s, ns)
 		}
 		nit := shape.BuildIterator(qs, ns)
-		ExpectIteratedValues(t, qs, nit, c.expect)
+		ExpectIteratedValues(t, qs, nit, c.expect, true)
 	}
 }
 
@@ -916,7 +988,7 @@ func TestNodeDelete(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		quad.Raw("follows"),
 		quad.Raw("status"),
 		quad.Raw("status_graph"),
-	})
+	}, true)
 }
 
 func TestSchema(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {

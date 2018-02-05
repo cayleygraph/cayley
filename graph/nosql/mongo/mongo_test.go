@@ -11,22 +11,21 @@ import (
 	"github.com/cayleygraph/cayley/internal/dock"
 )
 
-func makeMongo(t testing.TB) (nosql.Database, graph.Options, func()) {
+func makeMongo(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
 	var conf dock.Config
 
 	conf.Image = "mongo:3"
 	conf.OpenStdin = true
 	conf.Tty = true
 
-	addr, closer := dock.Run(t, conf)
+	addr, closer := dock.RunAndWait(t, conf, "27017", nil)
 
-	addr = addr + ":27017"
 	qs, err := dialDB(addr, nil)
 	if err != nil {
 		closer()
 		t.Fatal(err)
 	}
-	return qs, nil, func() {
+	return qs, nil, nil, func() {
 		qs.Close()
 		closer()
 	}

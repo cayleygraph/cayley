@@ -189,7 +189,7 @@ func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	if qv == nil {
 		return false
 	}
-	d := toDocumentValue(qv)
+	d := it.qs.opt.toDocumentValue(qv)
 	for _, f := range it.constraint {
 		if !f.Matches(d) {
 			return false
@@ -209,6 +209,9 @@ func (it *Iterator) Size() (int64, bool) {
 	}
 	if it.limit > 0 && it.size > it.limit {
 		it.size = it.limit
+	}
+	if it.size < 0 {
+		return it.qs.Size(), false
 	}
 	return it.size, true
 }
