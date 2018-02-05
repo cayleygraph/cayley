@@ -37,7 +37,9 @@ func NewReader(r io.Reader) *Reader {
 
 // NewReaderFromMap returns quad reader for JSON-LD map object.
 func NewReaderFromMap(o interface{}) *Reader {
-	data, err := gojsonld.ToRDF(o, gojsonld.NewOptions(""))
+	options := gojsonld.NewOptions("")
+	options.DocumentLoader = gojsonld.NewDocumentLoader()
+	data, err := gojsonld.ToRDF(o, options)
 	if err != nil {
 		return &Reader{err: err}
 	}
