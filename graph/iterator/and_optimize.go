@@ -201,7 +201,9 @@ func (it *And) optimizeOrder(its []graph.Iterator) []graph.Iterator {
 
 	var out []graph.Iterator
 	// Put the best iterator (the one we wish to Next()) at the front...
-	out = append(out, best)
+	if best != nil {
+		out = append(out, best)
+	}
 
 	// ... push everyone else after...
 	for _, it := range its {
