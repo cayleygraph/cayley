@@ -9,13 +9,15 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cayleygraph/cayley/clog"
+	"github.com/cayleygraph/cayley/internal/bolt"
 	chttp "github.com/cayleygraph/cayley/internal/http"
 )
 
 func NewHttpCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "http",
-		Short: "Serve an HTTP endpoint on the given host and port.",
+		Use:     "http",
+		Aliases: []string{"serve"},
+		Short:   "Serve an HTTP endpoint on the given host and port.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			printBackendInfo()
 			p := mustSetupProfile(cmd)
@@ -40,6 +42,16 @@ func NewHttpCmd() *cobra.Command {
 				phost = net.JoinHostPort("localhost", port)
 			}
 			clog.Infof("listening on %s, web interface at http://%s", host, phost)
+			go func() {
+				srv, err := bolt.NewServer(h.QuadStore, "gizmo")
+				if err != nil {
+					clog.Infof("bolt serve failed: %v", err)
+					return
+				}
+				if err := srv.ListenAndServe("localhost:7687"); err != nil {
+					clog.Infof("bolt serve failed: %v", err)
+				}
+			}()
 			return http.ListenAndServe(host, nil)
 		},
 	}
