@@ -71,7 +71,7 @@ Which will also resolve the relevant static content paths for serving HTTP.
 
 # Running Unit Tests
 
-First, `cd` into the `caley` project folder.
+First, `cd` into the `cayley` project folder.
 
 For Go 1.9 and onwards:
 ```
