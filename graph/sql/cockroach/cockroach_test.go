@@ -15,7 +15,7 @@ import (
 func makeCockroach(t testing.TB) (string, graph.Options, func()) {
 	var conf dock.Config
 
-	conf.Image = "cockroachdb/cockroach:v1.1.2"
+	conf.Image = "cockroachdb/cockroach:v1.1.5"
 	conf.Cmd = []string{"start", "--insecure"}
 
 	addr, closer := dock.RunAndWait(t, conf, "26257", func(addr string) bool {
