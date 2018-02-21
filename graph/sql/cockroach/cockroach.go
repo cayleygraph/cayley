@@ -1,10 +1,14 @@
 package cockroach
 
 import (
+	"bytes"
 	"database/sql"
+	"fmt"
+	"strings"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/log"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
 	csql "github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/cayley/graph/sql/postgres"
 	"github.com/lib/pq"
@@ -37,11 +41,6 @@ func init() {
 		TxRetry:             retryTxCockroach,
 		NoSchemaChangesInTx: true,
 	})
-}
-
-func runTxCockroach(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate, opts graph.IgnoreOpts) error {
-	// FIXME: on conflict for SPOL; blocked by CockroachDB not supporting empty ON CONFLICT statements
-	return postgres.RunTx(tx, nodes, quads, opts, `(subject_hash, predicate_hash, object_hash)`)
 }
 
 // AmbiguousCommitError represents an error that left a transaction in an
@@ -87,4 +86,120 @@ func retryTxCockroach(tx *sql.Tx, stmts func() error) error {
 			return err
 		}
 	}
+}
+
+func convInsertError(err error) error {
+	if err == nil {
+		return err
+	}
+	if pe, ok := err.(*pq.Error); ok {
+		if pe.Code == "23505" {
+			// TODO: reference to delta
+			return &graph.DeltaError{Err: graph.ErrQuadExists}
+		}
+	}
+	return err
+}
+
+// runTxCockroach performs the node and quad updates in the provided transaction.
+// This is based on ../postgres/postgres.go:RunTx, but focuses on doing fewer insert statements,
+// since those are comparatively expensive for CockroachDB.
+func runTxCockroach(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadUpdate, opts graph.IgnoreOpts) error {
+	// First, compile the sets of nodes, split by csql.ValueType.
+	// Each of those will require a separate INSERT statement.
+	type nodeEntry struct {
+		refInc int
+		values []interface{} // usually two, but sometimes three elements (includes hash)
+	}
+	nodeEntries := make(map[csql.ValueType][]nodeEntry)
+	for _, n := range nodes {
+		if n.RefInc < 0 {
+			panic("unexpected node update")
+		}
+		nodeType, values, err := csql.NodeValues(csql.NodeHash{n.Hash}, n.Val)
+		if err != nil {
+			return err
+		}
+		nodeEntries[nodeType] = append(nodeEntries[nodeType], nodeEntry{
+			refInc: n.RefInc,
+			values: values,
+		})
+	}
+
+	// Next, build and execute the INSERT statements for each type.
+	for nodeType, entries := range nodeEntries {
+		var query bytes.Buffer
+		var allValues []interface{}
+		valCols := nodeType.Columns()
+		fmt.Fprintf(&query, "INSERT INTO nodes (refs, hash, %s) VALUES ", strings.Join(valCols, ", "))
+		ph := 1 // next placeholder counter
+		for i, entry := range entries {
+			if i > 0 {
+				fmt.Fprint(&query, ", ")
+			}
+			fmt.Fprint(&query, "(")
+			// sanity check
+			if len(entry.values) != 1+len(valCols) { // +1 for hash, which is in values
+				panic(fmt.Sprintf("internal error: %d entry values vs. %d value columns", len(entry.values), len(valCols)))
+			}
+			for j := 0; j < 1+len(entry.values); j++ { // +1 for refs
+				if j > 0 {
+					fmt.Fprint(&query, ", ")
+				}
+				fmt.Fprintf(&query, "$%d", ph)
+				ph++
+			}
+			fmt.Fprint(&query, ")")
+			allValues = append(allValues, entry.refInc)
+			allValues = append(allValues, entry.values...)
+		}
+		fmt.Fprint(&query, " ON CONFLICT (hash) DO UPDATE SET refs = nodes.refs + EXCLUDED.refs RETURNING NOTHING;")
+		_, err := tx.Exec(query.String(), allValues...)
+		err = convInsertError(err)
+		if err != nil {
+			clog.Errorf("couldn't exec node INSERT statement [%s]: %v", query.String(), err)
+			return err
+		}
+	}
+
+	// Now do the same thing with quads.
+	// It is simpler because there's only one composite type to insert,
+	// so only one INSERT statement is required.
+	if len(quads) == 0 {
+		return nil
+	}
+
+	var query bytes.Buffer
+	var allValues []interface{}
+	fmt.Fprintf(&query, "INSERT INTO quads (subject_hash, predicate_hash, object_hash, label_hash, ts) VALUES ")
+	for i, d := range quads {
+		if d.Del {
+			panic("unexpected quad delete")
+		}
+		if i > 0 {
+			fmt.Fprint(&query, ", ")
+		}
+		fmt.Fprintf(&query, "($%d, $%d, $%d, $%d, now())", 4*i+1, 4*i+2, 4*i+3, 4*i+4)
+		allValues = append(allValues,
+			csql.NodeHash{d.Quad.Subject}.SQLValue(),
+			csql.NodeHash{d.Quad.Predicate}.SQLValue(),
+			csql.NodeHash{d.Quad.Object}.SQLValue(),
+			csql.NodeHash{d.Quad.Label}.SQLValue())
+	}
+	if opts.IgnoreDup {
+		fmt.Fprint(&query, " ON CONFLICT (subject_hash, predicate_hash, object_hash) DO NOTHING")
+		// Only use RETURNING NOTHING when we're ignoring duplicates;
+		// otherwise the error returned on duplicates will be different.
+		fmt.Fprint(&query, " RETURNING NOTHING")
+	}
+	fmt.Fprint(&query, ";")
+	_, err := tx.Exec(query.String(), allValues...)
+	err = convInsertError(err)
+	if err != nil {
+		if _, ok := err.(*graph.DeltaError); !ok {
+			clog.Errorf("couldn't exec quad INSERT statement [%s]: %v", query.String(), err)
+		}
+		return err
+	}
+	return nil
 }
