@@ -144,6 +144,9 @@ func (it *Recursive) Next(ctx context.Context) bool {
 			it.baseIt = NewFixed(it.depthCache...)
 			it.baseIt.Tagger().Add("__base_recursive")
 			it.depthCache = nil
+			if it.nextIt != nil {
+				it.nextIt.Close()
+			}
 			it.nextIt = it.morphism(it.qs, it.baseIt)
 			continue
 		}
