@@ -221,3 +221,16 @@ Any fields and traversals can be filtered by quad label with `@label` directive:
 ```
 
 Label will be inherited by child objects. To reset label filter add `@label` directive without parameters.
+
+### Expanding all properties
+
+To expand all properties of an object, `*` can be used instead of property name:
+
+```graphql
+{
+  nodes{
+    id
+    follows {*}
+  }
+}
+```

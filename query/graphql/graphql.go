@@ -94,6 +94,7 @@ var (
 	ValueKey = "id"
 	LimitKey = "first"
 	SkipKey  = "offset"
+	AnyKey   = "*"
 )
 
 type Query struct {
@@ -108,20 +109,27 @@ type has struct {
 }
 
 type field struct {
-	Via    quad.IRI
-	Alias  string
-	Rev    bool
-	Opt    bool
-	Labels []quad.Value
-	Has    []has
-	Fields []field
+	Via       quad.IRI
+	Alias     string
+	Rev       bool
+	Opt       bool
+	Labels    []quad.Value
+	Has       []has
+	Fields    []field
+	AllFields bool // fetch all fields
 }
 
-func (f field) isSave() bool { return len(f.Has)+len(f.Fields) == 0 }
+func (f field) isSave() bool { return len(f.Has)+len(f.Fields) == 0 && !f.AllFields }
 
 type object struct {
 	id     graph.Value
 	fields map[string][]graph.Value
+}
+
+func buildIterator(qs graph.QuadStore, p *path.Path) graph.Iterator {
+	it, _ := p.BuildIterator().Optimize()
+	it, _ = qs.OptimizeIterator(it)
+	return it
 }
 
 func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Path) (out []map[string]interface{}, _ error) {
@@ -169,6 +177,50 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			}
 		}
 	}
+	tail := func() {
+		if skip > 0 {
+			p = p.Skip(int64(skip))
+		}
+		if limit >= 0 {
+			p = p.Limit(int64(limit))
+		}
+	}
+	if f.AllFields {
+		tail()
+
+		it := buildIterator(qs, p)
+		defer it.Close()
+
+		// we don't care about alternative paths to nodes here, so we will not call NextPath
+		// and we haven't tagged anything, so we will not call TagResult either
+		for i := 0; limit < 0 || i < limit; i++ {
+			select {
+			case <-ctx.Done():
+				return out, ctx.Err()
+			default:
+			}
+			if !it.Next(ctx) {
+				break
+			}
+			nv := it.Result()
+			obj := make(map[string]interface{})
+			obj[ValueKey] = qs.NameOf(nv)
+			func() {
+				sit := qs.QuadIterator(quad.Subject, nv)
+				defer sit.Close()
+				for sit.Next(ctx) {
+					q := qs.Quad(sit.Result())
+					if p, ok := q.Predicate.(quad.IRI); ok {
+						obj[string(p)] = q.Object
+					} else {
+						obj[quad.ToString(q.Predicate)] = q.Object
+					}
+				}
+			}()
+			out = append(out, obj)
+		}
+		return out, it.Err()
+	}
 	for _, f2 := range f.Fields {
 		if !f2.isSave() {
 			continue
@@ -197,16 +249,10 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			p = p.LabelContext()
 		}
 	}
-	if skip > 0 {
-		p = p.Skip(int64(skip))
-	}
-	if limit >= 0 {
-		p = p.Limit(int64(limit))
-	}
+	tail()
 
 	// load object ids and flat keys
-	it, _ := p.BuildIterator().Optimize()
-	it, _ = qs.OptimizeIterator(it)
+	it := buildIterator(qs, p)
 	defer it.Close()
 
 	var results []object
@@ -248,6 +294,9 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			}
 		}
 		results = append(results, obj)
+	}
+	if err := it.Err(); err != nil {
+		return out, err
 	}
 
 	// load values and complex keys
@@ -333,14 +382,16 @@ func Parse(r io.Reader) (*Query, error) {
 	} else if def.Operation != "query" {
 		return nil, fmt.Errorf("unsupported operation: %s", def.Operation)
 	}
-	fields, err := setToFields(def.SelectionSet, nil)
+	fields, all, err := setToFields(def.SelectionSet, nil)
 	if err != nil {
 		return nil, err
+	} else if all {
+		return nil, fmt.Errorf("expand all is not supported at top level")
 	}
 	return &Query{fields: fields}, nil
 }
 
-func setToFields(set *ast.SelectionSet, labels []quad.Value) (out []field, _ error) {
+func setToFields(set *ast.SelectionSet, labels []quad.Value) (out []field, all bool, _ error) {
 	if set == nil {
 		return
 	}
@@ -349,11 +400,19 @@ func setToFields(set *ast.SelectionSet, labels []quad.Value) (out []field, _ err
 		case *ast.Field:
 			fld, err := convField(sel, labels)
 			if err != nil {
-				return nil, err
+				return nil, false, err
+			}
+			if fld.Via == quad.IRI(AnyKey) {
+				if len(set.Selections) != 1 {
+					return nil, false, fmt.Errorf("expand all cannot be used with other fields")
+				} else if len(fld.Has) != 0 || len(fld.Fields) != 0 {
+					return nil, false, fmt.Errorf("filters inside expand all are not supported")
+				}
+				return nil, true, nil
 			}
 			out = append(out, fld)
 		default:
-			return nil, fmt.Errorf("unknown selection type: %T", s)
+			return nil, false, fmt.Errorf("unknown selection type: %T", s)
 		}
 	}
 	return
@@ -439,7 +498,7 @@ func convField(fld *ast.Field, labels []quad.Value) (out field, err error) {
 			return out, fmt.Errorf("unknown directive: %q", d.Name.Value)
 		}
 	}
-	out.Fields, err = setToFields(fld.SelectionSet, out.Labels)
+	out.Fields, out.AllFields, err = setToFields(fld.SelectionSet, out.Labels)
 	if err != nil {
 		return
 	}

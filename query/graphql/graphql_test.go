@@ -43,6 +43,7 @@ var casesParse = []struct {
 			 width @opt,
 			 height @rev
 		}
+	sub {*}
 	}
 }`,
 		[]field{{
@@ -75,6 +76,7 @@ var casesParse = []struct {
 						{Via: "height", Alias: "height", Rev: true},
 					},
 				},
+				{Via: "sub", Alias: "sub", AllFields: true},
 			},
 		}},
 	},
@@ -187,6 +189,33 @@ var casesExecute = []struct {
 				{
 					"id":     quad.IRI("greg"),
 					"status": quad.String("smart_person"),
+				},
+			},
+		},
+	},
+	{
+		"expand all",
+		`{
+  me {
+    id: ` + ValueKey + `
+    status @label(v: <smart_graph>)
+    follows {*}
+  }
+}`,
+		map[string]interface{}{
+			"me": []map[string]interface{}{
+				{
+					"id":     quad.IRI("emily"),
+					"status": quad.String("smart_person"),
+					"follows": map[string]interface{}{
+						"id":      quad.IRI("fred"),
+						"follows": quad.IRI("greg"),
+					},
+				},
+				{
+					"id":      quad.IRI("greg"),
+					"status":  quad.String("smart_person"),
+					"follows": nil,
 				},
 			},
 		},
