@@ -10,17 +10,15 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	graphlog "github.com/cayleygraph/cayley/graph/log"
 	csql "github.com/cayleygraph/cayley/graph/sql"
-	"github.com/cayleygraph/cayley/graph/sql/postgres"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx"
+	_ "github.com/jackc/pgx/stdlib" // registers "pgx" driver
 )
 
 const Type = "cockroach"
 
-const driverName = "postgres"
-
 func init() {
 	csql.Register(Type, csql.Registration{
-		Driver:      driverName,
+		Driver:      "pgx",
 		HashType:    `BYTEA`,
 		BytesType:   `BYTEA`,
 		HorizonType: `BIGSERIAL`,
@@ -31,9 +29,17 @@ func init() {
 	FAMILY fvalue (value, value_string, datatype, language, iri, bnode,
 		value_int, value_bool, value_float, value_time)
 `,
-		QueryDialect:  postgres.QueryDialect,
+		QueryDialect: csql.QueryDialect{
+			RegexpOp: "~",
+			FieldQuote: func(name string) string {
+				return pgx.Identifier{name}.Sanitize()
+			},
+			Placeholder: func(n int) string {
+				return fmt.Sprintf("$%d", n)
+			},
+		},
 		NoForeignKeys: true,
-		Error:         postgres.ConvError,
+		Error:         convError,
 		//Estimated: func(table string) string{
 		//	return "SELECT reltuples::BIGINT AS estimate FROM pg_class WHERE relname='"+table+"';"
 		//},
@@ -75,8 +81,8 @@ func retryTxCockroach(tx *sql.Tx, stmts func() error) error {
 		// for either the standard PG errcode SerializationFailureError:40001 or the Cockroach extension
 		// errcode RetriableError:CR000. The Cockroach extension has been removed server-side, but support
 		// for it has been left here for now to maintain backwards compatibility.
-		pqErr, ok := err.(*pq.Error)
-		if retryable := ok && (pqErr.Code == "CR000" || pqErr.Code == "40001"); !retryable {
+		pgErr, ok := err.(pgx.PgError)
+		if retryable := ok && (pgErr.Code == "CR000" || pgErr.Code == "40001"); !retryable {
 			if released {
 				err = &AmbiguousCommitError{err}
 			}
@@ -88,11 +94,23 @@ func retryTxCockroach(tx *sql.Tx, stmts func() error) error {
 	}
 }
 
+func convError(err error) error {
+	e, ok := err.(pgx.PgError)
+	if !ok {
+		return err
+	}
+	switch e.Code {
+	case "42P07":
+		return graph.ErrDatabaseExists
+	}
+	return err
+}
+
 func convInsertError(err error) error {
 	if err == nil {
 		return err
 	}
-	if pe, ok := err.(*pq.Error); ok {
+	if pe, ok := err.(pgx.PgError); ok {
 		if pe.Code == "23505" {
 			// TODO: reference to delta
 			return &graph.DeltaError{Err: graph.ErrQuadExists}
