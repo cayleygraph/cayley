@@ -50,3 +50,4 @@ import:
 - package: gopkg.in/olivere/elastic.v5
 - package: github.com/go-kivik/kivik
 - package: github.com/go-kivik/couchdb
+- package: github.com/jackc/pgx
