@@ -63,6 +63,8 @@ imports:
   - json/token
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jackc/pgx
+  version: 606697ffdfe6603013560dbc171656de57b4f542
 - name: github.com/julienschmidt/httprouter
   version: 6f3f3919c8781ce5c0509c83fffc887a7830c938
 - name: github.com/lib/pq
