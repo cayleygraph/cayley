@@ -1008,15 +1008,17 @@ func TestSchema(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		Name: "Bob",
 	}
 
+	sch := schema.NewConfig()
+
 	qw := graph.NewWriter(w)
-	id, err := schema.WriteAsQuads(qw, p)
+	id, err := sch.WriteAsQuads(qw, p)
 	require.NoError(t, err)
 	err = qw.Close()
 	require.NoError(t, err)
 	require.Equal(t, p.ID, id)
 
 	var p2 Person
-	err = schema.LoadTo(nil, qs, &p2, id)
+	err = sch.LoadTo(nil, qs, &p2, id)
 	require.NoError(t, err)
 	require.Equal(t, p, p2)
 }
