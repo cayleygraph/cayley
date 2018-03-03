@@ -28,6 +28,54 @@ func (e ErrReqFieldNotSet) Error() string {
 	return fmt.Sprintf("required field is not set: %s", e.Field)
 }
 
+// IRIMode controls how IRIs are processed.
+type IRIMode int
+
+const (
+	// IRINative applies no transformation to IRIs.
+	IRINative = IRIMode(iota)
+	// IRIShort will compact all IRIs with known namespaces.
+	IRIShort
+	// IRIFull will expand all IRIs with known namespaces.
+	IRIFull
+)
+
+// NewConfig creates a new schema config.
+func NewConfig() *Config {
+	return &Config{
+		IRIs: IRINative,
+	}
+}
+
+// Config controls behavior of schema package.
+type Config struct {
+	// IRIs set a conversion mode for all IRIs.
+	IRIs IRIMode
+
+	// GenerateID is called when any object without an ID field is being saved.
+	GenerateID func(_ interface{}) quad.Value
+
+	pathForTypeMu   sync.RWMutex
+	pathForType     map[reflect.Type]*path.Path
+	pathForTypeRoot map[reflect.Type]*path.Path
+
+	rulesForTypeMu sync.RWMutex
+	rulesForType   map[reflect.Type]fieldRules
+}
+
+func (c *Config) genID(o interface{}) quad.Value {
+	gen := c.GenerateID
+	if gen == nil {
+		gen = GenerateID
+	}
+	if gen == nil {
+		gen = func(_ interface{}) quad.Value {
+			return quad.RandomBlankNode()
+		}
+	}
+	return gen(o)
+}
+
 type rule interface {
 	isRule()
 }
@@ -54,16 +102,29 @@ func (idRule) isRule() {}
 
 const iriType = quad.IRI(rdf.Type)
 
-func toIRI(s string) quad.IRI {
-	if s == "@type" {
-		return iriType
+func (c *Config) iri(v quad.IRI) quad.IRI {
+	switch c.IRIs {
+	case IRIShort:
+		v = v.Short()
+	case IRIFull:
+		v = v.Full()
 	}
-	return quad.IRI(s)
+	return v
+}
+
+func (c *Config) toIRI(s string) quad.IRI {
+	var v quad.IRI
+	if s == "@type" {
+		v = iriType
+	} else {
+		v = quad.IRI(s)
+	}
+	return c.iri(v)
 }
 
 var reflEmptyStruct = reflect.TypeOf(struct{}{})
 
-func fieldRule(fld reflect.StructField) (rule, error) {
+func (c Config) fieldRule(fld reflect.StructField) (rule, error) {
 	tag := fld.Tag.Get("quad")
 	sub := strings.Split(tag, ",")
 	tag, sub = sub[0], sub[1:]
@@ -129,11 +190,11 @@ func fieldRule(fld reflect.StructField) (rule, error) {
 	if ps == "" {
 		return nil, fmt.Errorf("wrong quad format: '%s': no predicate", rule)
 	}
-	p := toIRI(ps)
+	p := c.toIRI(ps)
 	if vs == "" || vs == any && fld.Type != reflEmptyStruct {
 		return saveRule{Pred: p, Rev: rev, Opt: opt}, nil
 	} else {
-		return constraintRule{Pred: p, Val: toIRI(vs), Rev: rev}, nil
+		return constraintRule{Pred: p, Val: c.toIRI(vs), Rev: rev}, nil
 	}
 }
 
@@ -166,8 +227,8 @@ func iteratorFromPath(qs graph.QuadStore, root graph.Iterator, p *path.Path) (gr
 	return it, nil
 }
 
-func iteratorForType(qs graph.QuadStore, root graph.Iterator, rt reflect.Type, rootOnly bool) (graph.Iterator, error) {
-	p, err := makePathForType(rt, "", rootOnly)
+func (c *Config) iteratorForType(qs graph.QuadStore, root graph.Iterator, rt reflect.Type, rootOnly bool) (graph.Iterator, error) {
+	p, err := c.makePathForType(rt, "", rootOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -178,10 +239,6 @@ var (
 	typesMu   sync.RWMutex
 	typeToIRI = make(map[reflect.Type]quad.IRI)
 	iriToType = make(map[quad.IRI]reflect.Type)
-
-	pathForTypeMu   sync.RWMutex
-	pathForType     = make(map[reflect.Type]*path.Path)
-	pathForTypeRoot = make(map[reflect.Type]*path.Path)
 )
 
 // RegisterType associates an IRI with a given Go type.
@@ -218,7 +275,7 @@ func RegisterType(iri quad.IRI, obj interface{}) {
 	iriToType[full] = rt
 }
 
-func makePathForType(rt reflect.Type, tagPref string, rootOnly bool) (*path.Path, error) {
+func (c *Config) makePathForType(rt reflect.Type, tagPref string, rootOnly bool) (*path.Path, error) {
 	for rt.Kind() == reflect.Ptr {
 		rt = rt.Elem()
 	}
@@ -226,13 +283,13 @@ func makePathForType(rt reflect.Type, tagPref string, rootOnly bool) (*path.Path
 		return nil, fmt.Errorf("expected struct, got %v", rt)
 	}
 	if tagPref != "" {
-		pathForTypeMu.RLock()
-		m := pathForType
+		c.pathForTypeMu.RLock()
+		m := c.pathForType
 		if rootOnly {
-			m = pathForTypeRoot
+			m = c.pathForTypeRoot
 		}
 		p, ok := m[rt]
-		pathForTypeMu.RUnlock()
+		c.pathForTypeMu.RUnlock()
 		if ok {
 			return p, nil
 		}
@@ -243,12 +300,12 @@ func makePathForType(rt reflect.Type, tagPref string, rootOnly bool) (*path.Path
 	iri := typeToIRI[rt]
 	typesMu.RUnlock()
 	if iri != quad.IRI("") {
-		p = p.Has(iriType, iri)
+		p = p.Has(c.iri(iriType), iri)
 	}
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous {
-			pa, err := makePathForType(f.Type, tagPref+f.Name+".", rootOnly)
+			pa, err := c.makePathForType(f.Type, tagPref+f.Name+".", rootOnly)
 			if err != nil {
 				return nil, err
 			}
@@ -256,7 +313,7 @@ func makePathForType(rt reflect.Type, tagPref string, rootOnly bool) (*path.Path
 			continue
 		}
 		name := f.Name
-		rule, err := fieldRule(f)
+		rule, err := c.fieldRule(f)
 		if err != nil {
 			return nil, err
 		} else if rule == nil { // skip
@@ -307,21 +364,33 @@ func makePathForType(rt reflect.Type, tagPref string, rootOnly bool) (*path.Path
 			}
 		}
 	}
-	if tagPref != "" {
-		pathForTypeMu.Lock()
-		m := pathForType
-		if rootOnly {
-			m = pathForTypeRoot
-		}
-		m[rt] = p
-		pathForTypeMu.Unlock()
+	if tagPref == "" {
+		return p, nil
 	}
+
+	c.pathForTypeMu.Lock()
+	defer c.pathForTypeMu.Unlock()
+	var m map[reflect.Type]*path.Path
+	if rootOnly {
+		m = c.pathForTypeRoot
+	} else {
+		m = c.pathForType
+	}
+	if m == nil {
+		m = make(map[reflect.Type]*path.Path)
+		if rootOnly {
+			c.pathForTypeRoot = m
+		} else {
+			c.pathForType = m
+		}
+	}
+	m[rt] = p
 	return p, nil
 }
 
 // PathForType builds a path (morphism) for a given Go type.
-func PathForType(rt reflect.Type) (*path.Path, error) {
-	return makePathForType(rt, "", false)
+func (c *Config) PathForType(rt reflect.Type) (*path.Path, error) {
+	return c.makePathForType(rt, "", false)
 }
 
 func anonFieldType(fld reflect.StructField) (reflect.Type, bool) {
@@ -335,19 +404,19 @@ func anonFieldType(fld reflect.StructField) (reflect.Type, bool) {
 	return ft, false
 }
 
-func rulesForStructTo(out fieldRules, pref string, rt reflect.Type) error {
+func (c *Config) rulesForStructTo(out fieldRules, pref string, rt reflect.Type) error {
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		name := f.Name
 		if f.Anonymous {
 			if ft, ok := anonFieldType(f); !ok {
 				return fmt.Errorf("anonymous fields of type %v are not supported", ft)
-			} else if err := rulesForStructTo(out, pref+name+".", ft); err != nil {
+			} else if err := c.rulesForStructTo(out, pref+name+".", ft); err != nil {
 				return err
 			}
 			continue
 		}
-		rules, err := fieldRule(f)
+		rules, err := c.fieldRule(f)
 		if err != nil {
 			return err
 		}
@@ -358,31 +427,29 @@ func rulesForStructTo(out fieldRules, pref string, rt reflect.Type) error {
 	return nil
 }
 
-var (
-	rulesForType   = make(map[reflect.Type]fieldRules)
-	rulesForTypeMu sync.RWMutex
-)
-
-// RulesFor
+// rulesFor
 //
 // Returned map should not be changed.
-func rulesFor(rt reflect.Type) (fieldRules, error) {
+func (c *Config) rulesFor(rt reflect.Type) (fieldRules, error) {
 	//	if rt.Kind() != reflect.Struct {
 	//		return nil, fmt.Errorf("expected struct, got: %v", rt)
 	//	}
-	rulesForTypeMu.RLock()
-	if rules, ok := rulesForType[rt]; ok {
-		rulesForTypeMu.RUnlock()
+	c.rulesForTypeMu.RLock()
+	rules, ok := c.rulesForType[rt]
+	c.rulesForTypeMu.RUnlock()
+	if ok {
 		return rules, nil
 	}
-	rulesForTypeMu.RUnlock()
 	out := make(fieldRules)
-	if err := rulesForStructTo(out, "", rt); err != nil {
+	if err := c.rulesForStructTo(out, "", rt); err != nil {
 		return nil, err
 	}
-	rulesForTypeMu.Lock()
-	rulesForType[rt] = out
-	rulesForTypeMu.Unlock()
+	c.rulesForTypeMu.Lock()
+	if c.rulesForType == nil {
+		c.rulesForType = make(map[reflect.Type]fieldRules)
+	}
+	c.rulesForType[rt] = out
+	c.rulesForTypeMu.Unlock()
 	return out, nil
 }
 
@@ -446,7 +513,7 @@ var (
 	errRequiredFieldIsMissing = errors.New("required field is missing")
 )
 
-func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, m map[string][]graph.Value, tagPref string) error {
+func (c *Config) loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, m map[string][]graph.Value, tagPref string) error {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -461,7 +528,7 @@ func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, dep
 	if v := ctx.Value(fieldsCtxKey{}); v != nil {
 		fields = v.(fieldRules)
 	} else {
-		nfields, err := rulesFor(rt)
+		nfields, err := c.rulesFor(rt)
 		if err != nil {
 			return err
 		}
@@ -489,7 +556,7 @@ func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, dep
 		}
 		df := dst.Field(i)
 		if f.Anonymous {
-			if err := loadToValue(ctx, qs, df, depth, m, tagPref+name+"."); err != nil {
+			if err := c.loadToValue(ctx, qs, df, depth, m, tagPref+name+"."); err != nil {
 				return fmt.Errorf("load anonymous field %s failed: %v", f.Name, err)
 			}
 			continue
@@ -515,7 +582,7 @@ func loadToValue(ctx context.Context, qs graph.QuadStore, dst reflect.Value, dep
 				sv = reflect.New(ft).Elem()
 				sit := iterator.NewFixed()
 				sit.Add(fv)
-				err := loadIteratorToDepth(ctx, qs, sv, depth-1, sit)
+				err := c.loadIteratorToDepth(ctx, qs, sv, depth-1, sit)
 				if err == errRequiredFieldIsMissing {
 					continue
 				} else if err != nil {
@@ -619,13 +686,13 @@ func keysEqual(v1, v2 graph.Value) bool {
 //		ThirdName string `quad:"thirdName,optional"` // can be empty
 //		FollowedBy []quad.IRI `quad:"follows"`
 // 	}
-func LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...quad.Value) error {
-	return LoadToDepth(ctx, qs, dst, -1, ids...)
+func (c *Config) LoadTo(ctx context.Context, qs graph.QuadStore, dst interface{}, ids ...quad.Value) error {
+	return c.LoadToDepth(ctx, qs, dst, -1, ids...)
 }
 
 // LoadToDepth is the same as LoadTo, but stops at a specified depth.
 // Negative value means unlimited depth, and zero means top level only.
-func LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interface{}, depth int, ids ...quad.Value) error {
+func (c *Config) LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interface{}, depth int, ids ...quad.Value) error {
 	if dst == nil {
 		return fmt.Errorf("nil destination object")
 	}
@@ -643,12 +710,12 @@ func LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interface{}, depth
 	} else {
 		rv = reflect.ValueOf(dst)
 	}
-	return LoadIteratorToDepth(ctx, qs, rv, depth, it)
+	return c.LoadIteratorToDepth(ctx, qs, rv, depth, it)
 }
 
 // LoadPathTo is the same as LoadTo, but starts loading objects from a given path.
-func LoadPathTo(ctx context.Context, qs graph.QuadStore, dst interface{}, p *path.Path) error {
-	return LoadIteratorTo(ctx, qs, reflect.ValueOf(dst), p.BuildIterator())
+func (c *Config) LoadPathTo(ctx context.Context, qs graph.QuadStore, dst interface{}, p *path.Path) error {
+	return c.LoadIteratorTo(ctx, qs, reflect.ValueOf(dst), p.BuildIterator())
 }
 
 // LoadIteratorTo is a lower level version of LoadTo.
@@ -657,21 +724,21 @@ func LoadPathTo(ctx context.Context, qs graph.QuadStore, dst interface{}, p *pat
 // destination value to be obtained via reflect package manually.
 //
 // Nodes iterator can be nil, All iterator will be used in this case.
-func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.Iterator) error {
-	return LoadIteratorToDepth(ctx, qs, dst, -1, list)
+func (c *Config) LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.Iterator) error {
+	return c.LoadIteratorToDepth(ctx, qs, dst, -1, list)
 }
 
 // LoadIteratorToDepth is the same as LoadIteratorTo, but stops at a specified depth.
 // Negative value means unlimited depth, and zero means top level only.
-func LoadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
+func (c *Config) LoadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
 	if depth >= 0 {
 		// 0 depth means "current level only" for user, but it's easier to make depth=0 a stop condition
 		depth++
 	}
-	return loadIteratorToDepth(ctx, qs, dst, depth, list)
+	return c.loadIteratorToDepth(ctx, qs, dst, depth, list)
 }
 
-func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
+func (c *Config) loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -688,7 +755,7 @@ func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Va
 		chanl = true
 		defer dst.Close()
 	}
-	fields, err := rulesFor(et)
+	fields, err := c.rulesFor(et)
 	if err != nil {
 		return err
 	}
@@ -698,7 +765,7 @@ func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Va
 	default:
 	}
 	rootOnly := depth == 0
-	it, err := iteratorForType(qs, list, et, rootOnly)
+	it, err := c.iteratorForType(qs, list, et, rootOnly)
 	if err != nil {
 		return err
 	}
@@ -757,7 +824,7 @@ func loadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Va
 				}
 			}
 		}
-		err := loadToValue(ctx, qs, cur, depth, mo, "")
+		err := c.loadToValue(ctx, qs, cur, depth, mo, "")
 		if err == errRequiredFieldIsMissing {
 			if !slice && !chanl {
 				return err
@@ -796,7 +863,7 @@ func isZero(rv reflect.Value) bool {
 	return rv.Interface() == reflect.Zero(rv.Type()).Interface() // TODO(dennwc): rewrite
 }
 
-func writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflect.Value, rev bool) error {
+func (c *Config) writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflect.Value, rev bool) error {
 	if isZero(rv) {
 		return nil
 	}
@@ -807,7 +874,7 @@ func writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflec
 		}
 		targ, ok = quad.AsValue(rv.Interface())
 		if !ok && rv.Kind() == reflect.Struct {
-			sid, err := WriteAsQuads(w, rv.Interface())
+			sid, err := c.WriteAsQuads(w, rv.Interface())
 			if err != nil {
 				return err
 			}
@@ -824,7 +891,7 @@ func writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflec
 	return w.WriteQuad(quad.Quad{s, pred, o, nil})
 }
 
-func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, rules fieldRules) error {
+func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, rules fieldRules) error {
 	if rv.Kind() == reflect.Ptr {
 		rv = rv.Elem()
 	}
@@ -833,14 +900,14 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 	iri := typeToIRI[rt]
 	typesMu.RUnlock()
 	if iri != quad.IRI("") {
-		if err := w.WriteQuad(quad.Quad{id, iriType, iri, nil}); err != nil {
+		if err := w.WriteQuad(quad.Quad{id, c.iri(iriType), c.iri(iri), nil}); err != nil {
 			return err
 		}
 	}
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous {
-			if err := writeValueAs(w, id, rv.Field(i), pref+f.Name+".", rules); err != nil {
+			if err := c.writeValueAs(w, id, rv.Field(i), pref+f.Name+".", rules); err != nil {
 				return err
 			}
 			continue
@@ -858,7 +925,7 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 			if f.Type.Kind() == reflect.Slice {
 				sl := rv.Field(i)
 				for j := 0; j < sl.Len(); j++ {
-					if err := writeOneValReflect(w, id, r.Pred, sl.Index(j), r.Rev); err != nil {
+					if err := c.writeOneValReflect(w, id, r.Pred, sl.Index(j), r.Rev); err != nil {
 						return err
 					}
 				}
@@ -867,7 +934,7 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 				if !r.Opt && isZero(fv) {
 					return ErrReqFieldNotSet{Field: f.Name}
 				}
-				if err := writeOneValReflect(w, id, r.Pred, fv, r.Rev); err != nil {
+				if err := c.writeOneValReflect(w, id, r.Pred, fv, r.Rev); err != nil {
 					return err
 				}
 			}
@@ -876,7 +943,7 @@ func writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, r
 	return nil
 }
 
-func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref string) (id quad.Value, err error) {
+func (c *Config) idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref string) (id quad.Value, err error) {
 	hasAnon := false
 	for i := 0; i < rt.NumField(); i++ {
 		fld := rt.Field(i)
@@ -885,11 +952,11 @@ func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref string) (id
 			vid := rv.Field(i).Interface()
 			switch vid := vid.(type) {
 			case quad.IRI:
-				id = vid
+				id = c.iri(vid)
 			case quad.BNode:
 				id = vid
 			case string:
-				id = quad.IRI(vid)
+				id = c.toIRI(vid)
 			default:
 				err = fmt.Errorf("unsupported type for id field: %T", vid)
 			}
@@ -905,17 +972,12 @@ func idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref string) (id
 		if !fld.Anonymous {
 			continue
 		}
-		id, err = idFor(rules, fld.Type, rv.Field(i), fld.Name+".")
+		id, err = c.idFor(rules, fld.Type, rv.Field(i), fld.Name+".")
 		if err != nil || id != nil {
 			return
 		}
 	}
 	return
-}
-
-// GenerateID is called when any object without an ID field is being saved.
-var GenerateID func(interface{}) quad.Value = func(_ interface{}) quad.Value {
-	return quad.RandomBlankNode()
 }
 
 // WriteAsQuads writes a single value in form of quads into specified quad writer.
@@ -925,7 +987,7 @@ var GenerateID func(interface{}) quad.Value = func(_ interface{}) quad.Value {
 // Otherwise, a new BNode will be generated using GenerateID function.
 //
 // See LoadTo for a list of quads mapping rules.
-func WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) {
+func (c *Config) WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) {
 	if v, ok := o.(quad.Value); ok {
 		return v, nil
 	}
@@ -934,21 +996,21 @@ func WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) {
 		rv = rv.Elem()
 	}
 	rt := rv.Type()
-	rules, err := rulesFor(rt)
+	rules, err := c.rulesFor(rt)
 	if err != nil {
 		return nil, fmt.Errorf("can't load rules: %v", err)
 	}
 	if len(rules) == 0 {
 		return nil, fmt.Errorf("no rules for struct: %v", rt)
 	}
-	id, err := idFor(rules, rt, rv, "")
+	id, err := c.idFor(rules, rt, rv, "")
 	if err != nil {
 		return nil, err
 	}
 	if id == nil {
-		id = GenerateID(o)
+		id = c.genID(o)
 	}
-	if err = writeValueAs(w, id, rv, "", rules); err != nil {
+	if err = c.writeValueAs(w, id, rv, "", rules); err != nil {
 		return nil, err
 	}
 	return id, nil
@@ -961,8 +1023,8 @@ type namespace struct {
 }
 
 // WriteNamespaces will writes namespaces list into graph.
-func WriteNamespaces(w quad.Writer, n *voc.Namespaces) error {
-	rules, err := rulesFor(reflect.TypeOf(namespace{}))
+func (c *Config) WriteNamespaces(w quad.Writer, n *voc.Namespaces) error {
+	rules, err := c.rulesFor(reflect.TypeOf(namespace{}))
 	if err != nil {
 		return fmt.Errorf("can't load rules: %v", err)
 	}
@@ -972,7 +1034,7 @@ func WriteNamespaces(w quad.Writer, n *voc.Namespaces) error {
 			Prefix: quad.IRI(ns.Prefix),
 		}
 		rv := reflect.ValueOf(obj)
-		if err = writeValueAs(w, obj.Full, rv, "", rules); err != nil {
+		if err = c.writeValueAs(w, obj.Full, rv, "", rules); err != nil {
 			return err
 		}
 	}
@@ -981,9 +1043,9 @@ func WriteNamespaces(w quad.Writer, n *voc.Namespaces) error {
 
 // LoadNamespaces will load namespaces stored in graph to a specified list.
 // If destination list is empty, global namespace registry will be used.
-func LoadNamespaces(ctx context.Context, qs graph.QuadStore, dest *voc.Namespaces) error {
+func (c *Config) LoadNamespaces(ctx context.Context, qs graph.QuadStore, dest *voc.Namespaces) error {
 	var list []namespace
-	if err := LoadTo(ctx, qs, &list); err != nil {
+	if err := c.LoadTo(ctx, qs, &list); err != nil {
 		return err
 	}
 	register := dest.Register

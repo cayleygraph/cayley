@@ -276,10 +276,11 @@ func (s *quadSlice) WriteQuad(q quad.Quad) error {
 }
 
 func TestWriteAsQuads(t *testing.T) {
+	sch := schema.NewConfig()
 	for i, c := range testWriteValueCases {
 		t.Run(c.name, func(t *testing.T) {
 			var out quadSlice
-			id, err := schema.WriteAsQuads(&out, c.obj)
+			id, err := sch.WriteAsQuads(&out, c.obj)
 			if err != c.err {
 				t.Errorf("case %d failed: %v != %v", i, err, c.err)
 			} else if c.err != nil {
@@ -550,6 +551,7 @@ var testFillValueCases = []struct {
 }
 
 func TestLoadIteratorTo(t *testing.T) {
+	sch := schema.NewConfig()
 	for i, c := range testFillValueCases {
 		t.Run(c.name, func(t *testing.T) {
 			qs := memstore.New(c.quads...)
@@ -566,7 +568,7 @@ func TestLoadIteratorTo(t *testing.T) {
 			if depth == 0 {
 				depth = -1
 			}
-			if err := schema.LoadIteratorToDepth(nil, qs, out, depth, it); err != nil {
+			if err := sch.LoadIteratorToDepth(nil, qs, out, depth, it); err != nil {
 				t.Errorf("case %d failed: %v", i+1, err)
 				return
 			}
@@ -591,6 +593,7 @@ func TestLoadIteratorTo(t *testing.T) {
 }
 
 func TestSaveNamespaces(t *testing.T) {
+	sch := schema.NewConfig()
 	save := []voc.Namespace{
 		{Full: "http://example.org/", Prefix: "ex:"},
 		{Full: "http://cayley.io/", Prefix: "c:"},
@@ -600,12 +603,12 @@ func TestSaveNamespaces(t *testing.T) {
 		ns.Register(n)
 	}
 	qs := memstore.New()
-	err := schema.WriteNamespaces(qs, &ns)
+	err := sch.WriteNamespaces(qs, &ns)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var ns2 voc.Namespaces
-	err = schema.LoadNamespaces(context.TODO(), qs, &ns2)
+	err = sch.LoadNamespaces(context.TODO(), qs, &ns2)
 	if err != nil {
 		t.Fatal(err)
 	}

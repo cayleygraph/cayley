@@ -50,8 +50,9 @@ func main() {
 	// All Coords objects will now generate a <id> <rdf:type> <ex:Coords> triple.
 	schema.RegisterType(quad.IRI("ex:Coords"), Coords{})
 
+	sch := schema.NewConfig()
 	// Override a function to generate IDs. Can be changed to generate UUIDs, for example.
-	schema.GenerateID = func(_ interface{}) quad.Value {
+	sch.GenerateID = func(_ interface{}) quad.Value {
 		return quad.BNode(fmt.Sprintf("node%d", rand.Intn(1000)))
 	}
 
@@ -76,7 +77,7 @@ func main() {
 		Name: "Bob", Age: 32,
 	}
 	fmt.Printf("saving: %+v\n", bob)
-	id, err := schema.WriteAsQuads(qw, bob)
+	id, err := sch.WriteAsQuads(qw, bob)
 	checkErr(err)
 	err = qw.Close()
 	checkErr(err)
@@ -85,13 +86,13 @@ func main() {
 
 	// Get object by id
 	var someone Person
-	err = schema.LoadTo(nil, store, &someone, id)
+	err = sch.LoadTo(nil, store, &someone, id)
 	checkErr(err)
 	fmt.Printf("loaded: %+v\n", someone)
 
 	// Or get all objects of type Person
 	var people []Person
-	err = schema.LoadTo(nil, store, &people)
+	err = sch.LoadTo(nil, store, &people)
 	checkErr(err)
 	fmt.Printf("people: %+v\n", people)
 
@@ -104,7 +105,7 @@ func main() {
 	}
 	qw = graph.NewWriter(store)
 	for _, c := range coords {
-		id, err = schema.WriteAsQuads(qw, c)
+		id, err = sch.WriteAsQuads(qw, c)
 		checkErr(err)
 		fmt.Println("generated id:", id)
 	}
@@ -113,7 +114,7 @@ func main() {
 
 	// Get coords back
 	var newCoords []Coords
-	err = schema.LoadTo(nil, store, &newCoords)
+	err = sch.LoadTo(nil, store, &newCoords)
 	checkErr(err)
 	fmt.Printf("coords: %+v\n", newCoords)
 

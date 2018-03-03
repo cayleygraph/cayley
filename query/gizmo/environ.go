@@ -27,7 +27,6 @@ import (
 	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/cayley/voc"
 )
 
@@ -58,7 +57,7 @@ func (g *graphObject) AddDefaultNamespaces() {
 
 // LoadNamespaces loads all namespaces saved to graph.
 func (g *graphObject) LoadNamespaces() error {
-	return schema.LoadNamespaces(g.s.ctx, g.s.qs, &g.s.ns)
+	return g.s.sch.LoadNamespaces(g.s.ctx, g.s.qs, &g.s.ns)
 }
 
 // V is a shorthand for Vertex.

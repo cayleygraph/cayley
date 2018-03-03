@@ -26,6 +26,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/cayley/voc"
 )
 
@@ -49,6 +50,7 @@ func init() {
 func NewSession(qs graph.QuadStore) *Session {
 	s := &Session{
 		ctx: context.Background(),
+		sch: schema.NewConfig(),
 		qs:  qs, limit: -1,
 	}
 	if err := s.buildEnv(); err != nil {
@@ -58,9 +60,10 @@ func NewSession(qs graph.QuadStore) *Session {
 }
 
 type Session struct {
-	qs graph.QuadStore
-	vm *goja.Runtime
-	ns voc.Namespaces
+	qs  graph.QuadStore
+	vm  *goja.Runtime
+	ns  voc.Namespaces
+	sch *schema.Config
 
 	last string
 	p    *goja.Program
