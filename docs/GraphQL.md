@@ -234,3 +234,47 @@ To expand all properties of an object, `*` can be used instead of property name:
   }
 }
 ```
+
+### Un-nest objects
+
+The following query will return objects with `{id: x, status: {name: y}}` structure:
+
+```graphql
+{
+  nodes{
+    id
+    status {
+      name
+    }
+  }
+}
+```
+
+It is possible to un-nest `status` field object into parent:
+
+```graphql
+{
+  nodes{
+    id
+    status @unnest {
+      status: name
+    }
+  }
+}
+```
+
+Resulted objects will have a flat structure: `{id: x, status: y}`.
+
+Arrays fields cannot be un-nested. You can still un-nest such fields by
+providing a limit directive (will select the first value from array):
+
+```graphql
+{
+  nodes{
+    id
+    statuses(first: 1) @unnest {
+      status: name
+    }
+  }
+}
+```

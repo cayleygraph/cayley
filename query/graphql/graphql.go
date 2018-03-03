@@ -117,13 +117,14 @@ type field struct {
 	Has       []has
 	Fields    []field
 	AllFields bool // fetch all fields
+	UnNest    bool // all fields will be saved to parent object
 }
 
 func (f field) isSave() bool { return len(f.Has)+len(f.Fields) == 0 && !f.AllFields }
 
 type object struct {
 	id     graph.Value
-	fields map[string][]graph.Value
+	fields map[string]interface{}
 }
 
 func buildIterator(qs graph.QuadStore, p *path.Path) graph.Iterator {
@@ -221,7 +222,11 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 		}
 		return out, it.Err()
 	}
+	unnest := make(map[string]bool)
 	for _, f2 := range f.Fields {
+		if f2.UnNest {
+			unnest[f2.Alias] = true
+		}
 		if !f2.isSave() {
 			continue
 		}
@@ -251,7 +256,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 	}
 	tail()
 
-	// load object ids and flat keys
+	// first, collect result node ids and any tags associated with it (flat values)
 	it := buildIterator(qs, p)
 	defer it.Close()
 
@@ -265,14 +270,12 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 		if !it.Next(ctx) {
 			break
 		}
+		fields := make(map[string][]graph.Value)
+
 		tags := make(map[string]graph.Value)
 		it.TagResults(tags)
-		obj := object{id: it.Result()}
-		if len(tags) > 0 {
-			obj.fields = make(map[string][]graph.Value)
-		}
 		for k, v := range tags {
-			obj.fields[k] = []graph.Value{v}
+			fields[k] = []graph.Value{v}
 		}
 		for it.NextPath(ctx) {
 			select {
@@ -280,17 +283,32 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 				return out, ctx.Err()
 			default:
 			}
-			tags := make(map[string]graph.Value)
+			tags = make(map[string]graph.Value)
 			it.TagResults(tags)
 		dedup:
 			for k, v := range tags {
-				vals := obj.fields[k]
+				vals := fields[k]
 				for _, v2 := range vals {
 					if graph.ToKey(v) == graph.ToKey(v2) {
 						continue dedup
 					}
 				}
-				obj.fields[k] = append(vals, v)
+				fields[k] = append(vals, v)
+			}
+		}
+		obj := object{id: it.Result()}
+		if len(fields) > 0 {
+			obj.fields = make(map[string]interface{}, len(fields))
+			for k, arr := range fields {
+				vals, err := graph.ValuesOf(ctx, qs, arr)
+				if err != nil {
+					return nil, err
+				}
+				if len(vals) == 1 {
+					obj.fields[k] = vals[0]
+				} else {
+					obj.fields[k] = vals
+				}
 			}
 		}
 		results = append(results, obj)
@@ -299,24 +317,17 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 		return out, err
 	}
 
-	// load values and complex keys
+	// next, load complex objects inside fields
 	for _, r := range results {
-		obj := make(map[string]interface{})
-		for k, arr := range r.fields {
-			vals, err := graph.ValuesOf(ctx, qs, arr)
-			if err != nil {
-				return nil, err
-			}
-			if len(vals) == 1 {
-				obj[k] = vals[0]
-			} else {
-				obj[k] = vals
-			}
+		obj := r.fields
+		if obj == nil {
+			obj = make(map[string]interface{})
 		}
 		for _, f2 := range f.Fields {
 			if f2.isSave() {
-				continue
+				continue // skip flat values
 			}
+			// start from saved id for a field node
 			p2 := path.StartPathNodes(qs, r.id)
 			if len(f2.Labels) != 0 {
 				p2 = p2.LabelContext(f2.Labels)
@@ -333,13 +344,23 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			if err != nil {
 				return out, err
 			}
-			var v interface{}
-			if len(arr) == 1 {
-				v = arr[0]
-			} else if len(arr) > 1 {
-				v = arr
+			if f2.UnNest {
+				if len(arr) > 1 {
+					return nil, fmt.Errorf("cannot unnest more than one object on %q; use (%s: 1) to force",
+						f2.Alias, LimitKey)
+				}
+				for k, v := range arr[0] {
+					obj[k] = v
+				}
+			} else {
+				var v interface{}
+				if len(arr) == 1 {
+					v = arr[0]
+				} else if len(arr) > 1 {
+					v = arr
+				}
+				obj[f2.Alias] = v
 			}
-			obj[f2.Alias] = v
 		}
 		out = append(out, obj)
 	}
@@ -494,6 +515,8 @@ func convField(fld *ast.Field, labels []quad.Value) (out field, err error) {
 			out.Opt = true
 		case "label":
 			// already processed
+		case "unnest":
+			out.UnNest = true
 		default:
 			return out, fmt.Errorf("unknown directive: %q", d.Name.Value)
 		}
