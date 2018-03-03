@@ -38,7 +38,7 @@ var casesParse = []struct {
 		sname @label
 	}
 	isViewerFriend,
-		profilePicture(size: 50) {
+		profilePicture(size: 50) @unnest {
 			 uri,
 			 width @opt,
 			 height @rev
@@ -75,6 +75,7 @@ var casesParse = []struct {
 						{Via: "width", Alias: "width", Opt: true},
 						{Via: "height", Alias: "height", Rev: true},
 					},
+					UnNest: true,
 				},
 				{Via: "sub", Alias: "sub", AllFields: true},
 			},
@@ -216,6 +217,32 @@ var casesExecute = []struct {
 					"id":      quad.IRI("greg"),
 					"status":  quad.String("smart_person"),
 					"follows": nil,
+				},
+			},
+		},
+	},
+	{
+		"unnest object",
+		`{
+  me(id: fred) {
+    id: ` + ValueKey + `
+    follows @unnest {
+      friend: ` + ValueKey + `
+      friend_status: status
+      followed: follows(` + LimitKey + `: 1) @rev @unnest  {
+        fof: ` + ValueKey + `
+      }
+    }
+  }
+}`,
+		map[string]interface{}{
+			"me": map[string]interface{}{
+				"id":     quad.IRI("fred"),
+				"fof":    quad.IRI("dani"),
+				"friend": quad.IRI("greg"),
+				"friend_status": []quad.Value{
+					quad.String("cool_person"),
+					quad.String("smart_person"),
 				},
 			},
 		},
