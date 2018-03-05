@@ -64,10 +64,6 @@ func (it *Fixed) Close() error {
 
 func (it *Fixed) TagResults(dst map[string]graph.Value) {}
 
-func (it *Fixed) Clone() graph.Iterator {
-	return NewFixed(it.values...)
-}
-
 // Add a value to the iterator. The array now contains this value.
 // TODO(barakmich): This ought to be a set someday, disallowing repeated values.
 func (it *Fixed) Add(v graph.Value) {

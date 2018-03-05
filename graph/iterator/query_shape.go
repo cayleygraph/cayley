@@ -15,8 +15,6 @@
 package iterator
 
 import (
-	"context"
-
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -51,7 +49,7 @@ func OutputQueryShapeForIterator(it graph.Iterator, qs graph.Namer, outputMap ma
 		nodeID: 1,
 	}
 
-	node := s.MakeNode(it.Clone())
+	node := s.MakeNode(it)
 	s.AddNode(node)
 	outputMap["nodes"] = s.nodes
 	outputMap["links"] = s.links
@@ -125,7 +123,7 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		}
 	}
 
-	switch it.(type) {
+	switch it := it.(type) {
 	case *And:
 		for _, sub := range it.SubIterators() {
 			s.nodeID++
@@ -139,11 +137,11 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		}
 	case *Fixed:
 		n.IsFixed = true
-		for it.Next(context.TODO()) {
-			n.Values = append(n.Values, s.qs.NameOf(it.Result()).String())
+		for _, v := range it.Values() {
+			n.Values = append(n.Values, s.qs.NameOf(v).String())
 		}
 	case *HasA:
-		hasa := it.(*HasA)
+		hasa := it
 		s.PushHasa(n.ID, hasa.dir)
 		s.nodeID++
 		newNode := s.MakeNode(hasa.primaryIt)
@@ -162,7 +160,7 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		}
 	case *LinksTo:
 		n.IsLinkNode = true
-		lto := it.(*LinksTo)
+		lto := it
 		s.nodeID++
 		newNode := s.MakeNode(lto.primaryIt)
 		hasaID, hasaDir := s.LastHasa()

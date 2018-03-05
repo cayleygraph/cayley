@@ -93,19 +93,6 @@ func (it *Materialize) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Materialize) Clone() graph.Iterator {
-	out := NewMaterialize(it.subIt.Clone())
-	if it.hasRun {
-		out.hasRun = true
-		out.aborted = it.aborted
-		out.err = it.err
-		out.values = it.values
-		out.containsMap = it.containsMap
-		out.actualSize = it.actualSize
-	}
-	return out
-}
-
 func (it *Materialize) String() string {
 	return "Materialize"
 }

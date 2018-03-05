@@ -74,17 +74,6 @@ func (it *Resolver) Tagger() *graph.Tagger {
 
 func (it *Resolver) TagResults(dst map[string]graph.Value) {}
 
-func (it *Resolver) Clone() graph.Iterator {
-	out := NewResolver(it.qs, it.order...)
-	// Nodes and values maps should contain identical data, so
-	// just iterate through one
-	for node, value := range it.values {
-		out.values[node] = value
-		out.nodes[value.Key()] = node
-	}
-	return out
-}
-
 func (it *Resolver) String() string {
 	return fmt.Sprintf("Resolver(%v)", it.order)
 }

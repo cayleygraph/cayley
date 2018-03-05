@@ -92,9 +92,6 @@ type Iterator interface {
 	// Start iteration from the beginning
 	Reset()
 
-	// Create a new iterator just like this one
-	Clone() Iterator
-
 	// These methods relate to choosing the right iterator, or optimizing an
 	// iterator tree
 	//
@@ -116,6 +113,8 @@ type Iterator interface {
 
 	// Return a slice of the subiterators for this iterator.
 	SubIterators() []Iterator
+
+	// TODO: make a requirement that Err should return ErrClosed after Close is called
 
 	// Close the iterator and do internal cleanup.
 	Close() error

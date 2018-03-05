@@ -64,8 +64,6 @@ func (it *Null) Contains(ctx context.Context, v graph.Value) bool {
 	return false
 }
 
-func (it *Null) Clone() graph.Iterator { return NewNull() }
-
 // A good iterator will close itself when it returns true.
 // Null has nothing it needs to do.
 func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
@@ -129,8 +127,6 @@ func (it *Error) TagResults(dst map[string]graph.Value) {}
 func (it *Error) Contains(ctx context.Context, v graph.Value) bool {
 	return false
 }
-
-func (it *Error) Clone() graph.Iterator { return NewError(it.err) }
 
 func (it *Error) Optimize() (graph.Iterator, bool) { return it, false }
 

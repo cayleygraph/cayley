@@ -98,12 +98,6 @@ func (it *Recursive) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Recursive) Clone() graph.Iterator {
-	n := NewRecursive(it.subIt.Clone(), it.morphism, it.maxDepth)
-	n.depthTags = append([]string{}, n.depthTags...)
-	return n
-}
-
 func (it *Recursive) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.subIt}
 }

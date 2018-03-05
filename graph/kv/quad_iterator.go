@@ -73,13 +73,6 @@ func (it *QuadIterator) Reset() {
 
 func (it *QuadIterator) TagResults(dst map[string]graph.Value) {}
 
-func (it *QuadIterator) Clone() graph.Iterator {
-	out := NewQuadIterator(it.qs, it.ind, it.vals)
-	out.ids = it.ids
-	out.horizon = it.horizon
-	return out
-}
-
 func (it *QuadIterator) Close() error {
 	if it.it != nil {
 		if err := it.it.Close(); err != nil && it.err == nil {

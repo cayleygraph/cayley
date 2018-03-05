@@ -77,12 +77,6 @@ func (it *LinksTo) Reset() {
 	it.nextIt = &Null{}
 }
 
-func (it *LinksTo) Clone() graph.Iterator {
-	out := NewLinksTo(it.qs, it.primaryIt.Clone(), it.dir)
-	out.runstats.Size, out.runstats.ExactSize = it.runstats.Size, it.runstats.ExactSize
-	return out
-}
-
 // Return the direction under consideration.
 func (it *LinksTo) Direction() quad.Direction { return it.dir }
 

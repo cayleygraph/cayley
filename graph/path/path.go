@@ -519,14 +519,14 @@ func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.Iterator {
 // iterator matched by the current Path.
 func (p *Path) Morphism() graph.ApplyMorphism {
 	return func(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
-		return p.ShapeFrom(iteratorShape{it}).BuildIterator(qs)
+		return p.ShapeFrom(&iteratorShape{it: it}).BuildIterator(qs)
 	}
 }
 
 // MorphismFor is the same as Morphism but binds returned function to a specific QuadStore.
 func (p *Path) MorphismFor(qs graph.QuadStore) iterator.Morphism {
 	return func(it graph.Iterator) graph.Iterator {
-		return p.ShapeFrom(iteratorShape{it}).BuildIterator(qs)
+		return p.ShapeFrom(&iteratorShape{it: it}).BuildIterator(qs)
 	}
 }
 

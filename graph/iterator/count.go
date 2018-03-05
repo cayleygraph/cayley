@@ -40,10 +40,6 @@ func (it *Count) Reset() {
 
 func (it *Count) TagResults(dst map[string]graph.Value) {}
 
-func (it *Count) Clone() graph.Iterator {
-	return NewCount(it.it.Clone(), it.qs)
-}
-
 // SubIterators returns a slice of the sub iterators.
 func (it *Count) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.it}

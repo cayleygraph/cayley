@@ -85,10 +85,6 @@ func (it *HasA) Reset() {
 	}
 }
 
-func (it *HasA) Clone() graph.Iterator {
-	return NewHasA(it.qs, it.primaryIt.Clone(), it.dir)
-}
-
 // Direction accessor.
 func (it *HasA) Direction() quad.Direction { return it.dir }
 

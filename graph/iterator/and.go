@@ -83,21 +83,6 @@ func (it *And) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *And) Clone() graph.Iterator {
-	and := NewAnd()
-	and.AddSubIterator(it.primary.Clone())
-	for _, sub := range it.sub {
-		and.AddSubIterator(sub.Clone())
-	}
-	for _, sub := range it.opt {
-		and.AddOptionalIterator(sub.Clone())
-	}
-	if it.checkList != nil {
-		and.optimizeContains()
-	}
-	return and
-}
-
 // subIterators is like SubIterators but excludes optional.
 func (it *And) subIterators() []graph.Iterator {
 	iters := make([]graph.Iterator, 0, 1+len(it.sub))

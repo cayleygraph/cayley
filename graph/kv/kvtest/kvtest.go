@@ -96,7 +96,9 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("F")}},
 	})
 
-	oldIt := lto.Clone()
+	oldIt := shape.BuildIterator(qs, shape.Quads{
+		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("F")}},
+	})
 	newIt, ok := lto.Optimize()
 	if ok {
 		t.Errorf("unexpected optimization step")

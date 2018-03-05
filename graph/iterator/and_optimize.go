@@ -44,16 +44,16 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	// First, let's get the slice of iterators, in order (first one is Next()ed,
 	// the rest are Contains()ed)
 	old := it.subIterators()
+	if len(old) == 0 {
+		it.Close()
+		return NewNull(), true
+	}
 
 	// And call Optimize() on our subtree, replacing each one in the order we
 	// found them. it_list is the newly optimized versions of these, and changed
 	// is another list, of only the ones that have returned replacements and
 	// changed.
 	its := optimizeSubIterators(old)
-
-	// Close the replaced iterators (they ought to close themselves, but Close()
-	// is idempotent, so this just protects against any machinations).
-	closeIteratorList(old, nil)
 
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
@@ -81,7 +81,6 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 		newAnd.AddSubIterator(sub)
 	}
 	opt := optimizeSubIterators(it.opt)
-	closeIteratorList(it.opt, nil)
 	for _, sub := range opt {
 		newAnd.AddOptionalIterator(sub)
 	}
@@ -206,10 +205,7 @@ func (it *And) optimizeContains() {
 func optimizeSubIterators(its []graph.Iterator) []graph.Iterator {
 	out := make([]graph.Iterator, 0, len(its))
 	for _, it := range its {
-		o, changed := it.Optimize()
-		if !changed {
-			o = it.Clone()
-		}
+		o, _ := it.Optimize()
 		out = append(out, o)
 	}
 	return out

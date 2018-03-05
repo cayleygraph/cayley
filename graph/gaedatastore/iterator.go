@@ -174,16 +174,6 @@ func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 
 func (it *Iterator) TagResults(dst map[string]graph.Value) {}
 
-func (it *Iterator) Clone() graph.Iterator {
-	if it.isAll {
-		return NewAllIterator(it.qs, it.kind)
-	}
-
-	// Create a token, the tokens kind is ignored in creation of the iterator
-	t := &Token{nodeKind, it.hash}
-	return NewIterator(it.qs, it.kind, it.dir, t)
-}
-
 func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }

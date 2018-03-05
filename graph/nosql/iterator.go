@@ -102,16 +102,6 @@ func (it *Iterator) Close() error {
 
 func (it *Iterator) TagResults(dst map[string]graph.Value) {}
 
-func (it *Iterator) Clone() graph.Iterator {
-	var m *Iterator
-	if len(it.links) == 0 {
-		m = NewIterator(it.qs, it.collection, it.constraint...)
-	} else {
-		m = NewLinksToIterator(it.qs, it.collection, it.links)
-	}
-	return m
-}
-
 func (it *Iterator) Next(ctx context.Context) bool {
 	if it.iter == nil {
 		it.iter = it.makeIterator()

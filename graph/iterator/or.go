@@ -71,19 +71,6 @@ func (it *Or) Reset() {
 	it.currentIterator = -1
 }
 
-func (it *Or) Clone() graph.Iterator {
-	var or *Or
-	if it.isShortCircuiting {
-		or = NewShortCircuitOr()
-	} else {
-		or = NewOr()
-	}
-	for _, sub := range it.internalIterators {
-		or.AddSubIterator(sub.Clone())
-	}
-	return or
-}
-
 // Returns a list.List of the subiterators, in order. The returned slice must not be modified.
 func (it *Or) SubIterators() []graph.Iterator {
 	return it.internalIterators
@@ -248,9 +235,6 @@ func (it *Or) Close() error {
 func (it *Or) Optimize() (graph.Iterator, bool) {
 	old := it.SubIterators()
 	optIts := optimizeSubIterators(old)
-	// Close the replaced iterators (they ought to close themselves, but Close()
-	// is idempotent, so this just protects against any machinations).
-	closeIteratorList(old, nil)
 	newOr := NewOr()
 	newOr.isShortCircuiting = it.isShortCircuiting
 

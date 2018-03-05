@@ -228,13 +228,19 @@ func savePredicatesMorphism(isIn bool, tag string) morphism {
 }
 
 type iteratorShape struct {
-	it graph.Iterator
+	it   graph.Iterator
+	sent bool
 }
 
-func (s iteratorShape) BuildIterator(qs graph.QuadStore) graph.Iterator {
-	return s.it.Clone()
+func (s *iteratorShape) BuildIterator(qs graph.QuadStore) graph.Iterator {
+	if s.sent {
+		return iterator.NewError(fmt.Errorf("iterator already used in query"))
+	}
+	it := s.it
+	s.it, s.sent = nil, true
+	return it
 }
-func (s iteratorShape) Optimize(r shape.Optimizer) (shape.Shape, bool) {
+func (s *iteratorShape) Optimize(r shape.Optimizer) (shape.Shape, bool) {
 	return s, false
 }
 
@@ -243,7 +249,7 @@ func iteratorMorphism(it graph.Iterator) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return iteratorMorphism(it), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return join(iteratorShape{it}, in), ctx
+			return join(&iteratorShape{it: it}, in), ctx
 		},
 	}
 }

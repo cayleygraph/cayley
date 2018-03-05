@@ -171,15 +171,6 @@ func TestLinksToOptimization(t *testing.T) {
 	if _, ok := newIt.(*Iterator); !ok {
 		t.Fatal("Didn't swap out to LLRB")
 	}
-
-	v := newIt.(*Iterator)
-	vClone := v.Clone()
-	origDesc := graph.DescribeIterator(v)
-	cloneDesc := graph.DescribeIterator(vClone)
-	origDesc.UID, cloneDesc.UID = 0, 0 // We are more strict now, so fake UID equality.
-	if !reflect.DeepEqual(cloneDesc, origDesc) {
-		t.Fatalf("Unexpected iterator description.\ngot: %#v\nexpect: %#v", cloneDesc, origDesc)
-	}
 }
 
 func TestRemoveQuad(t *testing.T) {

@@ -77,10 +77,6 @@ func (it *Int64) Close() error {
 	return nil
 }
 
-func (it *Int64) Clone() graph.Iterator {
-	return NewInt64(it.min, it.max, it.node)
-}
-
 func (it *Int64) TagResults(dst map[string]graph.Value) {}
 
 func (it *Int64) String() string {

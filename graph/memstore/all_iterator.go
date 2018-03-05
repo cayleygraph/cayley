@@ -44,10 +44,6 @@ func newAllIterator(qs *QuadStore, nodes bool, maxid int64) *AllIterator {
 	}
 }
 
-func (it *AllIterator) Clone() graph.Iterator {
-	return newAllIterator(it.qs, it.nodes, it.maxid)
-}
-
 func (it *AllIterator) Reset() {
 	it.i = -1
 	it.cur = nil

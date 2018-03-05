@@ -227,10 +227,6 @@ func (it *Iterator) Reset() {
 	}
 }
 
-func (it *Iterator) Clone() graph.Iterator {
-	return it.qs.NewIterator(it.query)
-}
-
 func (it *Iterator) Stats() graph.IteratorStats {
 	sz, exact := it.Size()
 	return graph.IteratorStats{

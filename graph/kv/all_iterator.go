@@ -65,10 +65,6 @@ func (it *AllIterator) Reset() {
 
 func (it *AllIterator) TagResults(dst map[string]graph.Value) {}
 
-func (it *AllIterator) Clone() graph.Iterator {
-	return NewAllIterator(it.nodes, it.qs, it.cons)
-}
-
 func (it *AllIterator) Close() error {
 	return nil
 }

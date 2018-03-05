@@ -40,10 +40,6 @@ func (it *Limit) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }
 
-func (it *Limit) Clone() graph.Iterator {
-	return NewLimit(it.primaryIt.Clone(), it.limit)
-}
-
 // SubIterators returns a slice of the sub iterators.
 func (it *Limit) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.primaryIt}

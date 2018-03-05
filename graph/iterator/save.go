@@ -111,12 +111,6 @@ func (it *Save) Reset() {
 	it.it.Reset()
 }
 
-func (it *Save) Clone() graph.Iterator {
-	s := NewSave(it.it.Clone())
-	s.CopyFromTagger(it)
-	return s
-}
-
 func (it *Save) Stats() graph.IteratorStats {
 	return it.it.Stats()
 }
@@ -128,15 +122,9 @@ func (it *Save) Size() (int64, bool) {
 func (it *Save) Optimize() (nit graph.Iterator, no bool) {
 	sub, ok := it.it.Optimize()
 	if len(it.tags) == 0 && len(it.fixedTags) == 0 {
-		if !ok {
-			sub = sub.Clone()
-		}
 		return sub, true
 	}
 	if st, ok2 := sub.(graph.Tagger); ok2 {
-		if !ok {
-			st = st.Clone().(graph.Tagger)
-		}
 		st.CopyFromTagger(it)
 		return st, true
 	}

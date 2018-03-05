@@ -66,10 +66,6 @@ func (it *ValueFilter) Reset() {
 	it.result = nil
 }
 
-func (it *ValueFilter) Clone() graph.Iterator {
-	return NewValueFilter(it.qs, it.sub.Clone(), it.filter)
-}
-
 func (it *ValueFilter) Next(ctx context.Context) bool {
 	for it.sub.Next(ctx) {
 		val := it.sub.Result()

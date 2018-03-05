@@ -43,10 +43,6 @@ func (it *Unique) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Unique) Clone() graph.Iterator {
-	return NewUnique(it.subIt.Clone())
-}
-
 // SubIterators returns a slice of the sub iterators. The first iterator is the
 // primary iterator, for which the complement is generated.
 func (it *Unique) SubIterators() []graph.Iterator {

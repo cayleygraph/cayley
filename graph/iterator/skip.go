@@ -39,10 +39,6 @@ func (it *Skip) TagResults(dst map[string]graph.Value) {
 	it.primaryIt.TagResults(dst)
 }
 
-func (it *Skip) Clone() graph.Iterator {
-	return NewSkip(it.primaryIt.Clone(), it.skip)
-}
-
 // SubIterators returns a slice of the sub iterators.
 func (it *Skip) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.primaryIt}

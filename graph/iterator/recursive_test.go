@@ -31,7 +31,7 @@ func singleHop(qs graph.QuadIndexer, pred string) Morphism {
 		fixed := NewFixed()
 		fixed.Add(graph.PreFetched(quad.Raw(pred)))
 		predlto := NewLinksTo(qs, fixed, quad.Predicate)
-		lto := NewLinksTo(qs, it.Clone(), quad.Subject)
+		lto := NewLinksTo(qs, it, quad.Subject)
 		and := NewAnd()
 		and.AddSubIterator(lto)
 		and.AddSubIterator(predlto)

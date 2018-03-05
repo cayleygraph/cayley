@@ -44,10 +44,6 @@ func (it *Not) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Not) Clone() graph.Iterator {
-	return NewNot(it.primaryIt.Clone(), it.allIt.Clone())
-}
-
 // SubIterators returns a slice of the sub iterators.
 // The first iterator is the primary iterator, for which the complement
 // is generated.
