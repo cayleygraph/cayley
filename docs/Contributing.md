@@ -5,15 +5,23 @@ Join our community on [discourse.cayley.io](https://discourse.cayley.io) or othe
 # Simply building Cayley
 
 ```
+# setup GOPATH
 mkdir -p ~/cayley && cd ~/cayley
 export GOPATH=`pwd`
 export PATH=$PATH:~/cayley/bin
-mkdir -p bin pkg src/github.com/cayleygraph
+mkdir -p bin pkg
+
+# clone project
+mkdir -p src/github.com/cayleygraph
 cd src/github.com/cayleygraph
 git clone https://github.com/cayleygraph/cayley
 cd cayley
-curl https://glide.sh/get | sh
-glide install
+
+# download dependencies
+curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+dep ensure --vendor-only
+
+# build the binary
 go build ./cmd/cayley
 ```
 
@@ -60,8 +68,8 @@ With that in place, that folder will reflect your local fork, be able to take ch
 For iterating, it can be helpful to, from the directory, run
 
 ```
-curl https://glide.sh/get | sh
-glide install
+curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+dep ensure --vendor-only
 go build ./cmd/cayley && ./cayley <subcommand> <your options>
 ```
 
