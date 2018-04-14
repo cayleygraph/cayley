@@ -437,7 +437,7 @@ func (p *pathObject) has(call goja.FunctionCall, rev bool) goja.Value {
 	}
 	return p.newVal(np)
 }
-func (p *pathObject) save(call goja.FunctionCall, rev bool) goja.Value {
+func (p *pathObject) save(call goja.FunctionCall, rev, opt bool) goja.Value {
 	args := exportArgs(call.Arguments)
 	if len(args) > 2 || len(args) == 0 {
 		return throwErr(p.s.vm, errArgCount{Got: len(args)})
@@ -461,10 +461,18 @@ func (p *pathObject) save(call goja.FunctionCall, rev bool) goja.Value {
 		}
 	}
 	np := p.clonePath()
-	if rev {
-		np = np.SaveReverse(via, tag)
+	if opt {
+		if rev {
+			np = np.SaveOptionalReverse(via, tag)
+		} else {
+			np = np.SaveOptional(via, tag)
+		}
 	} else {
-		np = np.Save(via, tag)
+		if rev {
+			np = np.SaveReverse(via, tag)
+		} else {
+			np = np.Save(via, tag)
+		}
 	}
 	return p.newVal(np)
 }
@@ -486,12 +494,22 @@ func (p *pathObject) save(call goja.FunctionCall, rev bool) goja.Value {
 //	//   {"id" : "<dani>", "target": "<greg>" }
 //	g.V("<dani>", "<bob>").Save("<follows>", "target").All()
 func (p *pathObject) Save(call goja.FunctionCall) goja.Value {
-	return p.save(call, false)
+	return p.save(call, false, false)
 }
 
 // SaveR is the same as Save, but tags values via reverse predicate.
 func (p *pathObject) SaveR(call goja.FunctionCall) goja.Value {
-	return p.save(call, true)
+	return p.save(call, true, false)
+}
+
+// SaveOpt is the same as Save, but returns empty tags if predicate does not exists.
+func (p *pathObject) SaveOpt(call goja.FunctionCall) goja.Value {
+	return p.save(call, false, true)
+}
+
+// SaveOptR is the same as SaveOpt, but tags values via reverse predicate.
+func (p *pathObject) SaveOptR(call goja.FunctionCall) goja.Value {
+	return p.save(call, true, true)
 }
 
 // Except removes all paths which match query from current path.

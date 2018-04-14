@@ -382,6 +382,14 @@ var testQueries = []struct {
 		expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
 	},
 	{
+		message: "show a simple save optional",
+		query: `
+			g.V("<bob>","<charlie>").Out("<follows>").SaveOpt("<status>", "somecool").All()
+		`,
+		tag:    "somecool",
+		expect: []string{"cool_person", "cool_person"},
+	},
+	{
 		message: "show a simple saveR",
 		query: `
 			g.V("cool_person").SaveR("<status>", "who").All()
