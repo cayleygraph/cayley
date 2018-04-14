@@ -513,6 +513,16 @@ g.V("<bob>").SaveInPredicates("pred").All()
 ```
 
 
+### `path.SaveOpt(*)`
+
+SaveOpt is the same as Save, but returns empty tags if predicate does not exists.
+
+
+### `path.SaveOptR(*)`
+
+SaveOptR is the same as SaveOpt, but tags values via reverse predicate.
+
+
 ### `path.SaveOutPredicates(tag)`
 
 SaveOutPredicates tags the list of predicates that are pointing out from a node.
