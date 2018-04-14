@@ -9,9 +9,8 @@ go:
 install:
   # Install our tracked dependencies
   - go get -t ./...
-  - curl -L https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-linux-amd64.tar.gz -o /tmp/glide.tar.gz
-  - mkdir ../glide && cd ../glide && tar -xzf /tmp/glide.tar.gz && export PATH=$PATH:$PWD/linux-amd64/ && cd ../cayley
-  - glide install
+  - mkdir ../dep && curl -L https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o ../dep/dep && chmod +x ../dep/dep && export PATH=$PATH:$PWD/../dep/
+  - dep ensure --vendor-only
 
   # Google App Engine dependencies
   #  - cd ..

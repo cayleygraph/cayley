@@ -4,9 +4,9 @@ FROM golang:1.9 as builder
 WORKDIR /go/src/github.com/cayleygraph/cayley
 
 # Restore vendored dependencies
-RUN sh -c "curl https://glide.sh/get | sh"
-COPY glide.* ./
-RUN glide install
+RUN curl https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o /usr/local/bin/dep && \
+    chmod +x /usr/local/bin/dep
+RUN dep ensure --vendor-only
 
 # This will be used to init cayley and as config file in the final image.
 # Make sure you start every path with %PREFIX% to make it available in both 
