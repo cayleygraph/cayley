@@ -1,4 +1,4 @@
-FROM golang:1.9 as builder
+FROM golang:1.10 as builder
 
 # Set up workdir
 WORKDIR /go/src/github.com/cayleygraph/cayley

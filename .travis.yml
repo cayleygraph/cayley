@@ -4,6 +4,7 @@ sudo: false
 
 go:
   - 1.9
+  - "1.10"
   - tip
 
 install:
