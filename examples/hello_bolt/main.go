@@ -15,18 +15,21 @@ import (
 
 func main() {
 	// File for your new BoltDB. Use path to regular file and not temporary in the real world
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpdir, err := ioutil.TempDir("", "example")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer os.Remove(tmpfile.Name()) // clean up
+	defer os.RemoveAll(tmpdir) // clean up
 
 	// Initialize the database
-	graph.InitQuadStore("bolt", tmpfile.Name(), nil)
+	err = graph.InitQuadStore("bolt", tmpdir, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Open and use the database
-	store, err := cayley.NewGraph("bolt", tmpfile.Name(), nil)
+	store, err := cayley.NewGraph("bolt", tmpdir, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
