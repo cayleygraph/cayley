@@ -6,6 +6,7 @@ WORKDIR /go/src/github.com/cayleygraph/cayley
 # Restore vendored dependencies
 RUN curl -L https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o /usr/local/bin/dep && \
     chmod +x /usr/local/bin/dep
+COPY Gopkg.toml Gopkg.lock ./
 RUN dep ensure --vendor-only
 
 # This will be used to init cayley and as config file in the final image.
