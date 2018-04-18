@@ -4,7 +4,7 @@ FROM golang:1.10 as builder
 WORKDIR /go/src/github.com/cayleygraph/cayley
 
 # Restore vendored dependencies
-RUN curl https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o /usr/local/bin/dep && \
+RUN curl -L https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o /usr/local/bin/dep && \
     chmod +x /usr/local/bin/dep
 RUN dep ensure --vendor-only
 
