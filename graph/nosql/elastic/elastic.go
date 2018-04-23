@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,14 @@ func dialDB(addr string, opt graph.Options) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	vers, err := client.ElasticsearchVersion(addr)
+	if err != nil {
+		return nil, err
+	}
+	major, err := strconv.Atoi(strings.SplitN(vers, ".", 2)[0])
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse version: %v", err)
+	}
 	ind, err := opt.StringKey("index", nosql.DefaultDBName)
 	if err != nil {
 		return nil, err
@@ -55,10 +64,14 @@ func dialDB(addr string, opt graph.Options) (*DB, error) {
 	case string:
 		settings = o
 	}
-	return &DB{
-		cli: client, ind: ind, indSettings: json.RawMessage(settings),
+	db := &DB{
+		cli:   client,
 		colls: make(map[string]collection),
-	}, nil
+	}
+	db.ind.one = major <= 5
+	db.ind.pref = ind
+	db.ind.settings = json.RawMessage(settings)
+	return db, nil
 }
 
 func Create(addr string, opt graph.Options) (nosql.Database, error) {
@@ -77,14 +90,23 @@ type collection struct {
 }
 
 type DB struct {
-	cli         *elastic.Client
-	ind         string
-	indSettings json.RawMessage
-	colls       map[string]collection
+	cli *elastic.Client
+	ind struct {
+		one      bool // use one index for all types (<= v5)
+		pref     string
+		settings json.RawMessage
+	}
+	colls map[string]collection
 }
 
 func (db *DB) Close() error {
-	db.cli.CloseIndex(db.ind)
+	if db.ind.one {
+		db.cli.CloseIndex(db.ind.pref)
+		return nil
+	}
+	for col := range db.colls {
+		db.cli.CloseIndex(db.indexName(col))
+	}
 	return nil
 }
 
@@ -98,20 +120,28 @@ type property struct {
 	Type indType `json:"type"`
 }
 
+func (db *DB) indexName(col string) string {
+	if db.ind.one {
+		return db.ind.pref
+	}
+	return db.ind.pref + "_" + col
+}
 func (db *DB) EnsureIndex(ctx context.Context, typ string, primary nosql.Index, secondary []nosql.Index) error {
 	if primary.Type != nosql.StringExact {
 		return fmt.Errorf("unsupported type of primary index: %v", primary.Type)
 	}
 	compPK := len(primary.Fields) > 1
 
+	index := db.indexName(typ)
+
 	exists := true
-	conf, err := db.cli.GetMapping().Index(db.ind).Do(ctx)
+	conf, err := db.cli.GetMapping().Index(index).Do(ctx)
 	if e, ok := err.(*elastic.Error); ok && e.Status == 404 {
 		exists = false
 	} else if err != nil {
 		return err
 	}
-	conf, _ = conf[db.ind].(map[string]interface{})
+	conf, _ = conf[index].(map[string]interface{})
 
 	mappings, _ := conf["mappings"].(map[string]interface{})
 	if mappings == nil {
@@ -146,14 +176,14 @@ func (db *DB) EnsureIndex(ctx context.Context, typ string, primary nosql.Index, 
 		conf = make(map[string]interface{})
 	}
 	if _, ok := conf["settings"]; !ok {
-		conf["settings"] = db.indSettings
+		conf["settings"] = db.ind.settings
 	}
 	conf["mappings"] = mappings
 
 	if !exists {
-		_, err = db.cli.CreateIndex(db.ind).BodyJson(conf).Do(ctx)
+		_, err = db.cli.CreateIndex(index).BodyJson(conf).Do(ctx)
 	} else {
-		_, err = db.cli.PutMapping().Index(db.ind).Type(typ).BodyJson(cur).Do(ctx)
+		_, err = db.cli.PutMapping().Index(index).Type(typ).BodyJson(cur).Do(ctx)
 	}
 	if err != nil {
 		return err
@@ -314,18 +344,19 @@ func (db *DB) Insert(ctx context.Context, col string, key nosql.Key, d nosql.Doc
 	if !ok {
 		return nil, fmt.Errorf("collection %q not found", col)
 	}
+	index := db.indexName(col)
 	mid, m := c.convIns(key, d)
-	if _, err := db.cli.Index().Index(db.ind).Type(col).Id(mid).BodyJson(m).Do(ctx); err != nil {
+	if _, err := db.cli.Index().Index(index).Type(col).Id(mid).BodyJson(m).Do(ctx); err != nil {
 		return nil, err
 	}
-	if _, err := db.cli.Flush(db.ind).Do(ctx); err != nil {
+	if _, err := db.cli.Flush(index).Do(ctx); err != nil {
 		return nil, err
 	}
 	return key, nil
 }
 func (db *DB) FindByKey(ctx context.Context, col string, key nosql.Key) (nosql.Document, error) {
 	c := db.colls[col]
-	resp, err := db.cli.Search(db.ind).Type(col).Query(
+	resp, err := db.cli.Search(db.indexName(col)).Type(col).Query(
 		elastic.NewIdsQuery(col).Ids(compKey(key)),
 	).Size(1).Do(ctx)
 	if err != nil {
@@ -338,7 +369,7 @@ func (db *DB) FindByKey(ctx context.Context, col string, key nosql.Key) (nosql.D
 }
 func (db *DB) indexRef(col string) indexRef {
 	c := db.colls[col]
-	return indexRef{cli: db.cli, ind: db.ind, c: &c}
+	return indexRef{cli: db.cli, ind: db.indexName(col), c: &c}
 }
 func (db *DB) Query(col string) nosql.Query {
 	return &Query{indexRef: db.indexRef(col)}
@@ -595,11 +626,7 @@ func (d *Delete) Keys(keys ...nosql.Key) nosql.Delete {
 	return d
 }
 func (d *Delete) Do(ctx context.Context) error {
-	del := d.cli.DeleteByQuery(d.ind).Type(d.c.typ)
-	if !d.qu.IsAll() {
-		del = del.Query(d.qu)
-	}
-	_, err := del.Do(ctx)
+	_, err := d.cli.DeleteByQuery(d.ind).Type(d.c.typ).Query(d.qu).Do(ctx)
 	if err != nil {
 		return err
 	}

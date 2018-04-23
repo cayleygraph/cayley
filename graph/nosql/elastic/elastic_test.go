@@ -11,24 +11,41 @@ import (
 	"github.com/cayleygraph/cayley/internal/dock"
 )
 
-func makeElastic(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
-	var conf dock.Config
+var versions = []struct {
+	Vers   string
+	Legacy bool
+}{
+	{Vers: "6.2.4"},
+	{Vers: "5.6.9", Legacy: true},
+}
 
-	conf.Image = "elasticsearch"
-	conf.OpenStdin = true
-	conf.Tty = true
+func makeElasticVersion(vers string, legacy bool) nosqltest.DatabaseFunc {
+	return func(t testing.TB) (nosql.Database, *nosql.Options, graph.Options, func()) {
+		var conf dock.Config
 
-	addr, closer := dock.RunAndWait(t, conf, "9200", nil)
-	addr = "http://" + addr
+		name := "docker.elastic.co/elasticsearch/elasticsearch-oss"
+		if legacy {
+			name = "elasticsearch"
+		}
+		conf.Image = name + ":" + vers
+		conf.OpenStdin = true
+		conf.Tty = true
 
-	db, err := dialDB(addr, nil)
-	if err != nil {
-		closer()
-		t.Fatal(err)
-	}
-	return db, nil, nil, func() {
-		db.Close()
-		closer()
+		// Running this command might be necessary on the host:
+		// sysctl -w vm.max_map_count=262144
+
+		addr, closer := dock.RunAndWait(t, conf, "9200", nil)
+		addr = "http://" + addr
+
+		db, err := dialDB(addr, nil)
+		if err != nil {
+			closer()
+			t.Fatal(addr, err)
+		}
+		return db, nil, nil, func() {
+			db.Close()
+			closer()
+		}
 	}
 }
 
@@ -37,9 +54,19 @@ var conf = &nosqltest.Config{
 }
 
 func TestElastic(t *testing.T) {
-	nosqltest.TestAll(t, makeElastic, conf)
+	for _, v := range versions {
+		v := v
+		t.Run(v.Vers, func(t *testing.T) {
+			nosqltest.TestAll(t, makeElasticVersion(v.Vers, v.Legacy), conf)
+		})
+	}
 }
 
 func BenchmarkElastic(t *testing.B) {
-	nosqltest.BenchmarkAll(t, makeElastic, conf)
+	for _, v := range versions {
+		v := v
+		t.Run(v.Vers, func(t *testing.B) {
+			nosqltest.BenchmarkAll(t, makeElasticVersion(v.Vers, v.Legacy), conf)
+		})
+	}
 }
