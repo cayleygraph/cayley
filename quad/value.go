@@ -124,8 +124,6 @@ func StringToValue(v string) Value {
 	if len(v) > 2 {
 		if v[0] == '<' && v[len(v)-1] == '>' {
 			return IRI(v[1 : len(v)-1])
-		} else if v[0] == '"' && v[len(v)-1] == '"' {
-			return String(v[1 : len(v)-1])
 		} else if v[:2] == "_:" {
 			return BNode(v[2:])
 		} else if i := strings.Index(v, `"^^<`); i > 0 && v[0] == '"' && v[len(v)-1] == '>' {
@@ -149,6 +147,9 @@ func ToString(v Value) string {
 //
 // Deprecated: use IRI or String instead.
 func Raw(s string) Value {
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		return String(s[1 : len(s)-1])
+	}
 	return StringToValue(s)
 }
 

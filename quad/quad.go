@@ -70,16 +70,16 @@ func Make(subject, predicate, object, label interface{}) (q Quad) {
 // Deprecated: use Make pr MakeIRI instead.
 func MakeRaw(subject, predicate, object, label string) (q Quad) {
 	if subject != "" {
-		q.Subject = StringToValue(subject)
+		q.Subject = Raw(subject)
 	}
 	if predicate != "" {
-		q.Predicate = StringToValue(predicate)
+		q.Predicate = Raw(predicate)
 	}
 	if object != "" {
-		q.Object = StringToValue(object)
+		q.Object = Raw(object)
 	}
 	if label != "" {
-		q.Label = StringToValue(label)
+		q.Label = Raw(label)
 	}
 	return
 }
