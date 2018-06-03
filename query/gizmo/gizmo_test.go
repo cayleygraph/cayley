@@ -63,7 +63,9 @@ func intVal(v int) string {
 
 var testQueries = []struct {
 	message string
+	data    []quad.Quad
 	query   string
+	limit   int
 	tag     string
 	expect  []string
 	err     bool // TODO(dennwc): define error types for Gizmo and handle them
@@ -586,14 +588,23 @@ var testQueries = []struct {
 		`,
 		expect: nil,
 	},
+	{
+		message: "default limit All",
+		query: `
+			g.V().All()
+		`,
+		limit:  issue718Limit,
+		data:   issue718Graph(),
+		expect: issue718Nodes(),
+	},
 }
 
-func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string, error) {
+func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string, limit int) ([]string, error) {
 	js := makeTestSession(g)
 	c := make(chan query.Result, 1)
 	go func() {
 		defer rec()
-		js.Execute(context.TODO(), qu, c, -1)
+		js.Execute(context.TODO(), qu, c, limit)
 	}()
 
 	var results []string
@@ -621,6 +632,7 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string) ([]string,
 func TestGizmo(t *testing.T) {
 	simpleGraph := testutil.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
+		test := test
 		t.Run(test.message, func(t *testing.T) {
 			rec := func() {
 				if r := recover(); r != nil {
@@ -631,7 +643,15 @@ func TestGizmo(t *testing.T) {
 			if test.tag == "" {
 				test.tag = TopResultTag
 			}
-			got, err := runQueryGetTag(rec, simpleGraph, test.query, test.tag)
+			quads := simpleGraph
+			if test.data != nil {
+				quads = test.data
+			}
+			limit := test.limit
+			if limit == 0 {
+				limit = -1
+			}
+			got, err := runQueryGetTag(rec, quads, test.query, test.tag, limit)
 			if err != nil {
 				if test.err {
 					return //expected
@@ -694,4 +714,25 @@ g.Emit({id: x.id})
 })`
 	_, err := ses.ShapeOf(query)
 	require.NoError(t, err)
+}
+
+const issue718Limit = 5
+
+func issue718Graph() []quad.Quad {
+	var quads []quad.Quad
+	for i := 0; i < issue718Limit; i++ {
+		n := fmt.Sprintf("n%d", i+1)
+		quads = append(quads, quad.MakeIRI("a", "b", n, ""))
+	}
+	return quads
+}
+
+func issue718Nodes() []string {
+	var nodes []string
+	nodes = append(nodes, "<a>", "<b>")
+	for i := 0; i < issue718Limit-2; i++ {
+		n := fmt.Sprintf("<n%d>", i+1)
+		nodes = append(nodes, n)
+	}
+	return nodes
 }

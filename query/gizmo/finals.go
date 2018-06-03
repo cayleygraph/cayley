@@ -33,7 +33,7 @@ func (p *pathObject) GetLimit(limit int) error {
 
 // All executes the query and adds the results, with all tags, as a string-to-string (tag to node) map in the output set, one for each path that a traversal could take.
 func (p *pathObject) All() error {
-	return p.GetLimit(-1)
+	return p.GetLimit(p.s.limit)
 }
 
 func (p *pathObject) toArray(call goja.FunctionCall, withTags bool) goja.Value {
