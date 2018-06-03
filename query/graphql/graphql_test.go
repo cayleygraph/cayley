@@ -29,7 +29,7 @@ var casesParse = []struct {
 }{
 	{
 		`{
-	user(id: 3500401, http://iri: http://some_iri, follow: <bob>, n: _:bob) @rev(follow: "123"){
+	user(id: 3500401, http://iri: http://some_iri, follow: <bob>, n: _:bob, v: ["<bob>", "name", 3]) @rev(follow: "123"){
 	id: ` + ValueKey + `,
 	type: ` + rdf.NS + "type" + `,
 	followed: follow @reverse @label(v: <fb>) {
@@ -54,6 +54,7 @@ var casesParse = []struct {
 				{"http://iri", false, iris("http://some_iri"), nil},
 				{"follow", false, iris("bob"), nil},
 				{"n", false, []quad.Value{quad.BNode("bob")}, nil},
+				{"v", false, []quad.Value{quad.IRI("bob"), quad.String("name"), quad.Int(3)}, nil},
 			},
 			Fields: []field{
 				{Via: quad.IRI(ValueKey), Alias: "id"},

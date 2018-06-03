@@ -35,7 +35,7 @@
     "language/parser",
     "language/source"
   ]
-  revision = "5cf1f05cb1945ca40ca374e21ccf26f01fc67d10"
+  revision = "12cfed44bc5de083875506a36d30f9798f9bca47"
 
 [[projects]]
   name = "github.com/dlclark/regexp2"
