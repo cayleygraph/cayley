@@ -515,7 +515,7 @@ func checkQueries(t *testing.T, h *graph.Handle, timeout time.Duration) {
 				ctx, cancel = context.WithTimeout(ctx, timeout)
 				defer cancel()
 			}
-			go ses.Execute(ctx, test.query, c, 100)
+			go ses.Execute(ctx, test.query, c, -1)
 			var got []interface{}
 			for r := range c {
 				if err := r.Err(); err != nil {
@@ -589,7 +589,7 @@ func benchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
 				}
 				ses := gizmo.NewSession(h.QuadStore)
 				b.StartTimer()
-				go ses.Execute(ctx, bench.query, c, 100)
+				go ses.Execute(ctx, bench.query, c, -1)
 				n := 0
 				for range c {
 					n++
