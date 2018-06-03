@@ -143,7 +143,7 @@ func NewDumpDatabaseCmd() *cobra.Command {
 				dump = args[0]
 			}
 			if dump == "" {
-				return errors.New("one quads file must be specified")
+				dump = "-"
 			}
 			h, err := openDatabase()
 			if err != nil {
