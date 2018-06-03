@@ -55,6 +55,9 @@ type Config struct {
 	// GenerateID is called when any object without an ID field is being saved.
 	GenerateID func(_ interface{}) quad.Value
 
+	// Label will be added to all quads written. Does not affect queries.
+	Label quad.Value
+
 	pathForTypeMu   sync.RWMutex
 	pathForType     map[reflect.Type]*path.Path
 	pathForTypeRoot map[reflect.Type]*path.Path
@@ -888,7 +891,7 @@ func (c *Config) writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Valu
 	if rev {
 		s, o = o, s
 	}
-	return w.WriteQuad(quad.Quad{s, pred, o, nil})
+	return w.WriteQuad(quad.Quad{Subject: s, Predicate: pred, Object: o, Label: c.Label})
 }
 
 func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, rules fieldRules) error {
@@ -900,7 +903,7 @@ func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pr
 	iri := typeToIRI[rt]
 	typesMu.RUnlock()
 	if iri != quad.IRI("") {
-		if err := w.WriteQuad(quad.Quad{id, c.iri(iriType), c.iri(iri), nil}); err != nil {
+		if err := w.WriteQuad(quad.Quad{Subject: id, Predicate: c.iri(iriType), Object: c.iri(iri), Label: c.Label}); err != nil {
 			return err
 		}
 	}
@@ -918,7 +921,7 @@ func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pr
 			if r.Rev {
 				s, o = o, s
 			}
-			if err := w.WriteQuad(quad.Quad{s, r.Pred, o, nil}); err != nil {
+			if err := w.WriteQuad(quad.Quad{Subject: s, Predicate: r.Pred, Object: o, Label: c.Label}); err != nil {
 				return err
 			}
 		case saveRule:
