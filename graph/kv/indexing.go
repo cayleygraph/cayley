@@ -362,17 +362,24 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	deltas.IncNode = nil
 	// resolve and insert all new quads
 	links := make([]proto.Primitive, 0, len(deltas.QuadAdd))
+	qadd := make(map[[4]uint64]struct{}, len(deltas.QuadAdd))
 	for _, q := range deltas.QuadAdd {
 		var link proto.Primitive
 		mustBeNew := false
-		for _, dir := range quad.Directions {
+		var qkey [4]uint64
+		for i, dir := range quad.Directions {
 			n, ok := nodes[q.Quad.Get(dir)]
 			if !ok {
 				continue
 			}
 			mustBeNew = mustBeNew || n.New
 			link.SetDirection(dir, n.ID)
+			qkey[i] = n.ID
 		}
+		if _, ok := qadd[qkey]; ok {
+			continue
+		}
+		qadd[qkey] = struct{}{}
 		if !mustBeNew {
 			p, err := qs.hasPrimitive(ctx, tx, &link, false)
 			if err != nil {
@@ -387,6 +394,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		}
 		links = append(links, link)
 	}
+	qadd = nil
 	deltas.QuadAdd = nil
 
 	qstart, err := qs.genIDs(ctx, tx, len(links))

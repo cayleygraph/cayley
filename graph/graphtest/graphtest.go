@@ -40,6 +40,9 @@ var graphTests = []struct {
 	test func(t testing.TB, gen testutil.DatabaseFunc, conf *Config)
 }{
 	{"load one quad", TestLoadOneQuad},
+	{"load dup", TestLoadDup},
+	{"load dup single", TestLoadDupSingle},
+	{"load dup raw", TestLoadDupRaw},
 	{"delete quad", TestDeleteQuad},
 	{"sizes", TestSizes},
 	{"iterator", TestIterator},
@@ -208,6 +211,72 @@ func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 		require.NotNil(t, val, "quad store failed to decode value: %q", pq)
 		require.Equal(t, pq, val, "quad store failed to roundtrip value: %q", pq)
 	}
+	exp := int64(5)
+	if c.NoPrimitives {
+		exp = 1
+	}
+	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), []quad.Quad{q}, false)
+}
+
+func testLoadDup(t testing.TB, gen testutil.DatabaseFunc, c *Config, single bool) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := testutil.MakeWriter(t, qs, opts)
+
+	q := quad.Make(
+		"Something",
+		"points_to",
+		"Something Else",
+		"context",
+	)
+
+	if single {
+		err := w.AddQuadSet([]quad.Quad{q, q})
+		require.NoError(t, err)
+	} else {
+		err := w.AddQuad(q)
+		require.NoError(t, err)
+		err = w.AddQuad(q)
+		require.NoError(t, err)
+	}
+
+	exp := int64(5)
+	if c.NoPrimitives {
+		exp = 1
+	}
+	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), []quad.Quad{q}, false)
+}
+
+func TestLoadDup(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
+	testLoadDup(t, gen, c, false)
+}
+
+func TestLoadDupSingle(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
+	testLoadDup(t, gen, c, true)
+}
+
+func TestLoadDupRaw(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
+	qs, _, closer := gen(t)
+	defer closer()
+
+	q := quad.Make(
+		"Something",
+		"points_to",
+		"Something Else",
+		"context",
+	)
+
+	err := qs.ApplyDeltas([]graph.Delta{
+		{Quad: q, Action: graph.Add},
+		{Quad: q, Action: graph.Add},
+	}, graph.IgnoreOpts{IgnoreDup: true})
+	require.NoError(t, err)
+
 	exp := int64(5)
 	if c.NoPrimitives {
 		exp = 1

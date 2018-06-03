@@ -62,14 +62,11 @@ func (s *Single) AddQuad(q quad.Quad) error {
 }
 
 func (s *Single) AddQuadSet(set []quad.Quad) error {
-	deltas := make([]graph.Delta, len(set))
-	for i, q := range set {
-		deltas[i] = graph.Delta{
-			Quad:   q,
-			Action: graph.Add,
-		}
+	tx := graph.NewTransactionN(len(set))
+	for _, q := range set {
+		tx.AddQuad(q)
 	}
-	return s.qs.ApplyDeltas(deltas, s.ignoreOpts)
+	return s.qs.ApplyDeltas(tx.Deltas, s.ignoreOpts)
 }
 
 func (s *Single) RemoveQuad(q quad.Quad) error {
