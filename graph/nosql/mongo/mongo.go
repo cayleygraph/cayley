@@ -64,8 +64,12 @@ func dialDB(addr string, opt graph.Options) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	dbName, err := options.StringKey("database_name", nosql.DefaultDBName)
+	if err != nil {
+		return nil, err
+	}
 	return &DB{
-		sess: sess, db: sess.DB(""),
+		sess: sess, db: sess.DB(dbName),
 		colls: make(map[string]collection),
 	}, nil
 }
