@@ -64,7 +64,7 @@ func dialDB(addr string, opt graph.Options) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbName, err := options.StringKey("database_name", nosql.DefaultDBName)
+	dbName, err := opt.StringKey("database_name", nosql.DefaultDBName)
 	if err != nil {
 		return nil, err
 	}
