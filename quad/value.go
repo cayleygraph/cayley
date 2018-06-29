@@ -95,10 +95,24 @@ func AsValue(v interface{}) (out Value, ok bool) {
 		out = String(v)
 	case int:
 		out = Int(v)
-	case int64:
+	case int8:
+		out = Int(v)
+	case int16:
 		out = Int(v)
 	case int32:
 		out = Int(v)
+	case int64:
+		out = Int(v)
+	case uint:
+		out = Int(v)
+	case uint8:
+		out = Int(v)
+	case uint16:
+		out = Int(v)
+	case uint32:
+		out = Int(v)
+	case uint64:
+		out = Uint(v)
 	case float64:
 		out = Float(v)
 	case float32:
@@ -340,6 +354,22 @@ func (s Int) Native() interface{} { return int(s) }
 func (s Int) TypedString() TypedString {
 	return TypedString{
 		Value: String(strconv.Itoa(int(s))),
+		Type:  defaultIntType,
+	}
+}
+
+// Uint is a native wrapper for uint64 type.
+//
+// It uses NQuad notation similar to TypedString.
+type Uint uint64
+
+func (s Uint) String() string {
+	return s.TypedString().String()
+}
+func (s Uint) Native() interface{} { return uint64(s) }
+func (s Uint) TypedString() TypedString {
+	return TypedString{
+		Value: String(strconv.FormatUint(uint64(s), 10)),
 		Type:  defaultIntType,
 	}
 }
