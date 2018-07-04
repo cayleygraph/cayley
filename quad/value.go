@@ -95,9 +95,23 @@ func AsValue(v interface{}) (out Value, ok bool) {
 		out = String(v)
 	case int:
 		out = Int(v)
-	case int64:
+	case int8:
+		out = Int(v)
+	case int16:
 		out = Int(v)
 	case int32:
+		out = Int(v)
+	case int64:
+		out = Int(v)
+	case uint:
+		out = Int(v)
+	case uint8:
+		out = Int(v)
+	case uint16:
+		out = Int(v)
+	case uint32:
+		out = Int(v)
+	case uint64:
 		out = Int(v)
 	case float64:
 		out = Float(v)
