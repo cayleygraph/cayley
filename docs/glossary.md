@@ -9,7 +9,7 @@
 
 ### quad
 1. Adding a name to the triple makes a "quad store" or named graph. [source](https://en.wikipedia.org/wiki/Triplestore#Related_database_types)
-2. this notion of quad...You can add context or extra values to triples that identifies them and makes it easy to define subgraphs, or named properties. [source](https://neo4j.com/blog/rdf-triple-store-vs-labeled-property-graph-difference/)
+2. You can add context or extra values to triples that identifies them and makes it easy to define subgraphs, or named properties. [source](https://neo4j.com/blog/rdf-triple-store-vs-labeled-property-graph-difference/)
 3. where triples have the form `{subject, predicate, object}`, quads would have a form along the lines of `{subject, predicate, object, context}` [source](https://en.wikipedia.org/wiki/Named_graph#Named_graphs_and_quads) 
 
 ### RDF
