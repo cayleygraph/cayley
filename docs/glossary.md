@@ -13,16 +13,25 @@
 3. where triples have the form `{subject, predicate, object}`, quads would have a form along the lines of `{subject, predicate, object, context}` [source](https://en.wikipedia.org/wiki/Named_graph#Named_graphs_and_quads) 
 
 ### RDF
-1. [Resource Description Framework](https://en.wikipedia.org/wiki/Resource_Description_Framework), basically quads at its core, but with a lot more history and complexity and standards included
+1. [Resource Description Framework](https://en.wikipedia.org/wiki/Resource_Description_Framework), basically a set of standards defined around quads
+2. An RDF triple consists of three components: 
+	1. the subject, which is an IRI or a blank node
+	2. the predicate, which is an IRI
+	3. the object, which is an IRI, a literal or a blank node [source](https://www.w3.org/TR/rdf11-concepts/#h3_section-triples)
 
 ### RDF store, quad store, named graph, semantic graph database
 1. Adding a name to the triple makes a "quad store" or named graph. [source](https://en.wikipedia.org/wiki/Triplestore#Related_database_types)
 1. ...persisting RDF — storing it — became a thing, and these stores were called triple stores. Next they were called quad stores and included information about context and named graphs, then RDF stores, and most recently they call themselves “semantic graph database.” [source](https://neo4j.com/blog/rdf-triple-store-vs-labeled-property-graph-difference/)
 
-
 ### morphism
 1. Morphism is basically a path that is not attached to any particular quadstore or a particular starting point in the graph. Morphisms are meant to be used as a query part that can be applied to other queries to follow a path specified in the Morphism.  
 A good example will be a `FollowRecursive` function that will apply a single morphism multiple times to get to all nodes that can be traversed recursively. [source](https://discourse.cayley.io/t/a-variety-of-questions/1183/2)
+
+### IRI
+1. IRI is an RDF Internationalized Resource Identifier. [source](https://godoc.org/github.com/cayleygraph/cayley/quad#IRI)
+2. An IRI (Internationalized Resource Identifier) within an RDF graph is a Unicode string that conforms to the syntax defined in RFC 3987. [source](https://www.w3.org/TR/rdf11-concepts/#h3_section-IRIs)
+3. IRIs are a generalization of URIs that permits a wider range of Unicode characters. Every absolute URI and URL is an IRI, but not every IRI is an URI. [source](https://www.w3.org/TR/rdf11-concepts/#h3_section-IRIs)
+
     
 ### reification
 1. “With reification, we create a metagraph on top of our graph that represents the statement that we have here. We create a new node that represents a statement and points at the subject...” [source](https://neo4j.com/blog/rdf-triple-store-vs-labeled-property-graph-difference/)
