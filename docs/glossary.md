@@ -174,7 +174,8 @@ const (
 3. Direction is also passed to the `Get` method of a quad to access one of its four parts, see [quad.Get(d Direction) Value](https://godoc.org/github.com/cayleygraph/cayley/quad#Quad.Get)
 
 ### token
-1. That identifier given to a particular quad by a quadstore?
+1. In the context of a [quad store](https://godoc.org/github.com/cayleygraph/cayley/graph#QuadStore), a [graph.Value](https://godoc.org/github.com/cayleygraph/cayley/graph#Value).  However the backend wishes to implement it, a Value is merely a token to a quad or a node that the backing store itself understands, and the base iterators pass around.    
+	For example, in a very traditional, graphd-style graph, these are int64s (guids of the primitives). In a very direct sort of graph, these could be pointers to structs, or merely quads, or whatever works best for the backing store.
     
 ### reification
 1. “With reification, we create a metagraph on top of our graph that represents the statement that we have here. We create a new node that represents a statement and points at the subject...” [source](https://neo4j.com/blog/rdf-triple-store-vs-labeled-property-graph-difference/)
