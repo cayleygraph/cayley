@@ -975,7 +975,7 @@ func (c *Config) idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref
 		if !fld.Anonymous {
 			continue
 		}
-		id, err = c.idFor(rules, fld.Type, rv.Field(i), fld.Name+".")
+		id, err = c.idFor(rules, fld.Type, rv.Field(i), pref+fld.Name+".")
 		if err != nil || id != nil {
 			return
 		}

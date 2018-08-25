@@ -94,6 +94,11 @@ type subObject struct {
 	Num int `quad:"num"`
 }
 
+type subSubObject struct {
+	subObject
+	Num2 int `quad:"num2"`
+}
+
 func init() {
 	voc.RegisterPrefix("ex:", "http://example.org/")
 	schema.RegisterType(quad.IRI("ex:Coords"), Coords{})
@@ -234,6 +239,26 @@ var testWriteValueCases = []struct {
 		[]quad.Quad{
 			{iri("1234"), iri("name"), quad.String("Obj"), nil},
 			{iri("1234"), iri("num"), quad.Int(3), nil},
+		},
+		nil,
+	},
+	{
+		"simple object (embedded multiple levels)",
+		subSubObject{
+			subObject: subObject{
+				genObject: genObject{
+					ID:   "1234",
+					Name: "Obj",
+				},
+				Num: 3,
+			},
+			Num2: 4,
+		},
+		iri("1234"),
+		[]quad.Quad{
+			{iri("1234"), iri("name"), quad.String("Obj"), nil},
+			{iri("1234"), iri("num"), quad.Int(3), nil},
+			{iri("1234"), iri("num2"), quad.Int(4), nil},
 		},
 		nil,
 	},
