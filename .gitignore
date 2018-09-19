@@ -1,6 +1,5 @@
 *.swp
 main
-*.test
 *.peg.go
 cayley.cfg
 cayley.yml
