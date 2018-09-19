@@ -41,12 +41,6 @@ memo = "8bfd7dfab3262ac67572d5e41ff9808fb49aca88c56a921da0d33e6a23722038"
   revision = "ef8c030e3c96c5054c2f10ef925e7041e0583c07"
 
 [[projects]]
-  name = "github.com/flimzy/kivik"
-  packages = [".","driver","errors"]
-  revision = "b5feaa5fff611396d56e55f982e1d8c0d728128b"
-  version = "v1.7.3"
-
-[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "4da3e2cfbabc9f751898f250b49f2439785783a1"
@@ -64,8 +58,8 @@ memo = "8bfd7dfab3262ac67572d5e41ff9808fb49aca88c56a921da0d33e6a23722038"
 [[projects]]
   name = "github.com/go-kivik/pouchdb"
   packages = [".","bindings"]
-  revision = "c0c4a7fa261c7496aa749f00321016b6880b01f0"
-  version = "v1.3.4"
+  revision = "bbd1ab79be17c809842e193b1f84e924b6b599ba"
+  version = "v1.3.5"
 
 [[projects]]
   name = "github.com/go-sourcemap/sourcemap"
