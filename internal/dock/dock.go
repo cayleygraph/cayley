@@ -35,6 +35,18 @@ func run(t testing.TB, conf fullConfig) (addr string, closer func()) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// If there is not relevant image at local, pull image from remote repository.
+	if err := cli.PullImage(
+		docker.PullImageOptions{
+			Repository: conf.Image,
+		},
+		docker.AuthConfiguration{},
+	); err != nil {
+		// If pull image fail, skip the test.
+		t.Skip(err)
+	}
+
 	cont, err := cli.CreateContainer(docker.CreateContainerOptions{
 		Config:     &conf.Config,
 		HostConfig: &conf.HostConfig,
