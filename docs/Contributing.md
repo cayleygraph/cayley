@@ -91,6 +91,11 @@ If you have a Docker installed, you can also run tests for remote backend implem
 go test -tags docker ./...
 ```
 
+If you have a Docker installed, you only want to run tests for a specific backend implementations eg. mongodb
+```
+go test -tags docker ./graph/nosql/mongo
+```
+
 Integration tests can be enabled with environment variable:
 ```
 RUN_INTEGRATION=true go test ./...
