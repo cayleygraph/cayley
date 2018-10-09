@@ -129,6 +129,8 @@ func (it *Optional) Contains(ctx context.Context, val graph.Value) bool {
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
 func (it *Optional) TagResults(dst map[string]graph.Value) {
+	it.tags.TagResult(dst, it.Result())
+
 	if it.lastCheck == false {
 		return
 	}
