@@ -32,6 +32,7 @@ import (
 
 type BatchQuadStore interface {
 	ValuesOf(ctx context.Context, vals []Value) ([]quad.Value, error)
+	RefsOf(ctx context.Context, nodes []quad.Value) ([]Value, error)
 }
 
 func ValuesOf(ctx context.Context, qs QuadStore, vals []Value) ([]quad.Value, error) {
@@ -43,6 +44,21 @@ func ValuesOf(ctx context.Context, qs QuadStore, vals []Value) ([]quad.Value, er
 		out[i] = qs.NameOf(v)
 	}
 	return out, nil
+}
+
+func RefsOf(ctx context.Context, qs QuadStore, nodes []quad.Value) ([]Value, error) {
+	if bq, ok := qs.(BatchQuadStore); ok {
+		return bq.RefsOf(ctx, nodes)
+	}
+	values := make([]Value, len(nodes))
+	for i, node := range nodes {
+		value := qs.ValueOf(node)
+		if value == nil {
+			return nil, fmt.Errorf("not found: %v", node)
+		}
+		values[i] = value
+	}
+	return values, nil
 }
 
 type QuadStore interface {

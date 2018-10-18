@@ -272,6 +272,25 @@ func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Value) ([]quad.V
 	}
 	return out, last
 }
+
+func (qs *QuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Value, error) {
+	values := make([]graph.Value, len(nodes))
+	err := View(qs.db, func(tx BucketTx) error {
+		for i, node := range nodes {
+			value, err := qs.resolveQuadValue(ctx, tx, node)
+			if err != nil {
+				return err
+			}
+			values[i] = Int64Value(value)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+
 func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	ctx := context.TODO()
 	vals, err := qs.ValuesOf(ctx, []graph.Value{v})
