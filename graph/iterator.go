@@ -272,6 +272,7 @@ const (
 	Regex       = Type("regexp")
 	Count       = Type("count")
 	Recursive   = Type("recursive")
+	Resolver    = Type("resolver")
 )
 
 // String returns a string representation of the Type.
