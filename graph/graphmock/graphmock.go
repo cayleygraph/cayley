@@ -106,7 +106,12 @@ type Store struct {
 var _ graph.QuadStore = &Store{}
 
 func (qs *Store) ValueOf(s quad.Value) graph.Value {
-	return graph.PreFetched(s)
+	for _, q := range qs.Data {
+		if q.Subject == s || q.Object == s {
+			return graph.PreFetched(s)
+		}
+	}
+	return nil
 }
 
 func (qs *Store) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return nil }
