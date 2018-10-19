@@ -238,7 +238,7 @@ memo = "8bfd7dfab3262ac67572d5e41ff9808fb49aca88c56a921da0d33e6a23722038"
 [[projects]]
   name = "github.com/tylertreat/BoomFilters"
   packages = ["."]
-  revision = "b282640b93f349cd208f8d5921df2cfaf5780ee2"
+  revision = "37e169ae37ed529d93ecacb509c0dc80078478fc"
 
 [[projects]]
   name = "golang.org/x/net"
