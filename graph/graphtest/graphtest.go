@@ -55,6 +55,7 @@ var graphTests = []struct {
 	{"iterators and next result order", TestIteratorsAndNextResultOrderA},
 	{"compare typed values", TestCompareTypedValues},
 	{"schema", TestSchema},
+	{"delete reinserted", TestDeleteReinserted},
 }
 
 func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
@@ -1090,4 +1091,23 @@ func TestSchema(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	err = sch.LoadTo(nil, qs, &p2, id)
 	require.NoError(t, err)
 	require.Equal(t, p, p2)
+}
+
+func TestDeleteReinserted(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	err := w.AddQuadSet([]quad.Quad{
+		quad.Make("<bob>", "<status>", "Feeling happy", nil),
+		quad.Make("<sally>", "<follows>", "<jim>", nil),
+	})
+
+	for i := 0; i < 2; i++ {
+		w.AddQuad(quad.Make("<bob>", "<follows>", "<sally>", nil))
+		err = w.RemoveQuad(quad.Make("<bob>", "<follows>", "<sally>", nil))
+		assert.Nil(t, err, "Remove quad failed")
+	}
+
 }
