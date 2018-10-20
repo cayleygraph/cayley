@@ -148,6 +148,8 @@ type loader struct {
 
 	pathForType     map[reflect.Type]*path.Path
 	pathForTypeRoot map[reflect.Type]*path.Path
+
+	seen map[quad.Value]reflect.Value
 }
 
 func (c *Config) newLoader(qs graph.QuadStore) *loader {
@@ -157,6 +159,8 @@ func (c *Config) newLoader(qs graph.QuadStore) *loader {
 
 		pathForType:     make(map[reflect.Type]*path.Path),
 		pathForTypeRoot: make(map[reflect.Type]*path.Path),
+
+		seen: make(map[quad.Value]reflect.Value),
 	}
 }
 
@@ -288,7 +292,7 @@ func (l *loader) loadToValue(ctx context.Context, dst reflect.Value, depth int, 
 	for i := 0; i < rt.NumField(); i++ {
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return ctx.Err()
 		default:
 		}
 		f := rt.Field(i)
@@ -313,18 +317,32 @@ func (l *loader) loadToValue(ctx context.Context, dst reflect.Value, depth int, 
 		}
 		ft := f.Type
 		native := isNative(ft)
+		ptr := ft.Kind() == reflect.Ptr
 		for ft.Kind() == reflect.Ptr || ft.Kind() == reflect.Slice {
-			native = native || isNative(ft)
 			ft = ft.Elem()
+			native = native || isNative(ft)
+			switch ft.Kind() {
+			case reflect.Ptr:
+				ptr = true
+			case reflect.Slice:
+				ptr = false
+			}
 		}
 		recursive := !native && ft.Kind() == reflect.Struct
 		for _, fv := range arr {
 			var sv reflect.Value
 			if recursive {
+				if ptr {
+					fv := l.qs.NameOf(fv)
+					var ok bool
+					sv, ok = l.seen[fv]
+					if ok && sv.Type().AssignableTo(f.Type) {
+						df.Set(sv)
+						continue
+					}
+				}
 				sv = reflect.New(ft).Elem()
-				sit := iterator.NewFixed()
-				sit.Add(fv)
-				err := l.loadIteratorToDepth(ctx, sv, depth-1, sit)
+				err := l.loadIteratorToDepth(ctx, sv, depth-1, iterator.NewFixed(fv))
 				if err == errRequiredFieldIsMissing {
 					continue
 				} else if err != nil {
@@ -353,6 +371,19 @@ func (l *loader) iteratorForType(root graph.Iterator, rt reflect.Type, rootOnly 
 	return l.iteratorFromPath(root, p)
 }
 
+func mergeMap(dst map[string][]graph.Value, m map[string]graph.Value) {
+loop:
+	for k, v := range m {
+		sl := dst[k]
+		for _, sv := range sl {
+			if keysEqual(sv, v) {
+				continue loop
+			}
+		}
+		dst[k] = append(sl, v)
+	}
+}
+
 func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, depth int, list graph.Iterator) error {
 	if ctx == nil {
 		ctx = context.TODO()
@@ -374,11 +405,20 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 	if err != nil {
 		return err
 	}
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
+
+	ctxDone := func() bool {
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+		}
+		return false
 	}
+
+	if ctxDone() {
+		return ctx.Err()
+	}
+
 	rootOnly := depth == 0
 	it, err := l.iteratorForType(list, et, rootOnly)
 	if err != nil {
@@ -388,10 +428,22 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 
 	ctx = context.WithValue(ctx, fieldsCtxKey{}, fields)
 	for it.Next(ctx) {
-		select {
-		case <-ctx.Done():
+		if ctxDone() {
 			return ctx.Err()
-		default:
+		}
+		id := l.qs.NameOf(it.Result())
+		if id != nil {
+			if sv, ok := l.seen[id]; ok {
+				if slice {
+					dst.Set(reflect.Append(dst, sv.Elem()))
+				} else if chanl {
+					dst.Send(sv.Elem())
+				} else {
+					dst.Set(sv)
+					return nil
+				}
+				continue
+			}
 		}
 		mp := make(map[string]graph.Value)
 		it.TagResults(mp)
@@ -407,10 +459,8 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 			mo[k] = []graph.Value{v}
 		}
 		for it.NextPath(ctx) {
-			select {
-			case <-ctx.Done():
+			if ctxDone() {
 				return ctx.Err()
-			default:
 			}
 			mp = make(map[string]graph.Value)
 			it.TagResults(mp)
@@ -418,26 +468,14 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 				continue
 			}
 			// TODO(dennwc): replace with something more efficient
-			for k, v := range mp {
-				if sl, ok := mo[k]; !ok {
-					mo[k] = []graph.Value{v}
-				} else if len(sl) == 1 {
-					if !keysEqual(sl[0], v) {
-						mo[k] = append(sl, v)
-					}
-				} else {
-					found := false
-					for _, sv := range sl {
-						if keysEqual(sv, v) {
-							found = true
-							break
-						}
-					}
-					if !found {
-						mo[k] = append(sl, v)
-					}
-				}
+			mergeMap(mo, mp)
+		}
+		if id != nil {
+			sv := cur
+			if sv.Kind() != reflect.Ptr && sv.CanAddr() {
+				sv = sv.Addr()
 			}
+			l.seen[id] = sv
 		}
 		err := l.loadToValue(ctx, cur, depth, mo, "")
 		if err == errRequiredFieldIsMissing {
