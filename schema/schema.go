@@ -866,51 +866,57 @@ func isZero(rv reflect.Value) bool {
 	return rv.Interface() == reflect.Zero(rv.Type()).Interface() // TODO(dennwc): rewrite
 }
 
-func (c *Config) writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflect.Value, rev bool) error {
-	if isZero(rv) {
-		return nil
-	}
-	targ, ok := quad.AsValue(rv.Interface())
-	if !ok {
-		if rv.Kind() == reflect.Ptr {
-			rv = rv.Elem()
-		}
-		targ, ok = quad.AsValue(rv.Interface())
-		if !ok && rv.Kind() == reflect.Struct {
-			sid, err := c.WriteAsQuads(w, rv.Interface())
-			if err != nil {
-				return err
-			}
-			targ, ok = sid, true
-		}
-	}
-	if !ok {
-		return fmt.Errorf("unsupported type: %T", rv.Interface())
-	}
-	s, o := id, targ
+func (c *Config) writeQuad(w quad.Writer, s, p, o quad.Value, rev bool) error {
 	if rev {
 		s, o = o, s
 	}
-	return w.WriteQuad(quad.Quad{Subject: s, Predicate: pred, Object: o, Label: c.Label})
+	return w.WriteQuad(quad.Quad{Subject: s, Predicate: p, Object: o, Label: c.Label})
 }
 
-func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, rules fieldRules) error {
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
+// writeOneValReflect writes a set of quads corresponding to a value. It may omit writing quads if value is zero.
+func (c *Config) writeOneValReflect(w quad.Writer, id quad.Value, pred quad.Value, rv reflect.Value, rev bool, seen map[uintptr]quad.Value) error {
+	if isZero(rv) {
+		return nil
 	}
-	rt := rv.Type()
+	// write field value and get an ID
+	sid, err := c.writeAsQuads(w, rv, seen)
+	if err != nil {
+		return err
+	}
+	// write a quad pointing to this value
+	return c.writeQuad(w, id, pred, sid, rev)
+}
+
+func (c *Config) writeTypeInfo(w quad.Writer, id quad.Value, rt reflect.Type) error {
 	typesMu.RLock()
 	iri := typeToIRI[rt]
 	typesMu.RUnlock()
-	if iri != quad.IRI("") {
-		if err := w.WriteQuad(quad.Quad{Subject: id, Predicate: c.iri(iriType), Object: c.iri(iri), Label: c.Label}); err != nil {
-			return err
+	if iri == quad.IRI("") {
+		return nil
+	}
+	return c.writeQuad(w, id, c.iri(iriType), c.iri(iri), false)
+}
+
+func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pref string, rules fieldRules, seen map[uintptr]quad.Value) error {
+	switch kind := rv.Kind(); kind {
+	case reflect.Ptr, reflect.Map:
+		ptr := rv.Pointer()
+		if _, ok := seen[ptr]; ok {
+			return nil
 		}
+		seen[ptr] = id
+		if kind == reflect.Ptr {
+			rv = rv.Elem()
+		}
+	}
+	rt := rv.Type()
+	if err := c.writeTypeInfo(w, id, rt); err != nil {
+		return err
 	}
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous {
-			if err := c.writeValueAs(w, id, rv.Field(i), pref+f.Name+".", rules); err != nil {
+			if err := c.writeValueAs(w, id, rv.Field(i), pref+f.Name+".", rules, seen); err != nil {
 				return err
 			}
 			continue
@@ -928,7 +934,7 @@ func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pr
 			if f.Type.Kind() == reflect.Slice {
 				sl := rv.Field(i)
 				for j := 0; j < sl.Len(); j++ {
-					if err := c.writeOneValReflect(w, id, r.Pred, sl.Index(j), r.Rev); err != nil {
+					if err := c.writeOneValReflect(w, id, r.Pred, sl.Index(j), r.Rev, seen); err != nil {
 						return err
 					}
 				}
@@ -937,7 +943,7 @@ func (c *Config) writeValueAs(w quad.Writer, id quad.Value, rv reflect.Value, pr
 				if !r.Opt && isZero(fv) {
 					return ErrReqFieldNotSet{Field: f.Name}
 				}
-				if err := c.writeOneValReflect(w, id, r.Pred, fv, r.Rev); err != nil {
+				if err := c.writeOneValReflect(w, id, r.Pred, fv, r.Rev, seen); err != nil {
 					return err
 				}
 			}
@@ -991,14 +997,42 @@ func (c *Config) idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref
 //
 // See LoadTo for a list of quads mapping rules.
 func (c *Config) WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) {
-	if v, ok := o.(quad.Value); ok {
-		return v, nil
-	}
-	rv := reflect.ValueOf(o)
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
-	}
+	return c.writeAsQuads(w, reflect.ValueOf(o), make(map[uintptr]quad.Value))
+}
+
+var reflQuadValue = reflect.TypeOf((*quad.Value)(nil)).Elem()
+
+func (c *Config) writeAsQuads(w quad.Writer, rv reflect.Value, seen map[uintptr]quad.Value) (quad.Value, error) {
 	rt := rv.Type()
+	// if node is a primitive - return directly
+	if rt.Implements(reflQuadValue) {
+		return rv.Interface().(quad.Value), nil
+	}
+	prv := rv
+	kind := rt.Kind()
+	// check if we've seen this node already
+	switch kind {
+	case reflect.Ptr, reflect.Map:
+		ptr := prv.Pointer()
+		if sid, ok := seen[ptr]; ok {
+			return sid, nil
+		}
+		if kind == reflect.Ptr {
+			rv = rv.Elem()
+			rt = rv.Type()
+			kind = rt.Kind()
+		}
+	}
+	// check if it's a type that quads package supports
+	// note, that it may be a struct such as time.Time
+	if val, ok := quad.AsValue(rv.Interface()); ok {
+		return val, nil
+	}
+	// TODO(dennwc): support maps
+	if kind != reflect.Struct {
+		return nil, fmt.Errorf("unsupported type: %v", rt)
+	}
+	// get conversion rules for this struct type
 	rules, err := c.rulesFor(rt)
 	if err != nil {
 		return nil, fmt.Errorf("can't load rules: %v", err)
@@ -1006,14 +1040,21 @@ func (c *Config) WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) 
 	if len(rules) == 0 {
 		return nil, fmt.Errorf("no rules for struct: %v", rt)
 	}
+	// get an ID from the struct value
 	id, err := c.idFor(rules, rt, rv, "")
 	if err != nil {
 		return nil, err
 	}
 	if id == nil {
-		id = c.genID(o)
+		id = c.genID(prv.Interface())
 	}
-	if err = c.writeValueAs(w, id, rv, "", rules); err != nil {
+	// save a node ID to avoid loops
+	switch prv.Kind() {
+	case reflect.Ptr, reflect.Map:
+		ptr := prv.Pointer()
+		seen[ptr] = id
+	}
+	if err = c.writeValueAs(w, id, rv, "", rules, seen); err != nil {
 		return nil, err
 	}
 	return id, nil
@@ -1031,13 +1072,14 @@ func (c *Config) WriteNamespaces(w quad.Writer, n *voc.Namespaces) error {
 	if err != nil {
 		return fmt.Errorf("can't load rules: %v", err)
 	}
+	seen := make(map[uintptr]quad.Value)
 	for _, ns := range n.List() {
 		obj := namespace{
 			Full:   quad.IRI(ns.Full),
 			Prefix: quad.IRI(ns.Prefix),
 		}
 		rv := reflect.ValueOf(obj)
-		if err = c.writeValueAs(w, obj.Full, rv, "", rules); err != nil {
+		if err = c.writeValueAs(w, obj.Full, rv, "", rules, seen); err != nil {
 			return err
 		}
 	}

@@ -109,6 +109,12 @@ type Coords struct {
 	Lng float64 `json:"ex:lng"`
 }
 
+type NodeLoop struct {
+	ID   quad.IRI  `quad:"@id"`
+	Name string    `quad:"name"`
+	Next *NodeLoop `quad:"next"`
+}
+
 func iri(s string) quad.IRI { return quad.IRI(s) }
 
 const typeIRI = quad.IRI(rdf.Type)
@@ -291,6 +297,43 @@ var testWriteValueCases = []struct {
 		},
 		nil,
 	},
+	{
+		"self loop",
+		func() *NodeLoop {
+			a := &NodeLoop{ID: iri("A"), Name: "Node A"}
+			a.Next = a
+			return a
+		}(),
+		iri("A"),
+		[]quad.Quad{
+			{iri("A"), iri("name"), quad.String("Node A"), nil},
+			{iri("A"), iri("next"), iri("A"), nil},
+		},
+		nil,
+	},
+	{
+		"pointer chain",
+		func() *NodeLoop {
+			a := &NodeLoop{ID: iri("A"), Name: "Node A"}
+			b := &NodeLoop{ID: iri("B"), Name: "Node B"}
+			c := &NodeLoop{ID: iri("C"), Name: "Node C"}
+
+			a.Next = b
+			b.Next = c
+			c.Next = a
+			return a
+		}(),
+		iri("A"),
+		[]quad.Quad{
+			{iri("A"), iri("name"), quad.String("Node A"), nil},
+			{iri("B"), iri("name"), quad.String("Node B"), nil},
+			{iri("C"), iri("name"), quad.String("Node C"), nil},
+			{iri("C"), iri("next"), iri("A"), nil},
+			{iri("B"), iri("next"), iri("C"), nil},
+			{iri("A"), iri("next"), iri("B"), nil},
+		},
+		nil,
+	},
 }
 
 type quadSlice []quad.Quad
@@ -302,12 +345,12 @@ func (s *quadSlice) WriteQuad(q quad.Quad) error {
 
 func TestWriteAsQuads(t *testing.T) {
 	sch := schema.NewConfig()
-	for i, c := range testWriteValueCases {
+	for _, c := range testWriteValueCases {
 		t.Run(c.name, func(t *testing.T) {
 			var out quadSlice
 			id, err := sch.WriteAsQuads(&out, c.obj)
 			if err != c.err {
-				t.Errorf("case %d failed: %v != %v", i, err, c.err)
+				t.Errorf("unexpected error: %v (expected: %v)", err, c.err)
 			} else if c.err != nil {
 				return // case with expected error; omit other checks
 			}
