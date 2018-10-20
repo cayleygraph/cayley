@@ -11,12 +11,78 @@ import (
 	"github.com/cayleygraph/cayley/schema"
 )
 
+func TestLoadLoop(t *testing.T) {
+	sch := schema.NewConfig()
+
+	a := &NodeLoop{ID: iri("A"), Name: "Node A"}
+	a.Next = a
+
+	qs := memstore.New([]quad.Quad{
+		{a.ID, iri("name"), quad.String(a.Name), nil},
+		{a.ID, iri("next"), a.ID, nil},
+	}...)
+
+	b := &NodeLoop{}
+	if err := sch.LoadIteratorTo(nil, qs, reflect.ValueOf(b), nil); err != nil {
+		t.Error(err)
+		return
+	}
+	if a.ID != b.ID || a.Name != b.Name {
+		t.Fatalf("%#v vs %#v", a, b)
+	}
+	if b != b.Next {
+		t.Fatalf("loop is broken: %p vs %p", b, b.Next)
+	}
+
+	a = &NodeLoop{ID: iri("A"), Name: "Node A"}
+	b = &NodeLoop{ID: iri("B"), Name: "Node B"}
+	c := &NodeLoop{ID: iri("C"), Name: "Node C"}
+	a.Next = b
+	b.Next = c
+	c.Next = a
+
+	qs = memstore.New([]quad.Quad{
+		{a.ID, iri("name"), quad.String(a.Name), nil},
+		{b.ID, iri("name"), quad.String(b.Name), nil},
+		{c.ID, iri("name"), quad.String(c.Name), nil},
+		{a.ID, iri("next"), b.ID, nil},
+		{b.ID, iri("next"), c.ID, nil},
+		{c.ID, iri("next"), a.ID, nil},
+	}...)
+
+	a1 := &NodeLoop{}
+	if err := sch.LoadIteratorTo(nil, qs, reflect.ValueOf(a1), nil); err != nil {
+		t.Error(err)
+		return
+	}
+	if a.ID != a1.ID || a.Name != a1.Name {
+		t.Fatalf("%#v vs %#v", a, b)
+	}
+	b1 := a1.Next
+	c1 := b1.Next
+	if b.ID != b1.ID || b.Name != b1.Name {
+		t.Fatalf("%#v vs %#v", a, b)
+	}
+	if c.ID != c1.ID || c.Name != c1.Name {
+		t.Fatalf("%#v vs %#v", a, b)
+	}
+	if a1 != c1.Next {
+		t.Fatalf("loop is broken: %p vs %p", a1, c1.Next)
+	}
+}
+
 func TestLoadIteratorTo(t *testing.T) {
 	sch := schema.NewConfig()
 	for i, c := range testFillValueCases {
 		t.Run(c.name, func(t *testing.T) {
 			qs := memstore.New(c.quads...)
-			out := reflect.New(reflect.TypeOf(c.expect))
+			rt := reflect.TypeOf(c.expect)
+			var out reflect.Value
+			if rt.Kind() == reflect.Ptr {
+				out = reflect.New(rt.Elem())
+			} else {
+				out = reflect.New(rt)
+			}
 			var it graph.Iterator
 			if c.from != nil {
 				fixed := iterator.NewFixed()
@@ -33,7 +99,12 @@ func TestLoadIteratorTo(t *testing.T) {
 				t.Errorf("case %d failed: %v", i+1, err)
 				return
 			}
-			got := out.Elem().Interface()
+			var got interface{}
+			if rt.Kind() == reflect.Ptr {
+				got = out.Interface()
+			} else {
+				got = out.Elem().Interface()
+			}
 			if s, ok := got.(interface {
 				Sort()
 			}); ok {
@@ -46,7 +117,7 @@ func TestLoadIteratorTo(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, c.expect) {
 				t.Errorf("case %d failed: objects are different\n%#v\n%#v",
-					i+1, out.Elem().Interface(), c.expect,
+					i+1, got, c.expect,
 				)
 			}
 		})
