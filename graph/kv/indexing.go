@@ -675,9 +675,9 @@ func (qs *QuadStore) hasPrimitive(ctx context.Context, tx BucketTx, p *proto.Pri
 	if !get && unique {
 		return p, nil
 	}
-	for ix := len(options) - 1; ix >= 0; ix-- {
+	for i := len(options) - 1; i >= 0; i-- {
 		// TODO: batch
-		prim, err := qs.getPrimitiveFromLog(ctx, tx, options[ix])
+		prim, err := qs.getPrimitiveFromLog(ctx, tx, options[i])
 
 		if err != nil {
 			return nil, err
