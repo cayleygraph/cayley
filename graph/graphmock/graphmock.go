@@ -64,18 +64,18 @@ func (qs *Oldstore) NodesAllIterator() graph.Iterator { return &iterator.Null{} 
 func (qs *Oldstore) QuadsAllIterator() graph.Iterator { return &iterator.Null{} }
 
 func (qs *Oldstore) NameOf(v graph.Value) quad.Value {
-	switch v.(type) {
+	switch v := v.(type) {
 	case iterator.Int64Node:
-		i := int(v.(iterator.Int64Node))
+		i := int(v)
 		if i < 0 || i >= len(qs.Data) {
 			return nil
 		}
 		return qs.valueAt(i)
 	case StringNode:
 		if qs.Parse {
-			return quad.String(v.(StringNode))
+			return quad.String(v)
 		}
-		return quad.Raw(string(v.(StringNode)))
+		return quad.Raw(string(v))
 	default:
 		return nil
 	}
