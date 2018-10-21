@@ -1103,11 +1103,13 @@ func TestDeleteReinserted(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 		quad.Make("<bob>", "<status>", "Feeling happy", nil),
 		quad.Make("<sally>", "<follows>", "<jim>", nil),
 	})
+	require.NoError(t, err, "Add quadset failed")
 
 	for i := 0; i < 2; i++ {
-		w.AddQuad(quad.Make("<bob>", "<follows>", "<sally>", nil))
+		err = w.AddQuad(quad.Make("<bob>", "<follows>", "<sally>", nil))
+		require.NoError(t, err, "Add quad failed")
 		err = w.RemoveQuad(quad.Make("<bob>", "<follows>", "<sally>", nil))
-		assert.Nil(t, err, "Remove quad failed")
+		require.NoError(t, err, "Remove quad failed")
 	}
 
 }
