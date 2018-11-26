@@ -17,6 +17,7 @@ package iterator
 import (
 	"context"
 	"fmt"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -41,9 +42,9 @@ type Resolver struct {
 // Creates a new Resolver iterator.
 func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
 	it := &Resolver{
-		uid:    NextUID(),
-		qs:     qs,
-		order:  make([]quad.Value, len(nodes)),
+		uid:   NextUID(),
+		qs:    qs,
+		order: make([]quad.Value, len(nodes)),
 		// Generally there are going to be no/few duplicates given
 		// so allocate maps large enough to accommodate all
 		values: make(map[quad.Value]graph.Value, len(nodes)),
@@ -113,32 +114,36 @@ func (it *Resolver) resolve(ctx context.Context) error {
 func (it *Resolver) Contains(ctx context.Context, value graph.Value) bool {
 	graph.ContainsLogIn(it, value)
 	if !it.cached {
-		it.resolve(ctx)
+		it.err = it.resolve(ctx)
+		if it.err != nil {
+			return false
+		}
 	}
 	_, ok := it.nodes[value.Key()]
-	it.err = nil
 	return graph.ContainsLogOut(it, value, ok)
 }
 
 // Next advances the iterator.
 func (it *Resolver) Next(ctx context.Context) bool {
 	graph.NextLogIn(it)
-	if it.index == len(it.order) {
+	if it.index >= len(it.order) {
 		it.result = nil
 		return graph.NextLogOut(it, false)
 	}
 	if !it.cached {
-		it.resolve(ctx)
+		it.err = it.resolve(ctx)
+		if it.err != nil {
+			return false
+		}
 	}
 	node := it.order[it.index]
 	value, ok := it.values[node]
 	if !ok {
 		it.result = nil
-		it.err  = fmt.Errorf("not found: %v", node)
+		it.err = fmt.Errorf("not found: %v", node)
 		return graph.NextLogOut(it, false)
 	}
 	it.result = value
-	it.err = nil
 	it.index++
 	return graph.NextLogOut(it, true)
 }
@@ -179,8 +184,8 @@ func (it *Resolver) Stats() graph.IteratorStats {
 		// Lookup cost is size of set
 		ContainsCost: s,
 		// Next is (presumably) O(1) from store
-		NextCost:     1,
-		Size:         s,
-		ExactSize:    exact,
+		NextCost:  1,
+		Size:      s,
+		ExactSize: exact,
 	}
 }
