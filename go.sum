@@ -99,6 +99,8 @@ github.com/linkeddata/gojsonld v0.0.0-20170418210642-4f5db6791326 h1:YP3lfXXYiQV
 github.com/linkeddata/gojsonld v0.0.0-20170418210642-4f5db6791326/go.mod h1:nfqkuSNlsk1bvti/oa7TThx4KmRMBmSxf3okHI9wp3E=
 github.com/magiconair/properties v0.0.0-20170321093039-51463bfca257 h1:nqPtTOaJx2zFKWinLXKQYQRfxXTZN3GoJ602Uo65VGY=
 github.com/magiconair/properties v0.0.0-20170321093039-51463bfca257/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
+github.com/mattn/go-sqlite3 v1.10.0 h1:jbhqpg7tQe4SupckyijYiy0mJJ/pRyHvXf7JdWK860o=
+github.com/mattn/go-sqlite3 v1.10.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 github.com/mitchellh/mapstructure v0.0.0-20170422000251-cc8532a8e9a5 h1:AjVRQelY0a5wq4bUgs08/+iblph90u9H58uzaH7Cw3g=
 github.com/mitchellh/mapstructure v0.0.0-20170422000251-cc8532a8e9a5/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
