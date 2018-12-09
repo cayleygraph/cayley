@@ -36,6 +36,7 @@ require (
 	github.com/lib/pq v0.0.0-20170324204654-2704adc878c2
 	github.com/linkeddata/gojsonld v0.0.0-20170418210642-4f5db6791326
 	github.com/magiconair/properties v0.0.0-20170321093039-51463bfca257 // indirect
+	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/mitchellh/mapstructure v0.0.0-20170422000251-cc8532a8e9a5 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
