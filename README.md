@@ -27,7 +27,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 * Plays well with multiple backend stores:
   * KVs: [Bolt](https://github.com/boltdb/bolt), [LevelDB](https://github.com/google/leveldb)
   * NoSQL: [MongoDB](https://www.mongodb.org), [ElasticSearch](https://www.elastic.co/products/elasticsearch), [CouchDB](http://couchdb.apache.org/)/[PouchDB](https://pouchdb.com/)
-  * SQL: [PostgreSQL](http://www.postgresql.org), [CockroachDB](https://www.cockroachlabs.com), [MySQL](https://www.mysql.com)
+  * SQL: [PostgreSQL](http://www.postgresql.org), [CockroachDB](https://www.cockroachlabs.com), [MySQL](https://www.mysql.com), [SQLite](https://www.sqlite.org)
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
 * Good test coverage
