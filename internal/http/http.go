@@ -20,6 +20,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -32,9 +33,9 @@ import (
 
 var AssetsPath string
 var defaultAssetPaths = []string{
-  ".", "..", "./assets",
-  "/usr/local/share/cayley/assets",
-  os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley"),
+	".", "..", "./assets",
+	"/usr/local/share/cayley/assets",
+	os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley"),
 }
 var assetsDirs = []string{"templates", "static", "docs"}
 
@@ -57,9 +58,19 @@ func findAssetsPath() (string, error) {
 		}
 		return "", fmt.Errorf("cannot find assets at %q", AssetsPath)
 	}
+	var bin string
+	if len(os.Args) != 0 {
+		bin = filepath.Dir(os.Args[0])
+	}
 	for _, path := range defaultAssetPaths {
 		if hasAssets(path) {
 			return path, nil
+		}
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(bin, path)
+			if hasAssets(path) {
+				return path, nil
+			}
 		}
 	}
 	return "", nil
