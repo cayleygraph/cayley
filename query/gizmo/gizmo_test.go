@@ -736,3 +736,70 @@ func issue718Nodes() []string {
 	}
 	return nodes
 }
+
+var testQueriesMultiGraph = []struct {
+	message string
+	data    []quad.Quad
+	query   string
+	limit   int
+	tag     string
+	expect  []string
+	err     bool // TODO(dennwc): define error types for Gizmo and handle them
+}{
+	{
+		message: "issue #758. Verify saveOpt respects label context",
+		query: `
+			g.V("<greg>").LabelContext("<smart_graph>").SaveOpt("<status>", "statusTag").All()
+		`,
+		tag:    "statusTag",
+		expect: []string{"smart_person"},
+	},
+	{
+		message: "issue #758. Verify saveR respects label context.",
+		query: `
+			g.V("smart_person").LabelContext("<other_graph>").SaveR("<status>", "who").All()
+		`,
+		tag:    "who",
+		expect: []string{"<fred>"},
+	},
+	
+	
+}
+
+func TestGizmoMultiGraph(t *testing.T) {
+	simpleGraph := testutil.LoadGraph(t, "../../data/testdata_multigraph.nq")
+	for _, test := range testQueriesMultiGraph {
+		test := test
+		t.Run(test.message, func(t *testing.T) {
+			rec := func() {
+				if r := recover(); r != nil {
+					t.Errorf("Unexpected panic on %s: %v", test.message, r)
+				}
+			}
+			defer rec()
+			if test.tag == "" {
+				test.tag = TopResultTag
+			}
+			quads := simpleGraph
+			if test.data != nil {
+				quads = test.data
+			}
+			limit := test.limit
+			if limit == 0 {
+				limit = -1
+			}
+			got, err := runQueryGetTag(rec, quads, test.query, test.tag, limit)
+			if err != nil {
+				if test.err {
+					return //expected
+				}
+				t.Error(err)
+			}
+			sort.Strings(got)
+			sort.Strings(test.expect)
+			if !reflect.DeepEqual(got, test.expect) {
+				t.Errorf("got: %v expected: %v", got, test.expect)
+			}
+		})
+	}
+}
