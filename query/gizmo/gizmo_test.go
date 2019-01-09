@@ -61,7 +61,7 @@ func intVal(v int) string {
 	return quad.Int(v).String()
 }
 
-var multiGraphTestFile = "../../data/testdata_multigraph.nq"
+const multiGraphTestFile = "../../data/testdata_multigraph.nq"
 
 var testQueries = []struct {
 	message string
@@ -667,9 +667,9 @@ func TestGizmo(t *testing.T) {
 			if test.tag == "" {
 				test.tag = TopResultTag
 			}
-			quads := simpleGraph;
+			quads := simpleGraph
 			if (test.file == multiGraphTestFile){
-				quads = multiGraph;
+				quads = multiGraph
 			}
 			
 			if test.data != nil {
