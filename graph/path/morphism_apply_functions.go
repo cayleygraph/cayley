@@ -338,7 +338,7 @@ func saveReverseMorphism(via interface{}, tag string) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveReverseMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.SaveVia(in, buildVia(via), tag, true, false), ctx
+			return shape.SaveViaLabels(in, buildVia(via), ctx.labelSet, tag, true, false), ctx
 		},
 		tags: []string{tag},
 	}
@@ -348,7 +348,7 @@ func saveOptionalMorphism(via interface{}, tag string) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveOptionalMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.SaveVia(in, buildVia(via), tag, false, true), ctx
+			return shape.SaveViaLabels(in, buildVia(via), ctx.labelSet, tag, false, true), ctx
 		},
 		tags: []string{tag},
 	}
@@ -358,7 +358,7 @@ func saveOptionalReverseMorphism(via interface{}, tag string) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return saveOptionalReverseMorphism(via, tag), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.SaveVia(in, buildVia(via), tag, true, true), ctx
+			return shape.SaveViaLabels(in, buildVia(via), ctx.labelSet, tag, true, true), ctx
 		},
 		tags: []string{tag},
 	}

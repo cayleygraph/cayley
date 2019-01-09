@@ -61,12 +61,15 @@ func intVal(v int) string {
 	return quad.Int(v).String()
 }
 
+const multiGraphTestFile = "../../data/testdata_multigraph.nq"
+
 var testQueries = []struct {
 	message string
 	data    []quad.Quad
 	query   string
 	limit   int
 	tag     string
+	file 	string
 	expect  []string
 	err     bool // TODO(dennwc): define error types for Gizmo and handle them
 }{
@@ -597,6 +600,24 @@ var testQueries = []struct {
 		data:   issue718Graph(),
 		expect: issue718Nodes(),
 	},
+	{
+		message: "issue #758. Verify saveOpt respects label context",
+		query: `
+			g.V("<greg>").LabelContext("<smart_graph>").SaveOpt("<status>", "statusTag").All()
+		`,
+		tag:    "statusTag",
+		file: multiGraphTestFile,
+		expect: []string{"smart_person"},
+	},
+	{
+		message: "issue #758. Verify saveR respects label context.",
+		query: `
+			g.V("smart_person").LabelContext("<other_graph>").SaveR("<status>", "who").All()
+		`,
+		tag:    "who",
+		file: multiGraphTestFile,
+		expect: []string{"<fred>"},
+	},
 }
 
 func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string, limit int) ([]string, error) {
@@ -630,7 +651,10 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string, limit int)
 }
 
 func TestGizmo(t *testing.T) {
+
 	simpleGraph := testutil.LoadGraph(t, "../../data/testdata.nq")
+	multiGraph := testutil.LoadGraph(t, multiGraphTestFile)
+
 	for _, test := range testQueries {
 		test := test
 		t.Run(test.message, func(t *testing.T) {
@@ -644,6 +668,10 @@ func TestGizmo(t *testing.T) {
 				test.tag = TopResultTag
 			}
 			quads := simpleGraph
+			if (test.file == multiGraphTestFile){
+				quads = multiGraph
+			}
+			
 			if test.data != nil {
 				quads = test.data
 			}
@@ -736,3 +764,6 @@ func issue718Nodes() []string {
 	}
 	return nodes
 }
+
+
+
