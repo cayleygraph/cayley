@@ -9,7 +9,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 [![Build Status](https://travis-ci.org/cayleygraph/cayley.svg?branch=master)](https://travis-ci.org/cayleygraph/cayley)
 [![Container Repository on Quay](https://quay.io/repository/cayleygraph/cayley/status "Container Repository on Quay")](https://quay.io/repository/cayleygraph/cayley)
 
-[![Slack Status](https://cayley-slackin.herokuapp.com/badge.svg)](https://cayley-slackin.herokuapp.com/)
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-white.svg)](https://snapcraft.io/cayley)
 
 ## Features
 
