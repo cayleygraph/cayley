@@ -22,7 +22,7 @@ github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d h1:QWlaiMNg63HE5qim
 github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d/go.mod h1:lg9KQn0BgRCSCGNpcGvJp/0Ljf1Yxk8TZq9HSYc43fk=
 github.com/dlclark/regexp2 v1.1.4 h1:1udHhhGkIMplSrLeMJpPN7BHz1Iq2wVBUcb+3fxzhQM=
 github.com/dlclark/regexp2 v1.1.4/go.mod h1:2pZnwuY/m+8K6iRw6wQdMtk+rH5tNGR1i55kozfMjCc=
-github.com/docker/docker v0.7.3-0.20180827131323-0c5f8d2b9b23 h1:Zl/9mUfPbYbnv895OXx9WfxPjwqSZHohuZzVcjJ5QPQ=
+github.com/docker/docker v0.7.3-0.20180827131323-0c5f8d2b9b23 h1:mJtkfC9RUrUWHMk0cFDNhVoc9U3k2FRAzEZ+5pqSIHo=
 github.com/docker/docker v0.7.3-0.20180827131323-0c5f8d2b9b23/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKohAFqRJQ=
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
