@@ -210,6 +210,23 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"nested tree nodes",
+		treeItemOpt{
+			ID:   iri("n1"),
+			Name: "Node 1",
+			Children: []treeItemOpt{
+				{ID: iri("n2"), Name: "Node 2"},
+			},
+		},
+		iri("n1"),
+		[]quad.Quad{
+			{iri("n1"), iri("name"), quad.String("Node 1"), nil},
+			{iri("n2"), iri("name"), quad.String("Node 2"), nil},
+			{iri("n1"), iri("child"), iri("n2"), nil},
+		},
+		nil,
+	},
+	{
 		"coords",
 		Coords{Lat: 12.3, Lng: 34.5},
 		nil,
