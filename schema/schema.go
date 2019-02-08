@@ -409,16 +409,21 @@ func isZero(rv reflect.Value) bool {
 		// have to be careful here - struct may contain slice fields,
 		// so we cannot compare them directly
 		rt := rv.Type()
+		exported := 0
 		for i := 0; i < rt.NumField(); i++ {
 			f := rt.Field(i)
 			if !isExported(f.Name) {
 				continue
 			}
+			exported++
 			if !isZero(rv.Field(i)) {
 				return false
 			}
 		}
-		return true
+		if exported != 0 {
+			return true
+		}
+		// opaque type - compare directly
 	}
 	// primitive types
 	return rv.Interface() == reflect.Zero(rv.Type()).Interface()

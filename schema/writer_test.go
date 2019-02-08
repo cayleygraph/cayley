@@ -3,6 +3,7 @@ package schema_test
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/schema"
@@ -196,6 +197,16 @@ var testWriteValueCases = []struct {
 		item2{Name: "partial"},
 		nil, nil,
 		schema.ErrReqFieldNotSet{Field: "Spec"},
+	},
+	{
+		"required unexported",
+		timeItem{ID: "1", Name: "t", TS: time.Unix(100, 0)},
+		nil,
+		[]quad.Quad{
+			{iri("1"), iri("name"), quad.String("t"), nil},
+			{iri("1"), iri("ts"), quad.Time(time.Unix(100, 0)), nil},
+		},
+		nil,
 	},
 	{
 		"single tree node",

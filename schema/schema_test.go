@@ -2,6 +2,7 @@ package schema_test
 
 import (
 	"sort"
+	"time"
 
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/schema"
@@ -24,6 +25,12 @@ type item struct {
 type item2 struct {
 	Name string `quad:"name"`
 	Spec string `quad:"spec"`
+}
+
+type timeItem struct {
+	ID   quad.IRI  `quad:"@id"`
+	Name string    `quad:"name"`
+	TS   time.Time `quad:"ts"`
 }
 
 type treeItemByIRI []treeItem
