@@ -357,4 +357,25 @@ var testFillValueCases = []struct {
 			{iri("c1"), iri("ex:lng"), quad.Float(34.5), nil},
 		},
 	},
+	{
+		name: "same node",
+		expect: NestedNode{
+			ID:   "c1",
+			Name: "A",
+			Prev: genObject{
+				ID:   "c2",
+				Name: "B",
+			},
+			Next: genObject{
+				ID:   "c2",
+				Name: "B",
+			},
+		},
+		quads: []quad.Quad{
+			{iri("c1"), iri("name"), quad.String("A"), nil},
+			{iri("c2"), iri("name"), quad.String("B"), nil},
+			{iri("c1"), iri("next"), iri("c2"), nil},
+			{iri("c1"), iri("prev"), iri("c2"), nil},
+		},
+	},
 }

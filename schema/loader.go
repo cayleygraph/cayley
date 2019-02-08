@@ -438,6 +438,9 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 					dst.Set(reflect.Append(dst, sv.Elem()))
 				} else if chanl {
 					dst.Send(sv.Elem())
+				} else if dst.Kind() != reflect.Ptr {
+					dst.Set(sv.Elem())
+					return nil
 				} else {
 					dst.Set(sv)
 					return nil

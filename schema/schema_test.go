@@ -109,6 +109,13 @@ type NodeLoop struct {
 	Next *NodeLoop `quad:"next"`
 }
 
+type NestedNode struct {
+	ID   quad.IRI  `quad:"@id"`
+	Name string    `quad:"name"`
+	Prev genObject `quad:"prev,opt"`
+	Next genObject `quad:"next,opt"`
+}
+
 func iri(s string) quad.IRI { return quad.IRI(s) }
 
 const typeIRI = quad.IRI(rdf.Type)
