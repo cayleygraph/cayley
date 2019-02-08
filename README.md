@@ -9,7 +9,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 [![Build Status](https://travis-ci.org/cayleygraph/cayley.svg?branch=master)](https://travis-ci.org/cayleygraph/cayley)
 [![Container Repository on Quay](https://quay.io/repository/cayleygraph/cayley/status "Container Repository on Quay")](https://quay.io/repository/cayleygraph/cayley)
 
-[![Slack Status](https://cayley-slackin.herokuapp.com/badge.svg)](https://cayley-slackin.herokuapp.com/)
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-white.svg)](https://snapcraft.io/cayley)
 
 ## Features
 
@@ -27,7 +27,7 @@ Its goal is to be a part of the developer's toolbox where [Linked Data](http://l
 * Plays well with multiple backend stores:
   * KVs: [Bolt](https://github.com/boltdb/bolt), [LevelDB](https://github.com/google/leveldb)
   * NoSQL: [MongoDB](https://www.mongodb.org), [ElasticSearch](https://www.elastic.co/products/elasticsearch), [CouchDB](http://couchdb.apache.org/)/[PouchDB](https://pouchdb.com/)
-  * SQL: [PostgreSQL](http://www.postgresql.org), [CockroachDB](https://www.cockroachlabs.com), [MySQL](https://www.mysql.com)
+  * SQL: [PostgreSQL](http://www.postgresql.org), [CockroachDB](https://www.cockroachlabs.com), [MySQL](https://www.mysql.com), [SQLite](https://www.sqlite.org)
   * In-memory, ephemeral
 * Modular design; easy to extend with new languages and backends
 * Good test coverage

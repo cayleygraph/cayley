@@ -61,6 +61,7 @@ func makeCockroach(t testing.TB) (string, graph.Options, func()) {
 
 var conf = &sqltest.Config{
 	TimeRound: true,
+	TimeInMcs: true,
 }
 
 func TestCockroach(t *testing.T) {

@@ -45,6 +45,7 @@ All command line flags take precedence over the configuration file.
   * `postgres`: Stores the graph data and indices in a [PostgreSQL](https://www.postgresql.org) instance.
   * `cockroach`: Stores the graph data and indices in a [CockroachDB](https://www.cockroachlabs.com/product/cockroachdb/) cluster.
   * `mysql`: Stores the graph data and indices in a [MySQL](https://www.mysql.com/) or [MariaDB](https://mariadb.org/) instance.
+  * `sqlite`: Stores the graph data and indices in a [SQLite](https://www.sqlite.org) database.
 
 #### **`store.address`**
 
@@ -62,6 +63,7 @@ All command line flags take precedence over the configuration file.
   * `couch`: `http://user:pass@host:port/dbname` of the desired CouchDB server.
   * `postgres`,`cockroach`: `postgres://[username:password@]host[:port]/database-name?sslmode=disable` of the PostgreSQL database and credentials. Sslmode is optional. More option available on [pq](https://godoc.org/github.com/lib/pq) page.
   * `mysql`: `[username:password@]tcp(host[:3306])/database-name` of the MqSQL database and credentials. More option available on [driver](https://github.com/go-sql-driver/mysql#dsn-data-source-name) page.
+  * `sqlite`: `filepath` of the SQLite database. More options available on [driver](https://github.com/mattn/go-sqlite3#connection-string) page.
 
 #### **`store.read_only`**
 
