@@ -186,6 +186,11 @@ func (l *loader) makePathForType(rt reflect.Type, tagPref string, rootOnly bool)
 	if iri := getTypeIRI(rt); iri != quad.IRI("") {
 		p = p.Has(l.c.iri(iriType), iri)
 	}
+
+	// TODO(dennwc): rewrite to shapes
+
+	allOptional := true
+	var alt *path.Path
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		if f.Anonymous {
@@ -214,6 +219,7 @@ func (l *loader) makePathForType(rt reflect.Type, tagPref string, rootOnly bool)
 		case idRule:
 			p = p.Tag(tagPref + name)
 		case constraintRule:
+			allOptional = false
 			var nodes []quad.Value
 			if rule.Val != "" {
 				nodes = []quad.Value{rule.Val}
@@ -229,17 +235,35 @@ func (l *loader) makePathForType(rt reflect.Type, tagPref string, rootOnly bool)
 				if !rootOnly {
 					if rule.Rev {
 						p = p.SaveOptionalReverse(rule.Pred, tag)
+						if allOptional {
+							ap := path.StartMorphism().HasReverse(rule.Pred)
+							if alt == nil {
+								alt = ap
+							} else {
+								alt = alt.Or(ap)
+							}
+						}
 					} else {
 						p = p.SaveOptional(rule.Pred, tag)
+						if allOptional {
+							ap := path.StartMorphism().Has(rule.Pred)
+							if alt == nil {
+								alt = ap
+							} else {
+								alt = alt.Or(ap)
+							}
+						}
 					}
 				}
 			} else if rootOnly { // do not save field, enforce constraint only
+				allOptional = false
 				if rule.Rev {
 					p = p.HasReverse(rule.Pred)
 				} else {
 					p = p.Has(rule.Pred)
 				}
 			} else {
+				allOptional = false
 				if rule.Rev {
 					p = p.SaveReverse(rule.Pred, tag)
 				} else {
@@ -247,6 +271,9 @@ func (l *loader) makePathForType(rt reflect.Type, tagPref string, rootOnly bool)
 				}
 			}
 		}
+	}
+	if allOptional {
+		p = p.And(alt.Unique())
 	}
 	if tagPref != "" {
 		return p, nil

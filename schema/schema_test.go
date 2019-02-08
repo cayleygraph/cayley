@@ -116,6 +116,15 @@ type NestedNode struct {
 	Next genObject `quad:"next,opt"`
 }
 
+type Alts struct {
+	Alt []OptFields `quad:"alt"`
+}
+
+type OptFields struct {
+	One string `quad:"one,optional"`
+	Two string `quad:"two,optional"`
+}
+
 func iri(s string) quad.IRI { return quad.IRI(s) }
 
 const typeIRI = quad.IRI(rdf.Type)

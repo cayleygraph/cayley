@@ -378,4 +378,24 @@ var testFillValueCases = []struct {
 			{iri("c1"), iri("prev"), iri("c2"), nil},
 		},
 	},
+	{
+		name: "all optional",
+		expect: Alts{
+			Alt: []OptFields{
+				{One: "A"},
+				{Two: "B"},
+				{One: "C", Two: "D"},
+			},
+		},
+		quads: []quad.Quad{
+			{iri("c1"), iri("alt"), iri("h1"), nil},
+			{iri("c1"), iri("alt"), iri("h2"), nil},
+			{iri("c1"), iri("alt"), iri("h3"), nil},
+
+			{iri("h1"), iri("one"), quad.String("A"), nil},
+			{iri("h2"), iri("two"), quad.String("B"), nil},
+			{iri("h3"), iri("one"), quad.String("C"), nil},
+			{iri("h3"), iri("two"), quad.String("D"), nil},
+		},
+	},
 }
