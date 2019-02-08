@@ -3,9 +3,11 @@ package sql
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/log"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 var types = make(map[string]Registration)
@@ -113,19 +115,28 @@ func (r Registration) quadIndexes(options graph.Options) []string {
 			`ALTER TABLE quads ADD CONSTRAINT label_hash_fk FOREIGN KEY (label_hash) REFERENCES nodes (hash);`,
 		)
 	}
-	if r.FillFactor {
-		factor, _ := options.IntKey("db_fill_factor", 50)
-		indexes = append(indexes,
-			fmt.Sprintf(`CREATE INDEX ops_index ON quads (object_hash, predicate_hash, subject_hash) WITH (FILLFACTOR = %d);`, factor),
-			fmt.Sprintf(`CREATE INDEX pos_index ON quads (predicate_hash, object_hash, subject_hash) WITH (FILLFACTOR = %d);`, factor),
-			fmt.Sprintf(`CREATE INDEX osp_index ON quads (object_hash, subject_hash, predicate_hash) WITH (FILLFACTOR = %d);`, factor),
+	quadIndexes := [][3]quad.Direction{
+		{quad.Subject, quad.Predicate, quad.Object},
+		{quad.Object, quad.Predicate, quad.Subject},
+		{quad.Predicate, quad.Object, quad.Subject},
+		{quad.Object, quad.Subject, quad.Predicate},
+	}
+	factor, _ := options.IntKey("db_fill_factor", 50)
+	for _, ind := range quadIndexes {
+		var (
+			name string
+			cols []string
 		)
-	} else {
-		indexes = append(indexes,
-			`CREATE INDEX ops_index ON quads (object_hash, predicate_hash, subject_hash);`,
-			`CREATE INDEX pos_index ON quads (predicate_hash, object_hash, subject_hash);`,
-			`CREATE INDEX osp_index ON quads (object_hash, subject_hash, predicate_hash);`,
-		)
+		for _, d := range ind {
+			name += string(d.Prefix())
+			cols = append(cols, d.String()+"_hash")
+		}
+		q := fmt.Sprintf(`CREATE INDEX %s_index ON quads (%s)`,
+			name, strings.Join(cols, ", "))
+		if r.FillFactor {
+			q += fmt.Sprintf(" WITH (FILLFACTOR = %d)", factor)
+		}
+		indexes = append(indexes, q+";")
 	}
 	return indexes
 }
