@@ -7,7 +7,7 @@ go:
   - tip
 
 script:
-  - go test -v ./...
+  - GO111MODULE=on go test -v ./...
   #  - goapp test -v ./graph/gaedatastore
 
 matrix:
