@@ -159,6 +159,23 @@ Amount of empty space as a percentage to leave in the database when creating a t
 
 Whether to skip checking quad store size.
 
+Connection pooling options used to configure the GO sql connection. GO defaults will be used when not specified (-1).
+#### **`maxopenconnections`**
+
+  * Type: Integer
+  * Default: -1.
+
+#### **`maxopenconnections`**
+
+  * Type: Integer
+  * Default: -1.
+
+#### **`connmaxlifetime`**
+
+  * Type: Integer
+  * Default: -1.
+
+
 ## Per-Replication Options
 
 The `replication_options` object in the main configuration file contains any of these following options that change the behavior of the replication manager.
