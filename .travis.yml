@@ -6,6 +6,9 @@ go:
   - "1.11.x"
   - tip
 
+install:
+  - GO111MODULE=on go mod download
+
 script:
   - GO111MODULE=on go test -v ./...
   #  - goapp test -v ./graph/gaedatastore
