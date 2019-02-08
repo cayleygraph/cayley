@@ -123,12 +123,40 @@ type QuadStore struct {
 }
 
 func connect(addr string, flavor string, opts graph.Options) (*sql.DB, error) {
+	maxOpenConnections, err := opts.IntKey("maxopenconnections", -1)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve maxopenconnections from options: %v", err)
+	}
+
+	maxIdleConnections, err := opts.IntKey("maxidleconnections", -1)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve maxIdleConnections from options: %v", err)
+	}
+
+	connMaxLifetime, err := opts.StringKey("connmaxlifetime", "")
+
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve connmaxlifetime from options: %v", err)
+	}
+
+	var connDuration time.Duration
+	if connMaxLifetime != "" {
+		connDuration, err = time.ParseDuration(connMaxLifetime)
+
+		if err != nil {
+			return nil, fmt.Errorf("couldn't parse connmaxlifetime string: %v", err)
+		}
+	}
+
 	// TODO(barakmich): Parse options for more friendly addr
 	conn, err := sql.Open(flavor, addr)
 	if err != nil {
 		clog.Errorf("Couldn't open database at %s: %#v", addr, err)
 		return nil, err
 	}
+
 	// "Open may just validate its arguments without creating a connection to the database."
 	// "To verify that the data source name is valid, call Ping."
 	// Source: http://golang.org/pkg/database/sql/#Open
@@ -136,6 +164,17 @@ func connect(addr string, flavor string, opts graph.Options) (*sql.DB, error) {
 		clog.Errorf("Couldn't open database at %s: %#v", addr, err)
 		return nil, err
 	}
+
+	if maxOpenConnections != -1 {
+		conn.SetMaxOpenConns(maxOpenConnections)
+	}
+	if maxIdleConnections != -1 {
+		conn.SetMaxIdleConns(maxIdleConnections)
+	}
+	if connDuration != 0 {
+		conn.SetConnMaxLifetime(connDuration)
+	}
+
 	return conn, nil
 }
 
