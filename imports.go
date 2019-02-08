@@ -15,6 +15,23 @@ var (
 	NewTransaction = graph.NewTransaction
 )
 
+type Iterator graph.Iterator
+type QuadStore graph.QuadStore
+type QuadWriter graph.QuadWriter
+
+type Path path.Path
+
+type Handle struct {
+	graph.QuadStore
+	graph.QuadWriter
+}
+
+func (h *Handle) Close() error {
+	err := h.QuadWriter.Close()
+	h.QuadStore.Close()
+	return err
+}
+
 func Triple(subject, predicate, object interface{}) quad.Quad {
 	return Quad(subject, predicate, object, nil)
 }

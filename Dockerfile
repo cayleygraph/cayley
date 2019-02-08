@@ -1,13 +1,11 @@
-FROM golang:1.10 as builder
+FROM golang:1.11 as builder
 
 # Set up workdir
-WORKDIR /go/src/github.com/cayleygraph/cayley
+WORKDIR /cayley
 
-# Restore vendored dependencies
-RUN curl -L https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o /usr/local/bin/dep && \
-    chmod +x /usr/local/bin/dep
-COPY Gopkg.toml Gopkg.lock ./
-RUN dep ensure --vendor-only
+# Restore dependencies
+COPY go.mod go.sum ./
+RUN go mod download
 
 # This will be used to init cayley and as config file in the final image.
 # Make sure you start every path with %PREFIX% to make it available in both 

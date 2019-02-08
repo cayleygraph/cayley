@@ -3,22 +3,8 @@ language: go
 sudo: false
 
 go:
-  - "1.10.x"
   - "1.11.x"
   - tip
-
-install:
-  # Install our tracked dependencies
-  - mkdir ../dep && curl -L https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 -o ../dep/dep && chmod +x ../dep/dep && export PATH=$PATH:$PWD/../dep/
-  - dep ensure --vendor-only
-  - go get -t ./...
-
-  # Google App Engine dependencies
-  #  - cd ..
-  #  - wget https://storage.googleapis.com/appengine-sdks/featured/go_appengine_sdk_linux_amd64-1.9.40.zip
-  #  - unzip -q go_appengine_sdk_linux_amd64-1.9.40.zip
-  #  - export PATH=$PATH:$PWD/go_appengine/
-  #  - cd cayley
 
 script:
   - go test -v ./...

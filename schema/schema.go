@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/path"
@@ -392,8 +394,34 @@ func keysEqual(v1, v2 graph.Value) bool {
 	return v1 == v2
 }
 
+func isExported(name string) bool {
+	ch, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(ch)
+}
+
 func isZero(rv reflect.Value) bool {
-	return rv.Interface() == reflect.Zero(rv.Type()).Interface() // TODO(dennwc): rewrite
+	switch rv.Kind() {
+	case reflect.Ptr:
+		return rv.IsNil()
+	case reflect.Slice, reflect.Map:
+		return rv.IsNil() || rv.Len() == 0
+	case reflect.Struct:
+		// have to be careful here - struct may contain slice fields,
+		// so we cannot compare them directly
+		rt := rv.Type()
+		for i := 0; i < rt.NumField(); i++ {
+			f := rt.Field(i)
+			if !isExported(f.Name) {
+				continue
+			}
+			if !isZero(rv.Field(i)) {
+				return false
+			}
+		}
+		return true
+	}
+	// primitive types
+	return rv.Interface() == reflect.Zero(rv.Type()).Interface()
 }
 
 func (c *Config) idFor(rules fieldRules, rt reflect.Type, rv reflect.Value, pref string) (id quad.Value, err error) {
