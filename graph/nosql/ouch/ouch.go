@@ -53,7 +53,10 @@ func dialDB(create bool, addr string, opt graph.Options) (*DB, error) {
 
 	var db *kivik.DB
 	if create {
-		db, err = client.CreateDB(ctx, dbName)
+		err = client.CreateDB(ctx, dbName)
+		if err == nil {
+			db, err = client.DB(ctx, dbName)
+		}
 	} else {
 		db, err = client.DB(ctx, dbName)
 	}
@@ -193,8 +196,8 @@ func (db *DB) findByKey(ctx context.Context, col string, key nosql.Key) (nosql.D
 }
 
 func (db *DB) findByOuchKey(ctx context.Context, cK string) (nosql.Document, string, string, error) {
-	row := db.db.Get(ctx, cK)
-	if err := row.Err; err != nil {
+	row, err := db.db.Get(ctx, cK)
+	if err != nil {
 		if kivik.StatusCode(err) == kivik.StatusNotFound {
 			return nil, "", "", nosql.ErrNotFound
 		}
@@ -202,7 +205,7 @@ func (db *DB) findByOuchKey(ctx context.Context, cK string) (nosql.Document, str
 	}
 
 	rowDoc := make(map[string]interface{})
-	err := row.ScanDoc(&rowDoc)
+	err = row.ScanDoc(&rowDoc)
 	if err != nil {
 		return nil, "", "", err
 	}
