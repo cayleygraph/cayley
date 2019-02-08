@@ -161,13 +161,13 @@ Amount of empty space as a percentage to leave in the database when creating a t
 
 Whether to skip checking quad store size.
 
-Connection pooling options used to configure the GO sql connection. GO defaults will be used when not specified (-1).
+Connection pooling options used to configure the GO sql connection. GO defaults will be used when not specified.
 #### **`maxopenconnections`**
 
   * Type: Integer
   * Default: -1.
 
-#### **`maxopenconnections`**
+#### **`maxidleconnections`**
 
   * Type: Integer
   * Default: -1.
@@ -175,7 +175,7 @@ Connection pooling options used to configure the GO sql connection. GO defaults 
 #### **`connmaxlifetime`**
 
   * Type: Integer
-  * Default: -1.
+  * Default: "".
 
 
 ## Per-Replication Options
