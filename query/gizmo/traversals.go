@@ -198,6 +198,9 @@ func (p *pathObject) Both(call goja.FunctionCall) goja.Value {
 	return p.newVal(np)
 }
 func (p *pathObject) follow(ep *pathObject, rev bool) *pathObject {
+	if ep == nil {
+		return p
+	}
 	np := p.clonePath()
 	if rev {
 		np = np.FollowReverse(ep.path)
@@ -275,6 +278,9 @@ func (p *pathObject) And(path *pathObject) *pathObject {
 //	cFollows.Intersect(dFollows).All()
 //	// Equivalently, g.V("<charlie>").Out("<follows>").And(g.V("<dani>").Out("<follows>")).All()
 func (p *pathObject) Intersect(path *pathObject) *pathObject {
+	if path == nil {
+		return p
+	}
 	np := p.clonePath().And(path.path)
 	return p.new(np)
 }
@@ -292,6 +298,9 @@ func (p *pathObject) Intersect(path *pathObject) *pathObject {
 //	// People followed by both charlie (bob and dani) and dani (bob and greg) -- returns bob (from charlie), dani, bob (from dani), and greg.
 //	cFollows.Union(dFollows).All()
 func (p *pathObject) Union(path *pathObject) *pathObject {
+	if path == nil {
+		return p
+	}
 	np := p.clonePath().Or(path.path)
 	return p.new(np)
 }
@@ -523,6 +532,9 @@ func (p *pathObject) SaveOptR(call goja.FunctionCall) goja.Value {
 //	cFollows.Except(dFollows).All()   // The set (dani) -- what charlie follows that dani does not also follow.
 //	// Equivalently, g.V("<charlie>").Out("<follows>").Except(g.V("<dani>").Out("<follows>")).All()
 func (p *pathObject) Except(path *pathObject) *pathObject {
+	if path == nil {
+		return p
+	}
 	np := p.clonePath().Except(path.path)
 	return p.new(np)
 }
