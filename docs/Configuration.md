@@ -174,7 +174,7 @@ Connection pooling options used to configure the GO sql connection. GO defaults 
 
 #### **`connmaxlifetime`**
 
-  * Type: Integer
+  * Type: String
   * Default: "".
 
 
