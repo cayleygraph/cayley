@@ -126,22 +126,19 @@ func connect(addr string, flavor string, opts graph.Options) (*sql.DB, error) {
 	maxOpenConnections, err := opts.IntKey("maxopenconnections", -1)
 
 	if err != nil {
-		clog.Errorf("Could not retrieve maxopenconnections from options");
-		return nil, err
+		return nil, fmt.Errorf("Could not retrieve maxopenconnections from options: %v", err);
 	}
 
 	maxIdleConnections, err := opts.IntKey("maxidleconnections", -1)
 
 	if err != nil {
-		clog.Errorf("Could not retrieve maxIdleConnections from options");
-		return nil, err
+		return nil, fmt.Errorf("Could not retrieve maxIdleConnections from options: %v", err);
 	}
 
 	connMaxLifetime, err := opts.StringKey("connmaxlifetime", "")
 
 	if err != nil {
-		clog.Errorf("Could not retrieve connmaxlifetime from options");
-		return nil, err
+		return nil, fmt.Errorf("Could not retrieve connmaxlifetime from options: %v", err)
 	}
 
 	var connDuration time.Duration;
@@ -149,8 +146,7 @@ func connect(addr string, flavor string, opts graph.Options) (*sql.DB, error) {
 		connDuration, err = time.ParseDuration(connMaxLifetime);
 
 		if err != nil {
-			clog.Errorf("Couldn't parse connmaxlifetime string");
-			return nil, err;
+			return nil, fmt.Errorf("Couldn't parse connmaxlifetime string: %v", err)
 		}
 	}
 
