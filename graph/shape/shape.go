@@ -1,6 +1,7 @@
 package shape
 
 import (
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -9,6 +10,11 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
+)
+
+var (
+	debugShapes    = os.Getenv("CAYLEY_DEBUG_SHAPES") == "true"
+	debugOptimizer = os.Getenv("CAYLEY_DEBUG_OPTIMIZER") == "true"
 )
 
 // Shape represent a query tree shape.
@@ -201,11 +207,11 @@ func IsNull(s Shape) bool {
 func BuildIterator(qs graph.QuadStore, s Shape) graph.Iterator {
 	qs = graph.Unwrap(qs)
 	if s != nil {
-		if clog.V(2) {
+		if debugShapes || clog.V(2) {
 			clog.Infof("shape: %#v", s)
 		}
 		s, _ = Optimize(s, qs)
-		if clog.V(2) {
+		if debugOptimizer || clog.V(2) {
 			clog.Infof("optimized: %#v", s)
 		}
 	}
