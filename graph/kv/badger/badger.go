@@ -35,7 +35,6 @@ var (
 )
 
 func init() {
-	// badger.SetLogger(Logger{})
 	kv.Register(Type, kv.Registration{
 		NewFunc:      Create,
 		InitFunc:     Create,
@@ -159,18 +158,16 @@ func (it *Iterator) Next(ctx context.Context) bool {
 		if it.pref != nil {
 			it.iter.Seek(it.pref)
 			return it.iter.ValidForPrefix(it.pref)
-		} else {
-			it.iter.Rewind()
-			return it.iter.Valid()
 		}
+		it.iter.Rewind()
+		return it.iter.Valid()
 	}
 	if it.pref != nil {
 		it.iter.Next()
 		return it.iter.ValidForPrefix(it.pref)
-	} else {
-		it.iter.Next()
-		return it.iter.Valid()
 	}
+	it.iter.Next()
+	return it.iter.Valid()
 }
 func (it *Iterator) Key() []byte { return it.iter.Item().Key() }
 func (it *Iterator) Val() []byte {
@@ -185,9 +182,3 @@ func (it *Iterator) Close() error {
 	it.iter.Close()
 	return it.err
 }
-
-type Logger struct{}
-
-func (Logger) Errorf(s string, i ...interface{})   {}
-func (Logger) Infof(s string, i ...interface{})    {}
-func (Logger) Warningf(s string, i ...interface{}) {}

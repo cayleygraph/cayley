@@ -1,6 +1,7 @@
 module github.com/cayleygraph/cayley
 
 require (
+	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/Microsoft/go-winio v0.4.11 // indirect
@@ -12,6 +13,8 @@ require (
 	github.com/cznic/mathutil v0.0.0-20170313102836-1447ad269d64
 	github.com/d4l3k/messagediff v1.2.1 // indirect
 	github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d
+	github.com/dgraph-io/badger v1.5.4
+	github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f // indirect
 	github.com/dlclark/regexp2 v1.1.4 // indirect
 	github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
