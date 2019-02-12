@@ -106,7 +106,11 @@ func (tx *Tx) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 		} else if err != nil {
 			return nil, err
 		}
-		vals[i], _ = item.ValueCopy(nil)
+		val, err := item.ValueCopy(nil)
+		if err != nil {
+			return nil, err
+		}
+		vals[i] = val
 	}
 	return vals, nil
 }
@@ -149,7 +153,7 @@ func (it *Iterator) Key() []byte {
 }
 
 func (it *Iterator) Val() []byte {
-	v, err := it.iter.Item().Value()
+	v, err := it.iter.Item().ValueCopy(nil)
 	it.err = err
 	return v
 }
