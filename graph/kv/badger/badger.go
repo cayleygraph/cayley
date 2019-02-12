@@ -16,11 +16,9 @@ package badger
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/options"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
@@ -31,7 +29,8 @@ const (
 )
 
 var (
-	ErrTxNotWritable = errors.New("Transaction is read-only")
+	DatastoreOpts = badger.DefaultOptions
+	IteratorOpts  = badger.IteratorOptions{PrefetchValues: false}
 )
 
 func init() {
@@ -48,11 +47,9 @@ func Create(path string, m graph.Options) (kv.BucketKV, error) {
 		return nil, err
 	}
 
-	opts := badger.DefaultOptions
+	opts := DatastoreOpts
 	opts.Dir = path
 	opts.ValueDir = path
-	opts.ValueLogLoadingMode = options.FileIO
-	opts.TableLoadingMode = options.FileIO
 
 	store, err := badger.Open(opts)
 	if err != nil {
@@ -72,6 +69,7 @@ type DB struct {
 func (db *DB) Type() string {
 	return Type
 }
+
 func (db *DB) Close() error {
 	if db.DB == nil || db.isClosed {
 		return nil
@@ -79,69 +77,51 @@ func (db *DB) Close() error {
 	db.isClosed = true
 	return db.DB.Close()
 }
+
 func (db *DB) Tx(update bool) (kv.FlatTx, error) {
-	tx := &Tx{update: update}
+	tx := &Tx{}
 	tx.txn = db.DB.NewTransaction(update)
 	return tx, nil
 }
 
 type Tx struct {
-	txn    *badger.Txn
-	err    error
-	update bool
+	txn *badger.Txn
 }
 
 func (tx *Tx) Commit(ctx context.Context) error {
-	if tx.err != nil {
-		return tx.err
-	}
-	if !tx.update {
-		return nil
-	}
-	tx.err = tx.txn.Commit(nil)
-	return tx.err
+	return tx.txn.Commit(nil)
 }
+
 func (tx *Tx) Rollback() error {
 	tx.txn.Discard()
-	return tx.err
+	return nil
 }
+
 func (tx *Tx) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 	vals := make([][]byte, len(keys))
 	for i, k := range keys {
-		v, err := tx.txn.Get(k)
-		if err != nil && err != badger.ErrKeyNotFound {
-			return nil, err
-		}
-		if v == nil {
-			vals[i] = nil
+		item, err := tx.txn.Get(k)
+		if err == badger.ErrKeyNotFound {
 			continue
-		}
-		val, err := v.ValueCopy(nil)
-		if err != nil {
+		} else if err != nil {
 			return nil, err
 		}
-		vals[i] = val
+		vals[i], _ = item.ValueCopy(nil)
 	}
 	return vals, nil
 }
+
 func (tx *Tx) Put(k, v []byte) error {
-	if !tx.update {
-		return ErrTxNotWritable
-	}
 	return tx.txn.Set(k, v)
 }
+
 func (tx *Tx) Del(k []byte) error {
-	if !tx.update {
-		return ErrTxNotWritable
-	}
 	return tx.txn.Delete(k)
 }
+
 func (tx *Tx) Scan(pref []byte) kv.KVIterator {
-	opts := badger.DefaultIteratorOptions
-	opts.PrefetchValues = false
-	opts.PrefetchSize = 100
-	it := tx.txn.NewIterator(opts)
-	return &Iterator{iter: it, first: true, pref: pref}
+	it := tx.txn.NewIterator(IteratorOpts)
+	return &Iterator{iter: it, pref: pref, first: true}
 }
 
 type Iterator struct {
@@ -154,30 +134,31 @@ type Iterator struct {
 func (it *Iterator) Next(ctx context.Context) bool {
 	if it.first {
 		it.first = false
-		if it.pref != nil {
-			it.iter.Seek(it.pref)
-			return it.iter.ValidForPrefix(it.pref)
-		}
-		it.iter.Rewind()
-		return it.iter.Valid()
-	}
-	if it.pref != nil {
+		it.iter.Seek(it.pref)
+	} else {
 		it.iter.Next()
+	}
+	if len(it.pref) != 0 {
 		return it.iter.ValidForPrefix(it.pref)
 	}
-	it.iter.Next()
 	return it.iter.Valid()
 }
-func (it *Iterator) Key() []byte { return it.iter.Item().Key() }
-func (it *Iterator) Val() []byte {
-	val, err := it.iter.Item().ValueCopy(nil)
-	it.err = err
-	return val
+
+func (it *Iterator) Key() []byte {
+	return it.iter.Item().Key()
 }
+
+func (it *Iterator) Val() []byte {
+	v, err := it.iter.Item().Value()
+	it.err = err
+	return v
+}
+
 func (it *Iterator) Err() error {
 	return it.err
 }
+
 func (it *Iterator) Close() error {
 	it.iter.Close()
-	return it.err
+	return it.Err()
 }
