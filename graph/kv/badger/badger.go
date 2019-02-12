@@ -80,13 +80,12 @@ func (db *DB) Close() error {
 	return db.DB.Close()
 }
 func (db *DB) Tx(update bool) (kv.FlatTx, error) {
-	tx := &Tx{update: update, db: db}
+	tx := &Tx{update: update}
 	tx.txn = db.DB.NewTransaction(update)
 	return tx, nil
 }
 
 type Tx struct {
-	db     *DB
 	txn    *badger.Txn
 	err    error
 	update bool
