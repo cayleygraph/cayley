@@ -91,6 +91,8 @@ func AsValue(v interface{}) (out Value, ok bool) {
 	switch v := v.(type) {
 	case Value:
 		out = v
+	case []byte:
+		out = ByteArr(v)
 	case string:
 		out = String(v)
 	case int:
@@ -268,10 +270,11 @@ const (
 
 // TODO(dennwc): make these configurable
 const (
-	defaultIntType   IRI = schema.Integer
-	defaultFloatType IRI = schema.Float
-	defaultBoolType  IRI = schema.Boolean
-	defaultTimeType  IRI = schema.DateTime
+	defaultIntType     IRI = schema.Integer
+	defaultFloatType   IRI = schema.Float
+	defaultBoolType    IRI = schema.Boolean
+	defaultTimeType    IRI = schema.DateTime
+	defaultByteArrType IRI = schema.ByteArr
 )
 
 func init() {
@@ -288,6 +291,9 @@ func init() {
 	// time types
 	RegisterStringConversion(defaultTimeType, stringToTime)
 	RegisterStringConversion(nsXSD+`dateTime`, stringToTime)
+	// []byte types
+	RegisterStringConversion(defaultByteArrType, stringToByteArr)
+	RegisterStringConversion(nsXSD+`bytes`, stringToByteArr)
 }
 
 var knownConversions = make(map[IRI]StringConversion)
@@ -340,6 +346,10 @@ func stringToTime(s string) (Value, error) {
 		return nil, err
 	}
 	return Time(v), nil
+}
+
+func stringToByteArr(s string) (Value, error) {
+	return ByteArr([]byte(s)), nil
 }
 
 // Int is a native wrapper for int64 type.
@@ -420,6 +430,28 @@ func (s Time) TypedString() TypedString {
 		// TODO(dennwc): this is used to compute hash, thus we might want to include nanos
 		Value: String(time.Time(s).UTC().Format(time.RFC3339)),
 		Type:  defaultTimeType,
+	}
+}
+
+// ByteArr is representation of []byte as a value
+type ByteArr string
+
+func (b ByteArr) String() string {
+	return b.TypedString().String()
+}
+func (b ByteArr) Native() interface{} { return []byte(b) }
+func (b ByteArr) Equal(v Value) bool {
+	t, ok := v.(ByteArr)
+	if !ok {
+		return false
+	}
+	return b == t
+}
+func (b ByteArr) TypedString() TypedString {
+	return TypedString{
+		// TODO(dennwc): this is used to compute hash
+		Value: String(b),
+		Type:  defaultByteArrType,
 	}
 }
 
