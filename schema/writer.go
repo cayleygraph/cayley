@@ -19,6 +19,8 @@ func (c *Config) WriteAsQuads(w quad.Writer, o interface{}) (quad.Value, error) 
 	return wr.writeAsQuads(reflect.ValueOf(o))
 }
 
+var BytesType = reflect.TypeOf([]byte(nil))
+
 type writer struct {
 	c    *Config
 	w    quad.Writer
@@ -92,7 +94,7 @@ func (w *writer) writeValueAs(id quad.Value, rv reflect.Value, pref string, rule
 				return err
 			}
 		case saveRule:
-			if f.Type.Kind() == reflect.Slice && f.Type != reflect.TypeOf([]byte(nil)) {
+			if f.Type.Kind() == reflect.Slice && f.Type != byteArrayType {
 				sl := rv.Field(i)
 				for j := 0; j < sl.Len(); j++ {
 					if err := w.writeOneValReflect(id, r.Pred, sl.Index(j), r.Rev); err != nil {

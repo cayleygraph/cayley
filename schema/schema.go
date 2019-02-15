@@ -19,6 +19,7 @@ import (
 )
 
 var reflQuadValue = reflect.TypeOf((*quad.Value)(nil)).Elem()
+var byteArrayType = reflect.TypeOf([]byte(nil))
 
 type ErrReqFieldNotSet struct {
 	Field string
