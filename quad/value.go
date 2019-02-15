@@ -2,6 +2,7 @@ package quad
 
 import (
 	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"hash"
 	"math/rand"
@@ -92,7 +93,7 @@ func AsValue(v interface{}) (out Value, ok bool) {
 	case Value:
 		out = v
 	case []byte:
-		out = ByteArr(v)
+		out = Bytes(v)
 	case string:
 		out = String(v)
 	case int:
@@ -270,11 +271,11 @@ const (
 
 // TODO(dennwc): make these configurable
 const (
-	defaultIntType     IRI = schema.Integer
-	defaultFloatType   IRI = schema.Float
-	defaultBoolType    IRI = schema.Boolean
-	defaultTimeType    IRI = schema.DateTime
-	defaultByteArrType IRI = schema.ByteArr
+	defaultIntType   IRI = schema.Integer
+	defaultFloatType IRI = schema.Float
+	defaultBoolType  IRI = schema.Boolean
+	defaultTimeType  IRI = schema.DateTime
+	defaultBytesType IRI = schema.Bytes
 )
 
 func init() {
@@ -292,8 +293,8 @@ func init() {
 	RegisterStringConversion(defaultTimeType, stringToTime)
 	RegisterStringConversion(nsXSD+`dateTime`, stringToTime)
 	// []byte types
-	RegisterStringConversion(defaultByteArrType, stringToByteArr)
-	RegisterStringConversion(nsXSD+`bytes`, stringToByteArr)
+	RegisterStringConversion(defaultBytesType, stringToBytes)
+	RegisterStringConversion(nsXSD+`bytes`, stringToBytes)
 }
 
 var knownConversions = make(map[IRI]StringConversion)
@@ -348,8 +349,9 @@ func stringToTime(s string) (Value, error) {
 	return Time(v), nil
 }
 
-func stringToByteArr(s string) (Value, error) {
-	return ByteArr([]byte(s)), nil
+func stringToBytes(s string) (Value, error) {
+	v := base64.StdEncoding.EncodeToString([]byte(s))
+	return Bytes(v), nil
 }
 
 // Int is a native wrapper for int64 type.
@@ -433,25 +435,32 @@ func (s Time) TypedString() TypedString {
 	}
 }
 
-// ByteArr is representation of []byte as a value
-type ByteArr string
+// Bytes is representation of []byte as a value
+type Bytes string
 
-func (b ByteArr) String() string {
+func (b Bytes) String() string {
 	return b.TypedString().String()
 }
-func (b ByteArr) Native() interface{} { return []byte(b) }
-func (b ByteArr) Equal(v Value) bool {
-	t, ok := v.(ByteArr)
+func (b Bytes) Native() interface{} {
+	v, err := base64.StdEncoding.DecodeString(string(b))
+	if err != nil {
+		// TODO: (dennwc) should this panic?
+		v = make([]byte, 0)
+	}
+	return []byte(v)
+}
+func (b Bytes) Equal(v Value) bool {
+	t, ok := v.(Bytes)
 	if !ok {
 		return false
 	}
 	return b == t
 }
-func (b ByteArr) TypedString() TypedString {
+func (b Bytes) TypedString() TypedString {
 	return TypedString{
 		// TODO(dennwc): this is used to compute hash
 		Value: String(b),
-		Type:  defaultByteArrType,
+		Type:  defaultBytesType,
 	}
 }
 
