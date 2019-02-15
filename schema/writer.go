@@ -94,7 +94,7 @@ func (w *writer) writeValueAs(id quad.Value, rv reflect.Value, pref string, rule
 				return err
 			}
 		case saveRule:
-			if f.Type.Kind() == reflect.Slice && f.Type != reflect.TypeOf([]byte(nil)) {
+			if f.Type.Kind() == reflect.Slice && f.Type != byteArrayType {
 				sl := rv.Field(i)
 				for j := 0; j < sl.Len(); j++ {
 					if err := w.writeOneValReflect(id, r.Pred, sl.Index(j), r.Rev); err != nil {
