@@ -25,8 +25,8 @@ const (
 	True = Prefix + `True`
 	// Data type: Text.
 	Text = Prefix + `Text`
-	// Data type: ByteArr.
-	ByteArr = Prefix + "ByteArr"
+	// Data type: Bytes.
+	Bytes = Prefix + "Bytes"
 	// Data type: URL.
 	URL = Prefix + `URL`
 	// Data type: Number.
