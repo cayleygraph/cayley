@@ -89,7 +89,7 @@ type Tx struct {
 }
 
 func (tx *Tx) Commit(ctx context.Context) error {
-	return tx.txn.Commit(nil)
+	return tx.txn.Commit()
 }
 
 func (tx *Tx) Rollback() error {
