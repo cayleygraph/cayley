@@ -447,13 +447,6 @@ func (b Bytes) String() string {
 	return b.TypedString().String()
 }
 func (b Bytes) Native() interface{} {
-	// v, err := base64.StdEncoding.DecodeString(string(b))
-	// if err != nil {
-	// TODO: (dennwc) should this panic?
-	// v = make([]byte, 0)
-	// v = []byte(b)
-	// }
-	// return []byte(v)
 	return []byte(b)
 }
 func (b Bytes) Equal(v Value) bool {
