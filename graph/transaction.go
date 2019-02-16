@@ -14,14 +14,17 @@
 
 package graph
 
-import "github.com/cayleygraph/cayley/quad"
+import (
+	"github.com/cayleygraph/cayley/internal/mapset"
+	"github.com/cayleygraph/cayley/quad"
+)
 
 // Transaction stores a bunch of Deltas to apply together in an atomic step on the database.
 type Transaction struct {
 	// Deltas stores the deltas in the right order
 	Deltas []Delta
 	// deltas stores the deltas in a map to avoid duplications
-	deltas map[Delta]struct{}
+	deltas mapset.Map
 }
 
 // NewTransaction initialize a new transaction.
@@ -31,7 +34,7 @@ func NewTransaction() *Transaction {
 
 // NewTransactionN initialize a new transaction with a predefined capacity.
 func NewTransactionN(n int) *Transaction {
-	return &Transaction{Deltas: make([]Delta, 0, n), deltas: make(map[Delta]struct{}, n)}
+	return &Transaction{Deltas: make([]Delta, 0, n), deltas: mapset.NewMapWithComparator(mapset.GenericComparator)}
 }
 
 // AddQuad adds a new quad to the transaction if it is not already present in it.
@@ -40,8 +43,8 @@ func NewTransactionN(n int) *Transaction {
 func (t *Transaction) AddQuad(q quad.Quad) {
 	ad, rd := createDeltas(q)
 
-	if _, adExists := t.deltas[ad]; !adExists {
-		if _, rdExists := t.deltas[rd]; rdExists {
+	if !t.deltas.Contains(ad) {
+		if t.deltas.Contains(rd) {
 			t.deleteDelta(rd)
 		} else {
 			t.addDelta(ad)
@@ -55,10 +58,10 @@ func (t *Transaction) AddQuad(q quad.Quad) {
 func (t *Transaction) RemoveQuad(q quad.Quad) {
 	ad, rd := createDeltas(q)
 
-	if _, adExists := t.deltas[ad]; adExists {
+	if t.deltas.Contains(ad) {
 		t.deleteDelta(ad)
 	} else {
-		if _, rdExists := t.deltas[rd]; !rdExists {
+		if !t.deltas.Contains(rd) {
 			t.addDelta(rd)
 		}
 	}
@@ -78,11 +81,11 @@ func createDeltas(q quad.Quad) (ad, rd Delta) {
 
 func (t *Transaction) addDelta(d Delta) {
 	t.Deltas = append(t.Deltas, d)
-	t.deltas[d] = struct{}{}
+	t.deltas.Put(d, struct{}{})
 }
 
 func (t *Transaction) deleteDelta(d Delta) {
-	delete(t.deltas, d)
+	t.deltas.Remove(d)
 
 	for i, id := range t.Deltas {
 		if id == d {
