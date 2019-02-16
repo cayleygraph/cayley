@@ -1,6 +1,7 @@
 package quad
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
@@ -61,8 +62,12 @@ func HashTo(v Value, p []byte) {
 		panic("buffer too small to fit the hash")
 	}
 	if v != nil {
+		// if vv, ok := v.(Bytes); ok {
+		// 	h.Write([]byte(vv))
+		// } else {
 		// TODO(kortschak,dennwc) Remove dependence on String() method.
 		h.Write([]byte(v.String()))
+		// }
 	}
 	h.Sum(p[:0])
 }
@@ -436,30 +441,32 @@ func (s Time) TypedString() TypedString {
 }
 
 // Bytes is representation of []byte as a value
-type Bytes string
+type Bytes []byte
 
 func (b Bytes) String() string {
 	return b.TypedString().String()
 }
 func (b Bytes) Native() interface{} {
-	v, err := base64.StdEncoding.DecodeString(string(b))
-	if err != nil {
-		// TODO: (dennwc) should this panic?
-		v = make([]byte, 0)
-	}
-	return []byte(v)
+	// v, err := base64.StdEncoding.DecodeString(string(b))
+	// if err != nil {
+	// TODO: (dennwc) should this panic?
+	// v = make([]byte, 0)
+	// v = []byte(b)
+	// }
+	// return []byte(v)
+	return []byte(b)
 }
 func (b Bytes) Equal(v Value) bool {
 	t, ok := v.(Bytes)
 	if !ok {
 		return false
 	}
-	return b == t
+	return bytes.Equal(b, t)
 }
 func (b Bytes) TypedString() TypedString {
 	return TypedString{
 		// TODO(dennwc): this is used to compute hash
-		Value: String(b),
+		Value: String(string(b)),
 		Type:  defaultBytesType,
 	}
 }
