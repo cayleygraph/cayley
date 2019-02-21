@@ -2,6 +2,7 @@ package quad
 
 import (
 	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"hash"
 	"math/rand"
@@ -60,8 +61,15 @@ func HashTo(v Value, p []byte) {
 		panic("buffer too small to fit the hash")
 	}
 	if v != nil {
-		// TODO(kortschak,dennwc) Remove dependence on String() method.
-		h.Write([]byte(v.String()))
+		if vv, ok := v.(Bytes); ok {
+			// TODO(fungl164,dennwc) Ensure prefix byte on is strong enough
+			// of a differentiator for hash value
+			h.Write([]byte{0x00})
+			h.Write([]byte(vv))
+		} else {
+			// TODO(kortschak,dennwc) Remove dependence on String() method.
+			h.Write([]byte(v.String()))
+		}
 	}
 	h.Sum(p[:0])
 }
@@ -91,6 +99,8 @@ func AsValue(v interface{}) (out Value, ok bool) {
 	switch v := v.(type) {
 	case Value:
 		out = v
+	case []byte:
+		out = Bytes(v)
 	case string:
 		out = String(v)
 	case int:
@@ -272,6 +282,7 @@ const (
 	defaultFloatType IRI = schema.Float
 	defaultBoolType  IRI = schema.Boolean
 	defaultTimeType  IRI = schema.DateTime
+	defaultBytesType IRI = schema.Bytes
 )
 
 func init() {
@@ -288,6 +299,9 @@ func init() {
 	// time types
 	RegisterStringConversion(defaultTimeType, stringToTime)
 	RegisterStringConversion(nsXSD+`dateTime`, stringToTime)
+	// []byte types
+	RegisterStringConversion(defaultBytesType, stringToBytes)
+	RegisterStringConversion(nsXSD+`bytes`, stringToBytes)
 }
 
 var knownConversions = make(map[IRI]StringConversion)
@@ -340,6 +354,11 @@ func stringToTime(s string) (Value, error) {
 		return nil, err
 	}
 	return Time(v), nil
+}
+
+func stringToBytes(s string) (Value, error) {
+	v := base64.StdEncoding.EncodeToString([]byte(s))
+	return Bytes(v), nil
 }
 
 // Int is a native wrapper for int64 type.
@@ -420,6 +439,30 @@ func (s Time) TypedString() TypedString {
 		// TODO(dennwc): this is used to compute hash, thus we might want to include nanos
 		Value: String(time.Time(s).UTC().Format(time.RFC3339)),
 		Type:  defaultTimeType,
+	}
+}
+
+// Bytes is representation of []byte as a value
+type Bytes string
+
+func (b Bytes) String() string {
+	return string(b)
+}
+func (b Bytes) Native() interface{} {
+	return []byte(b)
+}
+func (b Bytes) Equal(v Value) bool {
+	t, ok := v.(Bytes)
+	if !ok {
+		return false
+	}
+	return b == t
+}
+func (b Bytes) TypedString() TypedString {
+	return TypedString{
+		// TODO(dennwc): this is used to compute hash
+		Value: String(string(b)),
+		Type:  defaultBytesType,
 	}
 }
 

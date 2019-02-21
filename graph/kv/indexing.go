@@ -25,11 +25,11 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/log"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
-	"github.com/tylertreat/BoomFilters"
+	boom "github.com/tylertreat/BoomFilters"
 )
 
 var (
