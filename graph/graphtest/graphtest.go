@@ -707,7 +707,7 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		quad.Float(-12345e-6),
 		quad.Bool(true),
 		quad.Time(time.Now()),
-		quad.IRI("C"), quad.Raw("<bytes>"),
+		quad.IRI("C"), quad.IRI("bytes"),
 		quad.Bytes([]byte{'b', 'y', 't', 'e', 's', 0x00}),
 	}
 

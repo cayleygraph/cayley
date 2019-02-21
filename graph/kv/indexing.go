@@ -142,11 +142,6 @@ func (qs *QuadStore) resolveValDeltas(ctx context.Context, tx BucketTx, deltas [
 				fnc(i, x.(uint64))
 				continue
 			}
-		} else if byt, ok := d.Val.(quad.Bytes); ok {
-			if x, ok := qs.valueLRU.Get(string(byt)); ok {
-				fnc(i, x.(uint64))
-				continue
-			}
 		} else if d.Val == nil {
 			fnc(i, 0)
 			continue
@@ -172,9 +167,6 @@ func (qs *QuadStore) resolveValDeltas(ctx context.Context, tx BucketTx, deltas [
 		d := &deltas[ind]
 		if iri, ok := d.Val.(quad.IRI); ok && id != 0 {
 			qs.valueLRU.Put(string(iri), uint64(id))
-		}
-		if byt, ok := d.Val.(quad.Bytes); ok && id != 0 {
-			qs.valueLRU.Put(string(byt), uint64(id))
 		}
 		fnc(ind, uint64(id))
 	}
@@ -339,9 +331,6 @@ func (qs *QuadStore) decNodes(ctx context.Context, tx BucketTx, deltas []graphlo
 		}
 		if iri, ok := d.Val.(quad.IRI); ok {
 			qs.valueLRU.Del(string(iri))
-		}
-		if byt, ok := d.Val.(quad.Bytes); ok {
-			qs.valueLRU.Del(string(byt))
 		}
 		if err := qs.delLog(tx, d.ID); err != nil {
 			return err
@@ -520,9 +509,6 @@ func (qs *QuadStore) indexNode(tx BucketTx, p *proto.Primitive, val quad.Value) 
 	}
 	if iri, ok := val.(quad.IRI); ok {
 		qs.valueLRU.Put(string(iri), p.ID)
-	}
-	if byt, ok := val.(quad.Bytes); ok {
-		qs.valueLRU.Put(string(byt), p.ID)
 	}
 	return qs.addToLog(tx, p)
 }
@@ -840,11 +826,6 @@ func (qs *QuadStore) resolveQuadValues(ctx context.Context, tx BucketTx, vals []
 				out[i] = x.(uint64)
 				continue
 			}
-		} else if byt, ok := v.(quad.Bytes); ok {
-			if x, ok := qs.valueLRU.Get(string(byt)); ok {
-				out[i] = x.(uint64)
-				continue
-			}
 		} else if v == nil {
 			continue
 		}
@@ -866,9 +847,6 @@ func (qs *QuadStore) resolveQuadValues(ctx context.Context, tx BucketTx, vals []
 		out[ind], _ = binary.Uvarint(b)
 		if iri, ok := vals[ind].(quad.IRI); ok && out[ind] != 0 {
 			qs.valueLRU.Put(string(iri), uint64(out[ind]))
-		}
-		if byt, ok := vals[ind].(quad.Bytes); ok && out[ind] != 0 {
-			qs.valueLRU.Put(string(byt), uint64(out[ind]))
 		}
 	}
 	return out, nil
