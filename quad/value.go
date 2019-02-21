@@ -61,12 +61,13 @@ func HashTo(v Value, p []byte) {
 		panic("buffer too small to fit the hash")
 	}
 	if v != nil {
-		// if vv, ok := v.(Bytes); ok {
-		// 	h.Write([]byte(vv))
-		// } else {
-		// TODO(kortschak,dennwc) Remove dependence on String() method.
-		h.Write([]byte(v.String()))
-		// }
+		if vv, ok := v.(Bytes); ok {
+			h.Write([]byte(vv))
+			h.Write([]byte{0x01})
+		} else {
+			// TODO(kortschak,dennwc) Remove dependence on String() method.
+			h.Write([]byte(v.String()))
+		}
 	}
 	h.Sum(p[:0])
 }
