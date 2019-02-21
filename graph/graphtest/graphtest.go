@@ -707,7 +707,8 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		quad.Float(-12345e-6),
 		quad.Bool(true),
 		quad.Time(time.Now()),
-		quad.Bytes([]byte{'b', 'y', 't', 'e', 's'}),
+		quad.IRI("C"), quad.Raw("<bytes>"),
+		quad.Bytes([]byte{'b', 'y', 't', 'e', 's', 0x00}),
 	}
 
 	err := w.AddQuadSet([]quad.Quad{
@@ -718,6 +719,7 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		{values[0], values[1], values[9], nil},
 		{values[0], values[1], values[10], nil},
 		{values[0], values[1], values[11], nil},
+		{values[12], values[13], values[14], nil},
 	})
 	require.NoError(t, err)
 	for _, pq := range values {
@@ -756,7 +758,7 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	}
 	exp := int64(19)
 	if conf.NoPrimitives {
-		exp = 7
+		exp = 8
 	}
 	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
 }

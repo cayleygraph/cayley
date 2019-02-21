@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/voc/schema"
 )
 
 //go:generate protoc --proto_path=$GOPATH/src:. --gogo_out=. quads.proto
@@ -21,11 +20,7 @@ func MakeValue(qv quad.Value) *Value {
 	case quad.String:
 		return &Value{&Value_Str{string(v)}}
 	case quad.Bytes:
-		vv := v.TypedString()
-		return &Value{&Value_TypedStr{&Value_TypedString{
-			Value: string(vv.Value),
-			Type:  string(vv.Type),
-		}}}
+		return &Value{&Value_Raw{[]byte(v)}}
 	case quad.IRI:
 		return &Value{&Value_Iri{string(v)}}
 	case quad.BNode:
@@ -86,7 +81,7 @@ func (m *Value) ToNative() (qv quad.Value) {
 	}
 	switch v := m.Value.(type) {
 	case *Value_Raw:
-		return quad.StringToValue(string(v.Raw))
+		return quad.Bytes(v.Raw)
 	case *Value_Str:
 		return quad.String(v.Str)
 	case *Value_Iri:
@@ -94,9 +89,6 @@ func (m *Value) ToNative() (qv quad.Value) {
 	case *Value_Bnode:
 		return quad.BNode(v.Bnode)
 	case *Value_TypedStr:
-		if v.TypedStr.Type == schema.Bytes {
-			return quad.Bytes(v.TypedStr.Value)
-		}
 		return quad.TypedString{
 			Value: quad.String(v.TypedStr.Value),
 			Type:  quad.IRI(v.TypedStr.Type),

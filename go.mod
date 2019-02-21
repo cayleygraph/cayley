@@ -12,7 +12,6 @@ require (
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
 	github.com/cznic/mathutil v0.0.0-20170313102836-1447ad269d64
 	github.com/d4l3k/messagediff v1.2.1 // indirect
-	github.com/deckarep/golang-set v1.7.1
 	github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d
 	github.com/dgraph-io/badger v1.5.4
 	github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f // indirect
@@ -21,7 +20,6 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/dop251/goja v0.0.0-20190105122144-6d5bf35058fa
-	github.com/emirpasic/gods v1.12.0
 	github.com/flimzy/diff v0.1.4 // indirect
 	github.com/flimzy/kivik v1.8.1 // indirect
 	github.com/flimzy/testy v0.0.13 // indirect

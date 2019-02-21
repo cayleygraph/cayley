@@ -1,7 +1,6 @@
 package quad
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
@@ -441,19 +440,12 @@ func (s Time) TypedString() TypedString {
 }
 
 // Bytes is representation of []byte as a value
-type Bytes []byte
+type Bytes string
 
 func (b Bytes) String() string {
-	return b.TypedString().String()
+	return string(b)
 }
 func (b Bytes) Native() interface{} {
-	// v, err := base64.StdEncoding.DecodeString(string(b))
-	// if err != nil {
-	// TODO: (dennwc) should this panic?
-	// v = make([]byte, 0)
-	// v = []byte(b)
-	// }
-	// return []byte(v)
 	return []byte(b)
 }
 func (b Bytes) Equal(v Value) bool {
@@ -461,7 +453,7 @@ func (b Bytes) Equal(v Value) bool {
 	if !ok {
 		return false
 	}
-	return bytes.Equal(b, t)
+	return b == t
 }
 func (b Bytes) TypedString() TypedString {
 	return TypedString{
