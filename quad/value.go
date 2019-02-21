@@ -62,8 +62,10 @@ func HashTo(v Value, p []byte) {
 	}
 	if v != nil {
 		if vv, ok := v.(Bytes); ok {
+			// TODO(fungl164,dennwc) Ensure prefix byte on is strong enough
+			// of a differentiator for hash value
+			h.Write([]byte{0x00})
 			h.Write([]byte(vv))
-			h.Write([]byte{0x01})
 		} else {
 			// TODO(kortschak,dennwc) Remove dependence on String() method.
 			h.Write([]byte(v.String()))
