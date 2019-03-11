@@ -58,7 +58,7 @@ All command line flags take precedence over the configuration file.
   * `memstore`: Path parameter is not supported.
   * `leveldb`: Directory to hold the LevelDB database files.
   * `bolt`: Path to the persistent single Bolt database file.
-  * `mongo`: "hostname:port" of the desired MongoDB server. More options can be provided in [mgo](https://godoc.org/gopkg.in/mgo.v2#Dial) address format.
+  * `mongo`: "hostname:port" of the desired MongoDB server. More options can be provided in [mgo](https://godoc.org/github.com/globalsign/mgo#Dial) address format.
   * `elastic`: `http://host:port` of the desired ElasticSearch server.
   * `couch`: `http://user:pass@host:port/dbname` of the desired CouchDB server.
   * `postgres`,`cockroach`: `postgres://[username:password@]host[:port]/database-name?sslmode=disable` of the PostgreSQL database and credentials. Sslmode is optional. More option available on [pq](https://godoc.org/github.com/lib/pq) page.
