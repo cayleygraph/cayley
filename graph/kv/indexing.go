@@ -29,7 +29,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
-	"github.com/tylertreat/BoomFilters"
+	boom "github.com/tylertreat/BoomFilters"
 )
 
 var (
@@ -678,7 +678,6 @@ func (qs *QuadStore) hasPrimitive(ctx context.Context, tx BucketTx, p *proto.Pri
 	for i := len(options) - 1; i >= 0; i-- {
 		// TODO: batch
 		prim, err := qs.getPrimitiveFromLog(ctx, tx, options[i])
-
 		if err != nil {
 			return nil, err
 		}
@@ -905,6 +904,9 @@ func (qs *QuadStore) getPrimitiveFromLog(ctx context.Context, tx BucketTx, k uin
 }
 
 func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
+	if qs.exists.disabled {
+		return nil
+	}
 	qs.exists.buf = make([]byte, 3*8)
 	qs.exists.DeletableBloomFilter = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
 	return View(qs.db, func(tx BucketTx) error {
@@ -932,6 +934,9 @@ func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
 }
 
 func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
+	if qs.exists.disabled {
+		return true // false positives are expected
+	}
 	qs.exists.Lock()
 	defer qs.exists.Unlock()
 	writePrimToBuf(p, qs.exists.buf)
@@ -939,6 +944,9 @@ func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
 }
 
 func (qs *QuadStore) bloomRemove(p *proto.Primitive) {
+	if qs.exists.disabled {
+		return
+	}
 	qs.exists.Lock()
 	defer qs.exists.Unlock()
 	writePrimToBuf(p, qs.exists.buf)
@@ -946,6 +954,9 @@ func (qs *QuadStore) bloomRemove(p *proto.Primitive) {
 }
 
 func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
+	if qs.exists.disabled {
+		return
+	}
 	qs.exists.Lock()
 	defer qs.exists.Unlock()
 	writePrimToBuf(p, qs.exists.buf)
