@@ -349,6 +349,16 @@ var testFillValueCases = []struct {
 		},
 	},
 	{
+		name: "typedef",
+		expect: genObjectTypedef{
+			ID:   "1234",
+			Name: "Obj",
+		},
+		quads: []quad.Quad{
+			{iri("1234"), iri("name"), quad.String("Obj"), nil},
+		},
+	},
+	{
 		name:   "coords",
 		expect: Coords{Lat: 12.3, Lng: 34.5},
 		quads: []quad.Quad{

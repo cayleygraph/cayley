@@ -173,6 +173,18 @@ var testWriteValueCases = []struct {
 		nil,
 	},
 	{
+		"typedef",
+		genObjectTypedef{
+			ID:   "1234",
+			Name: "Obj",
+		},
+		iri("1234"),
+		[]quad.Quad{
+			{iri("1234"), iri("name"), quad.String("Obj"), nil},
+		},
+		nil,
+	},
+	{
 		"simple object (embedded multiple levels)",
 		subSubObject{
 			subObject: subObject{
