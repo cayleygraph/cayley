@@ -95,6 +95,13 @@ type genObject struct {
 	Name string   `quad:"name"`
 }
 
+type MyString string
+
+type genObjectTypedef struct {
+	ID   quad.IRI `quad:"@id"`
+	Name MyString `quad:"name"`
+}
+
 type subObject struct {
 	genObject
 	Num int `quad:"num"`

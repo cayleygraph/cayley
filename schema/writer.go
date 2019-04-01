@@ -138,6 +138,17 @@ func (w *writer) writeAsQuads(rv reflect.Value) (quad.Value, error) {
 	// note, that it may be a struct such as time.Time
 	if val, ok := quad.AsValue(rv.Interface()); ok {
 		return val, nil
+	} else if kind == reflect.String {
+		return quad.String(rv.String()), nil
+	} else if kind == reflect.Int || kind == reflect.Uint ||
+		kind == reflect.Int32 || kind == reflect.Uint32 ||
+		kind == reflect.Int16 || kind == reflect.Uint16 ||
+		kind == reflect.Int8 || kind == reflect.Uint8 {
+		return quad.Int(rv.Int()), nil
+	} else if kind == reflect.Float64 || kind == reflect.Float32 {
+		return quad.Float(rv.Float()), nil
+	} else if kind == reflect.Bool {
+		return quad.Bool(rv.Bool()), nil
 	}
 	// TODO(dennwc): support maps
 	if kind != reflect.Struct {
