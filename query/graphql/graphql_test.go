@@ -95,10 +95,12 @@ func TestParse(t *testing.T) {
 	}
 }
 
+type M = map[string]interface{}
+
 var casesExecute = []struct {
 	name   string
 	query  string
-	result map[string]interface{}
+	result M
 }{
 	{
 		"cool people and friends",
@@ -114,12 +116,12 @@ var casesExecute = []struct {
     }
   }
 }`,
-		map[string]interface{}{
-			"me": []map[string]interface{}{
+		M{
+			"me": []M{
 				{
 					"id":      quad.IRI("bob"),
 					"follows": nil,
-					"followed": []map[string]interface{}{
+					"followed": []M{
 						{ValueKey: quad.IRI("alice")},
 						{ValueKey: quad.IRI("charlie")},
 						{ValueKey: quad.IRI("dani")},
@@ -127,7 +129,7 @@ var casesExecute = []struct {
 				},
 				{
 					"id": quad.IRI("dani"),
-					"follows": []map[string]interface{}{
+					"follows": []M{
 						{
 							ValueKey: quad.IRI("bob"),
 							"status": quad.String("cool_person"),
@@ -140,14 +142,14 @@ var casesExecute = []struct {
 							},
 						},
 					},
-					"followed": map[string]interface{}{
+					"followed": M{
 						ValueKey: quad.IRI("charlie"),
 					},
 				},
 				{
 					"id":      quad.IRI("greg"),
 					"follows": nil,
-					"followed": []map[string]interface{}{
+					"followed": []M{
 						{ValueKey: quad.IRI("dani")},
 						{ValueKey: quad.IRI("fred")},
 					},
@@ -165,10 +167,10 @@ var casesExecute = []struct {
     }
   }
 }`,
-		map[string]interface{}{
-			"me": map[string]interface{}{
+		M{
+			"me": M{
 				"id": quad.IRI("dani"),
-				"follows": map[string]interface{}{
+				"follows": M{
 					ValueKey: quad.IRI("bob"),
 				},
 			},
@@ -182,8 +184,8 @@ var casesExecute = []struct {
     status @label(v: <smart_graph>)
   }
 }`,
-		map[string]interface{}{
-			"me": []map[string]interface{}{
+		M{
+			"me": []M{
 				{
 					"id":     quad.IRI("emily"),
 					"status": quad.String("smart_person"),
@@ -204,12 +206,12 @@ var casesExecute = []struct {
     follows {*}
   }
 }`,
-		map[string]interface{}{
-			"me": []map[string]interface{}{
+		M{
+			"me": []M{
 				{
 					"id":     quad.IRI("emily"),
 					"status": quad.String("smart_person"),
-					"follows": map[string]interface{}{
+					"follows": M{
 						"id":      quad.IRI("fred"),
 						"follows": quad.IRI("greg"),
 					},
@@ -236,8 +238,8 @@ var casesExecute = []struct {
     }
   }
 }`,
-		map[string]interface{}{
-			"me": map[string]interface{}{
+		M{
+			"me": M{
 				"id":     quad.IRI("fred"),
 				"fof":    quad.IRI("dani"),
 				"friend": quad.IRI("greg"),
@@ -245,6 +247,36 @@ var casesExecute = []struct {
 					quad.String("cool_person"),
 					quad.String("smart_person"),
 				},
+			},
+		},
+	},
+	{
+		"all optional",
+		`{
+  nodes {
+    id,
+    status @opt
+  }
+}`,
+		M{
+			"nodes": []M{
+				{"id": quad.IRI("alice")},
+				{"id": quad.IRI("follows")},
+				{"id": quad.IRI("bob"), "status": quad.String("cool_person")},
+				{"id": quad.IRI("fred")},
+				{"id": quad.IRI("status")},
+				{"id": quad.String("cool_person")},
+				{"id": quad.IRI("charlie")},
+				{"id": quad.IRI("dani"), "status": quad.String("cool_person")},
+				{"id": quad.IRI("greg"), "status": []quad.Value{
+					quad.String("cool_person"),
+					quad.String("smart_person"),
+				}},
+				{"id": quad.IRI("emily"), "status": quad.String("smart_person")},
+				{"id": quad.IRI("predicates")},
+				{"id": quad.IRI("are")},
+				{"id": quad.String("smart_person")},
+				{"id": quad.IRI("smart_graph")},
 			},
 		},
 	},
