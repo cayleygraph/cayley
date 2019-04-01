@@ -95,6 +95,7 @@ type QuadStore struct {
 	mapBucket map[string]map[string][]uint64
 
 	exists struct {
+		disabled bool
 		sync.Mutex
 		buf []byte
 		*boom.DeletableBloomFilter
@@ -128,7 +129,11 @@ func Init(kv BucketKV, opt graph.Options) error {
 	return nil
 }
 
-func New(kv BucketKV, _ graph.Options) (graph.QuadStore, error) {
+const (
+	OptNoBloom = "no_bloom"
+)
+
+func New(kv BucketKV, opt graph.Options) (graph.QuadStore, error) {
 	ctx := context.TODO()
 	qs := newQuadStore(kv)
 	if vers, err := qs.getMetadata(ctx); err == ErrNoBucket {
@@ -139,6 +144,7 @@ func New(kv BucketKV, _ graph.Options) (graph.QuadStore, error) {
 		return nil, errors.New("kv: data version is out of date. Run cayleyupgrade for your config to update the data.")
 	}
 	qs.valueLRU = lru.New(2000)
+	qs.exists.disabled, _ = opt.BoolKey(OptNoBloom, false)
 	if err := qs.initBloomFilter(ctx); err != nil {
 		return nil, err
 	}
