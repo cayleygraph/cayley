@@ -130,6 +130,12 @@ var optimizeCases = []struct {
 		},
 	},
 	{
+		name:   "intersect tagged all",
+		from:   Intersect{Save{Tags: []string{"id"}, From: AllNodes{}}},
+		opt:    true,
+		expect: Save{Tags: []string{"id"}, From: AllNodes{}},
+	},
+	{
 		name: "intersect quads and lookup resolution",
 		from: Intersect{
 			Quads{
@@ -256,14 +262,16 @@ var optimizeCases = []struct {
 	},
 	{ // remove optional empty set from intersect
 		name: "remove optional empty set",
-		from: Intersect{
-			AllNodes{},
-			Save{From: AllNodes{}, Tags: []string{"all"}},
-			Fixed{intVal(2)},
-			Optional{Save{
-				From: emptySet(),
-				Tags: []string{"name"}},
+		from: IntersectOpt{
+			Sub: Intersect{
+				AllNodes{},
+				Save{From: AllNodes{}, Tags: []string{"all"}},
+				Fixed{intVal(2)},
 			},
+			Opt: []Shape{Save{
+				From: emptySet(),
+				Tags: []string{"name"},
+			}},
 		},
 		opt: true,
 		expect: Save{
@@ -304,6 +312,33 @@ var optimizeCases = []struct {
 						Filter: map[quad.Direction]graph.Value{
 							quad.Predicate: intVal(2),
 						},
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "all optional",
+		from: Intersect{IntersectOpt{
+			Sub: Intersect{
+				Save{Tags: []string{"id"}, From: AllNodes{}},
+			},
+			Opt: []Shape{
+				NodesFrom{Dir: quad.Subject, Quads: Quads{
+					QuadFilter{Dir: quad.Object, Values: Save{Tags: []string{"status"}, From: AllNodes{}}},
+					QuadFilter{Dir: quad.Predicate, Values: Fixed{intVal(1)}},
+				}},
+			},
+		}},
+		opt: true,
+		expect: Save{
+			Tags: []string{"id"},
+			From: IntersectOpt{
+				Sub: Intersect{AllNodes{}},
+				Opt: []Shape{
+					QuadsAction{Result: quad.Subject,
+						Save:   map[quad.Direction][]string{quad.Object: {"status"}},
+						Filter: map[quad.Direction]graph.Value{quad.Predicate: intVal(1)},
 					},
 				},
 			},
