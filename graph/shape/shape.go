@@ -945,10 +945,12 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 		return ns, true
 	}
 	var (
-		onlyAll = true   // contains only AllNodes shapes
-		fixed   []Fixed  // we will collect all Fixed, and will place it as a first iterator
-		tags    []string // if we find a Save inside, we will push it outside of Intersect
-		quads   Quads    // also, collect all quad filters into a single set
+		onlyAll  = true // contains only AllNodes shapes
+		hasAll   = false
+		fixed    []Fixed  // we will collect all Fixed, and will place it as a first iterator
+		tags     []string // if we find a Save inside, we will push it outside of Intersect
+		quads    Quads    // also, collect all quad filters into a single set
+		optional []Shape
 	)
 	remove := func(i *int, optimized bool) {
 		realloc()
@@ -964,16 +966,10 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		switch c := c.(type) {
-		case AllNodes: // remove AllNodes - it's useless
+		case AllNodes: // remove AllNodes - it's useless in the intersection
 			remove(&i, true)
-			// prevent resetting of onlyAll
-			continue
-		case Optional:
-			if IsNull(c.From) {
-				remove(&i, true)
-				// prevent resetting of onlyAll
-				continue
-			}
+			hasAll = true
+			continue // prevent resetting of onlyAll
 		case Quads: // merge all quad filters
 			remove(&i, false)
 			if quads == nil {
@@ -988,6 +984,10 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 		case Intersect: // merge with other Intersects
 			remove(&i, true)
 			s = append(s, c...)
+		case IntersectOpt: // merge with IntersectOpt
+			remove(&i, true)
+			s = append(s, c.Sub...)
+			optional = append(optional, c.Opt...)
 		case Save: // push Save outside of Intersect
 			realloc()
 			opt = true
@@ -1009,6 +1009,23 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 			sv := Save{From: sout, Tags: tags}
 			var topt bool
 			sout, topt = sv.Optimize(r)
+			opt = opt || topt
+		}()
+	}
+	if len(optional) != 0 {
+		// don't forget to add optional paths
+		defer func() {
+			if IsNull(sout) {
+				return
+			}
+			out := IntersectOpt{Opt: optional}
+			if so, ok := sout.(Intersect); ok {
+				out.Sub = so
+			} else {
+				out.Sub = Intersect{sout}
+			}
+			var topt bool
+			sout, topt = out.Optimize(r)
 			opt = opt || topt
 		}()
 	}
@@ -1087,11 +1104,108 @@ func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 		s = ns
 	}
 	if len(s) == 0 {
+		if hasAll {
+			return AllNodes{}, true
+		}
 		return nil, true
 	} else if len(s) == 1 {
 		return s[0], true
 	}
 	// TODO: optimize order
+	return s, opt
+}
+
+// IntersectOpt is like Intersect but it also joins optional query shapes to the main query.
+type IntersectOpt struct {
+	Sub Intersect
+	Opt []Shape
+}
+
+func (s IntersectOpt) BuildIterator(qs graph.QuadStore) graph.Iterator {
+	if len(s.Sub) == 0 && len(s.Opt) == 0 {
+		return iterator.NewNull()
+	}
+	if len(s.Sub) == 0 {
+		if len(s.Opt) == 0 {
+			return iterator.NewNull()
+		}
+		s.Sub = Intersect{AllNodes{}}
+	}
+	sub := make([]graph.Iterator, 0, len(s.Sub)+len(s.Opt))
+	for _, c := range s.Sub {
+		sub = append(sub, c.BuildIterator(qs))
+	}
+	for _, c := range s.Opt {
+		sub = append(sub, iterator.NewOptional(c.BuildIterator(qs)))
+	}
+	if len(sub) == 1 {
+		return sub[0]
+	}
+	return iterator.NewAnd(qs, sub...)
+}
+
+func (s IntersectOpt) Optimize(r Optimizer) (_ Shape, opt bool) {
+	// optimize optional shapes first, reallocate if necessary
+	newSlice := false
+	realloc := func() {
+		opt = true
+		if newSlice {
+			return
+		}
+		newSlice = true
+		s.Opt = append([]Shape{}, s.Opt...)
+	}
+	for i := 0; i < len(s.Opt); i++ {
+		o := s.Opt[i]
+		if IsNull(o) {
+			realloc()
+			s.Opt = append(s.Opt[:i], s.Opt[i+1:]...)
+			i--
+			continue
+		}
+		o, opt2 := o.Optimize(r)
+		if !opt2 {
+			continue
+		}
+		realloc()
+		if IsNull(o) {
+			s.Opt = append(s.Opt[:i], s.Opt[i+1:]...)
+			i--
+		} else {
+			s.Opt[i] = o
+		}
+	}
+	if len(s.Opt) == 0 {
+		// no optional - replace with a regular intersection
+		si, _ := s.Sub.Optimize(r)
+		return si, true
+	}
+	if len(s.Sub) == 0 {
+		// force at least All to be in the intersection
+		s.Sub = Intersect{AllNodes{}}
+		opt = true
+	} else {
+		sub, opt2 := s.Sub.Optimize(r)
+		if IsNull(sub) {
+			return nil, true
+		}
+		opt = opt || opt2
+		switch sub := sub.(type) {
+		case Intersect:
+			s.Sub = sub
+		case IntersectOpt:
+			sub.Opt = append(sub.Opt)
+			s = sub
+			opt = true
+		default:
+			s.Sub = Intersect{sub}
+			opt = true
+		}
+	}
+	if r != nil {
+		ns, nopt := r.OptimizeShape(s)
+		return ns, opt || nopt
+	}
 	return s, opt
 }
 
@@ -1272,34 +1386,8 @@ func (s Save) Optimize(r Optimizer) (Shape, bool) {
 	s.From, opt = s.From.Optimize(r)
 	if len(s.Tags) == 0 {
 		return s.From, true
-	}
-	if r != nil {
-		ns, nopt := r.OptimizeShape(s)
-		return ns, opt || nopt
-	}
-	return s, opt
-}
-
-// Optional makes a query execution optional. The query can only produce tagged results,
-// since it's value is not used to compute intersection.
-type Optional struct {
-	From Shape
-}
-
-func (s Optional) BuildIterator(qs graph.QuadStore) graph.Iterator {
-	if IsNull(s.From) {
-		return iterator.NewOptional(iterator.NewNull())
-	}
-	return iterator.NewOptional(s.From.BuildIterator(qs))
-}
-func (s Optional) Optimize(r Optimizer) (Shape, bool) {
-	if IsNull(s.From) {
-		return s, false
-	}
-	var opt bool
-	s.From, opt = s.From.Optimize(r)
-	if IsNull(s.From) {
-		return s, opt
+	} else if IsNull(s.From) {
+		return nil, true
 	}
 	if r != nil {
 		ns, nopt := r.OptimizeShape(s)
