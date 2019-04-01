@@ -424,6 +424,8 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		for _, q := range deltas.QuadDel {
 			var link proto.Primitive
 			exists := true
+			// resolve values of all quad directions
+			// if any of the direction does not exists, the quad does not exists as well
 			for _, dir := range quad.Directions {
 				h := q.Quad.Get(dir)
 				n, ok := nodes[h]
@@ -680,6 +682,9 @@ func (qs *QuadStore) hasPrimitive(ctx context.Context, tx BucketTx, p *proto.Pri
 		prim, err := qs.getPrimitiveFromLog(ctx, tx, options[i])
 		if err != nil {
 			return nil, err
+		}
+		if prim.Deleted {
+			continue
 		}
 		if prim.IsSameLink(p) {
 			return prim, nil
