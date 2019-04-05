@@ -251,6 +251,23 @@ var casesExecute = []struct {
 		},
 	},
 	{
+		"unnest object (non existent)",
+		`{
+  me(id: fred) {
+    id: ` + ValueKey + `
+    follows_missing @unnest {
+      friend: ` + ValueKey + `
+      friend_status: status
+    }
+  }
+}`,
+		M{
+			"me": M{
+				"id": quad.IRI("fred"),
+			},
+		},
+	},
+	{
 		"all optional",
 		`{
   nodes {

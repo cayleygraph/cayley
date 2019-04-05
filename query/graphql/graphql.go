@@ -348,6 +348,8 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 				if len(arr) > 1 {
 					return nil, fmt.Errorf("cannot unnest more than one object on %q; use (%s: 1) to force",
 						f2.Alias, LimitKey)
+				} else if len(arr) == 0 {
+					continue
 				}
 				for k, v := range arr[0] {
 					obj[k] = v
