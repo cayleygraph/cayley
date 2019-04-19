@@ -10,7 +10,7 @@ git clone https://github.com/cayleygraph/cayley
 cd cayley
 
 # download dependencies
-go mod donwload
+go mod download
 
 # build the binary
 go build ./cmd/cayley
