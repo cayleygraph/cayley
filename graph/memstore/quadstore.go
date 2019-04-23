@@ -132,6 +132,7 @@ func (q internalQuad) Dir(d quad.Direction) int64 {
 }
 
 type QuadStore struct {
+	mu sync.RWMutex
 	last int64
 	// TODO: string -> quad.Value once Raw -> typed resolution is unnecessary
 	vals    map[string]int64
@@ -142,7 +143,6 @@ type QuadStore struct {
 	index   QuadDirectionIndex
 	horizon int64 // used only to assign ids to tx
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
-	mx sync.RWMutex // make a field to prevent autocomplete
 }
 
 // New creates a new in-memory quad store and loads provided quads.
@@ -259,16 +259,16 @@ func (qs *QuadStore) lookupQuadDirs(p internalQuad) quad.Quad {
 
 // AddNode adds a blank node (with no value) to quad store. It returns an id of the node.
 func (qs *QuadStore) AddBNode() int64 {
-	qs.mx.Lock()
-	defer qs.mx.Unlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	return qs.addPrimitive(&primitive{})
 }
 
 // AddNode adds a value to quad store. It returns an id of the value.
 // False is returned as a second parameter if value exists already.
 func (qs *QuadStore) AddValue(v quad.Value) (int64, bool) {
-	qs.mx.Lock()
-	defer qs.mx.Unlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	id, exists := qs.resolveVal(v, true)
 	return id, !exists
 }
@@ -288,8 +288,8 @@ func (qs *QuadStore) indexesForQuad(q internalQuad) []*Tree {
 // AddQuad adds a quad to quad store. It returns an id of the quad.
 // False is returned as a second parameter if quad exists already.
 func (qs *QuadStore) AddQuad(q quad.Quad) (int64, bool) {
-	qs.mx.Lock()
-	defer qs.mx.Unlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	return qs.addQuad(q)
 }
 
@@ -312,8 +312,8 @@ func (qs *QuadStore) addQuad(q quad.Quad) (int64, bool) {
 //
 // Deprecated: use AddQuad instead.
 func (qs *QuadStore) WriteQuad(q quad.Quad) error {
-	qs.mx.Lock()
-	defer qs.mx.Unlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	qs.addQuad(q)
 	return nil
 }
@@ -336,8 +336,8 @@ func (qs *QuadStore) deleteQuadNodes(q internalQuad) {
 }
 
 func (qs *QuadStore) Delete(id int64) bool {
-	qs.mx.Lock()
-	defer qs.mx.Unlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	return qs.delete(id)
 }
 
@@ -389,8 +389,8 @@ func (qs *QuadStore) findQuad(q quad.Quad) (int64, internalQuad, bool) {
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
-	qs.mx.Lock()
-	defer qs.mx.Unlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	// Precheck the whole transaction (if required)
 	if !ignoreOpts.IgnoreDup || !ignoreOpts.IgnoreMissing {
 		for _, d := range deltas {
@@ -458,8 +458,8 @@ func (qs *QuadStore) quad(v graph.Value) (q internalQuad, ok bool) {
 }
 
 func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	q, ok := qs.quad(index)
 	if !ok {
 		return quad.Quad{}
@@ -472,8 +472,8 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 	if !ok {
 		return iterator.NewNull()
 	}
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	index, ok := qs.index.Get(d, id)
 	if ok && index.Len() != 0 {
 		return NewIterator(index, qs, d, id)
@@ -482,8 +482,8 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 }
 
 func (qs *QuadStore) Size() int64 {
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	return int64(len(qs.prim))
 }
 
@@ -491,8 +491,8 @@ func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
 	if name == nil {
 		return nil
 	}
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	id := qs.vals[name.String()]
 	if id == 0 {
 		return nil
@@ -510,8 +510,8 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	if !ok {
 		return nil
 	}
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	if _, ok = qs.prim[n]; !ok {
 		return nil
 	}
@@ -519,14 +519,14 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	return newAllIterator(qs, false, qs.last)
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	q, ok := qs.quad(val)
 	if !ok {
 		return nil
@@ -539,8 +539,8 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	qs.mx.RLock()
-	defer qs.mx.RUnlock()
+	qs.mu.RLock()
+	defer qs.mu.RUnlock()
 	return newAllIterator(qs, true, qs.last)
 }
 
