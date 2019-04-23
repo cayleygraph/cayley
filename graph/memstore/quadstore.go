@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -141,6 +142,7 @@ type QuadStore struct {
 	index   QuadDirectionIndex
 	horizon int64 // used only to assign ids to tx
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
+	mx sync.RWMutex // make a field to prevent autocomplete
 }
 
 // New creates a new in-memory quad store and loads provided quads.
@@ -257,12 +259,16 @@ func (qs *QuadStore) lookupQuadDirs(p internalQuad) quad.Quad {
 
 // AddNode adds a blank node (with no value) to quad store. It returns an id of the node.
 func (qs *QuadStore) AddBNode() int64 {
+	qs.mx.Lock()
+	defer qs.mx.Unlock()
 	return qs.addPrimitive(&primitive{})
 }
 
 // AddNode adds a value to quad store. It returns an id of the value.
 // False is returned as a second parameter if value exists already.
 func (qs *QuadStore) AddValue(v quad.Value) (int64, bool) {
+	qs.mx.Lock()
+	defer qs.mx.Unlock()
 	id, exists := qs.resolveVal(v, true)
 	return id, !exists
 }
@@ -282,6 +288,12 @@ func (qs *QuadStore) indexesForQuad(q internalQuad) []*Tree {
 // AddQuad adds a quad to quad store. It returns an id of the quad.
 // False is returned as a second parameter if quad exists already.
 func (qs *QuadStore) AddQuad(q quad.Quad) (int64, bool) {
+	qs.mx.Lock()
+	defer qs.mx.Unlock()
+	return qs.addQuad(q)
+}
+
+func (qs *QuadStore) addQuad(q quad.Quad) (int64, bool) {
 	p, _ := qs.resolveQuad(q, true)
 	if id := qs.quads[p]; id != 0 {
 		return id, false
@@ -300,7 +312,9 @@ func (qs *QuadStore) AddQuad(q quad.Quad) (int64, bool) {
 //
 // Deprecated: use AddQuad instead.
 func (qs *QuadStore) WriteQuad(q quad.Quad) error {
-	qs.AddQuad(q)
+	qs.mx.Lock()
+	defer qs.mx.Unlock()
+	qs.addQuad(q)
 	return nil
 }
 
@@ -315,12 +329,19 @@ func (qs *QuadStore) deleteQuadNodes(q internalQuad) {
 			if p.refs < 0 {
 				panic("remove of deleted node")
 			} else if p.refs == 0 {
-				qs.Delete(id)
+				qs.delete(id)
 			}
 		}
 	}
 }
+
 func (qs *QuadStore) Delete(id int64) bool {
+	qs.mx.Lock()
+	defer qs.mx.Unlock()
+	return qs.delete(id)
+}
+
+func (qs *QuadStore) delete(id int64) bool {
 	p := qs.prim[id]
 	if p == nil {
 		return false
@@ -368,6 +389,8 @@ func (qs *QuadStore) findQuad(q quad.Quad) (int64, internalQuad, bool) {
 }
 
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	qs.mx.Lock()
+	defer qs.mx.Unlock()
 	// Precheck the whole transaction (if required)
 	if !ignoreOpts.IgnoreDup || !ignoreOpts.IgnoreMissing {
 		for _, d := range deltas {
@@ -393,10 +416,10 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	for _, d := range deltas {
 		switch d.Action {
 		case graph.Add:
-			qs.AddQuad(d.Quad)
+			qs.addQuad(d.Quad)
 		case graph.Delete:
 			if id, _, ok := qs.findQuad(d.Quad); ok {
-				qs.Delete(id)
+				qs.delete(id)
 			}
 		default:
 			// TODO: ideally we should rollback it
@@ -435,6 +458,8 @@ func (qs *QuadStore) quad(v graph.Value) (q internalQuad, ok bool) {
 }
 
 func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	q, ok := qs.quad(index)
 	if !ok {
 		return quad.Quad{}
@@ -447,6 +472,8 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 	if !ok {
 		return iterator.NewNull()
 	}
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	index, ok := qs.index.Get(d, id)
 	if ok && index.Len() != 0 {
 		return NewIterator(index, qs, d, id)
@@ -455,6 +482,8 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 }
 
 func (qs *QuadStore) Size() int64 {
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	return int64(len(qs.prim))
 }
 
@@ -462,6 +491,8 @@ func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
 	if name == nil {
 		return nil
 	}
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	id := qs.vals[name.String()]
 	if id == 0 {
 		return nil
@@ -479,6 +510,8 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	if !ok {
 		return nil
 	}
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	if _, ok = qs.prim[n]; !ok {
 		return nil
 	}
@@ -486,10 +519,14 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	return newAllIterator(qs, false, qs.last)
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	q, ok := qs.quad(val)
 	if !ok {
 		return nil
@@ -502,6 +539,8 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
+	qs.mx.RLock()
+	defer qs.mx.RUnlock()
 	return newAllIterator(qs, true, qs.last)
 }
 
