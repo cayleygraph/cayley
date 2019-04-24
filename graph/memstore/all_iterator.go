@@ -102,8 +102,10 @@ func (it *AllIterator) Contains(ctx context.Context, v graph.Value) bool {
 	if !ok {
 		return false
 	}
-	p := it.qs.prim[id]
-	if p.ID > it.maxid {
+	it.qs.mu.RLock()
+	defer it.qs.mu.RUnlock()
+	p, ok := it.qs.prim[id]
+	if !ok || p.ID > it.maxid {
 		return false
 	}
 	if !it.ok(p) {

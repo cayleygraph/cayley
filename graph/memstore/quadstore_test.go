@@ -148,6 +148,10 @@ func TestIteratorsRace(t *testing.T) {
 		it2 := qs.NodesAllIterator()
 		defer it2.Close()
 		for it2.Next(ctx) {
+			r := it2.Result()
+			if r != nil {
+				it2.Contains(ctx, r)
+			}
 			t.Log("NodesAllIterator Got", qs.NameOf(it2.Result()))
 			time.Sleep(sleep)
 			t.Log("NodesAllIterator")
