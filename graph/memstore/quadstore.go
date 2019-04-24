@@ -132,7 +132,7 @@ func (q internalQuad) Dir(d quad.Direction) int64 {
 }
 
 type QuadStore struct {
-	mu sync.RWMutex
+	mu   sync.RWMutex
 	last int64
 	// TODO: string -> quad.Value once Raw -> typed resolution is unnecessary
 	vals    map[string]int64
@@ -519,8 +519,8 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	qs.mu.RLock()
-	defer qs.mu.RUnlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	return newAllIterator(qs, false, qs.last)
 }
 
@@ -539,8 +539,8 @@ func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Valu
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	qs.mu.RLock()
-	defer qs.mu.RUnlock()
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	return newAllIterator(qs, true, qs.last)
 }
 

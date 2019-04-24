@@ -16,9 +16,14 @@ package memstore
 
 import (
 	"context"
+	"fmt"
+	_ "io/ioutil"
+	"os"
 	"reflect"
 	"sort"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
@@ -105,6 +110,70 @@ func TestMemstoreValueOf(t *testing.T) {
 			require.Equal(t, test.value, int64(v))
 		}
 	}
+}
+
+// go test -race -v -run ^(TestIteratorsRace)$
+func TestIteratorsRace(t *testing.T) {
+	qs, qw, _ := makeTestStore(simpleGraph)
+	sleep := 10 * time.Millisecond
+	ctx := context.TODO()
+
+	var wg sync.WaitGroup
+	//out := ioutil.Discard
+	out := os.Stdout
+	wg.Add(4)
+
+	go func() {
+		defer wg.Done()
+		it := qs.QuadsAllIterator()
+		defer it.Close()
+		for it.Next(ctx) {
+			fmt.Fprintln(out, "QuadsAllIterator Got", qs.Quad(it.Result()))
+			time.Sleep(sleep)
+			fmt.Fprintln(out, "QuadsAllIterator")
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		i := len(simpleGraph)
+		for i > 0 {
+			i--
+			q := simpleGraph[i]
+			fmt.Fprintln(out, "Removing")
+			if err := qw.RemoveQuad(q); err != nil {
+				t.Fatal(err)
+			}
+			fmt.Fprintln(out, "Removed", q)
+			time.Sleep(sleep)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		it2 := qs.NodesAllIterator()
+		defer it2.Close()
+		for it2.Next(ctx) {
+			fmt.Fprintln(out, "NodesAllIterator Got", qs.NameOf(it2.Result()))
+			time.Sleep(sleep)
+			fmt.Fprintln(out, "NodesAllIterator")
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for _, q := range simpleGraph {
+			fmt.Fprintln(out, "Adding")
+			if _, ok := qs.AddQuad(q); !ok {
+				fmt.Fprintln(out, "Adding failed", q)
+			} else {
+				fmt.Fprintln(out, "Added", q)
+			}
+			time.Sleep(sleep)
+		}
+	}()
+
+	wg.Wait()
 }
 
 func TestIteratorsAndNextResultOrderA(t *testing.T) {
