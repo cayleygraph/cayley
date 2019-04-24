@@ -16,9 +16,6 @@ package memstore
 
 import (
 	"context"
-	"fmt"
-	_ "io/ioutil"
-	"os"
 	"reflect"
 	"sort"
 	"sync"
@@ -117,10 +114,7 @@ func TestIteratorsRace(t *testing.T) {
 	qs, qw, _ := makeTestStore(simpleGraph)
 	sleep := 10 * time.Millisecond
 	ctx := context.TODO()
-
 	var wg sync.WaitGroup
-	//out := ioutil.Discard
-	out := os.Stdout
 	wg.Add(4)
 
 	go func() {
@@ -128,9 +122,9 @@ func TestIteratorsRace(t *testing.T) {
 		it := qs.QuadsAllIterator()
 		defer it.Close()
 		for it.Next(ctx) {
-			fmt.Fprintln(out, "QuadsAllIterator Got", qs.Quad(it.Result()))
+			t.Log("QuadsAllIterator Got", qs.Quad(it.Result()))
 			time.Sleep(sleep)
-			fmt.Fprintln(out, "QuadsAllIterator")
+			t.Log("QuadsAllIterator")
 		}
 	}()
 
@@ -140,11 +134,11 @@ func TestIteratorsRace(t *testing.T) {
 		for i > 0 {
 			i--
 			q := simpleGraph[i]
-			fmt.Fprintln(out, "Removing")
+			t.Log("Removing")
 			if err := qw.RemoveQuad(q); err != nil {
 				t.Fatal(err)
 			}
-			fmt.Fprintln(out, "Removed", q)
+			t.Log("Removed", q)
 			time.Sleep(sleep)
 		}
 	}()
@@ -154,20 +148,20 @@ func TestIteratorsRace(t *testing.T) {
 		it2 := qs.NodesAllIterator()
 		defer it2.Close()
 		for it2.Next(ctx) {
-			fmt.Fprintln(out, "NodesAllIterator Got", qs.NameOf(it2.Result()))
+			t.Log("NodesAllIterator Got", qs.NameOf(it2.Result()))
 			time.Sleep(sleep)
-			fmt.Fprintln(out, "NodesAllIterator")
+			t.Log("NodesAllIterator")
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
 		for _, q := range simpleGraph {
-			fmt.Fprintln(out, "Adding")
+			t.Log("Adding")
 			if _, ok := qs.AddQuad(q); !ok {
-				fmt.Fprintln(out, "Adding failed", q)
+				t.Log("Adding failed", q)
 			} else {
-				fmt.Fprintln(out, "Added", q)
+				t.Log("Added", q)
 			}
 			time.Sleep(sleep)
 		}
