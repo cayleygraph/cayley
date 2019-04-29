@@ -24,7 +24,17 @@ import (
 	"github.com/cayleygraph/cayley/graph/kv/kvtest"
 )
 
-func makeGkvlitekv(t testing.TB) (kv.BucketKV, graph.Options, func()) {
+func makeMemStore(t testing.TB) (kv.BucketKV, graph.Options, func()) {
+	db, err := Create("", nil)
+	if err != nil {
+		t.Fatal("Failed to create gkvlite database.", err)
+	}
+	return db, nil, func() {
+		db.Close()
+	}
+}
+
+func makeFileStore(t testing.TB) (kv.BucketKV, graph.Options, func()) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cayley_test_"+Type)
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)
@@ -41,9 +51,9 @@ func makeGkvlitekv(t testing.TB) (kv.BucketKV, graph.Options, func()) {
 }
 
 func TestGkvlitekv(t *testing.T) {
-	kvtest.TestAll(t, makeGkvlitekv, nil)
+	kvtest.TestAll(t, makeFileStore, nil)
 }
 
 func BenchmarkGkvlitekv(b *testing.B) {
-	kvtest.BenchmarkAll(b, makeGkvlitekv, nil)
+	kvtest.BenchmarkAll(b, makeFileStore, nil)
 }

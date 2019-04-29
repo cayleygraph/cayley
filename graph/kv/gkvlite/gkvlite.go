@@ -15,6 +15,7 @@
 package gkvlite
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path"
@@ -36,20 +37,22 @@ func init() {
 	})
 }
 
-func Create(folder string, m graph.Options) (kv.BucketKV, error) {
+func getStoreFile(folder string) string {
+	return path.Join(folder, "store.gkvlite")
+}
+
+func Create(path string, m graph.Options) (kv.BucketKV, error) {
 	var f *os.File
-	if folder != "" {
-		err := os.MkdirAll(folder, 0700)
+	if path != "" {
+		err := os.MkdirAll(path, 0700)
 		if err != nil {
 			return nil, err
 		}
-		p := path.Join(folder, "store.gkvlite")
-		f, err = os.Create(p)
+		f, err = os.Create(getStoreFile(path))
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	return newStore(f)
 }
 
@@ -60,28 +63,30 @@ func Open(path string, m graph.Options) (kv.BucketKV, error) {
 		if err != nil {
 			return nil, err
 		}
-		f, err = os.Open(path)
+		f, err = os.Open(getStoreFile(path))
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	return newStore(f)
 }
 
+func getColl(s *gkvlite.Store) *gkvlite.Collection {
+	return s.SetCollection("cayleygraph", nil)
+}
+
 func newStore(f *os.File) (kv.BucketKV, error) {
-
 	store, err := gkvlite.NewStore(f)
-	c := store.SetCollection("cayleygraph", nil)
-
 	if err != nil {
 		return nil, err
 	}
+	c := getColl(store)
 	db := &DB{
 		store: store,
 		file:  f,
 		c:     c,
 	}
+
 	return kv.FromFlat(db), nil
 }
 
@@ -110,56 +115,50 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Tx(update bool) (kv.FlatTx, error) {
-	return &Tx{db, nil}, nil
-}
-
-type optype int
-
-const (
-	_ = iota
-	put
-	del
-)
-
-type op struct {
-	t optype
-	k []byte
-	v []byte
+	return &Tx{db, false}, nil
 }
 
 type Tx struct {
-	db  *DB
-	ops []op
+	db    *DB
+	dirty bool
+}
+
+func (tx *Tx) ensureNil() {
+	tx.db = nil
 }
 
 func (tx *Tx) Commit(ctx context.Context) error {
-	defer func() {
-		tx.ops = nil
-	}()
-	for _, op := range tx.ops {
-		switch op.t {
-		case put:
-			err := tx.db.c.Set(op.k, op.v)
-			if err != nil {
-				return err
-			}
-		case del:
-			_, err := tx.db.c.Delete(op.k)
-			if err != nil {
-				return err
-			}
-		}
+	if tx.db == nil {
+		return nil
 	}
 	if tx.db.file == nil {
 		return nil
 	}
+	if !tx.dirty {
+		return nil
+	}
+	defer tx.ensureNil()
 	err := tx.db.store.Flush()
 	return err
 }
 
 func (tx *Tx) Rollback() error {
-	tx.ops = nil
-	return nil
+	if tx.db == nil {
+		return nil
+	}
+	if tx.db.file == nil {
+		return nil
+	}
+	if !tx.dirty {
+		return nil
+	}
+	defer tx.ensureNil()
+	err := tx.db.store.Flush()
+	if err == nil {
+		err = tx.db.store.FlushRevert()
+	}
+	tx.db.c = getColl(tx.db.store)
+	return err
 }
 
 func (tx *Tx) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
@@ -175,29 +174,37 @@ func (tx *Tx) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 }
 
 func (tx *Tx) Put(k, v []byte) error {
-	tx.ops = append(tx.ops, op{put, k, v})
-	return nil
+	tx.dirty = true
+	return tx.db.c.Set(k, v)
 }
 
 func (tx *Tx) Del(k []byte) error {
-	tx.ops = append(tx.ops, op{del, k, nil})
-	return nil
+	tx.dirty = true
+	_, err := tx.db.c.Delete(k)
+	return err
 }
 
 func (tx *Tx) Scan(pref []byte) kv.KVIterator {
 	it := tx.db.c.IterateAscend(pref, true)
-	return &Iterator{iter: it, pref: pref, first: true}
+	return &Iterator{iter: it, pref: pref}
 }
 
 type Iterator struct {
-	iter  gkvlite.ItemIterator
-	first bool
-	pref  []byte
-	err   error
+	iter gkvlite.ItemIterator
+	pref []byte
+	done bool
 }
 
 func (it *Iterator) Next(ctx context.Context) bool {
-	return it.iter.Next()
+	if it.done {
+		return false
+	}
+	it.done = !it.iter.Next()
+	if it.done {
+		return false
+	}
+	it.done = !bytes.HasPrefix(it.iter.Result().Key, it.pref)
+	return !it.done
 }
 
 func (it *Iterator) Key() []byte {
