@@ -19,6 +19,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
@@ -91,10 +92,12 @@ func newStore(f *os.File) (kv.BucketKV, error) {
 }
 
 type DB struct {
-	store    *gkvlite.Store
+	mu    sync.RWMutex
+	store *gkvlite.Store
+	file  *os.File
+	c     *gkvlite.Collection
+
 	isClosed bool
-	file     *os.File
-	c        *gkvlite.Collection
 }
 
 func (db *DB) Type() string {
@@ -137,7 +140,9 @@ func (tx *Tx) Commit(ctx context.Context) error {
 	if !tx.dirty {
 		return nil
 	}
+	tx.db.mu.Lock()
 	defer tx.ensureNil()
+	defer tx.db.mu.Unlock()
 	err := tx.db.store.Flush()
 	return err
 }
@@ -152,7 +157,9 @@ func (tx *Tx) Rollback() error {
 	if !tx.dirty {
 		return nil
 	}
+	tx.db.mu.Lock()
 	defer tx.ensureNil()
+	defer tx.db.mu.Unlock()
 	err := tx.db.store.Flush()
 	if err == nil {
 		err = tx.db.store.FlushRevert()
@@ -162,6 +169,10 @@ func (tx *Tx) Rollback() error {
 }
 
 func (tx *Tx) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
+	if tx.db != nil {
+		tx.db.mu.RLock()
+		defer tx.db.mu.RUnlock()
+	}
 	vals := make([][]byte, len(keys))
 	for i, k := range keys {
 		val, err := tx.db.c.Get(k)
@@ -174,17 +185,29 @@ func (tx *Tx) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 }
 
 func (tx *Tx) Put(k, v []byte) error {
+	if tx.db != nil {
+		tx.db.mu.Lock()
+		defer tx.db.mu.Unlock()
+	}
 	tx.dirty = true
 	return tx.db.c.Set(k, v)
 }
 
 func (tx *Tx) Del(k []byte) error {
+	if tx.db != nil {
+		tx.db.mu.Lock()
+		defer tx.db.mu.Unlock()
+	}
 	tx.dirty = true
 	_, err := tx.db.c.Delete(k)
 	return err
 }
 
 func (tx *Tx) Scan(pref []byte) kv.KVIterator {
+	if tx.db != nil {
+		tx.db.mu.RLock()
+		defer tx.db.mu.RUnlock()
+	}
 	it := tx.db.c.IterateAscend(pref, true)
 	return &Iterator{iter: it, pref: pref}
 }
