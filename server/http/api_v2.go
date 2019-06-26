@@ -29,6 +29,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/internal/gephi"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
@@ -309,7 +310,13 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	qr := graph.NewQuadStoreReader(h.QuadStore)
+	sub := gephi.ValuesFromString(r.FormValue("sub"))
+	pred := gephi.ValuesFromString(r.FormValue("pred"))
+	obj := gephi.ValuesFromString(r.FormValue("obj"))
+	label := gephi.ValuesFromString(r.FormValue("label"))
+	it := gephi.NewMatchIterator(h.QuadStore, sub, pred, obj, label)
+	qr := graph.NewResultReader(h.QuadStore, it)
+
 	defer qr.Close()
 
 	wr := writerFrom(w, r, hdrAcceptEncoding)

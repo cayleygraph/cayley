@@ -212,10 +212,10 @@ type graphStreamEvent struct {
 	DelEdges    map[string]streamEdge `json:"de,omitempty"`
 }
 
-func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, sub, pred, obj, label []quad.Value, limit int) {
+func NewMatchIterator(qs graph.QuadStore, sub, pred, obj, label []quad.Value) graph.Iterator {
 	var it graph.Iterator
 	if len(sub)+len(pred)+len(obj)+len(label) == 0 {
-		it = s.QS.QuadsAllIterator()
+		it = qs.QuadsAllIterator()
 	} else {
 		var subIt []graph.Iterator
 		linksTo := func(d quad.Direction, vals []quad.Value) {
@@ -224,17 +224,22 @@ func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream,
 			}
 			fixed := iterator.NewFixed()
 			for _, v := range vals {
-				fixed.Add(s.QS.ValueOf(v))
+				fixed.Add(qs.ValueOf(v))
 			}
-			subIt = append(subIt, iterator.NewLinksTo(s.QS, fixed, d))
+			subIt = append(subIt, iterator.NewLinksTo(qs, fixed, d))
 		}
 		linksTo(quad.Subject, sub)
 		linksTo(quad.Predicate, pred)
 		linksTo(quad.Object, obj)
 		linksTo(quad.Label, label)
-		it = iterator.NewAnd(s.QS, subIt...)
+		it = iterator.NewAnd(qs, subIt...)
 	}
 	defer it.Close()
+	return it
+}
+
+func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, sub, pred, obj, label []quad.Value, limit int) {
+	var it = NewMatchIterator(s.QS, sub, pred, obj, label)
 
 	var sh, oh valHash
 	for i := 0; (limit < 0 || i < limit) && it.Next(ctx); i++ {
@@ -349,7 +354,7 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 	})
 }
 
-func valuesFromString(s string) []quad.Value {
+func ValuesFromString(s string) []quad.Value {
 	if s == "" {
 		return nil
 	}
@@ -381,10 +386,10 @@ func (s *GraphStreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, p
 	case "nodes":
 		s.serveNodesWithProps(ctx, gs, limit)
 	case "raw":
-		sub := valuesFromString(r.FormValue("sub"))
-		pred := valuesFromString(r.FormValue("pred"))
-		obj := valuesFromString(r.FormValue("obj"))
-		label := valuesFromString(r.FormValue("label"))
+		sub := ValuesFromString(r.FormValue("sub"))
+		pred := ValuesFromString(r.FormValue("pred"))
+		obj := ValuesFromString(r.FormValue("obj"))
+		label := ValuesFromString(r.FormValue("label"))
 		s.serveRawQuads(ctx, gs, sub, pred, obj, label, limit)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
