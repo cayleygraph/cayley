@@ -89,6 +89,30 @@ paths:
           - "gml"
           - "graphml"
           default: "nquads"
+      - name: "sub"
+        in: "query"
+        description: "Subjects to filter quads by"
+        required: false
+        schema:
+          type: "string"
+      - name: "pred"
+        in: "query"
+        description: "Predicates to filter quads by"
+        required: false
+        schema:
+          type: "string"
+      - name: "obj"
+        in: "query"
+        description: "Objects to filter quads by"
+        required: false
+        schema:
+          type: "string"
+      - name: "label"
+        in: "query"
+        description: "Labels to filter quads by"
+        required: false
+        schema:
+          type: "string"
       - name: "iri"
         in: "query"
         description: "IRI format to use"
@@ -385,6 +409,30 @@ paths:
         required: false
         schema:
           type: "integer"
+      - name: "sub"
+        in: "query"
+        description: "Subjects to filter quads by"
+        required: false
+        schema:
+          type: "string"
+      - name: "pred"
+        in: "query"
+        description: "Predicates to filter quads by"
+        required: false
+        schema:
+          type: "string"
+      - name: "obj"
+        in: "query"
+        description: "Objects to filter quads by"
+        required: false
+        schema:
+          type: "string"
+      - name: "label"
+        in: "query"
+        description: "Labels to filter quads by"
+        required: false
+        schema:
+          type: "string"
       responses:
         200:
           description: "success"

@@ -1395,3 +1395,27 @@ func (s Save) Optimize(r Optimizer) (Shape, bool) {
 	}
 	return s, opt
 }
+
+type Values struct {
+	Sub   []quad.Value
+	Pred  []quad.Value
+	Obj   []quad.Value
+	Label []quad.Value
+}
+
+func (v Values) BuildIterator(qs graph.QuadStore) graph.Iterator {
+	var q Quads
+	if len(v.Sub) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Subject, Values: Lookup(v.Sub)})
+	}
+	if len(v.Pred) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Predicate, Values: Lookup(v.Pred)})
+	}
+	if len(v.Obj) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Object, Values: Lookup(v.Obj)})
+	}
+	if len(v.Label) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Label, Values: Lookup(v.Label)})
+	}
+	return BuildIterator(qs, q)
+}

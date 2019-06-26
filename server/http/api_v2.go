@@ -23,12 +23,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/query"
 	_ "github.com/cayleygraph/cayley/writer"
@@ -298,6 +300,18 @@ func (w *checkWriter) Write(p []byte) (int, error) {
 	return w.w.Write(p)
 }
 
+func valuesFromString(s string) []quad.Value {
+	if s == "" {
+		return nil
+	}
+	arr := strings.Split(s, ",")
+	out := make([]quad.Value, 0, len(arr))
+	for _, s := range arr {
+		out = append(out, quad.StringToValue(s))
+	}
+	return out
+}
+
 func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 	format := getFormat(r, "format", hdrAccept)
 	if format == nil || format.Writer == nil {
@@ -309,7 +323,15 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	qr := graph.NewQuadStoreReader(h.QuadStore)
+	values := shape.Values{
+		Sub:   valuesFromString(r.FormValue("sub")),
+		Pred:  valuesFromString(r.FormValue("pred")),
+		Obj:   valuesFromString(r.FormValue("obj")),
+		Label: valuesFromString(r.FormValue("label")),
+	}
+	it := values.BuildIterator(h.QuadStore)
+	qr := graph.NewResultReader(h.QuadStore, it)
+
 	defer qr.Close()
 
 	wr := writerFrom(w, r, hdrAcceptEncoding)
