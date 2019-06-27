@@ -17,6 +17,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/voc/rdf"
 	"github.com/cayleygraph/cayley/voc/rdfs"
@@ -212,34 +213,8 @@ type graphStreamEvent struct {
 	DelEdges    map[string]streamEdge `json:"de,omitempty"`
 }
 
-func NewMatchIterator(qs graph.QuadStore, sub, pred, obj, label []quad.Value) graph.Iterator {
-	var it graph.Iterator
-	if len(sub)+len(pred)+len(obj)+len(label) == 0 {
-		it = qs.QuadsAllIterator()
-	} else {
-		var subIt []graph.Iterator
-		linksTo := func(d quad.Direction, vals []quad.Value) {
-			if len(vals) == 0 {
-				return
-			}
-			fixed := iterator.NewFixed()
-			for _, v := range vals {
-				fixed.Add(qs.ValueOf(v))
-			}
-			subIt = append(subIt, iterator.NewLinksTo(qs, fixed, d))
-		}
-		linksTo(quad.Subject, sub)
-		linksTo(quad.Predicate, pred)
-		linksTo(quad.Object, obj)
-		linksTo(quad.Label, label)
-		it = iterator.NewAnd(qs, subIt...)
-	}
-	defer it.Close()
-	return it
-}
-
-func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, sub, pred, obj, label []quad.Value, limit int) {
-	var it = NewMatchIterator(s.QS, sub, pred, obj, label)
+func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, values shape.Values, limit int) {
+	it := values.BuildIterator(s.QS)
 
 	var sh, oh valHash
 	for i := 0; (limit < 0 || i < limit) && it.Next(ctx); i++ {
@@ -354,7 +329,7 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 	})
 }
 
-func ValuesFromString(s string) []quad.Value {
+func valuesFromString(s string) []quad.Value {
 	if s == "" {
 		return nil
 	}
@@ -386,11 +361,13 @@ func (s *GraphStreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, p
 	case "nodes":
 		s.serveNodesWithProps(ctx, gs, limit)
 	case "raw":
-		sub := ValuesFromString(r.FormValue("sub"))
-		pred := ValuesFromString(r.FormValue("pred"))
-		obj := ValuesFromString(r.FormValue("obj"))
-		label := ValuesFromString(r.FormValue("label"))
-		s.serveRawQuads(ctx, gs, sub, pred, obj, label, limit)
+		values := shape.Values{
+			Sub:   valuesFromString(r.FormValue("sub")),
+			Pred:  valuesFromString(r.FormValue("pred")),
+			Obj:   valuesFromString(r.FormValue("obj")),
+			Label: valuesFromString(r.FormValue("label")),
+		}
+		s.serveRawQuads(ctx, gs, values, limit)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		return
