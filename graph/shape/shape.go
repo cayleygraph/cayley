@@ -1401,7 +1401,6 @@ type Values struct {
 	Pred  []quad.Value
 	Obj   []quad.Value
 	Label []quad.Value
-	From  Shape
 }
 
 func (v Values) BuildIterator(qs graph.QuadStore) graph.Iterator {
