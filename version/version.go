@@ -1,11 +1,8 @@
 package version
 
+// Populated by goreleaser.
 var (
-	Version = "0.7.5"
-
-	// git hash should be filled by:
-	// 	go build -ldflags="-X github.com/cayleygraph/cayley/version.GitHash=xxxx"
-
+	Version   = "v0.7.x-dev"
 	GitHash   = "dev snapshot"
 	BuildDate string
 )

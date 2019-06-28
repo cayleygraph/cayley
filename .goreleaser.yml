@@ -1,0 +1,76 @@
+before:
+  hooks:
+    - go mod download
+builds:
+ - main: ./cmd/cayley
+   binary: cayley
+   env:
+    - CGO_ENABLED=0
+   goos:
+    - linux
+    - darwin
+    - windows
+   goarch:
+    - amd64
+    - '386'
+    - arm64
+    - arm
+   ignore:
+    - goos: windows
+      goarch: arm
+    - goos: windows
+      goarch: arm64
+    - goos: darwin
+      goarch: arm
+    - goos: darwin
+      goarch: arm64
+   ldflags:
+     - -s -w -X github.com/cayleygraph/cayley/version.Version={{.Version}} -X github.com/cayleygraph/cayley/version.GitHash={{.FullCommit}} -X github.com/cayleygraph/cayley/version.BuildDate={{.Date}}
+archives:
+ - format: tar.gz
+   format_overrides:
+     - goos: windows
+       format: zip
+   wrap_in_directory: true
+   files:
+     - README.md
+     - LICENSE
+     - AUTHORS
+     - CONTRIBUTORS
+     - cayley_example.yml
+     - data/**/*
+     - docs/**/*
+     - static/**/*
+     - templates/**/*
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-dev"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+     - '^docs:'
+     - '^test:'
+     - '^ci:'
+snapcrafts:
+  - name: cayley
+    publish: false # TODO(dennwc)
+    summary: Open-source graph inspired by Freebase and Google's Knowledge Graph.
+    description: |
+      Cayley is an open-source graph inspired by the graph database behind Freebase and Google's Knowledge Graph.
+      Its goal is to be a part of the developer's toolbox where Linked Data and graph-shaped data
+      (semantic webs, social networks, etc) in general are concerned.
+    grade: stable
+    confinement: strict
+    license: Apache-2.0
+    base: core18
+    apps:
+      cayley:
+        plugs: ["home", "network", "network-bind", "personal-files"]
+    plugs:
+      personal-files:
+        read:
+          - $HOME/.cayley
+        write:
+          - $HOME/.cayley
