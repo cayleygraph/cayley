@@ -1,18 +1,33 @@
 language: go
 
-sudo: false
+addons:
+  apt:
+    packages:
+      - snapd
 
 go:
-  - "1.11.x"
+  - "1.12.x"
   - tip
-
-install:
-  - GO111MODULE=on go mod download
-
-script:
-  - GO111MODULE=on go test -v ./...
-  #  - goapp test -v ./graph/gaedatastore
 
 matrix:
   allow_failures:
     - go: tip
+
+install:
+  - sudo snap install snapcraft --classic
+  - GO111MODULE=on go mod download
+
+script:
+  - GO111MODULE=on go test -v ./...
+
+# TODO(dennwc): snapcraft config
+#after_success:
+#  - test -n "$TRAVIS_TAG" && snapcraft login --with snap.login
+
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: curl -sL https://git.io/goreleaser | bash
+    on:
+      tags: true
+      condition: $TRAVIS_OS_NAME = linux
