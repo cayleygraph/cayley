@@ -89,6 +89,13 @@ paths:
           - "gml"
           - "graphml"
           default: "nquads"
+      - name: "iri"
+        in: "query"
+        description: "IRI format to use"
+        required: false
+        schema:
+          type: "string"
+          enum: ["short", "full"]
       responses:
         200:
           description: "read successful"

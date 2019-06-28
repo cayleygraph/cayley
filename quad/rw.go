@@ -169,3 +169,67 @@ func ReadAll(r Reader) (arr []Quad, err error) {
 		arr = append(arr, q)
 	}
 }
+
+// IRIOptions is a set of option
+type IRIOptions struct {
+	Format IRIFormat // short vs full IRI format
+	// Func is executed after all other options and have a chance to replace the value.
+	// Returning an empty IRI changes the value to nil.
+	Func func(d Direction, iri IRI) (IRI, error)
+}
+
+// IRIWriter is a writer implementation that converts all IRI values in quads
+// according to the IRIOptions.
+func IRIWriter(w Writer, opt IRIOptions) Writer {
+	return ValuesWriter(w, func(d Direction, v Value) (Value, error) {
+		iri, ok := v.(IRI)
+		if !ok {
+			return v, nil
+		}
+		iri = iri.Format(opt.Format)
+		if opt.Func != nil {
+			var err error
+			iri, err = opt.Func(d, iri)
+			if err != nil {
+				return nil, err
+			} else if iri == "" {
+				return nil, nil
+			}
+		}
+		return iri, nil
+	})
+}
+
+// ValuesWriter is a writer implementation that converts all quad values using the callback function.
+func ValuesWriter(w Writer, fnc func(d Direction, v Value) (Value, error)) Writer {
+	return &valueWriter{w: w, fnc: fnc}
+}
+
+type valueWriter struct {
+	w   Writer
+	fnc func(d Direction, v Value) (Value, error)
+}
+
+func (w *valueWriter) WriteQuad(q Quad) error {
+	if v, err := w.fnc(Subject, q.Subject); err != nil {
+		return err
+	} else {
+		q.Subject = v
+	}
+	if v, err := w.fnc(Predicate, q.Predicate); err != nil {
+		return err
+	} else {
+		q.Predicate = v
+	}
+	if v, err := w.fnc(Object, q.Object); err != nil {
+		return err
+	} else {
+		q.Object = v
+	}
+	if v, err := w.fnc(Label, q.Label); err != nil {
+		return err
+	} else {
+		q.Label = v
+	}
+	return w.w.WriteQuad(q)
+}

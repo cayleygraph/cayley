@@ -230,19 +230,63 @@ func (s LangString) String() string {
 }
 func (s LangString) Native() interface{} { return s.Value.Native() }
 
+// IRIFormat is a format of IRI.
+type IRIFormat int
+
+const (
+	// IRIDefault preserves current IRI formatting.
+	IRIDefault = IRIFormat(iota)
+	// IRIShort changes IRI to use a short namespace prefix (ex: <rdf:type>).
+	IRIShort
+	// IRIFull changes IRI to use full form (ex: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>).
+	IRIFull
+)
+
 // IRI is an RDF Internationalized Resource Identifier (ex: <name>).
 type IRI string
 
+// String prints IRI in "<iri>" form.
 func (s IRI) String() string { return `<` + string(s) + `>` }
+
+// Format the IRI according to selection.
+func (s IRI) Format(format IRIFormat) IRI {
+	switch format {
+	case IRIShort:
+		return s.Short()
+	case IRIFull:
+		return s.Full()
+	}
+	return s
+}
+
+// GoString overrides IRI's %#v printing behaviour to include the type name.
 func (s IRI) GoString() string {
 	return "quad.IRI(" + strconv.Quote(string(s)) + ")"
 }
-func (s IRI) Short() IRI          { return IRI(voc.ShortIRI(string(s))) }
-func (s IRI) Full() IRI           { return IRI(voc.FullIRI(string(s))) }
-func (s IRI) Native() interface{} { return s }
+
+// Short uses voc package to convert a full IRI prefix (if any) to a short namespace prefix.
+// The prefix must be registered in the voc package.
+func (s IRI) Short() IRI {
+	return IRI(voc.ShortIRI(string(s)))
+}
+
+// Full uses voc package to convert a short namespace prefix (if any) to a full IRI prefix.
+// The prefix must be registered in the voc package.
+func (s IRI) Full() IRI {
+	return IRI(voc.FullIRI(string(s)))
+}
+
+// Native returns an IRI value unchanged (to not collide with String values).
+func (s IRI) Native() interface{} {
+	return s
+}
+
+// ShortWith uses the provided namespace to convert a full IRI prefix (if any) to a short namespace prefix.
 func (s IRI) ShortWith(n *voc.Namespaces) IRI {
 	return IRI(n.ShortIRI(string(s)))
 }
+
+// FullWith uses provided namespace to convert a short namespace prefix (if any) to a full IRI prefix.
 func (s IRI) FullWith(n *voc.Namespaces) IRI {
 	return IRI(n.FullIRI(string(s)))
 }
