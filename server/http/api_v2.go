@@ -338,10 +338,23 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 	defer wr.Close()
 
 	cw := &checkWriter{w: wr}
-	qw := format.Writer(cw)
-	defer qw.Close()
+	qwc := format.Writer(cw)
+	defer qwc.Close()
+	var qw quad.Writer = qwc
 	if len(format.Mime) != 0 {
 		w.Header().Set(hdrContentType, format.Mime[0])
+	}
+	if irif := r.FormValue("iri"); irif != "" {
+		opts := quad.IRIOptions{
+			Format: quad.IRIDefault,
+		}
+		switch irif {
+		case "short":
+			opts.Format = quad.IRIShort
+		case "full":
+			opts.Format = quad.IRIFull
+		}
+		qw = quad.IRIWriter(qw, opts)
 	}
 	if bw, ok := qw.(quad.BatchWriter); ok {
 		_, err = quad.CopyBatch(bw, qr, api.batch)

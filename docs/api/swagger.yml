@@ -113,6 +113,13 @@ paths:
         required: false
         schema:
           type: "string"
+      - name: "iri"
+        in: "query"
+        description: "IRI format to use"
+        required: false
+        schema:
+          type: "string"
+          enum: ["short", "full"]
       responses:
         200:
           description: "read successful"
@@ -295,6 +302,45 @@ paths:
     get:
       tags:
       - "queries"
+      summary: "Query the graph"
+      description: ""
+      operationId: "query-get"
+      parameters:
+        - name: "lang"
+          in: "query"
+          description: "Query language to use"
+          required: true
+          schema:
+            type: "string"
+            enum:
+              - "gizmo"
+              - "graphql"
+              - "mql"
+              - "sexp"
+        - name: "qu"
+          in: "query"
+          description: "Query text"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "query succesful"
+          content:
+            'application/json':
+              schema:
+                oneOf:
+                  - type: "array"
+                  - type: "object"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - "queries"
       summary: "Query the graph"
       description: ""
       operationId: "query"
