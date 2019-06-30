@@ -15,6 +15,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/kv/btree"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/writer"
+	hkv "github.com/hidal-go/hidalgo/kv"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,6 +40,10 @@ func irib(s string) string {
 func iric(s string) string {
 	h := graph.HashOf(quad.IRI(s))
 	return string([]byte{'n', h[0], h[1]})
+}
+
+func key(b string, k []byte) hkv.Key {
+	return hkv.Key{[]byte(b), k}
 }
 
 func be(v uint64) []byte {
@@ -72,10 +77,7 @@ func (s Ops) Len() int {
 
 func (s Ops) Less(i, j int) bool {
 	a, b := s[i], s[j]
-	if a.bucket == b.bucket {
-		return bytes.Compare(a.key, b.key) < 0
-	}
-	return a.bucket < b.bucket
+	return a.key.Compare(b.key) < 0
 }
 
 func (s Ops) Swap(i, j int) {
@@ -85,7 +87,11 @@ func (s Ops) Swap(i, j int) {
 func (s Ops) String() string {
 	buf := bytes.NewBuffer(nil)
 	for _, op := range s {
-		fmt.Fprintf(buf, "%v: %q %q = %x\n", op.typ, op.bucket, op.key, op.val)
+		se := ""
+		if op.err != nil {
+			se = " (" + op.err.Error() + ")"
+		}
+		fmt.Fprintf(buf, "%v: %q = %x%s\n", op.typ, op.key, op.val, se)
 	}
 	return buf.String()
 }
@@ -102,7 +108,7 @@ func TestApplyDeltas(t *testing.T) {
 			}
 			// TODO: make node insert predictable
 			for i, d := range exp {
-				if bytes.Equal(d.key, vAuto) {
+				if bytes.Equal(d.key[0], vAuto) {
 					exp[i].key = got[i].key
 				}
 				if bytes.Equal(d.val, vAuto) {
@@ -117,7 +123,12 @@ func TestApplyDeltas(t *testing.T) {
 	require.NoError(t, err)
 
 	expect(Ops{
-		{opPut, bMeta, kVers, vVers, nil},
+		{opGet, key(bMeta, kVers), nil, hkv.ErrNotFound},
+		{opPut, key(bMeta, []byte{}), nil, nil},
+		{opPut, key(bLog, []byte{}), nil, nil},
+		{opPut, key("s", []byte{}), nil, nil},
+		{opPut, key("o", []byte{}), nil, nil},
+		{opPut, key(bMeta, kVers), vVers, nil},
 	})
 
 	qs, err := kv.New(hook, nil)
@@ -125,7 +136,7 @@ func TestApplyDeltas(t *testing.T) {
 	defer qs.Close()
 
 	expect(Ops{
-		{opGet, bMeta, kVers, vVers, nil},
+		{opGet, key(bMeta, kVers), vVers, nil},
 	})
 
 	qw, err := writer.NewSingle(qs, graph.IgnoreOpts{})
@@ -135,34 +146,34 @@ func TestApplyDeltas(t *testing.T) {
 	require.NoError(t, err)
 
 	expect(Ops{
-		{opGet, irib("a"), irih("a"), nil, nil},
-		{opGet, irib("b"), irih("b"), nil, nil},
-		{opGet, irib("c"), irih("c"), nil, nil},
-		{opGet, bMeta, []byte("horizon"), nil, nil},
-		{opPut, bMeta, []byte("horizon"), le(3), nil},
+		{opGet, key(irib("a"), irih("a")), nil, nil},
+		{opGet, key(irib("b"), irih("b")), nil, nil},
+		{opGet, key(irib("c"), irih("c")), nil, nil},
+		{opGet, key(bMeta, []byte("horizon")), nil, hkv.ErrNotFound},
+		{opPut, key(bMeta, []byte("horizon")), le(3), nil},
 
-		{opPut, irib("a"), irih("a"), vAuto, nil},
-		{opPut, bLog, be(1), vAuto, nil},
-		{opPut, irib("b"), irih("b"), vAuto, nil},
-		{opPut, bLog, be(2), vAuto, nil},
-		{opPut, irib("c"), irih("c"), vAuto, nil},
-		{opPut, bLog, be(3), vAuto, nil},
+		{opPut, key(irib("a"), irih("a")), vAuto, nil},
+		{opPut, key(bLog, be(1)), vAuto, nil},
+		{opPut, key(irib("b"), irih("b")), vAuto, nil},
+		{opPut, key(bLog, be(2)), vAuto, nil},
+		{opPut, key(irib("c"), irih("c")), vAuto, nil},
+		{opPut, key(bLog, be(3)), vAuto, nil},
 
-		{opGet, iric("a"), irih("a"), nil, nil},
-		{opGet, iric("b"), irih("b"), nil, nil},
-		{opGet, iric("c"), irih("c"), nil, nil},
-		{opPut, iric("a"), irih("a"), hex("01"), nil},
-		{opPut, iric("b"), irih("b"), hex("01"), nil},
-		{opPut, iric("c"), irih("c"), hex("01"), nil},
-		{opGet, bMeta, []byte("horizon"), le(3), nil},
-		{opPut, bMeta, []byte("horizon"), le(4), nil},
-		{opPut, bLog, be(4), vAuto, nil},
-		{opGet, bMeta, []byte("size"), nil, nil},
-		{opPut, bMeta, []byte("size"), le(1), nil},
-		{opGet, "o", be(3), nil, nil},
-		{opPut, "o", be(3), hex("04"), nil},
-		{opGet, "s", be(1), nil, nil},
-		{opPut, "s", be(1), hex("04"), nil},
+		{opGet, key(iric("a"), irih("a")), nil, nil},
+		{opGet, key(iric("b"), irih("b")), nil, nil},
+		{opGet, key(iric("c"), irih("c")), nil, nil},
+		{opPut, key(iric("a"), irih("a")), hex("01"), nil},
+		{opPut, key(iric("b"), irih("b")), hex("01"), nil},
+		{opPut, key(iric("c"), irih("c")), hex("01"), nil},
+		{opGet, key(bMeta, []byte("horizon")), le(3), nil},
+		{opPut, key(bMeta, []byte("horizon")), le(4), nil},
+		{opPut, key(bLog, be(4)), vAuto, nil},
+		{opGet, key(bMeta, []byte("size")), nil, hkv.ErrNotFound},
+		{opPut, key(bMeta, []byte("size")), le(1), nil},
+		{opGet, key("o", be(3)), nil, nil},
+		{opPut, key("o", be(3)), hex("04"), nil},
+		{opGet, key("s", be(1)), nil, nil},
+		{opPut, key("s", be(1)), hex("04"), nil},
 	})
 
 	err = qw.AddQuad(quad.MakeIRI("a", "b", "e", ""))
@@ -172,46 +183,46 @@ func TestApplyDeltas(t *testing.T) {
 		// served from IRI cache
 		//{opGet, irib("a"), irih("a"), vAuto, nil},
 		//{opGet, irib("b"), irih("b"), vAuto, nil},
-		{opGet, irib("e"), irih("e"), nil, nil},
-		{opGet, bMeta, []byte("horizon"), le(4), nil},
-		{opPut, bMeta, []byte("horizon"), le(5), nil},
+		{opGet, key(irib("e"), irih("e")), nil, nil},
+		{opGet, key(bMeta, []byte("horizon")), le(4), nil},
+		{opPut, key(bMeta, []byte("horizon")), le(5), nil},
 
-		{opPut, irib("e"), irih("e"), vAuto, nil},
-		{opPut, bLog, be(5), vAuto, nil},
+		{opPut, key(irib("e"), irih("e")), vAuto, nil},
+		{opPut, key(bLog, be(5)), vAuto, nil},
 
-		{opGet, iric("a"), irih("a"), hex("01"), nil},
-		{opGet, iric("b"), irih("b"), hex("01"), nil},
-		{opGet, iric("e"), irih("e"), nil, nil},
-		{opPut, iric("a"), irih("a"), hex("02"), nil},
-		{opPut, iric("b"), irih("b"), hex("02"), nil},
-		{opPut, iric("e"), irih("e"), hex("01"), nil},
-		{opGet, bMeta, []byte("horizon"), le(5), nil},
-		{opPut, bMeta, []byte("horizon"), le(6), nil},
-		{opPut, bLog, be(6), vAuto, nil},
-		{opGet, bMeta, []byte("size"), le(1), nil},
-		{opPut, bMeta, []byte("size"), le(2), nil},
-		{opGet, "o", be(5), nil, nil},
-		{opPut, "o", be(5), hex("06"), nil},
-		{opGet, "s", be(1), hex("04"), nil},
-		{opPut, "s", be(1), hex("0406"), nil},
+		{opGet, key(iric("a"), irih("a")), hex("01"), nil},
+		{opGet, key(iric("b"), irih("b")), hex("01"), nil},
+		{opGet, key(iric("e"), irih("e")), nil, nil},
+		{opPut, key(iric("a"), irih("a")), hex("02"), nil},
+		{opPut, key(iric("b"), irih("b")), hex("02"), nil},
+		{opPut, key(iric("e"), irih("e")), hex("01"), nil},
+		{opGet, key(bMeta, []byte("horizon")), le(5), nil},
+		{opPut, key(bMeta, []byte("horizon")), le(6), nil},
+		{opPut, key(bLog, be(6)), vAuto, nil},
+		{opGet, key(bMeta, []byte("size")), le(1), nil},
+		{opPut, key(bMeta, []byte("size")), le(2), nil},
+		{opGet, key("o", be(5)), nil, nil},
+		{opPut, key("o", be(5)), hex("06"), nil},
+		{opGet, key("s", be(1)), hex("04"), nil},
+		{opPut, key("s", be(1)), hex("0406"), nil},
 	})
 
 	err = qw.RemoveQuad(quad.MakeIRI("a", "b", "c", ""))
 	expect(Ops{
-		{opGet, "s", be(1), hex("0406"), nil},
-		{opGet, "o", be(3), hex("04"), nil},
-		{opGet, bLog, be(4), vAuto, nil},
-		{opPut, bLog, be(4), vAuto, nil},
-		{opGet, bMeta, []byte("size"), le(2), nil},
-		{opPut, bMeta, []byte("size"), le(1), nil},
-		{opGet, iric("a"), irih("a"), hex("02"), nil},
-		{opGet, iric("b"), irih("b"), hex("02"), nil},
-		{opGet, iric("c"), irih("c"), hex("01"), nil},
-		{opPut, iric("a"), irih("a"), hex("01"), nil},
-		{opPut, iric("b"), irih("b"), hex("01"), nil},
-		{opDel, iric("c"), irih("c"), nil, nil},
-		{opDel, irib("c"), irih("c"), nil, nil},
-		{opDel, bLog, be(3), nil, nil},
+		{opGet, key("s", be(1)), hex("0406"), nil},
+		{opGet, key("o", be(3)), hex("04"), nil},
+		{opGet, key(bLog, be(4)), vAuto, nil},
+		{opPut, key(bLog, be(4)), vAuto, nil},
+		{opGet, key(bMeta, []byte("size")), le(2), nil},
+		{opPut, key(bMeta, []byte("size")), le(1), nil},
+		{opGet, key(iric("a"), irih("a")), hex("02"), nil},
+		{opGet, key(iric("b"), irih("b")), hex("02"), nil},
+		{opGet, key(iric("c"), irih("c")), hex("01"), nil},
+		{opPut, key(iric("a"), irih("a")), hex("01"), nil},
+		{opPut, key(iric("b"), irih("b")), hex("01"), nil},
+		{opDel, key(iric("c"), irih("c")), nil, nil},
+		{opDel, key(irib("c"), irih("c")), nil, nil},
+		{opDel, key(bLog, be(3)), nil, nil},
 	})
 	require.NoError(t, err)
 }
@@ -241,7 +252,7 @@ func sortByOp(exp, got Ops) {
 			check(i)
 		}
 		if li < 0 {
-			li, typ, b = i, op.typ, op.bucket
+			li, typ, b = i, op.typ, string(op.key[0])
 		}
 	}
 	_ = b
@@ -255,15 +266,16 @@ const (
 )
 
 type kvOp struct {
-	typ    int
-	bucket string
-	key    []byte
-	val    []byte
-	err    error
+	typ int
+	key hkv.Key
+	val hkv.Value
+	err error
 }
 
+var _ hkv.KV = (*kvHook)(nil)
+
 type kvHook struct {
-	db kv.BucketKV
+	db hkv.KV
 
 	mu  sync.Mutex
 	ops Ops
@@ -283,16 +295,12 @@ func (h *kvHook) addOp(op kvOp) {
 	h.mu.Unlock()
 }
 
-func (h *kvHook) Type() string {
-	return h.db.Type()
-}
-
 func (h *kvHook) Close() error {
 	return h.db.Close()
 }
 
-func (h *kvHook) Tx(update bool) (kv.BucketTx, error) {
-	tx, err := h.db.Tx(update)
+func (h *kvHook) Tx(rw bool) (hkv.Tx, error) {
+	tx, err := h.db.Tx(rw)
 	if err != nil {
 		return nil, err
 	}
@@ -301,80 +309,62 @@ func (h *kvHook) Tx(update bool) (kv.BucketTx, error) {
 
 type txHook struct {
 	h  *kvHook
-	tx kv.BucketTx
+	tx hkv.Tx
 }
 
 func (h txHook) Commit(ctx context.Context) error {
 	return h.tx.Commit(ctx)
 }
 
-func (h txHook) Rollback() error {
-	return h.tx.Rollback()
+func (h txHook) Close() error {
+	return h.tx.Close()
 }
 
-func (h txHook) Bucket(name []byte) kv.Bucket {
-	return bucketHook{h: h.h, name: string(name), b: h.tx.Bucket(name)}
-}
-
-func (h txHook) Get(ctx context.Context, keys []kv.BucketKey) ([][]byte, error) {
-	vals, err := h.tx.Get(ctx, keys)
+func (h txHook) GetBatch(ctx context.Context, keys []hkv.Key) ([]hkv.Value, error) {
+	vals, err := h.tx.GetBatch(ctx, keys)
 	if err != nil {
 		return nil, err
 	}
 	for i, k := range keys {
 		h.h.addOp(kvOp{
-			bucket: string(k.Bucket),
-			key:    clone(k.Key),
-			val:    clone(vals[i]),
+			key: k.Clone(),
+			val: vals[i].Clone(),
 		})
 	}
 	return vals, nil
 }
 
-type bucketHook struct {
-	h    *kvHook
-	name string
-	b    kv.Bucket
-}
-
-func (h bucketHook) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
-	vals, err := h.b.Get(ctx, keys)
-	if err != nil {
-		return nil, err
-	}
-	for i, k := range keys {
-		h.h.addOp(kvOp{
-			bucket: h.name,
-			key:    clone(k),
-			val:    clone(vals[i]),
-		})
-	}
-	return vals, nil
-}
-
-func (h bucketHook) Put(k, v []byte) error {
-	err := h.b.Put(k, v)
+func (h txHook) Get(ctx context.Context, k hkv.Key) (hkv.Value, error) {
+	v, err := h.tx.Get(ctx, k)
 	h.h.addOp(kvOp{
-		typ:    opPut,
-		bucket: h.name,
-		key:    clone(k),
-		val:    clone(v),
-		err:    err,
+		key: k.Clone(),
+		val: v.Clone(),
+		err: err,
+	})
+	return v, err
+}
+
+func (h txHook) Put(k hkv.Key, v hkv.Value) error {
+	err := h.tx.Put(k, v)
+	h.h.addOp(kvOp{
+		typ: opPut,
+		key: k.Clone(),
+		val: v.Clone(),
+		err: err,
 	})
 	return err
 }
 
-func (h bucketHook) Del(k []byte) error {
-	err := h.b.Del(k)
+func (h txHook) Del(k hkv.Key) error {
+	err := h.tx.Del(k)
 	h.h.addOp(kvOp{
-		typ:    opDel,
-		bucket: h.name,
-		key:    clone(k),
-		err:    err,
+		typ: opDel,
+		key: k.Clone(),
+		err: err,
 	})
 	return err
 }
 
-func (h bucketHook) Scan(pref []byte) kv.KVIterator {
-	return h.b.Scan(pref)
+func (h txHook) Scan(pref hkv.Key) hkv.Iterator {
+	return h.tx.Scan(pref)
 }

@@ -11,10 +11,11 @@ import (
 	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
+	hkv "github.com/hidal-go/hidalgo/kv"
 	"github.com/stretchr/testify/require"
 )
 
-type DatabaseFunc func(t testing.TB) (kv.BucketKV, graph.Options, func())
+type DatabaseFunc func(t testing.TB) (hkv.KV, graph.Options, func())
 
 type Config struct {
 	AlwaysRunIntegration bool

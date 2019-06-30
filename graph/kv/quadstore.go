@@ -27,8 +27,11 @@ import (
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
+	"github.com/hidal-go/hidalgo/kv"
 	boom "github.com/tylertreat/BoomFilters"
 )
+
+var ErrNoBucket = errors.New("kv: no bucket")
 
 type Registration struct {
 	NewFunc      NewFunc
@@ -36,8 +39,8 @@ type Registration struct {
 	IsPersistent bool
 }
 
-type InitFunc func(string, graph.Options) (BucketKV, error)
-type NewFunc func(string, graph.Options) (BucketKV, error)
+type InitFunc func(string, graph.Options) (kv.KV, error)
+type NewFunc func(string, graph.Options) (kv.KV, error)
 
 func Register(name string, r Registration) {
 	graph.RegisterQuadStore(name, graph.QuadStoreRegistration{
@@ -80,7 +83,7 @@ const (
 var _ graph.BatchQuadStore = (*QuadStore)(nil)
 
 type QuadStore struct {
-	db BucketKV
+	db kv.KV
 
 	indexes struct {
 		sync.RWMutex
@@ -102,13 +105,13 @@ type QuadStore struct {
 	}
 }
 
-func newQuadStore(kv BucketKV) *QuadStore {
+func newQuadStore(kv kv.KV) *QuadStore {
 	qs := &QuadStore{db: kv}
 	qs.indexes.all = DefaultQuadIndexes
 	return qs
 }
 
-func Init(kv BucketKV, opt graph.Options) error {
+func Init(kv kv.KV, opt graph.Options) error {
 	ctx := context.TODO()
 	qs := newQuadStore(kv)
 	if _, err := qs.getMetadata(ctx); err == nil {
@@ -133,7 +136,7 @@ const (
 	OptNoBloom = "no_bloom"
 )
 
-func New(kv BucketKV, opt graph.Options) (graph.QuadStore, error) {
+func New(kv kv.KV, opt graph.Options) (graph.QuadStore, error) {
 	ctx := context.TODO()
 	qs := newQuadStore(kv)
 	if vers, err := qs.getMetadata(ctx); err == ErrNoBucket {
@@ -151,12 +154,11 @@ func New(kv BucketKV, opt graph.Options) (graph.QuadStore, error) {
 	return qs, nil
 }
 
-func setVersion(ctx context.Context, kv BucketKV, version int64) error {
-	return Update(ctx, kv, func(tx BucketTx) error {
+func setVersion(ctx context.Context, db kv.KV, version int64) error {
+	return kv.Update(ctx, db, func(tx kv.Tx) error {
 		var buf [8]byte
 		binary.LittleEndian.PutUint64(buf[:], uint64(version))
-		b := tx.Bucket(metaBucket)
-		if err := b.Put([]byte("version"), buf[:]); err != nil {
+		if err := tx.Put(metaBucket.AppendBytes([]byte("version")), buf[:]); err != nil {
 			return fmt.Errorf("couldn't write version: %v", err)
 		}
 		return nil
@@ -165,18 +167,14 @@ func setVersion(ctx context.Context, kv BucketKV, version int64) error {
 
 func (qs *QuadStore) getMetaInt(ctx context.Context, key string) (int64, error) {
 	var v int64
-	err := View(qs.db, func(tx BucketTx) error {
-		b := tx.Bucket(metaBucket)
-		var err error
-		vals, err := b.Get(ctx, [][]byte{
-			[]byte(key),
-		})
-		if err != nil {
-			return err
-		} else if vals[0] == nil {
+	err := kv.View(qs.db, func(tx kv.Tx) error {
+		val, err := tx.Get(ctx, metaBucket.AppendBytes([]byte(key)))
+		if err == kv.ErrNotFound {
 			return ErrNoBucket
+		} else if err != nil {
+			return err
 		}
-		v, err = asInt64(vals[0], 0)
+		v, err = asInt64(val, 0)
 		if err != nil {
 			return err
 		}
@@ -196,20 +194,14 @@ func (qs *QuadStore) Close() error {
 
 func (qs *QuadStore) getMetadata(ctx context.Context) (int64, error) {
 	var vers int64
-	err := View(qs.db, func(tx BucketTx) error {
-		b := tx.Bucket(metaBucket)
-		var err error
-		vals, err := b.Get(ctx, [][]byte{
-			[]byte("version"),
-		})
-		if err == ErrNotFound {
+	err := kv.View(qs.db, func(tx kv.Tx) error {
+		val, err := tx.Get(ctx, metaBucket.AppendBytes([]byte("version")))
+		if err == kv.ErrNotFound {
 			return ErrNoBucket
 		} else if err != nil {
 			return err
-		} else if vals[0] == nil {
-			return ErrNoBucket
 		}
-		vers, err = asInt64(vals[0], nilDataVersion)
+		vers, err = asInt64(val, nilDataVersion)
 		if err != nil {
 			return err
 		}
@@ -281,7 +273,7 @@ func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Value) ([]quad.V
 
 func (qs *QuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Value, error) {
 	values := make([]graph.Value, len(nodes))
-	err := View(qs.db, func(tx BucketTx) error {
+	err := kv.View(qs.db, func(tx kv.Tx) error {
 		for i, node := range nodes {
 			value, err := qs.resolveQuadValue(ctx, tx, node)
 			if err != nil {
@@ -315,13 +307,13 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	}
 	ctx := context.TODO()
 	var v quad.Quad
-	err := View(qs.db, func(tx BucketTx) error {
+	err := kv.View(qs.db, func(tx kv.Tx) error {
 		var err error
 		v, err = qs.primitiveToQuad(ctx, tx, key)
 		return err
 	})
 	if err != nil {
-		if err != ErrNotFound {
+		if err != kv.ErrNotFound {
 			clog.Errorf("error fetching quad %#v: %s", key, err)
 		}
 		return quad.Quad{}
@@ -329,7 +321,7 @@ func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
 	return v
 }
 
-func (qs *QuadStore) primitiveToQuad(ctx context.Context, tx BucketTx, p *proto.Primitive) (quad.Quad, error) {
+func (qs *QuadStore) primitiveToQuad(ctx context.Context, tx kv.Tx, p *proto.Primitive) (quad.Quad, error) {
 	q := &quad.Quad{}
 	for _, dir := range quad.Directions {
 		v := p.GetDirection(dir)
@@ -342,7 +334,7 @@ func (qs *QuadStore) primitiveToQuad(ctx context.Context, tx BucketTx, p *proto.
 	return *q, nil
 }
 
-func (qs *QuadStore) getValFromLog(ctx context.Context, tx BucketTx, k uint64) (quad.Value, error) {
+func (qs *QuadStore) getValFromLog(ctx context.Context, tx kv.Tx, k uint64) (quad.Value, error) {
 	if k == 0 {
 		return nil, nil
 	}
@@ -356,7 +348,7 @@ func (qs *QuadStore) getValFromLog(ctx context.Context, tx BucketTx, k uint64) (
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	ctx := context.TODO()
 	var out Int64Value
-	_ = View(qs.db, func(tx BucketTx) error {
+	_ = kv.View(qs.db, func(tx kv.Tx) error {
 		v, err := qs.resolveQuadValue(ctx, tx, s)
 		out = Int64Value(v)
 		return err
@@ -393,7 +385,7 @@ func (qs *QuadStore) getPrimitives(ctx context.Context, vals []uint64) ([]*proto
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer tx.Close()
 	return qs.getPrimitivesFromLog(ctx, tx, vals)
 }
 

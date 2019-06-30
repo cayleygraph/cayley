@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/kv/kvtest"
+	hkv "github.com/hidal-go/hidalgo/kv"
 )
 
-func makeBolt(t testing.TB) (kv.BucketKV, graph.Options, func()) {
+func makeBolt(t testing.TB) (hkv.KV, graph.Options, func()) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cayley_test_"+Type)
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)

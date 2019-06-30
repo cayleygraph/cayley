@@ -21,6 +21,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/hidal-go/hidalgo/kv"
 )
 
 type QuadIterator struct {
@@ -31,9 +32,8 @@ type QuadIterator struct {
 	vals    []uint64
 	size    int64
 
-	tx   BucketTx
-	b    Bucket
-	it   KVIterator
+	tx   kv.Tx
+	it   kv.Iterator
 	done bool
 
 	err  error
@@ -67,7 +67,7 @@ func (it *QuadIterator) Reset() {
 	it.done = false
 	if it.it != nil {
 		it.it.Close()
-		it.it = it.b.Scan(it.ind.Key(it.vals))
+		it.it = it.tx.Scan(it.ind.Key(it.vals))
 	}
 }
 
@@ -78,12 +78,11 @@ func (it *QuadIterator) Close() error {
 		if err := it.it.Close(); err != nil && it.err == nil {
 			it.err = err
 		}
-		if err := it.tx.Rollback(); err != nil && it.err == nil {
+		if err := it.tx.Close(); err != nil && it.err == nil {
 			it.err = err
 		}
 		it.it = nil
 		it.tx = nil
-		it.b = nil
 	}
 	return it.err
 }
@@ -107,7 +106,6 @@ func (it *QuadIterator) ensureTx() bool {
 	if it.err != nil {
 		return false
 	}
-	it.b = it.tx.Bucket(it.ind.Bucket())
 	return true
 }
 
@@ -120,7 +118,7 @@ func (it *QuadIterator) Next(ctx context.Context) bool {
 		if !it.ensureTx() {
 			return false
 		}
-		it.it = it.b.Scan(it.ind.Key(it.vals))
+		it.it = it.tx.Scan(it.ind.Key(it.vals))
 		if err := it.Err(); err != nil {
 			it.err = err
 			return false
@@ -195,13 +193,12 @@ func (it *QuadIterator) Size() (int64, bool) {
 	ctx := context.TODO()
 	if len(it.ind.Dirs) == len(it.vals) {
 		var ids []uint64
-		it.err = View(it.qs.db, func(tx BucketTx) error {
-			b := tx.Bucket(it.ind.Bucket())
-			vals, err := b.Get(ctx, [][]byte{it.ind.Key(it.vals)})
+		it.err = kv.View(it.qs.db, func(tx kv.Tx) error {
+			val, err := tx.Get(ctx, it.ind.Key(it.vals))
 			if err != nil {
 				return err
 			}
-			ids, err = decodeIndex(vals[0])
+			ids, err = decodeIndex(val)
 			if err != nil {
 				return err
 			}

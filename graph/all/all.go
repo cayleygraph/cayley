@@ -2,10 +2,7 @@ package all
 
 import (
 	// supported backends
-	_ "github.com/cayleygraph/cayley/graph/kv/badger"
-	_ "github.com/cayleygraph/cayley/graph/kv/bolt"
-	_ "github.com/cayleygraph/cayley/graph/kv/btree"
-	_ "github.com/cayleygraph/cayley/graph/kv/leveldb"
+	_ "github.com/cayleygraph/cayley/graph/kv/all"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
 	_ "github.com/cayleygraph/cayley/graph/nosql/elastic"
 	_ "github.com/cayleygraph/cayley/graph/nosql/mongo"

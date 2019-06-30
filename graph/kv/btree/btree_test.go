@@ -18,12 +18,28 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/kv/kvtest"
+	hkv "github.com/hidal-go/hidalgo/kv"
+	"github.com/hidal-go/hidalgo/kv/kvdebug"
 )
 
-func makeBtree(t testing.TB) (kv.BucketKV, graph.Options, func()) {
+const debug = false
+
+func makeBtree(t testing.TB) (hkv.KV, graph.Options, func()) {
+	if debug {
+		return makeBtreeDebug(t)
+	}
 	return New(), nil, func() {}
+}
+
+func makeBtreeDebug(t testing.TB) (hkv.KV, graph.Options, func()) {
+	db := New()
+	d := kvdebug.New(db)
+	d.Log(true)
+	return d, nil, func() {
+		d.Close()
+		t.Logf("kv stats: %+v", d.Stats())
+	}
 }
 
 var conf = &kvtest.Config{
