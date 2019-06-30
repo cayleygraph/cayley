@@ -21,18 +21,13 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
 func TestIteratorPromotion(t *testing.T) {
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	all := NewInt64(1, 3, true)
 	fixed := NewFixed(Int64Node(3))
-	a := NewAnd(qs, all, fixed)
+	a := NewAnd(all, fixed)
 	newIt, changed := a.Optimize()
 	if !changed {
 		t.Error("Iterator didn't optimize")
@@ -43,13 +38,9 @@ func TestIteratorPromotion(t *testing.T) {
 }
 
 func TestNullIteratorAnd(t *testing.T) {
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	all := NewInt64(1, 3, true)
 	null := NewNull()
-	a := NewAnd(qs, all, null)
+	a := NewAnd(all, null)
 	newIt, changed := a.Optimize()
 	if !changed {
 		t.Error("Didn't change")
@@ -60,13 +51,9 @@ func TestNullIteratorAnd(t *testing.T) {
 }
 
 func TestAllPromotion(t *testing.T) {
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	all := NewInt64(100, 300, true)
 	all2 := NewInt64(1, 30000, true)
-	a := NewAnd(qs)
+	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)
@@ -81,10 +68,6 @@ func TestAllPromotion(t *testing.T) {
 }
 
 func TestReorderWithTag(t *testing.T) {
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	all := NewFixed(Int64Node(3))
 	all2 := NewFixed(
 		Int64Node(3),
@@ -92,7 +75,7 @@ func TestReorderWithTag(t *testing.T) {
 		Int64Node(5),
 		Int64Node(6),
 	)
-	a := NewAnd(qs)
+	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)
@@ -105,13 +88,9 @@ func TestReorderWithTag(t *testing.T) {
 }
 
 func TestAndStatistics(t *testing.T) {
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	all := NewInt64(100, 300, true)
 	all2 := NewInt64(1, 30000, true)
-	a := NewAnd(qs)
+	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)

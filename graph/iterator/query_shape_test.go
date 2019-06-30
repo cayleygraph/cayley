@@ -25,7 +25,7 @@ import (
 )
 
 func hasaWithTag(qs graph.QuadStore, tag string, target string) *HasA {
-	and := NewAnd(qs)
+	and := NewAnd()
 
 	obj := NewFixed(qs.ValueOf(quad.Raw(target)))
 	and.AddSubIterator(NewLinksTo(qs, Tag(obj, tag), quad.Object))
@@ -88,7 +88,7 @@ func TestQueryShape(t *testing.T) {
 	}
 
 	// Given a name-of-an-and-iterator's shape.
-	andInternal := NewAnd(qs)
+	andInternal := NewAnd()
 
 	var hasa1 graph.Iterator = hasaWithTag(qs, "tag1", "cool")
 	hasa1 = Tag(hasa1, "hasa1")
@@ -100,7 +100,7 @@ func TestQueryShape(t *testing.T) {
 
 	pred := NewFixed(qs.ValueOf(quad.Raw("name")))
 
-	and := NewAnd(qs)
+	and := NewAnd()
 	and.AddSubIterator(NewLinksTo(qs, andInternal, quad.Subject))
 	and.AddSubIterator(NewLinksTo(qs, pred, quad.Predicate))
 

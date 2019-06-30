@@ -470,7 +470,7 @@ func (s Quads) BuildIterator(qs graph.QuadStore) graph.Iterator {
 	if len(its) == 1 {
 		return its[0]
 	}
-	return iterator.NewAnd(qs, its...)
+	return iterator.NewAnd(its...)
 }
 func (s Quads) Optimize(r Optimizer) (Shape, bool) {
 	var opt bool
@@ -904,7 +904,7 @@ func (s Intersect) BuildIterator(qs graph.QuadStore) graph.Iterator {
 	if len(sub) == 1 {
 		return sub[0]
 	}
-	return iterator.NewAnd(qs, sub...)
+	return iterator.NewAnd(sub...)
 }
 func (s Intersect) Optimize(r Optimizer) (sout Shape, opt bool) {
 	if len(s) == 0 {
@@ -1130,17 +1130,22 @@ func (s IntersectOpt) BuildIterator(qs graph.QuadStore) graph.Iterator {
 		}
 		s.Sub = Intersect{AllNodes{}}
 	}
-	sub := make([]graph.Iterator, 0, len(s.Sub)+len(s.Opt))
+	sub := make([]graph.Iterator, 0, len(s.Sub))
+	opt := make([]graph.Iterator, 0, len(s.Opt))
 	for _, c := range s.Sub {
 		sub = append(sub, c.BuildIterator(qs))
 	}
 	for _, c := range s.Opt {
-		sub = append(sub, iterator.NewOptional(c.BuildIterator(qs)))
+		opt = append(opt, c.BuildIterator(qs))
 	}
-	if len(sub) == 1 {
+	if len(sub) == 1 && len(opt) == 0 {
 		return sub[0]
 	}
-	return iterator.NewAnd(qs, sub...)
+	it := iterator.NewAnd(sub...)
+	for _, sit := range opt {
+		it.AddOptionalIterator(sit)
+	}
+	return it
 }
 
 func (s IntersectOpt) Optimize(r Optimizer) (_ Shape, opt bool) {

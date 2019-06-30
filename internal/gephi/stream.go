@@ -215,6 +215,7 @@ type graphStreamEvent struct {
 
 func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, quads shape.Shape, limit int) {
 	it := shape.BuildIterator(s.QS, quads)
+	defer it.Close()
 
 	var sh, oh valHash
 	for i := 0; (limit < 0 || i < limit) && it.Next(ctx); i++ {

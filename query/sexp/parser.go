@@ -24,7 +24,8 @@ import (
 
 func BuildIteratorTreeForQuery(qs graph.QuadStore, query string) graph.Iterator {
 	tree := parseQuery(query)
-	return buildIteratorTree(tree, qs)
+	it, _ := buildIteratorTree(tree, qs)
+	return it
 }
 
 func ParseString(input string) string {
@@ -181,7 +182,7 @@ func getIdentString(tree *peg.ExpressionTree) string {
 	return out
 }
 
-func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Iterator {
+func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) (_ graph.Iterator, opt bool) {
 	switch tree.Name {
 	case "Start":
 		return buildIteratorTree(tree.Children[0], qs)
@@ -201,38 +202,42 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 			fixed.Add(qs.ValueOf(quad.Raw(n)))
 			out = fixed
 		}
-		return out
+		return out, false
 	case "PredIdentifier":
 		i := 0
 		if tree.Children[0].Name == "Reverse" {
 			//Taken care of below
 			i++
 		}
-		it := buildIteratorTree(tree.Children[i], qs)
+		it, _ := buildIteratorTree(tree.Children[i], qs)
 		lto := iterator.NewLinksTo(qs, it, quad.Predicate)
-		return lto
+		return lto, false
 	case "RootConstraint":
 		constraintCount := 0
-		and := iterator.NewAnd(qs)
+		and := iterator.NewAnd()
 		for _, c := range tree.Children {
 			switch c.Name {
 			case "NodeIdentifier":
 				fallthrough
 			case "Constraint":
-				it := buildIteratorTree(c, qs)
-				and.AddSubIterator(it)
+				it, opt := buildIteratorTree(c, qs)
+				if opt {
+					and.AddOptionalIterator(it)
+				} else {
+					and.AddSubIterator(it)
+				}
 				constraintCount++
 				continue
 			default:
 				continue
 			}
 		}
-		return and
+		return and, false
 	case "Constraint":
 		var hasa *iterator.HasA
 		topLevelDir := quad.Subject
 		subItDir := quad.Object
-		subAnd := iterator.NewAnd(qs)
+		subAnd := iterator.NewAnd()
 		isOptional := false
 		for _, c := range tree.Children {
 			switch c.Name {
@@ -241,8 +246,12 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 					topLevelDir = quad.Object
 					subItDir = quad.Subject
 				}
-				it := buildIteratorTree(c, qs)
-				subAnd.AddSubIterator(it)
+				it, opt := buildIteratorTree(c, qs)
+				if opt {
+					subAnd.AddOptionalIterator(it)
+				} else {
+					subAnd.AddSubIterator(it)
+				}
 				continue
 			case "PredicateKeyword":
 				switch c.Children[0].Name {
@@ -252,21 +261,21 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) graph.Itera
 			case "NodeIdentifier":
 				fallthrough
 			case "RootConstraint":
-				it := buildIteratorTree(c, qs)
+				it, opt := buildIteratorTree(c, qs)
 				l := iterator.NewLinksTo(qs, it, subItDir)
-				subAnd.AddSubIterator(l)
+				if opt {
+					subAnd.AddOptionalIterator(l)
+				} else {
+					subAnd.AddSubIterator(l)
+				}
 				continue
 			default:
 				continue
 			}
 		}
 		hasa = iterator.NewHasA(qs, subAnd, topLevelDir)
-		if isOptional {
-			optional := iterator.NewOptional(hasa)
-			return optional
-		}
-		return hasa
+		return hasa, isOptional
 	default:
-		return iterator.NewNull()
+		return iterator.NewNull(), false
 	}
 }

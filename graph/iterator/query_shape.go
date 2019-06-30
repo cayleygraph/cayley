@@ -179,9 +179,6 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		} else {
 			s.AddNode(newNode)
 		}
-	case graph.Optional:
-		// Unsupported, for the moment
-		fallthrough
 	case graph.All:
 	}
 	return n

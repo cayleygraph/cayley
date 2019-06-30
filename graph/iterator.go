@@ -161,17 +161,6 @@ type Description struct {
 // ApplyMorphism is a curried function that can generates a new iterator based on some prior iterator.
 type ApplyMorphism func(QuadStore, Iterator) Iterator
 
-// CanNext is a helper for checking if iterator can be Next()'ed.
-func CanNext(it Iterator) bool {
-	_, ok := it.(NoNext)
-	return !ok
-}
-
-// NoNext is an optional interface to signal that iterator should be Contain()'ed instead of Next()'ing if possible.
-type NoNext interface {
-	NoNext()
-}
-
 // Height is a convienence function to measure the height of an iterator tree.
 func Height(it Iterator, until Type) int {
 	if it.Type() == until {
@@ -221,7 +210,6 @@ const (
 	Fixed       = Type("fixed")
 	Save        = Type("save")
 	Not         = Type("not")
-	Optional    = Type("optional")
 	Materialize = Type("materialize")
 	Unique      = Type("unique")
 	Limit       = Type("limit")

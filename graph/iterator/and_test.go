@@ -20,19 +20,15 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
 // Make sure that tags work on the And.
-func TestTag(t *testing.T) {
+func TestAndTag(t *testing.T) {
 	ctx := context.TODO()
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	fix1 := NewFixed(Int64Node(234))
-	var and graph.Iterator = NewAnd(qs, Tag(fix1, "foo"))
+	fix2 := NewFixed(Int64Node(234))
+	var and graph.Iterator = NewAnd(Tag(fix1, "foo")).AddOptionalIterator(Tag(fix2, "baz"))
 	and = Tag(and, "bar")
 
 	if !and.Next(ctx) {
@@ -50,15 +46,14 @@ func TestTag(t *testing.T) {
 	if tags["foo"].(Int64Node) != 234 {
 		t.Errorf("no foo tag")
 	}
+	if tags["baz"].(Int64Node) != 234 {
+		t.Errorf("no baz tag")
+	}
 }
 
 // Do a simple itersection of fixed values.
 func TestAndAndFixedIterators(t *testing.T) {
 	ctx := context.TODO()
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	fix1 := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
@@ -70,7 +65,7 @@ func TestAndAndFixedIterators(t *testing.T) {
 		Int64Node(4),
 		Int64Node(5),
 	)
-	and := NewAnd(qs, fix1, fix2)
+	and := NewAnd(fix1, fix2)
 	// Should be as big as smallest subiterator
 	size, accurate := and.Size()
 	if size != 3 {
@@ -98,10 +93,6 @@ func TestAndAndFixedIterators(t *testing.T) {
 // but there should be nothing to Next()
 func TestNonOverlappingFixedIterators(t *testing.T) {
 	ctx := context.TODO()
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	fix1 := NewFixed(
 		Int64Node(1),
 		Int64Node(2),
@@ -113,7 +104,7 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 		Int64Node(6),
 		Int64Node(7),
 	)
-	and := NewAnd(qs, fix1, fix2)
+	and := NewAnd(fix1, fix2)
 	// Should be as big as smallest subiterator
 	size, accurate := and.Size()
 	if size != 3 {
@@ -131,13 +122,9 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 
 func TestAllIterators(t *testing.T) {
 	ctx := context.TODO()
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	all1 := NewInt64(1, 5, true)
 	all2 := NewInt64(4, 10, true)
-	and := NewAnd(qs, all2, all1)
+	and := NewAnd(all2, all1)
 
 	if !and.Next(ctx) || and.Result().(Int64Node) != Int64Node(4) {
 		t.Error("Incorrect first value")
@@ -154,14 +141,10 @@ func TestAllIterators(t *testing.T) {
 
 func TestAndIteratorErr(t *testing.T) {
 	ctx := context.TODO()
-	qs := &graphmock.Oldstore{
-		Data: []string{},
-		Iter: NewFixed(),
-	}
 	wantErr := errors.New("unique")
 	allErr := newTestIterator(false, wantErr)
 
-	and := NewAnd(qs,
+	and := NewAnd(
 		allErr,
 		NewInt64(1, 5, true),
 	)

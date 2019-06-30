@@ -129,27 +129,26 @@ func (it *Save) Type() graph.Type {
 	return graph.Save
 }
 
-func (it *Save) Optimize() (graph.Iterator, bool) {
+func (it *Save) Optimize() (nit graph.Iterator, no bool) {
 	sub, ok := it.it.Optimize()
-	old := it.it
-	if ok {
-		it.it.Close()
-		it.it = sub
-	}
 	if len(it.tags) == 0 && len(it.fixedTags) == 0 {
-		return it.it, true
+		if !ok {
+			sub = sub.Clone()
+		}
+		return sub, true
 	}
 	if st, ok2 := sub.(graph.Tagger); ok2 {
+		if !ok {
+			st = st.Clone().(graph.Tagger)
+		}
 		st.CopyFromTagger(it)
-		it.it = old
 		return st, true
 	}
 	if !ok {
 		return it, false
 	}
-	s := NewSave(it.it)
+	s := NewSave(sub)
 	s.CopyFromTagger(it)
-	it.it = old
 	return s, true
 }
 

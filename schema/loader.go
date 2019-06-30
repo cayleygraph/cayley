@@ -533,7 +533,7 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 	if list != nil && list.Type() != graph.All {
 		// distinguish between missing object and type constraints
 		list.Reset()
-		and := iterator.NewAnd(l.qs, list, l.qs.NodesAllIterator())
+		and := iterator.NewAnd(list, l.qs.NodesAllIterator())
 		defer and.Close()
 		if and.Next(ctx) {
 			return errRequiredFieldIsMissing
@@ -545,7 +545,7 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 func (l *loader) iteratorFromPath(root graph.Iterator, p *path.Path) (graph.Iterator, error) {
 	it := p.BuildIteratorOn(l.qs)
 	if root != nil {
-		it = iterator.NewAnd(l.qs, root, it)
+		it = iterator.NewAnd(root, it)
 	}
 	if Optimize {
 		it, _ = it.Optimize()

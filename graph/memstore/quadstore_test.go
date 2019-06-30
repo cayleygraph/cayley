@@ -119,13 +119,13 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 
 	all := qs.NodesAllIterator()
 
-	innerAnd := iterator.NewAnd(qs,
+	innerAnd := iterator.NewAnd(
 		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
 		iterator.NewLinksTo(qs, all, quad.Object),
 	)
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
-	outerAnd := iterator.NewAnd(qs, fixed, hasa)
+	outerAnd := iterator.NewAnd(fixed, hasa)
 
 	if !outerAnd.Next(ctx) {
 		t.Error("Expected one matching subtree")
@@ -203,7 +203,7 @@ func TestRemoveQuad(t *testing.T) {
 	fixed2 := iterator.NewFixed()
 	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
 
-	innerAnd := iterator.NewAnd(qs,
+	innerAnd := iterator.NewAnd(
 		iterator.NewLinksTo(qs, fixed, quad.Subject),
 		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
 	)

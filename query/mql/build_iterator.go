@@ -102,7 +102,7 @@ func (q *Query) buildIteratorTreeInternal(query interface{}, path Path) (it grap
 }
 
 func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path Path) (graph.Iterator, error) {
-	it := iterator.NewAnd(q.ses.qs)
+	it := iterator.NewAnd()
 	it.AddSubIterator(q.ses.qs.NodesAllIterator())
 	var err error
 	err = nil
@@ -136,7 +136,7 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 			if err != nil {
 				return nil, err
 			}
-			subAnd := iterator.NewAnd(q.ses.qs)
+			subAnd := iterator.NewAnd()
 			predFixed := iterator.NewFixed()
 			predFixed.Add(q.ses.qs.ValueOf(quad.StringToValue(pred)))
 			subAnd.AddSubIterator(iterator.NewLinksTo(q.ses.qs, predFixed, quad.Predicate))
@@ -153,7 +153,7 @@ func (q *Query) buildIteratorTreeMapInternal(query map[string]interface{}, path 
 			}
 		}
 		if optional {
-			it.AddSubIterator(iterator.NewOptional(subit))
+			it.AddOptionalIterator(subit)
 		} else {
 			it.AddSubIterator(subit)
 		}
