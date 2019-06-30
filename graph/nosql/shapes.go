@@ -11,10 +11,6 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
-	return it, false // everything done is shapes
-}
-
 var _ shape.Optimizer = (*QuadStore)(nil)
 
 func (qs *QuadStore) OptimizeShape(s shape.Shape) (shape.Shape, bool) {

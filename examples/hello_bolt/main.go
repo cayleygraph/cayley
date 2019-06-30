@@ -46,10 +46,6 @@ func main() {
 	// The second return is if it was optimized, but we don't care for now.
 	it, _ := p.BuildIterator().Optimize()
 
-	// Optimize iterator on quad store level.
-	// After this step iterators will be replaced with backend-specific ones.
-	it, _ = store.OptimizeIterator(it)
-
 	// remember to cleanup after yourself
 	defer it.Close()
 

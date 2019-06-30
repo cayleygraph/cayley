@@ -23,6 +23,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/require"
@@ -159,14 +160,13 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 func TestLinksToOptimization(t *testing.T) {
 	qs, _, _ := makeTestStore(simpleGraph)
 
-	fixed := iterator.NewFixed()
-	fixed.Add(qs.ValueOf(quad.Raw("cool")))
-
-	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
+	lto := shape.BuildIterator(qs, shape.Quads{
+		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("cool")}},
+	})
 
 	newIt, changed := lto.Optimize()
-	if !changed {
-		t.Error("Iterator didn't change")
+	if changed {
+		t.Errorf("unexpected optimization step")
 	}
 	if _, ok := newIt.(*Iterator); !ok {
 		t.Fatal("Didn't swap out to LLRB")

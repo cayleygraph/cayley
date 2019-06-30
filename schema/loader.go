@@ -549,7 +549,6 @@ func (l *loader) iteratorFromPath(root graph.Iterator, p *path.Path) (graph.Iter
 	}
 	if Optimize {
 		it, _ = it.Optimize()
-		it, _ = l.qs.OptimizeIterator(it)
 	}
 	return it, nil
 }

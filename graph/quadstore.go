@@ -106,12 +106,6 @@ type QuadStore interface {
 	// Returns the number of quads currently stored.
 	Size() int64
 
-	// Optimize an iterator in the context of the quad store.
-	// Suppose we have a better index for the passed tree; this
-	// gives the QuadStore the opportunity to replace it
-	// with a more efficient iterator.
-	OptimizeIterator(it Iterator) (Iterator, bool)
-
 	// Close the quad store and clean up. (Flush to disk, cleanly
 	// sever connections, etc)
 	Close() error

@@ -141,10 +141,6 @@ func (qs *Store) QuadDirection(v graph.Value, d quad.Direction) graph.Value {
 	return graph.PreFetched(qs.Quad(v).Get(d))
 }
 
-func (qs *Store) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
-	return &iterator.Null{}, false
-}
-
 func (qs *Store) Close() error { return nil }
 
 func (qs *Store) DebugPrint() {}

@@ -503,10 +503,6 @@ func (qs *QuadStore) NodeSize() int64 {
 	return foundMetadata.NodeCount
 }
 
-func (qs *QuadStore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
-	return it, false
-}
-
 func (qs *QuadStore) Close() error {
 	qs.context = nil
 	return nil

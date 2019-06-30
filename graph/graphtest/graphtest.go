@@ -532,7 +532,6 @@ func TestHasA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	defer it.Close()
 
 	it, _ = it.Optimize()
-	it, _ = qs.OptimizeIterator(it)
 
 	var exp []quad.Value
 	for i := 0; i < 8; i++ {

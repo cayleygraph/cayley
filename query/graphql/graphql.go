@@ -129,7 +129,6 @@ type object struct {
 
 func buildIterator(qs graph.QuadStore, p *path.Path) graph.Iterator {
 	it, _ := p.BuildIterator().Optimize()
-	it, _ = qs.OptimizeIterator(it)
 	return it
 }
 

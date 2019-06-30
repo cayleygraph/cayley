@@ -63,9 +63,6 @@ func (c *IterateChain) nextPath() bool {
 func (c *IterateChain) start() {
 	if c.optimize {
 		c.it, _ = c.it.Optimize()
-		if c.qs != nil {
-			c.it, _ = c.qs.OptimizeIterator(c.it)
-		}
 	}
 	if !clog.V(2) {
 		return

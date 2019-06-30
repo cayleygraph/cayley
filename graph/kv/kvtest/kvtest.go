@@ -8,8 +8,8 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/kv"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/stretchr/testify/require"
 )
@@ -92,14 +92,14 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 	testutil.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
 
 	// With an linksto-fixed pair
-	fixed := iterator.NewFixed()
-	fixed.Add(qs.ValueOf(quad.Raw("F")))
-	lto := iterator.NewLinksTo(qs, fixed, quad.Object)
+	lto := shape.BuildIterator(qs, shape.Quads{
+		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("F")}},
+	})
 
 	oldIt := lto.Clone()
 	newIt, ok := lto.Optimize()
-	if !ok {
-		t.Errorf("Failed to optimize iterator")
+	if ok {
+		t.Errorf("unexpected optimization step")
 	}
 	if _, ok := newIt.(*kv.QuadIterator); !ok {
 		t.Errorf("Optimized iterator type does not match original, got: %T", newIt)
