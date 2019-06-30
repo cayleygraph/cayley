@@ -125,10 +125,6 @@ func (it *Save) Size() (int64, bool) {
 	return it.it.Size()
 }
 
-func (it *Save) Type() graph.Type {
-	return graph.Save
-}
-
 func (it *Save) Optimize() (nit graph.Iterator, no bool) {
 	sub, ok := it.it.Optimize()
 	if len(it.tags) == 0 && len(it.fixedTags) == 0 {

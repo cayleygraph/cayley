@@ -458,7 +458,6 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	//if exact {
 	//	t.Errorf("Got unexpected exact result.")
 	//}
-	require.Equal(t, graph.All, it.Type(), "Unexpected iterator type")
 
 	optIt, changed := it.Optimize()
 	require.True(t, !changed && optIt == it, "Optimize unexpectedly changed iterator: %v, %T", changed, optIt)

@@ -221,8 +221,6 @@ func (it *Recursive) Close() error {
 	return it.err
 }
 
-func (it *Recursive) Type() graph.Type { return graph.Recursive }
-
 func (it *Recursive) Optimize() (graph.Iterator, bool) {
 	newIt, optimized := it.subIt.Optimize()
 	if optimized {

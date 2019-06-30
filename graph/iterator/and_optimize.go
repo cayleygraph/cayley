@@ -120,12 +120,6 @@ func optimizeReplacement(its []graph.Iterator) graph.Iterator {
 	if hasAnyNullIterators(its) {
 		return NewNull()
 	}
-
-	// If we have one useful iterator, use that.
-	it := hasOneUsefulIterator(its)
-	if it != nil {
-		return it
-	}
 	return nil
 }
 
@@ -224,41 +218,11 @@ func optimizeSubIterators(its []graph.Iterator) []graph.Iterator {
 // Check a list of iterators for any Null iterators.
 func hasAnyNullIterators(its []graph.Iterator) bool {
 	for _, it := range its {
-		if it.Type() == graph.Null {
+		if _, ok := it.(*Null); ok {
 			return true
 		}
 	}
 	return false
-}
-
-// There are two "not-useful" iterators -- namely graph.Null which returns
-// nothing, and graph.All which returns everything. Particularly, we want
-// to see if we're intersecting with a bunch of graph.All iterators, and,
-// if we are, then we have only one useful iterator.
-//
-// We already checked for hasAnyNullIteratators() -- so now we're considering
-// All iterators.
-func hasOneUsefulIterator(its []graph.Iterator) graph.Iterator {
-	usefulCount := 0
-	var usefulIt graph.Iterator
-	for _, it := range its {
-		switch it.Type() {
-		case graph.All:
-			continue
-		default:
-			usefulCount++
-			usefulIt = it
-		}
-	}
-
-	if usefulCount == 1 {
-		return usefulIt
-	}
-	if usefulCount == 0 {
-		// It's full of All iterators. We can safely return one of them.
-		return its[0]
-	}
-	return nil
 }
 
 func materializeIts(its []graph.Iterator) []graph.Iterator {
@@ -269,7 +233,10 @@ func materializeIts(its []graph.Iterator) []graph.Iterator {
 	for i, it := range its[1:] {
 		st := stats[i+1]
 		if st.Size*st.NextCost < (st.ContainsCost * (1 + (st.Size / (allStats.Size + 1)))) {
-			if graph.Height(it, graph.Materialize) > 10 {
+			if graph.Height(it, func(it graph.Iterator) bool {
+				_, ok := it.(*Materialize)
+				return !ok
+			}) > 10 {
 				out = append(out, NewMaterialize(it))
 				continue
 			}

@@ -279,12 +279,6 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.size, true
 }
 
-func (it *Iterator) Type() graph.Type {
-	if it.isAll {
-		return graph.All
-	}
-	return "gaedatastore"
-}
 func (it *Iterator) Sorted() bool                     { return false }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *Iterator) String() string {

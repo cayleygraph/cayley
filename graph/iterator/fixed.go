@@ -83,9 +83,6 @@ func (it *Fixed) String() string {
 	return fmt.Sprintf("Fixed(%v)", it.values)
 }
 
-// Register this iterator as a Fixed iterator.
-func (it *Fixed) Type() graph.Type { return graph.Fixed }
-
 // Check if the passed value is equal to one of the values stored in the iterator.
 func (it *Fixed) Contains(ctx context.Context, v graph.Value) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.

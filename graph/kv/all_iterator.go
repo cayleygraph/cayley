@@ -182,12 +182,6 @@ func (it *AllIterator) String() string {
 	return "KVAll"
 }
 
-func (it *AllIterator) Type() graph.Type {
-	if it.cons != nil {
-		return "kv_constrained_all"
-	}
-	return graph.All
-}
 func (it *AllIterator) Sorted() bool { return false }
 
 func (it *AllIterator) Optimize() (graph.Iterator, bool) {

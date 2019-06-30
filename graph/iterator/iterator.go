@@ -66,9 +66,6 @@ func (it *Null) Contains(ctx context.Context, v graph.Value) bool {
 
 func (it *Null) Clone() graph.Iterator { return NewNull() }
 
-// Name the null iterator.
-func (it *Null) Type() graph.Type { return graph.Null }
-
 // A good iterator will close itself when it returns true.
 // Null has nothing it needs to do.
 func (it *Null) Optimize() (graph.Iterator, bool) { return it, false }
@@ -134,8 +131,6 @@ func (it *Error) Contains(ctx context.Context, v graph.Value) bool {
 }
 
 func (it *Error) Clone() graph.Iterator { return NewError(it.err) }
-
-func (it *Error) Type() graph.Type { return graph.Err }
 
 func (it *Error) Optimize() (graph.Iterator, bool) { return it, false }
 

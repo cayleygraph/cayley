@@ -99,8 +99,6 @@ func (it *Unique) Close() error {
 	return it.subIt.Close()
 }
 
-func (it *Unique) Type() graph.Type { return graph.Unique }
-
 func (it *Unique) Optimize() (graph.Iterator, bool) {
 	newIt, optimized := it.subIt.Optimize()
 	if optimized {

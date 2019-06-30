@@ -98,8 +98,6 @@ func (it *Count) Close() error {
 	return it.it.Close()
 }
 
-func (it *Count) Type() graph.Type { return graph.Count }
-
 func (it *Count) Optimize() (graph.Iterator, bool) {
 	sub, optimized := it.it.Optimize()
 	it.it = sub

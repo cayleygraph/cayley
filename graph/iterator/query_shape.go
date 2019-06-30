@@ -125,42 +125,42 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		}
 	}
 
-	switch it.Type() {
-	case graph.And:
+	switch it.(type) {
+	case *And:
 		for _, sub := range it.SubIterators() {
 			s.nodeID++
 			newNode := s.MakeNode(sub)
-			if sub.Type() != graph.Or {
+			if _, ok := sub.(*Or); !ok {
 				s.StealNode(n, newNode)
 			} else {
 				s.AddNode(newNode)
 				s.AddLink(&Link{n.ID, newNode.ID, 0, 0})
 			}
 		}
-	case graph.Fixed:
+	case *Fixed:
 		n.IsFixed = true
 		for it.Next(context.TODO()) {
 			n.Values = append(n.Values, s.qs.NameOf(it.Result()).String())
 		}
-	case graph.HasA:
+	case *HasA:
 		hasa := it.(*HasA)
 		s.PushHasa(n.ID, hasa.dir)
 		s.nodeID++
 		newNode := s.MakeNode(hasa.primaryIt)
 		s.AddNode(newNode)
 		s.RemoveHasa()
-	case graph.Or:
+	case *Or:
 		for _, sub := range it.SubIterators() {
 			s.nodeID++
 			newNode := s.MakeNode(sub)
-			if sub.Type() == graph.Or {
+			if _, ok := sub.(*Or); ok {
 				s.StealNode(n, newNode)
 			} else {
 				s.AddNode(newNode)
 				s.AddLink(&Link{n.ID, newNode.ID, 0, 0})
 			}
 		}
-	case graph.LinksTo:
+	case *LinksTo:
 		n.IsLinkNode = true
 		lto := it.(*LinksTo)
 		s.nodeID++
@@ -174,12 +174,11 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 			} else {
 				s.AddLink(&Link{newNode.ID, hasaID, 0, n.ID})
 			}
-		} else if lto.primaryIt.Type() == graph.Fixed {
+		} else if _, ok := lto.primaryIt.(*Fixed); ok {
 			s.StealNode(n, newNode)
 		} else {
 			s.AddNode(newNode)
 		}
-	case graph.All:
 	}
 	return n
 }

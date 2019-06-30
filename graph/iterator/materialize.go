@@ -110,9 +110,6 @@ func (it *Materialize) String() string {
 	return "Materialize"
 }
 
-// Register this iterator as a Materialize iterator.
-func (it *Materialize) Type() graph.Type { return graph.Materialize }
-
 func (it *Materialize) Result() graph.Value {
 	if it.aborted {
 		return it.subIt.Result()
@@ -137,7 +134,7 @@ func (it *Materialize) Optimize() (graph.Iterator, bool) {
 	newSub, changed := it.subIt.Optimize()
 	if changed {
 		it.subIt = newSub
-		if it.subIt.Type() == graph.Null {
+		if _, ok := it.subIt.(*Null); ok {
 			return it.subIt, true
 		}
 	}

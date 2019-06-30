@@ -92,8 +92,6 @@ func (it *Limit) Close() error {
 	return it.primaryIt.Close()
 }
 
-func (it *Limit) Type() graph.Type { return graph.Limit }
-
 func (it *Limit) Optimize() (graph.Iterator, bool) {
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()
 	if it.limit <= 0 { // no limit

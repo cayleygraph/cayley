@@ -208,13 +208,6 @@ func (it *Iterator) Size() (int64, bool) {
 	return it.size, true
 }
 
-func (it *Iterator) Type() graph.Type {
-	if len(it.constraint) == 0 {
-		return graph.All
-	}
-	return "nosql"
-}
-
 func (it *Iterator) Sorted() bool                     { return true }
 func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
 

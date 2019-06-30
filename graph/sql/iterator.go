@@ -270,13 +270,6 @@ func (it *Iterator) Size() (int64, bool) {
 	return n, true
 }
 
-func (it *Iterator) Type() graph.Type {
-	if it.query.isAll() {
-		return graph.All
-	}
-	return "sql-shape"
-}
-
 func (it *Iterator) Optimize() (graph.Iterator, bool) {
 	return it, false
 }

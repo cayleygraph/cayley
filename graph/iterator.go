@@ -18,6 +18,7 @@ package graph
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -108,10 +109,6 @@ type Iterator interface {
 	// or a conservative estimate.
 	Size() (int64, bool)
 
-	// Returns a string relating to what the function of the iterator is. By
-	// knowing the names of the iterators, we can devise optimization strategies.
-	Type() Type
-
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
 	// returns (the new iterator, true), if not, it returns (self, false).
@@ -133,7 +130,7 @@ func DescribeIterator(it Iterator) Description {
 	d := Description{
 		UID:  it.UID(),
 		Name: it.String(),
-		Type: it.Type(),
+		Type: reflect.TypeOf(it).String(),
 		Size: sz, Exact: exact,
 	}
 	if tg, ok := it.(Tagger); ok {
@@ -151,7 +148,7 @@ func DescribeIterator(it Iterator) Description {
 type Description struct {
 	UID       uint64        `json:",omitempty"`
 	Name      string        `json:",omitempty"`
-	Type      Type          `json:",omitempty"`
+	Type      string        `json:",omitempty"`
 	Tags      []string      `json:",omitempty"`
 	Size      int64         `json:",omitempty"`
 	Exact     bool          `json:",omitempty"`
@@ -162,14 +159,14 @@ type Description struct {
 type ApplyMorphism func(QuadStore, Iterator) Iterator
 
 // Height is a convienence function to measure the height of an iterator tree.
-func Height(it Iterator, until Type) int {
-	if it.Type() == until {
+func Height(it Iterator, filter func(Iterator) bool) int {
+	if filter != nil && !filter(it) {
 		return 1
 	}
 	subs := it.SubIterators()
 	maxDepth := 0
 	for _, sub := range subs {
-		h := Height(sub, until)
+		h := Height(sub, filter)
 		if h > maxDepth {
 			maxDepth = h
 		}
@@ -193,44 +190,9 @@ type IteratorStats struct {
 	ContainsNext int64
 }
 
-// Type enumerates the set of Iterator types.
-type Type string
-
-// These are the iterator types, defined as constants
-const (
-	Invalid     = Type("")
-	All         = Type("all")
-	And         = Type("and")
-	Or          = Type("or")
-	HasA        = Type("hasa")
-	LinksTo     = Type("linksto")
-	Comparison  = Type("comparison")
-	Null        = Type("null")
-	Err         = Type("error")
-	Fixed       = Type("fixed")
-	Save        = Type("save")
-	Not         = Type("not")
-	Materialize = Type("materialize")
-	Unique      = Type("unique")
-	Limit       = Type("limit")
-	Skip        = Type("skip")
-	Regex       = Type("regexp")
-	Count       = Type("count")
-	Recursive   = Type("recursive")
-	Resolver    = Type("resolver")
-)
-
-// String returns a string representation of the Type.
-func (t Type) String() string {
-	if t == "" {
-		return "illegal-type"
-	}
-	return string(t)
-}
-
 type StatsContainer struct {
 	UID  uint64
-	Type Type
+	Type string
 	IteratorStats
 	SubIts []StatsContainer
 }
@@ -238,7 +200,7 @@ type StatsContainer struct {
 func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
-	out.Type = it.Type()
+	out.Type = reflect.TypeOf(it).String()
 	out.UID = it.UID()
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))

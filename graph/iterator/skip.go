@@ -91,8 +91,6 @@ func (it *Skip) Close() error {
 	return it.primaryIt.Close()
 }
 
-func (it *Skip) Type() graph.Type { return graph.Skip }
-
 func (it *Skip) Optimize() (graph.Iterator, bool) {
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()
 	if it.skip == 0 { // nothing to skip

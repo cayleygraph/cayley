@@ -134,7 +134,6 @@ func (it *AllIterator) Optimize() (graph.Iterator, bool) { return it, false }
 func (it *AllIterator) UID() uint64 {
 	return it.uid
 }
-func (it *AllIterator) Type() graph.Type { return graph.All }
 func (it *AllIterator) String() string {
 	return "MemStoreAll"
 }

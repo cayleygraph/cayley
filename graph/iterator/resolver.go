@@ -89,9 +89,6 @@ func (it *Resolver) String() string {
 	return fmt.Sprintf("Resolver(%v)", it.order)
 }
 
-// Register this iterator as a Resolver iterator.
-func (it *Resolver) Type() graph.Type { return graph.Resolver }
-
 // Resolve nodes to values
 func (it *Resolver) resolve(ctx context.Context) error {
 	values, err := graph.RefsOf(ctx, it.qs, it.order)

@@ -153,10 +153,6 @@ func (it *Int64) Contains(ctx context.Context, tsv graph.Value) bool {
 	return false
 }
 
-// The type of this iterator is an "all". This is important, as it puts it in
-// the class of "all iterators.
-func (it *Int64) Type() graph.Type { return graph.All }
-
 // There's nothing to optimize about this little iterator.
 func (it *Int64) Optimize() (graph.Iterator, bool) { return it, false }
 

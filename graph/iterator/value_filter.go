@@ -126,9 +126,6 @@ func (it *ValueFilter) TagResults(dst map[string]graph.Value) {
 	it.sub.TagResults(dst)
 }
 
-// Registers the value-comparison iterator.
-func (it *ValueFilter) Type() graph.Type { return graph.Comparison }
-
 func (it *ValueFilter) String() string {
 	return "ValueFilter"
 }

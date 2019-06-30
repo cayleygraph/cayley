@@ -142,8 +142,6 @@ func (it *Iterator) String() string {
 	return fmt.Sprintf("MemStore(%v)", it.d)
 }
 
-func (it *Iterator) Type() graph.Type { return "b+tree" }
-
 func (it *Iterator) Sorted() bool { return true }
 
 func (it *Iterator) Optimize() (graph.Iterator, bool) {

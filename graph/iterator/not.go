@@ -119,8 +119,6 @@ func (it *Not) Close() error {
 	return err
 }
 
-func (it *Not) Type() graph.Type { return graph.Not }
-
 func (it *Not) Optimize() (graph.Iterator, bool) {
 	// TODO - consider wrapping the primaryIt with a MaterializeIt
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()

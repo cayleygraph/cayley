@@ -530,7 +530,7 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 	if slice || chanl {
 		return nil
 	}
-	if list != nil && list.Type() != graph.All {
+	if list != nil { // TODO(dennwc): optional optimization: do this only if iterator is not "all nodes"
 		// distinguish between missing object and type constraints
 		list.Reset()
 		and := iterator.NewAnd(list, l.qs.NodesAllIterator())

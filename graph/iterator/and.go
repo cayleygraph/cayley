@@ -318,6 +318,3 @@ func (it *And) Close() error {
 	}
 	return err
 }
-
-// Register this as an "and" iterator.
-func (it *And) Type() graph.Type { return graph.And }

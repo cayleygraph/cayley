@@ -20,22 +20,8 @@ package iterator_test
 import (
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
-
-func TestIteratorPromotion(t *testing.T) {
-	all := NewInt64(1, 3, true)
-	fixed := NewFixed(Int64Node(3))
-	a := NewAnd(all, fixed)
-	newIt, changed := a.Optimize()
-	if !changed {
-		t.Error("Iterator didn't optimize")
-	}
-	if newIt.Type() != graph.Fixed {
-		t.Error("Expected fixed iterator")
-	}
-}
 
 func TestNullIteratorAnd(t *testing.T) {
 	all := NewInt64(1, 3, true)
@@ -45,25 +31,8 @@ func TestNullIteratorAnd(t *testing.T) {
 	if !changed {
 		t.Error("Didn't change")
 	}
-	if newIt.Type() != graph.Null {
-		t.Error("Expected null iterator, got ", newIt.Type())
-	}
-}
-
-func TestAllPromotion(t *testing.T) {
-	all := NewInt64(100, 300, true)
-	all2 := NewInt64(1, 30000, true)
-	a := NewAnd()
-	// Make all2 the default iterator
-	a.AddSubIterator(all2)
-	a.AddSubIterator(all)
-
-	newIt, changed := a.Optimize()
-	if !changed {
-		t.Error("Expected new iterator")
-	}
-	if newIt.Type() != graph.All {
-		t.Error("Should have promoted the All iterator")
+	if _, ok := newIt.(*Null); !ok {
+		t.Errorf("Expected null iterator, got %T", newIt)
 	}
 }
 
