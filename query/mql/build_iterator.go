@@ -154,9 +154,9 @@ func (q *Query) buildShapeMap(query map[string]interface{}, path Path) (shape.Sh
 			}
 		}
 		if optional {
-			it.Opt = append(it.Opt, subit)
+			it.AddOptional(subit)
 		} else {
-			it.Sub = append(it.Sub, subit)
+			it.Add(subit)
 		}
 	}
 	q.queryStructure[path] = outputStructure

@@ -1120,6 +1120,14 @@ type IntersectOpt struct {
 	Opt []Shape
 }
 
+func (s *IntersectOpt) Add(arr ...Shape) {
+	s.Sub = append(s.Sub, arr...)
+}
+
+func (s *IntersectOpt) AddOptional(arr ...Shape) {
+	s.Opt = append(s.Opt, arr...)
+}
+
 func (s IntersectOpt) BuildIterator(qs graph.QuadStore) graph.Iterator {
 	if len(s.Sub) == 0 && len(s.Opt) == 0 {
 		return iterator.NewNull()

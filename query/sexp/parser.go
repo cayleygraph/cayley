@@ -19,20 +19,30 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 )
 
 func BuildIteratorTreeForQuery(qs graph.QuadStore, query string) graph.Iterator {
+	s, err := BuildShape(query)
+	if err != nil {
+		return iterator.NewError(err)
+	}
+	return shape.BuildIterator(qs, s)
+}
+
+func BuildShape(query string) (shape.Shape, error) {
 	tree := parseQuery(query)
-	it, _ := buildIteratorTree(tree, qs)
-	return it
+	s, _ := buildShape(tree)
+	s, _ = shape.Optimize(s, nil)
+	return s, nil
 }
 
 func ParseString(input string) string {
 	return parseQuery(input).String()
 }
 
-func parseQuery(input string) *peg.ExpressionTree {
+func newParser() *peg.Parser {
 	parser := peg.NewParser()
 
 	start := parser.NonTerminal("Start")
@@ -163,9 +173,11 @@ func parseQuery(input string) *peg.ExpressionTree {
 		)),
 		parser.Terminal(')'),
 	)
+	return parser
+}
 
-	tree := parser.Parse(input)
-	return tree
+func parseQuery(input string) *peg.ExpressionTree {
+	return newParser().Parse(input)
 }
 
 func getIdentString(tree *peg.ExpressionTree) string {
@@ -182,25 +194,28 @@ func getIdentString(tree *peg.ExpressionTree) string {
 	return out
 }
 
-func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) (_ graph.Iterator, opt bool) {
+func lookup(s string) shape.Shape {
+	return shape.Lookup{quad.StringToValue(s)}
+}
+
+func buildShape(tree *peg.ExpressionTree) (_ shape.Shape, opt bool) {
 	switch tree.Name {
 	case "Start":
-		return buildIteratorTree(tree.Children[0], qs)
+		return buildShape(tree.Children[0])
 	case "NodeIdentifier":
-		var out graph.Iterator
+		var out shape.Shape
 		nodeID := getIdentString(tree)
 		if tree.Children[0].Name == "Variable" {
-			allIt := qs.NodesAllIterator()
-			allIt = iterator.Tag(allIt, nodeID)
-			out = allIt
+			out = shape.Save{
+				From: shape.AllNodes{},
+				Tags: []string{nodeID},
+			}
 		} else {
 			n := nodeID
 			if tree.Children[0].Children[0].Name == "ColonIdentifier" {
 				n = nodeID[1:]
 			}
-			fixed := iterator.NewFixed()
-			fixed.Add(qs.ValueOf(quad.Raw(n)))
-			out = fixed
+			out = lookup(n)
 		}
 		return out, false
 	case "PredIdentifier":
@@ -209,24 +224,23 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) (_ graph.It
 			//Taken care of below
 			i++
 		}
-		it, _ := buildIteratorTree(tree.Children[i], qs)
-		lto := iterator.NewLinksTo(qs, it, quad.Predicate)
-		return lto, false
+		it, _ := buildShape(tree.Children[i])
+		return shape.Quads{
+			{Dir: quad.Predicate, Values: it},
+		}, false
 	case "RootConstraint":
-		constraintCount := 0
-		and := iterator.NewAnd()
+		var and shape.IntersectOpt
 		for _, c := range tree.Children {
 			switch c.Name {
 			case "NodeIdentifier":
 				fallthrough
 			case "Constraint":
-				it, opt := buildIteratorTree(c, qs)
+				it, opt := buildShape(c)
 				if opt {
-					and.AddOptionalIterator(it)
+					and.AddOptional(it)
 				} else {
-					and.AddSubIterator(it)
+					and.Add(it)
 				}
-				constraintCount++
 				continue
 			default:
 				continue
@@ -234,10 +248,9 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) (_ graph.It
 		}
 		return and, false
 	case "Constraint":
-		var hasa *iterator.HasA
 		topLevelDir := quad.Subject
 		subItDir := quad.Object
-		subAnd := iterator.NewAnd()
+		var subAnd shape.IntersectOpt
 		isOptional := false
 		for _, c := range tree.Children {
 			switch c.Name {
@@ -246,11 +259,11 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) (_ graph.It
 					topLevelDir = quad.Object
 					subItDir = quad.Subject
 				}
-				it, opt := buildIteratorTree(c, qs)
+				it, opt := buildShape(c)
 				if opt {
-					subAnd.AddOptionalIterator(it)
+					subAnd.AddOptional(it)
 				} else {
-					subAnd.AddSubIterator(it)
+					subAnd.Add(it)
 				}
 				continue
 			case "PredicateKeyword":
@@ -261,21 +274,25 @@ func buildIteratorTree(tree *peg.ExpressionTree, qs graph.QuadStore) (_ graph.It
 			case "NodeIdentifier":
 				fallthrough
 			case "RootConstraint":
-				it, opt := buildIteratorTree(c, qs)
-				l := iterator.NewLinksTo(qs, it, subItDir)
+				it, opt := buildShape(c)
+				l := shape.Quads{
+					{Dir: subItDir, Values: it},
+				}
 				if opt {
-					subAnd.AddOptionalIterator(l)
+					subAnd.AddOptional(l)
 				} else {
-					subAnd.AddSubIterator(l)
+					subAnd.Add(l)
 				}
 				continue
 			default:
 				continue
 			}
 		}
-		hasa = iterator.NewHasA(qs, subAnd, topLevelDir)
-		return hasa, isOptional
+		return shape.NodesFrom{
+			Dir:   topLevelDir,
+			Quads: subAnd,
+		}, isOptional
 	default:
-		return iterator.NewNull(), false
+		return shape.Null{}, false
 	}
 }
