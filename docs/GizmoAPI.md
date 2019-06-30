@@ -199,6 +199,9 @@ cFollows.Except(dFollows).All()   // The set (dani) -- what charlie follows that
 
 Filter applies constraints to a set of nodes. Can be used to filter values by range or match strings.
 
+#### `path.Filter(regex(expression, includeIRIs))`
+
+Filters by match a regular expression ([syntax](https://github.com/google/re2/wiki/Syntax)). By default works only on literals unless includeEntities is set to `true`.
 
 ### `path.Follow(path)`
 
