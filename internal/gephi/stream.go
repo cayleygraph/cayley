@@ -213,8 +213,8 @@ type graphStreamEvent struct {
 	DelEdges    map[string]streamEdge `json:"de,omitempty"`
 }
 
-func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, values shape.Values, limit int) {
-	it := values.BuildIterator(s.QS)
+func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, quads shape.Shape, limit int) {
+	it := shape.BuildIterator(s.QS, quads)
 
 	var sh, oh valHash
 	for i := 0; (limit < 0 || i < limit) && it.Next(ctx); i++ {
@@ -361,12 +361,12 @@ func (s *GraphStreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, p
 	case "nodes":
 		s.serveNodesWithProps(ctx, gs, limit)
 	case "raw":
-		values := shape.Values{
-			Sub:   valuesFromString(r.FormValue("sub")),
-			Pred:  valuesFromString(r.FormValue("pred")),
-			Obj:   valuesFromString(r.FormValue("obj")),
-			Label: valuesFromString(r.FormValue("label")),
-		}
+		values := shape.FilterQuads(
+			valuesFromString(r.FormValue("sub")),
+			valuesFromString(r.FormValue("pred")),
+			valuesFromString(r.FormValue("obj")),
+			valuesFromString(r.FormValue("label")),
+		)
 		s.serveRawQuads(ctx, gs, values, limit)
 	default:
 		w.WriteHeader(http.StatusBadRequest)

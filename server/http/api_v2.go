@@ -323,12 +323,12 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	values := shape.Values{
-		Sub:   valuesFromString(r.FormValue("sub")),
-		Pred:  valuesFromString(r.FormValue("pred")),
-		Obj:   valuesFromString(r.FormValue("obj")),
-		Label: valuesFromString(r.FormValue("label")),
-	}
+	values := shape.FilterQuads(
+		valuesFromString(r.FormValue("sub")),
+		valuesFromString(r.FormValue("pred")),
+		valuesFromString(r.FormValue("obj")),
+		valuesFromString(r.FormValue("label")),
+	)
 	it := values.BuildIterator(h.QuadStore)
 	qr := graph.NewResultReader(h.QuadStore, it)
 
