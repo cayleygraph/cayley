@@ -17,6 +17,10 @@ install:
   - sudo snap install snapcraft --classic
   - GO111MODULE=on go mod download
 
+cache:
+  directories:
+    - $GOPATH/pkg/mod
+
 script:
   - GO111MODULE=on go test -v ./...
 
