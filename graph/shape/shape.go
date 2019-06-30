@@ -1396,26 +1396,19 @@ func (s Save) Optimize(r Optimizer) (Shape, bool) {
 	return s, opt
 }
 
-type Values struct {
-	Sub   []quad.Value
-	Pred  []quad.Value
-	Obj   []quad.Value
-	Label []quad.Value
-}
-
-func (v Values) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func FilterQuads(subject, predicate, object, label []quad.Value) Shape {
 	var q Quads
-	if len(v.Sub) != 0 {
-		q = append(q, QuadFilter{Dir: quad.Subject, Values: Lookup(v.Sub)})
+	if len(subject) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Subject, Values: Lookup(subject)})
 	}
-	if len(v.Pred) != 0 {
-		q = append(q, QuadFilter{Dir: quad.Predicate, Values: Lookup(v.Pred)})
+	if len(predicate) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Predicate, Values: Lookup(predicate)})
 	}
-	if len(v.Obj) != 0 {
-		q = append(q, QuadFilter{Dir: quad.Object, Values: Lookup(v.Obj)})
+	if len(object) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Object, Values: Lookup(object)})
 	}
-	if len(v.Label) != 0 {
-		q = append(q, QuadFilter{Dir: quad.Label, Values: Lookup(v.Label)})
+	if len(label) != 0 {
+		q = append(q, QuadFilter{Dir: quad.Label, Values: Lookup(label)})
 	}
-	return BuildIterator(qs, q)
+	return q
 }
