@@ -51,6 +51,9 @@ func (ValLookup) Quad(_ graph.Value) quad.Quad {
 func (ValLookup) QuadIterator(_ quad.Direction, _ graph.Value) graph.Iterator {
 	panic("not implemented")
 }
+func (ValLookup) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Value) (graph.Size, error) {
+	panic("not implemented")
+}
 func (ValLookup) NodesAllIterator() graph.Iterator {
 	panic("not implemented")
 }

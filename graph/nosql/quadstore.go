@@ -586,6 +586,21 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Itera
 	return NewLinksToIterator(qs, "quads", []Linkage{{Dir: d, Val: h}})
 }
 
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Value) (graph.Size, error) {
+	h, ok := v.(NodeHash)
+	if !ok {
+		return graph.Size{Size: 0, Exact: true}, nil
+	}
+	sz, err := qs.getSize("quads", linkageToFilters([]Linkage{{Dir: d, Val: h}}))
+	if err != nil {
+		return graph.Size{}, err
+	}
+	return graph.Size{
+		Size:  sz,
+		Exact: true,
+	}, nil
+}
+
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 	return NewIterator(qs, "nodes")
 }

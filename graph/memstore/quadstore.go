@@ -455,6 +455,18 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 	return iterator.NewNull()
 }
 
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Value) (graph.Size, error) {
+	id, ok := asID(v)
+	if !ok {
+		return graph.Size{Size: 0, Exact: true}, nil
+	}
+	index, ok := qs.index.Get(d, id)
+	if !ok {
+		return graph.Size{Size: 0, Exact: true}, nil
+	}
+	return graph.Size{Size: int64(index.Len()), Exact: true}, nil
+}
+
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	return graph.Stats{
 		Nodes: graph.Size{

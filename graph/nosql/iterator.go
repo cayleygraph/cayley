@@ -47,7 +47,7 @@ type Iterator struct {
 	err    error
 }
 
-func NewLinksToIterator(qs *QuadStore, collection string, links []Linkage) *Iterator {
+func linkageToFilters(links []Linkage) []nosql.FieldFilter {
 	filters := make([]nosql.FieldFilter, 0, len(links))
 	for _, l := range links {
 		filters = append(filters, nosql.FieldFilter{
@@ -56,6 +56,11 @@ func NewLinksToIterator(qs *QuadStore, collection string, links []Linkage) *Iter
 			Value:  nosql.String(l.Val),
 		})
 	}
+	return filters
+}
+
+func NewLinksToIterator(qs *QuadStore, collection string, links []Linkage) *Iterator {
+	filters := linkageToFilters(links)
 	it := NewIterator(qs, collection, filters...)
 	it.links = links
 	return it

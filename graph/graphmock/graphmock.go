@@ -60,6 +60,11 @@ func (qs *Oldstore) QuadIterator(d quad.Direction, i graph.Value) graph.Iterator
 	return qs.Iter
 }
 
+func (qs *Oldstore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Value) (graph.Size, error) {
+	sz, exact := qs.Iter.Size()
+	return graph.Size{Size: sz, Exact: exact}, nil
+}
+
 func (qs *Oldstore) NodesAllIterator() graph.Iterator { return &iterator.Null{} }
 
 func (qs *Oldstore) QuadsAllIterator() graph.Iterator { return &iterator.Null{} }
@@ -155,6 +160,17 @@ func (qs *Store) QuadIterator(d quad.Direction, i graph.Value) graph.Iterator {
 		}
 	}
 	return fixed
+}
+
+func (qs *Store) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Value) (graph.Size, error) {
+	v := val.(graph.PreFetchedValue).NameOf()
+	sz := graph.Size{Exact: true}
+	for _, q := range qs.Data {
+		if q.Get(d) == v {
+			sz.Size++
+		}
+	}
+	return sz, nil
 }
 
 func (qs *Store) NodesAllIterator() graph.Iterator {

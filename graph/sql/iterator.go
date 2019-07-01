@@ -32,7 +32,7 @@ func (qs *QuadStore) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
 	return qs.opt.OptimizeShape(s)
 }
 
-func (qs *QuadStore) Query(ctx context.Context, s Shape) (*sql.Rows, error) {
+func (qs *QuadStore) prepareQuery(s Shape) (string, []interface{}) {
 	args := s.Args()
 	vals := make([]interface{}, 0, len(args))
 	for _, a := range args {
@@ -40,6 +40,16 @@ func (qs *QuadStore) Query(ctx context.Context, s Shape) (*sql.Rows, error) {
 	}
 	b := NewBuilder(qs.flavor.QueryDialect)
 	qu := s.SQL(b)
+	return qu, vals
+}
+
+func (qs *QuadStore) QueryRow(ctx context.Context, s Shape) *sql.Row {
+	qu, vals := qs.prepareQuery(s)
+	return qs.db.QueryRowContext(ctx, qu, vals...)
+}
+
+func (qs *QuadStore) Query(ctx context.Context, s Shape) (*sql.Rows, error) {
+	qu, vals := qs.prepareQuery(s)
 	rows, err := qs.db.QueryContext(ctx, qu, vals...)
 	if err != nil {
 		return nil, fmt.Errorf("sql query failed: %v\nquery: %v", err, qu)
@@ -248,26 +258,12 @@ func (it *Iterator) estimateSize() int64 {
 }
 
 func (it *Iterator) Size() (int64, bool) {
-	sel := it.query
-	sel.Fields = []Field{
-		{Name: "COUNT(*)", Raw: true}, // TODO: proper support for expressions
-	}
-	rows, err := it.qs.Query(context.TODO(), sel)
+	sz, err := it.qs.querySize(context.TODO(), it.query)
 	if err != nil {
 		it.err = err
 		return it.estimateSize(), false
 	}
-	defer rows.Close()
-	if !rows.Next() {
-		it.err = rows.Err()
-		return it.estimateSize(), false
-	}
-	var n int64
-	if err := rows.Scan(&n); err != nil {
-		it.err = err
-		return it.estimateSize(), false
-	}
-	return n, true
+	return sz.Size, sz.Exact
 }
 
 func (it *Iterator) Optimize() (graph.Iterator, bool) {

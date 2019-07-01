@@ -77,6 +77,9 @@ type QuadIndexer interface {
 	// that node token in that directional field.
 	QuadIterator(quad.Direction, Value) Iterator
 
+	// QuadIteratorSize returns an estimated size of an iterator.
+	QuadIteratorSize(ctx context.Context, d quad.Direction, v Value) (Size, error)
+
 	// Convenience function for speed. Given a quad token and a direction
 	// return the node token for that direction. Sometimes, a QuadStore
 	// can do this without going all the way to the backing store, and

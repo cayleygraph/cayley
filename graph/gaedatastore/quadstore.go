@@ -495,6 +495,22 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}, nil
 }
 
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Value) (graph.Size, error) {
+	t, ok := val.(*Token)
+	if !ok || t.Kind != nodeKind {
+		return graph.Size{Size: 0, Exact: true}, nil
+	} else if qs.context == nil {
+		return graph.Size{}, errors.New("cannot count iterator without a valid context")
+	}
+	key := qs.createKeyFromToken(t)
+	n := new(NodeEntry)
+	err := datastore.Get(qs.context, key, n)
+	if err != nil && err != datastore.ErrNoSuchEntity {
+		return graph.Size{}, err
+	}
+	return graph.Size{Size: n.Size, Exact: true}, nil
+}
+
 func (qs *QuadStore) Close() error {
 	qs.context = nil
 	return nil

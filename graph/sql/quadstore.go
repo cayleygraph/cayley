@@ -509,6 +509,31 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Itera
 	return qs.NewIterator(sel)
 }
 
+func (qs *QuadStore) querySize(ctx context.Context, sel Select) (graph.Size, error) {
+	sel.Fields = []Field{
+		{Name: "COUNT(*)", Raw: true}, // TODO: proper support for expressions
+	}
+	var sz int64
+	err := qs.QueryRow(ctx, sel).Scan(&sz)
+	if err != nil {
+		return graph.Size{}, err
+	}
+	return graph.Size{
+		Size:  sz,
+		Exact: true,
+	}, nil
+}
+
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Value) (graph.Size, error) {
+	v, ok := val.(Value)
+	if !ok {
+		return graph.Size{Size: 0, Exact: true}, nil
+	}
+	sel := AllQuads("")
+	sel.WhereEq("", dirField(d), v)
+	return qs.querySize(ctx, sel)
+}
+
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
 	return qs.NewIterator(AllNodes())
 }

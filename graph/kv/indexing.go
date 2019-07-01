@@ -15,9 +15,9 @@
 package kv
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -571,20 +571,32 @@ func (qs *QuadStore) getBucketIndexes(ctx context.Context, tx kv.Tx, keys []kv.K
 	return out, nil
 }
 
-func decodeIndex(b []byte) ([]uint64, error) {
-	r := bytes.NewBuffer(b)
-	var err error
-	var out []uint64
-	for {
-		var x uint64
-		x, err = binary.ReadUvarint(r)
-		if err != nil {
-			break
+func countIndex(b []byte) (int64, error) {
+	var cnt int64
+	for len(b) > 0 {
+		_, n := binary.Uvarint(b)
+		if n == 0 {
+			return 0, io.ErrUnexpectedEOF
+		} else if n < 0 {
+			return 0, errors.New("varint: overflow")
 		}
-		out = append(out, x)
+		cnt++
+		b = b[n:]
 	}
-	if err != nil && err != io.EOF {
-		return nil, err
+	return cnt, nil
+}
+
+func decodeIndex(b []byte) ([]uint64, error) {
+	var out []uint64
+	for len(b) > 0 {
+		v, n := binary.Uvarint(b)
+		if n == 0 {
+			return out, io.ErrUnexpectedEOF
+		} else if n < 0 {
+			return out, errors.New("varint: overflow")
+		}
+		out = append(out, v)
+		b = b[n:]
 	}
 	return out, nil
 }

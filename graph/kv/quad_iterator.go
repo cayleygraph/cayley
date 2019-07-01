@@ -30,7 +30,7 @@ type QuadIterator struct {
 	ind     QuadIndex
 	horizon int64
 	vals    []uint64
-	size    int64
+	size    graph.Size
 
 	tx   kv.Tx
 	it   kv.Iterator
@@ -52,7 +52,7 @@ func NewQuadIterator(qs *QuadStore, ind QuadIndex, vals []uint64) *QuadIterator 
 		horizon: qs.horizon(context.TODO()),
 		uid:     iterator.NextUID(),
 		vals:    vals,
-		size:    -1,
+		size:    graph.Size{Size: -1},
 	}
 }
 
@@ -187,28 +187,18 @@ func (it *QuadIterator) SubIterators() []graph.Iterator {
 func (it *QuadIterator) Size() (int64, bool) {
 	if it.err != nil {
 		return 0, false
-	} else if it.size >= 0 {
-		return it.size, true
+	} else if it.size.Size >= 0 {
+		return it.size.Size, it.size.Exact
 	}
 	ctx := context.TODO()
 	if len(it.ind.Dirs) == len(it.vals) {
-		var ids []uint64
-		it.err = kv.View(it.qs.db, func(tx kv.Tx) error {
-			val, err := tx.Get(ctx, it.ind.Key(it.vals))
-			if err != nil {
-				return err
-			}
-			ids, err = decodeIndex(val)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if it.err != nil {
+		sz, err := it.qs.indexSize(ctx, it.ind, it.vals)
+		if err != nil {
+			it.err = err
 			return 0, false
 		}
-		it.size = int64(len(ids))
-		return it.size, true
+		it.size = sz
+		return sz.Size, sz.Exact
 	}
 	return 1 + it.qs.Size()/2, false
 }
