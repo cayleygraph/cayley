@@ -672,16 +672,14 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	st := graph.Stats{
-		Nodes:      0,
-		Quads:      0,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Exact: true},
+		Quads: graph.Size{Exact: true},
 	}
 	qs.mu.RLock()
-	st.Quads = qs.quads
-	st.Nodes = qs.nodes
+	st.Quads.Size = qs.quads
+	st.Nodes.Size = qs.nodes
 	qs.mu.RUnlock()
-	if st.Quads >= 0 {
+	if st.Quads.Size >= 0 {
 		return st, nil
 	}
 	query := func(table string) string {
@@ -689,21 +687,21 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}
 	if !exact && qs.flavor.Estimated != nil {
 		query = qs.flavor.Estimated
-		st.QuadsExact = false
-		st.NodesExact = false
+		st.Quads.Exact = false
+		st.Nodes.Exact = false
 	}
-	err := qs.db.QueryRow(query("quads")).Scan(&st.Quads)
+	err := qs.db.QueryRow(query("quads")).Scan(&st.Quads.Size)
 	if err != nil {
 		return graph.Stats{}, err
 	}
-	err = qs.db.QueryRow(query("nodes")).Scan(&st.Nodes)
+	err = qs.db.QueryRow(query("nodes")).Scan(&st.Nodes.Size)
 	if err != nil {
 		return graph.Stats{}, err
 	}
-	if st.QuadsExact {
+	if st.Quads.Exact {
 		qs.mu.Lock()
-		qs.quads = st.Quads
-		qs.nodes = st.Nodes
+		qs.quads = st.Quads.Size
+		qs.nodes = st.Nodes.Size
 		qs.mu.Unlock()
 	}
 	return st, nil
@@ -722,9 +720,9 @@ func (qs *QuadStore) sizeForIterator(dir quad.Direction, hash NodeHash) int64 {
 	if qs.noSizes {
 		st, _ := qs.Stats(context.TODO(), false)
 		if dir == quad.Predicate {
-			return (st.Quads / 100) + 1
+			return (st.Quads.Size / 100) + 1
 		}
-		return (st.Quads / 1000) + 1
+		return (st.Quads.Size / 1000) + 1
 	}
 	if val, ok := qs.sizes.Get(hash.String() + string(dir.Prefix())); ok {
 		return val.(int64)

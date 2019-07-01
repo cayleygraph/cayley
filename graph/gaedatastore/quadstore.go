@@ -484,10 +484,14 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 		return graph.Stats{}, err
 	}
 	return graph.Stats{
-		Nodes:      m.NodeCount,
-		Quads:      m.QuadCount,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{
+			Size:  m.NodeCount,
+			Exact: true,
+		},
+		Quads: graph.Size{
+			Size:  m.QuadCount,
+			Exact: true,
+		},
 	}, nil
 }
 

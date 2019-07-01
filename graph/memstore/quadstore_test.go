@@ -96,10 +96,8 @@ type pair struct {
 func TestMemstoreValueOf(t *testing.T) {
 	qs, _, index := makeTestStore(simpleGraph)
 	exp := graph.Stats{
-		Nodes:      11,
-		Quads:      11,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 11, Exact: true},
+		Quads: graph.Size{Size: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)

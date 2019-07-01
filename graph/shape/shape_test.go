@@ -15,6 +15,7 @@
 package shape_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -59,7 +60,7 @@ func (ValLookup) QuadsAllIterator() graph.Iterator {
 func (ValLookup) NameOf(_ graph.Value) quad.Value {
 	panic("not implemented")
 }
-func (ValLookup) Size() int64 {
+func (ValLookup) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	panic("not implemented")
 }
 func (ValLookup) Close() error {

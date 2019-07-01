@@ -213,10 +213,8 @@ func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 		require.Equal(t, pq, val, "quad store failed to roundtrip value: %q", pq)
 	}
 	exp := graph.Stats{
-		Nodes:      4,
-		Quads:      1,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 4, Exact: true},
+		Quads: graph.Size{Size: 1, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -249,10 +247,8 @@ func testLoadDup(t testing.TB, gen testutil.DatabaseFunc, c *Config, single bool
 	}
 
 	exp := graph.Stats{
-		Nodes:      4,
-		Quads:      1,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 4, Exact: true},
+		Quads: graph.Size{Size: 1, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -287,10 +283,8 @@ func TestLoadDupRaw(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 	require.NoError(t, err)
 
 	exp := graph.Stats{
-		Nodes:      4,
-		Quads:      1,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 4, Exact: true},
+		Quads: graph.Size{Size: 1, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -413,10 +407,8 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	require.NoError(t, err)
 
 	exp := graph.Stats{
-		Nodes:      11,
-		Quads:      11,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 11, Exact: true},
+		Quads: graph.Size{Size: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -443,20 +435,16 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	require.True(t, graph.IsQuadNotExist(err))
 	if !conf.SkipSizeCheckAfterDelete {
 		exp = graph.Stats{
-			Nodes:      10,
-			Quads:      10,
-			NodesExact: true,
-			QuadsExact: true,
+			Nodes: graph.Size{Size: 10, Exact: true},
+			Quads: graph.Size{Size: 10, Exact: true},
 		}
 		st, err := qs.Stats(context.Background(), true)
 		require.NoError(t, err)
 		require.Equal(t, exp, st, "Unexpected quadstore size after RemoveQuad")
 	} else {
 		exp = graph.Stats{
-			Nodes:      10,
-			Quads:      11,
-			NodesExact: true,
-			QuadsExact: true,
+			Nodes: graph.Size{Size: 10, Exact: true},
+			Quads: graph.Size{Size: 11, Exact: true},
 		}
 		st, err := qs.Stats(context.Background(), true)
 		require.NoError(t, err)
@@ -781,10 +769,8 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		}
 	}
 	exp := graph.Stats{
-		Nodes:      12,
-		Quads:      7,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 12, Exact: true},
+		Quads: graph.Size{Size: 7, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -805,10 +791,8 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	exp := graph.Stats{
-		Nodes:      11,
-		Quads:      11,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 11, Exact: true},
+		Quads: graph.Size{Size: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -840,10 +824,8 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	assert.Nil(t, err, "AddQuadSet failed")
 
 	exp = graph.Stats{
-		Nodes:      12,
-		Quads:      13,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 12, Exact: true},
+		Quads: graph.Size{Size: 13, Exact: true},
 	}
 	st, err = qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -899,10 +881,8 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	exp := graph.Stats{
-		Nodes:      11,
-		Quads:      11,
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{Size: 11, Exact: true},
+		Quads: graph.Size{Size: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)

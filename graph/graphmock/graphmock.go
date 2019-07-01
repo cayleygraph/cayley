@@ -1,6 +1,7 @@
 package graphmock
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -181,4 +182,18 @@ func (qs *Store) QuadsAllIterator() graph.Iterator {
 	return fixed
 }
 
-func (qs *Store) Size() int64 { return int64(len(qs.Data)) }
+func (qs *Store) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
+	set := make(map[string]struct{})
+	for _, q := range qs.Data {
+		for _, d := range quad.Directions {
+			n := qs.NameOf(graph.PreFetched(q.Get(d)))
+			if n != nil {
+				set[n.String()] = struct{}{}
+			}
+		}
+	}
+	return graph.Stats{
+		Nodes: graph.Size{Size: int64(len(set)), Exact: true},
+		Quads: graph.Size{Size: int64(len(qs.Data)), Exact: true},
+	}, nil
+}

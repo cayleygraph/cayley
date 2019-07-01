@@ -457,10 +457,14 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	return graph.Stats{
-		Nodes:      int64(len(qs.vals)),
-		Quads:      int64(len(qs.quads)),
-		NodesExact: true,
-		QuadsExact: true,
+		Nodes: graph.Size{
+			Size:  int64(len(qs.vals)),
+			Exact: true,
+		},
+		Quads: graph.Size{
+			Size:  int64(len(qs.quads)),
+			Exact: true,
+		},
 	}, nil
 }
 

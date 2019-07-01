@@ -244,7 +244,7 @@ func (it *Iterator) estimateSize() int64 {
 	if err != nil && it.err == nil {
 		it.err = err
 	}
-	return st.Quads
+	return st.Quads.Size
 }
 
 func (it *Iterator) Size() (int64, bool) {

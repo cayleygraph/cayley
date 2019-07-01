@@ -102,9 +102,9 @@ func NewAllIterator(qs *QuadStore, kind string) *Iterator {
 	st, err := qs.Stats(context.Background(), true)
 	var size int64
 	if kind == nodeKind {
-		size = st.Nodes
+		size = st.Nodes.Size
 	} else {
-		size = st.Quads
+		size = st.Quads.Size
 	}
 	return &Iterator{
 		uid:   iterator.NextUID(),

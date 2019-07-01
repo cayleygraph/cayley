@@ -89,12 +89,16 @@ type QuadIndexer interface {
 	QuadDirection(id Value, d quad.Direction) Value
 }
 
+// Size of a graph (either in nodes or quads).
+type Size struct {
+	Size  int64
+	Exact bool
+}
+
 // Stats of a graph.
 type Stats struct {
-	Nodes      int64 // number of nodes
-	Quads      int64 // number of quads
-	NodesExact bool
-	QuadsExact bool
+	Nodes Size // number of nodes
+	Quads Size // number of quads
 }
 
 type QuadStore interface {
