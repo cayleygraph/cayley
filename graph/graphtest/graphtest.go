@@ -212,11 +212,15 @@ func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 		require.NotNil(t, val, "quad store failed to decode value: %q", pq)
 		require.Equal(t, pq, val, "quad store failed to roundtrip value: %q", pq)
 	}
-	exp := int64(5)
-	if c.NoPrimitives {
-		exp = 1
+	exp := graph.Stats{
+		Nodes:      4,
+		Quads:      1,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), []quad.Quad{q}, false)
 }
@@ -244,11 +248,15 @@ func testLoadDup(t testing.TB, gen testutil.DatabaseFunc, c *Config, single bool
 		require.NoError(t, err)
 	}
 
-	exp := int64(5)
-	if c.NoPrimitives {
-		exp = 1
+	exp := graph.Stats{
+		Nodes:      4,
+		Quads:      1,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), []quad.Quad{q}, false)
 }
@@ -278,11 +286,15 @@ func TestLoadDupRaw(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 	}, graph.IgnoreOpts{IgnoreDup: true})
 	require.NoError(t, err)
 
-	exp := int64(5)
-	if c.NoPrimitives {
-		exp = 1
+	exp := graph.Stats{
+		Nodes:      4,
+		Quads:      1,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), []quad.Quad{q}, false)
 }
@@ -399,11 +411,16 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 
 	err := w.AddQuadSet(MakeQuadSet())
 	require.NoError(t, err)
-	exp := int64(22)
-	if conf.NoPrimitives {
-		exp = 11
+
+	exp := graph.Stats{
+		Nodes:      11,
+		Quads:      11,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	if qss, ok := qs.(ValueSizer); ok {
 		s := qss.SizeOf(qs.ValueOf(quad.String("B")))
@@ -425,13 +442,25 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	))
 	require.True(t, graph.IsQuadNotExist(err))
 	if !conf.SkipSizeCheckAfterDelete {
-		exp = int64(20)
-		if conf.NoPrimitives {
-			exp = 10
+		exp = graph.Stats{
+			Nodes:      10,
+			Quads:      10,
+			NodesExact: true,
+			QuadsExact: true,
 		}
-		require.Equal(t, exp, qs.Size(), "Unexpected quadstore size after RemoveQuad")
+		st, err := qs.Stats(context.Background(), true)
+		require.NoError(t, err)
+		require.Equal(t, exp, st, "Unexpected quadstore size after RemoveQuad")
 	} else {
-		require.Equal(t, int64(11), qs.Size(), "Unexpected quadstore size")
+		exp = graph.Stats{
+			Nodes:      10,
+			Quads:      11,
+			NodesExact: true,
+			QuadsExact: true,
+		}
+		st, err := qs.Stats(context.Background(), true)
+		require.NoError(t, err)
+		require.Equal(t, exp, st, "Unexpected quadstore size")
 	}
 
 	if qss, ok := qs.(ValueSizer); ok {
@@ -751,11 +780,15 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 			assert.Equal(t, quad.StringOf(pq), quad.StringOf(got), "Failed to roundtrip raw %q (%T)", pq, pq)
 		}
 	}
-	exp := int64(19)
-	if conf.NoPrimitives {
-		exp = 7
+	exp := graph.Stats{
+		Nodes:      12,
+		Quads:      7,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	require.Equal(t, exp, qs.Size(), "Unexpected quadstore size")
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 }
 
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
@@ -771,11 +804,15 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	sz := int64(22)
-	if conf.NoPrimitives {
-		sz = 11
+	exp := graph.Stats{
+		Nodes:      11,
+		Quads:      11,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	require.Equal(t, sz, qs.Size(), "Incorrect number of quads")
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	all := qs.NodesAllIterator()
 	expect := []string{
@@ -794,7 +831,7 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	ExpectIteratedRawStrings(t, qs, all, expect)
 
 	// Add more quads, some conflicts
-	err := w.AddQuadSet([]quad.Quad{
+	err = w.AddQuadSet([]quad.Quad{
 		quad.Make("A", "follows", "B", nil), // duplicate
 		quad.Make("F", "follows", "B", nil),
 		quad.Make("C", "follows", "D", nil), // duplicate
@@ -802,11 +839,15 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	})
 	assert.Nil(t, err, "AddQuadSet failed")
 
-	sz = int64(25)
-	if conf.NoPrimitives {
-		sz = 13
+	exp = graph.Stats{
+		Nodes:      12,
+		Quads:      13,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	assert.Equal(t, sz, qs.Size(), "Incorrect number of quads")
+	st, err = qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	all = qs.NodesAllIterator()
 	expect = []string{
@@ -857,11 +898,15 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	sz := int64(22)
-	if conf.NoPrimitives {
-		sz = 11
+	exp := graph.Stats{
+		Nodes:      11,
+		Quads:      11,
+		NodesExact: true,
+		QuadsExact: true,
 	}
-	require.Equal(t, sz, qs.Size(), "Incorrect number of quads")
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	fixed := iterator.NewFixed(qs.ValueOf(quad.Raw("C")))
 

@@ -473,34 +473,22 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	)
 }
 
-func (qs *QuadStore) Size() int64 {
+func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	if qs.context == nil {
-		clog.Errorf("Error fetching size, context is nil, graph not correctly initialised")
-		return 0
+		return graph.Stats{}, errors.New("error fetching size, context is nil, graph not correctly initialised")
 	}
 	key := qs.createKeyForMetadata()
-	foundMetadata := new(MetadataEntry)
-	err := datastore.Get(qs.context, key, foundMetadata)
+	m := new(MetadataEntry)
+	err := datastore.Get(qs.context, key, m)
 	if err != nil {
-		clog.Warningf("Error: %v", err)
-		return 0
+		return graph.Stats{}, err
 	}
-	return foundMetadata.QuadCount
-}
-
-func (qs *QuadStore) NodeSize() int64 {
-	if qs.context == nil {
-		clog.Errorf("Error fetching node size, context is nil, graph not correctly initialised")
-		return 0
-	}
-	key := qs.createKeyForMetadata()
-	foundMetadata := new(MetadataEntry)
-	err := datastore.Get(qs.context, key, foundMetadata)
-	if err != nil {
-		clog.Warningf("Error: %v", err)
-		return 0
-	}
-	return foundMetadata.NodeCount
+	return graph.Stats{
+		Nodes:      m.NodeCount,
+		Quads:      m.QuadCount,
+		NodesExact: true,
+		QuadsExact: true,
+	}, nil
 }
 
 func (qs *QuadStore) Close() error {

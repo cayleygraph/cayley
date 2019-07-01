@@ -95,7 +95,15 @@ type pair struct {
 
 func TestMemstoreValueOf(t *testing.T) {
 	qs, _, index := makeTestStore(simpleGraph)
-	require.Equal(t, int64(22), qs.Size())
+	exp := graph.Stats{
+		Nodes:      11,
+		Quads:      11,
+		NodesExact: true,
+		QuadsExact: true,
+	}
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	for _, test := range index {
 		v := qs.ValueOf(quad.Raw(test.query))
@@ -209,7 +217,8 @@ func TestRemoveQuad(t *testing.T) {
 
 func TestTransaction(t *testing.T) {
 	qs, w, _ := makeTestStore(simpleGraph)
-	size := qs.Size()
+	st, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
 
 	tx := graph.NewTransaction()
 	tx.AddQuad(quad.Make(
@@ -223,11 +232,11 @@ func TestTransaction(t *testing.T) {
 		"quad",
 		nil))
 
-	err := w.ApplyTransaction(tx)
+	err = w.ApplyTransaction(tx)
 	if err == nil {
 		t.Error("Able to remove a non-existent quad")
 	}
-	if size != qs.Size() {
-		t.Error("Appended a new quad in a failed transaction")
-	}
+	st2, err := qs.Stats(context.Background(), true)
+	require.NoError(t, err)
+	require.Equal(t, st, st2, "Appended a new quad in a failed transaction")
 }

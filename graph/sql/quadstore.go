@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -110,16 +111,16 @@ type QuadHashes struct {
 }
 
 type QuadStore struct {
-	db           *sql.DB
-	opt          *Optimizer
-	flavor       Registration
-	ids          *lru.Cache
-	sizes        *lru.Cache
-	noSizes      bool
-	useEstimates bool
+	db      *sql.DB
+	opt     *Optimizer
+	flavor  Registration
+	ids     *lru.Cache
+	sizes   *lru.Cache
+	noSizes bool
 
-	mu   sync.RWMutex
-	size int64
+	mu    sync.RWMutex
+	nodes int64
+	quads int64
 }
 
 func connect(addr string, flavor string, opts graph.Options) (*sql.DB, error) {
@@ -296,7 +297,8 @@ func New(typ string, addr string, options graph.Options) (graph.QuadStore, error
 		db:      conn,
 		opt:     NewOptimizer(),
 		flavor:  fl,
-		size:    -1,
+		quads:   -1,
+		nodes:   -1,
 		sizes:   lru.New(1024),
 		ids:     lru.New(1024),
 		noSizes: true, // Skip size checking by default.
@@ -310,9 +312,6 @@ func New(typ string, addr string, options graph.Options) (graph.QuadStore, error
 		return nil, err
 	} else if ok && local {
 		qs.noSizes = false
-	}
-	if qs.useEstimates, err = options.BoolKey("use_estimates", false); err != nil {
-		return nil, err
 	}
 	return qs, nil
 }
@@ -483,7 +482,9 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 	}
 
 	qs.mu.Lock()
-	qs.size = -1 // TODO(barakmich): Sync size with writes.
+	// TODO(barakmich): Sync size with writes.
+	qs.quads = -1
+	qs.nodes = -1
 	qs.mu.Unlock()
 	return tx.Commit()
 }
@@ -669,28 +670,43 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	return val
 }
 
-func (qs *QuadStore) Size() int64 {
+func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
+	st := graph.Stats{
+		Nodes:      0,
+		Quads:      0,
+		NodesExact: true,
+		QuadsExact: true,
+	}
 	qs.mu.RLock()
-	sz := qs.size
+	st.Quads = qs.quads
+	st.Nodes = qs.nodes
 	qs.mu.RUnlock()
-	if sz >= 0 {
-		return sz
+	if st.Quads >= 0 {
+		return st, nil
 	}
-
-	query := "SELECT COUNT(*) FROM quads;"
-	if qs.useEstimates && qs.flavor.Estimated != nil {
-		query = qs.flavor.Estimated("quads")
+	query := func(table string) string {
+		return "SELECT COUNT(*) FROM " + table + ";"
 	}
-
-	err := qs.db.QueryRow(query).Scan(&sz)
+	if !exact && qs.flavor.Estimated != nil {
+		query = qs.flavor.Estimated
+		st.QuadsExact = false
+		st.NodesExact = false
+	}
+	err := qs.db.QueryRow(query("quads")).Scan(&st.Quads)
 	if err != nil {
-		clog.Errorf("Couldn't execute COUNT: %v", err)
-		return 0
+		return graph.Stats{}, err
 	}
-	qs.mu.Lock()
-	qs.size = sz
-	qs.mu.Unlock()
-	return sz
+	err = qs.db.QueryRow(query("nodes")).Scan(&st.Nodes)
+	if err != nil {
+		return graph.Stats{}, err
+	}
+	if st.QuadsExact {
+		qs.mu.Lock()
+		qs.quads = st.Quads
+		qs.nodes = st.Nodes
+		qs.mu.Unlock()
+	}
+	return st, nil
 }
 
 func (qs *QuadStore) Close() error {
@@ -701,16 +717,14 @@ func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value
 	return NodeHash{in.(QuadHashes).Get(d)}
 }
 
-func (qs *QuadStore) sizeForIterator(isAll bool, dir quad.Direction, hash NodeHash) int64 {
+func (qs *QuadStore) sizeForIterator(dir quad.Direction, hash NodeHash) int64 {
 	var err error
-	if isAll {
-		return qs.Size()
-	}
 	if qs.noSizes {
+		st, _ := qs.Stats(context.TODO(), false)
 		if dir == quad.Predicate {
-			return (qs.Size() / 100) + 1
+			return (st.Quads / 100) + 1
 		}
-		return (qs.Size() / 1000) + 1
+		return (st.Quads / 1000) + 1
 	}
 	if val, ok := qs.sizes.Get(hash.String() + string(dir.Prefix())); ok {
 		return val.(int64)

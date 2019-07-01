@@ -15,6 +15,7 @@
 package memstore
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -454,8 +455,13 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 	return iterator.NewNull()
 }
 
-func (qs *QuadStore) Size() int64 {
-	return int64(len(qs.prim))
+func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
+	return graph.Stats{
+		Nodes:      int64(len(qs.vals)),
+		Quads:      int64(len(qs.quads)),
+		NodesExact: true,
+		QuadsExact: true,
+	}, nil
 }
 
 func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {

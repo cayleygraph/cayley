@@ -635,8 +635,25 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	return qv
 }
 
-func (qs *QuadStore) Size() int64 {
+func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	// TODO(barakmich): Make size real; store it in the log, and retrieve it.
+	nodes, err := qs.db.Query(colNodes).Count(ctx)
+	if err != nil {
+		return graph.Stats{}, err
+	}
+	quads, err := qs.db.Query(colQuads).Count(ctx)
+	if err != nil {
+		return graph.Stats{}, err
+	}
+	return graph.Stats{
+		Nodes:      nodes,
+		Quads:      quads,
+		NodesExact: true,
+		QuadsExact: true,
+	}, nil
+}
+
+func (qs *QuadStore) Size() int64 {
 	count, err := qs.db.Query(colQuads).Count(context.TODO())
 	if err != nil {
 		clog.Errorf("%v", err)

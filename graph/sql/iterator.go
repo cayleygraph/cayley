@@ -240,7 +240,11 @@ func (it *Iterator) estimateSize() int64 {
 	if it.query.Limit > 0 {
 		return it.query.Limit
 	}
-	return it.qs.Size()
+	st, err := it.qs.Stats(context.TODO(), false)
+	if err != nil && it.err == nil {
+		it.err = err
+	}
+	return st.Quads
 }
 
 func (it *Iterator) Size() (int64, bool) {
