@@ -15,10 +15,6 @@ require (
 	github.com/dop251/goja v0.0.0-20190105122144-6d5bf35058fa
 	github.com/flimzy/diff v0.1.6 // indirect
 	github.com/fsouza/go-dockerclient v1.2.2
-	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
-	github.com/go-kivik/couchdb v1.8.1
-	github.com/go-kivik/kivik v1.8.1
-	github.com/go-kivik/pouchdb v1.3.5
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gogo/protobuf v1.2.1
@@ -35,7 +31,6 @@ require (
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/opencontainers/selinux v1.0.0 // indirect
-	github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/peterh/liner v0.0.0-20170317030525-88609521dc4b
 	github.com/russross/blackfriday v1.5.2
@@ -53,7 +48,7 @@ require (
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb // indirect
 	google.golang.org/appengine v1.6.1
-	gopkg.in/olivere/elastic.v5 v5.0.81
+	gopkg.in/olivere/elastic.v5 v5.0.81 // indirect
 )
 
 replace github.com/Sirupsen/logrus => github.com/Sirupsen/logrus v1.0.1

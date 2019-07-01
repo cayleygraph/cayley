@@ -26,6 +26,7 @@ import (
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
+	"github.com/hidal-go/hidalgo/legacy/nosql"
 )
 
 const DefaultDBName = "cayley"
@@ -34,15 +35,27 @@ type Registration struct {
 	NewFunc      NewFunc
 	InitFunc     InitFunc
 	IsPersistent bool
-	Options
+	Traits
 }
 
-type Options struct {
-	Number32 bool // store is limited to 32 bit precision
+type Traits = nosql.Traits
+
+func init() {
+	for _, reg := range nosql.List() {
+		Register(reg.Name, Registration{
+			NewFunc: func(addr string, options graph.Options) (nosql.Database, error) {
+				return reg.Open(addr, DefaultDBName, nosql.Options(options))
+			},
+			InitFunc: func(addr string, options graph.Options) (nosql.Database, error) {
+				return reg.New(addr, DefaultDBName, nosql.Options(options))
+			},
+			IsPersistent: !reg.Volatile, Traits: reg.Traits,
+		})
+	}
 }
 
-type InitFunc func(string, graph.Options) (Database, error)
-type NewFunc func(string, graph.Options) (Database, error)
+type InitFunc func(string, graph.Options) (nosql.Database, error)
+type NewFunc func(string, graph.Options) (nosql.Database, error)
 
 func Register(name string, r Registration) {
 	graph.RegisterQuadStore(name, graph.QuadStoreRegistration{
@@ -71,7 +84,7 @@ func Register(name string, r Registration) {
 					return nil, err
 				}
 			}
-			nopt := r.Options
+			nopt := r.Traits
 			qs, err := NewQuadStore(db, &nopt, opt)
 			if err != nil {
 				return nil, err
@@ -82,11 +95,11 @@ func Register(name string, r Registration) {
 	})
 }
 
-func Init(db Database, opt graph.Options) error {
+func Init(db nosql.Database, opt graph.Options) error {
 	return ensureIndexes(context.TODO(), db)
 }
 
-func NewQuadStore(db Database, nopt *Options, opt graph.Options) (*QuadStore, error) {
+func NewQuadStore(db nosql.Database, nopt *Traits, opt graph.Options) (*QuadStore, error) {
 	if err := ensureIndexes(context.TODO(), db); err != nil {
 		return nil, err
 	}
@@ -105,7 +118,7 @@ type NodeHash string
 
 func (NodeHash) IsNode() bool       { return false }
 func (v NodeHash) Key() interface{} { return v }
-func (v NodeHash) key() Key         { return Key{string(v)} }
+func (v NodeHash) key() nosql.Key   { return nosql.Key{string(v)} }
 
 type QuadHash [4]string
 
@@ -159,40 +172,40 @@ const (
 )
 
 type QuadStore struct {
-	db    Database
+	db    nosql.Database
 	ids   *lru.Cache
 	sizes *lru.Cache
-	opt   Options
+	opt   Traits
 }
 
-func ensureIndexes(ctx context.Context, db Database) error {
-	err := db.EnsureIndex(ctx, colLog, Index{
+func ensureIndexes(ctx context.Context, db nosql.Database) error {
+	err := db.EnsureIndex(ctx, colLog, nosql.Index{
 		Fields: []string{fldLogID},
-		Type:   StringExact,
+		Type:   nosql.StringExact,
 	}, nil)
 	if err != nil {
 		return err
 	}
-	err = db.EnsureIndex(ctx, colNodes, Index{
+	err = db.EnsureIndex(ctx, colNodes, nosql.Index{
 		Fields: []string{fldHash},
-		Type:   StringExact,
+		Type:   nosql.StringExact,
 	}, nil)
 	if err != nil {
 		return err
 	}
-	err = db.EnsureIndex(ctx, colQuads, Index{
+	err = db.EnsureIndex(ctx, colQuads, nosql.Index{
 		Fields: []string{
 			fldSubject,
 			fldPredicate,
 			fldObject,
 			fldLabel,
 		},
-		Type: StringExact,
-	}, []Index{
-		{Fields: []string{fldSubject}, Type: StringExact},
-		{Fields: []string{fldPredicate}, Type: StringExact},
-		{Fields: []string{fldObject}, Type: StringExact},
-		{Fields: []string{fldLabel}, Type: StringExact},
+		Type: nosql.StringExact,
+	}, []nosql.Index{
+		{Fields: []string{fldSubject}, Type: nosql.StringExact},
+		{Fields: []string{fldPredicate}, Type: nosql.StringExact},
+		{Fields: []string{fldObject}, Type: nosql.StringExact},
+		{Fields: []string{fldLabel}, Type: nosql.StringExact},
 	})
 	if err != nil {
 		return err
@@ -200,8 +213,8 @@ func ensureIndexes(ctx context.Context, db Database) error {
 	return nil
 }
 
-func getKeyForQuad(t quad.Quad) Key {
-	return Key{
+func getKeyForQuad(t quad.Quad) nosql.Key {
+	return nosql.Key{
 		hashOf(t.Subject),
 		hashOf(t.Predicate),
 		hashOf(t.Object),
@@ -217,16 +230,16 @@ func hashOf(s quad.Value) string {
 	return base64.StdEncoding.EncodeToString(h)
 }
 
-func (qs *QuadStore) nameToKey(name quad.Value) Key {
+func (qs *QuadStore) nameToKey(name quad.Value) nosql.Key {
 	node := qs.hashOf(name)
 	return node.key()
 }
 
-func (qs *QuadStore) updateNodeBy(ctx context.Context, key Key, name quad.Value, inc int) error {
+func (qs *QuadStore) updateNodeBy(ctx context.Context, key nosql.Key, name quad.Value, inc int) error {
 	if inc == 0 {
 		return nil
 	}
-	d := qs.opt.toDocumentValue(name)
+	d := toDocumentValue(&qs.opt, name)
 	err := qs.db.Update(colNodes, key).Upsert(d).Inc(fldSize, inc).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("error updating node: %v", err)
@@ -234,11 +247,11 @@ func (qs *QuadStore) updateNodeBy(ctx context.Context, key Key, name quad.Value,
 	return nil
 }
 
-func (qs *QuadStore) cleanupNodes(ctx context.Context, keys []Key) error {
-	err := qs.db.Delete(colNodes).Keys(keys...).WithFields(FieldFilter{
+func (qs *QuadStore) cleanupNodes(ctx context.Context, keys []nosql.Key) error {
+	err := qs.db.Delete(colNodes).Keys(keys...).WithFields(nosql.FieldFilter{
 		Path:   []string{fldSize},
-		Filter: Equal,
-		Value:  Int(0),
+		Filter: nosql.Equal,
+		Value:  nosql.Int(0),
 	}).Do(ctx)
 	if err != nil {
 		err = fmt.Errorf("error cleaning up nodes: %v", err)
@@ -253,13 +266,13 @@ func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, proc graph.Pro
 	} else if proc == graph.Delete {
 		setname = fldQuadDeleted
 	}
-	doc := Document{
-		fldSubject:   String(hashOf(q.Subject)),
-		fldPredicate: String(hashOf(q.Predicate)),
-		fldObject:    String(hashOf(q.Object)),
+	doc := nosql.Document{
+		fldSubject:   nosql.String(hashOf(q.Subject)),
+		fldPredicate: nosql.String(hashOf(q.Predicate)),
+		fldObject:    nosql.String(hashOf(q.Object)),
 	}
 	if l := hashOf(q.Label); l != "" {
-		doc[fldLabel] = String(l)
+		doc[fldLabel] = nosql.String(l)
 	}
 	err := qs.db.Update(colQuads, getKeyForQuad(q)).Upsert(doc).
 		Inc(setname, 1).Do(ctx)
@@ -269,15 +282,15 @@ func (qs *QuadStore) updateQuad(ctx context.Context, q quad.Quad, proc graph.Pro
 	return err
 }
 
-func checkQuadValid(q Document) bool {
+func checkQuadValid(q nosql.Document) bool {
 	added, _ := asInt(q[fldQuadAdded])
 	deleted, _ := asInt(q[fldQuadDeleted])
 	return added > deleted
 }
 
-func (qs *QuadStore) checkValidQuad(ctx context.Context, key Key) (bool, error) {
+func (qs *QuadStore) checkValidQuad(ctx context.Context, key nosql.Key) (bool, error) {
 	q, err := qs.db.FindByKey(ctx, colQuads, key)
-	if err == ErrNotFound {
+	if err == nosql.ErrNotFound {
 		return false, nil
 	}
 	if err != nil {
@@ -287,11 +300,11 @@ func (qs *QuadStore) checkValidQuad(ctx context.Context, key Key) (bool, error) 
 	return checkQuadValid(q), nil
 }
 
-func (qs *QuadStore) batchInsert(col string) DocWriter {
-	return BatchInsert(qs.db, col)
+func (qs *QuadStore) batchInsert(col string) nosql.DocWriter {
+	return nosql.BatchInsert(qs.db, col)
 }
 
-func (qs *QuadStore) appendLog(ctx context.Context, deltas []graph.Delta) ([]Key, error) {
+func (qs *QuadStore) appendLog(ctx context.Context, deltas []graph.Delta) ([]nosql.Key, error) {
 	w := qs.batchInsert(colLog)
 	defer w.Close()
 	for _, d := range deltas {
@@ -305,10 +318,10 @@ func (qs *QuadStore) appendLog(ctx context.Context, deltas []graph.Delta) ([]Key
 		} else {
 			action = "DeleteQuadPQ"
 		}
-		err = w.WriteDoc(ctx, nil, Document{
-			"op":   String(action),
-			"data": Bytes(data),
-			"ts":   Time(time.Now().UTC()),
+		err = w.WriteDoc(ctx, nil, nosql.Document{
+			"op":   nosql.String(action),
+			"data": nosql.Bytes(data),
+			"ts":   nosql.Time(time.Now().UTC()),
 		})
 		if err != nil {
 			return w.Keys(), err
@@ -380,7 +393,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	}
 	// make sure to create all nodes before writing any quads
 	// concurrent reads may observe broken quads in other case
-	var gc []Key
+	var gc []nosql.Key
 	for name, dn := range ids {
 		key := qs.nameToKey(name)
 		err := qs.updateNodeBy(ctx, key, name, dn)
@@ -404,66 +417,66 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
-func (opt Options) toDocumentValue(v quad.Value) Document {
+func toDocumentValue(opt *Traits, v quad.Value) nosql.Document {
 	if v == nil {
 		return nil
 	}
-	var doc Document
+	var doc nosql.Document
 	encPb := func() {
 		qv := pquads.MakeValue(v)
 		data, err := qv.Marshal()
 		if err != nil {
 			panic(err)
 		}
-		doc[fldValPb] = Bytes(data)
+		doc[fldValPb] = nosql.Bytes(data)
 	}
 	switch d := v.(type) {
 	case quad.String:
-		doc = Document{fldValData: String(d)}
+		doc = nosql.Document{fldValData: nosql.String(d)}
 	case quad.IRI:
-		doc = Document{fldValData: String(d), fldIRI: Bool(true)}
+		doc = nosql.Document{fldValData: nosql.String(d), fldIRI: nosql.Bool(true)}
 	case quad.BNode:
-		doc = Document{fldValData: String(d), fldBNode: Bool(true)}
+		doc = nosql.Document{fldValData: nosql.String(d), fldBNode: nosql.Bool(true)}
 	case quad.TypedString:
-		doc = Document{fldValData: String(d.Value), fldType: String(d.Type)}
+		doc = nosql.Document{fldValData: nosql.String(d.Value), fldType: nosql.String(d.Type)}
 	case quad.LangString:
-		doc = Document{fldValData: String(d.Value), fldLang: String(d.Lang)}
+		doc = nosql.Document{fldValData: nosql.String(d.Value), fldLang: nosql.String(d.Lang)}
 	case quad.Int:
-		doc = Document{fldValInt: Int(d)}
+		doc = nosql.Document{fldValInt: nosql.Int(d)}
 		if opt.Number32 {
 			// store sortable string representation for range queries
-			doc[fldValStrInt] = String(itos(int64(d)))
+			doc[fldValStrInt] = nosql.String(itos(int64(d)))
 			encPb()
 		}
 	case quad.Float:
-		doc = Document{fldValFloat: Float(d)}
+		doc = nosql.Document{fldValFloat: nosql.Float(d)}
 		if opt.Number32 {
 			encPb()
 		}
 	case quad.Bool:
-		doc = Document{fldValBool: Bool(d)}
+		doc = nosql.Document{fldValBool: nosql.Bool(d)}
 	case quad.Time:
-		doc = Document{fldValTime: Time(time.Time(d).UTC())}
+		doc = nosql.Document{fldValTime: nosql.Time(time.Time(d).UTC())}
 	default:
 		encPb()
 	}
-	return Document{fldValue: doc}
+	return nosql.Document{fldValue: doc}
 }
 
-func asInt(v Value) (Int, error) {
-	var vi Int
+func asInt(v nosql.Value) (nosql.Int, error) {
+	var vi nosql.Int
 	switch v := v.(type) {
-	case Int:
+	case nosql.Int:
 		vi = v
-	case Float:
-		vi = Int(v)
+	case nosql.Float:
+		vi = nosql.Int(v)
 	default:
 		return 0, fmt.Errorf("unexpected type for int field: %T", v)
 	}
 	return vi, nil
 }
 
-func (opt Options) toQuadValue(d Document) (quad.Value, error) {
+func toQuadValue(opt *Traits, d nosql.Document) (quad.Value, error) {
 	if len(d) == 0 {
 		return nil, nil
 	}
@@ -472,9 +485,9 @@ func (opt Options) toQuadValue(d Document) (quad.Value, error) {
 	if v, ok := d[fldValPb]; ok {
 		var b []byte
 		switch v := v.(type) {
-		case String:
+		case nosql.String:
 			b, err = base64.StdEncoding.DecodeString(string(v))
-		case Bytes:
+		case nosql.Bytes:
 			b = []byte(v)
 		default:
 			err = fmt.Errorf("unexpected type for pb field: %T", v)
@@ -490,7 +503,7 @@ func (opt Options) toQuadValue(d Document) (quad.Value, error) {
 	} else if v, ok := d[fldValInt]; ok {
 		if opt.Number32 {
 			// parse from string, so we are confident that we will get exactly the same value
-			if vs, ok := d[fldValStrInt].(String); ok {
+			if vs, ok := d[fldValStrInt].(nosql.String); ok {
 				iv := quad.Int(stoi(string(vs)))
 				return iv, nil
 			}
@@ -503,9 +516,9 @@ func (opt Options) toQuadValue(d Document) (quad.Value, error) {
 	} else if v, ok := d[fldValFloat]; ok {
 		var vf quad.Float
 		switch v := v.(type) {
-		case Int:
+		case nosql.Int:
 			vf = quad.Float(v)
-		case Float:
+		case nosql.Float:
 			vf = quad.Float(v)
 		default:
 			return nil, fmt.Errorf("unexpected type for float field: %T", v)
@@ -514,7 +527,7 @@ func (opt Options) toQuadValue(d Document) (quad.Value, error) {
 	} else if v, ok := d[fldValBool]; ok {
 		var vb quad.Bool
 		switch v := v.(type) {
-		case Bool:
+		case nosql.Bool:
 			vb = quad.Bool(v)
 		default:
 			return nil, fmt.Errorf("unexpected type for bool field: %T", v)
@@ -523,9 +536,9 @@ func (opt Options) toQuadValue(d Document) (quad.Value, error) {
 	} else if v, ok := d[fldValTime]; ok {
 		var vt quad.Time
 		switch v := v.(type) {
-		case Time:
+		case nosql.Time:
 			vt = quad.Time(v)
-		case String:
+		case nosql.String:
 			var t time.Time
 			if err := t.UnmarshalJSON([]byte(`"` + string(v) + `"`)); err != nil {
 				return nil, err
@@ -536,20 +549,20 @@ func (opt Options) toQuadValue(d Document) (quad.Value, error) {
 		}
 		return vt, nil
 	}
-	vs, ok := d[fldValData].(String)
+	vs, ok := d[fldValData].(nosql.String)
 	if !ok {
 		return nil, fmt.Errorf("unknown value format: %T", d[fldValData])
 	}
 	if len(d) == 1 {
 		return quad.String(vs), nil
 	}
-	if ok, _ := d[fldIRI].(Bool); ok {
+	if ok, _ := d[fldIRI].(nosql.Bool); ok {
 		return quad.IRI(vs), nil
-	} else if ok, _ := d[fldBNode].(Bool); ok {
+	} else if ok, _ := d[fldBNode].(nosql.Bool); ok {
 		return quad.BNode(vs), nil
-	} else if typ, ok := d[fldType].(String); ok {
+	} else if typ, ok := d[fldType].(nosql.String); ok {
 		return quad.TypedString{Value: quad.String(vs), Type: quad.IRI(typ)}, nil
-	} else if typ, ok := d[fldLang].(String); ok {
+	} else if typ, ok := d[fldLang].(nosql.String); ok {
 		return quad.LangString{Value: quad.String(vs), Lang: string(typ)}, nil
 	}
 	return nil, fmt.Errorf("unsupported value: %#v", d)
@@ -574,11 +587,11 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Itera
 }
 
 func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return NewAllIterator(qs, "nodes")
+	return NewIterator(qs, "nodes")
 }
 
 func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return NewAllIterator(qs, "quads")
+	return NewIterator(qs, "quads")
 }
 
 func (qs *QuadStore) hashOf(s quad.Value) NodeHash {
@@ -610,13 +623,13 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 		clog.Errorf("couldn't retrieve node %v: %v", v, err)
 		return nil
 	}
-	dv, _ := nd[fldValue].(Document)
-	qv, err := qs.opt.toQuadValue(dv)
+	dv, _ := nd[fldValue].(nosql.Document)
+	qv, err := toQuadValue(&qs.opt, dv)
 	if err != nil {
 		clog.Errorf("couldn't convert node %v: %v", v, err)
 		return nil
 	}
-	if id, _ := nd[fldHash].(String); id == String(hash) && qv != nil {
+	if id, _ := nd[fldHash].(nosql.String); id == nosql.String(hash) && qv != nil {
 		qs.ids.Put(string(hash), qv)
 	}
 	return qv
@@ -640,7 +653,7 @@ func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value
 	return NodeHash(in.(QuadHash).Get(d))
 }
 
-func (qs *QuadStore) getSize(col string, constraints []FieldFilter) (int64, error) {
+func (qs *QuadStore) getSize(col string, constraints []nosql.FieldFilter) (int64, error) {
 	cacheKey := ""
 	for _, c := range constraints { // FIXME
 		cacheKey += fmt.Sprint(c.Path, c.Filter, c.Value)

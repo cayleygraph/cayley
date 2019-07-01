@@ -5,6 +5,8 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/hidal-go/hidalgo/legacy/nosql"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/shape"
@@ -31,9 +33,9 @@ func (qs *QuadStore) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
 
 // Shape is a shape representing a documents query with filters
 type Shape struct {
-	Collection string        // name of the collection
-	Filters    []FieldFilter // filters to select documents
-	Limit      int64         // limits a number of documents
+	Collection string              // name of the collection
+	Filters    []nosql.FieldFilter // filters to select documents
+	Limit      int64               // limits a number of documents
 }
 
 func (s Shape) BuildIterator(qs graph.QuadStore) graph.Iterator {
@@ -85,17 +87,17 @@ func stoi(s string) int64 {
 	return int64(ret - int64Adjust)
 }
 
-func (opt Options) toFieldFilter(c shape.Comparison) ([]FieldFilter, bool) {
-	var op FilterOp
+func toFieldFilter(opt *Traits, c shape.Comparison) ([]nosql.FieldFilter, bool) {
+	var op nosql.FilterOp
 	switch c.Op {
 	case iterator.CompareGT:
-		op = GT
+		op = nosql.GT
 	case iterator.CompareGTE:
-		op = GTE
+		op = nosql.GTE
 	case iterator.CompareLT:
-		op = LT
+		op = nosql.LT
 	case iterator.CompareLTE:
-		op = LTE
+		op = nosql.LTE
 	default:
 		return nil, false
 	}
@@ -103,42 +105,42 @@ func (opt Options) toFieldFilter(c shape.Comparison) ([]FieldFilter, bool) {
 		return []string{fldValue, s}
 	}
 
-	var filters []FieldFilter
+	var filters []nosql.FieldFilter
 	switch v := c.Val.(type) {
 	case quad.String:
-		filters = []FieldFilter{
-			{Path: fieldPath(fldValData), Filter: op, Value: String(v)},
-			{Path: fieldPath(fldIRI), Filter: NotEqual, Value: Bool(true)},
-			{Path: fieldPath(fldBNode), Filter: NotEqual, Value: Bool(true)},
+		filters = []nosql.FieldFilter{
+			{Path: fieldPath(fldValData), Filter: op, Value: nosql.String(v)},
+			{Path: fieldPath(fldIRI), Filter: nosql.NotEqual, Value: nosql.Bool(true)},
+			{Path: fieldPath(fldBNode), Filter: nosql.NotEqual, Value: nosql.Bool(true)},
 		}
 	case quad.IRI:
-		filters = []FieldFilter{
-			{Path: fieldPath(fldValData), Filter: op, Value: String(v)},
-			{Path: fieldPath(fldIRI), Filter: Equal, Value: Bool(true)},
+		filters = []nosql.FieldFilter{
+			{Path: fieldPath(fldValData), Filter: op, Value: nosql.String(v)},
+			{Path: fieldPath(fldIRI), Filter: nosql.Equal, Value: nosql.Bool(true)},
 		}
 	case quad.BNode:
-		filters = []FieldFilter{
-			{Path: fieldPath(fldValData), Filter: op, Value: String(v)},
-			{Path: fieldPath(fldBNode), Filter: Equal, Value: Bool(true)},
+		filters = []nosql.FieldFilter{
+			{Path: fieldPath(fldValData), Filter: op, Value: nosql.String(v)},
+			{Path: fieldPath(fldBNode), Filter: nosql.Equal, Value: nosql.Bool(true)},
 		}
 	case quad.Int:
 		if opt.Number32 && (v < math.MinInt32 || v > math.MaxInt32) {
 			// switch to range on string values
-			filters = []FieldFilter{
-				{Path: fieldPath(fldValStrInt), Filter: op, Value: String(itos(int64(v)))},
+			filters = []nosql.FieldFilter{
+				{Path: fieldPath(fldValStrInt), Filter: op, Value: nosql.String(itos(int64(v)))},
 			}
 		} else {
-			filters = []FieldFilter{
-				{Path: fieldPath(fldValInt), Filter: op, Value: Int(v)},
+			filters = []nosql.FieldFilter{
+				{Path: fieldPath(fldValInt), Filter: op, Value: nosql.Int(v)},
 			}
 		}
 	case quad.Float:
-		filters = []FieldFilter{
-			{Path: fieldPath(fldValFloat), Filter: op, Value: Float(v)},
+		filters = []nosql.FieldFilter{
+			{Path: fieldPath(fldValFloat), Filter: op, Value: nosql.Float(v)},
 		}
 	case quad.Time:
-		filters = []FieldFilter{
-			{Path: fieldPath(fldValTime), Filter: op, Value: Time(v)},
+		filters = []nosql.FieldFilter{
+			{Path: fieldPath(fldValTime), Filter: op, Value: nosql.Time(v)},
 		}
 	default:
 		return nil, false
@@ -151,7 +153,7 @@ func (qs *QuadStore) optimizeFilter(s shape.Filter) (shape.Shape, bool) {
 		return s, false
 	}
 	var (
-		filters []FieldFilter
+		filters []nosql.FieldFilter
 		left    []shape.ValueFilter
 	)
 	fieldPath := func(s string) []string {
@@ -160,23 +162,23 @@ func (qs *QuadStore) optimizeFilter(s shape.Filter) (shape.Shape, bool) {
 	for _, f := range s.Filters {
 		switch f := f.(type) {
 		case shape.Comparison:
-			if fld, ok := qs.opt.toFieldFilter(f); ok {
+			if fld, ok := toFieldFilter(&qs.opt, f); ok {
 				filters = append(filters, fld...)
 				continue
 			}
 		case shape.Wildcard:
-			filters = append(filters, []FieldFilter{
-				{Path: fieldPath(fldValData), Filter: Regexp, Value: String(f.Regexp())},
+			filters = append(filters, []nosql.FieldFilter{
+				{Path: fieldPath(fldValData), Filter: nosql.Regexp, Value: nosql.String(f.Regexp())},
 			}...)
 			continue
 		case shape.Regexp:
-			filters = append(filters, []FieldFilter{
-				{Path: fieldPath(fldValData), Filter: Regexp, Value: String(f.Re.String())},
+			filters = append(filters, []nosql.FieldFilter{
+				{Path: fieldPath(fldValData), Filter: nosql.Regexp, Value: nosql.String(f.Re.String())},
 			}...)
 			if !f.Refs {
-				filters = append(filters, []FieldFilter{
-					{Path: fieldPath(fldIRI), Filter: NotEqual, Value: Bool(true)},
-					{Path: fieldPath(fldBNode), Filter: NotEqual, Value: Bool(true)},
+				filters = append(filters, []nosql.FieldFilter{
+					{Path: fieldPath(fldIRI), Filter: nosql.NotEqual, Value: nosql.Bool(true)},
+					{Path: fieldPath(fldBNode), Filter: nosql.NotEqual, Value: nosql.Bool(true)},
 				}...)
 			}
 			continue

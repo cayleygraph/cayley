@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hidal-go/hidalgo/legacy/nosql"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -36,22 +38,22 @@ type Iterator struct {
 	qs         *QuadStore
 	collection string
 	limit      int64
-	constraint []FieldFilter
+	constraint []nosql.FieldFilter
 	links      []Linkage // used in Contains
 
-	iter   DocIterator
+	iter   nosql.DocIterator
 	result graph.Value
 	size   int64
 	err    error
 }
 
 func NewLinksToIterator(qs *QuadStore, collection string, links []Linkage) *Iterator {
-	filters := make([]FieldFilter, 0, len(links))
+	filters := make([]nosql.FieldFilter, 0, len(links))
 	for _, l := range links {
-		filters = append(filters, FieldFilter{
+		filters = append(filters, nosql.FieldFilter{
 			Path:   []string{l.Dir.String()},
-			Filter: Equal,
-			Value:  String(l.Val),
+			Filter: nosql.Equal,
+			Value:  nosql.String(l.Val),
 		})
 	}
 	it := NewIterator(qs, collection, filters...)
@@ -59,7 +61,7 @@ func NewLinksToIterator(qs *QuadStore, collection string, links []Linkage) *Iter
 	return it
 }
 
-func (it *Iterator) makeIterator() DocIterator {
+func (it *Iterator) makeIterator() nosql.DocIterator {
 	q := it.qs.db.Query(it.collection)
 	if len(it.constraint) != 0 {
 		q = q.WithFields(it.constraint...)
@@ -70,11 +72,7 @@ func (it *Iterator) makeIterator() DocIterator {
 	return q.Iterate()
 }
 
-func NewAllIterator(qs *QuadStore, collection string) *Iterator {
-	return NewIterator(qs, collection)
-}
-
-func NewIterator(qs *QuadStore, collection string, constraints ...FieldFilter) *Iterator {
+func NewIterator(qs *QuadStore, collection string, constraints ...nosql.FieldFilter) *Iterator {
 	return &Iterator{
 		uid:        iterator.NextUID(),
 		qs:         qs,
@@ -106,7 +104,7 @@ func (it *Iterator) Next(ctx context.Context) bool {
 	if it.iter == nil {
 		it.iter = it.makeIterator()
 	}
-	var doc Document
+	var doc nosql.Document
 	for {
 		if !it.iter.Next(ctx) {
 			if err := it.iter.Err(); err != nil {
@@ -122,15 +120,15 @@ func (it *Iterator) Next(ctx context.Context) bool {
 		break
 	}
 	if it.collection == colQuads {
-		sh, _ := doc[fldSubject].(String)
-		ph, _ := doc[fldPredicate].(String)
-		oh, _ := doc[fldObject].(String)
-		lh, _ := doc[fldLabel].(String)
+		sh, _ := doc[fldSubject].(nosql.String)
+		ph, _ := doc[fldPredicate].(nosql.String)
+		oh, _ := doc[fldObject].(nosql.String)
+		lh, _ := doc[fldLabel].(nosql.String)
 		it.result = QuadHash{
 			string(sh), string(ph), string(oh), string(lh),
 		}
 	} else {
-		id, _ := doc[fldHash].(String)
+		id, _ := doc[fldHash].(nosql.String)
 		it.result = NodeHash(id)
 	}
 	return true
@@ -171,7 +169,7 @@ func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	if qv == nil {
 		return false
 	}
-	d := it.qs.opt.toDocumentValue(qv)
+	d := toDocumentValue(&it.qs.opt, qv)
 	for _, f := range it.constraint {
 		if !f.Matches(d) {
 			return false
