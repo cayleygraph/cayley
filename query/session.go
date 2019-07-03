@@ -41,13 +41,13 @@ type errResult struct {
 func (errResult) Result() interface{} { return nil }
 func (e errResult) Err() error        { return e.err }
 
-func TagMapResult(m map[string]graph.Value) Result {
+func TagMapResult(m map[string]graph.Ref) Result {
 	return tagMap(m)
 }
 
-type tagMap map[string]graph.Value
+type tagMap map[string]graph.Ref
 
-func (m tagMap) Result() interface{} { return map[string]graph.Value(m) }
+func (m tagMap) Result() interface{} { return map[string]graph.Ref(m) }
 func (tagMap) Err() error            { return nil }
 
 type Session interface {

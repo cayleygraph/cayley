@@ -138,7 +138,7 @@ func NewQueryCmd() *cobra.Command {
 					}
 					obj := r.Result()
 					switch p := obj.(type) {
-					case map[string]graph.Value:
+					case map[string]graph.Ref:
 						m := make(map[string]quad.Value, len(p))
 						for k, v := range p {
 							m[k] = h.NameOf(v)

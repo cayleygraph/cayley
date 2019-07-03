@@ -24,7 +24,7 @@ import (
 )
 
 // TODO(barakmich): Linkage is general enough that there are places we take
-//the combined arguments `quad.Direction, graph.Value` that it may be worth
+//the combined arguments `quad.Direction, graph.Ref` that it may be worth
 //converting these into Linkages. If nothing else, future indexed iterators may
 //benefit from the shared representation
 
@@ -32,18 +32,18 @@ import (
 // quad direction.
 type Linkage struct {
 	Dir   quad.Direction
-	Value Value
+	Value Ref
 }
 
-// TODO(barakmich): Helper functions as needed, eg, ValuesForDirection(quad.Direction) []Value
+// TODO(barakmich): Helper functions as needed, eg, ValuesForDirection(quad.Direction) []Ref
 
 // Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
 type Tagger interface {
 	Iterator
 	Tags() []string
-	FixedTags() map[string]Value
+	FixedTags() map[string]Ref
 	AddTags(tag ...string)
-	AddFixedTag(tag string, value Value)
+	AddFixedTag(tag string, value Ref)
 	CopyFromTagger(st Tagger)
 }
 
@@ -52,10 +52,10 @@ type Iterator interface {
 	String() string
 
 	// Fills a tag-to-result-value map.
-	TagResults(map[string]Value)
+	TagResults(map[string]Ref)
 
 	// Returns the current result.
-	Result() Value
+	Result() Ref
 
 	// Next advances the iterator to the next value, which will then be available through
 	// the Result method. It returns false if no further advancement is possible, or if an
@@ -84,7 +84,7 @@ type Iterator interface {
 	NextPath(ctx context.Context) bool
 
 	// Contains returns whether the value is within the set held by the iterator.
-	Contains(ctx context.Context, v Value) bool
+	Contains(ctx context.Context, v Ref) bool
 
 	// Err returns any error that was encountered by the Iterator.
 	Err() error
@@ -176,7 +176,7 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 // FixedIterator wraps iterators that are modifiable by addition of fixed value sets.
 type FixedIterator interface {
 	Iterator
-	Add(Value)
+	Add(Ref)
 }
 
 type IteratorStats struct {

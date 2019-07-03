@@ -568,7 +568,7 @@ func toQuadValue(opt *Traits, d nosql.Document) (quad.Value, error) {
 	return nil, fmt.Errorf("unsupported value: %#v", d)
 }
 
-func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
+func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 	h := val.(QuadHash)
 	return quad.Quad{
 		Subject:   qs.NameOf(NodeHash(h.Get(quad.Subject))),
@@ -578,7 +578,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	}
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.Iterator {
 	h, ok := val.(NodeHash)
 	if !ok {
 		return iterator.NewNull()
@@ -586,7 +586,7 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Itera
 	return NewLinksToIterator(qs, "quads", []Linkage{{Dir: d, Val: h}})
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Value) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
 	h, ok := v.(NodeHash)
 	if !ok {
 		return graph.Size{Size: 0, Exact: true}, nil
@@ -613,14 +613,14 @@ func (qs *QuadStore) hashOf(s quad.Value) NodeHash {
 	return NodeHash(hashOf(s))
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
+func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
 	if s == nil {
 		return nil
 	}
 	return qs.hashOf(s)
 }
 
-func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	if v == nil {
 		return nil
 	} else if v, ok := v.(graph.PreFetchedValue); ok {
@@ -685,7 +685,7 @@ func (qs *QuadStore) Close() error {
 	return qs.db.Close()
 }
 
-func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(in graph.Ref, d quad.Direction) graph.Ref {
 	return NodeHash(in.(QuadHash).Get(d))
 }
 

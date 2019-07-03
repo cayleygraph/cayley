@@ -286,7 +286,7 @@ func (l *loader) makePathForType(rt reflect.Type, tagPref string, rootOnly bool)
 	return p, nil
 }
 
-func (l *loader) loadToValue(ctx context.Context, dst reflect.Value, depth int, m map[string][]graph.Value, tagPref string) error {
+func (l *loader) loadToValue(ctx context.Context, dst reflect.Value, depth int, m map[string][]graph.Ref, tagPref string) error {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -398,7 +398,7 @@ func (l *loader) iteratorForType(root graph.Iterator, rt reflect.Type, rootOnly 
 	return l.iteratorFromPath(root, p)
 }
 
-func mergeMap(dst map[string][]graph.Value, m map[string]graph.Value) {
+func mergeMap(dst map[string][]graph.Ref, m map[string]graph.Ref) {
 loop:
 	for k, v := range m {
 		sl := dst[k]
@@ -475,7 +475,7 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 				continue
 			}
 		}
-		mp := make(map[string]graph.Value)
+		mp := make(map[string]graph.Ref)
 		it.TagResults(mp)
 		if len(mp) == 0 {
 			continue
@@ -484,15 +484,15 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 		if slice || chanl {
 			cur = reflect.New(et)
 		}
-		mo := make(map[string][]graph.Value, len(mp))
+		mo := make(map[string][]graph.Ref, len(mp))
 		for k, v := range mp {
-			mo[k] = []graph.Value{v}
+			mo[k] = []graph.Ref{v}
 		}
 		for it.NextPath(ctx) {
 			if ctxDone() {
 				return ctx.Err()
 			}
-			mp = make(map[string]graph.Value)
+			mp = make(map[string]graph.Ref)
 			it.TagResults(mp)
 			if len(mp) == 0 {
 				continue

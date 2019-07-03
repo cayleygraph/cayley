@@ -31,12 +31,12 @@ type Resolver struct {
 	uid    uint64
 	tags   graph.Tagger
 	order  []quad.Value
-	values map[quad.Value]graph.Value
+	values map[quad.Value]graph.Ref
 	nodes  map[interface{}]quad.Value
 	cached bool
 	index  int
 	err    error
-	result graph.Value
+	result graph.Ref
 }
 
 // Creates a new Resolver iterator.
@@ -47,7 +47,7 @@ func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
 		order: make([]quad.Value, len(nodes)),
 		// Generally there are going to be no/few duplicates given
 		// so allocate maps large enough to accommodate all
-		values: make(map[quad.Value]graph.Value, len(nodes)),
+		values: make(map[quad.Value]graph.Ref, len(nodes)),
 		nodes:  make(map[interface{}]quad.Value, len(nodes)),
 	}
 	copy(it.order, nodes)
@@ -72,7 +72,7 @@ func (it *Resolver) Tagger() *graph.Tagger {
 	return &it.tags
 }
 
-func (it *Resolver) TagResults(dst map[string]graph.Value) {}
+func (it *Resolver) TagResults(dst map[string]graph.Ref) {}
 
 func (it *Resolver) String() string {
 	return fmt.Sprintf("Resolver(%v)", it.order)
@@ -94,7 +94,7 @@ func (it *Resolver) resolve(ctx context.Context) error {
 }
 
 // Check if the passed value is equal to one of the order stored in the iterator.
-func (it *Resolver) Contains(ctx context.Context, value graph.Value) bool {
+func (it *Resolver) Contains(ctx context.Context, value graph.Ref) bool {
 	if !it.cached {
 		it.err = it.resolve(ctx)
 		if it.err != nil {
@@ -133,7 +133,7 @@ func (it *Resolver) Err() error {
 	return it.err
 }
 
-func (it *Resolver) Result() graph.Value {
+func (it *Resolver) Result() graph.Ref {
 	return it.result
 }
 

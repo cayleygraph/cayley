@@ -77,7 +77,7 @@ func (s *Session) Parse(input string) error {
 func (s *Session) Execute(ctx context.Context, input string, out chan query.Result, limit int) {
 	defer close(out)
 	it := BuildIteratorTreeForQuery(s.qs, input)
-	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
 		select {
 		case out <- query.TagMapResult(tags):
 		case <-ctx.Done():
@@ -93,7 +93,7 @@ func (s *Session) Execute(ctx context.Context, input string, out chan query.Resu
 
 func (s *Session) FormatREPL(result query.Result) string {
 	out := fmt.Sprintln("****")
-	tags, ok := result.Result().(map[string]graph.Value)
+	tags, ok := result.Result().(map[string]graph.Ref)
 	if !ok {
 		return ""
 	}

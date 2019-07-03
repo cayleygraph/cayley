@@ -256,7 +256,7 @@ func (qs *QuadStore) horizon(ctx context.Context) int64 {
 	return h
 }
 
-func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Value) ([]quad.Value, error) {
+func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Ref) ([]quad.Value, error) {
 	out := make([]quad.Value, len(vals))
 	var (
 		inds []int
@@ -277,7 +277,7 @@ func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Value) ([]quad.V
 			inds = append(inds, i)
 			refs = append(refs, uint64(v))
 		default:
-			return out, fmt.Errorf("unknown type of graph.Value; not meant for this quadstore. apparently a %#v", v)
+			return out, fmt.Errorf("unknown type of graph.Ref; not meant for this quadstore. apparently a %#v", v)
 		}
 	}
 	if len(refs) == 0 {
@@ -302,8 +302,8 @@ func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Value) ([]quad.V
 	return out, last
 }
 
-func (qs *QuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Value, error) {
-	values := make([]graph.Value, len(nodes))
+func (qs *QuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Ref, error) {
+	values := make([]graph.Ref, len(nodes))
 	err := kv.View(qs.db, func(tx kv.Tx) error {
 		for i, node := range nodes {
 			value, err := qs.resolveQuadValue(ctx, tx, node)
@@ -320,9 +320,9 @@ func (qs *QuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Va
 	return values, nil
 }
 
-func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	ctx := context.TODO()
-	vals, err := qs.ValuesOf(ctx, []graph.Value{v})
+	vals, err := qs.ValuesOf(ctx, []graph.Ref{v})
 	if err != nil {
 		clog.Errorf("error getting NameOf %d: %s", v, err)
 		return nil
@@ -330,7 +330,7 @@ func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
 	return vals[0]
 }
 
-func (qs *QuadStore) Quad(k graph.Value) quad.Quad {
+func (qs *QuadStore) Quad(k graph.Ref) quad.Quad {
 	key, ok := k.(*proto.Primitive)
 	if !ok {
 		clog.Errorf("passed value was not a quad primitive: %T", k)
@@ -376,7 +376,7 @@ func (qs *QuadStore) getValFromLog(ctx context.Context, tx kv.Tx, k uint64) (qua
 	return pquads.UnmarshalValue(p.Value)
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
+func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
 	ctx := context.TODO()
 	var out Int64Value
 	_ = kv.View(qs.db, func(tx kv.Tx) error {
@@ -390,7 +390,7 @@ func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
 	return out
 }
 
-func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) graph.Ref {
 	p, ok := val.(*proto.Primitive)
 	if !ok {
 		return nil

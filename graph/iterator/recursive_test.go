@@ -103,11 +103,11 @@ func TestRecursiveNextPath(t *testing.T) {
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string
 	for r.Next(ctx) {
-		res := make(map[string]graph.Value)
+		res := make(map[string]graph.Ref)
 		r.TagResults(res)
 		got = append(got, quad.ToString(qs.NameOf(res["person"])))
 		for r.NextPath(ctx) {
-			res := make(map[string]graph.Value)
+			res := make(map[string]graph.Ref)
 			r.TagResults(res)
 			got = append(got, quad.ToString(qs.NameOf(res["person"])))
 		}

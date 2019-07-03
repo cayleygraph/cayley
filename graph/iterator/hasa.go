@@ -53,7 +53,7 @@ type HasA struct {
 	primaryIt graph.Iterator
 	dir       quad.Direction
 	resultIt  graph.Iterator
-	result    graph.Value
+	result    graph.Ref
 	runstats  graph.IteratorStats
 	err       error
 }
@@ -102,7 +102,7 @@ func (it *HasA) Optimize() (graph.Iterator, bool) {
 }
 
 // Pass the TagResults down the chain.
-func (it *HasA) TagResults(dst map[string]graph.Value) {
+func (it *HasA) TagResults(dst map[string]graph.Ref) {
 	it.primaryIt.TagResults(dst)
 }
 
@@ -113,7 +113,7 @@ func (it *HasA) String() string {
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "quads that have `val` in our direction", given to us by the quad store,
 // and then Next() values out of that iterator and Contains() them against our subiterator.
-func (it *HasA) Contains(ctx context.Context, val graph.Value) bool {
+func (it *HasA) Contains(ctx context.Context, val graph.Ref) bool {
 	it.runstats.Contains += 1
 	if clog.V(4) {
 		clog.Infof("Id is %v", val)
@@ -204,7 +204,7 @@ func (it *HasA) Err() error {
 	return it.err
 }
 
-func (it *HasA) Result() graph.Value {
+func (it *HasA) Result() graph.Ref {
 	return it.result
 }
 

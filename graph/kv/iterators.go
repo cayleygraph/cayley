@@ -47,7 +47,7 @@ func (qs *QuadStore) indexSize(ctx context.Context, ind QuadIndex, vals []uint64
 	}, nil
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Value) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
 	vi, ok := v.(Int64Value)
 	if !ok {
 		return graph.Size{Size: 0, Exact: true}, nil
@@ -70,7 +70,7 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v g
 	}, nil
 }
 
-func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.Iterator {
 	if v == nil {
 		return iterator.NewNull()
 	}

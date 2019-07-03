@@ -28,8 +28,8 @@ var _ graph.Iterator = &Materialize{}
 const MaterializeLimit = 1000
 
 type result struct {
-	id   graph.Value
-	tags map[string]graph.Value
+	id   graph.Ref
+	tags map[string]graph.Ref
 }
 
 type Materialize struct {
@@ -77,7 +77,7 @@ func (it *Materialize) Close() error {
 	return it.subIt.Close()
 }
 
-func (it *Materialize) TagResults(dst map[string]graph.Value) {
+func (it *Materialize) TagResults(dst map[string]graph.Ref) {
 	if !it.hasRun {
 		return
 	}
@@ -97,7 +97,7 @@ func (it *Materialize) String() string {
 	return "Materialize"
 }
 
-func (it *Materialize) Result() graph.Value {
+func (it *Materialize) Result() graph.Ref {
 	if it.aborted {
 		return it.subIt.Result()
 	}
@@ -193,7 +193,7 @@ func (it *Materialize) Err() error {
 	return it.err
 }
 
-func (it *Materialize) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Materialize) Contains(ctx context.Context, v graph.Ref) bool {
 	it.runstats.Contains += 1
 	if !it.hasRun {
 		it.materializeSet(ctx)
@@ -249,7 +249,7 @@ func (it *Materialize) materializeSet(ctx context.Context) {
 			it.values = append(it.values, nil)
 		}
 		index := it.containsMap[val]
-		tags := make(map[string]graph.Value, mn)
+		tags := make(map[string]graph.Ref, mn)
 		it.subIt.TagResults(tags)
 		if n := len(tags); n > mn {
 			n = mn
@@ -262,7 +262,7 @@ func (it *Materialize) materializeSet(ctx context.Context) {
 				it.aborted = true
 				break
 			}
-			tags := make(map[string]graph.Value, mn)
+			tags := make(map[string]graph.Ref, mn)
 			it.subIt.TagResults(tags)
 			if n := len(tags); n > mn {
 				n = mn

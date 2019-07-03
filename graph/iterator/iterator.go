@@ -58,9 +58,9 @@ func (it *Null) UID() uint64 {
 }
 
 // Fill the map based on the tags assigned to this iterator.
-func (it *Null) TagResults(dst map[string]graph.Value) {}
+func (it *Null) TagResults(dst map[string]graph.Ref) {}
 
-func (it *Null) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Null) Contains(ctx context.Context, v graph.Ref) bool {
 	return false
 }
 
@@ -80,7 +80,7 @@ func (it *Null) Err() error {
 	return nil
 }
 
-func (it *Null) Result() graph.Value {
+func (it *Null) Result() graph.Ref {
 	return nil
 }
 
@@ -122,9 +122,9 @@ func (it *Error) UID() uint64 {
 }
 
 // Fill the map based on the tags assigned to this iterator.
-func (it *Error) TagResults(dst map[string]graph.Value) {}
+func (it *Error) TagResults(dst map[string]graph.Ref) {}
 
-func (it *Error) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Error) Contains(ctx context.Context, v graph.Ref) bool {
 	return false
 }
 
@@ -142,7 +142,7 @@ func (it *Error) Err() error {
 	return it.err
 }
 
-func (it *Error) Result() graph.Value {
+func (it *Error) Result() graph.Ref {
 	return nil
 }
 

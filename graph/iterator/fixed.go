@@ -17,7 +17,7 @@ package iterator
 // Defines one of the base iterators, the Fixed iterator. A fixed iterator is quite simple; it
 // contains an explicit fixed array of values.
 //
-// A fixed iterator requires an Equality function to be passed to it, by reason that graph.Value, the
+// A fixed iterator requires an Equality function to be passed to it, by reason that graph.Ref, the
 // opaque Quad store value, may not answer to ==.
 
 import (
@@ -33,16 +33,16 @@ var _ graph.Iterator = &Fixed{}
 // an equality function.
 type Fixed struct {
 	uid       uint64
-	values    []graph.Value
+	values    []graph.Ref
 	lastIndex int
-	result    graph.Value
+	result    graph.Ref
 }
 
 // Creates a new Fixed iterator with a custom comparator.
-func NewFixed(vals ...graph.Value) *Fixed {
+func NewFixed(vals ...graph.Ref) *Fixed {
 	it := &Fixed{
 		uid:    NextUID(),
-		values: make([]graph.Value, 0, 20),
+		values: make([]graph.Ref, 0, 20),
 	}
 	for _, v := range vals {
 		it.Add(v)
@@ -62,16 +62,16 @@ func (it *Fixed) Close() error {
 	return nil
 }
 
-func (it *Fixed) TagResults(dst map[string]graph.Value) {}
+func (it *Fixed) TagResults(dst map[string]graph.Ref) {}
 
 // Add a value to the iterator. The array now contains this value.
 // TODO(barakmich): This ought to be a set someday, disallowing repeated values.
-func (it *Fixed) Add(v graph.Value) {
+func (it *Fixed) Add(v graph.Ref) {
 	it.values = append(it.values, v)
 }
 
 // Values returns a list of values stored in iterator. Slice should not be modified.
-func (it *Fixed) Values() []graph.Value {
+func (it *Fixed) Values() []graph.Ref {
 	return it.values
 }
 
@@ -80,7 +80,7 @@ func (it *Fixed) String() string {
 }
 
 // Check if the passed value is equal to one of the values stored in the iterator.
-func (it *Fixed) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Fixed) Contains(ctx context.Context, v graph.Ref) bool {
 	// Could be optimized by keeping it sorted or using a better datastructure.
 	// However, for fixed iterators, which are by definition kind of tiny, this
 	// isn't a big issue.
@@ -109,7 +109,7 @@ func (it *Fixed) Err() error {
 	return nil
 }
 
-func (it *Fixed) Result() graph.Value {
+func (it *Fixed) Result() graph.Ref {
 	return it.result
 }
 

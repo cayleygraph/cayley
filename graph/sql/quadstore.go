@@ -489,7 +489,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 	return tx.Commit()
 }
 
-func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
+func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 	h := val.(QuadHashes)
 	return quad.Quad{
 		Subject:   qs.NameOf(h.Get(quad.Subject)),
@@ -499,7 +499,7 @@ func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
 	}
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.Iterator {
 	v, ok := val.(Value)
 	if !ok {
 		return iterator.NewNull()
@@ -524,7 +524,7 @@ func (qs *QuadStore) querySize(ctx context.Context, sel Select) (graph.Size, err
 	}, nil
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Value) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
 	v, ok := val.(Value)
 	if !ok {
 		return graph.Size{Size: 0, Exact: true}, nil
@@ -542,7 +542,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return qs.NewIterator(AllQuads(""))
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
+func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
 	return NodeHash(HashOf(s))
 }
 
@@ -583,7 +583,7 @@ func (nt NullTime) Value() (driver.Value, error) {
 	return nt.Time, nil
 }
 
-func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	if v == nil {
 		if clog.V(2) {
 			clog.Infof("NameOf was nil")
@@ -736,7 +736,7 @@ func (qs *QuadStore) Close() error {
 	return qs.db.Close()
 }
 
-func (qs *QuadStore) QuadDirection(in graph.Value, d quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(in graph.Ref, d quad.Direction) graph.Ref {
 	return NodeHash{in.(QuadHashes).Get(d)}
 }
 

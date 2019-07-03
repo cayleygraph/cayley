@@ -91,7 +91,7 @@ func (s *Session) Execute(ctx context.Context, input string, c chan query.Result
 	}
 
 	it := s.query.it
-	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
 		select {
 		case c <- query.TagMapResult(tags):
 		case <-ctx.Done():
@@ -106,7 +106,7 @@ func (s *Session) Execute(ctx context.Context, input string, c chan query.Result
 }
 
 func (s *Session) FormatREPL(result query.Result) string {
-	tags, ok := result.Result().(map[string]graph.Value)
+	tags, ok := result.Result().(map[string]graph.Ref)
 	if !ok {
 		return ""
 	}
@@ -132,7 +132,7 @@ func (s *Session) FormatREPL(result query.Result) string {
 }
 
 func (s *Session) Collate(result query.Result) {
-	res, ok := result.Result().(map[string]graph.Value)
+	res, ok := result.Result().(map[string]graph.Ref)
 	if !ok {
 		return
 	}

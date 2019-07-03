@@ -71,7 +71,7 @@ func (it *QuadIterator) Reset() {
 	}
 }
 
-func (it *QuadIterator) TagResults(dst map[string]graph.Value) {}
+func (it *QuadIterator) TagResults(dst map[string]graph.Ref) {}
 
 func (it *QuadIterator) Close() error {
 	if it.it != nil {
@@ -91,7 +91,7 @@ func (it *QuadIterator) Err() error {
 	return it.err
 }
 
-func (it *QuadIterator) Result() graph.Value {
+func (it *QuadIterator) Result() graph.Ref {
 	if it.off < 0 || it.prim == nil {
 		return nil
 	}
@@ -166,7 +166,7 @@ func (it *QuadIterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *QuadIterator) Contains(ctx context.Context, v graph.Value) bool {
+func (it *QuadIterator) Contains(ctx context.Context, v graph.Ref) bool {
 	it.prim = nil
 	p, ok := v.(*proto.Primitive)
 	if !ok {

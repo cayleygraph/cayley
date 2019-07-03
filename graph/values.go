@@ -7,8 +7,8 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-// Value defines an opaque "quad store value" type. However the backend wishes
-// to implement it, a Value is merely a token to a quad or a node that the
+// Ref defines an opaque "quad store reference" type. However the backend wishes
+// to implement it, a Ref is merely a token to a quad or a node that the
 // backing store itself understands, and the base iterators pass around.
 //
 // For example, in a very traditional, graphd-style graph, these are int64s
@@ -17,9 +17,16 @@ import (
 // backing store.
 //
 // These must be comparable, or return a comparable version on Key.
-type Value interface {
+type Ref interface {
+	// Key returns a dynamic type that is comparable according to the Go language specification.
+	// The returned value must be unique for each receiver value.
 	Key() interface{}
 }
+
+// Value is an alias for Ref.
+//
+// Deprecated: use Ref instead.
+type Value = Ref
 
 func HashOf(s quad.Value) (out ValueHash) {
 	if s == nil {
@@ -29,7 +36,7 @@ func HashOf(s quad.Value) (out ValueHash) {
 	return
 }
 
-var _ Value = ValueHash{}
+var _ Ref = ValueHash{}
 
 // ValueHash is a hash of a single value.
 type ValueHash [quad.HashSize]byte
@@ -45,10 +52,10 @@ func (h ValueHash) String() string {
 	return hex.EncodeToString(h[:])
 }
 
-// PreFetchedValue is an optional interface for graph.Value to indicate that
+// PreFetchedValue is an optional interface for graph.Ref to indicate that
 // quadstore has already loaded a value into memory.
 type PreFetchedValue interface {
-	Value
+	Ref
 	NameOf() quad.Value
 }
 
@@ -69,20 +76,18 @@ func (v fetchedValue) Key() interface{}   { return v.Val }
 // Go language specification. The returned value must be unique for each receiver
 // value.
 //
-// Deprecated: Value contains the same method now.
-type Keyer interface {
-	Key() interface{}
-}
+// Deprecated: Ref contains the same method now.
+type Keyer = Ref
 
-// ToKey prepares Value to be stored inside maps, calling Key() if necessary.
-func ToKey(v Value) interface{} {
+// ToKey prepares Ref to be stored inside maps, calling Key() if necessary.
+func ToKey(v Ref) interface{} {
 	if v == nil {
 		return nil
 	}
 	return v.Key()
 }
 
-var _ Value = QuadHash{}
+var _ Ref = QuadHash{}
 
 type QuadHash struct {
 	Subject   ValueHash

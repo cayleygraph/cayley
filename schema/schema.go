@@ -379,7 +379,7 @@ func isNative(rt reflect.Type) bool { // TODO(dennwc): replace
 	return ok
 }
 
-func keysEqual(v1, v2 graph.Value) bool {
+func keysEqual(v1, v2 graph.Ref) bool {
 	type key interface {
 		Key() interface{}
 	}

@@ -128,7 +128,7 @@ var shapeCases = []struct {
 				quad.Object: {"o1", "o2"},
 				quad.Label:  {"l 1"},
 			},
-			Filter: map[quad.Direction]graph.Value{
+			Filter: map[quad.Direction]graph.Ref{
 				quad.Predicate: sVal("p"),
 			},
 		},
@@ -147,7 +147,7 @@ var shapeCases = []struct {
 					quad.Object: {"o1", "o2"},
 					quad.Label:  {"l 1"},
 				},
-				Filter: map[quad.Direction]graph.Value{
+				Filter: map[quad.Direction]graph.Ref{
 					quad.Predicate: sVal("p"),
 				},
 			},
@@ -165,7 +165,7 @@ var shapeCases = []struct {
 				Dir: quad.Predicate,
 				Values: shape.QuadsAction{
 					Result: quad.Subject,
-					Filter: map[quad.Direction]graph.Value{
+					Filter: map[quad.Direction]graph.Ref{
 						quad.Predicate: sVal("p"),
 					},
 				},
@@ -189,7 +189,7 @@ var shapeCases = []struct {
 						Save: map[quad.Direction][]string{
 							quad.Object: {"ob"},
 						},
-						Filter: map[quad.Direction]graph.Value{
+						Filter: map[quad.Direction]graph.Ref{
 							quad.Predicate: sVal("p"),
 						},
 					},
@@ -211,7 +211,7 @@ var shapeCases = []struct {
 					Limit: 10,
 					From: shape.QuadsAction{
 						Result: quad.Subject,
-						Filter: map[quad.Direction]graph.Value{
+						Filter: map[quad.Direction]graph.Ref{
 							quad.Predicate: sVal("p"),
 						},
 					},
@@ -239,7 +239,7 @@ var shapeCases = []struct {
 							Save: map[quad.Direction][]string{
 								quad.Object: {"ob"},
 							},
-							Filter: map[quad.Direction]graph.Value{
+							Filter: map[quad.Direction]graph.Ref{
 								quad.Predicate: sVal("p"),
 							},
 						},
@@ -263,7 +263,7 @@ var shapeCases = []struct {
 						Save: map[quad.Direction][]string{
 							quad.Object: {"ob"},
 						},
-						Filter: map[quad.Direction]graph.Value{
+						Filter: map[quad.Direction]graph.Ref{
 							quad.Predicate: sVal("p"),
 						},
 					},
@@ -286,7 +286,7 @@ var shapeCases = []struct {
 						quad.Object: {"o1"},
 						quad.Label:  {"l 1"},
 					},
-					Filter: map[quad.Direction]graph.Value{
+					Filter: map[quad.Direction]graph.Ref{
 						quad.Predicate: sVal("p1"),
 					},
 				},
@@ -302,7 +302,7 @@ var shapeCases = []struct {
 							Save: map[quad.Direction][]string{
 								quad.Object: {"ob"},
 							},
-							Filter: map[quad.Direction]graph.Value{
+							Filter: map[quad.Direction]graph.Ref{
 								quad.Predicate: sVal("p2"),
 							},
 						},
@@ -337,7 +337,7 @@ var shapeCases = []struct {
 											Dir: quad.Object,
 											Values: shape.QuadsAction{
 												Result: quad.Subject,
-												Filter: map[quad.Direction]graph.Value{
+												Filter: map[quad.Direction]graph.Ref{
 													quad.Predicate: sVal("n"),
 													quad.Object:    sVal("k"),
 												},

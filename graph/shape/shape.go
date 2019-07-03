@@ -148,14 +148,14 @@ func walkReflect(rv reflect.Value, fnc WalkFunc) {
 
 // InternalQuad is an internal representation of quad index in QuadStore.
 type InternalQuad struct {
-	Subject   graph.Value
-	Predicate graph.Value
-	Object    graph.Value
-	Label     graph.Value
+	Subject   graph.Ref
+	Predicate graph.Ref
+	Object    graph.Ref
+	Label     graph.Ref
 }
 
 // Get returns a specified direction of the quad.
-func (q InternalQuad) Get(d quad.Direction) graph.Value {
+func (q InternalQuad) Get(d quad.Direction) graph.Ref {
 	switch d {
 	case quad.Subject:
 		return q.Subject
@@ -171,7 +171,7 @@ func (q InternalQuad) Get(d quad.Direction) graph.Value {
 }
 
 // Set assigns a specified direction of the quad to a given value.
-func (q InternalQuad) Set(d quad.Direction, v graph.Value) {
+func (q InternalQuad) Set(d quad.Direction, v graph.Ref) {
 	switch d {
 	case quad.Subject:
 		q.Subject = v
@@ -191,10 +191,10 @@ func (q InternalQuad) Set(d quad.Direction, v graph.Value) {
 // It is used to optimize shapes based on stats from these indexes.
 type QuadIndexer interface {
 	// SizeOfIndex returns a size of a quad index with given constraints.
-	SizeOfIndex(c map[quad.Direction]graph.Value) (int64, bool)
+	SizeOfIndex(c map[quad.Direction]graph.Ref) (int64, bool)
 	// LookupQuadIndex finds a quad that matches a given constraint.
 	// It returns false if quad was not found, or there are multiple quads matching constraint.
-	LookupQuadIndex(c map[quad.Direction]graph.Value) (InternalQuad, bool)
+	LookupQuadIndex(c map[quad.Direction]graph.Ref) (InternalQuad, bool)
 }
 
 // IsNull safely checks if shape represents an empty set. It accounts for both Null and nil.
@@ -548,14 +548,14 @@ func (s NodesFrom) Optimize(r Optimizer) (Shape, bool) {
 	}
 	// collect all fixed tags and push them up the tree
 	var (
-		tags  map[string]graph.Value
+		tags  map[string]graph.Ref
 		nquad Quads
 	)
 	for i, f := range q {
 		if ft, ok := f.Values.(FixedTags); ok {
 			if tags == nil {
 				// allocate map and clone quad filters
-				tags = make(map[string]graph.Value)
+				tags = make(map[string]graph.Ref)
 				nquad = make([]QuadFilter, len(q))
 				copy(nquad, q)
 				q = nquad
@@ -573,7 +573,7 @@ func (s NodesFrom) Optimize(r Optimizer) (Shape, bool) {
 	}
 	var (
 		// if quad filter contains one fixed value, it will be added to the map
-		filt map[quad.Direction]graph.Value
+		filt map[quad.Direction]graph.Ref
 		// if we see a Save from AllNodes, we will write it here, since it's a Save on quad direction
 		save map[quad.Direction][]string
 		// how many filters are recognized
@@ -582,7 +582,7 @@ func (s NodesFrom) Optimize(r Optimizer) (Shape, bool) {
 	for _, f := range q {
 		if v, ok := One(f.Values); ok {
 			if filt == nil {
-				filt = make(map[quad.Direction]graph.Value)
+				filt = make(map[quad.Direction]graph.Ref)
 			}
 			if _, ok := filt[f.Dir]; ok {
 				return s, opt // just to be safe
@@ -623,12 +623,12 @@ type QuadsAction struct {
 	Size   int64 // approximate size; zero means undefined
 	Result quad.Direction
 	Save   map[quad.Direction][]string
-	Filter map[quad.Direction]graph.Value
+	Filter map[quad.Direction]graph.Ref
 }
 
-func (s *QuadsAction) SetFilter(d quad.Direction, v graph.Value) {
+func (s *QuadsAction) SetFilter(d quad.Direction, v graph.Ref) {
 	if s.Filter == nil {
-		s.Filter = make(map[quad.Direction]graph.Value)
+		s.Filter = make(map[quad.Direction]graph.Ref)
 	}
 	s.Filter[d] = v
 }
@@ -644,7 +644,7 @@ func (s QuadsAction) Clone() QuadsAction {
 		s.Save = nil
 	}
 	if n := len(s.Filter); n != 0 {
-		f2 := make(map[quad.Direction]graph.Value, n)
+		f2 := make(map[quad.Direction]graph.Ref, n)
 		for k, v := range s.Filter {
 			f2[k] = v
 		}
@@ -699,7 +699,7 @@ func (s QuadsAction) Optimize(r Optimizer) (Shape, bool) {
 			if len(s.Save) == 0 {
 				return fx, true
 			}
-			ft := FixedTags{On: fx, Tags: make(map[string]graph.Value)}
+			ft := FixedTags{On: fx, Tags: make(map[string]graph.Ref)}
 			for d, tags := range s.Save {
 				for _, t := range tags {
 					ft.Tags[t] = q.Get(d)
@@ -716,7 +716,7 @@ func (s QuadsAction) Optimize(r Optimizer) (Shape, bool) {
 }
 
 // One checks if Shape represents a single fixed value and returns it.
-func One(s Shape) (graph.Value, bool) {
+func One(s Shape) (graph.Ref, bool) {
 	switch s := s.(type) {
 	case Fixed:
 		if len(s) == 1 {
@@ -727,9 +727,9 @@ func One(s Shape) (graph.Value, bool) {
 }
 
 // Fixed is a static set of nodes. Defined only for a particular QuadStore.
-type Fixed []graph.Value
+type Fixed []graph.Ref
 
-func (s *Fixed) Add(v ...graph.Value) {
+func (s *Fixed) Add(v ...graph.Ref) {
 	*s = append(*s, v...)
 }
 func (s Fixed) BuildIterator(qs graph.QuadStore) graph.Iterator {
@@ -756,7 +756,7 @@ func (s Fixed) Optimize(r Optimizer) (Shape, bool) {
 //
 // Shape implementations should try to push these objects up the tree during optimization process.
 type FixedTags struct {
-	Tags map[string]graph.Value
+	Tags map[string]graph.Ref
 	On   Shape
 }
 
@@ -780,7 +780,7 @@ func (s FixedTags) Optimize(r Optimizer) (Shape, bool) {
 	if len(s.Tags) == 0 {
 		return s.On, true
 	} else if s2, ok := s.On.(FixedTags); ok {
-		tags := make(map[string]graph.Value, len(s.Tags)+len(s2.Tags))
+		tags := make(map[string]graph.Ref, len(s.Tags)+len(s2.Tags))
 		for k, v := range s.Tags {
 			tags[k] = v
 		}
@@ -806,12 +806,12 @@ func (s *Lookup) Add(v ...quad.Value) {
 var _ valueResolver = graph.QuadStore(nil)
 
 type valueResolver interface {
-	ValueOf(v quad.Value) graph.Value
+	ValueOf(v quad.Value) graph.Ref
 }
 
 func (s Lookup) resolve(qs valueResolver) Shape {
 	// TODO: check if QS supports batch lookup
-	vals := make([]graph.Value, 0, len(s))
+	vals := make([]graph.Ref, 0, len(s))
 	for _, v := range s {
 		if gv := qs.ValueOf(v); gv != nil {
 			vals = append(vals, gv)
@@ -871,12 +871,12 @@ func (s Materialize) Optimize(r Optimizer) (Shape, bool) {
 	return s, opt
 }
 
-func clearFixedTags(arr []Shape) ([]Shape, map[string]graph.Value) {
-	var tags map[string]graph.Value
+func clearFixedTags(arr []Shape) ([]Shape, map[string]graph.Ref) {
+	var tags map[string]graph.Ref
 	for i := 0; i < len(arr); i++ {
 		if ft, ok := arr[i].(FixedTags); ok {
 			if tags == nil {
-				tags = make(map[string]graph.Value)
+				tags = make(map[string]graph.Ref)
 				na := make([]Shape, len(arr))
 				copy(na, arr)
 				arr = na

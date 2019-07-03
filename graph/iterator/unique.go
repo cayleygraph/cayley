@@ -12,7 +12,7 @@ var _ graph.Iterator = &Unique{}
 type Unique struct {
 	uid      uint64
 	subIt    graph.Iterator
-	result   graph.Value
+	result   graph.Ref
 	runstats graph.IteratorStats
 	err      error
 	seen     map[interface{}]bool
@@ -37,7 +37,7 @@ func (it *Unique) Reset() {
 	it.seen = make(map[interface{}]bool)
 }
 
-func (it *Unique) TagResults(dst map[string]graph.Value) {
+func (it *Unique) TagResults(dst map[string]graph.Ref) {
 	if it.subIt != nil {
 		it.subIt.TagResults(dst)
 	}
@@ -71,13 +71,13 @@ func (it *Unique) Err() error {
 	return it.err
 }
 
-func (it *Unique) Result() graph.Value {
+func (it *Unique) Result() graph.Ref {
 	return it.result
 }
 
 // Contains checks whether the passed value is part of the primary iterator,
 // which is irrelevant for uniqueness.
-func (it *Unique) Contains(ctx context.Context, val graph.Value) bool {
+func (it *Unique) Contains(ctx context.Context, val graph.Ref) bool {
 	it.runstats.Contains += 1
 	return it.subIt.Contains(ctx, val)
 }

@@ -38,7 +38,7 @@ func TestAndTag(t *testing.T) {
 	if val.(Int64Node) != 234 {
 		t.Errorf("Unexpected value")
 	}
-	tags := make(map[string]graph.Value)
+	tags := make(map[string]graph.Ref)
 	and.TagResults(tags)
 	if tags["bar"].(Int64Node) != 234 {
 		t.Errorf("no bar tag")

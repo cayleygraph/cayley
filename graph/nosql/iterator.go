@@ -42,7 +42,7 @@ type Iterator struct {
 	links      []Linkage // used in Contains
 
 	iter   nosql.DocIterator
-	result graph.Value
+	result graph.Ref
 	size   int64
 	err    error
 }
@@ -103,7 +103,7 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) TagResults(dst map[string]graph.Value) {}
+func (it *Iterator) TagResults(dst map[string]graph.Ref) {}
 
 func (it *Iterator) Next(ctx context.Context) bool {
 	if it.iter == nil {
@@ -143,7 +143,7 @@ func (it *Iterator) Err() error {
 	return it.err
 }
 
-func (it *Iterator) Result() graph.Value {
+func (it *Iterator) Result() graph.Ref {
 	return it.result
 }
 
@@ -155,7 +155,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Ref) bool {
 	if len(it.links) != 0 {
 		qh := v.(QuadHash)
 		for _, l := range it.links {

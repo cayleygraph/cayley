@@ -274,7 +274,7 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 	itc := graph.Iterate(ictx, nodes).On(s.QS).Limit(limit)
 
 	qi := 0
-	_ = itc.EachValuePair(s.QS, func(v graph.Value, nv quad.Value) {
+	_ = itc.EachValuePair(s.QS, func(v graph.Ref, nv quad.Value) {
 		if _, skip := ignore[nv]; skip {
 			return
 		}

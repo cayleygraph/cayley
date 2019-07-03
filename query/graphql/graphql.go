@@ -123,7 +123,7 @@ type field struct {
 func (f field) isSave() bool { return len(f.Has)+len(f.Fields) == 0 && !f.AllFields }
 
 type object struct {
-	id     graph.Value
+	id     graph.Ref
 	fields map[string]interface{}
 }
 
@@ -269,12 +269,12 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 		if !it.Next(ctx) {
 			break
 		}
-		fields := make(map[string][]graph.Value)
+		fields := make(map[string][]graph.Ref)
 
-		tags := make(map[string]graph.Value)
+		tags := make(map[string]graph.Ref)
 		it.TagResults(tags)
 		for k, v := range tags {
-			fields[k] = []graph.Value{v}
+			fields[k] = []graph.Ref{v}
 		}
 		for it.NextPath(ctx) {
 			select {
@@ -282,7 +282,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 				return out, ctx.Err()
 			default:
 			}
-			tags = make(map[string]graph.Value)
+			tags = make(map[string]graph.Ref)
 			it.TagResults(tags)
 		dedup:
 			for k, v := range tags {

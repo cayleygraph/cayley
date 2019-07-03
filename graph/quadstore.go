@@ -31,11 +31,11 @@ import (
 )
 
 type BatchQuadStore interface {
-	ValuesOf(ctx context.Context, vals []Value) ([]quad.Value, error)
-	RefsOf(ctx context.Context, nodes []quad.Value) ([]Value, error)
+	ValuesOf(ctx context.Context, vals []Ref) ([]quad.Value, error)
+	RefsOf(ctx context.Context, nodes []quad.Value) ([]Ref, error)
 }
 
-func ValuesOf(ctx context.Context, qs Namer, vals []Value) ([]quad.Value, error) {
+func ValuesOf(ctx context.Context, qs Namer, vals []Ref) ([]quad.Value, error) {
 	if bq, ok := qs.(BatchQuadStore); ok {
 		return bq.ValuesOf(ctx, vals)
 	}
@@ -46,11 +46,11 @@ func ValuesOf(ctx context.Context, qs Namer, vals []Value) ([]quad.Value, error)
 	return out, nil
 }
 
-func RefsOf(ctx context.Context, qs QuadStore, nodes []quad.Value) ([]Value, error) {
+func RefsOf(ctx context.Context, qs QuadStore, nodes []quad.Value) ([]Ref, error) {
 	if bq, ok := qs.(BatchQuadStore); ok {
 		return bq.RefsOf(ctx, nodes)
 	}
-	values := make([]Value, len(nodes))
+	values := make([]Ref, len(nodes))
 	for i, node := range nodes {
 		value := qs.ValueOf(node)
 		if value == nil {
@@ -64,21 +64,21 @@ func RefsOf(ctx context.Context, qs QuadStore, nodes []quad.Value) ([]Value, err
 type Namer interface {
 	// Given a node ID, return the opaque token used by the QuadStore
 	// to represent that id.
-	ValueOf(quad.Value) Value
+	ValueOf(quad.Value) Ref
 	// Given an opaque token, return the node that it represents.
-	NameOf(Value) quad.Value
+	NameOf(Ref) quad.Value
 }
 
 type QuadIndexer interface {
 	// Given an opaque token, returns the quad for that token from the store.
-	Quad(Value) quad.Quad
+	Quad(Ref) quad.Quad
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	QuadIterator(quad.Direction, Value) Iterator
+	QuadIterator(quad.Direction, Ref) Iterator
 
 	// QuadIteratorSize returns an estimated size of an iterator.
-	QuadIteratorSize(ctx context.Context, d quad.Direction, v Value) (Size, error)
+	QuadIteratorSize(ctx context.Context, d quad.Direction, v Ref) (Size, error)
 
 	// Convenience function for speed. Given a quad token and a direction
 	// return the node token for that direction. Sometimes, a QuadStore
@@ -89,7 +89,7 @@ type QuadIndexer interface {
 	//
 	//  qs.ValueOf(qs.Quad(id).Get(dir))
 	//
-	QuadDirection(id Value, d quad.Direction) Value
+	QuadDirection(id Ref, d quad.Direction) Ref
 }
 
 // Size of a graph (either in nodes or quads).

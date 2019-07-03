@@ -28,7 +28,7 @@ type ValueFilter struct {
 	sub    graph.Iterator
 	filter ValueFilterFunc
 	qs     graph.Namer
-	result graph.Value
+	result graph.Ref
 	err    error
 }
 
@@ -47,7 +47,7 @@ func (it *ValueFilter) UID() uint64 {
 	return it.uid
 }
 
-func (it *ValueFilter) doFilter(val graph.Value) bool {
+func (it *ValueFilter) doFilter(val graph.Ref) bool {
 	qval := it.qs.NameOf(val)
 	ok, err := it.filter(qval)
 	if err != nil {
@@ -82,7 +82,7 @@ func (it *ValueFilter) Err() error {
 	return it.err
 }
 
-func (it *ValueFilter) Result() graph.Value {
+func (it *ValueFilter) Result() graph.Ref {
 	return it.result
 }
 
@@ -105,7 +105,7 @@ func (it *ValueFilter) SubIterators() []graph.Iterator {
 	return []graph.Iterator{it.sub}
 }
 
-func (it *ValueFilter) Contains(ctx context.Context, val graph.Value) bool {
+func (it *ValueFilter) Contains(ctx context.Context, val graph.Ref) bool {
 	if !it.doFilter(val) {
 		return false
 	}
@@ -118,7 +118,7 @@ func (it *ValueFilter) Contains(ctx context.Context, val graph.Value) bool {
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *ValueFilter) TagResults(dst map[string]graph.Value) {
+func (it *ValueFilter) TagResults(dst map[string]graph.Ref) {
 	it.sub.TagResults(dst)
 }
 

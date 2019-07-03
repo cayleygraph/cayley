@@ -397,7 +397,7 @@ func (qs *QuadStore) updateLog(in []graph.Delta) ([]int64, error) {
 	return out, nil
 }
 
-func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.Iterator {
 	return NewIterator(qs, quadKind, dir, v)
 }
 
@@ -409,12 +409,12 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return NewAllIterator(qs, quadKind)
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Value {
+func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
 	id := hashOf(s)
 	return &Token{Kind: nodeKind, Hash: id}
 }
 
-func (qs *QuadStore) NameOf(val graph.Value) quad.Value {
+func (qs *QuadStore) NameOf(val graph.Ref) quad.Value {
 	if qs.context == nil {
 		clog.Errorf("Error in NameOf, context is nil, graph not correctly initialised")
 		return nil
@@ -440,7 +440,7 @@ func (qs *QuadStore) NameOf(val graph.Value) quad.Value {
 	return quad.Raw(node.Name)
 }
 
-func (qs *QuadStore) Quad(val graph.Value) quad.Quad {
+func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 	if qs.context == nil {
 		clog.Errorf("Error fetching quad, context is nil, graph not correctly initialised")
 		return quad.Quad{}
@@ -495,7 +495,7 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}, nil
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Value) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
 	t, ok := val.(*Token)
 	if !ok || t.Kind != nodeKind {
 		return graph.Size{Size: 0, Exact: true}, nil
@@ -516,7 +516,7 @@ func (qs *QuadStore) Close() error {
 	return nil
 }
 
-func (qs *QuadStore) QuadDirection(val graph.Value, dir quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(val graph.Ref, dir quad.Direction) graph.Ref {
 	t, ok := val.(*Token)
 	if !ok {
 		clog.Errorf("Token not valid")

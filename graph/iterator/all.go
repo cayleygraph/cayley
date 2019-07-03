@@ -77,7 +77,7 @@ func (it *Int64) Close() error {
 	return nil
 }
 
-func (it *Int64) TagResults(dst map[string]graph.Value) {}
+func (it *Int64) TagResults(dst map[string]graph.Ref) {}
 
 func (it *Int64) String() string {
 	return fmt.Sprintf("Int64(%d-%d)", it.min, it.max)
@@ -103,14 +103,14 @@ func (it *Int64) Err() error {
 	return nil
 }
 
-func (it *Int64) toValue(v int64) graph.Value {
+func (it *Int64) toValue(v int64) graph.Ref {
 	if it.node {
 		return Int64Node(v)
 	}
 	return Int64Quad(v)
 }
 
-func (it *Int64) Result() graph.Value {
+func (it *Int64) Result() graph.Ref {
 	return it.toValue(it.result)
 }
 
@@ -130,7 +130,7 @@ func (it *Int64) Size() (int64, bool) {
 	return sz, true
 }
 
-func valToInt64(v graph.Value) int64 {
+func valToInt64(v graph.Ref) int64 {
 	if v, ok := v.(Int64Node); ok {
 		return int64(v)
 	}
@@ -139,7 +139,7 @@ func valToInt64(v graph.Value) int64 {
 
 // Contains() for an Int64 is merely seeing if the passed value is
 // within the range, assuming the value is an int64.
-func (it *Int64) Contains(ctx context.Context, tsv graph.Value) bool {
+func (it *Int64) Contains(ctx context.Context, tsv graph.Ref) bool {
 	it.runstats.Contains += 1
 	v := valToInt64(tsv)
 	if it.min <= v && v <= it.max {

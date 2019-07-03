@@ -1,12 +1,13 @@
 package iterator_test
 
 import (
-	"testing"
 	"context"
-	"github.com/cayleygraph/cayley/quad"
+	"testing"
+
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/graphmock"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/quad"
 )
 
 func TestResolverIteratorIterate(t *testing.T) {
@@ -26,7 +27,7 @@ func TestResolverIteratorIterate(t *testing.T) {
 	qs := &graphmock.Store{
 		Data: data,
 	}
-	expected := make(map[quad.Value]graph.Value)
+	expected := make(map[quad.Value]graph.Ref)
 	for _, node := range nodes {
 		expected[node] = qs.ValueOf(node)
 	}

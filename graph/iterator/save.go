@@ -29,7 +29,7 @@ func NewSave(on graph.Iterator, tags ...string) *Save {
 type Save struct {
 	uid       uint64
 	tags      []string
-	fixedTags map[string]graph.Value
+	fixedTags map[string]graph.Ref
 	it        graph.Iterator
 }
 
@@ -42,9 +42,9 @@ func (it *Save) AddTags(tag ...string) {
 	it.tags = append(it.tags, tag...)
 }
 
-func (it *Save) AddFixedTag(tag string, value graph.Value) {
+func (it *Save) AddFixedTag(tag string, value graph.Ref) {
 	if it.fixedTags == nil {
-		it.fixedTags = make(map[string]graph.Value)
+		it.fixedTags = make(map[string]graph.Ref)
 	}
 	it.fixedTags[tag] = value
 }
@@ -55,7 +55,7 @@ func (it *Save) Tags() []string {
 }
 
 // Fixed returns the fixed tags held in the tagger. The returned value must not be mutated.
-func (it *Save) FixedTags() map[string]graph.Value {
+func (it *Save) FixedTags() map[string]graph.Ref {
 	return it.fixedTags
 }
 
@@ -67,14 +67,14 @@ func (it *Save) CopyFromTagger(st graph.Tagger) {
 		return
 	}
 	if it.fixedTags == nil {
-		it.fixedTags = make(map[string]graph.Value, len(fixed))
+		it.fixedTags = make(map[string]graph.Ref, len(fixed))
 	}
 	for k, v := range fixed {
 		it.fixedTags[k] = v
 	}
 }
 
-func (it *Save) TagResults(dst map[string]graph.Value) {
+func (it *Save) TagResults(dst map[string]graph.Ref) {
 	it.it.TagResults(dst)
 
 	v := it.Result()
@@ -87,7 +87,7 @@ func (it *Save) TagResults(dst map[string]graph.Value) {
 	}
 }
 
-func (it *Save) Result() graph.Value {
+func (it *Save) Result() graph.Ref {
 	return it.it.Result()
 }
 
@@ -99,7 +99,7 @@ func (it *Save) NextPath(ctx context.Context) bool {
 	return it.it.NextPath(ctx)
 }
 
-func (it *Save) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Save) Contains(ctx context.Context, v graph.Ref) bool {
 	return it.it.Contains(ctx, v)
 }
 

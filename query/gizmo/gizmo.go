@@ -99,7 +99,7 @@ func (s *Session) buildEnv() error {
 	return nil
 }
 
-func (s *Session) tagsToValueMap(m map[string]graph.Value) map[string]interface{} {
+func (s *Session) tagsToValueMap(m map[string]graph.Ref) map[string]interface{} {
 	outputMap := make(map[string]interface{})
 	for k, v := range m {
 		if o := quadValueToNative(s.qs.NameOf(v)); o != nil {
@@ -115,7 +115,7 @@ func (s *Session) runIteratorToArray(it graph.Iterator, limit int) ([]map[string
 	ctx := s.context()
 
 	output := make([]map[string]interface{}, 0)
-	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
 		tm := s.tagsToValueMap(tags)
 		if tm == nil {
 			return
@@ -151,7 +151,7 @@ func (s *Session) runIteratorWithCallback(it graph.Iterator, callback goja.Value
 	ctx, cancel := context.WithCancel(s.context())
 	defer cancel()
 	var gerr error
-	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
 		tm := s.tagsToValueMap(tags)
 		if tm == nil {
 			return
@@ -195,7 +195,7 @@ func (s *Session) runIterator(it graph.Iterator) error {
 	ctx, cancel := context.WithCancel(s.context())
 	defer cancel()
 	stop := false
-	err := graph.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Value) {
+	err := graph.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Ref) {
 		if !s.send(ctx, &Result{Tags: tags}) {
 			cancel()
 			stop = true
@@ -218,7 +218,7 @@ func (s *Session) countResults(it graph.Iterator) (int64, error) {
 type Result struct {
 	Meta bool
 	Val  interface{}
-	Tags map[string]graph.Value
+	Tags map[string]graph.Ref
 }
 
 func (r *Result) Result() interface{} {

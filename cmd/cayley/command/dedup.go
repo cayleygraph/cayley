@@ -52,13 +52,13 @@ func NewDedupCommand() *cobra.Command {
 	return cmd
 }
 
-func valueLess(a, b graph.Value) bool {
+func valueLess(a, b graph.Ref) bool {
 	// TODO(dennwc): more effective way
 	s1, s2 := fmt.Sprint(a), fmt.Sprint(b)
 	return s1 < s2
 }
 
-type sortVals []graph.Value
+type sortVals []graph.Ref
 
 func (a sortVals) Len() int           { return len(a) }
 func (a sortVals) Less(i, j int) bool { return valueLess(a[i], a[j]) }
@@ -94,8 +94,8 @@ func hashProperties(h hash.Hash, m map[interface{}]property) string {
 }
 
 type property struct {
-	Pred   graph.Value
-	Values []graph.Value
+	Pred   graph.Ref
+	Values []graph.Ref
 }
 
 func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) error {
@@ -110,7 +110,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 	defer cancel()
 	var gerr error
 
-	seen := make(map[string]graph.Value)
+	seen := make(map[string]graph.Ref)
 	cnt, dedup := 0, 0
 	start := time.Now()
 	last := start
@@ -138,7 +138,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 			)
 		}
 	}
-	err := p.Iterate(ictx).Each(func(s graph.Value) {
+	err := p.Iterate(ictx).Each(func(s graph.Ref) {
 		cnt++
 		it := qs.QuadIterator(quad.Subject, s)
 		defer it.Close()
@@ -178,7 +178,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 	return err
 }
 
-func dedupValueTx(ctx context.Context, h *graph.Handle, tx *graph.Transaction, a, b graph.Value) error {
+func dedupValueTx(ctx context.Context, h *graph.Handle, tx *graph.Transaction, a, b graph.Ref) error {
 	v := h.NameOf(b)
 	it := h.QuadIterator(quad.Object, a)
 	defer it.Close()

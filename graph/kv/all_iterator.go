@@ -63,7 +63,7 @@ func (it *AllIterator) Reset() {
 	it.id = 0
 }
 
-func (it *AllIterator) TagResults(dst map[string]graph.Value) {}
+func (it *AllIterator) TagResults(dst map[string]graph.Ref) {}
 
 func (it *AllIterator) Close() error {
 	return nil
@@ -73,7 +73,7 @@ func (it *AllIterator) Err() error {
 	return it.err
 }
 
-func (it *AllIterator) Result() graph.Value {
+func (it *AllIterator) Result() graph.Ref {
 	if it.id > uint64(it.horizon) {
 		return nil
 	}
@@ -146,7 +146,7 @@ func (it *AllIterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *AllIterator) Contains(ctx context.Context, v graph.Value) bool {
+func (it *AllIterator) Contains(ctx context.Context, v graph.Ref) bool {
 	if it.nodes {
 		x, ok := v.(Int64Value)
 		if !ok {

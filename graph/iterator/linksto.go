@@ -48,7 +48,7 @@ type LinksTo struct {
 	primaryIt graph.Iterator
 	dir       quad.Direction
 	nextIt    graph.Iterator
-	result    graph.Value
+	result    graph.Ref
 	runstats  graph.IteratorStats
 	err       error
 }
@@ -81,7 +81,7 @@ func (it *LinksTo) Reset() {
 func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
-func (it *LinksTo) TagResults(dst map[string]graph.Value) {
+func (it *LinksTo) TagResults(dst map[string]graph.Ref) {
 	it.primaryIt.TagResults(dst)
 }
 
@@ -91,7 +91,7 @@ func (it *LinksTo) String() string {
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
-func (it *LinksTo) Contains(ctx context.Context, val graph.Value) bool {
+func (it *LinksTo) Contains(ctx context.Context, val graph.Ref) bool {
 	it.runstats.Contains += 1
 	node := it.qs.QuadDirection(val, it.dir)
 	if it.primaryIt.Contains(ctx, node) {
@@ -155,7 +155,7 @@ func (it *LinksTo) Err() error {
 	return it.err
 }
 
-func (it *LinksTo) Result() graph.Value {
+func (it *LinksTo) Result() graph.Ref {
 	return it.result
 }
 

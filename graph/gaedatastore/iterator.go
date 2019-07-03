@@ -39,7 +39,7 @@ type Iterator struct {
 	buffer []string
 	offset int
 	last   string
-	result graph.Value
+	result graph.Ref
 	err    error
 }
 
@@ -47,7 +47,7 @@ var (
 	bufferSize = 50
 )
 
-func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Value) *Iterator {
+func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Ref) *Iterator {
 	t := val.(*Token)
 	if t == nil {
 		clog.Errorf("Token == nil")
@@ -139,7 +139,7 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Ref) bool {
 	if it.isAll {
 		// The result needs to be set, so when contains is called, the result can be retrieved
 		it.result = v
@@ -173,7 +173,7 @@ func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
 	return false
 }
 
-func (it *Iterator) TagResults(dst map[string]graph.Value) {}
+func (it *Iterator) TagResults(dst map[string]graph.Ref) {}
 
 func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
@@ -184,7 +184,7 @@ func (it *Iterator) SubIterators() []graph.Iterator {
 	return nil
 }
 
-func (it *Iterator) Result() graph.Value {
+func (it *Iterator) Result() graph.Ref {
 	return it.result
 }
 

@@ -38,7 +38,7 @@ func (it *Count) Reset() {
 	it.it.Reset()
 }
 
-func (it *Count) TagResults(dst map[string]graph.Value) {}
+func (it *Count) TagResults(dst map[string]graph.Ref) {}
 
 // SubIterators returns a slice of the sub iterators.
 func (it *Count) SubIterators() []graph.Iterator {
@@ -66,14 +66,14 @@ func (it *Count) Err() error {
 	return it.it.Err()
 }
 
-func (it *Count) Result() graph.Value {
+func (it *Count) Result() graph.Ref {
 	if it.result == nil {
 		return nil
 	}
 	return graph.PreFetched(it.result)
 }
 
-func (it *Count) Contains(ctx context.Context, val graph.Value) bool {
+func (it *Count) Contains(ctx context.Context, val graph.Ref) bool {
 	if !it.done {
 		it.Next(ctx)
 	}

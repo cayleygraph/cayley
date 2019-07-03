@@ -157,7 +157,7 @@ func TestValueComparison(t *testing.T) {
 var vciContainsTests = []struct {
 	message  string
 	operator Operator
-	check    graph.Value
+	check    graph.Ref
 	expect   bool
 	qs       graph.Namer
 	val      quad.Value

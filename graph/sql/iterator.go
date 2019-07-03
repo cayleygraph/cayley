@@ -76,8 +76,8 @@ type Iterator struct {
 	cind map[quad.Direction]int
 
 	err    error
-	res    graph.Value
-	tags   map[string]graph.Value
+	res    graph.Ref
+	tags   map[string]graph.Ref
 	cursor *sql.Rows
 }
 
@@ -85,13 +85,13 @@ func (it *Iterator) UID() uint64 {
 	return it.uid
 }
 
-func (it *Iterator) TagResults(m map[string]graph.Value) {
+func (it *Iterator) TagResults(m map[string]graph.Ref) {
 	for tag, val := range it.tags {
 		m[tag] = val
 	}
 }
 
-func (it *Iterator) Result() graph.Value {
+func (it *Iterator) Result() graph.Ref {
 	return it.res
 }
 
@@ -130,7 +130,7 @@ func (it *Iterator) scanValue(r *sql.Rows) bool {
 		it.err = err
 		return false
 	}
-	it.tags = make(map[string]graph.Value)
+	it.tags = make(map[string]graph.Ref)
 	for i, name := range it.cols {
 		if !strings.Contains(name, tagPref) {
 			it.tags[name] = nodes[i].ValueHash
@@ -180,7 +180,7 @@ func (it *Iterator) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Ref) bool {
 	it.ensureColumns()
 	sel := it.query
 	sel.Where = append([]Where{}, sel.Where...)

@@ -62,7 +62,7 @@ func (it *Iterator) Reset() {
 	it.cur = nil
 }
 
-func (it *Iterator) TagResults(dst map[string]graph.Value) {}
+func (it *Iterator) TagResults(dst map[string]graph.Ref) {}
 
 func (it *Iterator) Close() error {
 	return nil
@@ -95,7 +95,7 @@ func (it *Iterator) Err() error {
 	return it.err
 }
 
-func (it *Iterator) Result() graph.Value {
+func (it *Iterator) Result() graph.Ref {
 	if it.cur == nil {
 		return nil
 	}
@@ -115,7 +115,7 @@ func (it *Iterator) Size() (int64, bool) {
 	return int64(it.tree.Len()), true
 }
 
-func (it *Iterator) Contains(ctx context.Context, v graph.Value) bool {
+func (it *Iterator) Contains(ctx context.Context, v graph.Ref) bool {
 	if v == nil {
 		return false
 	}

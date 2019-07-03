@@ -408,7 +408,7 @@ func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOp
 	return nil
 }
 
-func asID(v graph.Value) (int64, bool) {
+func asID(v graph.Ref) (int64, bool) {
 	switch v := v.(type) {
 	case bnode:
 		return int64(v), true
@@ -419,7 +419,7 @@ func asID(v graph.Value) (int64, bool) {
 	}
 }
 
-func (qs *QuadStore) quad(v graph.Value) (q internalQuad, ok bool) {
+func (qs *QuadStore) quad(v graph.Ref) (q internalQuad, ok bool) {
 	switch v := v.(type) {
 	case bnode:
 		p := qs.prim[int64(v)]
@@ -435,7 +435,7 @@ func (qs *QuadStore) quad(v graph.Value) (q internalQuad, ok bool) {
 	return q, !q.Zero()
 }
 
-func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
+func (qs *QuadStore) Quad(index graph.Ref) quad.Quad {
 	q, ok := qs.quad(index)
 	if !ok {
 		return quad.Quad{}
@@ -443,7 +443,7 @@ func (qs *QuadStore) Quad(index graph.Value) quad.Quad {
 	return qs.lookupQuadDirs(q)
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) graph.Iterator {
 	id, ok := asID(value)
 	if !ok {
 		return iterator.NewNull()
@@ -455,7 +455,7 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Value) graph.Ite
 	return iterator.NewNull()
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Value) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
 	id, ok := asID(v)
 	if !ok {
 		return graph.Size{Size: 0, Exact: true}, nil
@@ -480,7 +480,7 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}, nil
 }
 
-func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
+func (qs *QuadStore) ValueOf(name quad.Value) graph.Ref {
 	if name == nil {
 		return nil
 	}
@@ -491,7 +491,7 @@ func (qs *QuadStore) ValueOf(name quad.Value) graph.Value {
 	return bnode(id)
 }
 
-func (qs *QuadStore) NameOf(v graph.Value) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	if v == nil {
 		return nil
 	} else if v, ok := v.(graph.PreFetchedValue); ok {
@@ -511,7 +511,7 @@ func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
 	return newAllIterator(qs, false, qs.last)
 }
 
-func (qs *QuadStore) QuadDirection(val graph.Value, d quad.Direction) graph.Value {
+func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) graph.Ref {
 	q, ok := qs.quad(val)
 	if !ok {
 		return nil

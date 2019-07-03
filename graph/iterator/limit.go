@@ -36,7 +36,7 @@ func (it *Limit) Reset() {
 	it.primaryIt.Reset()
 }
 
-func (it *Limit) TagResults(dst map[string]graph.Value) {
+func (it *Limit) TagResults(dst map[string]graph.Ref) {
 	it.primaryIt.TagResults(dst)
 }
 
@@ -61,11 +61,11 @@ func (it *Limit) Err() error {
 	return it.primaryIt.Err()
 }
 
-func (it *Limit) Result() graph.Value {
+func (it *Limit) Result() graph.Ref {
 	return it.primaryIt.Result()
 }
 
-func (it *Limit) Contains(ctx context.Context, val graph.Value) bool {
+func (it *Limit) Contains(ctx context.Context, val graph.Ref) bool {
 	return it.primaryIt.Contains(ctx, val) // FIXME(dennwc): limit is ignored in this case
 }
 

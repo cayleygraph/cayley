@@ -14,7 +14,7 @@ type Not struct {
 	uid       uint64
 	primaryIt graph.Iterator
 	allIt     graph.Iterator
-	result    graph.Value
+	result    graph.Ref
 	runstats  graph.IteratorStats
 	err       error
 }
@@ -38,7 +38,7 @@ func (it *Not) Reset() {
 	it.allIt.Reset()
 }
 
-func (it *Not) TagResults(dst map[string]graph.Value) {
+func (it *Not) TagResults(dst map[string]graph.Ref) {
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)
 	}
@@ -72,14 +72,14 @@ func (it *Not) Err() error {
 	return it.err
 }
 
-func (it *Not) Result() graph.Value {
+func (it *Not) Result() graph.Ref {
 	return it.result
 }
 
 // Contains checks whether the passed value is part of the primary iterator's
 // complement. For a valid value, it updates the Result returned by the iterator
 // to the value itself.
-func (it *Not) Contains(ctx context.Context, val graph.Value) bool {
+func (it *Not) Contains(ctx context.Context, val graph.Ref) bool {
 	it.runstats.Contains += 1
 
 	if it.primaryIt.Contains(ctx, val) {
