@@ -178,25 +178,44 @@ type IRIOptions struct {
 	Func func(d Direction, iri IRI) (IRI, error)
 }
 
+// apply transforms the IRI using the specified options.
+func (opt IRIOptions) apply(d Direction, v IRI) (IRI, error) {
+	v = v.Format(opt.Format)
+	if opt.Func != nil {
+		var err error
+		v, err = opt.Func(d, v)
+		if err != nil {
+			return "", err
+		} else if v == "" {
+			return "", nil
+		}
+	}
+	return v, nil
+}
+
 // IRIWriter is a writer implementation that converts all IRI values in quads
 // according to the IRIOptions.
 func IRIWriter(w Writer, opt IRIOptions) Writer {
 	return ValuesWriter(w, func(d Direction, v Value) (Value, error) {
-		iri, ok := v.(IRI)
-		if !ok {
-			return v, nil
-		}
-		iri = iri.Format(opt.Format)
-		if opt.Func != nil {
+		switch v := v.(type) {
+		case IRI:
 			var err error
-			iri, err = opt.Func(d, iri)
+			v, err = opt.apply(d, v)
 			if err != nil {
 				return nil, err
-			} else if iri == "" {
+			} else if v == "" {
 				return nil, nil
 			}
+			return v, nil
+		case TypedString:
+			var err error
+			v.Type, err = opt.apply(d, v.Type)
+			if err != nil {
+				return nil, err
+			}
+			return v, nil
 		}
-		return iri, nil
+		return v, nil
 	})
 }
 
