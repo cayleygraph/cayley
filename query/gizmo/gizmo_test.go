@@ -639,6 +639,28 @@ var testQueries = []struct {
 		file:   multiGraphTestFile,
 		expect: []string{"<fred>"},
 	},
+	{
+		message: "Use order",
+		query: `
+			g.V().order().all()
+		`,
+		expect: []string{
+			"<alice>",
+			"<are>",
+			"<bob>",
+			"<charlie>",
+			"<dani>",
+			"<emily>",
+			"<follows>",
+			"<fred>",
+			"<greg>",
+			"<predicates>",
+			"<smart_graph>",
+			"<status>",
+			"cool_person",
+			"smart_person",
+		},
+	},
 }
 
 func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string, limit int) ([]string, error) {
