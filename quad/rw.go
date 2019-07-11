@@ -6,7 +6,11 @@ import (
 
 // Writer is a minimal interface for quad writers. Used for quad serializers and quad stores.
 type Writer interface {
+	// WriteQuad writes a single quad and returns an error, if any.
+	//
+	// Deprecated: use WriteQuads instead.
 	WriteQuad(Quad) error
+	BatchWriter
 }
 
 type WriteCloser interface {
@@ -15,9 +19,8 @@ type WriteCloser interface {
 }
 
 // BatchWriter is an interface for writing quads in batches.
-//
-// WriteQuads returns a number of quads that where written and an error, if any.
 type BatchWriter interface {
+	// WriteQuads returns a number of quads that where written and an error, if any.
 	WriteQuads(buf []Quad) (int, error)
 }
 
@@ -226,10 +229,11 @@ func ValuesWriter(w Writer, fnc func(d Direction, v Value) (Value, error)) Write
 
 type valueWriter struct {
 	w   Writer
+	buf []Quad
 	fnc func(d Direction, v Value) (Value, error)
 }
 
-func (w *valueWriter) WriteQuad(q Quad) error {
+func (w *valueWriter) apply(q *Quad) error {
 	if v, err := w.fnc(Subject, q.Subject); err != nil {
 		return err
 	} else {
@@ -250,5 +254,25 @@ func (w *valueWriter) WriteQuad(q Quad) error {
 	} else {
 		q.Label = v
 	}
-	return w.w.WriteQuad(q)
+	return nil
+}
+
+func (w *valueWriter) WriteQuad(q Quad) error {
+	if err := w.apply(&q); err != nil {
+		return err
+	}
+	_, err := w.w.WriteQuads([]Quad{q})
+	return err
+}
+
+func (w *valueWriter) WriteQuads(buf []Quad) (int, error) {
+	w.buf = append(w.buf[:0], buf...)
+	for i := range w.buf {
+		if err := w.apply(&w.buf[i]); err != nil {
+			return 0, err
+		}
+	}
+	n, err := w.w.WriteQuads(w.buf)
+	w.buf = w.buf[:0]
+	return n, err
 }

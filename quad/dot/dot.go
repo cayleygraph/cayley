@@ -64,6 +64,15 @@ func (w *Writer) WriteQuad(q quad.Quad) error {
 	return w.err
 }
 
+func (w *Writer) WriteQuads(buf []quad.Quad) (int, error) {
+	for i, q := range buf {
+		if err := w.WriteQuad(q); err != nil {
+			return i, err
+		}
+	}
+	return len(buf), nil
+}
+
 func (w *Writer) Close() error {
 	if w.err != nil {
 		return w.err

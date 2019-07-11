@@ -136,7 +136,7 @@ func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerF
 	}
 	dest := writerFunc(qw)
 
-	_, err = quad.CopyBatch(&batchLogger{BatchWriter: dest}, qr, batch)
+	_, err = quad.CopyBatch(&batchLogger{w: dest}, qr, batch)
 	if err != nil {
 		return fmt.Errorf("db: failed to load data: %v", err)
 	}
@@ -145,11 +145,11 @@ func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerF
 
 type batchLogger struct {
 	cnt int
-	quad.BatchWriter
+	w   quad.Writer
 }
 
 func (w *batchLogger) WriteQuads(quads []quad.Quad) (int, error) {
-	n, err := w.BatchWriter.WriteQuads(quads)
+	n, err := w.w.WriteQuads(quads)
 	if clog.V(2) {
 		w.cnt += n
 		clog.Infof("Wrote %d quads.", w.cnt)

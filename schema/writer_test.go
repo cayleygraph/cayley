@@ -16,6 +16,11 @@ func (s *quadSlice) WriteQuad(q quad.Quad) error {
 	return nil
 }
 
+func (s *quadSlice) WriteQuads(buf []quad.Quad) (int, error) {
+	*s = append(*s, buf...)
+	return len(buf), nil
+}
+
 func TestWriteAsQuads(t *testing.T) {
 	sch := schema.NewConfig()
 	for _, c := range testWriteValueCases {
