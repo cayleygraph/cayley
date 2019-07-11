@@ -127,6 +127,15 @@ func (w *Writer) WriteQuad(q quad.Quad) error {
 	return nil
 }
 
+func (w *Writer) WriteQuads(buf []quad.Quad) (int, error) {
+	for i, q := range buf {
+		if err := w.WriteQuad(q); err != nil {
+			return i, err
+		}
+	}
+	return len(buf), nil
+}
+
 func (w *Writer) Close() error {
 	opts := gojsonld.NewOptions("")
 	var data interface{}

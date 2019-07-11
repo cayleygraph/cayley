@@ -305,6 +305,14 @@ func (qs *QuadStore) WriteQuad(q quad.Quad) error {
 	return nil
 }
 
+// WriteQuads implements quad.Writer.
+func (qs *QuadStore) WriteQuads(buf []quad.Quad) (int, error) {
+	for _, q := range buf {
+		qs.AddQuad(q)
+	}
+	return len(buf), nil
+}
+
 func (qs *QuadStore) deleteQuadNodes(q internalQuad) {
 	for dir := quad.Subject; dir <= quad.Label; dir++ {
 		id := q.Dir(dir)

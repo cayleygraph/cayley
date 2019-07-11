@@ -287,32 +287,55 @@ func unEscapeRaw(r []rune, isEscaped bool) quad.Value {
 
 // NewWriter returns an N-Quad encoder that writes its output to the
 // provided io.Writer.
-func NewWriter(w io.Writer) *Writer { return &Writer{w: w} }
+func NewWriter(w io.Writer) *Writer { return &Writer{bw: bufio.NewWriter(w)} }
 
 // Writer implements N-Quad document generator according to the RDF
 // 1.1 N-Quads specification.
 type Writer struct {
-	w   io.Writer
+	bw  *bufio.Writer
 	err error
 }
 
-func (enc *Writer) writeValue(v quad.Value) {
+func (enc *Writer) writeValue(v quad.Value, sep string) {
 	if enc.err != nil {
 		return
 	}
-	_, enc.err = enc.w.Write([]byte(v.String() + " "))
-}
-func (enc *Writer) WriteQuad(q quad.Quad) error {
-	enc.writeValue(q.Subject)
-	enc.writeValue(q.Predicate)
-	enc.writeValue(q.Object)
-	if q.Label != nil {
-		enc.writeValue(q.Label)
-	}
+	_, enc.err = enc.bw.WriteString(v.String())
 	if enc.err != nil {
-		return enc.err
+		return
+	} else if sep == "" {
+		return
 	}
-	_, enc.err = enc.w.Write([]byte(".\n"))
+	_, enc.err = enc.bw.WriteString(sep)
+	if enc.err != nil {
+		return
+	}
+}
+
+func (enc *Writer) WriteQuad(q quad.Quad) error {
+	enc.writeValue(q.Subject, " ")
+	enc.writeValue(q.Predicate, " ")
+	if q.Label == nil {
+		enc.writeValue(q.Object, " .\n")
+	} else {
+		enc.writeValue(q.Object, " ")
+		enc.writeValue(q.Label, " .\n")
+	}
 	return enc.err
 }
-func (enc *Writer) Close() error { return enc.err }
+
+func (enc *Writer) WriteQuads(buf []quad.Quad) (int, error) {
+	for i, q := range buf {
+		if err := enc.WriteQuad(q); err != nil {
+			return i, err
+		}
+	}
+	return len(buf), nil
+}
+
+func (enc *Writer) Close() error {
+	if enc.err == nil {
+		enc.err = enc.bw.Flush()
+	}
+	return enc.err
+}

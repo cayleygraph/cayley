@@ -190,7 +190,6 @@ func WriterMethods() []string {
 
 type BatchWriter interface {
 	quad.WriteCloser
-	quad.BatchWriter
 	Flush() error
 }
 
@@ -259,6 +258,15 @@ func (w *txWriter) WriteQuad(q quad.Quad) error {
 		return ErrInvalidAction
 	}
 	return nil
+}
+
+func (w *txWriter) WriteQuads(buf []quad.Quad) (int, error) {
+	for i, q := range buf {
+		if err := w.WriteQuad(q); err != nil {
+			return i, err
+		}
+	}
+	return len(buf), nil
 }
 
 // NewRemover creates a quad writer for a given QuadStore which removes quads instead of adding them.
