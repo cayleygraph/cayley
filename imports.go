@@ -15,11 +15,11 @@ var (
 	NewTransaction = graph.NewTransaction
 )
 
-type Iterator graph.Iterator
-type QuadStore graph.QuadStore
-type QuadWriter graph.QuadWriter
+type Iterator = graph.Iterator
+type QuadStore = graph.QuadStore
+type QuadWriter = graph.QuadWriter
 
-type Path path.Path
+type Path = path.Path
 
 type Handle struct {
 	graph.QuadStore
