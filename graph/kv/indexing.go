@@ -339,8 +339,9 @@ func (qs *QuadStore) NewQuadWriter() (quad.WriteCloser, error) {
 }
 
 type quadWriter struct {
-	qs     *QuadStore
-	deltas []graph.Delta
+	qs  *QuadStore
+	tx  kv.Tx
+	err error
 }
 
 func (w *quadWriter) WriteQuad(q quad.Quad) error {
@@ -349,46 +350,56 @@ func (w *quadWriter) WriteQuad(q quad.Quad) error {
 }
 
 func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
-	// TODO(dennwc): write an optimized implementation
-	w.deltas = w.deltas[:0]
-	if cap(w.deltas) < len(buf) {
-		w.deltas = make([]graph.Delta, 0, len(buf))
+	if w.tx == nil {
+		w.qs.writer.Lock()
+		tx, err := w.qs.db.Tx(true)
+		if err != nil {
+			w.qs.writer.Unlock()
+			w.err = err
+			return 0, err
+		}
+		w.tx = tx
 	}
-	for _, q := range buf {
-		w.deltas = append(w.deltas, graph.Delta{
-			Quad: q, Action: graph.Add,
-		})
-	}
-	err := w.qs.ApplyDeltas(w.deltas, graph.IgnoreOpts{
-		IgnoreDup: true,
-	})
-	w.deltas = w.deltas[:0]
-	if err != nil {
+	deltas := graphlog.InsertQuads(buf)
+	if _, err := w.qs.applyAddDeltas(w.tx, nil, deltas, graph.IgnoreOpts{IgnoreDup: true}); err != nil {
+		w.err = err
 		return 0, err
 	}
 	return len(buf), nil
 }
 
 func (w *quadWriter) Close() error {
-	w.deltas = nil
-	return nil
-}
+	if w.tx == nil {
+		return w.err
+	}
+	defer w.qs.writer.Unlock()
 
-func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	if w.err != nil {
+		_ = w.tx.Close()
+		w.tx = nil
+		return w.err
+	}
+
 	ctx := context.TODO()
-	qs.writer.Lock()
-	defer qs.writer.Unlock()
-	tx, err := qs.db.Tx(true)
+	// flush quad indexes and commit
+	err := w.qs.flushMapBucket(ctx, w.tx)
 	if err != nil {
+		_ = w.tx.Close()
+		w.tx = nil
 		return err
 	}
-	defer tx.Close()
+	err = w.tx.Commit(ctx)
+	w.tx = nil
+	return err
+}
 
-	deltas := graphlog.SplitDeltas(in)
+func (qs *QuadStore) applyAddDeltas(tx kv.Tx, in []graph.Delta, deltas *graphlog.Deltas, ignoreOpts graph.IgnoreOpts) (map[graph.ValueHash]resolvedNode, error) {
+	ctx := context.TODO()
+
 	// first add all new nodes
 	nodes, err := qs.incNodes(ctx, tx, deltas.IncNode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	deltas.IncNode = nil
 	// resolve and insert all new quads
@@ -414,13 +425,17 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		if !mustBeNew {
 			p, err := qs.hasPrimitive(ctx, tx, &link, false)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if p != nil {
 				if ignoreOpts.IgnoreDup {
 					continue // already exists, no need to insert
 				}
-				return &graph.DeltaError{Delta: in[q.Ind], Err: graph.ErrQuadExists}
+				err = graph.ErrQuadExists
+				if len(in) != 0 {
+					return nil, &graph.DeltaError{Delta: in[q.Ind], Err: err}
+				}
+				return nil, err
 			}
 		}
 		links = append(links, link)
@@ -430,18 +445,37 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 
 	qstart, err := qs.genIDs(ctx, tx, len(links))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for i := range links {
 		links[i].ID = qstart + uint64(i)
 		links[i].Timestamp = time.Now().UnixNano()
 	}
 	if err := qs.indexLinks(ctx, tx, links); err != nil {
+		return nil, err
+	}
+	return nodes, nil
+}
+
+func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	ctx := context.TODO()
+	qs.writer.Lock()
+	defer qs.writer.Unlock()
+	tx, err := qs.db.Tx(true)
+	if err != nil {
 		return err
 	}
-	links = links[:0]
+	defer tx.Close()
+
+	deltas := graphlog.SplitDeltas(in)
+
+	nodes, err := qs.applyAddDeltas(tx, in, deltas, ignoreOpts)
+	if err != nil {
+		return err
+	}
 
 	if len(deltas.QuadDel) != 0 || len(deltas.DecNode) != 0 {
+		links := make([]proto.Primitive, 0, len(deltas.QuadDel))
 		// resolve all nodes that will be removed
 		dnodes := make(map[graph.ValueHash]uint64, len(deltas.DecNode))
 		if err := qs.resolveValDeltas(ctx, tx, deltas.DecNode, func(i int, id uint64) {
