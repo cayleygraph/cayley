@@ -18,7 +18,6 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -31,7 +30,6 @@ type AllIterator struct {
 	horizon int64
 	qs      *QuadStore
 	err     error
-	uid     uint64
 	cons    *constraint
 }
 
@@ -50,13 +48,8 @@ func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
 		nodes:   nodes,
 		qs:      qs,
 		horizon: qs.horizon(context.TODO()),
-		uid:     iterator.NextUID(),
 		cons:    cons,
 	}
-}
-
-func (it *AllIterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *AllIterator) Reset() {

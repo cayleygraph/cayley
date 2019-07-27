@@ -33,7 +33,6 @@ type result struct {
 }
 
 type Materialize struct {
-	uid         uint64
 	containsMap map[interface{}]int
 	values      [][]result
 	actualSize  int64
@@ -53,16 +52,11 @@ func NewMaterialize(sub graph.Iterator) *Materialize {
 
 func NewMaterializeWithSize(sub graph.Iterator, size int64) *Materialize {
 	return &Materialize{
-		uid:         NextUID(),
 		expectSize:  size,
 		containsMap: make(map[interface{}]int),
 		subIt:       sub,
 		index:       -1,
 	}
-}
-
-func (it *Materialize) UID() uint64 {
-	return it.uid
 }
 
 func (it *Materialize) Reset() {

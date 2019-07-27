@@ -19,20 +19,9 @@ package iterator
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 
 	"github.com/cayleygraph/cayley/graph"
 )
-
-var nextIteratorID uint64
-
-func init() {
-	atomic.StoreUint64(&nextIteratorID, 1)
-}
-
-func NextUID() uint64 {
-	return atomic.AddUint64(&nextIteratorID, 1) - 1
-}
 
 var (
 	_ graph.Iterator = &Null{}
@@ -44,17 +33,11 @@ type Morphism func(graph.Iterator) graph.Iterator
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
-type Null struct {
-	uid uint64
-}
+type Null struct{}
 
 // Fairly useless New function.
 func NewNull() *Null {
-	return &Null{uid: NextUID()}
-}
-
-func (it *Null) UID() uint64 {
-	return it.uid
+	return &Null{}
 }
 
 // Fill the map based on the tags assigned to this iterator.
@@ -109,16 +92,11 @@ func (it *Null) Stats() graph.IteratorStats {
 
 // Error iterator always returns a single error with no other results.
 type Error struct {
-	uid uint64
 	err error
 }
 
 func NewError(err error) *Error {
-	return &Error{uid: NextUID(), err: err}
-}
-
-func (it *Error) UID() uint64 {
-	return it.uid
+	return &Error{err: err}
 }
 
 // Fill the map based on the tags assigned to this iterator.

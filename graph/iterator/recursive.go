@@ -10,7 +10,6 @@ import (
 
 // Recursive iterator takes a base iterator and a morphism to be applied recursively, for each result.
 type Recursive struct {
-	uid      uint64
 	subIt    graph.Iterator
 	result   seenAt
 	runstats graph.IteratorStats
@@ -44,7 +43,6 @@ func NewRecursive(it graph.Iterator, morphism Morphism, maxDepth int) *Recursive
 	}
 
 	return &Recursive{
-		uid:   NextUID(),
 		subIt: it,
 
 		morphism:      morphism,
@@ -55,10 +53,6 @@ func NewRecursive(it graph.Iterator, morphism Morphism, maxDepth int) *Recursive
 		containsValue: nil,
 		maxDepth:      maxDepth,
 	}
-}
-
-func (it *Recursive) UID() uint64 {
-	return it.uid
 }
 
 func (it *Recursive) Reset() {

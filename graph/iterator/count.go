@@ -11,7 +11,6 @@ var _ graph.Iterator = &Count{}
 
 // Count iterator returns one element with size of underlying iterator.
 type Count struct {
-	uid    uint64
 	it     graph.Iterator
 	done   bool
 	result quad.Value
@@ -22,13 +21,8 @@ type Count struct {
 // qs may be nil - it's used to check if count Contains (is) a given value.
 func NewCount(it graph.Iterator, qs graph.Namer) *Count {
 	return &Count{
-		uid: NextUID(),
-		it:  it, qs: qs,
+		it: it, qs: qs,
 	}
-}
-
-func (it *Count) UID() uint64 {
-	return it.uid
 }
 
 // Reset resets the internal iterators and the iterator itself.

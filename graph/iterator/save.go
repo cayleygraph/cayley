@@ -21,13 +21,12 @@ func Tag(it graph.Iterator, tag string) graph.Iterator {
 }
 
 func NewSave(on graph.Iterator, tags ...string) *Save {
-	s := &Save{uid: NextUID(), it: on}
+	s := &Save{it: on}
 	s.AddTags(tags...)
 	return s
 }
 
 type Save struct {
-	uid       uint64
 	tags      []string
 	fixedTags map[string]graph.Ref
 	it        graph.Iterator
@@ -142,8 +141,4 @@ func (it *Save) SubIterators() []graph.Iterator {
 
 func (it *Save) Close() error {
 	return it.it.Close()
-}
-
-func (it *Save) UID() uint64 {
-	return it.uid
 }

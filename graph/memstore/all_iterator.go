@@ -18,14 +18,11 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 )
 
 var _ graph.Iterator = (*AllIterator)(nil)
 
 type AllIterator struct {
-	uid uint64
-
 	qs    *QuadStore
 	all   []*primitive
 	maxid int64 // id of last observed insert (prim id)
@@ -38,8 +35,7 @@ type AllIterator struct {
 
 func newAllIterator(qs *QuadStore, nodes bool, maxid int64) *AllIterator {
 	return &AllIterator{
-		uid: iterator.NextUID(),
-		qs:  qs, all: qs.cloneAll(), nodes: nodes,
+		qs: qs, all: qs.cloneAll(), nodes: nodes,
 		i: -1, maxid: maxid,
 	}
 }
@@ -127,9 +123,6 @@ func (it *AllIterator) TagResults(dst map[string]graph.Ref) {}
 func (it *AllIterator) SubIterators() []graph.Iterator   { return nil }
 func (it *AllIterator) Optimize() (graph.Iterator, bool) { return it, false }
 
-func (it *AllIterator) UID() uint64 {
-	return it.uid
-}
 func (it *AllIterator) String() string {
 	return "MemStoreAll"
 }

@@ -19,13 +19,11 @@ import (
 	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/hidal-go/hidalgo/kv"
 )
 
 type QuadIterator struct {
-	uid     uint64
 	qs      *QuadStore
 	ind     QuadIndex
 	horizon int64
@@ -50,14 +48,9 @@ func NewQuadIterator(qs *QuadStore, ind QuadIndex, vals []uint64) *QuadIterator 
 		qs:      qs,
 		ind:     ind,
 		horizon: qs.horizon(context.TODO()),
-		uid:     iterator.NextUID(),
 		vals:    vals,
 		size:    graph.Size{Size: -1},
 	}
-}
-
-func (it *QuadIterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *QuadIterator) Reset() {
