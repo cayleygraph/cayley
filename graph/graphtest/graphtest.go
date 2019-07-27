@@ -2,6 +2,7 @@ package graphtest
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sort"
 	"testing"
@@ -71,7 +72,12 @@ func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
 		TestWriters(t, gen, conf)
 	})
 	t.Run("1k", func(t *testing.T) {
-		Test1K(t, gen, conf)
+		t.Run("tx", func(t *testing.T) {
+			Test1K(t, gen, conf)
+		})
+		t.Run("batch", func(t *testing.T) {
+			Test1KBatch(t, gen, conf)
+		})
 	})
 	t.Run("paths", func(t *testing.T) {
 		pathtest.RunTestMorphisms(t, gen)
@@ -81,9 +87,12 @@ func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
 	})
 }
 
-func BenchmarkAll(t *testing.B, gen testutil.DatabaseFunc, conf *Config) {
-	t.Run("integration", func(t *testing.B) {
-		BenchmarkIntegration(t, gen, conf.AlwaysRunIntegration)
+func BenchmarkAll(b *testing.B, gen testutil.DatabaseFunc, conf *Config) {
+	b.Run("import", func(b *testing.B) {
+		BenchmarkImport(b, gen)
+	})
+	b.Run("integration", func(b *testing.B) {
+		BenchmarkIntegration(b, gen, conf.AlwaysRunIntegration)
 	})
 }
 
@@ -413,6 +422,36 @@ func Test1K(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
 		qw.WriteQuad(q)
 	}
 	err = qw.Flush()
+	require.NoError(t, err)
+
+	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), exp, true)
+}
+
+func Test1KBatch(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
+	qs, _, closer := gen(t)
+	defer closer()
+
+	pg := c.PageSize
+	if pg == 0 {
+		pg = 100
+	}
+	n := pg*3 + 1
+
+	exp := make([]quad.Quad, 0, n)
+	for i := 0; i < n; i++ {
+		q := quad.Make(i, i, i, nil)
+		exp = append(exp, q)
+	}
+
+	qw, err := qs.NewQuadWriter()
+	require.NoError(t, err)
+	defer qw.Close()
+
+	n, err = qw.WriteQuads(exp)
+	require.NoError(t, err)
+	require.Equal(t, len(exp), n)
+
+	err = qw.Close()
 	require.NoError(t, err)
 
 	ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), exp, true)
@@ -1160,4 +1199,54 @@ func TestDeleteReinserted(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 		require.NoError(t, err, "Remove quad failed")
 	}
 
+}
+
+func irif(format string, args ...interface{}) quad.IRI {
+	return quad.IRI(fmt.Sprintf(format, args...))
+}
+
+func BenchmarkImport(b *testing.B, gen testutil.DatabaseFunc) {
+	b.StopTimer()
+
+	qs, _, closer := gen(b)
+	defer closer()
+
+	w, err := qs.NewQuadWriter()
+	require.NoError(b, err)
+	defer w.Close()
+
+	const (
+		mult     = 10
+		perBatch = 100
+	)
+
+	quads := make([]quad.Quad, 0, mult*b.N)
+	for i := 0; i < mult*b.N; i++ {
+		quads = append(quads, quad.Quad{
+			Subject:   irif("n%d", i/5),
+			Predicate: quad.IRI("sub"),
+			Object:    irif("n%d", i/2+i%2),
+		})
+	}
+
+	b.ResetTimer()
+	b.StartTimer()
+	for len(quads) > 0 {
+		batch := quads
+		if len(batch) > perBatch {
+			batch = batch[:perBatch]
+		}
+		n, err := w.WriteQuads(batch)
+		if err != nil {
+			b.Fatal(err)
+		} else if n != len(batch) {
+			b.Fatal(n)
+		}
+		quads = quads[len(batch):]
+	}
+	err = w.Close()
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.StopTimer()
 }
