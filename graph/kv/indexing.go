@@ -342,11 +342,35 @@ type quadWriter struct {
 	qs  *QuadStore
 	tx  kv.Tx
 	err error
+	n   int
 }
 
 func (w *quadWriter) WriteQuad(q quad.Quad) error {
 	_, err := w.WriteQuads([]quad.Quad{q})
 	return err
+}
+
+func (w *quadWriter) flush() error {
+	w.n = 0
+	ctx := context.TODO()
+	if err := w.qs.flushMapBucket(ctx, w.tx); err != nil {
+		w.err = err
+		return err
+	}
+	if err := w.tx.Commit(ctx); err != nil {
+		w.qs.writer.Unlock()
+		w.tx = nil
+		w.err = err
+		return err
+	}
+	tx, err := w.qs.db.Tx(true)
+	if err != nil {
+		w.qs.writer.Unlock()
+		w.err = err
+		return err
+	}
+	w.tx = tx
+	return nil
 }
 
 func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
@@ -364,6 +388,12 @@ func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
 	if _, err := w.qs.applyAddDeltas(w.tx, nil, deltas, graph.IgnoreOpts{IgnoreDup: true}); err != nil {
 		w.err = err
 		return 0, err
+	}
+	w.n += len(buf)
+	if w.n >= quad.DefaultBatch*20 {
+		if err := w.flush(); err != nil {
+			return 0, err
+		}
 	}
 	return len(buf), nil
 }
