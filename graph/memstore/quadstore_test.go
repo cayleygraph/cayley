@@ -88,6 +88,14 @@ func TestMemstore(t *testing.T) {
 	})
 }
 
+func BenchmarkMemstore(b *testing.B) {
+	graphtest.BenchmarkAll(b, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+		return New(), nil, func() {}
+	}, &graphtest.Config{
+		AlwaysRunIntegration: true,
+	})
+}
+
 type pair struct {
 	query string
 	value int64
