@@ -58,10 +58,10 @@ func checkIntegration(t testing.TB, force bool) {
 
 func TestIntegration(t *testing.T, gen testutil.DatabaseFunc, force bool) {
 	checkIntegration(t, force)
-	h, closer := prepare(t, gen)
+	qs, closer := prepare(t, gen)
 	defer closer()
 
-	checkQueries(t, h, timeout)
+	checkQueries(t, qs, timeout)
 }
 
 func BenchmarkIntegration(t *testing.B, gen testutil.DatabaseFunc, force bool) {
@@ -460,23 +460,20 @@ var m1_actors = movie1.Save("<name>","movie1").Follow(filmToActor)
 var m2_actors = movie2.Save("<name>","movie2").Follow(filmToActor)
 `
 
-func prepare(t testing.TB, gen testutil.DatabaseFunc) (*graph.Handle, func()) {
+func prepare(t testing.TB, gen testutil.DatabaseFunc) (graph.QuadStore, func()) {
 	qs, _, closer := gen(t)
-
-	qw, err := graph.NewQuadWriter("single", qs, nil)
-	if err != nil {
-		closer()
-		require.NoError(t, err)
-	}
-
-	h := &graph.Handle{QuadStore: qs, QuadWriter: qw}
 
 	const needsLoad = true // TODO: support local setup
 	if needsLoad {
+		qw, err := qs.NewQuadWriter()
+		if err != nil {
+			closer()
+			require.NoError(t, err)
+		}
+
 		start := time.Now()
-		var err error
 		for _, p := range []string{"./", "../"} {
-			err = internal.Load(h.QuadWriter, 0, filepath.Join(p, "../../data/30kmoviedata.nq.gz"), format)
+			err = internal.Load(qw, 0, filepath.Join(p, "../../data/30kmoviedata.nq.gz"), format)
 			if err == nil || !os.IsNotExist(err) {
 				break
 			}
@@ -486,16 +483,18 @@ func prepare(t testing.TB, gen testutil.DatabaseFunc) (*graph.Handle, func()) {
 			closer()
 			require.NoError(t, err)
 		}
+		err = qw.Close()
+		if err != nil {
+			closer()
+			require.NoError(t, err)
+		}
 		t.Logf("loaded data in %v", time.Since(start))
 	}
-	return h, func() {
-		qw.Close()
-		closer()
-	}
+	return qs, closer
 }
 
-func checkQueries(t *testing.T, h *graph.Handle, timeout time.Duration) {
-	if h == nil {
+func checkQueries(t *testing.T, qs graph.QuadStore, timeout time.Duration) {
+	if qs == nil {
 		t.Fatal("not initialized")
 	}
 	for _, test := range queries {
@@ -507,7 +506,7 @@ func checkQueries(t *testing.T, h *graph.Handle, timeout time.Duration) {
 				t.SkipNow()
 			}
 			start := time.Now()
-			ses := gizmo.NewSession(h.QuadStore)
+			ses := gizmo.NewSession(qs)
 			c := make(chan query.Result, 5)
 			ctx := context.Background()
 			if timeout > 0 {
@@ -570,7 +569,7 @@ func convertToStringList(in []interface{}) []string {
 }
 
 func benchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
-	h, closer := prepare(b, gen)
+	qs, closer := prepare(b, gen)
 	defer closer()
 
 	for _, bench := range queries {
@@ -587,7 +586,7 @@ func benchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
 				if timeout > 0 {
 					ctx, cancel = context.WithTimeout(ctx, timeout)
 				}
-				ses := gizmo.NewSession(h.QuadStore)
+				ses := gizmo.NewSession(qs)
 				b.StartTimer()
 				go ses.Execute(ctx, bench.query, c, -1)
 				n := 0

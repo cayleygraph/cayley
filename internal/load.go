@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal/decompressor"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/nquads"
@@ -18,8 +17,8 @@ import (
 
 // Load loads a graph from the given path and write it to qw.  See
 // DecompressAndLoad for more information.
-func Load(qw graph.QuadWriter, batch int, path, typ string) error {
-	return DecompressAndLoad(qw, batch, path, typ, nil)
+func Load(qw quad.WriteCloser, batch int, path, typ string) error {
+	return DecompressAndLoad(qw, batch, path, typ)
 }
 
 type readCloser struct {
@@ -121,7 +120,7 @@ func QuadReaderFor(path, typ string) (quad.ReadCloser, error) {
 // DecompressAndLoad will load or fetch a graph from the given path, decompress
 // it, and then call the given load function to process the decompressed graph.
 // If no loadFn is provided, db.Load is called.
-func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerFunc func(graph.QuadWriter) graph.BatchWriter) error {
+func DecompressAndLoad(qw quad.WriteCloser, batch int, path, typ string) error {
 	if path == "" {
 		return nil
 	}
@@ -131,16 +130,11 @@ func DecompressAndLoad(qw graph.QuadWriter, batch int, path, typ string, writerF
 	}
 	defer qr.Close()
 
-	if writerFunc == nil {
-		writerFunc = graph.NewWriter
-	}
-	dest := writerFunc(qw)
-
-	_, err = quad.CopyBatch(&batchLogger{w: dest}, qr, batch)
+	_, err = quad.CopyBatch(&batchLogger{w: qw}, qr, batch)
 	if err != nil {
 		return fmt.Errorf("db: failed to load data: %v", err)
 	}
-	return dest.Close()
+	return qw.Close()
 }
 
 type batchLogger struct {

@@ -111,9 +111,15 @@ func NewLoadDatabaseCmd() *cobra.Command {
 			}
 			defer h.Close()
 
+			qw, err := h.NewQuadWriter()
+			if err != nil {
+				return err
+			}
+			defer qw.Close()
+
 			// TODO: check read-only flag in config before that?
 			typ, _ := cmd.Flags().GetString(flagLoadFormat)
-			if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
+			if err = internal.Load(qw, quad.DefaultBatch, load, typ); err != nil {
 				return err
 			}
 
@@ -240,10 +246,17 @@ func openForQueries(cmd *cobra.Command) (*graph.Handle, error) {
 		load = load2
 	}
 	if load != "" {
+		qw, err := h.NewQuadWriter()
+		if err != nil {
+			h.Close()
+			return nil, err
+		}
+		defer qw.Close()
+
 		typ, _ := cmd.Flags().GetString(flagLoadFormat)
 		// TODO: check read-only flag in config before that?
 		start := time.Now()
-		if err = internal.Load(h.QuadWriter, quad.DefaultBatch, load, typ); err != nil {
+		if err = internal.Load(qw, quad.DefaultBatch, load, typ); err != nil {
 			h.Close()
 			return nil, err
 		}
