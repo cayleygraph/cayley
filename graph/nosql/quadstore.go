@@ -331,6 +331,46 @@ func (qs *QuadStore) appendLog(ctx context.Context, deltas []graph.Delta) ([]nos
 	return w.Keys(), err
 }
 
+func (qs *QuadStore) NewQuadWriter() (quad.WriteCloser, error) {
+	return &quadWriter{qs: qs}, nil
+}
+
+type quadWriter struct {
+	qs     *QuadStore
+	deltas []graph.Delta
+}
+
+func (w *quadWriter) WriteQuad(q quad.Quad) error {
+	_, err := w.WriteQuads([]quad.Quad{q})
+	return err
+}
+
+func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
+	// TODO(dennwc): write an optimized implementation
+	w.deltas = w.deltas[:0]
+	if cap(w.deltas) < len(buf) {
+		w.deltas = make([]graph.Delta, 0, len(buf))
+	}
+	for _, q := range buf {
+		w.deltas = append(w.deltas, graph.Delta{
+			Quad: q, Action: graph.Add,
+		})
+	}
+	err := w.qs.ApplyDeltas(w.deltas, graph.IgnoreOpts{
+		IgnoreDup: true,
+	})
+	w.deltas = w.deltas[:0]
+	if err != nil {
+		return 0, err
+	}
+	return len(buf), nil
+}
+
+func (w *quadWriter) Close() error {
+	w.deltas = nil
+	return nil
+}
+
 func (qs *QuadStore) ApplyDeltas(deltas []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
 	ctx := context.TODO()
 	ids := make(map[quad.Value]int)

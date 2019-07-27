@@ -294,6 +294,31 @@ func TestLoadDupRaw(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 }
 
 func TestWriters(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
+	t.Run("batch", func(t *testing.T) {
+		qs, _, closer := gen(t)
+		defer closer()
+
+		w, err := qs.NewQuadWriter()
+		require.NoError(t, err)
+		defer w.Close()
+
+		quads := MakeQuadSet()
+		q1 := quads[:len(quads)/2]
+		q2 := quads[len(q1):]
+
+		n, err := w.WriteQuads(q1)
+		require.NoError(t, err)
+		require.Equal(t, len(q1), n)
+
+		n, err = w.WriteQuads(q2)
+		require.NoError(t, err)
+		require.Equal(t, len(q2), n)
+
+		err = w.Close()
+		require.NoError(t, err)
+
+		ExpectIteratedQuads(t, qs, qs.QuadsAllIterator(), quads, true)
+	})
 	for _, mis := range []bool{false, true} {
 		for _, dup := range []bool{false, true} {
 			name := []byte("__")

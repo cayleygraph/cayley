@@ -42,6 +42,10 @@ func (qs ValLookup) OptimizeShape(s Shape) (Shape, bool) {
 func (qs ValLookup) ValueOf(v quad.Value) graph.Ref {
 	return qs[v]
 }
+
+func (ValLookup) NewQuadWriter() (quad.WriteCloser, error) {
+	panic("not implemented")
+}
 func (ValLookup) ApplyDeltas(_ []graph.Delta, _ graph.IgnoreOpts) error {
 	panic("not implemented")
 }
