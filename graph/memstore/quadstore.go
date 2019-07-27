@@ -313,6 +313,30 @@ func (qs *QuadStore) WriteQuads(buf []quad.Quad) (int, error) {
 	return len(buf), nil
 }
 
+func (qs *QuadStore) NewQuadWriter() (quad.WriteCloser, error) {
+	return &quadWriter{qs: qs}, nil
+}
+
+type quadWriter struct {
+	qs *QuadStore
+}
+
+func (w *quadWriter) WriteQuad(q quad.Quad) error {
+	w.qs.AddQuad(q)
+	return nil
+}
+
+func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
+	for _, q := range buf {
+		w.qs.AddQuad(q)
+	}
+	return len(buf), nil
+}
+
+func (w *quadWriter) Close() error {
+	return nil
+}
+
 func (qs *QuadStore) deleteQuadNodes(q internalQuad) {
 	for dir := quad.Subject; dir <= quad.Label; dir++ {
 		id := q.Dir(dir)

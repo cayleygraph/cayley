@@ -52,6 +52,24 @@ func (qs *Oldstore) ValueOf(s quad.Value) graph.Ref {
 	return nil
 }
 
+func (qs *Oldstore) NewQuadWriter() (quad.WriteCloser, error) {
+	return nopWriter{}, nil
+}
+
+type nopWriter struct{}
+
+func (nopWriter) WriteQuad(q quad.Quad) error {
+	return nil
+}
+
+func (nopWriter) WriteQuads(buf []quad.Quad) (int, error) {
+	return len(buf), nil
+}
+
+func (nopWriter) Close() error {
+	return nil
+}
+
 func (qs *Oldstore) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return nil }
 
 func (qs *Oldstore) Quad(graph.Ref) quad.Quad { return quad.Quad{} }
@@ -121,6 +139,10 @@ func (qs *Store) ValueOf(s quad.Value) graph.Ref {
 }
 
 func (qs *Store) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return nil }
+
+func (qs *Store) NewQuadWriter() (quad.WriteCloser, error) {
+	return nopWriter{}, nil
+}
 
 type quadValue struct {
 	q quad.Quad

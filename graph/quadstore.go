@@ -112,6 +112,10 @@ type QuadStore interface {
 	// is done by a replication strategy.
 	ApplyDeltas(in []Delta, opts IgnoreOpts) error
 
+	// NewQuadWriter starts a batch quad import process.
+	// The order of changes is not guaranteed, neither is the order and result of concurrent ApplyDeltas.
+	NewQuadWriter() (quad.WriteCloser, error)
+
 	// Returns an iterator enumerating all nodes in the graph.
 	NodesAllIterator() Iterator
 
