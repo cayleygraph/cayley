@@ -24,7 +24,6 @@ import (
 var _ graph.Iterator = &ValueFilter{}
 
 type ValueFilter struct {
-	uid    uint64
 	sub    graph.Iterator
 	filter ValueFilterFunc
 	qs     graph.Namer
@@ -36,15 +35,10 @@ type ValueFilterFunc func(quad.Value) (bool, error)
 
 func NewValueFilter(qs graph.Namer, sub graph.Iterator, filter ValueFilterFunc) *ValueFilter {
 	return &ValueFilter{
-		uid:    NextUID(),
 		sub:    sub,
 		qs:     qs,
 		filter: filter,
 	}
-}
-
-func (it *ValueFilter) UID() uint64 {
-	return it.uid
 }
 
 func (it *ValueFilter) doFilter(val graph.Ref) bool {

@@ -48,7 +48,6 @@ var _ graph.Iterator = &HasA{}
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type HasA struct {
-	uid       uint64
 	qs        graph.QuadIndexer
 	primaryIt graph.Iterator
 	dir       quad.Direction
@@ -62,15 +61,10 @@ type HasA struct {
 // direction for which it stands.
 func NewHasA(qs graph.QuadIndexer, subIt graph.Iterator, d quad.Direction) *HasA {
 	return &HasA{
-		uid:       NextUID(),
 		qs:        qs,
 		primaryIt: subIt,
 		dir:       d,
 	}
-}
-
-func (it *HasA) UID() uint64 {
-	return it.uid
 }
 
 // Return our sole subiterator.
@@ -161,7 +155,7 @@ func (it *HasA) NextPath(ctx context.Context) bool {
 	// The upshot is, the end of NextPath() bubbles up from the bottom of the
 	// iterator tree up, and we need to respect that.
 	if clog.V(4) {
-		clog.Infof("HASA %v NextPath", it.UID())
+		clog.Infof("HASA %p NextPath", it)
 	}
 	if it.primaryIt.NextPath(ctx) {
 		return true
@@ -176,7 +170,7 @@ func (it *HasA) NextPath(ctx context.Context) bool {
 		return false
 	}
 	if clog.V(4) {
-		clog.Infof("HASA %v NextPath Returns %v", it.UID(), result)
+		clog.Infof("HASA %p NextPath Returns %v", it, result)
 	}
 	return result
 }

@@ -118,16 +118,13 @@ type Iterator interface {
 
 	// Close the iterator and do internal cleanup.
 	Close() error
-
-	// UID returns the unique identifier of the iterator.
-	UID() uint64
 }
 
 // DescribeIterator returns a description of the iterator tree.
 func DescribeIterator(it Iterator) Description {
 	sz, exact := it.Size()
 	d := Description{
-		UID:  it.UID(),
+		UID:  uint64(reflect.ValueOf(it).Pointer()),
 		Name: it.String(),
 		Type: reflect.TypeOf(it).String(),
 		Size: sz, Exact: exact,
@@ -200,7 +197,7 @@ func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
 	out.Type = reflect.TypeOf(it).String()
-	out.UID = it.UID()
+	out.UID = uint64(reflect.ValueOf(it).Pointer())
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))
 	}

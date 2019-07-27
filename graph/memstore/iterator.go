@@ -21,7 +21,6 @@ import (
 	"math"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -29,7 +28,6 @@ var _ graph.Iterator = &Iterator{}
 
 type Iterator struct {
 	nodes bool
-	uid   uint64
 	qs    *QuadStore
 	tree  *Tree
 
@@ -44,16 +42,11 @@ type Iterator struct {
 func NewIterator(tree *Tree, qs *QuadStore, d quad.Direction, value int64) *Iterator {
 	return &Iterator{
 		nodes: d == 0,
-		uid:   iterator.NextUID(),
 		qs:    qs,
 		tree:  tree,
 		d:     d,
 		value: value,
 	}
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) Reset() {

@@ -28,7 +28,6 @@ var _ graph.Iterator = &Resolver{}
 // process of iterating) and a store to resolve values from.
 type Resolver struct {
 	qs     graph.QuadStore
-	uid    uint64
 	tags   graph.Tagger
 	order  []quad.Value
 	values map[quad.Value]graph.Ref
@@ -42,7 +41,6 @@ type Resolver struct {
 // Creates a new Resolver iterator.
 func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
 	it := &Resolver{
-		uid:   NextUID(),
 		qs:    qs,
 		order: make([]quad.Value, len(nodes)),
 		// Generally there are going to be no/few duplicates given
@@ -52,10 +50,6 @@ func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
 	}
 	copy(it.order, nodes)
 	return it
-}
-
-func (it *Resolver) UID() uint64 {
-	return it.uid
 }
 
 func (it *Resolver) Reset() {

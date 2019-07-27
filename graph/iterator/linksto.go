@@ -43,7 +43,6 @@ var _ graph.Iterator = &LinksTo{}
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
-	uid       uint64
 	qs        graph.QuadIndexer
 	primaryIt graph.Iterator
 	dir       quad.Direction
@@ -57,16 +56,11 @@ type LinksTo struct {
 // nodes.
 func NewLinksTo(qs graph.QuadIndexer, it graph.Iterator, d quad.Direction) *LinksTo {
 	return &LinksTo{
-		uid:       NextUID(),
 		qs:        qs,
 		primaryIt: it,
 		dir:       d,
 		nextIt:    &Null{},
 	}
-}
-
-func (it *LinksTo) UID() uint64 {
-	return it.uid
 }
 
 func (it *LinksTo) Reset() {

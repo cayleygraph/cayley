@@ -32,7 +32,6 @@ var _ graph.Iterator = &Fixed{}
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
 // an equality function.
 type Fixed struct {
-	uid       uint64
 	values    []graph.Ref
 	lastIndex int
 	result    graph.Ref
@@ -41,17 +40,12 @@ type Fixed struct {
 // Creates a new Fixed iterator with a custom comparator.
 func NewFixed(vals ...graph.Ref) *Fixed {
 	it := &Fixed{
-		uid:    NextUID(),
 		values: make([]graph.Ref, 0, 20),
 	}
 	for _, v := range vals {
 		it.Add(v)
 	}
 	return it
-}
-
-func (it *Fixed) UID() uint64 {
-	return it.uid
 }
 
 func (it *Fixed) Reset() {

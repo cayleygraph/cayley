@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 )
@@ -62,14 +61,12 @@ var _ graph.Iterator = (*Iterator)(nil)
 func (qs *QuadStore) NewIterator(s Select) *Iterator {
 	return &Iterator{
 		qs:    qs,
-		uid:   iterator.NextUID(),
 		query: s,
 	}
 }
 
 type Iterator struct {
 	qs    *QuadStore
-	uid   uint64
 	query Select
 
 	cols []string
@@ -79,10 +76,6 @@ type Iterator struct {
 	res    graph.Ref
 	tags   map[string]graph.Ref
 	cursor *sql.Rows
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) TagResults(m map[string]graph.Ref) {

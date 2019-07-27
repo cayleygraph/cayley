@@ -30,7 +30,6 @@ import (
 var _ graph.Iterator = &Or{}
 
 type Or struct {
-	uid               uint64
 	isShortCircuiting bool
 	internalIterators []graph.Iterator
 	currentIterator   int
@@ -40,7 +39,6 @@ type Or struct {
 
 func NewOr(sub ...graph.Iterator) *Or {
 	it := &Or{
-		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 		currentIterator:   -1,
 	}
@@ -52,15 +50,10 @@ func NewOr(sub ...graph.Iterator) *Or {
 
 func NewShortCircuitOr() *Or {
 	return &Or{
-		uid:               NextUID(),
 		internalIterators: make([]graph.Iterator, 0, 20),
 		isShortCircuiting: true,
 		currentIterator:   -1,
 	}
-}
-
-func (it *Or) UID() uint64 {
-	return it.uid
 }
 
 // Reset all internal iterators

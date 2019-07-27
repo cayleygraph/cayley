@@ -22,7 +22,6 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -34,7 +33,6 @@ type Linkage struct {
 }
 
 type Iterator struct {
-	uid        uint64
 	qs         *QuadStore
 	collection string
 	limit      int64
@@ -79,16 +77,11 @@ func (it *Iterator) makeIterator() nosql.DocIterator {
 
 func NewIterator(qs *QuadStore, collection string, constraints ...nosql.FieldFilter) *Iterator {
 	return &Iterator{
-		uid:        iterator.NextUID(),
 		qs:         qs,
 		constraint: constraints,
 		collection: collection,
 		size:       -1,
 	}
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) Reset() {

@@ -11,7 +11,6 @@ var _ graph.Iterator = &Skip{}
 
 // Skip iterator will skip certain number of values from primary iterator.
 type Skip struct {
-	uid       uint64
 	skip      int64
 	skipped   int64
 	primaryIt graph.Iterator
@@ -19,14 +18,9 @@ type Skip struct {
 
 func NewSkip(primaryIt graph.Iterator, skip int64) *Skip {
 	return &Skip{
-		uid:       NextUID(),
 		skip:      skip,
 		primaryIt: primaryIt,
 	}
-}
-
-func (it *Skip) UID() uint64 {
-	return it.uid
 }
 
 // Reset resets the internal iterators and the iterator itself.

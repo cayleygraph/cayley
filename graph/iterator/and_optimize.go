@@ -87,7 +87,7 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	newAnd.optimizeContains()
 	if clog.V(3) {
-		clog.Infof("%v become %v", it.UID(), newAnd.UID())
+		clog.Infof("%p become %p", it, newAnd)
 	}
 	return newAnd, true
 }
@@ -149,7 +149,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 		}
 		cost *= rootStats.Size
 		if clog.V(3) {
-			clog.Infof("And: Root: %v Total Cost: %v Best: %v", root.UID(), cost, bestCost)
+			clog.Infof("And: Root: %p Total Cost: %v Best: %v", root, cost, bestCost)
 		}
 		if cost < bestCost {
 			best = root
@@ -157,7 +157,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 		}
 	}
 	if clog.V(3) {
-		clog.Infof("And: Choosing: %v Best: %v", best.UID(), bestCost)
+		clog.Infof("And: Choosing: %p Best: %v", best, bestCost)
 	}
 
 	// TODO(barakmich): Optimization of order need not stop here. Picking a smart

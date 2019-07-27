@@ -26,8 +26,6 @@ var _ graph.Iterator = &And{}
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type And struct {
-	uid uint64
-
 	primary   graph.Iterator
 	sub       []graph.Iterator
 	opt       []graph.Iterator
@@ -43,17 +41,12 @@ type And struct {
 // for QuadStore-specific optimizations, otherwise nil is acceptable.
 func NewAnd(sub ...graph.Iterator) *And {
 	it := &And{
-		uid: NextUID(),
 		sub: make([]graph.Iterator, 0, 20),
 	}
 	for _, s := range sub {
 		it.AddSubIterator(s)
 	}
 	return it
-}
-
-func (it *And) UID() uint64 {
-	return it.uid
 }
 
 // Reset all internal iterators
