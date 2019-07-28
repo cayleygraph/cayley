@@ -40,9 +40,29 @@ func TestSkipIteratorBasics(t *testing.T) {
 		t.Errorf("Failed to iterate Skip correctly: got:%v expected:%v", got, expect)
 	}
 
-	for _, v := range []int{1, 2, 3, 4, 5} {
+	u.Reset()
+	for _, v := range []int{1, 2, 3} {
+		if u.Contains(ctx, Int64Node(v)) {
+			t.Errorf("Failed to find a correct value in the Skip iterator.")
+		}
+	}
+	for _, v := range []int{4, 5} {
 		if !u.Contains(ctx, Int64Node(v)) {
 			t.Errorf("Failed to find a correct value in the Skip iterator.")
 		}
 	}
+
+	u.Reset()
+	for _, v := range []int{5, 4, 3} {
+		if u.Contains(ctx, Int64Node(v)) {
+			t.Errorf("Failed to find a correct value in the Skip iterator.")
+		}
+	}
+	for _, v := range []int{1, 2} {
+		if !u.Contains(ctx, Int64Node(v)) {
+			t.Errorf("Failed to find a correct value in the Skip iterator.")
+		}
+	}
+
+	// TODO(dennwc): check with NextPath
 }
