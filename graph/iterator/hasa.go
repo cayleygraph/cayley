@@ -250,7 +250,7 @@ func (it *hasAContains) TagResults(dst map[string]graph.Ref) {
 }
 
 func (it *hasAContains) String() string {
-	return fmt.Sprintf("HasA(%v)", it.dir)
+	return fmt.Sprintf("HasAContains(%v)", it.dir)
 }
 
 // Check a value against our internal iterator. In order to do this, we must first open a new

@@ -20,6 +20,14 @@ func Tag(it graph.Iterator, tag string) graph.Iterator {
 	return NewSave(it, tag)
 }
 
+func Tag2(it graph.Iterator2, tag string) graph.Iterator2 {
+	if s, ok := graph.AsLegacy(it).(graph.Tagger); ok {
+		s.AddTags(tag)
+		return graph.As2(s)
+	}
+	return graph.As2(NewSave(graph.AsLegacy(it), tag))
+}
+
 func NewSave(on graph.Iterator, tags ...string) *Save {
 	s := &Save{it: on}
 	s.AddTags(tags...)
