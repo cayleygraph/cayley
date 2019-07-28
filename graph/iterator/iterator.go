@@ -145,3 +145,148 @@ func (it *Error) Close() error {
 func (it *Error) Stats() graph.IteratorStats {
 	return graph.IteratorStats{}
 }
+
+var (
+	_ graph.Iterator2Compat = &null2{}
+	_ graph.Iterator2Compat = &error2{}
+)
+
+// Here we define the simplest iterator -- the Null iterator. It contains nothing.
+// It is the empty set. Often times, queries that contain one of these match nothing,
+// so it's important to give it a special iterator.
+type null2 struct{}
+
+// Fairly useless New function.
+func newNull2() *null2 {
+	return &null2{}
+}
+
+func (it *null2) Iterate() graph.Iterator2Next {
+	return it
+}
+
+func (it *null2) Lookup() graph.Iterator2Contains {
+	return it
+}
+
+func (it *null2) AsLegacy() graph.Iterator {
+	return NewNull()
+}
+
+// Fill the map based on the tags assigned to this iterator.
+func (it *null2) TagResults(dst map[string]graph.Ref) {}
+
+func (it *null2) Contains(ctx context.Context, v graph.Ref) bool {
+	return false
+}
+
+// A good iterator will close itself when it returns true.
+// Null has nothing it needs to do.
+func (it *null2) Optimize() (graph.Iterator2, bool) { return it, false }
+
+func (it *null2) String() string {
+	return "Null"
+}
+
+func (it *null2) Next(ctx context.Context) bool {
+	return false
+}
+
+func (it *null2) Err() error {
+	return nil
+}
+
+func (it *null2) Result() graph.Ref {
+	return nil
+}
+
+func (it *null2) SubIterators() []graph.Iterator2 {
+	return nil
+}
+
+func (it *null2) NextPath(ctx context.Context) bool {
+	return false
+}
+
+func (it *null2) Size() (int64, bool) {
+	return 0, true
+}
+
+func (it *null2) Reset() {}
+
+func (it *null2) Close() error {
+	return nil
+}
+
+// A null iterator costs nothing. Use it!
+func (it *null2) Stats() graph.IteratorStats {
+	return graph.IteratorStats{}
+}
+
+// Error iterator always returns a single error with no other results.
+type error2 struct {
+	err error
+}
+
+func newError2(err error) *error2 {
+	return &error2{err: err}
+}
+
+func (it *error2) Iterate() graph.Iterator2Next {
+	return it
+}
+
+func (it *error2) Lookup() graph.Iterator2Contains {
+	return it
+}
+
+func (it *error2) AsLegacy() graph.Iterator {
+	return NewError(it.err)
+}
+
+// Fill the map based on the tags assigned to this iterator.
+func (it *error2) TagResults(dst map[string]graph.Ref) {}
+
+func (it *error2) Contains(ctx context.Context, v graph.Ref) bool {
+	return false
+}
+
+func (it *error2) Optimize() (graph.Iterator2, bool) { return it, false }
+
+func (it *error2) String() string {
+	return fmt.Sprintf("Error(%v)", it.err)
+}
+
+func (it *error2) Next(ctx context.Context) bool {
+	return false
+}
+
+func (it *error2) Err() error {
+	return it.err
+}
+
+func (it *error2) Result() graph.Ref {
+	return nil
+}
+
+func (it *error2) SubIterators() []graph.Iterator2 {
+	return nil
+}
+
+func (it *error2) NextPath(ctx context.Context) bool {
+	return false
+}
+
+func (it *error2) Size() (int64, bool) {
+	return 0, true
+}
+
+func (it *error2) Reset() {}
+
+func (it *error2) Close() error {
+	return it.err
+}
+
+func (it *error2) Stats() graph.IteratorStats {
+	return graph.IteratorStats{}
+}

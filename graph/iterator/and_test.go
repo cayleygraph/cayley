@@ -69,7 +69,7 @@ func TestAndAndFixedIterators(t *testing.T) {
 	// Should be as big as smallest subiterator
 	size, accurate := and.Size()
 	if size != 3 {
-		t.Error("Incorrect size")
+		t.Error("Incorrect size:", size)
 	}
 	if !accurate {
 		t.Error("not accurate")
