@@ -60,6 +60,22 @@ type Iterator2Contains interface {
 	Contains(ctx context.Context, v Ref) bool
 }
 
+type TaggerBase interface {
+	Tags() []string
+	FixedTags() map[string]Ref
+	AddTags(tag ...string)
+	AddFixedTag(tag string, value Ref)
+}
+
+// Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
+//
+// TODO(dennwc): check if it's used
+type Tagger2 interface {
+	Iterator2
+	TaggerBase
+	CopyFromTagger(st TaggerBase)
+}
+
 type Iterator2 interface {
 	// TODO(dennwc) this is a Shape, in fact
 
