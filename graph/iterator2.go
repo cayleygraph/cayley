@@ -273,12 +273,12 @@ func (it *legacyIter) Err() error {
 
 func (it *legacyIter) Reset() {
 	if it.next != nil {
-		it.next.Close()
-		it.next = it.it.Iterate()
+		_ = it.next.Close()
+		it.next = nil
 	}
 	if it.cont != nil {
-		it.cont.Close()
-		it.cont = it.it.Lookup()
+		_ = it.cont.Close()
+		it.cont = nil
 	}
 }
 
