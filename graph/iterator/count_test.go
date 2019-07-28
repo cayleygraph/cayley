@@ -31,7 +31,7 @@ func TestCount(t *testing.T) {
 		graph.PreFetched(quad.String("b")),
 		graph.PreFetched(quad.String("d")),
 	)
-	it = NewCount(NewAnd(nil, fixed, fixed2), nil)
+	it = NewCount(NewAnd(fixed, fixed2), nil)
 	require.True(t, it.Next(ctx))
 	require.Equal(t, graph.PreFetched(quad.Int(2)), it.Result())
 	require.False(t, it.Next(ctx))

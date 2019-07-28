@@ -40,26 +40,23 @@ import (
 
 // Optimizes the And, by picking the most efficient way to Next() and
 // Contains() its subiterators. For SQL fans, this is equivalent to JOIN.
-func (it *And) Optimize() (graph.Iterator, bool) {
+func (it *and2) Optimize() (graph.Iterator2, bool) {
 	// First, let's get the slice of iterators, in order (first one is Next()ed,
 	// the rest are Contains()ed)
-	old := it.subIterators()
+	old := it.sub
 	if len(old) == 0 {
-		it.Close()
-		return NewNull(), true
+		return newNull2(), true
 	}
 
 	// And call Optimize() on our subtree, replacing each one in the order we
 	// found them. it_list is the newly optimized versions of these, and changed
 	// is another list, of only the ones that have returned replacements and
 	// changed.
-	its := optimizeSubIterators(old)
+	its := optimizeSubIterators2(old)
 
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
 	if out := optimizeReplacement(its); out != nil && len(it.opt) == 0 {
-		// ...Close everyone except `out`, our replacement...
-		closeIteratorList(its, out)
 		// ...And return it.
 		return out, true
 	}
@@ -74,13 +71,10 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 
 	// The easiest thing to do at this point is merely to create a new And iterator
 	// and replace ourselves with our (reordered, optimized) clone.
-	newAnd := NewAnd()
-
 	// Add the subiterators in order.
-	for _, sub := range its {
-		newAnd.AddSubIterator(sub)
-	}
-	opt := optimizeSubIterators(it.opt)
+	newAnd := newAnd(its...)
+
+	opt := optimizeSubIterators2(it.opt)
 	for _, sub := range opt {
 		newAnd.AddOptionalIterator(sub)
 	}
@@ -92,22 +86,12 @@ func (it *And) Optimize() (graph.Iterator, bool) {
 	return newAnd, true
 }
 
-// Closes a list of iterators, except the one passed in `except`. Closes all
-// of the iterators in the list if `except` is nil.
-func closeIteratorList(its []graph.Iterator, except graph.Iterator) {
-	for _, it := range its {
-		if it != except {
-			it.Close()
-		}
-	}
-}
-
 // Find if there is a single subiterator which is a valid replacement for this
 // And.
-func optimizeReplacement(its []graph.Iterator) graph.Iterator {
+func optimizeReplacement(its []graph.Iterator2) graph.Iterator2 {
 	// If we were created with no SubIterators, we're as good as Null.
 	if len(its) == 0 {
-		return NewNull()
+		return newNull2()
 	}
 	if len(its) == 1 {
 		// When there's only one iterator, there's only one choice.
@@ -117,19 +101,19 @@ func optimizeReplacement(its []graph.Iterator) graph.Iterator {
 	// there's no point in continuing the branch, we will have no results
 	// and we are null as well.
 	if hasAnyNullIterators(its) {
-		return NewNull()
+		return newNull2()
 	}
 	return nil
 }
 
 // optimizeOrder(l) takes a list and returns a list, containing the same contents
 // but with a new ordering, however it wishes.
-func optimizeOrder(its []graph.Iterator) []graph.Iterator {
+func optimizeOrder(its []graph.Iterator2) []graph.Iterator2 {
 	var (
 		// bad contains iterators that can't be (efficiently) nexted, such as
 		// graph.Optional or graph.Not. Separate them out and tack them on at the end.
-		bad      []graph.Iterator
-		best     graph.Iterator
+		bad      []graph.Iterator2
+		best     graph.Iterator2
 		bestCost = int64(1 << 62)
 	)
 
@@ -164,7 +148,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	// Contains() order based on probability of getting a false Contains() first is
 	// useful (fail faster).
 
-	var out []graph.Iterator
+	var out []graph.Iterator2
 	// Put the best iterator (the one we wish to Next()) at the front...
 	if best != nil {
 		out = append(out, best)
@@ -181,7 +165,7 @@ func optimizeOrder(its []graph.Iterator) []graph.Iterator {
 	return append(out, bad...)
 }
 
-type byCost []graph.Iterator
+type byCost []graph.Iterator2
 
 func (c byCost) Len() int           { return len(c) }
 func (c byCost) Less(i, j int) bool { return c[i].Stats().ContainsCost < c[j].Stats().ContainsCost }
@@ -189,12 +173,12 @@ func (c byCost) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
 // optimizeContains() creates an alternate check list, containing the same contents
 // but with a new ordering, however it wishes.
-func (it *And) optimizeContains() {
+func (it *and2) optimizeContains() {
 	// GetSubIterators allocates, so this is currently safe.
 	// TODO(kortschak) Reuse it.checkList if possible.
 	// This involves providing GetSubIterators with a slice to fill.
 	// Generally this is a worthwhile thing to do in other places as well.
-	it.checkList = it.subIterators()
+	it.checkList = append([]graph.Iterator2{}, it.sub...)
 	sort.Sort(byCost(it.checkList))
 }
 
@@ -211,29 +195,44 @@ func optimizeSubIterators(its []graph.Iterator) []graph.Iterator {
 	return out
 }
 
-// Check a list of iterators for any Null iterators.
-func hasAnyNullIterators(its []graph.Iterator) bool {
+// optimizeSubIterators(l) takes a list of iterators and calls Optimize() on all
+// of them. It returns two lists -- the first contains the same list as l, where
+// any replacements are made by Optimize() and the second contains the originals
+// which were replaced.
+func optimizeSubIterators2(its []graph.Iterator2) []graph.Iterator2 {
+	out := make([]graph.Iterator2, 0, len(its))
 	for _, it := range its {
-		if _, ok := it.(*Null); ok {
+		o, _ := it.Optimize()
+		out = append(out, o)
+	}
+	return out
+}
+
+// Check a list of iterators for any Null iterators.
+func hasAnyNullIterators(its []graph.Iterator2) bool {
+	for _, it := range its {
+		if _, ok := it.(*null2); ok {
+			return true
+		} else if _, ok = graph.AsLegacy(it).(*Null); ok {
 			return true
 		}
 	}
 	return false
 }
 
-func materializeIts(its []graph.Iterator) []graph.Iterator {
-	var out []graph.Iterator
+func materializeIts(its []graph.Iterator2) []graph.Iterator2 {
+	var out []graph.Iterator2
 
 	allStats, stats := getStatsForSlice(its, nil)
 	out = append(out, its[0])
 	for i, it := range its[1:] {
 		st := stats[i+1]
 		if st.Size*st.NextCost < (st.ContainsCost * (1 + (st.Size / (allStats.Size + 1)))) {
-			if graph.Height(it, func(it graph.Iterator) bool {
+			if graph.Height(graph.AsLegacy(it), func(it graph.Iterator) bool {
 				_, ok := it.(*Materialize)
 				return !ok
 			}) > 10 {
-				out = append(out, NewMaterialize(it))
+				out = append(out, graph.As2(NewMaterialize(graph.AsLegacy(it))))
 				continue
 			}
 		}
@@ -242,7 +241,7 @@ func materializeIts(its []graph.Iterator) []graph.Iterator {
 	return out
 }
 
-func getStatsForSlice(its, opt []graph.Iterator) (graph.IteratorStats, []graph.IteratorStats) {
+func getStatsForSlice(its, opt []graph.Iterator2) (graph.IteratorStats, []graph.IteratorStats) {
 	if len(its) == 0 {
 		return graph.IteratorStats{}, nil
 	}
@@ -283,9 +282,9 @@ func getStatsForSlice(its, opt []graph.Iterator) (graph.IteratorStats, []graph.I
 // and.Stats() lives here in and-iterator-optimize.go because it may
 // in the future return different statistics based on how it is optimized.
 // For now, however, it's pretty static.
-func (it *And) Stats() graph.IteratorStats {
-	stats, _ := getStatsForSlice(it.subIterators(), it.opt)
-	stats.Next = it.runstats.Next
-	stats.Contains = it.runstats.Contains
+func (it *and2) Stats() graph.IteratorStats {
+	stats, _ := getStatsForSlice(it.sub, it.opt)
+	//stats.Next = it.runstats.Next
+	//stats.Contains = it.runstats.Contains
 	return stats
 }
