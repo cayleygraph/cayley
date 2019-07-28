@@ -173,7 +173,7 @@ func TestOrIteratorErr(t *testing.T) {
 	or := NewOr(
 		fix1,
 		orErr,
-		NewInt64(1, 5, true),
+		newInt64(1, 5, true),
 	)
 
 	if !or.Next(ctx) {
@@ -198,7 +198,7 @@ func TestShortCircuitOrIteratorErr(t *testing.T) {
 
 	or := NewOr(
 		orErr,
-		NewInt64(1, 5, true),
+		newInt64(1, 5, true),
 	)
 
 	if or.Next(ctx) != false {
