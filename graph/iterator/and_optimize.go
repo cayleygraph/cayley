@@ -230,7 +230,7 @@ func materializeIts(its []graph.Iterator2) []graph.Iterator2 {
 				_, ok := it.(*Materialize)
 				return !ok
 			}) > 10 {
-				out = append(out, graph.As2(NewMaterialize(graph.AsLegacy(it))))
+				out = append(out, newMaterialize(it))
 				continue
 			}
 		}
