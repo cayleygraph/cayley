@@ -40,11 +40,8 @@ type Linkage struct {
 // Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
 type Tagger interface {
 	Iterator
-	Tags() []string
-	FixedTags() map[string]Ref
-	AddTags(tag ...string)
-	AddFixedTag(tag string, value Ref)
-	CopyFromTagger(st Tagger)
+	TaggerBase
+	CopyFromTagger(st TaggerBase)
 }
 
 type Iterator interface {
