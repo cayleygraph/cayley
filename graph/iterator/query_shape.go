@@ -162,17 +162,17 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		n.IsLinkNode = true
 		lto := it
 		s.nodeID++
-		newNode := s.MakeNode(lto.primaryIt)
+		newNode := s.MakeNode(graph.AsLegacy(lto.it.primary))
 		hasaID, hasaDir := s.LastHasa()
-		if (hasaDir == quad.Subject && lto.dir == quad.Object) ||
-			(hasaDir == quad.Object && lto.dir == quad.Subject) {
+		if (hasaDir == quad.Subject && lto.it.dir == quad.Object) ||
+			(hasaDir == quad.Object && lto.it.dir == quad.Subject) {
 			s.AddNode(newNode)
 			if hasaDir == quad.Subject {
 				s.AddLink(&Link{hasaID, newNode.ID, 0, n.ID})
 			} else {
 				s.AddLink(&Link{newNode.ID, hasaID, 0, n.ID})
 			}
-		} else if _, ok := lto.primaryIt.(*Fixed); ok {
+		} else if _, ok := graph.AsLegacy(lto.it.primary).(*Fixed); ok {
 			s.StealNode(n, newNode)
 		} else {
 			s.AddNode(newNode)
