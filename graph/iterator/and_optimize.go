@@ -40,7 +40,7 @@ import (
 
 // Optimizes the And, by picking the most efficient way to Next() and
 // Contains() its subiterators. For SQL fans, this is equivalent to JOIN.
-func (it *and2) Optimize() (graph.Iterator2, bool) {
+func (it *and) Optimize() (graph.Iterator2, bool) {
 	// First, let's get the slice of iterators, in order (first one is Next()ed,
 	// the rest are Contains()ed)
 	old := it.sub
@@ -173,7 +173,7 @@ func (c byCost) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
 // optimizeContains() creates an alternate check list, containing the same contents
 // but with a new ordering, however it wishes.
-func (it *and2) optimizeContains() {
+func (it *and) optimizeContains() {
 	// GetSubIterators allocates, so this is currently safe.
 	// TODO(kortschak) Reuse it.checkList if possible.
 	// This involves providing GetSubIterators with a slice to fill.
@@ -280,7 +280,7 @@ func getStatsForSlice(its, opt []graph.Iterator2) (graph.IteratorStats, []graph.
 // and.Stats() lives here in and-iterator-optimize.go because it may
 // in the future return different statistics based on how it is optimized.
 // For now, however, it's pretty static.
-func (it *and2) Stats() graph.IteratorStats {
+func (it *and) Stats() graph.IteratorStats {
 	stats, _ := getStatsForSlice(it.sub, it.opt)
 	//stats.Next = it.runstats.Next
 	//stats.Contains = it.runstats.Contains

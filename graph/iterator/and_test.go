@@ -153,6 +153,6 @@ func TestAndIteratorErr(t *testing.T) {
 		t.Errorf("And iterator did not pass through initial 'false'")
 	}
 	if and.Err() != wantErr {
-		t.Errorf("And iterator did not pass through underlying Err")
+		t.Errorf("And iterator did not pass through underlying Err: %v", and.Err())
 	}
 }

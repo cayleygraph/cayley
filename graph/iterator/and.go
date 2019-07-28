@@ -26,7 +26,7 @@ var _ graph.IteratorFuture = &And{}
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type And struct {
-	it *and2
+	it *and
 	graph.Iterator
 }
 
@@ -65,11 +65,11 @@ func (it *And) AddOptionalIterator(sub graph.Iterator) *And {
 	return it
 }
 
-var _ graph.Iterator2Compat = &and2{}
+var _ graph.Iterator2Compat = &and{}
 
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
-type and2 struct {
+type and struct {
 	sub       []graph.Iterator2
 	checkList []graph.Iterator2 // special order for Contains
 	opt       []graph.Iterator2
@@ -77,8 +77,8 @@ type and2 struct {
 
 // NewAnd creates an And iterator. `qs` is only required when needing a handle
 // for QuadStore-specific optimizations, otherwise nil is acceptable.
-func newAnd(sub ...graph.Iterator2) *and2 {
-	it := &and2{
+func newAnd(sub ...graph.Iterator2) *and {
+	it := &and{
 		sub: make([]graph.Iterator2, 0, 20),
 	}
 	for _, s := range sub {
@@ -87,7 +87,7 @@ func newAnd(sub ...graph.Iterator2) *and2 {
 	return it
 }
 
-func (it *and2) Iterate() graph.Iterator2Next {
+func (it *and) Iterate() graph.Iterator2Next {
 	if len(it.sub) == 0 {
 		return newNull2().Iterate()
 	}
@@ -102,7 +102,7 @@ func (it *and2) Iterate() graph.Iterator2Next {
 	return newAndNext(it.sub[0].Iterate(), newAndContains(sub, opt))
 }
 
-func (it *and2) Lookup() graph.Iterator2Contains {
+func (it *and) Lookup() graph.Iterator2Contains {
 	if len(it.sub) == 0 {
 		return newNull2().Lookup()
 	}
@@ -121,21 +121,21 @@ func (it *and2) Lookup() graph.Iterator2Contains {
 	return newAndContains(sub, opt)
 }
 
-func (it *and2) AsLegacy() graph.Iterator {
+func (it *and) AsLegacy() graph.Iterator {
 	it2 := &And{it: it}
 	it2.Iterator = graph.NewLegacy(it)
 	return it2
 }
 
 // Returns a slice of the subiterators, in order (primary iterator first).
-func (it *and2) SubIterators() []graph.Iterator2 {
+func (it *and) SubIterators() []graph.Iterator2 {
 	iters := make([]graph.Iterator2, 0, len(it.sub)+len(it.opt))
 	iters = append(iters, it.sub...)
 	iters = append(iters, it.opt...)
 	return iters
 }
 
-func (it *and2) String() string {
+func (it *and) String() string {
 	return "And"
 }
 
@@ -145,7 +145,7 @@ func (it *and2) String() string {
 // important. Calling Optimize() is the way to change the order based on
 // subiterator statistics. Without Optimize(), the order added is the order
 // used.
-func (it *and2) AddSubIterator(sub graph.Iterator2) {
+func (it *and) AddSubIterator(sub graph.Iterator2) {
 	if sub == nil {
 		panic("nil iterator")
 	}
@@ -154,7 +154,7 @@ func (it *and2) AddSubIterator(sub graph.Iterator2) {
 
 // AddOptionalIterator adds an iterator that will only be Contain'ed and will not affect iteration results.
 // Only tags will be propagated from this iterator.
-func (it *and2) AddOptionalIterator(sub graph.Iterator2) *and2 {
+func (it *and) AddOptionalIterator(sub graph.Iterator2) *and {
 	it.opt = append(it.opt, sub)
 	return it
 }
@@ -163,7 +163,7 @@ func (it *and2) AddOptionalIterator(sub graph.Iterator2) *and2 {
 // with an intersection, we know that the largest we can be is the size of the
 // smallest iterator. This is the heuristic we shall follow. Better heuristics
 // welcome.
-func (it *and2) Size() (sz int64, exact bool) {
+func (it *and) Size() (sz int64, exact bool) {
 	exact = true
 	for i, sub := range it.sub {
 		sz2, exact2 := sub.Size()

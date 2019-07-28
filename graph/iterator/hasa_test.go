@@ -21,6 +21,7 @@ import (
 
 	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHasAIteratorErr(t *testing.T) {
@@ -31,10 +32,6 @@ func TestHasAIteratorErr(t *testing.T) {
 	// TODO(andrew-d): pass a non-nil quadstore
 	hasa := NewHasA(nil, errIt, quad.Subject)
 
-	if hasa.Next(ctx) != false {
-		t.Errorf("HasA iterator did not pass through initial 'false'")
-	}
-	if hasa.Err() != wantErr {
-		t.Errorf("HasA iterator did not pass through underlying Err")
-	}
+	require.False(t, hasa.Next(ctx), "HasA iterator did not pass through initial 'false'")
+	require.Equal(t, wantErr, hasa.Err(), "HasA iterator did not pass through underlying Err")
 }

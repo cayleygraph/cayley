@@ -9,7 +9,7 @@ import (
 
 // A testing iterator that returns the given values for Next() and Err().
 type testIterator struct {
-	*Fixed
+	graph.Iterator
 
 	NextVal bool
 	ErrVal  error
@@ -17,9 +17,9 @@ type testIterator struct {
 
 func newTestIterator(next bool, err error) graph.Iterator {
 	return &testIterator{
-		Fixed:   NewFixed(),
-		NextVal: next,
-		ErrVal:  err,
+		Iterator: NewFixed(),
+		NextVal:  next,
+		ErrVal:   err,
 	}
 }
 
