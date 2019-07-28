@@ -40,9 +40,21 @@ func TestLimitIteratorBasics(t *testing.T) {
 		t.Errorf("Failed to iterate Limit correctly: got:%v expected:%v", got, expect)
 	}
 
-	for _, v := range []int{1, 2, 3, 4, 5} {
+	for _, v := range []int{1, 2, 3} {
 		if !u.Contains(ctx, Int64Node(v)) {
 			t.Errorf("Failed to find a correct value in the Limit iterator.")
 		}
+	}
+	if u.Contains(ctx, Int64Node(4)) {
+		t.Error("should have no more results")
+	}
+	u.Reset()
+	for _, v := range []int{5, 4, 3} {
+		if !u.Contains(ctx, Int64Node(v)) {
+			t.Errorf("Failed to find a correct value in the Limit iterator.")
+		}
+	}
+	if u.Contains(ctx, Int64Node(2)) {
+		t.Error("should have no more results")
 	}
 }
