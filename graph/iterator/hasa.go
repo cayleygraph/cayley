@@ -48,159 +48,73 @@ var _ graph.Iterator = &HasA{}
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type HasA struct {
-	qs        graph.QuadIndexer
-	primaryIt graph.Iterator
-	dir       quad.Direction
-	resultIt  graph.Iterator
-	result    graph.Ref
-	runstats  graph.IteratorStats
-	err       error
+	it *hasA
+	graph.Iterator
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
 func NewHasA(qs graph.QuadIndexer, subIt graph.Iterator, d quad.Direction) *HasA {
-	return &HasA{
-		qs:        qs,
-		primaryIt: subIt,
-		dir:       d,
+	it := &HasA{
+		it: newHasA(qs, graph.As2(subIt), d),
 	}
-}
-
-// Return our sole subiterator.
-func (it *HasA) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.primaryIt}
-}
-
-func (it *HasA) Reset() {
-	it.primaryIt.Reset()
-	if it.resultIt != nil {
-		it.resultIt.Close()
-	}
+	it.Iterator = graph.AsLegacy(it.it)
+	return it
 }
 
 // Direction accessor.
-func (it *HasA) Direction() quad.Direction { return it.dir }
+func (it *HasA) Direction() quad.Direction { return it.it.Direction() }
+
+// A HasA consists of a reference back to the graph.QuadStore that it references,
+// a primary subiterator, a direction in which the quads for that subiterator point,
+// and a temporary holder for the iterator generated on Contains().
+type hasA struct {
+	qs      graph.QuadIndexer
+	primary graph.Iterator2
+	dir     quad.Direction
+}
+
+// Construct a new HasA iterator, given the quad subiterator, and the quad
+// direction for which it stands.
+func newHasA(qs graph.QuadIndexer, subIt graph.Iterator2, d quad.Direction) *hasA {
+	return &hasA{
+		qs:      qs,
+		primary: subIt,
+		dir:     d,
+	}
+}
+
+func (it *hasA) Iterate() graph.Iterator2Next {
+	return newHasANext(it.qs, it.primary.Iterate(), it.dir)
+}
+
+func (it *hasA) Lookup() graph.Iterator2Contains {
+	return newHasAContains(it.qs, it.primary.Lookup(), it.dir)
+}
+
+// Return our sole subiterator.
+func (it *hasA) SubIterators() []graph.Iterator2 {
+	return []graph.Iterator2{it.primary}
+}
+
+// Direction accessor.
+func (it *hasA) Direction() quad.Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no quads that have any directions).
-func (it *HasA) Optimize() (graph.Iterator, bool) {
-	newPrimary, changed := it.primaryIt.Optimize()
+func (it *hasA) Optimize() (graph.Iterator2, bool) {
+	newPrimary, changed := it.primary.Optimize()
 	if changed {
-		it.primaryIt = newPrimary
-		if _, ok := it.primaryIt.(*Null); ok {
-			return it.primaryIt, true
+		it.primary = newPrimary
+		if IsNull2(it.primary) {
+			return it.primary, true
 		}
 	}
 	return it, false
 }
 
-// Pass the TagResults down the chain.
-func (it *HasA) TagResults(dst map[string]graph.Ref) {
-	it.primaryIt.TagResults(dst)
-}
-
-func (it *HasA) String() string {
+func (it *hasA) String() string {
 	return fmt.Sprintf("HasA(%v)", it.dir)
-}
-
-// Check a value against our internal iterator. In order to do this, we must first open a new
-// iterator of "quads that have `val` in our direction", given to us by the quad store,
-// and then Next() values out of that iterator and Contains() them against our subiterator.
-func (it *HasA) Contains(ctx context.Context, val graph.Ref) bool {
-	it.runstats.Contains += 1
-	if clog.V(4) {
-		clog.Infof("Id is %v", val)
-	}
-	// TODO(barakmich): Optimize this
-	if it.resultIt != nil {
-		it.resultIt.Close()
-	}
-	it.resultIt = it.qs.QuadIterator(it.dir, val)
-	ok := it.NextContains(ctx)
-	if it.err != nil {
-		return false
-	}
-	return ok
-}
-
-// NextContains() is shared code between Contains() and GetNextResult() -- calls next on the
-// result iterator (a quad iterator based on the last checked value) and returns true if
-// another match is made.
-func (it *HasA) NextContains(ctx context.Context) bool {
-	if it.resultIt == nil {
-		return false
-	}
-	for it.resultIt.Next(ctx) {
-		it.runstats.ContainsNext += 1
-		link := it.resultIt.Result()
-		if clog.V(4) {
-			clog.Infof("Quad is %v", it.qs.Quad(link))
-		}
-		// we expect this to reset the iterator if we were Next'ing
-		if it.primaryIt.Contains(ctx, link) {
-			it.result = it.qs.QuadDirection(link, it.dir)
-			return true
-		}
-	}
-	it.err = it.resultIt.Err()
-	return false
-}
-
-// Get the next result that matches this branch.
-func (it *HasA) NextPath(ctx context.Context) bool {
-	// Order here is important. If the subiterator has a NextPath, then we
-	// need do nothing -- there is a next result, and we shouldn't move forward.
-	// However, we then need to get the next result from our last Contains().
-	//
-	// The upshot is, the end of NextPath() bubbles up from the bottom of the
-	// iterator tree up, and we need to respect that.
-	if clog.V(4) {
-		clog.Infof("HASA %p NextPath", it)
-	}
-	if it.primaryIt.NextPath(ctx) {
-		return true
-	}
-	it.err = it.primaryIt.Err()
-	if it.err != nil {
-		return false
-	}
-
-	result := it.NextContains(ctx) // Sets it.err if there's an error
-	if it.err != nil {
-		return false
-	}
-	if clog.V(4) {
-		clog.Infof("HASA %p NextPath Returns %v", it, result)
-	}
-	return result
-}
-
-// Next advances the iterator. This is simpler than Contains. We have a
-// subiterator we can get a value from, and we can take that resultant quad,
-// pull our direction out of it, and return that.
-func (it *HasA) Next(ctx context.Context) bool {
-	it.runstats.Next += 1
-	if it.resultIt != nil {
-		it.resultIt.Close()
-	}
-
-	if !it.primaryIt.Next(ctx) {
-		it.err = it.primaryIt.Err()
-		return false
-	}
-	tID := it.primaryIt.Result()
-	val := it.qs.QuadDirection(tID, it.dir)
-	it.result = val
-	return true
-}
-
-func (it *HasA) Err() error {
-	return it.err
-}
-
-func (it *HasA) Result() graph.Ref {
-	return it.result
 }
 
 // GetStats() returns the statistics on the HasA iterator. This is curious. Next
@@ -209,8 +123,8 @@ func (it *HasA) Result() graph.Ref {
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (it *HasA) Stats() graph.IteratorStats {
-	subitStats := it.primaryIt.Stats()
+func (it *hasA) Stats() graph.IteratorStats {
+	subitStats := it.primary.Stats()
 	// TODO(barakmich): These should really come from the quadstore itself
 	// and be optimized.
 	faninFactor := int64(1)
@@ -222,28 +136,195 @@ func (it *HasA) Stats() graph.IteratorStats {
 		ContainsCost: (fanoutFactor * nextConstant) * subitStats.ContainsCost,
 		Size:         faninFactor * subitStats.Size,
 		ExactSize:    false,
-		Next:         it.runstats.Next,
-		Contains:     it.runstats.Contains,
-		ContainsNext: it.runstats.ContainsNext,
 	}
+}
+
+func (it *hasA) Size() (int64, bool) {
+	st := it.Stats()
+	return st.Size, st.ExactSize
+}
+
+// A HasA consists of a reference back to the graph.QuadStore that it references,
+// a primary subiterator, a direction in which the quads for that subiterator point,
+// and a temporary holder for the iterator generated on Contains().
+type hasANext struct {
+	qs      graph.QuadIndexer
+	primary graph.Iterator2Next
+	dir     quad.Direction
+	result  graph.Ref
+}
+
+// Construct a new HasA iterator, given the quad subiterator, and the quad
+// direction for which it stands.
+func newHasANext(qs graph.QuadIndexer, subIt graph.Iterator2Next, d quad.Direction) *hasANext {
+	return &hasANext{
+		qs:      qs,
+		primary: subIt,
+		dir:     d,
+	}
+}
+
+// Direction accessor.
+func (it *hasANext) Direction() quad.Direction { return it.dir }
+
+// Pass the TagResults down the chain.
+func (it *hasANext) TagResults(dst map[string]graph.Ref) {
+	it.primary.TagResults(dst)
+}
+
+func (it *hasANext) String() string {
+	return fmt.Sprintf("HasANext(%v)", it.dir)
+}
+
+// Get the next result that matches this branch.
+func (it *hasANext) NextPath(ctx context.Context) bool {
+	return it.primary.NextPath(ctx)
+}
+
+// Next advances the iterator. This is simpler than Contains. We have a
+// subiterator we can get a value from, and we can take that resultant quad,
+// pull our direction out of it, and return that.
+func (it *hasANext) Next(ctx context.Context) bool {
+	if !it.primary.Next(ctx) {
+		return false
+	}
+	it.result = it.qs.QuadDirection(it.primary.Result(), it.dir)
+	return true
+}
+
+func (it *hasANext) Err() error {
+	return it.primary.Err()
+}
+
+func (it *hasANext) Result() graph.Ref {
+	return it.result
 }
 
 // Close the subiterator, the result iterator (if any) and the HasA. It closes
 // all subiterators it can, but returns the first error it encounters.
-func (it *HasA) Close() error {
-	err := it.primaryIt.Close()
-
-	if it.resultIt != nil {
-		_err := it.resultIt.Close()
-		if err == nil {
-			err = _err
-		}
-	}
-
-	return err
+func (it *hasANext) Close() error {
+	return it.primary.Close()
 }
 
-func (it *HasA) Size() (int64, bool) {
-	st := it.Stats()
-	return st.Size, st.ExactSize
+// A HasA consists of a reference back to the graph.QuadStore that it references,
+// a primary subiterator, a direction in which the quads for that subiterator point,
+// and a temporary holder for the iterator generated on Contains().
+type hasAContains struct {
+	qs      graph.QuadIndexer
+	primary graph.Iterator2Contains
+	dir     quad.Direction
+	results graph.Iterator2Next
+	result  graph.Ref
+	err     error
+}
+
+// Construct a new HasA iterator, given the quad subiterator, and the quad
+// direction for which it stands.
+func newHasAContains(qs graph.QuadIndexer, subIt graph.Iterator2Contains, d quad.Direction) graph.Iterator2Contains {
+	return &hasAContains{
+		qs:      qs,
+		primary: subIt,
+		dir:     d,
+	}
+}
+
+// Direction accessor.
+func (it *hasAContains) Direction() quad.Direction { return it.dir }
+
+// Pass the TagResults down the chain.
+func (it *hasAContains) TagResults(dst map[string]graph.Ref) {
+	it.primary.TagResults(dst)
+}
+
+func (it *hasAContains) String() string {
+	return fmt.Sprintf("HasA(%v)", it.dir)
+}
+
+// Check a value against our internal iterator. In order to do this, we must first open a new
+// iterator of "quads that have `val` in our direction", given to us by the quad store,
+// and then Next() values out of that iterator and Contains() them against our subiterator.
+func (it *hasAContains) Contains(ctx context.Context, val graph.Ref) bool {
+	if clog.V(4) {
+		clog.Infof("Id is %v", val)
+	}
+	// TODO(barakmich): Optimize this
+	if it.results != nil {
+		it.results.Close()
+	}
+	it.results = graph.As2(it.qs.QuadIterator(it.dir, val)).Iterate()
+	ok := it.nextContains(ctx)
+	if it.err != nil {
+		return false
+	}
+	return ok
+}
+
+// nextContains() is shared code between Contains() and GetNextResult() -- calls next on the
+// result iterator (a quad iterator based on the last checked value) and returns true if
+// another match is made.
+func (it *hasAContains) nextContains(ctx context.Context) bool {
+	if it.results == nil {
+		return false
+	}
+	for it.results.Next(ctx) {
+		link := it.results.Result()
+		if clog.V(4) {
+			clog.Infof("Quad is %v", it.qs.Quad(link))
+		}
+		if it.primary.Contains(ctx, link) {
+			it.result = it.qs.QuadDirection(link, it.dir)
+			return true
+		}
+	}
+	it.err = it.results.Err()
+	return false
+}
+
+// Get the next result that matches this branch.
+func (it *hasAContains) NextPath(ctx context.Context) bool {
+	// Order here is important. If the subiterator has a NextPath, then we
+	// need do nothing -- there is a next result, and we shouldn't move forward.
+	// However, we then need to get the next result from our last Contains().
+	//
+	// The upshot is, the end of NextPath() bubbles up from the bottom of the
+	// iterator tree up, and we need to respect that.
+	if clog.V(4) {
+		clog.Infof("HASA %p NextPath", it)
+	}
+	if it.primary.NextPath(ctx) {
+		return true
+	}
+	it.err = it.primary.Err()
+	if it.err != nil {
+		return false
+	}
+
+	result := it.nextContains(ctx) // Sets it.err if there's an error
+	if it.err != nil {
+		return false
+	}
+	if clog.V(4) {
+		clog.Infof("HASA %p NextPath Returns %v", it, result)
+	}
+	return result
+}
+
+func (it *hasAContains) Err() error {
+	return it.err
+}
+
+func (it *hasAContains) Result() graph.Ref {
+	return it.result
+}
+
+// Close the subiterator, the result iterator (if any) and the HasA. It closes
+// all subiterators it can, but returns the first error it encounters.
+func (it *hasAContains) Close() error {
+	err := it.primary.Close()
+	if it.results != nil {
+		if err2 := it.results.Close(); err2 != nil && err == nil {
+			err = err2
+		}
+	}
+	return err
 }
