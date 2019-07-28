@@ -142,9 +142,9 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		}
 	case *HasA:
 		hasa := it
-		s.PushHasa(n.ID, hasa.dir)
+		s.PushHasa(n.ID, hasa.it.dir)
 		s.nodeID++
-		newNode := s.MakeNode(hasa.primaryIt)
+		newNode := s.MakeNode(graph.AsLegacy(hasa.it.primary))
 		s.AddNode(newNode)
 		s.RemoveHasa()
 	case *Or:

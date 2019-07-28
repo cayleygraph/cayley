@@ -211,9 +211,7 @@ func optimizeSubIterators2(its []graph.Iterator2) []graph.Iterator2 {
 // Check a list of iterators for any Null iterators.
 func hasAnyNullIterators(its []graph.Iterator2) bool {
 	for _, it := range its {
-		if _, ok := it.(*null2); ok {
-			return true
-		} else if _, ok = graph.AsLegacy(it).(*Null); ok {
+		if IsNull2(it) {
 			return true
 		}
 	}

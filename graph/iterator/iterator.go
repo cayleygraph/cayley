@@ -30,6 +30,24 @@ var (
 
 type Morphism func(graph.Iterator) graph.Iterator
 
+func IsNull(it graph.Iterator) bool {
+	if _, ok := it.(*Null); ok {
+		return true
+	} else if _, ok := graph.As2(it).(*null2); ok {
+		return true
+	}
+	return false
+}
+
+func IsNull2(it graph.Iterator2) bool {
+	if _, ok := it.(*null2); ok {
+		return true
+	} else if _, ok := graph.AsLegacy(it).(*Null); ok {
+		return true
+	}
+	return false
+}
+
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
