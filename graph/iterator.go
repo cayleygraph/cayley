@@ -162,7 +162,41 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 	subs := it.SubIterators()
 	maxDepth := 0
 	for _, sub := range subs {
+		if s, ok := sub.(*legacyIter); ok {
+			h := Height2(s.it, func(it Iterator2) bool {
+				return filter(AsLegacy(it))
+			})
+			if h > maxDepth {
+				maxDepth = h
+			}
+			continue
+		}
 		h := Height(sub, filter)
+		if h > maxDepth {
+			maxDepth = h
+		}
+	}
+	return maxDepth + 1
+}
+
+// Height is a convienence function to measure the height of an iterator tree.
+func Height2(it Iterator2, filter func(Iterator2) bool) int {
+	if filter != nil && !filter(it) {
+		return 1
+	}
+	subs := it.SubIterators()
+	maxDepth := 0
+	for _, sub := range subs {
+		if s, ok := sub.(Iterator2Compat); ok {
+			h := Height(s.AsLegacy(), func(it Iterator) bool {
+				return filter(As2(it))
+			})
+			if h > maxDepth {
+				maxDepth = h
+			}
+			continue
+		}
+		h := Height2(sub, filter)
 		if h > maxDepth {
 			maxDepth = h
 		}
