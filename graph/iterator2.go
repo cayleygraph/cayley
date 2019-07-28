@@ -154,10 +154,17 @@ func (it *upgrade) SubIterators() []Iterator2 {
 }
 
 func (it *upgrade) Iterate() Iterator2Next {
+	it.Reset()
 	return it
 }
 func (it *upgrade) Lookup() Iterator2Contains {
+	it.Reset()
 	return it
+}
+func (it *upgrade) Close() error {
+	// FIXME(dennwc): this is incorrect, but we must do this to prevent closing iterators after
+	//                multiple calls to Iterate and/or Lookup
+	return nil
 }
 func (it *upgrade) AsLegacy() Iterator {
 	return it.Iterator
@@ -232,8 +239,10 @@ func (it *legacyIter) NextPath(ctx context.Context) bool {
 
 func (it *legacyIter) Contains(ctx context.Context, v Ref) bool {
 	if it.cont == nil {
+		// reset iterator by default
 		if it.next != nil {
-			panic("attempt to set a contains iterator on next")
+			it.next.Close()
+			it.next = nil
 		}
 		it.cont = it.it.Lookup()
 	}

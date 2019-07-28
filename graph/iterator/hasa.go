@@ -137,6 +137,7 @@ func (it *HasA) NextContains(ctx context.Context) bool {
 		if clog.V(4) {
 			clog.Infof("Quad is %v", it.qs.Quad(link))
 		}
+		// we expect this to reset the iterator if we were Next'ing
 		if it.primaryIt.Contains(ctx, link) {
 			it.result = it.qs.QuadDirection(link, it.dir)
 			return true
