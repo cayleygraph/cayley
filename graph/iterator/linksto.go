@@ -199,7 +199,7 @@ func (it *linksToNext) TagResults(dst map[string]graph.Ref) {
 }
 
 func (it *linksToNext) String() string {
-	return fmt.Sprintf("LinksTo(%v)", it.dir)
+	return fmt.Sprintf("LinksToNext(%v)", it.dir)
 }
 
 // Next()ing a LinksTo operates as described above.
@@ -290,7 +290,7 @@ func (it *linksToContains) TagResults(dst map[string]graph.Ref) {
 }
 
 func (it *linksToContains) String() string {
-	return fmt.Sprintf("LinksTo(%v)", it.dir)
+	return fmt.Sprintf("LinksToContains(%v)", it.dir)
 }
 
 // If it checks in the right direction for the subiterator, it is a valid link

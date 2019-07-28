@@ -29,6 +29,7 @@ var (
 )
 
 type Morphism func(graph.Iterator) graph.Iterator
+type Morphism2 func(graph.Iterator2) graph.Iterator2
 
 func IsNull(it graph.Iterator) bool {
 	if _, ok := it.(*Null); ok {
