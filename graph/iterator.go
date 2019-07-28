@@ -120,6 +120,11 @@ type Iterator interface {
 	Close() error
 }
 
+type IteratorFuture interface {
+	Iterator
+	As2() Iterator2
+}
+
 // DescribeIterator returns a description of the iterator tree.
 func DescribeIterator(it Iterator) Description {
 	sz, exact := it.Size()
@@ -162,8 +167,8 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 	subs := it.SubIterators()
 	maxDepth := 0
 	for _, sub := range subs {
-		if s, ok := sub.(*legacyIter); ok {
-			h := Height2(s.it, func(it Iterator2) bool {
+		if s, ok := sub.(IteratorFuture); ok {
+			h := Height2(s.As2(), func(it Iterator2) bool {
 				return filter(AsLegacy(it))
 			})
 			if h > maxDepth {

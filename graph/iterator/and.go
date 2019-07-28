@@ -21,7 +21,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.Iterator = &And{}
+var _ graph.IteratorFuture = &And{}
 
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
@@ -43,6 +43,11 @@ func NewAnd(sub ...graph.Iterator) *And {
 	return it
 }
 
+func (it *And) As2() graph.Iterator2 {
+	it.Close()
+	return it.it
+}
+
 // Add a subiterator to this And iterator.
 //
 // The first iterator that is added becomes the primary iterator. This is
@@ -59,6 +64,8 @@ func (it *And) AddOptionalIterator(sub graph.Iterator) *And {
 	it.it.AddOptionalIterator(graph.As2(sub))
 	return it
 }
+
+var _ graph.Iterator2Compat = &and2{}
 
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
@@ -112,6 +119,12 @@ func (it *and2) Lookup() graph.Iterator2Contains {
 		opt = append(opt, s.Lookup())
 	}
 	return newAndContains(sub, opt)
+}
+
+func (it *and2) AsLegacy() graph.Iterator {
+	it2 := &And{it: it}
+	it2.Iterator = graph.NewLegacy(it)
+	return it2
 }
 
 // Returns a slice of the subiterators, in order (primary iterator first).

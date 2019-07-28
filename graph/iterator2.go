@@ -101,9 +101,8 @@ func As2(it Iterator) Iterator2 {
 	if it == nil {
 		panic("nil iterator")
 	}
-	if it2, ok := it.(*legacyIter); ok {
-		it2.Close()
-		return it2.it
+	if it2, ok := it.(IteratorFuture); ok {
+		return it2.As2()
 	}
 	return &upgrade{it}
 }
@@ -112,9 +111,8 @@ func AsNext(it Iterator) Iterator2Next {
 	if it == nil {
 		panic("nil iterator")
 	}
-	if it2, ok := it.(*legacyIter); ok {
-		it2.Close()
-		return it2.it.Iterate()
+	if it2, ok := it.(IteratorFuture); ok {
+		return it2.As2().Iterate()
 	}
 	return &upgrade{it}
 }
@@ -123,9 +121,8 @@ func AsContains(it Iterator) Iterator2Contains {
 	if it == nil {
 		panic("nil iterator")
 	}
-	if it2, ok := it.(*legacyIter); ok {
-		it2.Close()
-		return it2.it.Lookup()
+	if it2, ok := it.(IteratorFuture); ok {
+		return it2.As2().Lookup()
 	}
 	return &upgrade{it}
 }
@@ -170,15 +167,21 @@ func (it *upgrade) AsLegacy() Iterator {
 	return it.Iterator
 }
 
-func AsLegacy(it Iterator2) Iterator {
+func NewLegacy(it Iterator2) Iterator {
 	if it == nil {
 		panic("nil iterator")
 	}
+	return &legacyIter{it: it}
+}
+
+func AsLegacy(it Iterator2) Iterator {
 	if it2, ok := it.(Iterator2Compat); ok {
 		return it2.AsLegacy()
 	}
-	return &legacyIter{it: it}
+	return NewLegacy(it)
 }
+
+var _ IteratorFuture = &legacyIter{}
 
 type legacyIter struct {
 	it   Iterator2
@@ -188,6 +191,11 @@ type legacyIter struct {
 
 func (it *legacyIter) String() string {
 	return it.it.String()
+}
+
+func (it *legacyIter) As2() Iterator2 {
+	it.Close()
+	return it.it
 }
 
 func (it *legacyIter) TagResults(m map[string]Ref) {

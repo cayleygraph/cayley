@@ -42,7 +42,7 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var _ graph.Iterator = &HasA{}
+var _ graph.IteratorFuture = &HasA{}
 
 // A HasA consists of a reference back to the graph.QuadStore that it references,
 // a primary subiterator, a direction in which the quads for that subiterator point,
@@ -62,8 +62,15 @@ func NewHasA(qs graph.QuadIndexer, subIt graph.Iterator, d quad.Direction) *HasA
 	return it
 }
 
+func (it *HasA) As2() graph.Iterator2 {
+	it.Close()
+	return it.it
+}
+
 // Direction accessor.
 func (it *HasA) Direction() quad.Direction { return it.it.Direction() }
+
+var _ graph.Iterator2Compat = &hasA{}
 
 // A HasA consists of a reference back to the graph.QuadStore that it references,
 // a primary subiterator, a direction in which the quads for that subiterator point,
@@ -90,6 +97,12 @@ func (it *hasA) Iterate() graph.Iterator2Next {
 
 func (it *hasA) Lookup() graph.Iterator2Contains {
 	return newHasAContains(it.qs, it.primary.Lookup(), it.dir)
+}
+
+func (it *hasA) AsLegacy() graph.Iterator {
+	it2 := &HasA{it: it}
+	it2.Iterator = graph.NewLegacy(it)
+	return it2
 }
 
 // Return our sole subiterator.
