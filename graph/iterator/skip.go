@@ -17,37 +17,37 @@ type Skip struct {
 
 func NewSkip(primaryIt graph.Iterator, skip int64) *Skip {
 	it := &Skip{
-		it: newSkip(graph.As2(primaryIt), skip),
+		it: newSkip(graph.AsShape(primaryIt), skip),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *Skip) As2() graph.Iterator2 {
+func (it *Skip) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = &skip{}
+var _ graph.ShapeCompat = &skip{}
 
 // Skip iterator will skip certain number of values from primary iterator.
 type skip struct {
 	skip      int64
-	primaryIt graph.Iterator2
+	primaryIt graph.Shape
 }
 
-func newSkip(primaryIt graph.Iterator2, off int64) *skip {
+func newSkip(primaryIt graph.Shape, off int64) *skip {
 	return &skip{
 		skip:      off,
 		primaryIt: primaryIt,
 	}
 }
 
-func (it *skip) Iterate() graph.Iterator2Next {
+func (it *skip) Iterate() graph.Scanner {
 	return newSkipNext(it.primaryIt.Iterate(), it.skip)
 }
 
-func (it *skip) Lookup() graph.Iterator2Contains {
+func (it *skip) Lookup() graph.Index {
 	return newSkipContains(it.primaryIt.Lookup(), it.skip)
 }
 
@@ -58,11 +58,11 @@ func (it *skip) AsLegacy() graph.Iterator {
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *skip) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.primaryIt}
+func (it *skip) SubIterators() []graph.Shape {
+	return []graph.Shape{it.primaryIt}
 }
 
-func (it *skip) Optimize() (graph.Iterator2, bool) {
+func (it *skip) Optimize() (graph.Shape, bool) {
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()
 	if it.skip == 0 { // nothing to skip
 		return optimizedPrimaryIt, true
@@ -99,10 +99,10 @@ func (it *skip) String() string {
 type skipNext struct {
 	skip      int64
 	skipped   int64
-	primaryIt graph.Iterator2Next
+	primaryIt graph.Scanner
 }
 
-func newSkipNext(primaryIt graph.Iterator2Next, skip int64) *skipNext {
+func newSkipNext(primaryIt graph.Scanner, skip int64) *skipNext {
 	return &skipNext{
 		skip:      skip,
 		primaryIt: primaryIt,
@@ -160,10 +160,10 @@ func (it *skipNext) String() string {
 type skipContains struct {
 	skip      int64
 	skipped   int64
-	primaryIt graph.Iterator2Contains
+	primaryIt graph.Index
 }
 
-func newSkipContains(primaryIt graph.Iterator2Contains, skip int64) *skipContains {
+func newSkipContains(primaryIt graph.Index, skip int64) *skipContains {
 	return &skipContains{
 		skip:      skip,
 		primaryIt: primaryIt,

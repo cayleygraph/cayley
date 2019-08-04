@@ -16,27 +16,27 @@ func Tag(it graph.Iterator, tag string) graph.Iterator {
 	if s, ok := it.(graph.Tagger); ok {
 		s.AddTags(tag)
 		return s
-	} else if s, ok := graph.As2(it).(graph.Tagger2); ok {
+	} else if s, ok := graph.AsShape(it).(graph.TaggerShape); ok {
 		s.AddTags(tag)
 		return graph.AsLegacy(s)
 	}
 	return NewSave(it, tag)
 }
 
-func Tag2(it graph.Iterator2, tag string) graph.Iterator2 {
-	if s, ok := it.(graph.Tagger2); ok {
+func Tag2(it graph.Shape, tag string) graph.Shape {
+	if s, ok := it.(graph.TaggerShape); ok {
 		s.AddTags(tag)
 		return s
 	} else if s, ok := graph.AsLegacy(it).(graph.Tagger); ok {
 		s.AddTags(tag)
-		return graph.As2(s)
+		return graph.AsShape(s)
 	}
 	return newSave(it, tag)
 }
 
 func NewSave(on graph.Iterator, tags ...string) *Save {
 	it := &Save{
-		it: newSave(graph.As2(on), tags...),
+		it: newSave(graph.AsShape(on), tags...),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
@@ -47,7 +47,7 @@ type Save struct {
 	graph.Iterator
 }
 
-func (it *Save) As2() graph.Iterator2 {
+func (it *Save) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
@@ -76,27 +76,27 @@ func (it *Save) CopyFromTagger(st graph.TaggerBase) {
 }
 
 var (
-	_ graph.Iterator2Compat = (*save)(nil)
-	_ graph.Tagger2         = (*save)(nil)
+	_ graph.ShapeCompat = (*save)(nil)
+	_ graph.TaggerShape = (*save)(nil)
 )
 
-func newSave(on graph.Iterator2, tags ...string) *save {
+func newSave(on graph.Shape, tags ...string) *save {
 	s := &save{it: on}
 	s.AddTags(tags...)
 	return s
 }
 
 type save struct {
-	it        graph.Iterator2
+	it        graph.Shape
 	tags      []string
 	fixedTags map[string]graph.Ref
 }
 
-func (it *save) Iterate() graph.Iterator2Next {
+func (it *save) Iterate() graph.Scanner {
 	return newSaveNext(it.it.Iterate(), it.tags, it.fixedTags)
 }
 
-func (it *save) Lookup() graph.Iterator2Contains {
+func (it *save) Lookup() graph.Index {
 	return newSaveContains(it.it.Lookup(), it.tags, it.fixedTags)
 }
 
@@ -155,17 +155,17 @@ func (it *save) Size() (int64, bool) {
 	return it.it.Size()
 }
 
-func (it *save) Optimize() (nit graph.Iterator2, no bool) {
+func (it *save) Optimize() (nit graph.Shape, no bool) {
 	sub, ok := it.it.Optimize()
 	if len(it.tags) == 0 && len(it.fixedTags) == 0 {
 		return sub, true
 	}
-	if st, ok2 := sub.(graph.Tagger2); ok2 {
+	if st, ok2 := sub.(graph.TaggerShape); ok2 {
 		st.CopyFromTagger(it)
 		return st, true
 	} else if st, ok2 := graph.AsLegacy(sub).(graph.Tagger); ok2 {
 		st.CopyFromTagger(it)
-		return graph.As2(st), true
+		return graph.AsShape(st), true
 	}
 	if !ok {
 		return it, false
@@ -175,16 +175,16 @@ func (it *save) Optimize() (nit graph.Iterator2, no bool) {
 	return s, true
 }
 
-func (it *save) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.it}
+func (it *save) SubIterators() []graph.Shape {
+	return []graph.Shape{it.it}
 }
 
-func newSaveNext(it graph.Iterator2Next, tags []string, fixed map[string]graph.Ref) *saveNext {
+func newSaveNext(it graph.Scanner, tags []string, fixed map[string]graph.Ref) *saveNext {
 	return &saveNext{it: it, tags: tags, fixedTags: fixed}
 }
 
 type saveNext struct {
-	it        graph.Iterator2Next
+	it        graph.Scanner
 	tags      []string
 	fixedTags map[string]graph.Ref
 }
@@ -226,12 +226,12 @@ func (it *saveNext) Close() error {
 	return it.it.Close()
 }
 
-func newSaveContains(it graph.Iterator2Contains, tags []string, fixed map[string]graph.Ref) *saveContains {
+func newSaveContains(it graph.Index, tags []string, fixed map[string]graph.Ref) *saveContains {
 	return &saveContains{it: it, tags: tags, fixed: fixed}
 }
 
 type saveContains struct {
-	it    graph.Iterator2Contains
+	it    graph.Index
 	tags  []string
 	fixed map[string]graph.Ref
 }

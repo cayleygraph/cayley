@@ -29,19 +29,19 @@ var (
 )
 
 type Morphism func(graph.Iterator) graph.Iterator
-type Morphism2 func(graph.Iterator2) graph.Iterator2
+type Morphism2 func(graph.Shape) graph.Shape
 
 func IsNull(it graph.Iterator) bool {
 	if _, ok := it.(*Null); ok {
 		return true
-	} else if _, ok := graph.As2(it).(*null2); ok {
+	} else if _, ok := graph.AsShape(it).(*null); ok {
 		return true
 	}
 	return false
 }
 
-func IsNull2(it graph.Iterator2) bool {
-	if _, ok := it.(*null2); ok {
+func IsNull2(it graph.Shape) bool {
+	if _, ok := it.(*null); ok {
 		return true
 	} else if _, ok := graph.AsLegacy(it).(*Null); ok {
 		return true
@@ -166,79 +166,79 @@ func (it *Error) Stats() graph.IteratorStats {
 }
 
 var (
-	_ graph.Iterator2Compat = &null2{}
-	_ graph.Iterator2Compat = &error2{}
+	_ graph.ShapeCompat = &null{}
+	_ graph.ShapeCompat = &error2{}
 )
 
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
-type null2 struct{}
+type null struct{}
 
 // Fairly useless New function.
-func newNull2() *null2 {
-	return &null2{}
+func newNull() *null {
+	return &null{}
 }
 
-func (it *null2) Iterate() graph.Iterator2Next {
+func (it *null) Iterate() graph.Scanner {
 	return it
 }
 
-func (it *null2) Lookup() graph.Iterator2Contains {
+func (it *null) Lookup() graph.Index {
 	return it
 }
 
-func (it *null2) AsLegacy() graph.Iterator {
+func (it *null) AsLegacy() graph.Iterator {
 	return NewNull()
 }
 
 // Fill the map based on the tags assigned to this iterator.
-func (it *null2) TagResults(dst map[string]graph.Ref) {}
+func (it *null) TagResults(dst map[string]graph.Ref) {}
 
-func (it *null2) Contains(ctx context.Context, v graph.Ref) bool {
+func (it *null) Contains(ctx context.Context, v graph.Ref) bool {
 	return false
 }
 
 // A good iterator will close itself when it returns true.
 // Null has nothing it needs to do.
-func (it *null2) Optimize() (graph.Iterator2, bool) { return it, false }
+func (it *null) Optimize() (graph.Shape, bool) { return it, false }
 
-func (it *null2) String() string {
+func (it *null) String() string {
 	return "Null"
 }
 
-func (it *null2) Next(ctx context.Context) bool {
+func (it *null) Next(ctx context.Context) bool {
 	return false
 }
 
-func (it *null2) Err() error {
+func (it *null) Err() error {
 	return nil
 }
 
-func (it *null2) Result() graph.Ref {
+func (it *null) Result() graph.Ref {
 	return nil
 }
 
-func (it *null2) SubIterators() []graph.Iterator2 {
+func (it *null) SubIterators() []graph.Shape {
 	return nil
 }
 
-func (it *null2) NextPath(ctx context.Context) bool {
+func (it *null) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *null2) Size() (int64, bool) {
+func (it *null) Size() (int64, bool) {
 	return 0, true
 }
 
-func (it *null2) Reset() {}
+func (it *null) Reset() {}
 
-func (it *null2) Close() error {
+func (it *null) Close() error {
 	return nil
 }
 
 // A null iterator costs nothing. Use it!
-func (it *null2) Stats() graph.IteratorStats {
+func (it *null) Stats() graph.IteratorStats {
 	return graph.IteratorStats{}
 }
 
@@ -251,11 +251,11 @@ func newError2(err error) *error2 {
 	return &error2{err: err}
 }
 
-func (it *error2) Iterate() graph.Iterator2Next {
+func (it *error2) Iterate() graph.Scanner {
 	return it
 }
 
-func (it *error2) Lookup() graph.Iterator2Contains {
+func (it *error2) Lookup() graph.Index {
 	return it
 }
 
@@ -270,7 +270,7 @@ func (it *error2) Contains(ctx context.Context, v graph.Ref) bool {
 	return false
 }
 
-func (it *error2) Optimize() (graph.Iterator2, bool) { return it, false }
+func (it *error2) Optimize() (graph.Shape, bool) { return it, false }
 
 func (it *error2) String() string {
 	return fmt.Sprintf("Error(%v)", it.err)
@@ -288,7 +288,7 @@ func (it *error2) Result() graph.Ref {
 	return nil
 }
 
-func (it *error2) SubIterators() []graph.Iterator2 {
+func (it *error2) SubIterators() []graph.Shape {
 	return nil
 }
 

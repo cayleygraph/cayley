@@ -35,9 +35,9 @@ type Or struct {
 }
 
 func NewOr(sub ...graph.Iterator) *Or {
-	in := make([]graph.Iterator2, 0, len(sub))
+	in := make([]graph.Shape, 0, len(sub))
 	for _, s := range sub {
-		in = append(in, graph.As2(s))
+		in = append(in, graph.AsShape(s))
 	}
 	it := &Or{
 		it: newOr(in...),
@@ -47,9 +47,9 @@ func NewOr(sub ...graph.Iterator) *Or {
 }
 
 func NewShortCircuitOr(sub ...graph.Iterator) *Or {
-	in := make([]graph.Iterator2, 0, len(sub))
+	in := make([]graph.Shape, 0, len(sub))
 	for _, s := range sub {
-		in = append(in, graph.As2(s))
+		in = append(in, graph.AsShape(s))
 	}
 	it := &Or{
 		it: newShortCircuitOr(in...),
@@ -58,29 +58,29 @@ func NewShortCircuitOr(sub ...graph.Iterator) *Or {
 	return it
 }
 
-func (it *Or) As2() graph.Iterator2 {
+func (it *Or) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
 // Add a subiterator to this Or graph.iterator. Order matters.
 func (it *Or) AddSubIterator(sub graph.Iterator) {
-	it.it.AddSubIterator(graph.As2(sub))
+	it.it.AddSubIterator(graph.AsShape(sub))
 }
 
-var _ graph.Iterator2Compat = &or{}
+var _ graph.ShapeCompat = &or{}
 
 type or struct {
 	isShortCircuiting bool
-	sub               []graph.Iterator2
+	sub               []graph.Shape
 	curInd            int
 	result            graph.Ref
 	err               error
 }
 
-func newOr(sub ...graph.Iterator2) *or {
+func newOr(sub ...graph.Shape) *or {
 	it := &or{
-		sub:    make([]graph.Iterator2, 0, 20),
+		sub:    make([]graph.Shape, 0, 20),
 		curInd: -1,
 	}
 	for _, s := range sub {
@@ -89,9 +89,9 @@ func newOr(sub ...graph.Iterator2) *or {
 	return it
 }
 
-func newShortCircuitOr(sub ...graph.Iterator2) *or {
+func newShortCircuitOr(sub ...graph.Shape) *or {
 	it := &or{
-		sub:               make([]graph.Iterator2, 0, 20),
+		sub:               make([]graph.Shape, 0, 20),
 		isShortCircuiting: true,
 		curInd:            -1,
 	}
@@ -101,16 +101,16 @@ func newShortCircuitOr(sub ...graph.Iterator2) *or {
 	return it
 }
 
-func (it *or) Iterate() graph.Iterator2Next {
-	sub := make([]graph.Iterator2Next, 0, len(it.sub))
+func (it *or) Iterate() graph.Scanner {
+	sub := make([]graph.Scanner, 0, len(it.sub))
 	for _, s := range it.sub {
 		sub = append(sub, s.Iterate())
 	}
 	return newOrNext(sub, it.isShortCircuiting)
 }
 
-func (it *or) Lookup() graph.Iterator2Contains {
-	sub := make([]graph.Iterator2Contains, 0, len(it.sub))
+func (it *or) Lookup() graph.Index {
+	sub := make([]graph.Index, 0, len(it.sub))
 	for _, s := range it.sub {
 		sub = append(sub, s.Lookup())
 	}
@@ -124,7 +124,7 @@ func (it *or) AsLegacy() graph.Iterator {
 }
 
 // Returns a list.List of the subiterators, in order. The returned slice must not be modified.
-func (it *or) SubIterators() []graph.Iterator2 {
+func (it *or) SubIterators() []graph.Shape {
 	return it.sub
 }
 
@@ -133,7 +133,7 @@ func (it *or) String() string {
 }
 
 // Add a subiterator to this Or graph.iterator. Order matters.
-func (it *or) AddSubIterator(sub graph.Iterator2) {
+func (it *or) AddSubIterator(sub graph.Shape) {
 	it.sub = append(it.sub, sub)
 }
 
@@ -165,7 +165,7 @@ func (it *or) Size() (int64, bool) {
 	return val, b
 }
 
-func (it *or) Optimize() (graph.Iterator2, bool) {
+func (it *or) Optimize() (graph.Shape, bool) {
 	old := it.SubIterators()
 	optIts := optimizeSubIterators2(old)
 	newOr := newOr()
@@ -208,13 +208,13 @@ func (it *or) Stats() graph.IteratorStats {
 
 type orNext struct {
 	shortCircuit bool
-	sub          []graph.Iterator2Next
+	sub          []graph.Scanner
 	curInd       int
 	result       graph.Ref
 	err          error
 }
 
-func newOrNext(sub []graph.Iterator2Next, shortCircuit bool) *orNext {
+func newOrNext(sub []graph.Scanner, shortCircuit bool) *orNext {
 	return &orNext{
 		sub:          sub,
 		curInd:       -1,
@@ -312,13 +312,13 @@ var _ graph.Iterator = &Or{}
 
 type orContains struct {
 	shortCircuit bool
-	sub          []graph.Iterator2Contains
+	sub          []graph.Index
 	curInd       int
 	result       graph.Ref
 	err          error
 }
 
-func newOrContains(sub []graph.Iterator2Contains, shortCircuit bool) *orContains {
+func newOrContains(sub []graph.Index, shortCircuit bool) *orContains {
 	return &orContains{
 		sub:          sub,
 		curInd:       -1,
