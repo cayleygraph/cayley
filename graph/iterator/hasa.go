@@ -152,11 +152,6 @@ func (it *hasA) Stats() graph.IteratorStats {
 	}
 }
 
-func (it *hasA) Size() (int64, bool) {
-	st := it.Stats()
-	return st.Size, st.ExactSize
-}
-
 // A HasA consists of a reference back to the graph.QuadStore that it references,
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().

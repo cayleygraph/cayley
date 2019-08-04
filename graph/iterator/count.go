@@ -84,10 +84,6 @@ func (it *count) Stats() graph.IteratorStats {
 	return stats
 }
 
-func (it *count) Size() (int64, bool) {
-	return 1, true
-}
-
 func (it *count) String() string { return "Count" }
 
 // Count iterator returns one element with size of underlying iterator.

@@ -73,22 +73,13 @@ func (it *skip) Optimize() (graph.Shape, bool) {
 
 func (it *skip) Stats() graph.IteratorStats {
 	primaryStats := it.primaryIt.Stats()
-	primaryStats.Size -= it.skip
-	if primaryStats.Size < 0 {
-		primaryStats.Size = 0
-	}
-	return primaryStats
-}
-
-func (it *skip) Size() (int64, bool) {
-	primarySize, exact := it.primaryIt.Size()
-	if exact {
-		primarySize -= it.skip
-		if primarySize < 0 {
-			primarySize = 0
+	if primaryStats.ExactSize {
+		primaryStats.Size -= it.skip
+		if primaryStats.Size < 0 {
+			primaryStats.Size = 0
 		}
 	}
-	return primarySize, exact
+	return primaryStats
 }
 
 func (it *skip) String() string {

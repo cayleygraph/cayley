@@ -159,22 +159,6 @@ func (it *and) AddOptionalIterator(sub graph.Shape) *and {
 	return it
 }
 
-// Returns the approximate size of the And iterator. Because we're dealing
-// with an intersection, we know that the largest we can be is the size of the
-// smallest iterator. This is the heuristic we shall follow. Better heuristics
-// welcome.
-func (it *and) Size() (sz int64, exact bool) {
-	exact = true
-	for i, sub := range it.sub {
-		sz2, exact2 := sub.Size()
-		if i == 0 || sz > sz2 {
-			sz = sz2
-		}
-		exact = exact2 && exact
-	}
-	return sz, exact
-}
-
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type andNext struct {

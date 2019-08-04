@@ -58,11 +58,6 @@ type Shape interface {
 	// thing, and not exact, but a useful heuristic.
 	Stats() IteratorStats
 
-	// Helpful accessor for the number of things in the iterator. The first return
-	// value is the size, and the second return value is whether that number is exact,
-	// or a conservative estimate.
-	Size() (int64, bool)
-
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
 	// returns (the new iterator, true), if not, it returns (self, false).
@@ -253,7 +248,8 @@ func (it *legacyIter) Stats() IteratorStats {
 }
 
 func (it *legacyIter) Size() (int64, bool) {
-	return it.s.Size()
+	st := it.s.Stats()
+	return st.Size, st.ExactSize
 }
 
 func (it *legacyIter) Optimize() (Iterator, bool) {

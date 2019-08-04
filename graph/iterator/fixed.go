@@ -121,20 +121,14 @@ func (it *fixed) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-// Size is the number of values stored.
-func (it *fixed) Size() (int64, bool) {
-	return int64(len(it.values)), true
-}
-
 // As we right now have to scan the entire list, Next and Contains are linear with the
 // size. However, a better data structure could remove these limits.
 func (it *fixed) Stats() graph.IteratorStats {
-	s, exact := it.Size()
 	return graph.IteratorStats{
 		ContainsCost: s,
 		NextCost:     s,
-		Size:         s,
-		ExactSize:    exact,
+		Size:         int64(len(it.values)),
+		ExactSize:    true,
 	}
 }
 

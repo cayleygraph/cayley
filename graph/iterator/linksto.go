@@ -135,11 +135,11 @@ func (it *linksTo) Stats() graph.IteratorStats {
 		NextCost:     nextConstant + subitStats.NextCost,
 		ContainsCost: checkConstant + subitStats.ContainsCost,
 	}
-	st.Size, st.ExactSize = it.Size()
+	st.Size, st.ExactSize = it.getSize()
 	return st
 }
 
-func (it *linksTo) Size() (int64, bool) {
+func (it *linksTo) getSize() (int64, bool) {
 	if it.size.Size != 0 {
 		return it.size.Size, it.size.Exact
 	}
