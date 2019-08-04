@@ -21,27 +21,105 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var _ graph.Iterator = &ValueFilter{}
+var _ graph.IteratorFuture = &ValueFilter{}
 
 type ValueFilter struct {
-	sub    graph.Iterator
-	filter ValueFilterFunc
-	qs     graph.Namer
-	result graph.Ref
-	err    error
+	it *valueFilter
+	graph.Iterator
 }
 
 type ValueFilterFunc func(quad.Value) (bool, error)
 
 func NewValueFilter(qs graph.Namer, sub graph.Iterator, filter ValueFilterFunc) *ValueFilter {
-	return &ValueFilter{
+	it := &ValueFilter{
+		it: newValueFilter(qs, graph.As2(sub), filter),
+	}
+	it.Iterator = graph.NewLegacy(it.it)
+	return it
+}
+
+func (it *ValueFilter) As2() graph.Iterator2 {
+	it.Close()
+	return it.it
+}
+
+var _ graph.Iterator2Compat = (*valueFilter)(nil)
+
+type valueFilter struct {
+	sub    graph.Iterator2
+	filter ValueFilterFunc
+	qs     graph.Namer
+}
+
+func newValueFilter(qs graph.Namer, sub graph.Iterator2, filter ValueFilterFunc) *valueFilter {
+	return &valueFilter{
 		sub:    sub,
 		qs:     qs,
 		filter: filter,
 	}
 }
 
-func (it *ValueFilter) doFilter(val graph.Ref) bool {
+func (it *valueFilter) Iterate() graph.Iterator2Next {
+	return newValueFilterNext(it.qs, it.sub.Iterate(), it.filter)
+}
+
+func (it *valueFilter) Lookup() graph.Iterator2Contains {
+	return newValueFilterContains(it.qs, it.sub.Lookup(), it.filter)
+}
+
+func (it *valueFilter) AsLegacy() graph.Iterator {
+	it2 := &ValueFilter{it: it}
+	it2.Iterator = graph.NewLegacy(it)
+	return it2
+}
+
+func (it *valueFilter) SubIterators() []graph.Iterator2 {
+	return []graph.Iterator2{it.sub}
+}
+
+func (it *valueFilter) String() string {
+	return "ValueFilter"
+}
+
+// There's nothing to optimize, locally, for a value-comparison iterator.
+// Replace the underlying iterator if need be.
+// potentially replace it.
+func (it *valueFilter) Optimize() (graph.Iterator2, bool) {
+	newSub, changed := it.sub.Optimize()
+	if changed {
+		it.sub = newSub
+	}
+	return it, true
+}
+
+// We're only as expensive as our subiterator.
+// Again, optimized value comparison iterators should do better.
+func (it *valueFilter) Stats() graph.IteratorStats {
+	return it.sub.Stats()
+}
+
+func (it *valueFilter) Size() (int64, bool) {
+	sz, _ := it.sub.Size()
+	return sz / 2, false
+}
+
+type valueFilterNext struct {
+	sub    graph.Iterator2Next
+	filter ValueFilterFunc
+	qs     graph.Namer
+	result graph.Ref
+	err    error
+}
+
+func newValueFilterNext(qs graph.Namer, sub graph.Iterator2Next, filter ValueFilterFunc) *valueFilterNext {
+	return &valueFilterNext{
+		sub:    sub,
+		qs:     qs,
+		filter: filter,
+	}
+}
+
+func (it *valueFilterNext) doFilter(val graph.Ref) bool {
 	qval := it.qs.NameOf(val)
 	ok, err := it.filter(qval)
 	if err != nil {
@@ -50,17 +128,11 @@ func (it *ValueFilter) doFilter(val graph.Ref) bool {
 	return ok
 }
 
-func (it *ValueFilter) Close() error {
+func (it *valueFilterNext) Close() error {
 	return it.sub.Close()
 }
 
-func (it *ValueFilter) Reset() {
-	it.sub.Reset()
-	it.err = nil
-	it.result = nil
-}
-
-func (it *ValueFilter) Next(ctx context.Context) bool {
+func (it *valueFilterNext) Next(ctx context.Context) bool {
 	for it.sub.Next(ctx) {
 		val := it.sub.Result()
 		if it.doFilter(val) {
@@ -72,34 +144,70 @@ func (it *ValueFilter) Next(ctx context.Context) bool {
 	return false
 }
 
-func (it *ValueFilter) Err() error {
+func (it *valueFilterNext) Err() error {
 	return it.err
 }
 
-func (it *ValueFilter) Result() graph.Ref {
+func (it *valueFilterNext) Result() graph.Ref {
 	return it.result
 }
 
-func (it *ValueFilter) NextPath(ctx context.Context) bool {
-	for {
-		hasNext := it.sub.NextPath(ctx)
-		if !hasNext {
-			it.err = it.sub.Err()
-			return false
-		}
-		if it.doFilter(it.sub.Result()) {
-			break
-		}
+func (it *valueFilterNext) NextPath(ctx context.Context) bool {
+	return it.sub.NextPath(ctx)
+}
+
+// If we failed the check, then the subiterator should not contribute to the result
+// set. Otherwise, go ahead and tag it.
+func (it *valueFilterNext) TagResults(dst map[string]graph.Ref) {
+	it.sub.TagResults(dst)
+}
+
+func (it *valueFilterNext) String() string {
+	return "ValueFilterNext"
+}
+
+type valueFilterContains struct {
+	sub    graph.Iterator2Contains
+	filter ValueFilterFunc
+	qs     graph.Namer
+	result graph.Ref
+	err    error
+}
+
+func newValueFilterContains(qs graph.Namer, sub graph.Iterator2Contains, filter ValueFilterFunc) *valueFilterContains {
+	return &valueFilterContains{
+		sub:    sub,
+		qs:     qs,
+		filter: filter,
 	}
-	it.result = it.sub.Result()
-	return true
 }
 
-func (it *ValueFilter) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.sub}
+func (it *valueFilterContains) doFilter(val graph.Ref) bool {
+	qval := it.qs.NameOf(val)
+	ok, err := it.filter(qval)
+	if err != nil {
+		it.err = err
+	}
+	return ok
 }
 
-func (it *ValueFilter) Contains(ctx context.Context, val graph.Ref) bool {
+func (it *valueFilterContains) Close() error {
+	return it.sub.Close()
+}
+
+func (it *valueFilterContains) Err() error {
+	return it.err
+}
+
+func (it *valueFilterContains) Result() graph.Ref {
+	return it.result
+}
+
+func (it *valueFilterContains) NextPath(ctx context.Context) bool {
+	return it.sub.NextPath(ctx)
+}
+
+func (it *valueFilterContains) Contains(ctx context.Context, val graph.Ref) bool {
 	if !it.doFilter(val) {
 		return false
 	}
@@ -112,33 +220,10 @@ func (it *ValueFilter) Contains(ctx context.Context, val graph.Ref) bool {
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *ValueFilter) TagResults(dst map[string]graph.Ref) {
+func (it *valueFilterContains) TagResults(dst map[string]graph.Ref) {
 	it.sub.TagResults(dst)
 }
 
-func (it *ValueFilter) String() string {
-	return "ValueFilter"
-}
-
-// There's nothing to optimize, locally, for a value-comparison iterator.
-// Replace the underlying iterator if need be.
-// potentially replace it.
-func (it *ValueFilter) Optimize() (graph.Iterator, bool) {
-	newSub, changed := it.sub.Optimize()
-	if changed {
-		it.sub.Close()
-		it.sub = newSub
-	}
-	return it, false
-}
-
-// We're only as expensive as our subiterator.
-// Again, optimized value comparison iterators should do better.
-func (it *ValueFilter) Stats() graph.IteratorStats {
-	return it.sub.Stats()
-}
-
-func (it *ValueFilter) Size() (int64, bool) {
-	sz, _ := it.sub.Size()
-	return sz / 2, false
+func (it *valueFilterContains) String() string {
+	return "ValueFilterContains"
 }
