@@ -16,35 +16,35 @@ type Unique struct {
 
 func NewUnique(subIt graph.Iterator) *Unique {
 	it := &Unique{
-		it: newUnique(graph.As2(subIt)),
+		it: newUnique(graph.AsShape(subIt)),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *Unique) As2() graph.Iterator2 {
+func (it *Unique) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = (*unique)(nil)
+var _ graph.ShapeCompat = (*unique)(nil)
 
 // Unique iterator removes duplicate values from it's subiterator.
 type unique struct {
-	subIt graph.Iterator2
+	subIt graph.Shape
 }
 
-func newUnique(subIt graph.Iterator2) *unique {
+func newUnique(subIt graph.Shape) *unique {
 	return &unique{
 		subIt: subIt,
 	}
 }
 
-func (it *unique) Iterate() graph.Iterator2Next {
+func (it *unique) Iterate() graph.Scanner {
 	return newUniqueNext(it.subIt.Iterate())
 }
 
-func (it *unique) Lookup() graph.Iterator2Contains {
+func (it *unique) Lookup() graph.Index {
 	return newUniqueContains(it.subIt.Lookup())
 }
 
@@ -56,11 +56,11 @@ func (it *unique) AsLegacy() graph.Iterator {
 
 // SubIterators returns a slice of the sub iterators. The first iterator is the
 // primary iterator, for which the complement is generated.
-func (it *unique) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.subIt}
+func (it *unique) SubIterators() []graph.Shape {
+	return []graph.Shape{it.subIt}
 }
 
-func (it *unique) Optimize() (graph.Iterator2, bool) {
+func (it *unique) Optimize() (graph.Shape, bool) {
 	newIt, optimized := it.subIt.Optimize()
 	if optimized {
 		it.subIt = newIt
@@ -91,13 +91,13 @@ func (it *unique) String() string {
 
 // Unique iterator removes duplicate values from it's subiterator.
 type uniqueNext struct {
-	subIt  graph.Iterator2Next
+	subIt  graph.Scanner
 	result graph.Ref
 	err    error
 	seen   map[interface{}]bool
 }
 
-func newUniqueNext(subIt graph.Iterator2Next) *uniqueNext {
+func newUniqueNext(subIt graph.Scanner) *uniqueNext {
 	return &uniqueNext{
 		subIt: subIt,
 		seen:  make(map[interface{}]bool),
@@ -153,10 +153,10 @@ func (it *uniqueNext) String() string {
 
 // Unique iterator removes duplicate values from it's subiterator.
 type uniqueContains struct {
-	subIt graph.Iterator2Contains
+	subIt graph.Index
 }
 
-func newUniqueContains(subIt graph.Iterator2Contains) *uniqueContains {
+func newUniqueContains(subIt graph.Index) *uniqueContains {
 	return &uniqueContains{
 		subIt: subIt,
 	}

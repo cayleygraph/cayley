@@ -18,38 +18,38 @@ type Limit struct {
 
 func NewLimit(primaryIt graph.Iterator, limit int64) *Limit {
 	it := &Limit{
-		it: newLimit(graph.As2(primaryIt), limit),
+		it: newLimit(graph.AsShape(primaryIt), limit),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *Limit) As2() graph.Iterator2 {
+func (it *Limit) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = &limit{}
+var _ graph.ShapeCompat = &limit{}
 
 // Limit iterator will stop iterating if certain a number of values were encountered.
 // Zero and negative limit values means no limit.
 type limit struct {
 	limit     int64
-	primaryIt graph.Iterator2
+	primaryIt graph.Shape
 }
 
-func newLimit(primaryIt graph.Iterator2, max int64) *limit {
+func newLimit(primaryIt graph.Shape, max int64) *limit {
 	return &limit{
 		limit:     max,
 		primaryIt: primaryIt,
 	}
 }
 
-func (it *limit) Iterate() graph.Iterator2Next {
+func (it *limit) Iterate() graph.Scanner {
 	return newLimitNext(it.primaryIt.Iterate(), it.limit)
 }
 
-func (it *limit) Lookup() graph.Iterator2Contains {
+func (it *limit) Lookup() graph.Index {
 	return newLimitContains(it.primaryIt.Lookup(), it.limit)
 }
 
@@ -60,11 +60,11 @@ func (it *limit) AsLegacy() graph.Iterator {
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *limit) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.primaryIt}
+func (it *limit) SubIterators() []graph.Shape {
+	return []graph.Shape{it.primaryIt}
 }
 
-func (it *limit) Optimize() (graph.Iterator2, bool) {
+func (it *limit) Optimize() (graph.Shape, bool) {
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()
 	if it.limit <= 0 { // no limit
 		return optimizedPrimaryIt, true
@@ -98,10 +98,10 @@ func (it *limit) String() string {
 type limitNext struct {
 	limit     int64
 	count     int64
-	primaryIt graph.Iterator2Next
+	primaryIt graph.Scanner
 }
 
-func newLimitNext(primaryIt graph.Iterator2Next, limit int64) *limitNext {
+func newLimitNext(primaryIt graph.Scanner, limit int64) *limitNext {
 	return &limitNext{
 		limit:     limit,
 		primaryIt: primaryIt,
@@ -160,10 +160,10 @@ func (it *limitNext) String() string {
 type limitContains struct {
 	limit     int64
 	count     int64
-	primaryIt graph.Iterator2Contains
+	primaryIt graph.Index
 }
 
-func newLimitContains(primaryIt graph.Iterator2Contains, limit int64) *limitContains {
+func newLimitContains(primaryIt graph.Index, limit int64) *limitContains {
 	return &limitContains{
 		limit:     limit,
 		primaryIt: primaryIt,

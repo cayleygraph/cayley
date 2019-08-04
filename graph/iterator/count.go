@@ -19,38 +19,38 @@ type Count struct {
 // qs may be nil - it's used to check if count Contains (is) a given value.
 func NewCount(sub graph.Iterator, qs graph.Namer) *Count {
 	it := &Count{
-		it: newCount(graph.As2(sub), qs),
+		it: newCount(graph.AsShape(sub), qs),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *Count) As2() graph.Iterator2 {
+func (it *Count) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = &count{}
+var _ graph.ShapeCompat = &count{}
 
 // Count iterator returns one element with size of underlying iterator.
 type count struct {
-	it graph.Iterator2
+	it graph.Shape
 	qs graph.Namer
 }
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
 // qs may be nil - it's used to check if count Contains (is) a given value.
-func newCount(it graph.Iterator2, qs graph.Namer) *count {
+func newCount(it graph.Shape, qs graph.Namer) *count {
 	return &count{
 		it: it, qs: qs,
 	}
 }
 
-func (it *count) Iterate() graph.Iterator2Next {
+func (it *count) Iterate() graph.Scanner {
 	return newCountNext(it.it)
 }
 
-func (it *count) Lookup() graph.Iterator2Contains {
+func (it *count) Lookup() graph.Index {
 	return newCountContains(it.it, it.qs)
 }
 
@@ -61,11 +61,11 @@ func (it *count) AsLegacy() graph.Iterator {
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *count) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.it}
+func (it *count) SubIterators() []graph.Shape {
+	return []graph.Shape{it.it}
 }
 
-func (it *count) Optimize() (graph.Iterator2, bool) {
+func (it *count) Optimize() (graph.Shape, bool) {
 	sub, optimized := it.it.Optimize()
 	it.it = sub
 	return it, optimized
@@ -92,7 +92,7 @@ func (it *count) String() string { return "Count" }
 
 // Count iterator returns one element with size of underlying iterator.
 type countNext struct {
-	it     graph.Iterator2
+	it     graph.Shape
 	done   bool
 	result quad.Value
 	err    error
@@ -100,7 +100,7 @@ type countNext struct {
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
 // qs may be nil - it's used to check if count Contains (is) a given value.
-func newCountNext(it graph.Iterator2) *countNext {
+func newCountNext(it graph.Shape) *countNext {
 	return &countNext{
 		it: it,
 	}
@@ -159,7 +159,7 @@ type countContains struct {
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
 // qs may be nil - it's used to check if count Contains (is) a given value.
-func newCountContains(it graph.Iterator2, qs graph.Namer) *countContains {
+func newCountContains(it graph.Shape, qs graph.Namer) *countContains {
 	return &countContains{
 		it: newCountNext(it),
 		qs: qs,

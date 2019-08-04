@@ -37,6 +37,14 @@ type Linkage struct {
 
 // TODO(barakmich): Helper functions as needed, eg, ValuesForDirection(quad.Direction) []Ref
 
+// TaggerBase is a base interface for Tagger and TaggerShape.
+type TaggerBase interface {
+	Tags() []string
+	FixedTags() map[string]Ref
+	AddTags(tag ...string)
+	AddFixedTag(tag string, value Ref)
+}
+
 // Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
 type Tagger interface {
 	Iterator
@@ -44,7 +52,8 @@ type Tagger interface {
 	CopyFromTagger(st TaggerBase)
 }
 
-type Iterator interface {
+// IteratorBase is a set of common methods for Scanner and Index iterators.
+type IteratorBase interface {
 	// String returns a short textual representation of an iterator.
 	String() string
 
@@ -53,12 +62,6 @@ type Iterator interface {
 
 	// Returns the current result.
 	Result() Ref
-
-	// Next advances the iterator to the next value, which will then be available through
-	// the Result method. It returns false if no further advancement is possible, or if an
-	// error was encountered during iteration.  Err should be consulted to distinguish
-	// between the two cases.
-	Next(ctx context.Context) bool
 
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
@@ -80,11 +83,26 @@ type Iterator interface {
 	// from the bottom up.
 	NextPath(ctx context.Context) bool
 
-	// Contains returns whether the value is within the set held by the iterator.
-	Contains(ctx context.Context, v Ref) bool
-
 	// Err returns any error that was encountered by the Iterator.
 	Err() error
+
+	// TODO: make a requirement that Err should return ErrClosed after Close is called
+
+	// Close the iterator and do internal cleanup.
+	Close() error
+}
+
+type Iterator interface {
+	IteratorBase
+
+	// Next advances the iterator to the next value, which will then be available through
+	// the Result method. It returns false if no further advancement is possible, or if an
+	// error was encountered during iteration.  Err should be consulted to distinguish
+	// between the two cases.
+	Next(ctx context.Context) bool
+
+	// Contains returns whether the value is within the set held by the iterator.
+	Contains(ctx context.Context, v Ref) bool
 
 	// Start iteration from the beginning
 	Reset()
@@ -110,16 +128,13 @@ type Iterator interface {
 
 	// Return a slice of the subiterators for this iterator.
 	SubIterators() []Iterator
-
-	// TODO: make a requirement that Err should return ErrClosed after Close is called
-
-	// Close the iterator and do internal cleanup.
-	Close() error
 }
 
+// IteratorFuture is an optional interface for legacy Iterators that support direct conversion
+// to an iterator Shape. This interface should be avoided an will be deprecated in the future.
 type IteratorFuture interface {
 	Iterator
-	As2() Iterator2
+	AsShape() Shape
 }
 
 // DescribeIterator returns a description of the iterator tree.
@@ -165,7 +180,7 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 	maxDepth := 0
 	for _, sub := range subs {
 		if s, ok := sub.(IteratorFuture); ok {
-			h := Height2(s.As2(), func(it Iterator2) bool {
+			h := Height2(s.AsShape(), func(it Shape) bool {
 				return filter(AsLegacy(it))
 			})
 			if h > maxDepth {
@@ -182,16 +197,16 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 }
 
 // Height is a convienence function to measure the height of an iterator tree.
-func Height2(it Iterator2, filter func(Iterator2) bool) int {
+func Height2(it Shape, filter func(Shape) bool) int {
 	if filter != nil && !filter(it) {
 		return 1
 	}
 	subs := it.SubIterators()
 	maxDepth := 0
 	for _, sub := range subs {
-		if s, ok := sub.(Iterator2Compat); ok {
+		if s, ok := sub.(ShapeCompat); ok {
 			h := Height(s.AsLegacy(), func(it Iterator) bool {
-				return filter(As2(it))
+				return filter(AsShape(it))
 			})
 			if h > maxDepth {
 				maxDepth = h

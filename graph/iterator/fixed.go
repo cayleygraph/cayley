@@ -56,12 +56,12 @@ func (it *Fixed) Values() []graph.Ref {
 	return it.it.Values()
 }
 
-func (it *Fixed) As2() graph.Iterator2 {
+func (it *Fixed) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2 = &fixed{}
+var _ graph.Shape = &fixed{}
 
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
 // an equality function.
@@ -76,11 +76,11 @@ func newFixed(vals ...graph.Ref) *fixed {
 	}
 }
 
-func (it *fixed) Iterate() graph.Iterator2Next {
+func (it *fixed) Iterate() graph.Scanner {
 	return newFixedNext(it.values)
 }
 
-func (it *fixed) Lookup() graph.Iterator2Contains {
+func (it *fixed) Lookup() graph.Index {
 	return newFixedContains(it.values)
 }
 
@@ -106,16 +106,16 @@ func (it *fixed) String() string {
 }
 
 // No sub-iterators.
-func (it *fixed) SubIterators() []graph.Iterator2 {
+func (it *fixed) SubIterators() []graph.Shape {
 	return nil
 }
 
 // Optimize() for a Fixed iterator is simple. Returns a Null iterator if it's empty
 // (so that other iterators upstream can treat this as null) or there is no
 // optimization.
-func (it *fixed) Optimize() (graph.Iterator2, bool) {
+func (it *fixed) Optimize() (graph.Shape, bool) {
 	if len(it.values) == 1 && it.values[0] == nil {
-		return newNull2(), true
+		return newNull(), true
 	}
 
 	return it, false

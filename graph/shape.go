@@ -2,47 +2,9 @@ package graph
 
 import "context"
 
-type Iterator2Base interface {
-	// String returns a short textual representation of an iterator.
-	String() string
-
-	// Fills a tag-to-result-value map.
-	TagResults(map[string]Ref)
-
-	// Returns the current result.
-	Result() Ref
-
-	// These methods are the heart and soul of the iterator, as they constitute
-	// the iteration interface.
-	//
-	// To get the full results of iteration, do the following:
-	//
-	//  for graph.Next(it) {
-	//  	val := it.Result()
-	//  	... do things with val.
-	//  	for it.NextPath() {
-	//  		... find other paths to iterate
-	//  	}
-	//  }
-	//
-	// All of them should set iterator.result to be the last returned value, to
-	// make results work.
-	//
-	// NextPath() advances iterators that may have more than one valid result,
-	// from the bottom up.
-	NextPath(ctx context.Context) bool
-
-	// Err returns any error that was encountered by the Iterator.
-	Err() error
-
-	// TODO: make a requirement that Err should return ErrClosed after Close is called
-
-	// Close the iterator and do internal cleanup.
-	Close() error
-}
-
-type Iterator2Next interface {
-	Iterator2Base
+// Scanner is an iterator that lists all results sequentially, but not necessarily in a sorted order.
+type Scanner interface {
+	IteratorBase
 
 	// Next advances the iterator to the next value, which will then be available through
 	// the Result method. It returns false if no further advancement is possible, or if an
@@ -51,8 +13,9 @@ type Iterator2Next interface {
 	Next(ctx context.Context) bool
 }
 
-type Iterator2Contains interface {
-	Iterator2Base
+// Index is an index lookup iterator. It allows to check if an index contains a specific value.
+type Index interface {
+	IteratorBase
 
 	// Contains returns whether the value is within the set held by the iterator.
 	//
@@ -60,30 +23,31 @@ type Iterator2Contains interface {
 	Contains(ctx context.Context, v Ref) bool
 }
 
-type TaggerBase interface {
-	Tags() []string
-	FixedTags() map[string]Ref
-	AddTags(tag ...string)
-	AddFixedTag(tag string, value Ref)
-}
-
 // Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
-//
-// TODO(dennwc): check if it's used
-type Tagger2 interface {
-	Iterator2
+type TaggerShape interface {
+	Shape
 	TaggerBase
 	CopyFromTagger(st TaggerBase)
 }
 
-type Iterator2 interface {
-	// TODO(dennwc) this is a Shape, in fact
+// Shape is an iterator shape, similar to a query plan. But the plan is not specific in this
+// case - it is used to reorder query branches, and the decide what branches will be scanned
+// and what branches will lookup values (hopefully from the index, but not necessarily).
+type Shape interface {
+	// TODO(dennwc): merge with shape.Shape
 
 	// String returns a short textual representation of an iterator.
 	String() string
 
-	Iterate() Iterator2Next
-	Lookup() Iterator2Contains
+	// Iterate starts this iterator in scanning mode. Resulting iterator will list all
+	// results sequentially, but not necessary in the sorted order. Caller must close
+	// the iterator.
+	Iterate() Scanner
+
+	// Lookup starts this iterator in an index lookup mode. Depending on the iterator type,
+	// this may still involve database scans. Resulting iterator allows to check an index
+	// contains a specified value. Caller must close the iterator.
+	Lookup() Index
 
 	// These methods relate to choosing the right iterator, or optimizing an
 	// iterator tree
@@ -102,135 +66,121 @@ type Iterator2 interface {
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
 	// returns (the new iterator, true), if not, it returns (self, false).
-	Optimize() (Iterator2, bool)
+	Optimize() (Shape, bool)
 
 	// Return a slice of the subiterators for this iterator.
-	SubIterators() []Iterator2
+	SubIterators() []Shape
 }
 
-type Iterator2Compat interface {
-	Iterator2
+// ShapeCompat is an optional interface for iterator Shape that support direct conversion
+// to a legacy Iterator. This interface should be avoided an will be deprecated in the future.
+type ShapeCompat interface {
+	Shape
 	AsLegacy() Iterator
 }
 
-func As2(it Iterator) Iterator2 {
+// AsShape converts a legacy Iterator to an iterator Shape.
+func AsShape(it Iterator) Shape {
 	if it == nil {
 		panic("nil iterator")
 	}
 	if it2, ok := it.(IteratorFuture); ok {
-		return it2.As2()
+		return it2.AsShape()
 	}
-	return &upgrade{it}
+	return &legacyShape{it}
 }
 
-func AsNext(it Iterator) Iterator2Next {
-	if it == nil {
-		panic("nil iterator")
-	}
-	if it2, ok := it.(IteratorFuture); ok {
-		return it2.As2().Iterate()
-	}
-	return &upgrade{it}
-}
+var _ ShapeCompat = &legacyShape{}
 
-func AsContains(it Iterator) Iterator2Contains {
-	if it == nil {
-		panic("nil iterator")
-	}
-	if it2, ok := it.(IteratorFuture); ok {
-		return it2.As2().Lookup()
-	}
-	return &upgrade{it}
-}
-
-var _ Iterator2Compat = &upgrade{}
-
-type upgrade struct {
+type legacyShape struct {
 	Iterator
 }
 
-func (it *upgrade) Optimize() (Iterator2, bool) {
+func (it *legacyShape) Optimize() (Shape, bool) {
 	nit, ok := it.Iterator.Optimize()
 	if !ok {
 		return it, false
 	}
-	return As2(nit), true
+	return AsShape(nit), true
 }
 
-func (it *upgrade) SubIterators() []Iterator2 {
+func (it *legacyShape) SubIterators() []Shape {
 	its := it.Iterator.SubIterators()
-	out := make([]Iterator2, 0, len(its))
+	out := make([]Shape, 0, len(its))
 	for _, s := range its {
-		out = append(out, As2(s))
+		out = append(out, AsShape(s))
 	}
 	return out
 }
 
-func (it *upgrade) Iterate() Iterator2Next {
+func (it *legacyShape) Iterate() Scanner {
 	it.Reset()
 	return it
 }
-func (it *upgrade) Lookup() Iterator2Contains {
+func (it *legacyShape) Lookup() Index {
 	it.Reset()
 	return it
 }
-func (it *upgrade) Close() error {
+func (it *legacyShape) Close() error {
 	// FIXME(dennwc): this is incorrect, but we must do this to prevent closing iterators after
 	//                multiple calls to Iterate and/or Lookup
 	return nil
 }
-func (it *upgrade) AsLegacy() Iterator {
+func (it *legacyShape) AsLegacy() Iterator {
 	return it.Iterator
 }
 
-func NewLegacy(it Iterator2) Iterator {
-	if it == nil {
+// NewLegacy creates a new legacy Iterator from an iterator Shape.
+// This method will always create a new iterator, while AsLegacy will try to unwrap it first.
+func NewLegacy(s Shape) Iterator {
+	if s == nil {
 		panic("nil iterator")
 	}
-	return &legacyIter{it: it}
+	return &legacyIter{s: s}
 }
 
-func AsLegacy(it Iterator2) Iterator {
-	if it2, ok := it.(Iterator2Compat); ok {
+// AsLegacy convert an iterator Shape to a legacy Iterator interface.
+func AsLegacy(s Shape) Iterator {
+	if it2, ok := s.(ShapeCompat); ok {
 		return it2.AsLegacy()
 	}
-	return NewLegacy(it)
+	return NewLegacy(s)
 }
 
 var _ IteratorFuture = &legacyIter{}
 
 type legacyIter struct {
-	it   Iterator2
-	next Iterator2Next
-	cont Iterator2Contains
+	s    Shape
+	scan Scanner
+	cont Index
 }
 
 func (it *legacyIter) String() string {
-	return it.it.String()
+	return it.s.String()
 }
 
-func (it *legacyIter) As2() Iterator2 {
+func (it *legacyIter) AsShape() Shape {
 	it.Close()
-	return it.it
+	return it.s
 }
 
 func (it *legacyIter) TagResults(m map[string]Ref) {
-	if it.cont != nil && it.next != nil {
+	if it.cont != nil && it.scan != nil {
 		panic("both iterators are set")
 	}
-	if it.next != nil {
-		it.next.TagResults(m)
+	if it.scan != nil {
+		it.scan.TagResults(m)
 	} else if it.cont != nil {
 		it.cont.TagResults(m)
 	}
 }
 
 func (it *legacyIter) Result() Ref {
-	if it.cont != nil && it.next != nil {
+	if it.cont != nil && it.scan != nil {
 		panic("both iterators are set")
 	}
-	if it.next != nil {
-		return it.next.Result()
+	if it.scan != nil {
+		return it.scan.Result()
 	}
 	if it.cont != nil {
 		return it.cont.Result()
@@ -239,21 +189,21 @@ func (it *legacyIter) Result() Ref {
 }
 
 func (it *legacyIter) Next(ctx context.Context) bool {
-	if it.next == nil {
+	if it.scan == nil {
 		if it.cont != nil {
-			panic("attempt to set a next iterator on contains")
+			panic("attempt to set a scan iterator on contains")
 		}
-		it.next = it.it.Iterate()
+		it.scan = it.s.Iterate()
 	}
-	return it.next.Next(ctx)
+	return it.scan.Next(ctx)
 }
 
 func (it *legacyIter) NextPath(ctx context.Context) bool {
-	if it.cont != nil && it.next != nil {
+	if it.cont != nil && it.scan != nil {
 		panic("both iterators are set")
 	}
-	if it.next != nil {
-		return it.next.NextPath(ctx)
+	if it.scan != nil {
+		return it.scan.NextPath(ctx)
 	}
 	if it.cont != nil {
 		return it.cont.NextPath(ctx)
@@ -264,18 +214,18 @@ func (it *legacyIter) NextPath(ctx context.Context) bool {
 func (it *legacyIter) Contains(ctx context.Context, v Ref) bool {
 	if it.cont == nil {
 		// reset iterator by default
-		if it.next != nil {
-			it.next.Close()
-			it.next = nil
+		if it.scan != nil {
+			it.scan.Close()
+			it.scan = nil
 		}
-		it.cont = it.it.Lookup()
+		it.cont = it.s.Lookup()
 	}
 	return it.cont.Contains(ctx, v)
 }
 
 func (it *legacyIter) Err() error {
-	if it.next != nil {
-		if err := it.next.Err(); err != nil {
+	if it.scan != nil {
+		if err := it.scan.Err(); err != nil {
 			return err
 		}
 	}
@@ -288,9 +238,9 @@ func (it *legacyIter) Err() error {
 }
 
 func (it *legacyIter) Reset() {
-	if it.next != nil {
-		_ = it.next.Close()
-		it.next = nil
+	if it.scan != nil {
+		_ = it.scan.Close()
+		it.scan = nil
 	}
 	if it.cont != nil {
 		_ = it.cont.Close()
@@ -299,15 +249,15 @@ func (it *legacyIter) Reset() {
 }
 
 func (it *legacyIter) Stats() IteratorStats {
-	return it.it.Stats()
+	return it.s.Stats()
 }
 
 func (it *legacyIter) Size() (int64, bool) {
-	return it.it.Size()
+	return it.s.Size()
 }
 
 func (it *legacyIter) Optimize() (Iterator, bool) {
-	nit, ok := it.it.Optimize()
+	nit, ok := it.s.Optimize()
 	if !ok {
 		return it, false
 	}
@@ -315,7 +265,7 @@ func (it *legacyIter) Optimize() (Iterator, bool) {
 }
 
 func (it *legacyIter) SubIterators() []Iterator {
-	its := it.it.SubIterators()
+	its := it.s.SubIterators()
 	out := make([]Iterator, 0, len(its))
 	for _, s := range its {
 		out = append(out, AsLegacy(s))
@@ -324,9 +274,9 @@ func (it *legacyIter) SubIterators() []Iterator {
 }
 
 func (it *legacyIter) Close() error {
-	if it.next != nil {
-		it.next.Close()
-		it.next = nil
+	if it.scan != nil {
+		it.scan.Close()
+		it.scan = nil
 	}
 	if it.cont != nil {
 		it.cont.Close()

@@ -27,8 +27,8 @@ var DefaultMaxRecursiveSteps = 50
 
 func NewRecursive(sub graph.Iterator, morphism Morphism, maxDepth int) *Recursive {
 	it := &Recursive{
-		it: newRecursive(graph.As2(sub), func(it graph.Iterator2) graph.Iterator2 {
-			return graph.As2(morphism(graph.AsLegacy(it)))
+		it: newRecursive(graph.AsShape(sub), func(it graph.Shape) graph.Shape {
+			return graph.AsShape(morphism(graph.AsLegacy(it)))
 		}, maxDepth),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
@@ -39,22 +39,22 @@ func (it *Recursive) AddDepthTag(s string) {
 	it.it.AddDepthTag(s)
 }
 
-func (it *Recursive) As2() graph.Iterator2 {
+func (it *Recursive) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = &recursive{}
+var _ graph.ShapeCompat = &recursive{}
 
 // Recursive iterator takes a base iterator and a morphism to be applied recursively, for each result.
 type recursive struct {
-	subIt     graph.Iterator2
+	subIt     graph.Shape
 	morphism  Morphism2
 	maxDepth  int
 	depthTags []string
 }
 
-func newRecursive(it graph.Iterator2, morphism Morphism2, maxDepth int) *recursive {
+func newRecursive(it graph.Shape, morphism Morphism2, maxDepth int) *recursive {
 	if maxDepth == 0 {
 		maxDepth = DefaultMaxRecursiveSteps
 	}
@@ -65,11 +65,11 @@ func newRecursive(it graph.Iterator2, morphism Morphism2, maxDepth int) *recursi
 	}
 }
 
-func (it *recursive) Iterate() graph.Iterator2Next {
+func (it *recursive) Iterate() graph.Scanner {
 	return newRecursiveNext(it.subIt.Iterate(), it.morphism, it.maxDepth, it.depthTags)
 }
 
-func (it *recursive) Lookup() graph.Iterator2Contains {
+func (it *recursive) Lookup() graph.Index {
 	return newRecursiveContains(newRecursiveNext(it.subIt.Iterate(), it.morphism, it.maxDepth, it.depthTags))
 }
 
@@ -83,11 +83,11 @@ func (it *recursive) AddDepthTag(s string) {
 	it.depthTags = append(it.depthTags, s)
 }
 
-func (it *recursive) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.subIt}
+func (it *recursive) SubIterators() []graph.Shape {
+	return []graph.Shape{it.subIt}
 }
 
-func (it *recursive) Optimize() (graph.Iterator2, bool) {
+func (it *recursive) Optimize() (graph.Shape, bool) {
 	newIt, optimized := it.subIt.Optimize()
 	if optimized {
 		it.subIt = newIt
@@ -120,13 +120,13 @@ func (it *recursive) String() string {
 
 // Recursive iterator takes a base iterator and a morphism to be applied recursively, for each result.
 type recursiveNext struct {
-	subIt  graph.Iterator2Next
+	subIt  graph.Scanner
 	result seenAt
 	err    error
 
 	morphism      Morphism2
 	seen          map[interface{}]seenAt
-	nextIt        graph.Iterator2Next
+	nextIt        graph.Scanner
 	depth         int
 	maxDepth      int
 	pathMap       map[interface{}][]map[string]graph.Ref
@@ -137,7 +137,7 @@ type recursiveNext struct {
 	baseIt        *fixed
 }
 
-func newRecursiveNext(it graph.Iterator2Next, morphism Morphism2, maxDepth int, depthTags []string) *recursiveNext {
+func newRecursiveNext(it graph.Scanner, morphism Morphism2, maxDepth int, depthTags []string) *recursiveNext {
 	return &recursiveNext{
 		subIt:     it,
 		morphism:  morphism,

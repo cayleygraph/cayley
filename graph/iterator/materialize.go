@@ -39,7 +39,7 @@ type Materialize struct {
 
 func NewMaterialize(sub graph.Iterator) *Materialize {
 	it := &Materialize{
-		it: newMaterialize(graph.As2(sub)),
+		it: newMaterialize(graph.AsShape(sub)),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
@@ -47,40 +47,40 @@ func NewMaterialize(sub graph.Iterator) *Materialize {
 
 func NewMaterializeWithSize(sub graph.Iterator, size int64) *Materialize {
 	it := &Materialize{
-		it: newMaterializeWithSize(graph.As2(sub), size),
+		it: newMaterializeWithSize(graph.AsShape(sub), size),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *Materialize) As2() graph.Iterator2 {
+func (it *Materialize) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = &materialize{}
+var _ graph.ShapeCompat = &materialize{}
 
 type materialize struct {
-	sub        graph.Iterator2
+	sub        graph.Shape
 	expectSize int64
 }
 
-func newMaterialize(sub graph.Iterator2) *materialize {
+func newMaterialize(sub graph.Shape) *materialize {
 	return newMaterializeWithSize(sub, 0)
 }
 
-func newMaterializeWithSize(sub graph.Iterator2, size int64) *materialize {
+func newMaterializeWithSize(sub graph.Shape, size int64) *materialize {
 	return &materialize{
 		sub:        sub,
 		expectSize: size,
 	}
 }
 
-func (it *materialize) Iterate() graph.Iterator2Next {
+func (it *materialize) Iterate() graph.Scanner {
 	return newMaterializeNext(it.sub)
 }
 
-func (it *materialize) Lookup() graph.Iterator2Contains {
+func (it *materialize) Lookup() graph.Index {
 	return newMaterializeContains(it.sub)
 }
 
@@ -94,11 +94,11 @@ func (it *materialize) String() string {
 	return "Materialize"
 }
 
-func (it *materialize) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.sub}
+func (it *materialize) SubIterators() []graph.Shape {
+	return []graph.Shape{it.sub}
 }
 
-func (it *materialize) Optimize() (graph.Iterator2, bool) {
+func (it *materialize) Optimize() (graph.Shape, bool) {
 	newSub, changed := it.sub.Optimize()
 	if changed {
 		it.sub = newSub
@@ -138,8 +138,8 @@ func (it *materialize) Stats() graph.IteratorStats {
 }
 
 type materializeNext struct {
-	sub  graph.Iterator2
-	next graph.Iterator2Next
+	sub  graph.Shape
+	next graph.Scanner
 
 	containsMap map[interface{}]int
 	values      [][]result
@@ -150,7 +150,7 @@ type materializeNext struct {
 	err         error
 }
 
-func newMaterializeNext(sub graph.Iterator2) *materializeNext {
+func newMaterializeNext(sub graph.Shape) *materializeNext {
 	return &materializeNext{
 		containsMap: make(map[interface{}]int),
 		sub:         sub,
@@ -298,10 +298,10 @@ func (it *materializeNext) materializeSet(ctx context.Context) {
 
 type materializeContains struct {
 	next *materializeNext
-	sub  graph.Iterator2Contains // only set if aborted
+	sub  graph.Index // only set if aborted
 }
 
-func newMaterializeContains(sub graph.Iterator2) *materializeContains {
+func newMaterializeContains(sub graph.Shape) *materializeContains {
 	return &materializeContains{
 		next: newMaterializeNext(sub),
 	}

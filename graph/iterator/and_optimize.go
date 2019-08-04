@@ -40,12 +40,12 @@ import (
 
 // Optimizes the And, by picking the most efficient way to Next() and
 // Contains() its subiterators. For SQL fans, this is equivalent to JOIN.
-func (it *and) Optimize() (graph.Iterator2, bool) {
+func (it *and) Optimize() (graph.Shape, bool) {
 	// First, let's get the slice of iterators, in order (first one is Next()ed,
 	// the rest are Contains()ed)
 	old := it.sub
 	if len(old) == 0 {
-		return newNull2(), true
+		return newNull(), true
 	}
 
 	// And call Optimize() on our subtree, replacing each one in the order we
@@ -88,10 +88,10 @@ func (it *and) Optimize() (graph.Iterator2, bool) {
 
 // Find if there is a single subiterator which is a valid replacement for this
 // And.
-func optimizeReplacement(its []graph.Iterator2) graph.Iterator2 {
+func optimizeReplacement(its []graph.Shape) graph.Shape {
 	// If we were created with no SubIterators, we're as good as Null.
 	if len(its) == 0 {
-		return newNull2()
+		return newNull()
 	}
 	if len(its) == 1 {
 		// When there's only one iterator, there's only one choice.
@@ -101,19 +101,19 @@ func optimizeReplacement(its []graph.Iterator2) graph.Iterator2 {
 	// there's no point in continuing the branch, we will have no results
 	// and we are null as well.
 	if hasAnyNullIterators(its) {
-		return newNull2()
+		return newNull()
 	}
 	return nil
 }
 
 // optimizeOrder(l) takes a list and returns a list, containing the same contents
 // but with a new ordering, however it wishes.
-func optimizeOrder(its []graph.Iterator2) []graph.Iterator2 {
+func optimizeOrder(its []graph.Shape) []graph.Shape {
 	var (
 		// bad contains iterators that can't be (efficiently) nexted, such as
 		// graph.Optional or graph.Not. Separate them out and tack them on at the end.
-		bad      []graph.Iterator2
-		best     graph.Iterator2
+		bad      []graph.Shape
+		best     graph.Shape
 		bestCost = int64(1 << 62)
 	)
 
@@ -148,7 +148,7 @@ func optimizeOrder(its []graph.Iterator2) []graph.Iterator2 {
 	// Contains() order based on probability of getting a false Contains() first is
 	// useful (fail faster).
 
-	var out []graph.Iterator2
+	var out []graph.Shape
 	// Put the best iterator (the one we wish to Next()) at the front...
 	if best != nil {
 		out = append(out, best)
@@ -165,7 +165,7 @@ func optimizeOrder(its []graph.Iterator2) []graph.Iterator2 {
 	return append(out, bad...)
 }
 
-type byCost []graph.Iterator2
+type byCost []graph.Shape
 
 func (c byCost) Len() int           { return len(c) }
 func (c byCost) Less(i, j int) bool { return c[i].Stats().ContainsCost < c[j].Stats().ContainsCost }
@@ -178,7 +178,7 @@ func (it *and) optimizeContains() {
 	// TODO(kortschak) Reuse it.checkList if possible.
 	// This involves providing GetSubIterators with a slice to fill.
 	// Generally this is a worthwhile thing to do in other places as well.
-	it.checkList = append([]graph.Iterator2{}, it.sub...)
+	it.checkList = append([]graph.Shape{}, it.sub...)
 	sort.Sort(byCost(it.checkList))
 }
 
@@ -199,8 +199,8 @@ func optimizeSubIterators(its []graph.Iterator) []graph.Iterator {
 // of them. It returns two lists -- the first contains the same list as l, where
 // any replacements are made by Optimize() and the second contains the originals
 // which were replaced.
-func optimizeSubIterators2(its []graph.Iterator2) []graph.Iterator2 {
-	out := make([]graph.Iterator2, 0, len(its))
+func optimizeSubIterators2(its []graph.Shape) []graph.Shape {
+	out := make([]graph.Shape, 0, len(its))
 	for _, it := range its {
 		o, _ := it.Optimize()
 		out = append(out, o)
@@ -209,7 +209,7 @@ func optimizeSubIterators2(its []graph.Iterator2) []graph.Iterator2 {
 }
 
 // Check a list of iterators for any Null iterators.
-func hasAnyNullIterators(its []graph.Iterator2) bool {
+func hasAnyNullIterators(its []graph.Shape) bool {
 	for _, it := range its {
 		if IsNull2(it) {
 			return true
@@ -218,8 +218,8 @@ func hasAnyNullIterators(its []graph.Iterator2) bool {
 	return false
 }
 
-func materializeIts(its []graph.Iterator2) []graph.Iterator2 {
-	var out []graph.Iterator2
+func materializeIts(its []graph.Shape) []graph.Shape {
+	var out []graph.Shape
 
 	allStats, stats := getStatsForSlice(its, nil)
 	out = append(out, its[0])
@@ -239,7 +239,7 @@ func materializeIts(its []graph.Iterator2) []graph.Iterator2 {
 	return out
 }
 
-func getStatsForSlice(its, opt []graph.Iterator2) (graph.IteratorStats, []graph.IteratorStats) {
+func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorStats, []graph.IteratorStats) {
 	if len(its) == 0 {
 		return graph.IteratorStats{}, nil
 	}

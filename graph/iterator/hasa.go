@@ -56,13 +56,13 @@ type HasA struct {
 // direction for which it stands.
 func NewHasA(qs graph.QuadIndexer, subIt graph.Iterator, d quad.Direction) *HasA {
 	it := &HasA{
-		it: newHasA(qs, graph.As2(subIt), d),
+		it: newHasA(qs, graph.AsShape(subIt), d),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *HasA) As2() graph.Iterator2 {
+func (it *HasA) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
@@ -70,20 +70,20 @@ func (it *HasA) As2() graph.Iterator2 {
 // Direction accessor.
 func (it *HasA) Direction() quad.Direction { return it.it.Direction() }
 
-var _ graph.Iterator2Compat = &hasA{}
+var _ graph.ShapeCompat = &hasA{}
 
 // A HasA consists of a reference back to the graph.QuadStore that it references,
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type hasA struct {
 	qs      graph.QuadIndexer
-	primary graph.Iterator2
+	primary graph.Shape
 	dir     quad.Direction
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func newHasA(qs graph.QuadIndexer, subIt graph.Iterator2, d quad.Direction) *hasA {
+func newHasA(qs graph.QuadIndexer, subIt graph.Shape, d quad.Direction) *hasA {
 	return &hasA{
 		qs:      qs,
 		primary: subIt,
@@ -91,11 +91,11 @@ func newHasA(qs graph.QuadIndexer, subIt graph.Iterator2, d quad.Direction) *has
 	}
 }
 
-func (it *hasA) Iterate() graph.Iterator2Next {
+func (it *hasA) Iterate() graph.Scanner {
 	return newHasANext(it.qs, it.primary.Iterate(), it.dir)
 }
 
-func (it *hasA) Lookup() graph.Iterator2Contains {
+func (it *hasA) Lookup() graph.Index {
 	return newHasAContains(it.qs, it.primary.Lookup(), it.dir)
 }
 
@@ -106,8 +106,8 @@ func (it *hasA) AsLegacy() graph.Iterator {
 }
 
 // Return our sole subiterator.
-func (it *hasA) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.primary}
+func (it *hasA) SubIterators() []graph.Shape {
+	return []graph.Shape{it.primary}
 }
 
 // Direction accessor.
@@ -115,7 +115,7 @@ func (it *hasA) Direction() quad.Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no quads that have any directions).
-func (it *hasA) Optimize() (graph.Iterator2, bool) {
+func (it *hasA) Optimize() (graph.Shape, bool) {
 	newPrimary, changed := it.primary.Optimize()
 	if changed {
 		it.primary = newPrimary
@@ -162,14 +162,14 @@ func (it *hasA) Size() (int64, bool) {
 // and a temporary holder for the iterator generated on Contains().
 type hasANext struct {
 	qs      graph.QuadIndexer
-	primary graph.Iterator2Next
+	primary graph.Scanner
 	dir     quad.Direction
 	result  graph.Ref
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func newHasANext(qs graph.QuadIndexer, subIt graph.Iterator2Next, d quad.Direction) *hasANext {
+func newHasANext(qs graph.QuadIndexer, subIt graph.Scanner, d quad.Direction) *hasANext {
 	return &hasANext{
 		qs:      qs,
 		primary: subIt,
@@ -224,16 +224,16 @@ func (it *hasANext) Close() error {
 // and a temporary holder for the iterator generated on Contains().
 type hasAContains struct {
 	qs      graph.QuadIndexer
-	primary graph.Iterator2Contains
+	primary graph.Index
 	dir     quad.Direction
-	results graph.Iterator2Next
+	results graph.Scanner
 	result  graph.Ref
 	err     error
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func newHasAContains(qs graph.QuadIndexer, subIt graph.Iterator2Contains, d quad.Direction) graph.Iterator2Contains {
+func newHasAContains(qs graph.QuadIndexer, subIt graph.Index, d quad.Direction) graph.Index {
 	return &hasAContains{
 		qs:      qs,
 		primary: subIt,
@@ -264,7 +264,7 @@ func (it *hasAContains) Contains(ctx context.Context, val graph.Ref) bool {
 	if it.results != nil {
 		it.results.Close()
 	}
-	it.results = graph.As2(it.qs.QuadIterator(it.dir, val)).Iterate()
+	it.results = graph.AsShape(it.qs.QuadIterator(it.dir, val)).Iterate()
 	ok := it.nextContains(ctx)
 	if it.err != nil {
 		return false

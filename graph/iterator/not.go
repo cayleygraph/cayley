@@ -17,38 +17,38 @@ type Not struct {
 
 func NewNot(primaryIt, allIt graph.Iterator) *Not {
 	it := &Not{
-		it: newNot(graph.As2(primaryIt), graph.As2(allIt)),
+		it: newNot(graph.AsShape(primaryIt), graph.AsShape(allIt)),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *Not) As2() graph.Iterator2 {
+func (it *Not) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = (*not)(nil)
+var _ graph.ShapeCompat = (*not)(nil)
 
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type not struct {
-	primary graph.Iterator2
-	allIt   graph.Iterator2
+	primary graph.Shape
+	allIt   graph.Shape
 }
 
-func newNot(primaryIt, allIt graph.Iterator2) *not {
+func newNot(primaryIt, allIt graph.Shape) *not {
 	return &not{
 		primary: primaryIt,
 		allIt:   allIt,
 	}
 }
 
-func (it *not) Iterate() graph.Iterator2Next {
+func (it *not) Iterate() graph.Scanner {
 	return newNotNext(it.primary.Lookup(), it.allIt.Iterate())
 }
 
-func (it *not) Lookup() graph.Iterator2Contains {
+func (it *not) Lookup() graph.Index {
 	return newNotContains(it.primary.Lookup())
 }
 
@@ -61,11 +61,11 @@ func (it *not) AsLegacy() graph.Iterator {
 // SubIterators returns a slice of the sub iterators.
 // The first iterator is the primary iterator, for which the complement
 // is generated.
-func (it *not) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.primary, it.allIt}
+func (it *not) SubIterators() []graph.Shape {
+	return []graph.Shape{it.primary, it.allIt}
 }
 
-func (it *not) Optimize() (graph.Iterator2, bool) {
+func (it *not) Optimize() (graph.Shape, bool) {
 	// TODO - consider wrapping the primary with a MaterializeIt
 	optimizedPrimaryIt, optimized := it.primary.Optimize()
 	if optimized {
@@ -98,12 +98,12 @@ func (it *not) String() string {
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type notNext struct {
-	primaryIt graph.Iterator2Contains
-	allIt     graph.Iterator2Next
+	primaryIt graph.Index
+	allIt     graph.Scanner
 	result    graph.Ref
 }
 
-func newNotNext(primaryIt graph.Iterator2Contains, allIt graph.Iterator2Next) *notNext {
+func newNotNext(primaryIt graph.Index, allIt graph.Scanner) *notNext {
 	return &notNext{
 		primaryIt: primaryIt,
 		allIt:     allIt,
@@ -166,12 +166,12 @@ func (it *notNext) String() string {
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type notContains struct {
-	primaryIt graph.Iterator2Contains
+	primaryIt graph.Index
 	result    graph.Ref
 	err       error
 }
 
-func newNotContains(primaryIt graph.Iterator2Contains) *notContains {
+func newNotContains(primaryIt graph.Index) *notContains {
 	return &notContains{
 		primaryIt: primaryIt,
 	}

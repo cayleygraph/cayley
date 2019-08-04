@@ -32,26 +32,26 @@ type ValueFilterFunc func(quad.Value) (bool, error)
 
 func NewValueFilter(qs graph.Namer, sub graph.Iterator, filter ValueFilterFunc) *ValueFilter {
 	it := &ValueFilter{
-		it: newValueFilter(qs, graph.As2(sub), filter),
+		it: newValueFilter(qs, graph.AsShape(sub), filter),
 	}
 	it.Iterator = graph.NewLegacy(it.it)
 	return it
 }
 
-func (it *ValueFilter) As2() graph.Iterator2 {
+func (it *ValueFilter) AsShape() graph.Shape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.Iterator2Compat = (*valueFilter)(nil)
+var _ graph.ShapeCompat = (*valueFilter)(nil)
 
 type valueFilter struct {
-	sub    graph.Iterator2
+	sub    graph.Shape
 	filter ValueFilterFunc
 	qs     graph.Namer
 }
 
-func newValueFilter(qs graph.Namer, sub graph.Iterator2, filter ValueFilterFunc) *valueFilter {
+func newValueFilter(qs graph.Namer, sub graph.Shape, filter ValueFilterFunc) *valueFilter {
 	return &valueFilter{
 		sub:    sub,
 		qs:     qs,
@@ -59,11 +59,11 @@ func newValueFilter(qs graph.Namer, sub graph.Iterator2, filter ValueFilterFunc)
 	}
 }
 
-func (it *valueFilter) Iterate() graph.Iterator2Next {
+func (it *valueFilter) Iterate() graph.Scanner {
 	return newValueFilterNext(it.qs, it.sub.Iterate(), it.filter)
 }
 
-func (it *valueFilter) Lookup() graph.Iterator2Contains {
+func (it *valueFilter) Lookup() graph.Index {
 	return newValueFilterContains(it.qs, it.sub.Lookup(), it.filter)
 }
 
@@ -73,8 +73,8 @@ func (it *valueFilter) AsLegacy() graph.Iterator {
 	return it2
 }
 
-func (it *valueFilter) SubIterators() []graph.Iterator2 {
-	return []graph.Iterator2{it.sub}
+func (it *valueFilter) SubIterators() []graph.Shape {
+	return []graph.Shape{it.sub}
 }
 
 func (it *valueFilter) String() string {
@@ -84,7 +84,7 @@ func (it *valueFilter) String() string {
 // There's nothing to optimize, locally, for a value-comparison iterator.
 // Replace the underlying iterator if need be.
 // potentially replace it.
-func (it *valueFilter) Optimize() (graph.Iterator2, bool) {
+func (it *valueFilter) Optimize() (graph.Shape, bool) {
 	newSub, changed := it.sub.Optimize()
 	if changed {
 		it.sub = newSub
@@ -104,14 +104,14 @@ func (it *valueFilter) Size() (int64, bool) {
 }
 
 type valueFilterNext struct {
-	sub    graph.Iterator2Next
+	sub    graph.Scanner
 	filter ValueFilterFunc
 	qs     graph.Namer
 	result graph.Ref
 	err    error
 }
 
-func newValueFilterNext(qs graph.Namer, sub graph.Iterator2Next, filter ValueFilterFunc) *valueFilterNext {
+func newValueFilterNext(qs graph.Namer, sub graph.Scanner, filter ValueFilterFunc) *valueFilterNext {
 	return &valueFilterNext{
 		sub:    sub,
 		qs:     qs,
@@ -167,14 +167,14 @@ func (it *valueFilterNext) String() string {
 }
 
 type valueFilterContains struct {
-	sub    graph.Iterator2Contains
+	sub    graph.Index
 	filter ValueFilterFunc
 	qs     graph.Namer
 	result graph.Ref
 	err    error
 }
 
-func newValueFilterContains(qs graph.Namer, sub graph.Iterator2Contains, filter ValueFilterFunc) *valueFilterContains {
+func newValueFilterContains(qs graph.Namer, sub graph.Index, filter ValueFilterFunc) *valueFilterContains {
 	return &valueFilterContains{
 		sub:    sub,
 		qs:     qs,
