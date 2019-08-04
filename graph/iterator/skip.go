@@ -71,12 +71,12 @@ func (it *skip) Optimize() (graph.Shape, bool) {
 	return it, optimized
 }
 
-func (it *skip) Stats() graph.IteratorStats {
+func (it *skip) Stats() graph.IteratorCosts {
 	primaryStats := it.primaryIt.Stats()
-	if primaryStats.ExactSize {
-		primaryStats.Size -= it.skip
-		if primaryStats.Size < 0 {
-			primaryStats.Size = 0
+	if primaryStats.Size.Exact {
+		primaryStats.Size.Size -= it.skip
+		if primaryStats.Size.Size < 0 {
+			primaryStats.Size.Size = 0
 		}
 	}
 	return primaryStats

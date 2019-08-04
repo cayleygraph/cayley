@@ -153,30 +153,30 @@ func (it *or) Optimize() (graph.Shape, bool) {
 // Returns the approximate size of the Or graph.iterator. Because we're dealing
 // with a union, we know that the largest we can be is the sum of all the iterators,
 // or in the case of short-circuiting, the longest.
-func (it *or) Stats() graph.IteratorStats {
+func (it *or) Stats() graph.IteratorCosts {
 	ContainsCost := int64(0)
 	NextCost := int64(0)
-	Size := int64(0)
-	Exact := true
+	Size := graph.Size{
+		Size:  0,
+		Exact: true,
+	}
 	for _, sub := range it.sub {
 		stats := sub.Stats()
 		NextCost += stats.NextCost
 		ContainsCost += stats.ContainsCost
 		if it.isShortCircuiting {
-			if Size < stats.Size {
+			if Size.Size < stats.Size.Size {
 				Size = stats.Size
-				Exact = stats.ExactSize
 			}
 		} else {
-			Size += stats.Size
-			Exact = Exact && stats.ExactSize
+			Size.Size += stats.Size.Size
+			Size.Exact = Size.Exact && stats.Size.Exact
 		}
 	}
-	return graph.IteratorStats{
+	return graph.IteratorCosts{
 		ContainsCost: ContainsCost,
 		NextCost:     NextCost,
 		Size:         Size,
-		ExactSize:    Exact,
 	}
 }
 

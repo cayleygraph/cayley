@@ -147,7 +147,7 @@ func (it *save) CopyFromTagger(st graph.TaggerBase) {
 	}
 }
 
-func (it *save) Stats() graph.IteratorStats {
+func (it *save) Stats() graph.IteratorCosts {
 	return it.it.Stats()
 }
 

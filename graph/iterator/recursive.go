@@ -95,18 +95,21 @@ func (it *recursive) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-func (it *recursive) Stats() graph.IteratorStats {
+func (it *recursive) Stats() graph.IteratorCosts {
 	base := newFixed()
 	base.Add(Int64Node(20))
 	fanoutit := it.morphism(base)
 	fanoutStats := fanoutit.Stats()
 	subitStats := it.subIt.Stats()
 
-	size := int64(math.Pow(float64(subitStats.Size*fanoutStats.Size), 5))
-	return graph.IteratorStats{
+	size := int64(math.Pow(float64(subitStats.Size.Size*fanoutStats.Size.Size), 5))
+	return graph.IteratorCosts{
 		NextCost:     subitStats.NextCost + fanoutStats.NextCost,
 		ContainsCost: (subitStats.NextCost+fanoutStats.NextCost)*(size/10) + subitStats.ContainsCost,
-		Size:         size,
+		Size: graph.Size{
+			Size:  size,
+			Exact: false,
+		},
 	}
 }
 

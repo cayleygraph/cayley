@@ -73,10 +73,10 @@ func (it *limit) Optimize() (graph.Shape, bool) {
 	return it, optimized
 }
 
-func (it *limit) Stats() graph.IteratorStats {
+func (it *limit) Stats() graph.IteratorCosts {
 	primaryStats := it.primaryIt.Stats()
-	if it.limit > 0 && primaryStats.Size > it.limit {
-		primaryStats.Size = it.limit
+	if it.limit > 0 && primaryStats.Size.Size > it.limit {
+		primaryStats.Size.Size = it.limit
 	}
 	return primaryStats
 }

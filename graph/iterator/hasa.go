@@ -136,7 +136,7 @@ func (it *hasA) String() string {
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (it *hasA) Stats() graph.IteratorStats {
+func (it *hasA) Stats() graph.IteratorCosts {
 	subitStats := it.primary.Stats()
 	// TODO(barakmich): These should really come from the quadstore itself
 	// and be optimized.
@@ -144,11 +144,13 @@ func (it *hasA) Stats() graph.IteratorStats {
 	fanoutFactor := int64(30)
 	nextConstant := int64(2)
 	quadConstant := int64(1)
-	return graph.IteratorStats{
+	return graph.IteratorCosts{
 		NextCost:     quadConstant + subitStats.NextCost,
 		ContainsCost: (fanoutFactor * nextConstant) * subitStats.ContainsCost,
-		Size:         faninFactor * subitStats.Size,
-		ExactSize:    false,
+		Size: graph.Size{
+			Size:  faninFactor * subitStats.Size.Size,
+			Exact: false,
+		},
 	}
 }
 

@@ -94,10 +94,10 @@ func (it *valueFilter) Optimize() (graph.Shape, bool) {
 
 // We're only as expensive as our subiterator.
 // Again, optimized value comparison iterators should do better.
-func (it *valueFilter) Stats() graph.IteratorStats {
+func (it *valueFilter) Stats() graph.IteratorCosts {
 	st := it.sub.Stats()
-	st.Size = st.Size/2 + 1
-	st.ExactSize = false
+	st.Size.Size = st.Size.Size/2 + 1
+	st.Size.Exact = false
 	return st
 }
 

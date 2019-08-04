@@ -129,9 +129,9 @@ func optimizeOrder(its []graph.Shape) []graph.Shape {
 				continue
 			}
 			stats := f.Stats()
-			cost += stats.ContainsCost * (1 + (rootStats.Size / (stats.Size + 1)))
+			cost += stats.ContainsCost * (1 + (rootStats.Size.Size / (stats.Size.Size + 1)))
 		}
-		cost *= rootStats.Size
+		cost *= rootStats.Size.Size
 		if clog.V(3) {
 			clog.Infof("And: Root: %p Total Cost: %v Best: %v", root, cost, bestCost)
 		}
@@ -225,7 +225,7 @@ func materializeIts(its []graph.Shape) []graph.Shape {
 	out = append(out, its[0])
 	for i, it := range its[1:] {
 		st := stats[i+1]
-		if st.Size*st.NextCost < (st.ContainsCost * (1 + (st.Size / (allStats.Size + 1)))) {
+		if st.Size.Size*st.NextCost < (st.ContainsCost * (1 + (st.Size.Size / (allStats.Size.Size + 1)))) {
 			if graph.Height(graph.AsLegacy(it), func(it graph.Iterator) bool {
 				_, ok := it.(*Materialize)
 				return !ok
@@ -239,41 +239,43 @@ func materializeIts(its []graph.Shape) []graph.Shape {
 	return out
 }
 
-func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorStats, []graph.IteratorStats) {
+func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorCosts, []graph.IteratorCosts) {
 	if len(its) == 0 {
-		return graph.IteratorStats{}, nil
+		return graph.IteratorCosts{}, nil
 	}
 
-	arr := make([]graph.IteratorStats, 0, len(its))
+	arr := make([]graph.IteratorCosts, 0, len(its))
 
 	primaryStats := its[0].Stats()
 	arr = append(arr, primaryStats)
 
 	containsCost := primaryStats.ContainsCost
 	nextCost := primaryStats.NextCost
-	size := primaryStats.Size
-	exact := primaryStats.ExactSize
+	size := primaryStats.Size.Size
+	exact := primaryStats.Size.Exact
 
 	for _, sub := range its[1:] {
 		stats := sub.Stats()
 		arr = append(arr, stats)
-		nextCost += stats.ContainsCost * (1 + (primaryStats.Size / (stats.Size + 1)))
+		nextCost += stats.ContainsCost * (1 + (primaryStats.Size.Size / (stats.Size.Size + 1)))
 		containsCost += stats.ContainsCost
-		if size > stats.Size {
-			size = stats.Size
-			exact = stats.ExactSize
+		if size > stats.Size.Size {
+			size = stats.Size.Size
+			exact = stats.Size.Exact
 		}
 	}
 	for _, sub := range opt {
 		stats := sub.Stats()
-		nextCost += stats.ContainsCost * (1 + (primaryStats.Size / (stats.Size + 1)))
+		nextCost += stats.ContainsCost * (1 + (primaryStats.Size.Size / (stats.Size.Size + 1)))
 		containsCost += stats.ContainsCost
 	}
-	return graph.IteratorStats{
+	return graph.IteratorCosts{
 		ContainsCost: containsCost,
 		NextCost:     nextCost,
-		Size:         size,
-		ExactSize:    exact,
+		Size: graph.Size{
+			Size:  size,
+			Exact: exact,
+		},
 	}, arr
 }
 
@@ -285,7 +287,7 @@ func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorStats, []graph.Iter
 // with an intersection, we know that the largest we can be is the size of the
 // smallest iterator. This is the heuristic we shall follow. Better heuristics
 // welcome.
-func (it *and) Stats() graph.IteratorStats {
+func (it *and) Stats() graph.IteratorCosts {
 	stats, _ := getStatsForSlice(it.sub, it.opt)
 	return stats
 }

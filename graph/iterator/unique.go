@@ -70,13 +70,15 @@ func (it *unique) Optimize() (graph.Shape, bool) {
 
 const uniquenessFactor = 2
 
-func (it *unique) Stats() graph.IteratorStats {
+func (it *unique) Stats() graph.IteratorCosts {
 	subStats := it.subIt.Stats()
-	return graph.IteratorStats{
+	return graph.IteratorCosts{
 		NextCost:     subStats.NextCost * uniquenessFactor,
 		ContainsCost: subStats.ContainsCost,
-		Size:         subStats.Size / uniquenessFactor,
-		ExactSize:    false,
+		Size: graph.Size{
+			Size:  subStats.Size.Size / uniquenessFactor,
+			Exact: false,
+		},
 	}
 }
 
