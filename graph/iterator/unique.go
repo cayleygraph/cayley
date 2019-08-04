@@ -80,11 +80,6 @@ func (it *unique) Stats() graph.IteratorStats {
 	}
 }
 
-func (it *unique) Size() (int64, bool) {
-	st := it.Stats()
-	return st.Size, st.ExactSize
-}
-
 func (it *unique) String() string {
 	return "Unique"
 }

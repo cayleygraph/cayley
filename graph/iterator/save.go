@@ -23,7 +23,7 @@ func Tag(it graph.Iterator, tag string) graph.Iterator {
 	return NewSave(it, tag)
 }
 
-func Tag2(it graph.Shape, tag string) graph.Shape {
+func TagShape(it graph.Shape, tag string) graph.Shape {
 	if s, ok := it.(graph.TaggerShape); ok {
 		s.AddTags(tag)
 		return s
@@ -149,10 +149,6 @@ func (it *save) CopyFromTagger(st graph.TaggerBase) {
 
 func (it *save) Stats() graph.IteratorStats {
 	return it.it.Stats()
-}
-
-func (it *save) Size() (int64, bool) {
-	return it.it.Size()
 }
 
 func (it *save) Optimize() (nit graph.Shape, no bool) {

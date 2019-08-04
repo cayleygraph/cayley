@@ -280,9 +280,12 @@ func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorStats, []graph.Iter
 // and.Stats() lives here in and-iterator-optimize.go because it may
 // in the future return different statistics based on how it is optimized.
 // For now, however, it's pretty static.
+//
+// Returns the approximate size of the And iterator. Because we're dealing
+// with an intersection, we know that the largest we can be is the size of the
+// smallest iterator. This is the heuristic we shall follow. Better heuristics
+// welcome.
 func (it *and) Stats() graph.IteratorStats {
 	stats, _ := getStatsForSlice(it.sub, it.opt)
-	//stats.Next = it.runstats.Next
-	//stats.Contains = it.runstats.Contains
 	return stats
 }

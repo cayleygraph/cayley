@@ -137,34 +137,6 @@ func (it *or) AddSubIterator(sub graph.Shape) {
 	it.sub = append(it.sub, sub)
 }
 
-// Returns the approximate size of the Or graph.iterator. Because we're dealing
-// with a union, we know that the largest we can be is the sum of all the iterators,
-// or in the case of short-circuiting, the longest.
-func (it *or) Size() (int64, bool) {
-	var val int64
-	var b bool
-	if it.isShortCircuiting {
-		val = 0
-		b = true
-		for _, sub := range it.sub {
-			newval, newb := sub.Size()
-			if val < newval {
-				val = newval
-			}
-			b = newb && b
-		}
-	} else {
-		val = 0
-		b = true
-		for _, sub := range it.sub {
-			newval, newb := sub.Size()
-			val += newval
-			b = newb && b
-		}
-	}
-	return val, b
-}
-
 func (it *or) Optimize() (graph.Shape, bool) {
 	old := it.SubIterators()
 	optIts := optimizeSubIterators2(old)
@@ -178,6 +150,9 @@ func (it *or) Optimize() (graph.Shape, bool) {
 	return newOr, true
 }
 
+// Returns the approximate size of the Or graph.iterator. Because we're dealing
+// with a union, we know that the largest we can be is the sum of all the iterators,
+// or in the case of short-circuiting, the longest.
 func (it *or) Stats() graph.IteratorStats {
 	ContainsCost := int64(0)
 	NextCost := int64(0)
@@ -203,7 +178,6 @@ func (it *or) Stats() graph.IteratorStats {
 		Size:         Size,
 		ExactSize:    Exact,
 	}
-
 }
 
 type orNext struct {

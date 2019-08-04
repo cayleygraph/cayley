@@ -109,12 +109,6 @@ func (it *materialize) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-// Size is the number of values stored, if we've got them all.
-// Otherwise, guess based on the size of the subiterator.
-func (it *materialize) Size() (int64, bool) {
-	return it.sub.Size()
-}
-
 // The entire point of Materialize is to amortize the cost by
 // putting it all up front.
 func (it *materialize) Stats() graph.IteratorStats {
@@ -123,12 +117,12 @@ func (it *materialize) Stats() graph.IteratorStats {
 		size  int64
 		exact bool
 	)
+	subitStats := it.sub.Stats()
 	if it.expectSize > 0 {
 		size, exact = it.expectSize, false
 	} else {
-		size, exact = it.Size()
+		size, exact = subitStats.Size, subitStats.ExactSize
 	}
-	subitStats := it.sub.Stats()
 	return graph.IteratorStats{
 		ContainsCost: overhead * subitStats.NextCost,
 		NextCost:     overhead * subitStats.NextCost,

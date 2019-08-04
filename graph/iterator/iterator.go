@@ -227,10 +227,6 @@ func (it *null) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *null) Size() (int64, bool) {
-	return 0, true
-}
-
 func (it *null) Reset() {}
 
 func (it *null) Close() error {
@@ -294,10 +290,6 @@ func (it *error2) SubIterators() []graph.Shape {
 
 func (it *error2) NextPath(ctx context.Context) bool {
 	return false
-}
-
-func (it *error2) Size() (int64, bool) {
-	return 0, true
 }
 
 func (it *error2) Reset() {}

@@ -81,14 +81,6 @@ func (it *limit) Stats() graph.IteratorStats {
 	return primaryStats
 }
 
-func (it *limit) Size() (int64, bool) {
-	primarySize, exact := it.primaryIt.Size()
-	if it.limit > 0 && primarySize > it.limit {
-		primarySize = it.limit
-	}
-	return primarySize, exact
-}
-
 func (it *limit) String() string {
 	return fmt.Sprintf("Limit(%d)", it.limit)
 }

@@ -95,10 +95,6 @@ func (it *recursive) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-func (it *recursive) Size() (int64, bool) {
-	return it.Stats().Size, false
-}
-
 func (it *recursive) Stats() graph.IteratorStats {
 	base := newFixed()
 	base.Add(Int64Node(20))
@@ -201,7 +197,7 @@ func (it *recursiveNext) Next(ctx context.Context) bool {
 			if it.nextIt != nil {
 				it.nextIt.Close()
 			}
-			it.nextIt = it.morphism(Tag2(it.baseIt, recursiveBaseTag)).Iterate()
+			it.nextIt = it.morphism(TagShape(it.baseIt, recursiveBaseTag)).Iterate()
 			continue
 		}
 		val := it.nextIt.Result()

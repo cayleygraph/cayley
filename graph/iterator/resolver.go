@@ -95,20 +95,13 @@ func (it *resolver) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-// Size is the number of m stored.
-func (it *resolver) Size() (int64, bool) {
-	return int64(len(it.order)), true
-}
-
 func (it *resolver) Stats() graph.IteratorStats {
-	s, exact := it.Size()
 	return graph.IteratorStats{
-		// Lookup cost is size of set
-		ContainsCost: s,
 		// Next is (presumably) O(1) from store
-		NextCost:  1,
-		Size:      s,
-		ExactSize: exact,
+		NextCost:     1,
+		ContainsCost: 1,
+		Size:         int64(len(it.order)),
+		ExactSize:    true,
 	}
 }
 

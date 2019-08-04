@@ -86,11 +86,6 @@ func (it *not) Stats() graph.IteratorStats {
 	}
 }
 
-func (it *not) Size() (int64, bool) {
-	st := it.Stats()
-	return st.Size, st.ExactSize
-}
-
 func (it *not) String() string {
 	return "Not"
 }
