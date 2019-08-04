@@ -58,7 +58,7 @@ func NewHasA(qs graph.QuadIndexer, subIt graph.Iterator, d quad.Direction) *HasA
 	it := &HasA{
 		it: newHasA(qs, graph.AsShape(subIt), d),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -101,7 +101,7 @@ func (it *hasA) Lookup() graph.Index {
 
 func (it *hasA) AsLegacy() graph.Iterator {
 	it2 := &HasA{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

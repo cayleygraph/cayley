@@ -53,7 +53,7 @@ func NewLinksTo(qs graph.QuadIndexer, sub graph.Iterator, d quad.Direction) *Lin
 	it := &LinksTo{
 		it: newLinksTo(qs, graph.AsShape(sub), d),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -100,7 +100,7 @@ func (it *linksTo) Lookup() graph.Index {
 
 func (it *linksTo) AsLegacy() graph.Iterator {
 	it2 := &LinksTo{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

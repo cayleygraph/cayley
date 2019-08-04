@@ -31,7 +31,7 @@ func NewRecursive(sub graph.Iterator, morphism Morphism, maxDepth int) *Recursiv
 			return graph.AsShape(morphism(graph.AsLegacy(it)))
 		}, maxDepth),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -75,7 +75,7 @@ func (it *recursive) Lookup() graph.Index {
 
 func (it *recursive) AsLegacy() graph.Iterator {
 	it2 := &Recursive{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

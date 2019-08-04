@@ -86,7 +86,7 @@ func (it *fixed) Lookup() graph.Index {
 
 func (it *fixed) AsLegacy() graph.Iterator {
 	it2 := &Fixed{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

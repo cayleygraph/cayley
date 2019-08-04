@@ -19,7 +19,7 @@ func NewSkip(primaryIt graph.Iterator, skip int64) *Skip {
 	it := &Skip{
 		it: newSkip(graph.AsShape(primaryIt), skip),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -53,7 +53,7 @@ func (it *skip) Lookup() graph.Index {
 
 func (it *skip) AsLegacy() graph.Iterator {
 	it2 := &Skip{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

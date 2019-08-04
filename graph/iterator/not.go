@@ -19,7 +19,7 @@ func NewNot(primaryIt, allIt graph.Iterator) *Not {
 	it := &Not{
 		it: newNot(graph.AsShape(primaryIt), graph.AsShape(allIt)),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -54,7 +54,7 @@ func (it *not) Lookup() graph.Index {
 
 func (it *not) AsLegacy() graph.Iterator {
 	it2 := &Not{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

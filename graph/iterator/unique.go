@@ -18,7 +18,7 @@ func NewUnique(subIt graph.Iterator) *Unique {
 	it := &Unique{
 		it: newUnique(graph.AsShape(subIt)),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -50,7 +50,7 @@ func (it *unique) Lookup() graph.Index {
 
 func (it *unique) AsLegacy() graph.Iterator {
 	it2 := &Unique{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

@@ -145,11 +145,11 @@ func (it *legacyShape) AsLegacy() Iterator {
 
 // NewLegacy creates a new legacy Iterator from an iterator Shape.
 // This method will always create a new iterator, while AsLegacy will try to unwrap it first.
-func NewLegacy(s Shape) Iterator {
+func NewLegacy(s Shape, self Iterator) Iterator {
 	if s == nil {
 		panic("nil iterator")
 	}
-	return &legacyIter{s: s}
+	return &legacyIter{s: s, self: self}
 }
 
 // AsLegacy convert an iterator Shape to a legacy Iterator interface.
@@ -157,13 +157,14 @@ func AsLegacy(s Shape) Iterator {
 	if it2, ok := s.(ShapeCompat); ok {
 		return it2.AsLegacy()
 	}
-	return NewLegacy(s)
+	return NewLegacy(s, nil)
 }
 
 var _ IteratorFuture = &legacyIter{}
 
 type legacyIter struct {
 	s    Shape
+	self Iterator
 	scan Scanner
 	cont Index
 }
@@ -279,6 +280,9 @@ func (it *legacyIter) Size() (int64, bool) {
 func (it *legacyIter) Optimize() (Iterator, bool) {
 	nit, ok := it.s.Optimize(context.Background())
 	if !ok {
+		if it.self != nil {
+			return it.self, false
+		}
 		return it, false
 	}
 	return AsLegacy(nit), true
