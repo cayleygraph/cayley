@@ -111,23 +111,19 @@ func (it *materialize) Optimize() (graph.Shape, bool) {
 
 // The entire point of Materialize is to amortize the cost by
 // putting it all up front.
-func (it *materialize) Stats() graph.IteratorStats {
+func (it *materialize) Stats() graph.IteratorCosts {
 	overhead := int64(2)
-	var (
-		size  int64
-		exact bool
-	)
+	var size graph.Size
 	subitStats := it.sub.Stats()
 	if it.expectSize > 0 {
-		size, exact = it.expectSize, false
+		size = graph.Size{Size: it.expectSize, Exact: false}
 	} else {
-		size, exact = subitStats.Size, subitStats.ExactSize
+		size = subitStats.Size
 	}
-	return graph.IteratorStats{
+	return graph.IteratorCosts{
 		ContainsCost: overhead * subitStats.NextCost,
 		NextCost:     overhead * subitStats.NextCost,
 		Size:         size,
-		ExactSize:    exact,
 	}
 }
 

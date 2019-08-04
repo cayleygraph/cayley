@@ -71,14 +71,16 @@ func (it *count) Optimize() (graph.Shape, bool) {
 	return it, optimized
 }
 
-func (it *count) Stats() graph.IteratorStats {
-	stats := graph.IteratorStats{
-		NextCost:  1,
-		Size:      1,
-		ExactSize: true,
+func (it *count) Stats() graph.IteratorCosts {
+	stats := graph.IteratorCosts{
+		NextCost: 1,
+		Size: graph.Size{
+			Size:  1,
+			Exact: true,
+		},
 	}
-	if sub := it.it.Stats(); !sub.ExactSize {
-		stats.NextCost = sub.NextCost * sub.Size
+	if sub := it.it.Stats(); !sub.Size.Exact {
+		stats.NextCost = sub.NextCost * sub.Size.Size
 	}
 	stats.ContainsCost = stats.NextCost
 	return stats
@@ -110,18 +112,18 @@ func (it *countNext) Next(ctx context.Context) bool {
 		return false
 	}
 	// TODO(dennwc): this most likely won't include the NextPath
-	size, exact := it.it.Size()
-	if !exact {
+	st := it.it.Stats()
+	if !st.Size.Exact {
 		sit := it.it.Iterate()
 		defer sit.Close()
-		for size = 0; sit.Next(ctx); size++ {
+		for st.Size.Size = 0; sit.Next(ctx); st.Size.Size++ {
 			// TODO(dennwc): it's unclear if we should call it here or not
-			for ; sit.NextPath(ctx); size++ {
+			for ; sit.NextPath(ctx); st.Size.Size++ {
 			}
 		}
 		it.err = sit.Err()
 	}
-	it.result = quad.Int(size)
+	it.result = quad.Int(st.Size.Size)
 	it.done = true
 	return true
 }

@@ -30,6 +30,12 @@ type TaggerShape interface {
 	CopyFromTagger(st TaggerBase)
 }
 
+type IteratorCosts struct {
+	ContainsCost int64
+	NextCost     int64
+	Size         Size
+}
+
 // Shape is an iterator shape, similar to a query plan. But the plan is not specific in this
 // case - it is used to reorder query branches, and the decide what branches will be scanned
 // and what branches will lookup values (hopefully from the index, but not necessarily).
@@ -56,7 +62,7 @@ type Shape interface {
 	// this iterator, as well as the size. Roughly, it will take NextCost * Size
 	// "cost units" to get everything out of the iterator. This is a wibbly-wobbly
 	// thing, and not exact, but a useful heuristic.
-	Stats() IteratorStats
+	Stats() IteratorCosts
 
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
@@ -106,6 +112,18 @@ func (it *legacyShape) SubIterators() []Shape {
 		out = append(out, AsShape(s))
 	}
 	return out
+}
+
+func (it *legacyShape) Stats() IteratorCosts {
+	st := it.Iterator.Stats()
+	return IteratorCosts{
+		NextCost:     st.NextCost,
+		ContainsCost: st.ContainsCost,
+		Size: Size{
+			Size:  st.Size,
+			Exact: st.ExactSize,
+		},
+	}
 }
 
 func (it *legacyShape) Iterate() Scanner {
@@ -244,12 +262,18 @@ func (it *legacyIter) Reset() {
 }
 
 func (it *legacyIter) Stats() IteratorStats {
-	return it.s.Stats()
+	st := it.s.Stats()
+	return IteratorStats{
+		NextCost:     st.NextCost,
+		ContainsCost: st.ContainsCost,
+		Size:         st.Size.Size,
+		ExactSize:    st.Size.Exact,
+	}
 }
 
 func (it *legacyIter) Size() (int64, bool) {
 	st := it.s.Stats()
-	return st.Size, st.ExactSize
+	return st.Size.Size, st.Size.Exact
 }
 
 func (it *legacyIter) Optimize() (Iterator, bool) {

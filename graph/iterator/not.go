@@ -75,14 +75,16 @@ func (it *not) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-func (it *not) Stats() graph.IteratorStats {
+func (it *not) Stats() graph.IteratorCosts {
 	primaryStats := it.primary.Stats()
 	allStats := it.allIt.Stats()
-	return graph.IteratorStats{
+	return graph.IteratorCosts{
 		NextCost:     allStats.NextCost + primaryStats.ContainsCost,
 		ContainsCost: primaryStats.ContainsCost,
-		Size:         allStats.Size - primaryStats.Size,
-		ExactSize:    false,
+		Size: graph.Size{
+			Size:  allStats.Size.Size - primaryStats.Size.Size,
+			Exact: false,
+		},
 	}
 }
 

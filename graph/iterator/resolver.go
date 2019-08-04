@@ -95,13 +95,15 @@ func (it *resolver) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-func (it *resolver) Stats() graph.IteratorStats {
-	return graph.IteratorStats{
+func (it *resolver) Stats() graph.IteratorCosts {
+	return graph.IteratorCosts{
 		// Next is (presumably) O(1) from store
 		NextCost:     1,
 		ContainsCost: 1,
-		Size:         int64(len(it.order)),
-		ExactSize:    true,
+		Size: graph.Size{
+			Size:  int64(len(it.order)),
+			Exact: true,
+		},
 	}
 }
 

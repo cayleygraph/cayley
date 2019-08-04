@@ -234,8 +234,8 @@ func (it *null) Close() error {
 }
 
 // A null iterator costs nothing. Use it!
-func (it *null) Stats() graph.IteratorStats {
-	return graph.IteratorStats{}
+func (it *null) Stats() graph.IteratorCosts {
+	return graph.IteratorCosts{}
 }
 
 // Error iterator always returns a single error with no other results.
@@ -298,6 +298,6 @@ func (it *error2) Close() error {
 	return it.err
 }
 
-func (it *error2) Stats() graph.IteratorStats {
-	return graph.IteratorStats{}
+func (it *error2) Stats() graph.IteratorCosts {
+	return graph.IteratorCosts{}
 }
