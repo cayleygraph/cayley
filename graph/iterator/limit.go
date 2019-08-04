@@ -20,7 +20,7 @@ func NewLimit(primaryIt graph.Iterator, limit int64) *Limit {
 	it := &Limit{
 		it: newLimit(graph.AsShape(primaryIt), limit),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -55,7 +55,7 @@ func (it *limit) Lookup() graph.Index {
 
 func (it *limit) AsLegacy() graph.Iterator {
 	it2 := &Limit{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

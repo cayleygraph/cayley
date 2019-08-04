@@ -36,7 +36,7 @@ func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
 	it := &Resolver{
 		it: newResolver(qs, nodes...),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -74,7 +74,7 @@ func (it *resolver) Lookup() graph.Index {
 
 func (it *resolver) AsLegacy() graph.Iterator {
 	it2 := &Resolver{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

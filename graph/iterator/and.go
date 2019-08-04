@@ -39,7 +39,7 @@ func NewAnd(sub ...graph.Iterator) *And {
 	for _, s := range sub {
 		it.it.AddSubIterator(graph.AsShape(s))
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -123,7 +123,7 @@ func (it *and) Lookup() graph.Index {
 
 func (it *and) AsLegacy() graph.Iterator {
 	it2 := &And{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

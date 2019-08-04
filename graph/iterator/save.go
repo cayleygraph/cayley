@@ -38,7 +38,7 @@ func NewSave(on graph.Iterator, tags ...string) *Save {
 	it := &Save{
 		it: newSave(graph.AsShape(on), tags...),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -102,7 +102,7 @@ func (it *save) Lookup() graph.Index {
 
 func (it *save) AsLegacy() graph.Iterator {
 	it2 := &Save{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

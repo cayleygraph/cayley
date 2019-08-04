@@ -41,7 +41,7 @@ func NewMaterialize(sub graph.Iterator) *Materialize {
 	it := &Materialize{
 		it: newMaterialize(graph.AsShape(sub)),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -49,7 +49,7 @@ func NewMaterializeWithSize(sub graph.Iterator, size int64) *Materialize {
 	it := &Materialize{
 		it: newMaterializeWithSize(graph.AsShape(sub), size),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -86,7 +86,7 @@ func (it *materialize) Lookup() graph.Index {
 
 func (it *materialize) AsLegacy() graph.Iterator {
 	it2 := &Materialize{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

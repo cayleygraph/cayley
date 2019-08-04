@@ -42,7 +42,7 @@ func NewOr(sub ...graph.Iterator) *Or {
 	it := &Or{
 		it: newOr(in...),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -54,7 +54,7 @@ func NewShortCircuitOr(sub ...graph.Iterator) *Or {
 	it := &Or{
 		it: newShortCircuitOr(in...),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -119,7 +119,7 @@ func (it *or) Lookup() graph.Index {
 
 func (it *or) AsLegacy() graph.Iterator {
 	it2 := &Or{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

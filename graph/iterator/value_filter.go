@@ -34,7 +34,7 @@ func NewValueFilter(qs graph.Namer, sub graph.Iterator, filter ValueFilterFunc) 
 	it := &ValueFilter{
 		it: newValueFilter(qs, graph.AsShape(sub), filter),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -69,7 +69,7 @@ func (it *valueFilter) Lookup() graph.Index {
 
 func (it *valueFilter) AsLegacy() graph.Iterator {
 	it2 := &ValueFilter{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 

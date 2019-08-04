@@ -21,7 +21,7 @@ func NewCount(sub graph.Iterator, qs graph.Namer) *Count {
 	it := &Count{
 		it: newCount(graph.AsShape(sub), qs),
 	}
-	it.Iterator = graph.NewLegacy(it.it)
+	it.Iterator = graph.NewLegacy(it.it, it)
 	return it
 }
 
@@ -56,7 +56,7 @@ func (it *count) Lookup() graph.Index {
 
 func (it *count) AsLegacy() graph.Iterator {
 	it2 := &Count{it: it}
-	it2.Iterator = graph.NewLegacy(it)
+	it2.Iterator = graph.NewLegacy(it, it2)
 	return it2
 }
 
