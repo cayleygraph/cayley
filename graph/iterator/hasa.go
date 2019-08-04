@@ -115,8 +115,8 @@ func (it *hasA) Direction() quad.Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no quads that have any directions).
-func (it *hasA) Optimize() (graph.Shape, bool) {
-	newPrimary, changed := it.primary.Optimize()
+func (it *hasA) Optimize(ctx context.Context) (graph.Shape, bool) {
+	newPrimary, changed := it.primary.Optimize(ctx)
 	if changed {
 		it.primary = newPrimary
 		if IsNull2(it.primary) {
@@ -136,8 +136,8 @@ func (it *hasA) String() string {
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (it *hasA) Stats() graph.IteratorCosts {
-	subitStats := it.primary.Stats()
+func (it *hasA) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	subitStats, err := it.primary.Stats(ctx)
 	// TODO(barakmich): These should really come from the quadstore itself
 	// and be optimized.
 	faninFactor := int64(1)
@@ -151,7 +151,7 @@ func (it *hasA) Stats() graph.IteratorCosts {
 			Size:  faninFactor * subitStats.Size.Size,
 			Exact: false,
 		},
-	}
+	}, err
 }
 
 // A HasA consists of a reference back to the graph.QuadStore that it references,

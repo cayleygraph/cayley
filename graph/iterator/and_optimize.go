@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"context"
 	"sort"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -40,7 +41,7 @@ import (
 
 // Optimizes the And, by picking the most efficient way to Next() and
 // Contains() its subiterators. For SQL fans, this is equivalent to JOIN.
-func (it *and) Optimize() (graph.Shape, bool) {
+func (it *and) Optimize(ctx context.Context) (graph.Shape, bool) {
 	// First, let's get the slice of iterators, in order (first one is Next()ed,
 	// the rest are Contains()ed)
 	old := it.sub
@@ -52,7 +53,7 @@ func (it *and) Optimize() (graph.Shape, bool) {
 	// found them. it_list is the newly optimized versions of these, and changed
 	// is another list, of only the ones that have returned replacements and
 	// changed.
-	its := optimizeSubIterators2(old)
+	its := optimizeSubIterators2(ctx, old)
 
 	// If we can find only one subiterator which is equivalent to this whole and,
 	// we can replace the And...
@@ -63,9 +64,9 @@ func (it *and) Optimize() (graph.Shape, bool) {
 
 	// And now, without changing any of the iterators, we reorder them. it_list is
 	// now a permutation of itself, but the contents are unchanged.
-	its = optimizeOrder(its)
+	its = optimizeOrder(ctx, its)
 
-	its = materializeIts(its)
+	its, _ = materializeIts(ctx, its)
 
 	// Okay! At this point we have an optimized order.
 
@@ -74,12 +75,12 @@ func (it *and) Optimize() (graph.Shape, bool) {
 	// Add the subiterators in order.
 	newAnd := newAnd(its...)
 
-	opt := optimizeSubIterators2(it.opt)
+	opt := optimizeSubIterators2(ctx, it.opt)
 	for _, sub := range opt {
 		newAnd.AddOptionalIterator(sub)
 	}
 
-	newAnd.optimizeContains()
+	_ = newAnd.optimizeContains(ctx)
 	if clog.V(3) {
 		clog.Infof("%p become %p", it, newAnd)
 	}
@@ -108,7 +109,7 @@ func optimizeReplacement(its []graph.Shape) graph.Shape {
 
 // optimizeOrder(l) takes a list and returns a list, containing the same contents
 // but with a new ordering, however it wishes.
-func optimizeOrder(its []graph.Shape) []graph.Shape {
+func optimizeOrder(ctx context.Context, its []graph.Shape) []graph.Shape {
 	var (
 		// bad contains iterators that can't be (efficiently) nexted, such as
 		// graph.Optional or graph.Not. Separate them out and tack them on at the end.
@@ -122,13 +123,13 @@ func optimizeOrder(its []graph.Shape) []graph.Shape {
 	// all of it's contents, and to Contains() each of those against everyone
 	// else.
 	for _, root := range its {
-		rootStats := root.Stats()
+		rootStats, _ := root.Stats(ctx)
 		cost := rootStats.NextCost
 		for _, f := range its {
 			if f == root {
 				continue
 			}
-			stats := f.Stats()
+			stats, _ := f.Stats(ctx)
 			cost += stats.ContainsCost * (1 + (rootStats.Size.Size / (stats.Size.Size + 1)))
 		}
 		cost *= rootStats.Size.Size
@@ -165,21 +166,47 @@ func optimizeOrder(its []graph.Shape) []graph.Shape {
 	return append(out, bad...)
 }
 
-type byCost []graph.Shape
+func sortByContainsCost(ctx context.Context, arr []graph.Shape) error {
+	cost := make([]graph.IteratorCosts, 0, len(arr))
+	var last error
+	for _, s := range arr {
+		c, err := s.Stats(ctx)
+		if err != nil {
+			last = err
+		}
+		cost = append(cost, c)
+	}
+	sort.Sort(byCost{
+		list: arr,
+		cost: cost,
+	})
+	return last
+}
 
-func (c byCost) Len() int           { return len(c) }
-func (c byCost) Less(i, j int) bool { return c[i].Stats().ContainsCost < c[j].Stats().ContainsCost }
-func (c byCost) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+// TODO(dennwc): store stats slice once
+type byCost struct {
+	list []graph.Shape
+	cost []graph.IteratorCosts
+}
+
+func (c byCost) Len() int { return len(c.list) }
+func (c byCost) Less(i, j int) bool {
+	return c.cost[i].ContainsCost < c.cost[j].ContainsCost
+}
+func (c byCost) Swap(i, j int) {
+	c.list[i], c.list[j] = c.list[j], c.list[i]
+	c.cost[i], c.cost[j] = c.cost[j], c.cost[i]
+}
 
 // optimizeContains() creates an alternate check list, containing the same contents
 // but with a new ordering, however it wishes.
-func (it *and) optimizeContains() {
+func (it *and) optimizeContains(ctx context.Context) error {
 	// GetSubIterators allocates, so this is currently safe.
 	// TODO(kortschak) Reuse it.checkList if possible.
 	// This involves providing GetSubIterators with a slice to fill.
 	// Generally this is a worthwhile thing to do in other places as well.
 	it.checkList = append([]graph.Shape{}, it.sub...)
-	sort.Sort(byCost(it.checkList))
+	return sortByContainsCost(ctx, it.checkList)
 }
 
 // optimizeSubIterators(l) takes a list of iterators and calls Optimize() on all
@@ -199,10 +226,10 @@ func optimizeSubIterators(its []graph.Iterator) []graph.Iterator {
 // of them. It returns two lists -- the first contains the same list as l, where
 // any replacements are made by Optimize() and the second contains the originals
 // which were replaced.
-func optimizeSubIterators2(its []graph.Shape) []graph.Shape {
+func optimizeSubIterators2(ctx context.Context, its []graph.Shape) []graph.Shape {
 	out := make([]graph.Shape, 0, len(its))
 	for _, it := range its {
-		o, _ := it.Optimize()
+		o, _ := it.Optimize(ctx)
 		out = append(out, o)
 	}
 	return out
@@ -218,10 +245,10 @@ func hasAnyNullIterators(its []graph.Shape) bool {
 	return false
 }
 
-func materializeIts(its []graph.Shape) []graph.Shape {
+func materializeIts(ctx context.Context, its []graph.Shape) ([]graph.Shape, error) {
 	var out []graph.Shape
 
-	allStats, stats := getStatsForSlice(its, nil)
+	allStats, stats, err := getStatsForSlice(ctx, its, nil)
 	out = append(out, its[0])
 	for i, it := range its[1:] {
 		st := stats[i+1]
@@ -236,17 +263,17 @@ func materializeIts(its []graph.Shape) []graph.Shape {
 		}
 		out = append(out, it)
 	}
-	return out
+	return out, err
 }
 
-func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorCosts, []graph.IteratorCosts) {
+func getStatsForSlice(ctx context.Context, its, opt []graph.Shape) (graph.IteratorCosts, []graph.IteratorCosts, error) {
 	if len(its) == 0 {
-		return graph.IteratorCosts{}, nil
+		return graph.IteratorCosts{}, nil, nil
 	}
 
 	arr := make([]graph.IteratorCosts, 0, len(its))
 
-	primaryStats := its[0].Stats()
+	primaryStats, _ := its[0].Stats(ctx)
 	arr = append(arr, primaryStats)
 
 	containsCost := primaryStats.ContainsCost
@@ -254,8 +281,12 @@ func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorCosts, []graph.Iter
 	size := primaryStats.Size.Size
 	exact := primaryStats.Size.Exact
 
+	var last error
 	for _, sub := range its[1:] {
-		stats := sub.Stats()
+		stats, err := sub.Stats(ctx)
+		if err != nil {
+			last = err
+		}
 		arr = append(arr, stats)
 		nextCost += stats.ContainsCost * (1 + (primaryStats.Size.Size / (stats.Size.Size + 1)))
 		containsCost += stats.ContainsCost
@@ -265,7 +296,7 @@ func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorCosts, []graph.Iter
 		}
 	}
 	for _, sub := range opt {
-		stats := sub.Stats()
+		stats, _ := sub.Stats(ctx)
 		nextCost += stats.ContainsCost * (1 + (primaryStats.Size.Size / (stats.Size.Size + 1)))
 		containsCost += stats.ContainsCost
 	}
@@ -276,7 +307,7 @@ func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorCosts, []graph.Iter
 			Size:  size,
 			Exact: exact,
 		},
-	}, arr
+	}, arr, last
 }
 
 // and.Stats() lives here in and-iterator-optimize.go because it may
@@ -287,7 +318,7 @@ func getStatsForSlice(its, opt []graph.Shape) (graph.IteratorCosts, []graph.Iter
 // with an intersection, we know that the largest we can be is the size of the
 // smallest iterator. This is the heuristic we shall follow. Better heuristics
 // welcome.
-func (it *and) Stats() graph.IteratorCosts {
-	stats, _ := getStatsForSlice(it.sub, it.opt)
-	return stats
+func (it *and) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	stats, _, err := getStatsForSlice(ctx, it.sub, it.opt)
+	return stats, err
 }

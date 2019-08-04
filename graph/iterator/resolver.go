@@ -88,14 +88,14 @@ func (it *resolver) SubIterators() []graph.Shape {
 
 // Returns a Null iterator if it's empty so that upstream iterators can optimize it
 // away, otherwise there is no optimization.
-func (it *resolver) Optimize() (graph.Shape, bool) {
+func (it *resolver) Optimize(ctx context.Context) (graph.Shape, bool) {
 	if len(it.order) == 0 {
 		return newNull(), true
 	}
 	return it, false
 }
 
-func (it *resolver) Stats() graph.IteratorCosts {
+func (it *resolver) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	return graph.IteratorCosts{
 		// Next is (presumably) O(1) from store
 		NextCost:     1,
@@ -104,7 +104,7 @@ func (it *resolver) Stats() graph.IteratorCosts {
 			Size:  int64(len(it.order)),
 			Exact: true,
 		},
-	}
+	}, nil
 }
 
 // A Resolver iterator consists of it's order, an index (where it is in the,

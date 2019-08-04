@@ -147,12 +147,12 @@ func (it *save) CopyFromTagger(st graph.TaggerBase) {
 	}
 }
 
-func (it *save) Stats() graph.IteratorCosts {
-	return it.it.Stats()
+func (it *save) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	return it.it.Stats(ctx)
 }
 
-func (it *save) Optimize() (nit graph.Shape, no bool) {
-	sub, ok := it.it.Optimize()
+func (it *save) Optimize(ctx context.Context) (nit graph.Shape, no bool) {
+	sub, ok := it.it.Optimize(ctx)
 	if len(it.tags) == 0 && len(it.fixedTags) == 0 {
 		return sub, true
 	}

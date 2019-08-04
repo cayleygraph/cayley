@@ -98,8 +98,8 @@ func (it *materialize) SubIterators() []graph.Shape {
 	return []graph.Shape{it.sub}
 }
 
-func (it *materialize) Optimize() (graph.Shape, bool) {
-	newSub, changed := it.sub.Optimize()
+func (it *materialize) Optimize(ctx context.Context) (graph.Shape, bool) {
+	newSub, changed := it.sub.Optimize(ctx)
 	if changed {
 		it.sub = newSub
 		if IsNull2(it.sub) {
@@ -111,10 +111,10 @@ func (it *materialize) Optimize() (graph.Shape, bool) {
 
 // The entire point of Materialize is to amortize the cost by
 // putting it all up front.
-func (it *materialize) Stats() graph.IteratorCosts {
+func (it *materialize) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	overhead := int64(2)
 	var size graph.Size
-	subitStats := it.sub.Stats()
+	subitStats, err := it.sub.Stats(ctx)
 	if it.expectSize > 0 {
 		size = graph.Size{Size: it.expectSize, Exact: false}
 	} else {
@@ -124,7 +124,7 @@ func (it *materialize) Stats() graph.IteratorCosts {
 		ContainsCost: overhead * subitStats.NextCost,
 		NextCost:     overhead * subitStats.NextCost,
 		Size:         size,
-	}
+	}, err
 }
 
 type materializeNext struct {

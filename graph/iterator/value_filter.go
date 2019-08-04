@@ -84,8 +84,8 @@ func (it *valueFilter) String() string {
 // There's nothing to optimize, locally, for a value-comparison iterator.
 // Replace the underlying iterator if need be.
 // potentially replace it.
-func (it *valueFilter) Optimize() (graph.Shape, bool) {
-	newSub, changed := it.sub.Optimize()
+func (it *valueFilter) Optimize(ctx context.Context) (graph.Shape, bool) {
+	newSub, changed := it.sub.Optimize(ctx)
 	if changed {
 		it.sub = newSub
 	}
@@ -94,11 +94,11 @@ func (it *valueFilter) Optimize() (graph.Shape, bool) {
 
 // We're only as expensive as our subiterator.
 // Again, optimized value comparison iterators should do better.
-func (it *valueFilter) Stats() graph.IteratorCosts {
-	st := it.sub.Stats()
+func (it *valueFilter) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	st, err := it.sub.Stats(ctx)
 	st.Size.Size = st.Size.Size/2 + 1
 	st.Size.Exact = false
-	return st
+	return st, err
 }
 
 type valueFilterNext struct {

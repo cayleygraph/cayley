@@ -60,8 +60,8 @@ func (it *unique) SubIterators() []graph.Shape {
 	return []graph.Shape{it.subIt}
 }
 
-func (it *unique) Optimize() (graph.Shape, bool) {
-	newIt, optimized := it.subIt.Optimize()
+func (it *unique) Optimize(ctx context.Context) (graph.Shape, bool) {
+	newIt, optimized := it.subIt.Optimize(ctx)
 	if optimized {
 		it.subIt = newIt
 	}
@@ -70,8 +70,8 @@ func (it *unique) Optimize() (graph.Shape, bool) {
 
 const uniquenessFactor = 2
 
-func (it *unique) Stats() graph.IteratorCosts {
-	subStats := it.subIt.Stats()
+func (it *unique) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	subStats, err := it.subIt.Stats(ctx)
 	return graph.IteratorCosts{
 		NextCost:     subStats.NextCost * uniquenessFactor,
 		ContainsCost: subStats.ContainsCost,
@@ -79,7 +79,7 @@ func (it *unique) Stats() graph.IteratorCosts {
 			Size:  subStats.Size.Size / uniquenessFactor,
 			Exact: false,
 		},
-	}
+	}, err
 }
 
 func (it *unique) String() string {

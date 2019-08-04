@@ -65,13 +65,13 @@ func (it *count) SubIterators() []graph.Shape {
 	return []graph.Shape{it.it}
 }
 
-func (it *count) Optimize() (graph.Shape, bool) {
-	sub, optimized := it.it.Optimize()
+func (it *count) Optimize(ctx context.Context) (graph.Shape, bool) {
+	sub, optimized := it.it.Optimize(ctx)
 	it.it = sub
 	return it, optimized
 }
 
-func (it *count) Stats() graph.IteratorCosts {
+func (it *count) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	stats := graph.IteratorCosts{
 		NextCost: 1,
 		Size: graph.Size{
@@ -79,11 +79,11 @@ func (it *count) Stats() graph.IteratorCosts {
 			Exact: true,
 		},
 	}
-	if sub := it.it.Stats(); !sub.Size.Exact {
+	if sub, err := it.it.Stats(ctx); err == nil && !sub.Size.Exact {
 		stats.NextCost = sub.NextCost * sub.Size.Size
 	}
 	stats.ContainsCost = stats.NextCost
-	return stats
+	return stats, nil
 }
 
 func (it *count) String() string { return "Count" }
@@ -112,7 +112,11 @@ func (it *countNext) Next(ctx context.Context) bool {
 		return false
 	}
 	// TODO(dennwc): this most likely won't include the NextPath
-	st := it.it.Stats()
+	st, err := it.it.Stats(ctx)
+	if err != nil {
+		it.err = err
+		return false
+	}
 	if !st.Size.Exact {
 		sit := it.it.Iterate()
 		defer sit.Close()

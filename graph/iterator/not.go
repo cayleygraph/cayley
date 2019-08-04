@@ -65,9 +65,9 @@ func (it *not) SubIterators() []graph.Shape {
 	return []graph.Shape{it.primary, it.allIt}
 }
 
-func (it *not) Optimize() (graph.Shape, bool) {
+func (it *not) Optimize(ctx context.Context) (graph.Shape, bool) {
 	// TODO - consider wrapping the primary with a MaterializeIt
-	optimizedPrimaryIt, optimized := it.primary.Optimize()
+	optimizedPrimaryIt, optimized := it.primary.Optimize(ctx)
 	if optimized {
 		it.primary = optimizedPrimaryIt
 	}
@@ -75,9 +75,12 @@ func (it *not) Optimize() (graph.Shape, bool) {
 	return it, false
 }
 
-func (it *not) Stats() graph.IteratorCosts {
-	primaryStats := it.primary.Stats()
-	allStats := it.allIt.Stats()
+func (it *not) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	primaryStats, err := it.primary.Stats(ctx)
+	allStats, err2 := it.allIt.Stats(ctx)
+	if err == nil {
+		err = err2
+	}
 	return graph.IteratorCosts{
 		NextCost:     allStats.NextCost + primaryStats.ContainsCost,
 		ContainsCost: primaryStats.ContainsCost,
@@ -85,7 +88,7 @@ func (it *not) Stats() graph.IteratorCosts {
 			Size:  allStats.Size.Size - primaryStats.Size.Size,
 			Exact: false,
 		},
-	}
+	}, err
 }
 
 func (it *not) String() string {
