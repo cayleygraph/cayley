@@ -113,7 +113,7 @@ func (it *fixed) SubIterators() []graph.Shape {
 // Optimize() for a Fixed iterator is simple. Returns a Null iterator if it's empty
 // (so that other iterators upstream can treat this as null) or there is no
 // optimization.
-func (it *fixed) Optimize() (graph.Shape, bool) {
+func (it *fixed) Optimize(ctx context.Context) (graph.Shape, bool) {
 	if len(it.values) == 1 && it.values[0] == nil {
 		return newNull(), true
 	}
@@ -123,7 +123,7 @@ func (it *fixed) Optimize() (graph.Shape, bool) {
 
 // As we right now have to scan the entire list, Next and Contains are linear with the
 // size. However, a better data structure could remove these limits.
-func (it *fixed) Stats() graph.IteratorCosts {
+func (it *fixed) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	return graph.IteratorCosts{
 		ContainsCost: 1,
 		NextCost:     1,
@@ -131,7 +131,7 @@ func (it *fixed) Stats() graph.IteratorCosts {
 			Size:  int64(len(it.values)),
 			Exact: true,
 		},
-	}
+	}, nil
 }
 
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and

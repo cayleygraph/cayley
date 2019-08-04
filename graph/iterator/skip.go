@@ -62,8 +62,8 @@ func (it *skip) SubIterators() []graph.Shape {
 	return []graph.Shape{it.primaryIt}
 }
 
-func (it *skip) Optimize() (graph.Shape, bool) {
-	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()
+func (it *skip) Optimize(ctx context.Context) (graph.Shape, bool) {
+	optimizedPrimaryIt, optimized := it.primaryIt.Optimize(ctx)
 	if it.skip == 0 { // nothing to skip
 		return optimizedPrimaryIt, true
 	}
@@ -71,15 +71,15 @@ func (it *skip) Optimize() (graph.Shape, bool) {
 	return it, optimized
 }
 
-func (it *skip) Stats() graph.IteratorCosts {
-	primaryStats := it.primaryIt.Stats()
+func (it *skip) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	primaryStats, err := it.primaryIt.Stats(ctx)
 	if primaryStats.Size.Exact {
 		primaryStats.Size.Size -= it.skip
 		if primaryStats.Size.Size < 0 {
 			primaryStats.Size.Size = 0
 		}
 	}
-	return primaryStats
+	return primaryStats, err
 }
 
 func (it *skip) String() string {

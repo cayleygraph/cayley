@@ -87,21 +87,23 @@ func (it *recursive) SubIterators() []graph.Shape {
 	return []graph.Shape{it.subIt}
 }
 
-func (it *recursive) Optimize() (graph.Shape, bool) {
-	newIt, optimized := it.subIt.Optimize()
+func (it *recursive) Optimize(ctx context.Context) (graph.Shape, bool) {
+	newIt, optimized := it.subIt.Optimize(ctx)
 	if optimized {
 		it.subIt = newIt
 	}
 	return it, false
 }
 
-func (it *recursive) Stats() graph.IteratorCosts {
+func (it *recursive) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	base := newFixed()
 	base.Add(Int64Node(20))
 	fanoutit := it.morphism(base)
-	fanoutStats := fanoutit.Stats()
-	subitStats := it.subIt.Stats()
-
+	fanoutStats, err := fanoutit.Stats(ctx)
+	subitStats, err2 := it.subIt.Stats(ctx)
+	if err == nil {
+		err = err2
+	}
 	size := int64(math.Pow(float64(subitStats.Size.Size*fanoutStats.Size.Size), 5))
 	return graph.IteratorCosts{
 		NextCost:     subitStats.NextCost + fanoutStats.NextCost,
@@ -110,7 +112,7 @@ func (it *recursive) Stats() graph.IteratorCosts {
 			Size:  size,
 			Exact: false,
 		},
-	}
+	}, err
 }
 
 func (it *recursive) String() string {

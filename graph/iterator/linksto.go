@@ -114,8 +114,8 @@ func (it *linksTo) SubIterators() []graph.Shape {
 }
 
 // Optimize the LinksTo, by replacing it if it can be.
-func (it *linksTo) Optimize() (graph.Shape, bool) {
-	newPrimary, changed := it.primary.Optimize()
+func (it *linksTo) Optimize(ctx context.Context) (graph.Shape, bool) {
+	newPrimary, changed := it.primary.Optimize(ctx)
 	if changed {
 		it.primary = newPrimary
 		if IsNull2(it.primary) {
@@ -126,19 +126,19 @@ func (it *linksTo) Optimize() (graph.Shape, bool) {
 }
 
 // Return a guess as to how big or costly it is to next the iterator.
-func (it *linksTo) Stats() graph.IteratorCosts {
-	subitStats := it.primary.Stats()
+func (it *linksTo) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	subitStats, err := it.primary.Stats(ctx)
 	// TODO(barakmich): These should really come from the quadstore itself
 	checkConstant := int64(1)
 	nextConstant := int64(2)
 	return graph.IteratorCosts{
 		NextCost:     nextConstant + subitStats.NextCost,
 		ContainsCost: checkConstant + subitStats.ContainsCost,
-		Size:         it.getSize(),
-	}
+		Size:         it.getSize(ctx),
+	}, err
 }
 
-func (it *linksTo) getSize() graph.Size {
+func (it *linksTo) getSize(ctx context.Context) graph.Size {
 	if it.size.Size != 0 {
 		return it.size
 	}
@@ -160,7 +160,7 @@ func (it *linksTo) getSize() graph.Size {
 	}
 	// TODO(barakmich): It should really come from the quadstore itself
 	const fanoutFactor = 20
-	st := it.primary.Stats()
+	st, _ := it.primary.Stats(ctx)
 	st.Size.Size *= fanoutFactor
 	it.size.Size, it.size.Exact = st.Size.Size, false
 	return it.size

@@ -201,7 +201,7 @@ func (it *null) Contains(ctx context.Context, v graph.Ref) bool {
 
 // A good iterator will close itself when it returns true.
 // Null has nothing it needs to do.
-func (it *null) Optimize() (graph.Shape, bool) { return it, false }
+func (it *null) Optimize(ctx context.Context) (graph.Shape, bool) { return it, false }
 
 func (it *null) String() string {
 	return "Null"
@@ -234,8 +234,8 @@ func (it *null) Close() error {
 }
 
 // A null iterator costs nothing. Use it!
-func (it *null) Stats() graph.IteratorCosts {
-	return graph.IteratorCosts{}
+func (it *null) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	return graph.IteratorCosts{}, nil
 }
 
 // Error iterator always returns a single error with no other results.
@@ -266,7 +266,7 @@ func (it *error2) Contains(ctx context.Context, v graph.Ref) bool {
 	return false
 }
 
-func (it *error2) Optimize() (graph.Shape, bool) { return it, false }
+func (it *error2) Optimize(ctx context.Context) (graph.Shape, bool) { return it, false }
 
 func (it *error2) String() string {
 	return fmt.Sprintf("Error(%v)", it.err)
@@ -298,6 +298,6 @@ func (it *error2) Close() error {
 	return it.err
 }
 
-func (it *error2) Stats() graph.IteratorCosts {
-	return graph.IteratorCosts{}
+func (it *error2) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	return graph.IteratorCosts{}, nil
 }

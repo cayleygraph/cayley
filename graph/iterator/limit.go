@@ -64,8 +64,8 @@ func (it *limit) SubIterators() []graph.Shape {
 	return []graph.Shape{it.primaryIt}
 }
 
-func (it *limit) Optimize() (graph.Shape, bool) {
-	optimizedPrimaryIt, optimized := it.primaryIt.Optimize()
+func (it *limit) Optimize(ctx context.Context) (graph.Shape, bool) {
+	optimizedPrimaryIt, optimized := it.primaryIt.Optimize(ctx)
 	if it.limit <= 0 { // no limit
 		return optimizedPrimaryIt, true
 	}
@@ -73,12 +73,12 @@ func (it *limit) Optimize() (graph.Shape, bool) {
 	return it, optimized
 }
 
-func (it *limit) Stats() graph.IteratorCosts {
-	primaryStats := it.primaryIt.Stats()
+func (it *limit) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	primaryStats, err := it.primaryIt.Stats(ctx)
 	if it.limit > 0 && primaryStats.Size.Size > it.limit {
 		primaryStats.Size.Size = it.limit
 	}
-	return primaryStats
+	return primaryStats, err
 }
 
 func (it *limit) String() string {

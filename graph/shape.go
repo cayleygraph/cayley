@@ -62,12 +62,12 @@ type Shape interface {
 	// this iterator, as well as the size. Roughly, it will take NextCost * Size
 	// "cost units" to get everything out of the iterator. This is a wibbly-wobbly
 	// thing, and not exact, but a useful heuristic.
-	Stats() IteratorCosts
+	Stats(ctx context.Context) (IteratorCosts, error)
 
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
 	// returns (the new iterator, true), if not, it returns (self, false).
-	Optimize() (Shape, bool)
+	Optimize(ctx context.Context) (Shape, bool)
 
 	// Return a slice of the subiterators for this iterator.
 	SubIterators() []Shape
@@ -97,7 +97,7 @@ type legacyShape struct {
 	Iterator
 }
 
-func (it *legacyShape) Optimize() (Shape, bool) {
+func (it *legacyShape) Optimize(ctx context.Context) (Shape, bool) {
 	nit, ok := it.Iterator.Optimize()
 	if !ok {
 		return it, false
@@ -114,7 +114,7 @@ func (it *legacyShape) SubIterators() []Shape {
 	return out
 }
 
-func (it *legacyShape) Stats() IteratorCosts {
+func (it *legacyShape) Stats(ctx context.Context) (IteratorCosts, error) {
 	st := it.Iterator.Stats()
 	return IteratorCosts{
 		NextCost:     st.NextCost,
@@ -123,7 +123,7 @@ func (it *legacyShape) Stats() IteratorCosts {
 			Size:  st.Size,
 			Exact: st.ExactSize,
 		},
-	}
+	}, it.Err()
 }
 
 func (it *legacyShape) Iterate() Scanner {
@@ -262,7 +262,7 @@ func (it *legacyIter) Reset() {
 }
 
 func (it *legacyIter) Stats() IteratorStats {
-	st := it.s.Stats()
+	st, _ := it.s.Stats(context.Background())
 	return IteratorStats{
 		NextCost:     st.NextCost,
 		ContainsCost: st.ContainsCost,
@@ -272,12 +272,12 @@ func (it *legacyIter) Stats() IteratorStats {
 }
 
 func (it *legacyIter) Size() (int64, bool) {
-	st := it.s.Stats()
+	st, _ := it.s.Stats(context.Background())
 	return st.Size.Size, st.Size.Exact
 }
 
 func (it *legacyIter) Optimize() (Iterator, bool) {
-	nit, ok := it.s.Optimize()
+	nit, ok := it.s.Optimize(context.Background())
 	if !ok {
 		return it, false
 	}
