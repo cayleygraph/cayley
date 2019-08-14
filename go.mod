@@ -52,5 +52,3 @@ require (
 )
 
 replace github.com/Sirupsen/logrus => github.com/Sirupsen/logrus v1.0.1
-
-replace github.com/hidal-go/hidalgo => github.com/3pCode/hidalgo v0.0.0-20190812174101-3a7b025579e9
