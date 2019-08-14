@@ -36,14 +36,14 @@ import (
 	_ "github.com/cayleygraph/cayley/writer"
 )
 
-func NewAPIv2(h *graph.Handle) *APIv2 {
-	return NewAPIv2Writer(h, "single", nil)
+func NewAPIv2(h *graph.Handle, wrappers ...HandlerWrapper) *APIv2 {
+	return NewAPIv2Writer(h, "single", nil, wrappers...)
 }
 
-func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options) *APIv2 {
+func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, wrappers ...HandlerWrapper) *APIv2 {
 	api := &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: 100}
 	api.r = httprouter.New()
-	api.RegisterOn(api.r)
+	api.RegisterOn(api.r, wrappers...)
 	return api
 }
 
