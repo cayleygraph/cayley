@@ -24,21 +24,21 @@ func NewLimit(primaryIt graph.Iterator, limit int64) *Limit {
 	return it
 }
 
-func (it *Limit) AsShape() graph.Shape {
+func (it *Limit) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = &limit{}
+var _ graph.IteratorShapeCompat = &limit{}
 
 // Limit iterator will stop iterating if certain a number of values were encountered.
 // Zero and negative limit values means no limit.
 type limit struct {
 	limit     int64
-	primaryIt graph.Shape
+	primaryIt graph.IteratorShape
 }
 
-func newLimit(primaryIt graph.Shape, max int64) *limit {
+func newLimit(primaryIt graph.IteratorShape, max int64) *limit {
 	return &limit{
 		limit:     max,
 		primaryIt: primaryIt,
@@ -60,11 +60,11 @@ func (it *limit) AsLegacy() graph.Iterator {
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *limit) SubIterators() []graph.Shape {
-	return []graph.Shape{it.primaryIt}
+func (it *limit) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.primaryIt}
 }
 
-func (it *limit) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *limit) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize(ctx)
 	if it.limit <= 0 { // no limit
 		return optimizedPrimaryIt, true

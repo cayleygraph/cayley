@@ -35,7 +35,7 @@ type Or struct {
 }
 
 func NewOr(sub ...graph.Iterator) *Or {
-	in := make([]graph.Shape, 0, len(sub))
+	in := make([]graph.IteratorShape, 0, len(sub))
 	for _, s := range sub {
 		in = append(in, graph.AsShape(s))
 	}
@@ -47,7 +47,7 @@ func NewOr(sub ...graph.Iterator) *Or {
 }
 
 func NewShortCircuitOr(sub ...graph.Iterator) *Or {
-	in := make([]graph.Shape, 0, len(sub))
+	in := make([]graph.IteratorShape, 0, len(sub))
 	for _, s := range sub {
 		in = append(in, graph.AsShape(s))
 	}
@@ -58,7 +58,7 @@ func NewShortCircuitOr(sub ...graph.Iterator) *Or {
 	return it
 }
 
-func (it *Or) AsShape() graph.Shape {
+func (it *Or) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
@@ -68,19 +68,19 @@ func (it *Or) AddSubIterator(sub graph.Iterator) {
 	it.it.AddSubIterator(graph.AsShape(sub))
 }
 
-var _ graph.ShapeCompat = &or{}
+var _ graph.IteratorShapeCompat = &or{}
 
 type or struct {
 	isShortCircuiting bool
-	sub               []graph.Shape
+	sub               []graph.IteratorShape
 	curInd            int
 	result            graph.Ref
 	err               error
 }
 
-func newOr(sub ...graph.Shape) *or {
+func newOr(sub ...graph.IteratorShape) *or {
 	it := &or{
-		sub:    make([]graph.Shape, 0, 20),
+		sub:    make([]graph.IteratorShape, 0, 20),
 		curInd: -1,
 	}
 	for _, s := range sub {
@@ -89,9 +89,9 @@ func newOr(sub ...graph.Shape) *or {
 	return it
 }
 
-func newShortCircuitOr(sub ...graph.Shape) *or {
+func newShortCircuitOr(sub ...graph.IteratorShape) *or {
 	it := &or{
-		sub:               make([]graph.Shape, 0, 20),
+		sub:               make([]graph.IteratorShape, 0, 20),
 		isShortCircuiting: true,
 		curInd:            -1,
 	}
@@ -124,7 +124,7 @@ func (it *or) AsLegacy() graph.Iterator {
 }
 
 // Returns a list.List of the subiterators, in order. The returned slice must not be modified.
-func (it *or) SubIterators() []graph.Shape {
+func (it *or) SubIterators() []graph.IteratorShape {
 	return it.sub
 }
 
@@ -133,11 +133,11 @@ func (it *or) String() string {
 }
 
 // Add a subiterator to this Or graph.iterator. Order matters.
-func (it *or) AddSubIterator(sub graph.Shape) {
+func (it *or) AddSubIterator(sub graph.IteratorShape) {
 	it.sub = append(it.sub, sub)
 }
 
-func (it *or) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *or) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	old := it.SubIterators()
 	optIts := optimizeSubIterators2(ctx, old)
 	newOr := newOr()

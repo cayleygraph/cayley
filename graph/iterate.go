@@ -12,7 +12,7 @@ import (
 // IterateChain is a chain-enabled helper to setup iterator execution.
 type IterateChain struct {
 	ctx context.Context
-	s   Shape
+	s   IteratorShape
 	it  Scanner
 	qs  QuadStore
 

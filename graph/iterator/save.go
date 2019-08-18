@@ -23,7 +23,7 @@ func Tag(it graph.Iterator, tag string) graph.Iterator {
 	return NewSave(it, tag)
 }
 
-func TagShape(it graph.Shape, tag string) graph.Shape {
+func TagShape(it graph.IteratorShape, tag string) graph.IteratorShape {
 	if s, ok := it.(graph.TaggerShape); ok {
 		s.AddTags(tag)
 		return s
@@ -47,7 +47,7 @@ type Save struct {
 	graph.Iterator
 }
 
-func (it *Save) AsShape() graph.Shape {
+func (it *Save) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
@@ -76,18 +76,18 @@ func (it *Save) CopyFromTagger(st graph.TaggerBase) {
 }
 
 var (
-	_ graph.ShapeCompat = (*save)(nil)
-	_ graph.TaggerShape = (*save)(nil)
+	_ graph.IteratorShapeCompat = (*save)(nil)
+	_ graph.TaggerShape         = (*save)(nil)
 )
 
-func newSave(on graph.Shape, tags ...string) *save {
+func newSave(on graph.IteratorShape, tags ...string) *save {
 	s := &save{it: on}
 	s.AddTags(tags...)
 	return s
 }
 
 type save struct {
-	it        graph.Shape
+	it        graph.IteratorShape
 	tags      []string
 	fixedTags map[string]graph.Ref
 }
@@ -151,7 +151,7 @@ func (it *save) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	return it.it.Stats(ctx)
 }
 
-func (it *save) Optimize(ctx context.Context) (nit graph.Shape, no bool) {
+func (it *save) Optimize(ctx context.Context) (nit graph.IteratorShape, no bool) {
 	sub, ok := it.it.Optimize(ctx)
 	if len(it.tags) == 0 && len(it.fixedTags) == 0 {
 		return sub, true
@@ -171,8 +171,8 @@ func (it *save) Optimize(ctx context.Context) (nit graph.Shape, no bool) {
 	return s, true
 }
 
-func (it *save) SubIterators() []graph.Shape {
-	return []graph.Shape{it.it}
+func (it *save) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.it}
 }
 
 func newSaveNext(it graph.Scanner, tags []string, fixed map[string]graph.Ref) *saveNext {

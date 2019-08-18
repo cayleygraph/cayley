@@ -71,12 +71,12 @@ type Iterator struct {
 	graph.Iterator
 }
 
-func (it *Iterator) AsShape() graph.Shape {
+func (it *Iterator) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = (*iterator2)(nil)
+var _ graph.IteratorShapeCompat = (*iterator2)(nil)
 
 func (qs *QuadStore) newIterator(s Select) *iterator2 {
 	return &iterator2{
@@ -134,11 +134,11 @@ func (it *iterator2) getSize(ctx context.Context) (graph.Size, error) {
 	return sz, nil
 }
 
-func (it *iterator2) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *iterator2) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 
-func (it *iterator2) SubIterators() []graph.Shape {
+func (it *iterator2) SubIterators() []graph.IteratorShape {
 	return nil
 }
 

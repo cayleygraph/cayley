@@ -57,7 +57,7 @@ func NewLinksTo(qs graph.QuadIndexer, sub graph.Iterator, d quad.Direction) *Lin
 	return it
 }
 
-func (it *LinksTo) AsShape() graph.Shape {
+func (it *LinksTo) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
@@ -65,21 +65,21 @@ func (it *LinksTo) AsShape() graph.Shape {
 // Return the direction under consideration.
 func (it *LinksTo) Direction() quad.Direction { return it.it.Direction() }
 
-var _ graph.ShapeCompat = &linksTo{}
+var _ graph.IteratorShapeCompat = &linksTo{}
 
 // A LinksTo has a reference back to the graph.QuadStore (to create the iterators
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type linksTo struct {
 	qs      graph.QuadIndexer
-	primary graph.Shape
+	primary graph.IteratorShape
 	dir     quad.Direction
 	size    graph.Size
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func newLinksTo(qs graph.QuadIndexer, it graph.Shape, d quad.Direction) *linksTo {
+func newLinksTo(qs graph.QuadIndexer, it graph.IteratorShape, d quad.Direction) *linksTo {
 	return &linksTo{
 		qs:      qs,
 		primary: it,
@@ -109,12 +109,12 @@ func (it *linksTo) String() string {
 }
 
 // Return a list containing only our subiterator.
-func (it *linksTo) SubIterators() []graph.Shape {
-	return []graph.Shape{it.primary}
+func (it *linksTo) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.primary}
 }
 
 // Optimize the LinksTo, by replacing it if it can be.
-func (it *linksTo) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *linksTo) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newPrimary, changed := it.primary.Optimize(ctx)
 	if changed {
 		it.primary = newPrimary

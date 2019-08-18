@@ -23,21 +23,21 @@ func NewNot(primaryIt, allIt graph.Iterator) *Not {
 	return it
 }
 
-func (it *Not) AsShape() graph.Shape {
+func (it *Not) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = (*not)(nil)
+var _ graph.IteratorShapeCompat = (*not)(nil)
 
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type not struct {
-	primary graph.Shape
-	allIt   graph.Shape
+	primary graph.IteratorShape
+	allIt   graph.IteratorShape
 }
 
-func newNot(primaryIt, allIt graph.Shape) *not {
+func newNot(primaryIt, allIt graph.IteratorShape) *not {
 	return &not{
 		primary: primaryIt,
 		allIt:   allIt,
@@ -61,11 +61,11 @@ func (it *not) AsLegacy() graph.Iterator {
 // SubIterators returns a slice of the sub iterators.
 // The first iterator is the primary iterator, for which the complement
 // is generated.
-func (it *not) SubIterators() []graph.Shape {
-	return []graph.Shape{it.primary, it.allIt}
+func (it *not) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.primary, it.allIt}
 }
 
-func (it *not) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *not) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	// TODO - consider wrapping the primary with a MaterializeIt
 	optimizedPrimaryIt, optimized := it.primary.Optimize(ctx)
 	if optimized {

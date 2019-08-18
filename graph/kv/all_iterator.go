@@ -42,14 +42,14 @@ func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
 	return it
 }
 
-func (it *AllIterator) AsShape() graph.Shape {
+func (it *AllIterator) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
 func (it *AllIterator) Sorted() bool { return false }
 
-var _ graph.ShapeCompat = &allIterator{}
+var _ graph.IteratorShapeCompat = &allIterator{}
 
 type allIterator struct {
 	nodes bool
@@ -83,7 +83,7 @@ func (it *allIterator) AsLegacy() graph.Iterator {
 }
 
 // No subiterators.
-func (it *allIterator) SubIterators() []graph.Shape {
+func (it *allIterator) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (it *allIterator) String() string {
 
 func (it *allIterator) Sorted() bool { return false }
 
-func (it *allIterator) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *allIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 

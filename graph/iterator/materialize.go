@@ -53,23 +53,23 @@ func NewMaterializeWithSize(sub graph.Iterator, size int64) *Materialize {
 	return it
 }
 
-func (it *Materialize) AsShape() graph.Shape {
+func (it *Materialize) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = &materialize{}
+var _ graph.IteratorShapeCompat = &materialize{}
 
 type materialize struct {
-	sub        graph.Shape
+	sub        graph.IteratorShape
 	expectSize int64
 }
 
-func newMaterialize(sub graph.Shape) *materialize {
+func newMaterialize(sub graph.IteratorShape) *materialize {
 	return newMaterializeWithSize(sub, 0)
 }
 
-func newMaterializeWithSize(sub graph.Shape, size int64) *materialize {
+func newMaterializeWithSize(sub graph.IteratorShape, size int64) *materialize {
 	return &materialize{
 		sub:        sub,
 		expectSize: size,
@@ -94,11 +94,11 @@ func (it *materialize) String() string {
 	return "Materialize"
 }
 
-func (it *materialize) SubIterators() []graph.Shape {
-	return []graph.Shape{it.sub}
+func (it *materialize) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.sub}
 }
 
-func (it *materialize) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *materialize) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newSub, changed := it.sub.Optimize(ctx)
 	if changed {
 		it.sub = newSub
@@ -128,7 +128,7 @@ func (it *materialize) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 }
 
 type materializeNext struct {
-	sub  graph.Shape
+	sub  graph.IteratorShape
 	next graph.Scanner
 
 	containsMap map[interface{}]int
@@ -140,7 +140,7 @@ type materializeNext struct {
 	err         error
 }
 
-func newMaterializeNext(sub graph.Shape) *materializeNext {
+func newMaterializeNext(sub graph.IteratorShape) *materializeNext {
 	return &materializeNext{
 		containsMap: make(map[interface{}]int),
 		sub:         sub,
@@ -291,7 +291,7 @@ type materializeContains struct {
 	sub  graph.Index // only set if aborted
 }
 
-func newMaterializeContains(sub graph.Shape) *materializeContains {
+func newMaterializeContains(sub graph.IteratorShape) *materializeContains {
 	return &materializeContains{
 		next: newMaterializeNext(sub),
 	}
