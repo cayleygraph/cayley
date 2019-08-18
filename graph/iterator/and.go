@@ -43,7 +43,7 @@ func NewAnd(sub ...graph.Iterator) *And {
 	return it
 }
 
-func (it *And) AsShape() graph.Shape {
+func (it *And) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
@@ -65,21 +65,21 @@ func (it *And) AddOptionalIterator(sub graph.Iterator) *And {
 	return it
 }
 
-var _ graph.ShapeCompat = &and{}
+var _ graph.IteratorShapeCompat = &and{}
 
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type and struct {
-	sub       []graph.Shape
-	checkList []graph.Shape // special order for Contains
-	opt       []graph.Shape
+	sub       []graph.IteratorShape
+	checkList []graph.IteratorShape // special order for Contains
+	opt       []graph.IteratorShape
 }
 
 // NewAnd creates an And iterator. `qs` is only required when needing a handle
 // for QuadStore-specific optimizations, otherwise nil is acceptable.
-func newAnd(sub ...graph.Shape) *and {
+func newAnd(sub ...graph.IteratorShape) *and {
 	it := &and{
-		sub: make([]graph.Shape, 0, 20),
+		sub: make([]graph.IteratorShape, 0, 20),
 	}
 	for _, s := range sub {
 		it.AddSubIterator(s)
@@ -128,8 +128,8 @@ func (it *and) AsLegacy() graph.Iterator {
 }
 
 // Returns a slice of the subiterators, in order (primary iterator first).
-func (it *and) SubIterators() []graph.Shape {
-	iters := make([]graph.Shape, 0, len(it.sub)+len(it.opt))
+func (it *and) SubIterators() []graph.IteratorShape {
+	iters := make([]graph.IteratorShape, 0, len(it.sub)+len(it.opt))
 	iters = append(iters, it.sub...)
 	iters = append(iters, it.opt...)
 	return iters
@@ -145,7 +145,7 @@ func (it *and) String() string {
 // important. Calling Optimize() is the way to change the order based on
 // subiterator statistics. Without Optimize(), the order added is the order
 // used.
-func (it *and) AddSubIterator(sub graph.Shape) {
+func (it *and) AddSubIterator(sub graph.IteratorShape) {
 	if sub == nil {
 		panic("nil iterator")
 	}
@@ -154,7 +154,7 @@ func (it *and) AddSubIterator(sub graph.Shape) {
 
 // AddOptionalIterator adds an iterator that will only be Contain'ed and will not affect iteration results.
 // Only tags will be propagated from this iterator.
-func (it *and) AddOptionalIterator(sub graph.Shape) *and {
+func (it *and) AddOptionalIterator(sub graph.IteratorShape) *and {
 	it.opt = append(it.opt, sub)
 	return it
 }
@@ -248,7 +248,7 @@ func (it *andNext) Close() error {
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type andContains struct {
-	base     graph.Shape
+	base     graph.IteratorShape
 	sub      []graph.Index
 	opt      []graph.Index
 	optCheck []bool

@@ -65,14 +65,14 @@ type Iterator struct {
 	graph.Iterator
 }
 
-func (it *Iterator) AsShape() graph.Shape {
+func (it *Iterator) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
 func (it *Iterator) Sorted() bool { return true }
 
-var _ graph.ShapeCompat = (*iterator2)(nil)
+var _ graph.IteratorShapeCompat = (*iterator2)(nil)
 
 type iterator2 struct {
 	qs         *QuadStore
@@ -115,7 +115,7 @@ func (it *iterator2) AsLegacy() graph.Iterator {
 	return it2
 }
 
-func (it *iterator2) SubIterators() []graph.Shape {
+func (it *iterator2) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
@@ -142,8 +142,8 @@ func (it *iterator2) getSize(ctx context.Context) (graph.Size, error) {
 	return it.size, nil
 }
 
-func (it *iterator2) Sorted() bool                                     { return true }
-func (it *iterator2) Optimize(ctx context.Context) (graph.Shape, bool) { return it, false }
+func (it *iterator2) Sorted() bool                                             { return true }
+func (it *iterator2) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
 
 func (it *iterator2) String() string {
 	return fmt.Sprintf("NoSQL(%v)", it.collection)

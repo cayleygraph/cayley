@@ -131,10 +131,10 @@ type Iterator interface {
 }
 
 // IteratorFuture is an optional interface for legacy Iterators that support direct conversion
-// to an iterator Shape. This interface should be avoided an will be deprecated in the future.
+// to an IteratorShape. This interface should be avoided an will be deprecated in the future.
 type IteratorFuture interface {
 	Iterator
-	AsShape() Shape
+	AsShape() IteratorShape
 }
 
 // DescribeIterator returns a description of the iterator tree.
@@ -180,7 +180,7 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 	maxDepth := 0
 	for _, sub := range subs {
 		if s, ok := sub.(IteratorFuture); ok {
-			h := Height2(s.AsShape(), func(it Shape) bool {
+			h := Height2(s.AsShape(), func(it IteratorShape) bool {
 				return filter(AsLegacy(it))
 			})
 			if h > maxDepth {
@@ -197,14 +197,14 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 }
 
 // Height is a convienence function to measure the height of an iterator tree.
-func Height2(it Shape, filter func(Shape) bool) int {
+func Height2(it IteratorShape, filter func(IteratorShape) bool) int {
 	if filter != nil && !filter(it) {
 		return 1
 	}
 	subs := it.SubIterators()
 	maxDepth := 0
 	for _, sub := range subs {
-		if s, ok := sub.(ShapeCompat); ok {
+		if s, ok := sub.(IteratorShapeCompat); ok {
 			h := Height(s.AsLegacy(), func(it Iterator) bool {
 				return filter(AsShape(it))
 			})

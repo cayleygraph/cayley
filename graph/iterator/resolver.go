@@ -40,12 +40,12 @@ func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
 	return it
 }
 
-func (it *Resolver) AsShape() graph.Shape {
+func (it *Resolver) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = (*resolver)(nil)
+var _ graph.IteratorShapeCompat = (*resolver)(nil)
 
 // A Resolver iterator consists of it's order, an index (where it is in the,
 // process of iterating) and a store to resolve values from.
@@ -82,13 +82,13 @@ func (it *resolver) String() string {
 	return fmt.Sprintf("Resolver(%v)", it.order)
 }
 
-func (it *resolver) SubIterators() []graph.Shape {
+func (it *resolver) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
 // Returns a Null iterator if it's empty so that upstream iterators can optimize it
 // away, otherwise there is no optimization.
-func (it *resolver) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *resolver) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	if len(it.order) == 0 {
 		return newNull(), true
 	}

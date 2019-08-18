@@ -23,20 +23,20 @@ func NewSkip(primaryIt graph.Iterator, skip int64) *Skip {
 	return it
 }
 
-func (it *Skip) AsShape() graph.Shape {
+func (it *Skip) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = &skip{}
+var _ graph.IteratorShapeCompat = &skip{}
 
 // Skip iterator will skip certain number of values from primary iterator.
 type skip struct {
 	skip      int64
-	primaryIt graph.Shape
+	primaryIt graph.IteratorShape
 }
 
-func newSkip(primaryIt graph.Shape, off int64) *skip {
+func newSkip(primaryIt graph.IteratorShape, off int64) *skip {
 	return &skip{
 		skip:      off,
 		primaryIt: primaryIt,
@@ -58,11 +58,11 @@ func (it *skip) AsLegacy() graph.Iterator {
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *skip) SubIterators() []graph.Shape {
-	return []graph.Shape{it.primaryIt}
+func (it *skip) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.primaryIt}
 }
 
-func (it *skip) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *skip) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize(ctx)
 	if it.skip == 0 { // nothing to skip
 		return optimizedPrimaryIt, true

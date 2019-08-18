@@ -29,7 +29,7 @@ var (
 )
 
 type Morphism func(graph.Iterator) graph.Iterator
-type Morphism2 func(graph.Shape) graph.Shape
+type Morphism2 func(graph.IteratorShape) graph.IteratorShape
 
 func IsNull(it graph.Iterator) bool {
 	if _, ok := it.(*Null); ok {
@@ -40,7 +40,7 @@ func IsNull(it graph.Iterator) bool {
 	return false
 }
 
-func IsNull2(it graph.Shape) bool {
+func IsNull2(it graph.IteratorShape) bool {
 	if _, ok := it.(*null); ok {
 		return true
 	} else if _, ok := graph.AsLegacy(it).(*Null); ok {
@@ -166,8 +166,8 @@ func (it *Error) Stats() graph.IteratorStats {
 }
 
 var (
-	_ graph.ShapeCompat = &null{}
-	_ graph.ShapeCompat = &error2{}
+	_ graph.IteratorShapeCompat = &null{}
+	_ graph.IteratorShapeCompat = &error2{}
 )
 
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
@@ -201,7 +201,7 @@ func (it *null) Contains(ctx context.Context, v graph.Ref) bool {
 
 // A good iterator will close itself when it returns true.
 // Null has nothing it needs to do.
-func (it *null) Optimize(ctx context.Context) (graph.Shape, bool) { return it, false }
+func (it *null) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
 
 func (it *null) String() string {
 	return "Null"
@@ -219,7 +219,7 @@ func (it *null) Result() graph.Ref {
 	return nil
 }
 
-func (it *null) SubIterators() []graph.Shape {
+func (it *null) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
@@ -266,7 +266,7 @@ func (it *error2) Contains(ctx context.Context, v graph.Ref) bool {
 	return false
 }
 
-func (it *error2) Optimize(ctx context.Context) (graph.Shape, bool) { return it, false }
+func (it *error2) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
 
 func (it *error2) String() string {
 	return fmt.Sprintf("Error(%v)", it.err)
@@ -284,7 +284,7 @@ func (it *error2) Result() graph.Ref {
 	return nil
 }
 
-func (it *error2) SubIterators() []graph.Shape {
+func (it *error2) SubIterators() []graph.IteratorShape {
 	return nil
 }
 

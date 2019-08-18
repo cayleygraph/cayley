@@ -38,20 +38,20 @@ func NewValueFilter(qs graph.Namer, sub graph.Iterator, filter ValueFilterFunc) 
 	return it
 }
 
-func (it *ValueFilter) AsShape() graph.Shape {
+func (it *ValueFilter) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = (*valueFilter)(nil)
+var _ graph.IteratorShapeCompat = (*valueFilter)(nil)
 
 type valueFilter struct {
-	sub    graph.Shape
+	sub    graph.IteratorShape
 	filter ValueFilterFunc
 	qs     graph.Namer
 }
 
-func newValueFilter(qs graph.Namer, sub graph.Shape, filter ValueFilterFunc) *valueFilter {
+func newValueFilter(qs graph.Namer, sub graph.IteratorShape, filter ValueFilterFunc) *valueFilter {
 	return &valueFilter{
 		sub:    sub,
 		qs:     qs,
@@ -73,8 +73,8 @@ func (it *valueFilter) AsLegacy() graph.Iterator {
 	return it2
 }
 
-func (it *valueFilter) SubIterators() []graph.Shape {
-	return []graph.Shape{it.sub}
+func (it *valueFilter) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.sub}
 }
 
 func (it *valueFilter) String() string {
@@ -84,7 +84,7 @@ func (it *valueFilter) String() string {
 // There's nothing to optimize, locally, for a value-comparison iterator.
 // Replace the underlying iterator if need be.
 // potentially replace it.
-func (it *valueFilter) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *valueFilter) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newSub, changed := it.sub.Optimize(ctx)
 	if changed {
 		it.sub = newSub

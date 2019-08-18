@@ -25,7 +25,7 @@ type Index interface {
 
 // Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
 type TaggerShape interface {
-	Shape
+	IteratorShape
 	TaggerBase
 	CopyFromTagger(st TaggerBase)
 }
@@ -39,7 +39,7 @@ type IteratorCosts struct {
 // Shape is an iterator shape, similar to a query plan. But the plan is not specific in this
 // case - it is used to reorder query branches, and the decide what branches will be scanned
 // and what branches will lookup values (hopefully from the index, but not necessarily).
-type Shape interface {
+type IteratorShape interface {
 	// TODO(dennwc): merge with shape.Shape
 
 	// String returns a short textual representation of an iterator.
@@ -67,21 +67,21 @@ type Shape interface {
 	// Optimizes an iterator. Can replace the iterator, or merely move things
 	// around internally. if it chooses to replace it with a better iterator,
 	// returns (the new iterator, true), if not, it returns (self, false).
-	Optimize(ctx context.Context) (Shape, bool)
+	Optimize(ctx context.Context) (IteratorShape, bool)
 
 	// Return a slice of the subiterators for this iterator.
-	SubIterators() []Shape
+	SubIterators() []IteratorShape
 }
 
-// ShapeCompat is an optional interface for iterator Shape that support direct conversion
+// IteratorShapeCompat is an optional interface for iterator Shape that support direct conversion
 // to a legacy Iterator. This interface should be avoided an will be deprecated in the future.
-type ShapeCompat interface {
-	Shape
+type IteratorShapeCompat interface {
+	IteratorShape
 	AsLegacy() Iterator
 }
 
 // AsShape converts a legacy Iterator to an iterator Shape.
-func AsShape(it Iterator) Shape {
+func AsShape(it Iterator) IteratorShape {
 	if it == nil {
 		panic("nil iterator")
 	}
@@ -91,13 +91,13 @@ func AsShape(it Iterator) Shape {
 	return &legacyShape{it}
 }
 
-var _ ShapeCompat = &legacyShape{}
+var _ IteratorShapeCompat = &legacyShape{}
 
 type legacyShape struct {
 	Iterator
 }
 
-func (it *legacyShape) Optimize(ctx context.Context) (Shape, bool) {
+func (it *legacyShape) Optimize(ctx context.Context) (IteratorShape, bool) {
 	nit, ok := it.Iterator.Optimize()
 	if !ok {
 		return it, false
@@ -105,9 +105,9 @@ func (it *legacyShape) Optimize(ctx context.Context) (Shape, bool) {
 	return AsShape(nit), true
 }
 
-func (it *legacyShape) SubIterators() []Shape {
+func (it *legacyShape) SubIterators() []IteratorShape {
 	its := it.Iterator.SubIterators()
-	out := make([]Shape, 0, len(its))
+	out := make([]IteratorShape, 0, len(its))
 	for _, s := range its {
 		out = append(out, AsShape(s))
 	}
@@ -145,7 +145,7 @@ func (it *legacyShape) AsLegacy() Iterator {
 
 // NewLegacy creates a new legacy Iterator from an iterator Shape.
 // This method will always create a new iterator, while AsLegacy will try to unwrap it first.
-func NewLegacy(s Shape, self Iterator) Iterator {
+func NewLegacy(s IteratorShape, self Iterator) Iterator {
 	if s == nil {
 		panic("nil iterator")
 	}
@@ -153,8 +153,8 @@ func NewLegacy(s Shape, self Iterator) Iterator {
 }
 
 // AsLegacy convert an iterator Shape to a legacy Iterator interface.
-func AsLegacy(s Shape) Iterator {
-	if it2, ok := s.(ShapeCompat); ok {
+func AsLegacy(s IteratorShape) Iterator {
+	if it2, ok := s.(IteratorShapeCompat); ok {
 		return it2.AsLegacy()
 	}
 	return NewLegacy(s, nil)
@@ -163,7 +163,7 @@ func AsLegacy(s Shape) Iterator {
 var _ IteratorFuture = &legacyIter{}
 
 type legacyIter struct {
-	s    Shape
+	s    IteratorShape
 	self Iterator
 	scan Scanner
 	cont Index
@@ -173,7 +173,7 @@ func (it *legacyIter) String() string {
 	return it.s.String()
 }
 
-func (it *legacyIter) AsShape() Shape {
+func (it *legacyIter) AsShape() IteratorShape {
 	it.Close()
 	return it.s
 }

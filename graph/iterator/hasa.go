@@ -62,7 +62,7 @@ func NewHasA(qs graph.QuadIndexer, subIt graph.Iterator, d quad.Direction) *HasA
 	return it
 }
 
-func (it *HasA) AsShape() graph.Shape {
+func (it *HasA) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
@@ -70,20 +70,20 @@ func (it *HasA) AsShape() graph.Shape {
 // Direction accessor.
 func (it *HasA) Direction() quad.Direction { return it.it.Direction() }
 
-var _ graph.ShapeCompat = &hasA{}
+var _ graph.IteratorShapeCompat = &hasA{}
 
 // A HasA consists of a reference back to the graph.QuadStore that it references,
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type hasA struct {
 	qs      graph.QuadIndexer
-	primary graph.Shape
+	primary graph.IteratorShape
 	dir     quad.Direction
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func newHasA(qs graph.QuadIndexer, subIt graph.Shape, d quad.Direction) *hasA {
+func newHasA(qs graph.QuadIndexer, subIt graph.IteratorShape, d quad.Direction) *hasA {
 	return &hasA{
 		qs:      qs,
 		primary: subIt,
@@ -106,8 +106,8 @@ func (it *hasA) AsLegacy() graph.Iterator {
 }
 
 // Return our sole subiterator.
-func (it *hasA) SubIterators() []graph.Shape {
-	return []graph.Shape{it.primary}
+func (it *hasA) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.primary}
 }
 
 // Direction accessor.
@@ -115,7 +115,7 @@ func (it *hasA) Direction() quad.Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no quads that have any directions).
-func (it *hasA) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *hasA) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newPrimary, changed := it.primary.Optimize(ctx)
 	if changed {
 		it.primary = newPrimary

@@ -22,19 +22,19 @@ func NewUnique(subIt graph.Iterator) *Unique {
 	return it
 }
 
-func (it *Unique) AsShape() graph.Shape {
+func (it *Unique) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
-var _ graph.ShapeCompat = (*unique)(nil)
+var _ graph.IteratorShapeCompat = (*unique)(nil)
 
 // Unique iterator removes duplicate values from it's subiterator.
 type unique struct {
-	subIt graph.Shape
+	subIt graph.IteratorShape
 }
 
-func newUnique(subIt graph.Shape) *unique {
+func newUnique(subIt graph.IteratorShape) *unique {
 	return &unique{
 		subIt: subIt,
 	}
@@ -56,11 +56,11 @@ func (it *unique) AsLegacy() graph.Iterator {
 
 // SubIterators returns a slice of the sub iterators. The first iterator is the
 // primary iterator, for which the complement is generated.
-func (it *unique) SubIterators() []graph.Shape {
-	return []graph.Shape{it.subIt}
+func (it *unique) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.subIt}
 }
 
-func (it *unique) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *unique) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newIt, optimized := it.subIt.Optimize(ctx)
 	if optimized {
 		it.subIt = newIt

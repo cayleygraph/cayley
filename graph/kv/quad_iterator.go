@@ -38,14 +38,14 @@ func NewQuadIterator(qs *QuadStore, ind QuadIndex, vals []uint64) *QuadIterator 
 	return it
 }
 
-func (it *QuadIterator) AsShape() graph.Shape {
+func (it *QuadIterator) AsShape() graph.IteratorShape {
 	it.Close()
 	return it.it
 }
 
 func (it *QuadIterator) Sorted() bool { return true }
 
-var _ graph.ShapeCompat = &quadIterator{}
+var _ graph.IteratorShapeCompat = &quadIterator{}
 
 type quadIterator struct {
 	qs   *QuadStore
@@ -79,7 +79,7 @@ func (it *quadIterator) AsLegacy() graph.Iterator {
 	return it2
 }
 
-func (it *quadIterator) SubIterators() []graph.Shape {
+func (it *quadIterator) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (it *quadIterator) String() string {
 
 func (it *quadIterator) Sorted() bool { return true }
 
-func (it *quadIterator) Optimize(ctx context.Context) (graph.Shape, bool) {
+func (it *quadIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 
