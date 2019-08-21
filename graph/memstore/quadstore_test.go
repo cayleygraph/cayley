@@ -134,9 +134,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 
 	all := qs.NodesAllIterator()
 
+	const allTag = "all"
 	innerAnd := iterator.NewAnd(
 		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
-		iterator.NewLinksTo(qs, all, quad.Object),
+		iterator.NewLinksTo(qs, iterator.Tag(all, allTag), quad.Object),
 	)
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
@@ -155,7 +156,9 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, quad.ToString(qs.NameOf(all.Result())))
+		m := make(map[string]graph.Ref, 1)
+		outerAnd.TagResults(m)
+		got = append(got, quad.ToString(qs.NameOf(m[allTag])))
 		if !outerAnd.NextPath(ctx) {
 			break
 		}
