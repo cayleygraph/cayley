@@ -17,6 +17,7 @@ package kv
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -37,23 +38,28 @@ var (
 	metaBucket = kv.Key{[]byte("meta")}
 	logIndex   = kv.Key{[]byte("log")}
 
+	keyMetaIndexes = metaBucket.AppendBytes([]byte("indexes"))
+
 	// List of all buckets in the current version of the database.
 	buckets = []kv.Key{
 		metaBucket,
 		logIndex,
 	}
 
-	DefaultQuadIndexes = []QuadIndex{
+	// legacyQuadIndexes is a set of indexes used in Cayley < 0.7.6
+	legacyQuadIndexes = []QuadIndex{
 		{Dirs: []quad.Direction{quad.Subject}},
 		{Dirs: []quad.Direction{quad.Object}},
 	}
+
+	DefaultQuadIndexes = legacyQuadIndexes
 )
 
 var quadKeyEnc = binary.BigEndian
 
 type QuadIndex struct {
-	Dirs   []quad.Direction
-	Unique bool
+	Dirs   []quad.Direction `json:"dirs"`
+	Unique bool             `json:"unique"`
 }
 
 func (ind QuadIndex) Key(vals []uint64) kv.Key {
@@ -128,6 +134,42 @@ func (qs *QuadStore) createBuckets(ctx context.Context, upfront bool) error {
 func (qs *QuadStore) incSize(ctx context.Context, tx kv.Tx, size int64) error {
 	_, err := qs.incMetaInt(ctx, tx, "size", size)
 	return err
+}
+
+// writeIndexesMeta writes metadata about current indexes to the KV database,
+// so we can read this information back later.
+func (qs *QuadStore) writeIndexesMeta(ctx context.Context) error {
+	// TODO(dennwc): change to protobuf later?
+	data, err := json.Marshal(qs.indexes.all)
+	if err != nil {
+		return err
+	}
+	return kv.Update(ctx, qs.db, func(tx kv.Tx) error {
+		return tx.Put(keyMetaIndexes, data)
+	})
+}
+
+// readIndexesMeta read metadata about current indexes from the KV database.
+// If no indexes are set, it returns a list of legacy indexes to preserve backward compatibility.
+func (qs *QuadStore) readIndexesMeta(ctx context.Context) ([]QuadIndex, error) {
+	tx, err := qs.db.Tx(false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Close()
+	val, err := tx.Get(ctx, keyMetaIndexes)
+	if err == kv.ErrNotFound {
+		return legacyQuadIndexes, nil
+	} else if err != nil {
+		return nil, err
+	}
+	var out []QuadIndex
+	if err := json.Unmarshal(val, &out); err != nil {
+		return nil, fmt.Errorf("cannot decode indexes: %v", err)
+	} else if len(out) == 0 {
+		return legacyQuadIndexes, nil
+	}
+	return out, nil
 }
 
 func (qs *QuadStore) resolveValDeltas(ctx context.Context, tx kv.Tx, deltas []graphlog.NodeUpdate, fnc func(i int, id uint64)) error {

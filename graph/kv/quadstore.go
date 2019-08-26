@@ -77,7 +77,6 @@ func Register(name string, r Registration) {
 
 const (
 	latestDataVersion = 2
-	nilDataVersion    = 1
 )
 
 var _ graph.BatchQuadStore = (*QuadStore)(nil)
@@ -129,6 +128,9 @@ func Init(kv kv.KV, opt graph.Options) error {
 	if err := setVersion(ctx, qs.db, latestDataVersion); err != nil {
 		return err
 	}
+	if err := qs.writeIndexesMeta(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -145,6 +147,11 @@ func New(kv kv.KV, opt graph.Options) (graph.QuadStore, error) {
 		return nil, err
 	} else if vers != latestDataVersion {
 		return nil, errors.New("kv: data version is out of date. Run cayleyupgrade for your config to update the data.")
+	}
+	if list, err := qs.readIndexesMeta(ctx); err != nil {
+		return nil, err
+	} else {
+		qs.indexes.all = list
 	}
 	qs.valueLRU = lru.New(2000)
 	qs.exists.disabled, _ = opt.BoolKey(OptNoBloom, false)
@@ -232,7 +239,7 @@ func (qs *QuadStore) getMetadata(ctx context.Context) (int64, error) {
 		} else if err != nil {
 			return err
 		}
-		vers, err = asInt64(val, nilDataVersion)
+		vers, err = asInt64(val, 0)
 		if err != nil {
 			return err
 		}

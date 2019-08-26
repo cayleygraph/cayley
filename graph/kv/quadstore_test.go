@@ -67,6 +67,8 @@ var (
 	vVers = le(2)
 
 	vAuto = []byte("auto")
+
+	kIndexes = []byte("indexes")
 )
 
 type Ops []kvOp
@@ -129,6 +131,7 @@ func TestApplyDeltas(t *testing.T) {
 		{opPut, key("s", []byte{}), nil, nil},
 		{opPut, key("o", []byte{}), nil, nil},
 		{opPut, key(bMeta, kVers), vVers, nil},
+		{opPut, key(bMeta, kIndexes), []byte(`[{"dirs":"AQ==","unique":false},{"dirs":"Aw==","unique":false}]`), nil},
 	})
 
 	qs, err := kv.New(hook, nil)
@@ -137,6 +140,7 @@ func TestApplyDeltas(t *testing.T) {
 
 	expect(Ops{
 		{opGet, key(bMeta, kVers), vVers, nil},
+		{opGet, key(bMeta, kIndexes), []byte(`[{"dirs":"AQ==","unique":false},{"dirs":"Aw==","unique":false}]`), nil},
 	})
 
 	qw, err := writer.NewSingle(qs, graph.IgnoreOpts{})
