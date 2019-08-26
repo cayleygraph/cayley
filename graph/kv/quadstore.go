@@ -24,6 +24,7 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
@@ -79,7 +80,10 @@ const (
 	latestDataVersion = 2
 )
 
-var _ graph.BatchQuadStore = (*QuadStore)(nil)
+var (
+	_ graph.BatchQuadStore = (*QuadStore)(nil)
+	_ shape.Optimizer      = (*QuadStore)(nil)
+)
 
 type QuadStore struct {
 	db kv.KV
