@@ -8,6 +8,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/quad"
 )
 
@@ -78,17 +79,62 @@ func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.Iterato
 	if !ok {
 		return iterator.NewError(fmt.Errorf("unexpected node type: %T", v))
 	}
-
-	qs.indexes.RLock()
-	all := qs.indexes.all
-	qs.indexes.RUnlock()
-	for _, ind := range all {
-		if len(ind.Dirs) == 1 && ind.Dirs[0] == dir {
-			return NewQuadIterator(qs, ind, []uint64{uint64(vi)})
-		}
+	// Find the best index for this direction.
+	if ind := qs.bestIndexes([]quad.Direction{dir}); len(ind) == 1 {
+		// this will scan the prefix automatically
+		return NewQuadIterator(qs, ind[0], []uint64{uint64(vi)})
 	}
+	// Fallback: iterate all quads and check the corresponding direction.
 	return NewAllIterator(false, qs, &constraint{
 		dir: dir,
 		val: vi,
 	})
+}
+
+func (qs *QuadStore) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
+	switch s := s.(type) {
+	case shape.QuadsAction:
+		return qs.optimizeQuadsAction(s)
+	}
+	return s, false
+}
+
+func (qs *QuadStore) optimizeQuadsAction(s shape.QuadsAction) (shape.Shape, bool) {
+	if len(s.Filter) == 0 {
+		return s, false
+	}
+	dirs := make([]quad.Direction, 0, len(s.Filter))
+	for d := range s.Filter {
+		dirs = append(dirs, d)
+	}
+	ind := qs.bestIndexes(dirs)
+	if len(ind) != 1 {
+		return s, false // TODO(dennwc): allow intersecting indexes
+	}
+	quads := IndexScan{Index: ind[0]}
+	for _, d := range ind[0].Dirs {
+		v, ok := s.Filter[d].(Int64Value)
+		if !ok {
+			return s, false
+		}
+		quads.Values = append(quads.Values, uint64(v))
+	}
+	return s.SimplifyFrom(quads), true
+}
+
+type IndexScan struct {
+	Index  QuadIndex
+	Values []uint64
+}
+
+func (s IndexScan) BuildIterator(qs graph.QuadStore) graph.Iterator {
+	kqs, ok := qs.(*QuadStore)
+	if !ok {
+		return iterator.NewError(fmt.Errorf("expected KV quadstore, got: %T", qs))
+	}
+	return NewQuadIterator(kqs, s.Index, s.Values)
+}
+
+func (s IndexScan) Optimize(r shape.Optimizer) (shape.Shape, bool) {
+	return s, false
 }

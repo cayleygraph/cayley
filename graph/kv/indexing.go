@@ -52,7 +52,16 @@ var (
 		{Dirs: []quad.Direction{quad.Object}},
 	}
 
-	DefaultQuadIndexes = legacyQuadIndexes
+	DefaultQuadIndexes = []QuadIndex{
+		// First index optimizes forward traversals. Getting all relations for a node should
+		// also be reasonably fast (prefix scan).
+		{Dirs: []quad.Direction{quad.Subject, quad.Predicate}},
+
+		// Second index helps with reverse traversals as well as full quad lookups.
+		// It also prevents issues with super-nodes, since most of those are values
+		// with a high in-degree.
+		{Dirs: []quad.Direction{quad.Object, quad.Predicate, quad.Subject}},
+	}
 )
 
 var quadKeyEnc = binary.BigEndian
@@ -789,6 +798,50 @@ func (qs *QuadStore) bestUnique() ([]QuadIndex, error) {
 	}
 	qs.indexes.exists = inds
 	return qs.indexes.exists, nil
+}
+
+func hasDir(dirs []quad.Direction, d quad.Direction) bool {
+	for _, d2 := range dirs {
+		if d == d2 {
+			return true
+		}
+	}
+	return false
+}
+
+func (qs *QuadStore) bestIndexes(dirs []quad.Direction) []QuadIndex {
+	qs.indexes.RLock()
+	all := qs.indexes.all
+	qs.indexes.RUnlock()
+	var (
+		max  int // more specific index is better
+		best QuadIndex
+	)
+	for _, ind := range all {
+		if len(ind.Dirs) < len(dirs) {
+			continue // TODO(dennwc): allow intersecting indexes
+		}
+		match := 0
+		for i, d := range ind.Dirs {
+			if i >= len(dirs) || !hasDir(dirs, d) {
+				break
+			}
+			match++
+		}
+		if match == len(dirs) {
+			// exact index match
+			return []QuadIndex{ind}
+		}
+		if match > 0 && match > max {
+			best = ind
+			max = match
+		}
+	}
+	if max == 0 {
+		return nil
+	}
+	// TODO(dennwc): intersect with some other index
+	return []QuadIndex{best}
 }
 
 func (qs *QuadStore) hasPrimitive(ctx context.Context, tx kv.Tx, p *proto.Primitive, get bool) (*proto.Primitive, error) {
