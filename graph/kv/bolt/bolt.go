@@ -69,6 +69,7 @@ func Open(path string, opt graph.Options) (hkv.KV, error) {
 		db.Close()
 		return nil, err
 	}
+	bdb.NoGrowSync = bdb.NoSync
 	if bdb.NoSync {
 		clog.Infof("Running in nosync mode")
 	}
