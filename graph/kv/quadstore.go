@@ -17,8 +17,10 @@ package kv
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -77,7 +79,8 @@ func Register(name string, r Registration) {
 }
 
 const (
-	latestDataVersion = 2
+	latestDataVersion   = 2
+	envKVDefaultIndexes = "CAYLEY_KV_INDEXES"
 )
 
 var (
@@ -109,14 +112,21 @@ type QuadStore struct {
 }
 
 func newQuadStore(kv kv.KV) *QuadStore {
-	qs := &QuadStore{db: kv}
-	qs.indexes.all = DefaultQuadIndexes
-	return qs
+	return &QuadStore{db: kv}
 }
 
 func Init(kv kv.KV, opt graph.Options) error {
 	ctx := context.TODO()
 	qs := newQuadStore(kv)
+	if data := os.Getenv(envKVDefaultIndexes); data != "" {
+		qs.indexes.all = nil
+		if err := json.Unmarshal([]byte(data), &qs.indexes); err != nil {
+			return err
+		}
+	}
+	if qs.indexes.all == nil {
+		qs.indexes.all = DefaultQuadIndexes
+	}
 	if _, err := qs.getMetadata(ctx); err == nil {
 		return graph.ErrDatabaseExists
 	} else if err != ErrNoBucket {
