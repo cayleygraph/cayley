@@ -182,9 +182,11 @@ func (s String) String() string {
 	//TODO(barakmich): Proper escaping.
 	return `"` + escaper.Replace(string(s)) + `"`
 }
+
 func (s String) GoString() string {
 	return "quad.String(" + strconv.Quote(string(s)) + ")"
 }
+
 func (s String) Native() interface{} { return string(s) }
 
 // TypedString is an RDF value with type (ex: "name"^^<type>).
@@ -196,6 +198,7 @@ type TypedString struct {
 func (s TypedString) String() string {
 	return s.Value.String() + `^^` + s.Type.String()
 }
+
 func (s TypedString) Native() interface{} {
 	if s.Type == "" {
 		return s.Value.Native()
@@ -203,7 +206,7 @@ func (s TypedString) Native() interface{} {
 	if v, err := s.ParseValue(); err == nil && v != s {
 		return v.Native()
 	}
-	return s
+	return s.String()
 }
 
 // ParseValue will try to parse underlying string value using registered functions.
@@ -228,7 +231,8 @@ type LangString struct {
 func (s LangString) String() string {
 	return s.Value.String() + `@` + s.Lang
 }
-func (s LangString) Native() interface{} { return s.Value.Native() }
+
+func (s LangString) Native() interface{} { return s.String() }
 
 // IRIFormat is a format of IRI.
 type IRIFormat int
@@ -394,7 +398,9 @@ type Int int64
 func (s Int) String() string {
 	return s.TypedString().String()
 }
+
 func (s Int) Native() interface{} { return int64(s) }
+
 func (s Int) TypedString() TypedString {
 	return TypedString{
 		Value: String(strconv.Itoa(int(s))),
@@ -410,7 +416,9 @@ type Float float64
 func (s Float) String() string {
 	return s.TypedString().String()
 }
+
 func (s Float) Native() interface{} { return float64(s) }
+
 func (s Float) TypedString() TypedString {
 	return TypedString{
 		Value: String(strconv.FormatFloat(float64(s), 'E', -1, 64)),
@@ -429,7 +437,9 @@ func (s Bool) String() string {
 	}
 	return `"False"^^<` + string(defaultBoolType) + `>`
 }
+
 func (s Bool) Native() interface{} { return bool(s) }
+
 func (s Bool) TypedString() TypedString {
 	v := "False"
 	if bool(s) {
@@ -451,7 +461,9 @@ type Time time.Time
 func (s Time) String() string {
 	return s.TypedString().String()
 }
+
 func (s Time) Native() interface{} { return time.Time(s) }
+
 func (s Time) Equal(v Value) bool {
 	t, ok := v.(Time)
 	if !ok {

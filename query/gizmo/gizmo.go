@@ -364,6 +364,7 @@ func (s *Session) Collate(result query.Result) {
 	sort.Strings(tagKeys)
 	for _, k := range tagKeys {
 		if name := s.qs.NameOf(tags[k]); name != nil {
+			fmt.Print(name)
 			obj[k] = quadValueToNative(name)
 		} else {
 			delete(obj, k)
