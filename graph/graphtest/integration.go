@@ -242,7 +242,7 @@ var queries = []struct {
 	{
 		message: "Keanu with other in The Net",
 		long:    true,
-		query: common + `actor2.Follow(coStars1).intersect(m1_actors).out("<name>").all()
+		query: common + `actor2.follow(coStars1).intersect(m1_actors).out("<name>").all()
 `,
 		expect: []interface{}{
 			map[string]string{"id": SandraB, "movie1": "The Net", "costar1_movie": nSpeed},
