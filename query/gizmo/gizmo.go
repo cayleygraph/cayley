@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"unicode"
+	"reflect"
 
 	"github.com/dop251/goja"
 
@@ -59,6 +61,23 @@ func NewSession(qs graph.QuadStore) *Session {
 	return s
 }
 
+func lcFirst(str string) string {
+    for i, v := range str {                                                                                                                                           
+        return string(unicode.ToLower(v)) + str[i+1:]
+    }  
+    return ""
+}
+
+type fieldNameMapperToLower struct{}
+
+func (fieldNameMapperToLower) FieldName(t reflect.Type, f reflect.StructField) string {
+	return lcFirst(f.Name)
+}
+
+func (fieldNameMapperToLower) MethodName(t reflect.Type, m reflect.Method) string {
+	return lcFirst(m.Name)
+}
+
 type Session struct {
 	qs  graph.QuadStore
 	vm  *goja.Runtime
@@ -88,6 +107,7 @@ func (s *Session) buildEnv() error {
 		return nil
 	}
 	s.vm = goja.New()
+	s.vm.SetFieldNameMapper(fieldNameMapperToLower{})
 	s.vm.Set("graph", &graphObject{s: s})
 	s.vm.Set("g", s.vm.Get("graph"))
 	for name, val := range defaultEnv {
