@@ -209,7 +209,7 @@ var queries = []struct {
 	//A: "Sandra Bullock"
 	{
 		message: "Net and Speed",
-		query: common + `m1_actors.intersect(m2_actors).out("<name>").All()
+		query: common + `m1_actors.intersect(m2_actors).out("<name>").all()
 `,
 		expect: []interface{}{
 			map[string]string{"id": SandraB, "movie1": "The Net", "movie2": nSpeed},
@@ -220,7 +220,7 @@ var queries = []struct {
 	//A: No
 	{
 		message: "Keanu in The Net",
-		query: common + `actor2.intersect(m1_actors).out("<name>").All()
+		query: common + `actor2.intersect(m1_actors).out("<name>").all()
 `,
 		expect: nil,
 	},
@@ -229,7 +229,7 @@ var queries = []struct {
 	//A: Yes
 	{
 		message: "Keanu in Speed",
-		query: common + `actor2.intersect(m2_actors).out("<name>").All()
+		query: common + `actor2.intersect(m2_actors).out("<name>").all()
 `,
 		expect: []interface{}{
 			map[string]string{"id": KeanuR, "movie2": nSpeed},
@@ -242,7 +242,7 @@ var queries = []struct {
 	{
 		message: "Keanu with other in The Net",
 		long:    true,
-		query: common + `actor2.Follow(coStars1).intersect(m1_actors).out("<name>").All()
+		query: common + `actor2.Follow(coStars1).intersect(m1_actors).out("<name>").all()
 `,
 		expect: []interface{}{
 			map[string]string{"id": SandraB, "movie1": "The Net", "costar1_movie": nSpeed},
@@ -256,7 +256,7 @@ var queries = []struct {
 	{
 		message: "Keanu and Bullock with other",
 		long:    true,
-		query: common + `actor1.save("<name>","costar1_actor").follow(coStars1).intersect(actor2.save("<name>","costar2_actor").follow(coStars2)).out("<name>").All()
+		query: common + `actor1.save("<name>","costar1_actor").follow(coStars1).intersect(actor2.save("<name>","costar2_actor").follow(coStars2)).out("<name>").all()
 `,
 		expect: []interface{}{
 			costarTag(SandraB, SandraB, "The Proposal", KeanuR, nSpeed),
@@ -430,7 +430,7 @@ var queries = []struct {
 	{
 		message: "Save a number of predicates around a set of nodes",
 		query: `
-		g.v("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").save("</film/performance/character>", "char").save("</film/performance/actor>", "act").saveR("</film/film/starring>", "film").All()
+		g.v("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").save("</film/performance/character>", "char").save("</film/performance/actor>", "act").saveR("</film/film/starring>", "film").all()
 		`,
 		expect: []interface{}{
 			map[string]string{"act": "</en/humphrey_bogart>", "char": "Rick Blaine", "film": "</en/casablanca_1942>", "id": "_:9037"},
@@ -449,11 +449,11 @@ var actor1 = g.v().has("<name>", "Sandra Bullock")
 var actor2 = g.v().has("<name>", "Keanu Reeves")
 
 // (film) -> starring -> (actor)
-var filmToActor = g.Morphism().out("</film/film/starring>").out("</film/performance/actor>")
+var filmToActor = g.morphism().out("</film/film/starring>").out("</film/performance/actor>")
 
 // (actor) -> starring -> [film -> starring -> (actor)]
-var coStars1 = g.Morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar1_movie").follow(filmToActor)
-var coStars2 = g.Morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar2_movie").follow(filmToActor)
+var coStars1 = g.morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar1_movie").follow(filmToActor)
+var coStars2 = g.morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar2_movie").follow(filmToActor)
 
 // Stars for the movies "The Net" and "Speed"
 var m1_actors = movie1.save("<name>","movie1").follow(filmToActor)
