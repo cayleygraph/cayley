@@ -31,6 +31,7 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/jsonld"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -129,7 +130,7 @@ func (s *Session) buildEnv() error {
 func (s *Session) tagsToValueMap(m map[string]graph.Ref) map[string]interface{} {
 	outputMap := make(map[string]interface{})
 	for k, v := range m {
-		if o := quadValueToNative(s.qs.NameOf(v)); o != nil {
+		if o := jsonld.FromValue(s.qs.NameOf(v)); o != nil {
 			outputMap[k] = o
 		}
 	}
@@ -160,7 +161,7 @@ func (s *Session) runIteratorToArrayNoTags(it graph.Iterator, limit int) ([]inte
 
 	output := make([]interface{}, 0)
 	err := graph.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(s.qs, func(v quad.Value) {
-		if o := quadValueToNative(v); o != nil {
+		if o := jsonld.FromValue(v); o != nil {
 			output = append(output, o)
 		}
 	})
@@ -362,14 +363,16 @@ func (it *results) Result() interface{} {
 	case query.Raw:
 		return it.cur
 	case query.JSON:
-		return it.jsonResult()
+		return it.jsonResult(false)
+	case query.JSONLD:
+		return it.jsonResult(true)
 	case query.REPL:
 		return it.replResult()
 	}
 	return nil
 }
 
-func (it *results) jsonResult() interface{} {
+func (it *results) jsonResult(ld bool) interface{} {
 	data := it.cur
 	if data.Meta {
 		return nil
@@ -386,7 +389,13 @@ func (it *results) jsonResult() interface{} {
 	sort.Strings(tagKeys)
 	for _, k := range tagKeys {
 		if name := it.s.qs.NameOf(tags[k]); name != nil {
-			obj[k] = quadValueToNative(name)
+			var v interface{}
+			if ld {
+				v = jsonld.FromValue(v)
+			} else {
+				v = quadValueToNative(name)
+			}
+			obj[k] = v
 		} else {
 			delete(obj, k)
 		}

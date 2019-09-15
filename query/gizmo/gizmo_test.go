@@ -89,6 +89,13 @@ var testQueries = []struct {
 		expect: []string{"<alice>"},
 	},
 	{
+		message: "get a single vertex (legacy)",
+		query: `
+			g.V("<alice>").All()
+		`,
+		expect: []string{"<alice>"},
+	},
+	{
 		message: "use .getLimit",
 		query: `
 			g.V().getLimit(5)
