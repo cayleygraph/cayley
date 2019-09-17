@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/dop251/goja"
 
@@ -63,10 +64,8 @@ func NewSession(qs graph.QuadStore) *Session {
 }
 
 func lcFirst(str string) string {
-	for i, v := range str {
-		return string(unicode.ToLower(v)) + str[i+1:]
-	}
-	return ""
+	rune, size := utf8.DecodeRuneInString(str)
+	return string(unicode.ToLower(rune)) + str[size:]
 }
 
 type fieldNameMapper struct{}
