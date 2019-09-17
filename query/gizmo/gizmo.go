@@ -17,9 +17,10 @@ package gizmo
 import (
 	"context"
 	"fmt"
-	"sort"
-	"unicode"
 	"reflect"
+	"sort"
+	"strings"
+	"unicode"
 
 	"github.com/dop251/goja"
 
@@ -62,19 +63,24 @@ func NewSession(qs graph.QuadStore) *Session {
 }
 
 func lcFirst(str string) string {
-    for i, v := range str {                                                                                                                                           
-        return string(unicode.ToLower(v)) + str[i+1:]
-    }  
-    return ""
+	for i, v := range str {
+		return string(unicode.ToLower(v)) + str[i+1:]
+	}
+	return ""
 }
 
-type fieldNameMapperToLower struct{}
+type fieldNameMapper struct{}
 
-func (fieldNameMapperToLower) FieldName(t reflect.Type, f reflect.StructField) string {
+const constructMethodPrefix = "New"
+
+func (fieldNameMapper) FieldName(t reflect.Type, f reflect.StructField) string {
 	return lcFirst(f.Name)
 }
 
-func (fieldNameMapperToLower) MethodName(t reflect.Type, m reflect.Method) string {
+func (fieldNameMapper) MethodName(t reflect.Type, m reflect.Method) string {
+	if strings.HasPrefix(m.Name, constructMethodPrefix) {
+		return strings.TrimPrefix(m.Name, constructMethodPrefix)
+	}
 	return lcFirst(m.Name)
 }
 
@@ -107,7 +113,7 @@ func (s *Session) buildEnv() error {
 		return nil
 	}
 	s.vm = goja.New()
-	s.vm.SetFieldNameMapper(fieldNameMapperToLower{})
+	s.vm.SetFieldNameMapper(fieldNameMapper{})
 	s.vm.Set("graph", &graphObject{s: s})
 	s.vm.Set("g", s.vm.Get("graph"))
 	for name, val := range defaultEnv {

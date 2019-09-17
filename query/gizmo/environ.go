@@ -36,12 +36,13 @@ import (
 //
 // This is the only special object in the environment, generates the query objects.
 // Under the hood, they're simple objects that get compiled to a Go iterator tree when executed.
+// Methods starting with "New" are accessible in JavaScript with a capital letter (e.g. NewV becomes V)
 type graphObject struct {
 	s *Session
 }
 
 // Uri creates an IRI values from a given string.
-func (g *graphObject) Uri(s string) quad.IRI {
+func (g *graphObject) NewIRI(s string) quad.IRI {
 	return quad.IRI(g.s.ns.FullIRI(s))
 }
 
@@ -61,8 +62,8 @@ func (g *graphObject) LoadNamespaces() error {
 }
 
 // V is a shorthand for Vertex.
-func (g *graphObject) V(call goja.FunctionCall) goja.Value {
-	return g.Vertex(call)
+func (g *graphObject) NewV(call goja.FunctionCall) goja.Value {
+	return g.NewVertex(call)
 }
 
 // Vertex starts a query path at the given vertex/vertices. No ids means "all vertices".
@@ -73,7 +74,7 @@ func (g *graphObject) V(call goja.FunctionCall) goja.Value {
 // * `nodeId` (Optional): A string or list of strings representing the starting vertices.
 //
 // Returns: Path object
-func (g *graphObject) Vertex(call goja.FunctionCall) goja.Value {
+func (g *graphObject) NewVertex(call goja.FunctionCall) goja.Value {
 	qv, err := toQuadValues(exportArgs(call.Arguments))
 	if err != nil {
 		return throwErr(g.s.vm, err)
@@ -86,8 +87,8 @@ func (g *graphObject) Vertex(call goja.FunctionCall) goja.Value {
 }
 
 // M is a shorthand for Morphism.
-func (g *graphObject) M() *pathObject {
-	return g.Morphism()
+func (g *graphObject) NewM() *pathObject {
+	return g.NewMorphism()
 }
 
 // Morphism creates a morphism path object. Unqueryable on it's own, defines one end of the path.
@@ -97,7 +98,7 @@ func (g *graphObject) M() *pathObject {
 //	var shorterPath = graph.Morphism().Out("foo").Out("bar")
 //
 // is the common use case. See also: path.Follow(), path.FollowR().
-func (g *graphObject) Morphism() *pathObject {
+func (g *graphObject) NewMorphism() *pathObject {
 	return &pathObject{
 		s:    g.s,
 		path: path.StartMorphism(),

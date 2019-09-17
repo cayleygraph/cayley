@@ -92,7 +92,7 @@ var queries = []struct {
 	{
 		message: "name predicate",
 		query: `
-		g.v("Humphrey Bogart").in("<name>").all()
+		g.V("Humphrey Bogart").in("<name>").all()
 		`,
 		expect: []interface{}{
 			map[string]string{"id": "</en/humphrey_bogart>"},
@@ -105,8 +105,8 @@ var queries = []struct {
 	{
 		message: "two large sets with no intersection",
 		query: `
-		function getId(x) { return g.v(x).in("<name>") }
-		var actor_to_film = g.m().in("</film/performance/actor>").in("</film/film/starring>")
+		function getId(x) { return g.V(x).in("<name>") }
+		var actor_to_film = g.M().in("</film/performance/actor>").in("</film/film/starring>")
 
 		getId("Oliver Hardy").follow(actor_to_film).out("<name>").intersect(
 			getId("Mel Blanc").follow(actor_to_film).out("<name>")).all()
@@ -119,8 +119,8 @@ var queries = []struct {
 		message: "three huge sets with small intersection",
 		long:    true,
 		query: `
-			function getId(x) { return g.v(x).in("<name>") }
-			var actor_to_film = g.m().in("</film/performance/actor>").in("</film/film/starring>")
+			function getId(x) { return g.V(x).in("<name>") }
+			var actor_to_film = g.M().in("</film/performance/actor>").in("</film/film/starring>")
 
 			var a = getId("Oliver Hardy").follow(actor_to_film).followR(actor_to_film)
 			var b = getId("Mel Blanc").follow(actor_to_film).followR(actor_to_film)
@@ -148,7 +148,7 @@ var queries = []struct {
 		message: "the helpless checker",
 		long:    true,
 		query: `
-			g.v().as("person").in("<name>").in().in().out("<name>").is("Casablanca").all()
+			g.V().as("person").in("<name>").in().in().out("<name>").is("Casablanca").all()
 			`,
 		tag: "person",
 		expect: []interface{}{
@@ -175,7 +175,7 @@ var queries = []struct {
 		message: "the helpless checker, negated (films without Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.v().as("person").in("<name>").in().in().out("<name>").except(g.v("Ingrid Bergman").in("<name>").in().in().out("<name>")).is("Casablanca").all()
+			g.V().as("person").in("<name>").in().in().out("<name>").except(g.V("Ingrid Bergman").in("<name>").in().in().out("<name>")).is("Casablanca").all()
 			`,
 		tag:    "person",
 		expect: nil,
@@ -184,7 +184,7 @@ var queries = []struct {
 		message: "the helpless checker, negated (without actors Ingrid Bergman)",
 		long:    true,
 		query: `
-			g.v().as("person").in("<name>").except(g.v("Ingrid Bergman").in("<name>")).in().in().out("<name>").is("Casablanca").all()
+			g.V().as("person").in("<name>").except(g.V("Ingrid Bergman").in("<name>")).in().in().out("<name>").is("Casablanca").all()
 			`,
 		tag: "person",
 		expect: []interface{}{
@@ -430,7 +430,7 @@ var queries = []struct {
 	{
 		message: "Save a number of predicates around a set of nodes",
 		query: `
-		g.v("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").save("</film/performance/character>", "char").save("</film/performance/actor>", "act").saveR("</film/film/starring>", "film").all()
+		g.V("_:9037", "_:49278", "_:44112", "_:44709", "_:43382").save("</film/performance/character>", "char").save("</film/performance/actor>", "act").saveR("</film/film/starring>", "film").all()
 		`,
 		expect: []interface{}{
 			map[string]string{"act": "</en/humphrey_bogart>", "char": "Rick Blaine", "film": "</en/casablanca_1942>", "id": "_:9037"},
@@ -443,17 +443,17 @@ var queries = []struct {
 }
 
 const common = `
-var movie1 = g.v().has("<name>", "The Net")
-var movie2 = g.v().has("<name>", "Speed")
-var actor1 = g.v().has("<name>", "Sandra Bullock")
-var actor2 = g.v().has("<name>", "Keanu Reeves")
+var movie1 = g.V().has("<name>", "The Net")
+var movie2 = g.V().has("<name>", "Speed")
+var actor1 = g.V().has("<name>", "Sandra Bullock")
+var actor2 = g.V().has("<name>", "Keanu Reeves")
 
 // (film) -> starring -> (actor)
-var filmToActor = g.morphism().out("</film/film/starring>").out("</film/performance/actor>")
+var filmToActor = g.Morphism().out("</film/film/starring>").out("</film/performance/actor>")
 
 // (actor) -> starring -> [film -> starring -> (actor)]
-var coStars1 = g.morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar1_movie").follow(filmToActor)
-var coStars2 = g.morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar2_movie").follow(filmToActor)
+var coStars1 = g.Morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar1_movie").follow(filmToActor)
+var coStars2 = g.Morphism().in("</film/performance/actor>").in("</film/film/starring>").save("<name>","costar2_movie").follow(filmToActor)
 
 // Stars for the movies "The Net" and "Speed"
 var m1_actors = movie1.save("<name>","movie1").follow(filmToActor)
