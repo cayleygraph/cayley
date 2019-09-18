@@ -333,7 +333,7 @@ func (p *pathObject) Or(path *pathObject) *pathObject {
 //	//   {"id": "<dani>", "start": "<greg>"},
 //	//   {"id": "<fred>", "start": "<greg>"},
 //	//   {"id": "<fred>", "start": "<greg>"}
-//	g.V().Tag("start").Out("<status>").Back("start").In("<follows>").All()
+//	g.V().tag("start").out("<status>").back("start").in("<follows>").all()
 func (p *pathObject) Back(tag string) *pathObject {
 	np := p.clonePath().Back(tag)
 	return p.new(np)
@@ -356,7 +356,7 @@ func (p *pathObject) Back(tag string) *pathObject {
 //	//   {"id": "cool_person", "start": "<greg>"},
 //	//   {"id": "smart_person", "start": "<emily>"},
 //	//   {"id": "smart_person", "start": "<greg>"}
-//	g.V().Tag("start").Out("<status>").All()
+//	g.V().tag("start").out("<status>").All()
 func (p *pathObject) Tag(tags ...string) *pathObject {
 	np := p.clonePath().Tag(tags...)
 	return p.new(np)
@@ -382,11 +382,11 @@ func (p *pathObject) As(tags ...string) *pathObject {
 // Example:
 // 	// javascript
 //	// Start from all nodes that follow bob -- results in alice, charlie and dani
-//	g.V().Has("<follows>", "<bob>").All()
+//	g.V().has("<follows>", "<bob>").all()
 //	// People charlie follows who then follow fred. Results in bob.
-//	g.V("<charlie>").Out("<follows>").Has("<follows>", "<fred>").All()
+//	g.V("<charlie>").Out("<follows>").has("<follows>", "<fred>").all()
 //	// People with friends who have names sorting lower then "f".
-//	g.V().Has("<follows>", gt("<f>")).All()
+//	g.V().has("<follows>", gt("<f>")).all()
 func (p *pathObject) Has(call goja.FunctionCall) goja.Value {
 	return p.has(call, false)
 }
@@ -623,11 +623,11 @@ func (p *pathObject) SaveOutPredicates(tag string) *pathObject {
 // Example:
 // 	// javascript
 //	// Find the status of people Dani follows
-//	g.V("<dani>").Out("<follows>").Out("<status>").All()
+//	g.V("<dani>").out("<follows>").out("<status>").all()
 //	// Find only the statuses provided by the smart_graph
-//	g.V("<dani>").Out("<follows>").LabelContext("<smart_graph>").Out("<status>").All()
+//	g.V("<dani>").out("<follows>").labelContext("<smart_graph>").out("<status>").all()
 //	// Find all people followed by people with statuses in the smart_graph.
-//	g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follows>").All()
+//	g.V().labelContext("<smart_graph>").in("<status>").labelContext(null).in("<follows>").all()
 func (p *pathObject) LabelContext(call goja.FunctionCall) goja.Value {
 	labels, tags, ok := toViaData(exportArgs(call.Arguments))
 	if !ok {
@@ -659,7 +659,7 @@ func (p *pathObject) Filter(args ...valFilter) (*pathObject, error) {
 // Example:
 // 	// javascript
 //	// Start from all nodes that follow bob, and limit them to 2 nodes -- results in alice and charlie
-//	g.V().Has("<follows>", "<bob>").Limit(2).All()
+//	g.V().has("<follows>", "<bob>").limit(2).all()
 func (p *pathObject) Limit(limit int) *pathObject {
 	np := p.clonePath().Limit(int64(limit))
 	return p.new(np)

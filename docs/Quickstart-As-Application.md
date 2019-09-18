@@ -7,9 +7,10 @@ This guide will take you through starting a persistent graph based on the provid
 Grab the latest [release binary](http://github.com/cayleygraph/cayley/releases) and extract it wherever you like.
 If you have Docker installed you can check [guide](Container.md) for running Cayley in container.
 
-If you prefer to build from source, see [Contributing.md](Contributing.md) which has instructions. 
+If you prefer to build from source, see [Contributing.md](Contributing.md) which has instructions.
 
-### Quick preview ###
+### Quick preview
+
 If you downloaded the correct binary the fastest way to have a peak into Cayley is to load one of the example data file in the ./data directory, and query them by the web interface.
 
 ```bash
@@ -110,7 +111,6 @@ cayley> graph.Vertex("<dani>").All()
 cayley> graph.Vertex("<dani>").Out("<follows>").All()
 ```
 
-
 ### Serve Your Graph
 
 Just as before:
@@ -127,15 +127,17 @@ listening on :64210, web interface at http://localhost:64210
 
 If you visit that address (often, [http://localhost:64210](http://localhost:64210)) you'll see the full web interface and also have a graph ready to serve queries via the [HTTP API](HTTP.md)
 
-#### Access from other machines ####
+#### Access from other machines
+
 When you want to reach the API or UI from another machine in the network you need to specify the host argument:
+
 ```bash
 ./cayley http --config=cayley.cfg.overview --host=0.0.0.0:64210
 ```
-This makes it listen on all interfaces. You can also give it the specific the IP address you want Cayley to bind to. 
 
-**Warning**: for security reasons you might not want to do this on a public accessible machine. 
+This makes it listen on all interfaces. You can also give it the specific the IP address you want Cayley to bind to.
 
+**Warning**: for security reasons you might not want to do this on a public accessible machine.
 
 ## UI Overview
 
@@ -143,21 +145,21 @@ This makes it listen on all interfaces. You can also give it the specific the IP
 
 Along the side are the various actions or views you can take. From the top, these are:
 
-* Run Query (run the query)
-* Gizmo (a dropdown, to pick your query language, MQL is the other)
-  * [GizmoAPI.md](GizmoAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.
-  * [MQL.md](MQL.md): The *other* query language the interfaces support. 
+- Run Query (run the query)
+- Gizmo (a dropdown, to pick your query language, MQL is the other)
+  - [GizmoAPI.md](GizmoAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.
+  - [MQL.md](MQL.md): The _other_ query language the interfaces support.
 
-----
+---
 
-* Query (a request/response editor for the query language)
-* Query Shape (a visualization of the shape of the final query. Does not execute the query.)
-* Visualize  (runs a query and, if tagged correctly, gives a sigmajs view of the results)
-* Write (an interface to write or remove individual quads or quad files)
+- Query (a request/response editor for the query language)
+- Query Shape (a visualization of the shape of the final query. Does not execute the query.)
+- Visualize (runs a query and, if tagged correctly, gives a sigmajs view of the results)
+- Write (an interface to write or remove individual quads or quad files)
 
-----
+---
 
-* Documentation (this documentation)
+- Documentation (this documentation)
 
 ### Visualize
 
@@ -167,15 +169,15 @@ For example:
 
 ```javascript
 [
-{
-  "source": "node1",
-  "target": "node2"
-},
-{
-  "source": "node1",
-  "target": "node3"
-},
-]
+  {
+    source: "node1",
+    target: "node2"
+  },
+  {
+    source: "node1",
+    target: "node3"
+  }
+];
 ```
 
 Other keys are ignored. The upshot is that if you use the "Tag" functionality to add "source" and "target" tags, you can extract and quickly view subgraphs.
@@ -184,12 +186,12 @@ Other keys are ignored. The upshot is that if you use the "Tag" functionality to
 // Visualize who dani follows.
 g.V("<dani>").Tag("source").Out("<follows>").Tag("target").All()
 ```
-The visualizer expects to tag nodes as either "source" or "target."  Your source is represented as a blue node.
+
+The visualizer expects to tag nodes as either "source" or "target." Your source is represented as a blue node.
 While your target is represented as an orange node.
 The idea being that our node relationship goes from blue to orange (source to target).
 
-----
-
+---
 
 **Sample Data**
 
@@ -201,26 +203,31 @@ The simplest query is merely to return a single vertex. Using the 30kmoviedata.n
 
 ```javascript
 // Query all vertices in the graph, limit to the first 5 vertices found.
-graph.Vertex().GetLimit(5)
+graph.Vertex().getLimit(5);
 
 // Start with only one vertex, the literal name "Humphrey Bogart", and retrieve all of them.
-graph.Vertex("Humphrey Bogart").All()
+graph.Vertex("Humphrey Bogart").all();
 
 // `g` and `V` are synonyms for `graph` and `Vertex` respectively, as they are quite common.
-g.V("Humphrey Bogart").All()
+g.V("Humphrey Bogart").all();
 
 // "Humphrey Bogart" is a name, but not an entity. Let's find the entities with this name in our dataset.
 // Follow links that are pointing In to our "Humphrey Bogart" node with the predicate "<name>".
-g.V("Humphrey Bogart").In("<name>").All()
+g.V("Humphrey Bogart")
+  .in("<name>")
+  .all();
 
 // Notice that "<name>" is a generic predicate in our dataset.
 // Starting with a movie gives a similar effect.
-g.V("Casablanca").In("<name>").All()
+g.V("Casablanca")
+  .in("<name>")
+  .all();
 
 // Relatedly, we can ask the reverse; all ids with the name "Casablanca"
-g.V().Has("<name>", "Casablanca").All()
+g.V()
+  .has("<name>", "Casablanca")
+  .all();
 ```
-
 
 You may start to notice a pattern here: with Gizmo, the query lines tend to:
 
@@ -232,16 +239,25 @@ And these pipelines continue...
 
 ```javascript
 // Let's get the list of actors in the film
-g.V().Has("<name>","Casablanca")
-  .Out("</film/film/starring>").Out("</film/performance/actor>")
-  .Out("<name>").All()
+g.V()
+  .Has("<name>", "Casablanca")
+  .Out("</film/film/starring>")
+  .Out("</film/performance/actor>")
+  .Out("<name>")
+  .All();
 
 // But this is starting to get long. Let's use a morphism -- a pre-defined path stored in a variable -- as our linkage
 
-var filmToActor = g.Morphism().Out("</film/film/starring>").Out("</film/performance/actor>")
+var filmToActor = g
+  .Morphism()
+  .Out("</film/film/starring>")
+  .Out("</film/performance/actor>");
 
-g.V().Has("<name>", "Casablanca").Follow(filmToActor).Out("<name>").All()
-
+g.V()
+  .Has("<name>", "Casablanca")
+  .Follow(filmToActor)
+  .Out("<name>")
+  .All();
 ```
 
 There's more in the JavaScript API Documentation, but that should give you a feel for how to walk around the graph.
