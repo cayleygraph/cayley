@@ -70,13 +70,17 @@ func lcFirst(str string) string {
 
 type fieldNameMapper struct{}
 
-const constructMethodPrefix = "New"
-
 func (fieldNameMapper) FieldName(t reflect.Type, f reflect.StructField) string {
 	return lcFirst(f.Name)
 }
 
+const constructMethodPrefix = "New"
+const backwardsCompatibilityPrefix = "Capitalized"
+
 func (fieldNameMapper) MethodName(t reflect.Type, m reflect.Method) string {
+	if strings.HasPrefix(m.Name, backwardsCompatibilityPrefix) {
+		return strings.TrimPrefix(m.Name, backwardsCompatibilityPrefix)
+	}
 	if strings.HasPrefix(m.Name, constructMethodPrefix) {
 		return strings.TrimPrefix(m.Name, constructMethodPrefix)
 	}

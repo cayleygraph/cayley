@@ -120,6 +120,35 @@ func (g *graphObject) Emit(call goja.FunctionCall) goja.Value {
 	return goja.Null()
 }
 
+// Backwards compatibility
+func (g *graphObject) CapitalizedUri(s string) quad.IRI {
+	return g.NewIRI(s)
+}
+func (g *graphObject) CapitalizedAddNamespace(pref, ns string) {
+	g.AddNamespace(pref, ns)
+}
+func (g *graphObject) CapitalizedAddDefaultNamespaces() {
+	g.AddDefaultNamespaces()
+}
+func (g *graphObject) CapitalizedLoadNamespaces() error {
+	return g.LoadNamespaces()
+}
+func (g *graphObject) CapitalizedNewV(call goja.FunctionCall) goja.Value {
+	return g.NewV(call)
+}
+func (g *graphObject) CapitalizedNewVertex(call goja.FunctionCall) goja.Value {
+	return g.NewVertex(call)
+}
+func (g *graphObject) CapitalizedNewM() *pathObject {
+	return g.NewM()
+}
+func (g *graphObject) CapitalizedNewMorphism() *pathObject {
+	return g.NewMorphism()
+}
+func (g *graphObject) CapitalizedEmit(call goja.FunctionCall) goja.Value {
+	return g.Emit(call)
+}
+
 func oneStringType(fnc func(s string) quad.Value) func(vm *goja.Runtime, call goja.FunctionCall) goja.Value {
 	return func(vm *goja.Runtime, call goja.FunctionCall) goja.Value {
 		args := toStrings(exportArgs(call.Arguments))

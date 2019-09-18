@@ -679,3 +679,101 @@ func (p *pathObject) Skip(offset int) *pathObject {
 	np := p.clonePath().Skip(int64(offset))
 	return p.new(np)
 }
+
+// Backwards compatibility
+func (p *pathObject) CapitalizedIs(call goja.FunctionCall) goja.Value {
+	return p.Is(call)
+}
+func (p *pathObject) CapitalizedIn(call goja.FunctionCall) goja.Value {
+	return p.In(call)
+}
+func (p *pathObject) CapitalizedOut(call goja.FunctionCall) goja.Value {
+	return p.Out(call)
+}
+func (p *pathObject) CapitalizedBoth(call goja.FunctionCall) goja.Value {
+	return p.Both(call)
+}
+func (p *pathObject) CapitalizedFollow(path *pathObject) *pathObject {
+	return p.Follow(path)
+}
+func (p *pathObject) CapitalizedFollowR(path *pathObject) *pathObject {
+	return p.FollowR(path)
+}
+func (p *pathObject) CapitalizedFollowRecursive(call goja.FunctionCall) goja.Value {
+	return p.FollowRecursive(call)
+}
+func (p *pathObject) CapitalizedAnd(path *pathObject) *pathObject {
+	return p.And(path)
+}
+func (p *pathObject) CapitalizedIntersect(path *pathObject) *pathObject {
+	return p.Intersect(path)
+}
+func (p *pathObject) CapitalizedUnion(path *pathObject) *pathObject {
+	return p.Union(path)
+}
+func (p *pathObject) CapitalizedOr(path *pathObject) *pathObject {
+	return p.Or(path)
+}
+func (p *pathObject) CapitalizedBack(tag string) *pathObject {
+	return p.Back(tag)
+}
+func (p *pathObject) CapitalizedTag(tags ...string) *pathObject {
+	return p.Tag(tags...)
+}
+func (p *pathObject) CapitalizedAs(tags ...string) *pathObject {
+	return p.As(tags...)
+}
+func (p *pathObject) CapitalizedHas(call goja.FunctionCall) goja.Value {
+	return p.Has(call)
+}
+func (p *pathObject) CapitalizedHasR(call goja.FunctionCall) goja.Value {
+	return p.HasR(call)
+}
+func (p *pathObject) CapitalizedSave(call goja.FunctionCall) goja.Value {
+	return p.Save(call)
+}
+func (p *pathObject) CapitalizedSaveR(call goja.FunctionCall) goja.Value {
+	return p.SaveR(call)
+}
+func (p *pathObject) CapitalizedSaveOpt(call goja.FunctionCall) goja.Value {
+	return p.SaveOpt(call)
+}
+func (p *pathObject) CapitalizedSaveOptR(call goja.FunctionCall) goja.Value {
+	return p.SaveOptR(call)
+}
+func (p *pathObject) CapitalizedExcept(path *pathObject) *pathObject {
+	return p.Except(path)
+}
+func (p *pathObject) CapitalizedUnique() *pathObject {
+	return p.Unique()
+}
+func (p *pathObject) CapitalizedDifference(path *pathObject) *pathObject {
+	return p.Difference(path)
+}
+func (p *pathObject) CapitalizedLabels() *pathObject {
+	return p.Labels()
+}
+func (p *pathObject) CapitalizedInPredicates() *pathObject {
+	return p.InPredicates()
+}
+func (p *pathObject) CapitalizedOutPredicates() *pathObject {
+	return p.OutPredicates()
+}
+func (p *pathObject) CapitalizedSaveInPredicates(tag string) *pathObject {
+	return p.SaveInPredicates(tag)
+}
+func (p *pathObject) CapitalizedSaveOutPredicates(tag string) *pathObject {
+	return p.SaveOutPredicates(tag)
+}
+func (p *pathObject) CapitalizedLabelContext(call goja.FunctionCall) goja.Value {
+	return p.LabelContext(call)
+}
+func (p *pathObject) CapitalizedFilter(args ...valFilter) (*pathObject, error) {
+	return p.Filter(args...)
+}
+func (p *pathObject) CapitalizedLimit(limit int) *pathObject {
+	return p.Limit(limit)
+}
+func (p *pathObject) CapitalizedSkip(offset int) *pathObject {
+	return p.Skip(offset)
+}
