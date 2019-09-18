@@ -25,3 +25,7 @@ docker run -p 64210:64210 cayleygraph/cayley
 ```
 
 For more information see [Container Documentation](Container.md)
+
+## Build from Source
+
+See instructions in [Contributing](Contributing.md)
