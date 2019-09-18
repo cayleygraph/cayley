@@ -220,7 +220,7 @@ func (p *pathObject) follow(ep *pathObject, rev bool) *pathObject {
 //	// Returns the followed people of who charlie follows -- a simplistic "friend of my friend"
 //	// and whether or not they have a "cool" status. Potential for recommending followers abounds.
 //	// Returns bob and greg
-//	g.V("<charlie>").Follow(friendOfFriend).Has("<status>", "cool_person").All()
+//	g.V("<charlie>").follow(friendOfFriend).has("<status>", "cool_person").all()
 func (p *pathObject) Follow(path *pathObject) *pathObject {
 	return p.follow(path, false)
 }
@@ -235,7 +235,7 @@ func (p *pathObject) Follow(path *pathObject) *pathObject {
 //	var friendOfFriend = g.Morphism().Out("<follows>").Out("<follows>")
 //	// Returns the third-tier of influencers -- people who follow people who follow the cool people.
 //	// Returns charlie (from bob), charlie (from greg), bob and emily
-//	g.V().Has("<status>", "cool_person").FollowR(friendOfFriend).All()
+//	g.V().has("<status>", "cool_person").followR(friendOfFriend).all()
 func (p *pathObject) FollowR(path *pathObject) *pathObject {
 	return p.follow(path, true)
 }
@@ -246,10 +246,10 @@ func (p *pathObject) FollowR(path *pathObject) *pathObject {
 //
 // Example:
 // 	// javascript:
-//	var friend = g.Morphism().Out("<follows>")
+//	var friend = g.Morphism().out("<follows>")
 //	// Returns all people in Charlie's network.
 //	// Returns bob and dani (from charlie), fred (from bob) and greg (from dani).
-//	g.V("<charlie>").FollowRecursive(friend).All()
+//	g.V("<charlie>").followRecursive(friend).all()
 func (p *pathObject) FollowRecursive(call goja.FunctionCall) goja.Value {
 	preds, maxDepth, tags, ok := toViaDepthData(exportArgs(call.Arguments))
 	if !ok || len(preds) == 0 {
