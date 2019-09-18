@@ -160,9 +160,9 @@ func (p *pathObject) ForEach(call goja.FunctionCall) goja.Value {
 // Example:
 //	// javascript
 //	// Save count as a variable
-//	var n = g.V().Count()
+//	var n = g.V().count()
 //	// Send it as a query result
-//	g.Emit(n)
+//	g.emit(n)
 func (p *pathObject) Count() (int64, error) {
 	it := p.buildIteratorTree()
 	return p.s.countResults(it)

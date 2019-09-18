@@ -95,9 +95,9 @@ func (g *graphObject) NewM() *pathObject {
 // Saving these to variables with
 //
 //	// javascript
-//	var shorterPath = graph.Morphism().Out("foo").Out("bar")
+//	var shorterPath = graph.Morphism().out("foo").out("bar")
 //
-// is the common use case. See also: path.Follow(), path.FollowR().
+// is the common use case. See also: path.follow(), path.followR().
 func (g *graphObject) NewMorphism() *pathObject {
 	return &pathObject{
 		s:    g.s,
@@ -108,7 +108,7 @@ func (g *graphObject) NewMorphism() *pathObject {
 // Emit adds data programmatically to the JSON result list. Can be any JSON type.
 //
 //	// javascript
-//	g.Emit({name:"bob"}) // push {"name":"bob"} as a result
+//	g.emit({name:"bob"}) // push {"name":"bob"} as a result
 func (g *graphObject) Emit(call goja.FunctionCall) goja.Value {
 	value := call.Argument(0)
 	if !goja.IsNull(value) && !goja.IsUndefined(value) {

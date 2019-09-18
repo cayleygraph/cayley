@@ -366,7 +366,7 @@ paths:
             examples:
               gizmo:
                 summary: "Gizmo: first 10 nodes"
-                value: "g.V().GetLimit(10)"
+                value: "g.V().getLimit(10)"
               graphql:
                 summary: "GraphQL: first 10 nodes"
                 value: "{\n  nodes(first: 10){\n    id\n  }\n}"

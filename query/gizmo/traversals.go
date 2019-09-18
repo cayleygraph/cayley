@@ -94,8 +94,8 @@ func (p *pathObject) buildIteratorTree() graph.Iterator {
 // Example:
 //	// javascript
 //	// Starting from all nodes in the graph, find the paths that follow bob.
-//	// Results in three paths for bob (from alice, charlie and dani).All()
-//	g.V().Out("<follows>").Is("<bob>").All()
+//	// Results in three paths for bob (from alice, charlie and dani).all()
+//	g.V().out("<follows>").is("<bob>").all()
 func (p *pathObject) Is(call goja.FunctionCall) goja.Value {
 	args, err := toQuadValues(exportArgs(call.Arguments))
 	if err != nil {
@@ -138,11 +138,11 @@ func (p *pathObject) inout(call goja.FunctionCall, in bool) goja.Value {
 //
 //	// javascript
 //	// Find the cool people, bob, dani and greg
-//	g.V("cool_person").In("<status>").All()
+//	g.V("cool_person").in("<status>").all()
 //	// Find who follows bob, in this case, alice, charlie, and dani
-//	g.V("<bob>").In("<follows>").All()
+//	g.V("<bob>").in("<follows>").all()
 //	// Find who follows the people emily follows, namely, bob and emily
-//	g.V("<emily>").Out("<follows>").In("<follows>").All()
+//	g.V("<emily>").out("<follows>").in("<follows>").all()
 func (p *pathObject) In(call goja.FunctionCall) goja.Value {
 	return p.inout(call, true)
 }
@@ -167,17 +167,17 @@ func (p *pathObject) In(call goja.FunctionCall) goja.Value {
 //
 //	// javascript
 //	// The working set of this is bob and dani
-//	g.V("<charlie>").Out("<follows>").All()
+//	g.V("<charlie>").out("<follows>").all()
 //	// The working set of this is fred, as alice follows bob and bob follows fred.
-//	g.V("<alice>").Out("<follows>").Out("<follows>").All()
+//	g.V("<alice>").out("<follows>").out("<follows>").all()
 //	// Finds all things dani points at. Result is bob, greg and cool_person
-//	g.V("<dani>").Out().All()
+//	g.V("<dani>").out().all()
 //	// Finds all things dani points at on the status linkage.
 //	// Result is bob, greg and cool_person
-//	g.V("<dani>").Out(["<follows>", "<status>"]).All()
+//	g.V("<dani>").out(["<follows>", "<status>"]).all()
 //	// Finds all things dani points at on the status linkage, given from a separate query path.
 //	// Result is {"id": "cool_person", "pred": "<status>"}
-//	g.V("<dani>").Out(g.V("<status>"), "pred").All()
+//	g.V("<dani>").out(g.V("<status>"), "pred").all()
 func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
 	return p.inout(call, false)
 }
@@ -188,7 +188,7 @@ func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
 // Example:
 //	// javascript
 //	// Find all followers/followees of fred. Returns bob, emily and greg
-//	g.V("<fred>").Both("<follows>").All()
+//	g.V("<fred>").both("<follows>").all()
 func (p *pathObject) Both(call goja.FunctionCall) goja.Value {
 	preds, tags, ok := toViaData(exportArgs(call.Arguments))
 	if !ok {
@@ -674,7 +674,7 @@ func (p *pathObject) Limit(limit int) *pathObject {
 // Example:
 //	// javascript
 //	// Start from all nodes that follow bob, and skip 2 nodes -- results in dani
-//	g.V().Has("<follows>", "<bob>").Skip(2).All()
+//	g.V().has("<follows>", "<bob>").skip(2).all()
 func (p *pathObject) Skip(offset int) *pathObject {
 	np := p.clonePath().Skip(int64(offset))
 	return p.new(np)
