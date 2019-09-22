@@ -197,6 +197,10 @@ func (qs *QuadStore) resolveValDeltas(ctx context.Context, tx kv.Tx, deltas []gr
 			fnc(i, 0)
 			continue
 		}
+		if qs.mapNodes != nil && !qs.mapNodes.Test(d.Hash[:]) {
+			fnc(i, 0)
+			continue
+		}
 		inds = append(inds, i)
 		keys = append(keys, bucketKeyForHash(d.Hash))
 	}
@@ -272,8 +276,9 @@ type nodeUpdate struct {
 	graphlog.NodeUpdate
 }
 
-func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas []nodeUpdate) ([]int, error) {
+func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDeltas []nodeUpdate) ([]int, error) {
 	var buf [binary.MaxVarintLen64]byte
+	// increment nodes
 	keys := make([]kv.Key, 0, len(deltas))
 	for _, d := range deltas {
 		keys = append(keys, bucketKeyForHashRefs(d.Hash))
@@ -305,6 +310,16 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas []nodeUpd
 		if err := tx.Put(k, val); err != nil {
 			return del, err
 		}
+		mNodesUpd.Inc()
+	}
+	// create new nodes
+	for _, d := range newDeltas {
+		n := binary.PutUvarint(buf[:], uint64(d.RefInc))
+		val := append([]byte{}, buf[:n]...)
+		if err := tx.Put(bucketKeyForHashRefs(d.Hash), val); err != nil {
+			return nil, err
+		}
+		mNodesNew.Inc()
 	}
 	return del, nil
 }
@@ -346,6 +361,7 @@ func (qs *QuadStore) incNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.N
 			if err != nil {
 				return ids, err
 			}
+
 			node.ID = id
 			ids[iv.Hash] = resolvedNode{ID: id, New: true}
 			if err := qs.indexNode(tx, node, iv.Val); err != nil {
@@ -353,11 +369,8 @@ func (qs *QuadStore) incNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.N
 			}
 			ins[i].ID = id
 		}
-		// note to increment counters
-		upd = append(upd, ins...)
-		ins = nil
 	}
-	_, err = qs.incNodesCnt(ctx, tx, upd)
+	_, err = qs.incNodesCnt(ctx, tx, upd, ins)
 	return ids, err
 }
 func (qs *QuadStore) decNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.NodeUpdate, nodes map[graph.ValueHash]uint64) error {
@@ -369,7 +382,7 @@ func (qs *QuadStore) decNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.N
 		}
 		upds = append(upds, nodeUpdate{Ind: i, ID: id, NodeUpdate: d})
 	}
-	del, err := qs.incNodesCnt(ctx, tx, upds)
+	del, err := qs.incNodesCnt(ctx, tx, upds, nil)
 	if err != nil {
 		return err
 	}
@@ -560,6 +573,9 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	tx = wrapTx(tx)
 
 	deltas := graphlog.SplitDeltas(in)
+	if len(deltas.QuadDel) != 0 || len(deltas.DecNode) != 0 {
+		qs.mapNodes = nil
+	}
 
 	nodes, err := qs.applyAddDeltas(tx, in, deltas, ignoreOpts)
 	if err != nil {
@@ -667,6 +683,9 @@ func (qs *QuadStore) indexNode(tx kv.Tx, p *proto.Primitive, val quad.Value) err
 	}
 	if iri, ok := val.(quad.IRI); ok {
 		qs.valueLRU.Put(string(iri), p.ID)
+	}
+	if qs.mapNodes != nil {
+		qs.mapNodes.Add(hash[:])
 	}
 	return qs.addToLog(tx, p)
 }
@@ -963,17 +982,44 @@ func (qs *QuadStore) flushMapBucket(ctx context.Context, tx kv.Tx) error {
 		if len(m) == 0 {
 			continue
 		}
+		bloom := qs.mapBloom[bucket]
 		mIndexWriteBufferFlushBatch.WithLabelValues(bucket).Observe(float64(len(m)))
 		entryBytes := mIndexEntrySizeBytes.WithLabelValues(bucket)
 		b := kv.Key{[]byte(bucket)}
-		keys := make([]kv.Key, 0, len(m))
-		for k := range m {
-			keys = append(keys, b.AppendBytes([]byte(k)))
+		var (
+			keys    []kv.Key
+			keysPut []kv.Key
+		)
+		if qs.mapBloom == nil {
+			keys = make([]kv.Key, 0, len(m))
 		}
+		for k := range m {
+			bk := []byte(k)
+			if qs.mapBloom != nil && (bloom == nil || !bloom.Test(bk)) {
+				keysPut = append(keysPut, b.AppendBytes(bk))
+			} else {
+				keys = append(keys, b.AppendBytes(bk))
+			}
+		}
+		sort.Sort(kv.ByKey(keysPut))
 		sort.Sort(kv.ByKey(keys))
 		vals, err := tx.GetBatch(ctx, keys)
 		if err != nil {
 			return err
+		}
+		if qs.mapBloom != nil && bloom == nil {
+			bloom = boom.NewBloomFilter(100*1000*1000, 0.05)
+			qs.mapBloom[bucket] = bloom
+		}
+		for _, k := range keysPut {
+			l := m[string(k[1])]
+			err = tx.Put(k, appendIndex(nil, l))
+			if err != nil {
+				return err
+			}
+			if bloom != nil {
+				bloom.Add(k[1])
+			}
 		}
 		for i, k := range keys {
 			l := m[string(k[1])]
@@ -982,6 +1028,9 @@ func (qs *QuadStore) flushMapBucket(ctx context.Context, tx kv.Tx) error {
 			err = tx.Put(k, buf)
 			if err != nil {
 				return err
+			}
+			if bloom != nil {
+				bloom.Add(k[1])
 			}
 		}
 		mIndexWriteBufferEntries.WithLabelValues(bucket).Set(0)
