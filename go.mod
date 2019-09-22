@@ -35,6 +35,7 @@ require (
 	github.com/opencontainers/selinux v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/peterh/liner v0.0.0-20170317030525-88609521dc4b
+	github.com/prometheus/client_golang v0.9.3
 	github.com/russross/blackfriday v1.5.2
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
