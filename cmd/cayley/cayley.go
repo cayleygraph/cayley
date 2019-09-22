@@ -19,6 +19,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"
@@ -79,6 +81,13 @@ var (
 			graph.IgnoreDuplicates = viper.GetBool("load.ignore_duplicates")
 			graph.IgnoreMissing = viper.GetBool("load.ignore_missing")
 			quad.DefaultBatch = viper.GetInt("load.batch")
+			if host, _ := cmd.Flags().GetString("pprof"); host != "" {
+				go func() {
+					if err := http.ListenAndServe(host, nil); err != nil {
+						clog.Errorf("failed to run pprof handler: %v", err)
+					}
+				}()
+			}
 			return nil
 		},
 	}
@@ -139,6 +148,8 @@ func init() {
 
 	rootCmd.PersistentFlags().String("memprofile", "", "path to output memory profile")
 	rootCmd.PersistentFlags().String("cpuprofile", "", "path to output cpu profile")
+
+	rootCmd.PersistentFlags().String("pprof", "", "host to serve pprof on (disabled by default)")
 
 	// bind flags to config variables
 	viper.BindPFlag(command.KeyBackend, rootCmd.PersistentFlags().Lookup("db"))
