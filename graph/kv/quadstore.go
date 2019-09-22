@@ -102,6 +102,8 @@ type QuadStore struct {
 
 	writer    sync.Mutex
 	mapBucket map[string]map[string][]uint64
+	mapBloom  map[string]*boom.BloomFilter
+	mapNodes  *boom.BloomFilter
 
 	exists struct {
 		disabled bool
@@ -172,6 +174,14 @@ func New(kv kv.KV, opt graph.Options) (graph.QuadStore, error) {
 	if err := qs.initBloomFilter(ctx); err != nil {
 		return nil, err
 	}
+	if !qs.exists.disabled {
+		if sz, err := qs.getSize(); err != nil {
+			return nil, err
+		} else if sz == 0 {
+			qs.mapBloom = make(map[string]*boom.BloomFilter)
+			qs.mapNodes = boom.NewBloomFilter(100*1000*1000, 0.05)
+		}
+	}
 	return qs, nil
 }
 
@@ -204,8 +214,16 @@ func (qs *QuadStore) getMetaInt(ctx context.Context, key string) (int64, error) 
 	return v, err
 }
 
+func (qs *QuadStore) getSize() (int64, error) {
+	sz, err := qs.getMetaInt(context.TODO(), "size")
+	if err == ErrNoBucket {
+		return 0, nil
+	}
+	return sz, err
+}
+
 func (qs *QuadStore) Size() int64 {
-	sz, _ := qs.getMetaInt(context.TODO(), "size")
+	sz, _ := qs.getSize()
 	return sz
 }
 

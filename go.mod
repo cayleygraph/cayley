@@ -10,7 +10,7 @@ require (
 	github.com/cznic/mathutil v0.0.0-20170313102836-1447ad269d64
 	github.com/d4l3k/messagediff v1.2.1 // indirect
 	github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d
-	github.com/dgraph-io/badger v1.5.5 // indirect
+	github.com/dgraph-io/badger v1.5.5
 	github.com/dlclark/regexp2 v1.1.4 // indirect
 	github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b // indirect
 	github.com/docker/go-units v0.4.0 // indirect
@@ -48,6 +48,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8
 	go.etcd.io/bbolt v1.3.3 // indirect
+	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb // indirect
 	google.golang.org/appengine v1.6.1
