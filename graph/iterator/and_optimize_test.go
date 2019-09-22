@@ -24,7 +24,7 @@ import (
 )
 
 func TestNullIteratorAnd(t *testing.T) {
-	all := NewInt64(1, 3, true)
+	all := newInt64(1, 3, true)
 	null := NewNull()
 	a := NewAnd(all, null)
 	newIt, changed := a.Optimize()
@@ -57,8 +57,8 @@ func TestReorderWithTag(t *testing.T) {
 }
 
 func TestAndStatistics(t *testing.T) {
-	all := NewInt64(100, 300, true)
-	all2 := NewInt64(1, 30000, true)
+	all := newInt64(100, 300, true)
+	all2 := newInt64(1, 30000, true)
 	a := NewAnd()
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)

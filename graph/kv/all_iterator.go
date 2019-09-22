@@ -18,24 +18,16 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 )
 
-type AllIterator struct {
-	nodes   bool
-	id      uint64
-	buf     []*proto.Primitive
-	prim    *proto.Primitive
-	horizon int64
-	qs      *QuadStore
-	err     error
-	uid     uint64
-	cons    *constraint
-}
+var _ graph.IteratorFuture = &AllIterator{}
 
-var _ graph.Iterator = &AllIterator{}
+type AllIterator struct {
+	it *allIterator
+	graph.Iterator
+}
 
 type constraint struct {
 	dir quad.Direction
@@ -43,37 +35,117 @@ type constraint struct {
 }
 
 func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
+	it := &AllIterator{
+		it: newAllIterator(nodes, qs, cons),
+	}
+	it.Iterator = graph.NewLegacy(it.it, it)
+	return it
+}
+
+func (it *AllIterator) AsShape() graph.IteratorShape {
+	it.Close()
+	return it.it
+}
+
+func (it *AllIterator) Sorted() bool { return false }
+
+var _ graph.IteratorShapeCompat = &allIterator{}
+
+type allIterator struct {
+	nodes bool
+	qs    *QuadStore
+	cons  *constraint
+}
+
+func newAllIterator(nodes bool, qs *QuadStore, cons *constraint) *allIterator {
 	if nodes && cons != nil {
 		panic("cannot use a kv all iterator across nodes with a constraint")
 	}
-	return &AllIterator{
+	return &allIterator{
+		nodes: nodes,
+		qs:    qs,
+		cons:  cons,
+	}
+}
+
+func (it *allIterator) Iterate() graph.Scanner {
+	return newAllIteratorNext(it.nodes, it.qs, it.cons)
+}
+
+func (it *allIterator) Lookup() graph.Index {
+	return newAllIteratorContains(it.nodes, it.qs, it.cons)
+}
+
+func (it *allIterator) AsLegacy() graph.Iterator {
+	it2 := &AllIterator{it: it}
+	it2.Iterator = graph.NewLegacy(it, it2)
+	return it2
+}
+
+// No subiterators.
+func (it *allIterator) SubIterators() []graph.IteratorShape {
+	return nil
+}
+
+func (it *allIterator) Size() (int64, bool) {
+	return it.qs.Size(), false
+}
+
+func (it *allIterator) String() string {
+	return "KVAll"
+}
+
+func (it *allIterator) Sorted() bool { return false }
+
+func (it *allIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+	return it, false
+}
+
+func (it *allIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	return graph.IteratorCosts{
+		ContainsCost: 1,
+		NextCost:     2,
+		Size: graph.Size{
+			Size:  it.qs.Size(),
+			Exact: false,
+		},
+	}, nil
+}
+
+type allIteratorNext struct {
+	nodes   bool
+	id      uint64
+	buf     []*proto.Primitive
+	prim    *proto.Primitive
+	horizon int64
+	qs      *QuadStore
+	err     error
+	cons    *constraint
+}
+
+func newAllIteratorNext(nodes bool, qs *QuadStore, cons *constraint) *allIteratorNext {
+	if nodes && cons != nil {
+		panic("cannot use a kv all iterator across nodes with a constraint")
+	}
+	return &allIteratorNext{
 		nodes:   nodes,
 		qs:      qs,
 		horizon: qs.horizon(context.TODO()),
-		uid:     iterator.NextUID(),
 		cons:    cons,
 	}
 }
 
-func (it *AllIterator) UID() uint64 {
-	return it.uid
-}
+func (it *allIteratorNext) TagResults(dst map[string]graph.Ref) {}
 
-func (it *AllIterator) Reset() {
-	it.id = 0
-}
-
-func (it *AllIterator) TagResults(dst map[string]graph.Ref) {}
-
-func (it *AllIterator) Close() error {
+func (it *allIteratorNext) Close() error {
 	return nil
 }
 
-func (it *AllIterator) Err() error {
+func (it *allIteratorNext) Err() error {
 	return it.err
 }
 
-func (it *AllIterator) Result() graph.Ref {
+func (it *allIteratorNext) Result() graph.Ref {
 	if it.id > uint64(it.horizon) {
 		return nil
 	}
@@ -86,14 +158,9 @@ func (it *AllIterator) Result() graph.Ref {
 	return it.prim
 }
 
-// No subiterators.
-func (it *AllIterator) SubIterators() []graph.Iterator {
-	return nil
-}
-
 const nextBatch = 100
 
-func (it *AllIterator) Next(ctx context.Context) bool {
+func (it *allIteratorNext) Next(ctx context.Context) bool {
 	if it.err != nil {
 		return false
 	}
@@ -142,11 +209,70 @@ func (it *AllIterator) Next(ctx context.Context) bool {
 	}
 }
 
-func (it *AllIterator) NextPath(ctx context.Context) bool {
+func (it *allIteratorNext) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *AllIterator) Contains(ctx context.Context, v graph.Ref) bool {
+func (it *allIteratorNext) String() string {
+	return "KVAllNext"
+}
+
+func (it *allIteratorNext) Sorted() bool { return false }
+
+type allIteratorContains struct {
+	nodes   bool
+	id      uint64
+	prim    *proto.Primitive
+	horizon int64
+	qs      *QuadStore
+	err     error
+	cons    *constraint
+}
+
+func newAllIteratorContains(nodes bool, qs *QuadStore, cons *constraint) *allIteratorContains {
+	if nodes && cons != nil {
+		panic("cannot use a kv all iterator across nodes with a constraint")
+	}
+	return &allIteratorContains{
+		nodes:   nodes,
+		qs:      qs,
+		horizon: qs.horizon(context.TODO()),
+		cons:    cons,
+	}
+}
+
+func (it *allIteratorContains) TagResults(dst map[string]graph.Ref) {}
+
+func (it *allIteratorContains) Close() error {
+	return nil
+}
+
+func (it *allIteratorContains) Err() error {
+	return it.err
+}
+
+func (it *allIteratorContains) Result() graph.Ref {
+	if it.id > uint64(it.horizon) {
+		return nil
+	}
+	if it.nodes {
+		return Int64Value(it.id)
+	}
+	if it.prim == nil {
+		return nil
+	}
+	return it.prim
+}
+
+func (it *allIteratorContains) NextPath(ctx context.Context) bool {
+	return false
+}
+
+func (it *allIteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
+	// TODO(dennwc): This method doesn't check if the primitive still exists in the store.
+	//               It's okay if we assume we provide the snapshot of data, though.
+	//               However, passing a hand-crafted Ref will cause invalid results.
+	//               Same is true for QuadIterator.
 	if it.nodes {
 		x, ok := v.(Int64Value)
 		if !ok {
@@ -170,26 +296,8 @@ func (it *AllIterator) Contains(ctx context.Context, v graph.Ref) bool {
 	return true
 }
 
-func (it *AllIterator) Size() (int64, bool) {
-	return it.qs.Size(), false
+func (it *allIteratorContains) String() string {
+	return "KVAllContains"
 }
 
-func (it *AllIterator) String() string {
-	return "KVAll"
-}
-
-func (it *AllIterator) Sorted() bool { return false }
-
-func (it *AllIterator) Optimize() (graph.Iterator, bool) {
-	return it, false
-}
-
-func (it *AllIterator) Stats() graph.IteratorStats {
-	s, exact := it.Size()
-	return graph.IteratorStats{
-		ContainsCost: 1,
-		NextCost:     2,
-		Size:         s,
-		ExactSize:    exact,
-	}
-}
+func (it *allIteratorContains) Sorted() bool { return false }

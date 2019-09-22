@@ -19,20 +19,9 @@ package iterator
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 
 	"github.com/cayleygraph/cayley/graph"
 )
-
-var nextIteratorID uint64
-
-func init() {
-	atomic.StoreUint64(&nextIteratorID, 1)
-}
-
-func NextUID() uint64 {
-	return atomic.AddUint64(&nextIteratorID, 1) - 1
-}
 
 var (
 	_ graph.Iterator = &Null{}
@@ -40,21 +29,34 @@ var (
 )
 
 type Morphism func(graph.Iterator) graph.Iterator
+type Morphism2 func(graph.IteratorShape) graph.IteratorShape
+
+func IsNull(it graph.Iterator) bool {
+	if _, ok := it.(*Null); ok {
+		return true
+	} else if _, ok := graph.AsShape(it).(*null); ok {
+		return true
+	}
+	return false
+}
+
+func IsNull2(it graph.IteratorShape) bool {
+	if _, ok := it.(*null); ok {
+		return true
+	} else if _, ok := graph.AsLegacy(it).(*Null); ok {
+		return true
+	}
+	return false
+}
 
 // Here we define the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
-type Null struct {
-	uid uint64
-}
+type Null struct{}
 
 // Fairly useless New function.
 func NewNull() *Null {
-	return &Null{uid: NextUID()}
-}
-
-func (it *Null) UID() uint64 {
-	return it.uid
+	return &Null{}
 }
 
 // Fill the map based on the tags assigned to this iterator.
@@ -109,16 +111,11 @@ func (it *Null) Stats() graph.IteratorStats {
 
 // Error iterator always returns a single error with no other results.
 type Error struct {
-	uid uint64
 	err error
 }
 
 func NewError(err error) *Error {
-	return &Error{uid: NextUID(), err: err}
-}
-
-func (it *Error) UID() uint64 {
-	return it.uid
+	return &Error{err: err}
 }
 
 // Fill the map based on the tags assigned to this iterator.
@@ -166,4 +163,141 @@ func (it *Error) Close() error {
 
 func (it *Error) Stats() graph.IteratorStats {
 	return graph.IteratorStats{}
+}
+
+var (
+	_ graph.IteratorShapeCompat = &null{}
+	_ graph.IteratorShapeCompat = &error2{}
+)
+
+// Here we define the simplest iterator -- the Null iterator. It contains nothing.
+// It is the empty set. Often times, queries that contain one of these match nothing,
+// so it's important to give it a special iterator.
+type null struct{}
+
+// Fairly useless New function.
+func newNull() *null {
+	return &null{}
+}
+
+func (it *null) Iterate() graph.Scanner {
+	return it
+}
+
+func (it *null) Lookup() graph.Index {
+	return it
+}
+
+func (it *null) AsLegacy() graph.Iterator {
+	return NewNull()
+}
+
+// Fill the map based on the tags assigned to this iterator.
+func (it *null) TagResults(dst map[string]graph.Ref) {}
+
+func (it *null) Contains(ctx context.Context, v graph.Ref) bool {
+	return false
+}
+
+// A good iterator will close itself when it returns true.
+// Null has nothing it needs to do.
+func (it *null) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
+
+func (it *null) String() string {
+	return "Null"
+}
+
+func (it *null) Next(ctx context.Context) bool {
+	return false
+}
+
+func (it *null) Err() error {
+	return nil
+}
+
+func (it *null) Result() graph.Ref {
+	return nil
+}
+
+func (it *null) SubIterators() []graph.IteratorShape {
+	return nil
+}
+
+func (it *null) NextPath(ctx context.Context) bool {
+	return false
+}
+
+func (it *null) Reset() {}
+
+func (it *null) Close() error {
+	return nil
+}
+
+// A null iterator costs nothing. Use it!
+func (it *null) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	return graph.IteratorCosts{}, nil
+}
+
+// Error iterator always returns a single error with no other results.
+type error2 struct {
+	err error
+}
+
+func newError2(err error) *error2 {
+	return &error2{err: err}
+}
+
+func (it *error2) Iterate() graph.Scanner {
+	return it
+}
+
+func (it *error2) Lookup() graph.Index {
+	return it
+}
+
+func (it *error2) AsLegacy() graph.Iterator {
+	return NewError(it.err)
+}
+
+// Fill the map based on the tags assigned to this iterator.
+func (it *error2) TagResults(dst map[string]graph.Ref) {}
+
+func (it *error2) Contains(ctx context.Context, v graph.Ref) bool {
+	return false
+}
+
+func (it *error2) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
+
+func (it *error2) String() string {
+	return fmt.Sprintf("Error(%v)", it.err)
+}
+
+func (it *error2) Next(ctx context.Context) bool {
+	return false
+}
+
+func (it *error2) Err() error {
+	return it.err
+}
+
+func (it *error2) Result() graph.Ref {
+	return nil
+}
+
+func (it *error2) SubIterators() []graph.IteratorShape {
+	return nil
+}
+
+func (it *error2) NextPath(ctx context.Context) bool {
+	return false
+}
+
+func (it *error2) Reset() {}
+
+func (it *error2) Close() error {
+	return it.err
+}
+
+func (it *error2) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	return graph.IteratorCosts{}, nil
 }

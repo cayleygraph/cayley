@@ -12,26 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator_test
+package iterator
 
-import (
-	"context"
-	"errors"
-	"testing"
+// Defines one of the base iterators, the All iterator. Which, logically
+// enough, represents all nodes or all links in the graph.
+//
+// This particular file is actually vestigial. It's up to the QuadStore to give
+// us an All iterator that represents all things in the graph. So this is
+// really the All iterator for the memstore.QuadStore. That said, it *is* one of
+// the base iterators, and it helps just to see it here.
 
-	. "github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/stretchr/testify/require"
-)
+type Int64Node int64
 
-func TestHasAIteratorErr(t *testing.T) {
-	wantErr := errors.New("unique")
-	ctx := context.TODO()
-	errIt := newTestIterator(false, wantErr)
+func (v Int64Node) Key() interface{} { return v }
 
-	// TODO(andrew-d): pass a non-nil quadstore
-	hasa := NewHasA(nil, errIt, quad.Subject)
-
-	require.False(t, hasa.Next(ctx), "HasA iterator did not pass through initial 'false'")
-	require.Equal(t, wantErr, hasa.Err(), "HasA iterator did not pass through underlying Err")
-}
+func (Int64Node) IsNode() bool { return true }

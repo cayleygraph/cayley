@@ -22,17 +22,97 @@ import (
 	"github.com/cayleygraph/cayley/quad"
 )
 
-var _ graph.Iterator = &Resolver{}
+var _ graph.IteratorFuture = &Resolver{}
 
 // A Resolver iterator consists of it's order, an index (where it is in the,
 // process of iterating) and a store to resolve values from.
 type Resolver struct {
+	it *resolver
+	graph.Iterator
+}
+
+// Creates a new Resolver iterator.
+func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
+	it := &Resolver{
+		it: newResolver(qs, nodes...),
+	}
+	it.Iterator = graph.NewLegacy(it.it, it)
+	return it
+}
+
+func (it *Resolver) AsShape() graph.IteratorShape {
+	it.Close()
+	return it.it
+}
+
+var _ graph.IteratorShapeCompat = (*resolver)(nil)
+
+// A Resolver iterator consists of it's order, an index (where it is in the,
+// process of iterating) and a store to resolve values from.
+type resolver struct {
+	qs    graph.QuadStore
+	order []quad.Value
+}
+
+// Creates a new Resolver iterator.
+func newResolver(qs graph.QuadStore, nodes ...quad.Value) *resolver {
+	it := &resolver{
+		qs:    qs,
+		order: make([]quad.Value, len(nodes)),
+	}
+	copy(it.order, nodes)
+	return it
+}
+
+func (it *resolver) Iterate() graph.Scanner {
+	return newResolverNext(it.qs, it.order)
+}
+
+func (it *resolver) Lookup() graph.Index {
+	return newResolverContains(it.qs, it.order)
+}
+
+func (it *resolver) AsLegacy() graph.Iterator {
+	it2 := &Resolver{it: it}
+	it2.Iterator = graph.NewLegacy(it, it2)
+	return it2
+}
+
+func (it *resolver) String() string {
+	return fmt.Sprintf("Resolver(%v)", it.order)
+}
+
+func (it *resolver) SubIterators() []graph.IteratorShape {
+	return nil
+}
+
+// Returns a Null iterator if it's empty so that upstream iterators can optimize it
+// away, otherwise there is no optimization.
+func (it *resolver) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+	if len(it.order) == 0 {
+		return newNull(), true
+	}
+	return it, false
+}
+
+func (it *resolver) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	return graph.IteratorCosts{
+		// Next is (presumably) O(1) from store
+		NextCost:     1,
+		ContainsCost: 1,
+		Size: graph.Size{
+			Size:  int64(len(it.order)),
+			Exact: true,
+		},
+	}, nil
+}
+
+// A Resolver iterator consists of it's order, an index (where it is in the,
+// process of iterating) and a store to resolve values from.
+type resolverNext struct {
 	qs     graph.QuadStore
-	uid    uint64
-	tags   graph.Tagger
 	order  []quad.Value
-	values map[quad.Value]graph.Ref
-	nodes  map[interface{}]quad.Value
+	values []graph.Ref
 	cached bool
 	index  int
 	err    error
@@ -40,61 +120,120 @@ type Resolver struct {
 }
 
 // Creates a new Resolver iterator.
-func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
-	it := &Resolver{
-		uid:   NextUID(),
+func newResolverNext(qs graph.QuadStore, nodes []quad.Value) *resolverNext {
+	it := &resolverNext{
 		qs:    qs,
 		order: make([]quad.Value, len(nodes)),
-		// Generally there are going to be no/few duplicates given
-		// so allocate maps large enough to accommodate all
-		values: make(map[quad.Value]graph.Ref, len(nodes)),
-		nodes:  make(map[interface{}]quad.Value, len(nodes)),
 	}
 	copy(it.order, nodes)
 	return it
 }
 
-func (it *Resolver) UID() uint64 {
-	return it.uid
-}
-
-func (it *Resolver) Reset() {
-	it.index = 0
-	it.err = nil
-	it.result = nil
-}
-
-func (it *Resolver) Close() error {
+func (it *resolverNext) Close() error {
 	return nil
 }
 
-func (it *Resolver) Tagger() *graph.Tagger {
-	return &it.tags
-}
+func (it *resolverNext) TagResults(dst map[string]graph.Ref) {}
 
-func (it *Resolver) TagResults(dst map[string]graph.Ref) {}
-
-func (it *Resolver) String() string {
-	return fmt.Sprintf("Resolver(%v)", it.order)
+func (it *resolverNext) String() string {
+	return fmt.Sprintf("ResolverNext(%v, %v)", it.order, it.values)
 }
 
 // Resolve nodes to values
-func (it *Resolver) resolve(ctx context.Context) error {
+func (it *resolverNext) resolve(ctx context.Context) error {
 	values, err := graph.RefsOf(ctx, it.qs, it.order)
 	if err != nil {
 		return err
 	}
+	it.values = make([]graph.Ref, len(it.order))
+	for i, value := range values {
+		it.values[i] = value
+	}
+	it.order = nil
+	it.cached = true
+	return nil
+}
+
+// Next advances the iterator.
+func (it *resolverNext) Next(ctx context.Context) bool {
+	if !it.cached {
+		it.err = it.resolve(ctx)
+		if it.err != nil {
+			return false
+		}
+	}
+	if it.index >= len(it.values) {
+		it.result = nil
+		return false
+	}
+	it.result = it.values[it.index]
+	it.index++
+	return true
+}
+
+func (it *resolverNext) Err() error {
+	return it.err
+}
+
+func (it *resolverNext) Result() graph.Ref {
+	return it.result
+}
+
+func (it *resolverNext) NextPath(ctx context.Context) bool {
+	return false
+}
+
+// A Resolver iterator consists of it's order, an index (where it is in the,
+// process of iterating) and a store to resolve values from.
+type resolverContains struct {
+	qs     graph.QuadStore
+	order  []quad.Value
+	nodes  map[interface{}]quad.Value
+	cached bool
+	err    error
+	result graph.Ref
+}
+
+// Creates a new Resolver iterator.
+func newResolverContains(qs graph.QuadStore, nodes []quad.Value) *resolverContains {
+	it := &resolverContains{
+		qs:    qs,
+		order: make([]quad.Value, len(nodes)),
+	}
+	copy(it.order, nodes)
+	return it
+}
+
+func (it *resolverContains) Close() error {
+	return nil
+}
+
+func (it *resolverContains) TagResults(dst map[string]graph.Ref) {}
+
+func (it *resolverContains) String() string {
+	return fmt.Sprintf("ResolverContains(%v, %v)", it.order, it.nodes)
+}
+
+// Resolve nodes to values
+func (it *resolverContains) resolve(ctx context.Context) error {
+	values, err := graph.RefsOf(ctx, it.qs, it.order)
+	if err != nil {
+		return err
+	}
+	// Generally there are going to be no/few duplicates given
+	// so allocate maps large enough to accommodate all
+	it.nodes = make(map[interface{}]quad.Value, len(it.order))
 	for index, value := range values {
 		node := it.order[index]
-		it.values[node] = value
 		it.nodes[value.Key()] = node
 	}
+	it.order = nil
 	it.cached = true
 	return nil
 }
 
 // Check if the passed value is equal to one of the order stored in the iterator.
-func (it *Resolver) Contains(ctx context.Context, value graph.Ref) bool {
+func (it *resolverContains) Contains(ctx context.Context, value graph.Ref) bool {
 	if !it.cached {
 		it.err = it.resolve(ctx)
 		if it.err != nil {
@@ -102,71 +241,20 @@ func (it *Resolver) Contains(ctx context.Context, value graph.Ref) bool {
 		}
 	}
 	_, ok := it.nodes[value.Key()]
+	if ok {
+		it.result = value
+	}
 	return ok
 }
 
-// Next advances the iterator.
-func (it *Resolver) Next(ctx context.Context) bool {
-	if it.index >= len(it.order) {
-		it.result = nil
-		return false
-	}
-	if !it.cached {
-		it.err = it.resolve(ctx)
-		if it.err != nil {
-			return false
-		}
-	}
-	node := it.order[it.index]
-	value, ok := it.values[node]
-	if !ok {
-		it.result = nil
-		it.err = fmt.Errorf("not found: %v", node)
-		return false
-	}
-	it.result = value
-	it.index++
-	return true
-}
-
-func (it *Resolver) Err() error {
+func (it *resolverContains) Err() error {
 	return it.err
 }
 
-func (it *Resolver) Result() graph.Ref {
+func (it *resolverContains) Result() graph.Ref {
 	return it.result
 }
 
-func (it *Resolver) NextPath(ctx context.Context) bool {
+func (it *resolverContains) NextPath(ctx context.Context) bool {
 	return false
-}
-
-func (it *Resolver) SubIterators() []graph.Iterator {
-	return nil
-}
-
-// Returns a Null iterator if it's empty so that upstream iterators can optimize it
-// away, otherwise there is no optimization.
-func (it *Resolver) Optimize() (graph.Iterator, bool) {
-	if len(it.order) == 0 {
-		return NewNull(), true
-	}
-	return it, false
-}
-
-// Size is the number of m stored.
-func (it *Resolver) Size() (int64, bool) {
-	return int64(len(it.order)), true
-}
-
-func (it *Resolver) Stats() graph.IteratorStats {
-	s, exact := it.Size()
-	return graph.IteratorStats{
-		// Lookup cost is size of set
-		ContainsCost: s,
-		// Next is (presumably) O(1) from store
-		NextCost:  1,
-		Size:      s,
-		ExactSize: exact,
-	}
 }

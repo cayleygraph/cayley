@@ -100,6 +100,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
+	f2.Reset()
 	size, exact := or.Size()
 	if size != 4 {
 		t.Errorf("Unexpected iterator size, got:%d expected %d", size, 4)
@@ -112,6 +113,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
+	f2.Reset()
 	expect := []int{1, 2, 3}
 	for i := 0; i < 2; i++ {
 		if got := iterated(or); !reflect.DeepEqual(got, expect) {
@@ -130,6 +132,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
+	f2.Reset()
 	for _, v := range []int{2, 3, 21} {
 		if !or.Contains(ctx, Int64Node(v)) {
 			t.Errorf("Failed to correctly check %d as true", v)
@@ -145,6 +148,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or = NewShortCircuitOr()
 	or.AddSubIterator(NewFixed())
 	or.AddSubIterator(f2)
+	f2.Reset()
 	expect = []int{3, 9, 20, 21}
 	for i := 0; i < 2; i++ {
 		if got := iterated(or); !reflect.DeepEqual(got, expect) {
@@ -169,7 +173,7 @@ func TestOrIteratorErr(t *testing.T) {
 	or := NewOr(
 		fix1,
 		orErr,
-		NewInt64(1, 5, true),
+		newInt64(1, 5, true),
 	)
 
 	if !or.Next(ctx) {
@@ -194,7 +198,7 @@ func TestShortCircuitOrIteratorErr(t *testing.T) {
 
 	or := NewOr(
 		orErr,
-		NewInt64(1, 5, true),
+		newInt64(1, 5, true),
 	)
 
 	if or.Next(ctx) != false {

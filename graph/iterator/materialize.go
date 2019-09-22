@@ -23,8 +23,6 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.Iterator = &Materialize{}
-
 const MaterializeLimit = 1000
 
 type result struct {
@@ -32,57 +30,138 @@ type result struct {
 	tags map[string]graph.Ref
 }
 
+var _ graph.IteratorFuture = &Materialize{}
+
 type Materialize struct {
-	uid         uint64
-	containsMap map[interface{}]int
-	values      [][]result
-	actualSize  int64
-	expectSize  int64
-	index       int
-	subindex    int
-	subIt       graph.Iterator
-	hasRun      bool
-	aborted     bool
-	runstats    graph.IteratorStats
-	err         error
+	it *materialize
+	graph.Iterator
 }
 
 func NewMaterialize(sub graph.Iterator) *Materialize {
-	return NewMaterializeWithSize(sub, 0)
+	it := &Materialize{
+		it: newMaterialize(graph.AsShape(sub)),
+	}
+	it.Iterator = graph.NewLegacy(it.it, it)
+	return it
 }
 
 func NewMaterializeWithSize(sub graph.Iterator, size int64) *Materialize {
-	return &Materialize{
-		uid:         NextUID(),
-		expectSize:  size,
+	it := &Materialize{
+		it: newMaterializeWithSize(graph.AsShape(sub), size),
+	}
+	it.Iterator = graph.NewLegacy(it.it, it)
+	return it
+}
+
+func (it *Materialize) AsShape() graph.IteratorShape {
+	it.Close()
+	return it.it
+}
+
+var _ graph.IteratorShapeCompat = &materialize{}
+
+type materialize struct {
+	sub        graph.IteratorShape
+	expectSize int64
+}
+
+func newMaterialize(sub graph.IteratorShape) *materialize {
+	return newMaterializeWithSize(sub, 0)
+}
+
+func newMaterializeWithSize(sub graph.IteratorShape, size int64) *materialize {
+	return &materialize{
+		sub:        sub,
+		expectSize: size,
+	}
+}
+
+func (it *materialize) Iterate() graph.Scanner {
+	return newMaterializeNext(it.sub)
+}
+
+func (it *materialize) Lookup() graph.Index {
+	return newMaterializeContains(it.sub)
+}
+
+func (it *materialize) AsLegacy() graph.Iterator {
+	it2 := &Materialize{it: it}
+	it2.Iterator = graph.NewLegacy(it, it2)
+	return it2
+}
+
+func (it *materialize) String() string {
+	return "Materialize"
+}
+
+func (it *materialize) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.sub}
+}
+
+func (it *materialize) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+	newSub, changed := it.sub.Optimize(ctx)
+	if changed {
+		it.sub = newSub
+		if IsNull2(it.sub) {
+			return it.sub, true
+		}
+	}
+	return it, false
+}
+
+// The entire point of Materialize is to amortize the cost by
+// putting it all up front.
+func (it *materialize) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	overhead := int64(2)
+	var size graph.Size
+	subitStats, err := it.sub.Stats(ctx)
+	if it.expectSize > 0 {
+		size = graph.Size{Size: it.expectSize, Exact: false}
+	} else {
+		size = subitStats.Size
+	}
+	return graph.IteratorCosts{
+		ContainsCost: overhead * subitStats.NextCost,
+		NextCost:     overhead * subitStats.NextCost,
+		Size:         size,
+	}, err
+}
+
+type materializeNext struct {
+	sub  graph.IteratorShape
+	next graph.Scanner
+
+	containsMap map[interface{}]int
+	values      [][]result
+	index       int
+	subindex    int
+	hasRun      bool
+	aborted     bool
+	err         error
+}
+
+func newMaterializeNext(sub graph.IteratorShape) *materializeNext {
+	return &materializeNext{
 		containsMap: make(map[interface{}]int),
-		subIt:       sub,
+		sub:         sub,
+		next:        sub.Iterate(),
 		index:       -1,
 	}
 }
 
-func (it *Materialize) UID() uint64 {
-	return it.uid
-}
-
-func (it *Materialize) Reset() {
-	it.subIt.Reset()
-	it.index = -1
-}
-
-func (it *Materialize) Close() error {
+func (it *materializeNext) Close() error {
 	it.containsMap = nil
 	it.values = nil
 	it.hasRun = false
-	return it.subIt.Close()
+	return it.next.Close()
 }
 
-func (it *Materialize) TagResults(dst map[string]graph.Ref) {
+func (it *materializeNext) TagResults(dst map[string]graph.Ref) {
 	if !it.hasRun {
 		return
 	}
 	if it.aborted {
-		it.subIt.TagResults(dst)
+		it.next.TagResults(dst)
 		return
 	}
 	if it.Result() == nil {
@@ -93,13 +172,13 @@ func (it *Materialize) TagResults(dst map[string]graph.Ref) {
 	}
 }
 
-func (it *Materialize) String() string {
+func (it *materializeNext) String() string {
 	return "Materialize"
 }
 
-func (it *Materialize) Result() graph.Ref {
+func (it *materializeNext) Result() graph.Ref {
 	if it.aborted {
-		return it.subIt.Result()
+		return it.next.Result()
 	}
 	if len(it.values) == 0 {
 		return nil
@@ -113,62 +192,7 @@ func (it *Materialize) Result() graph.Ref {
 	return it.values[it.index][it.subindex].id
 }
 
-func (it *Materialize) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.subIt}
-}
-
-func (it *Materialize) Optimize() (graph.Iterator, bool) {
-	newSub, changed := it.subIt.Optimize()
-	if changed {
-		it.subIt = newSub
-		if _, ok := it.subIt.(*Null); ok {
-			return it.subIt, true
-		}
-	}
-	return it, false
-}
-
-// Size is the number of values stored, if we've got them all.
-// Otherwise, guess based on the size of the subiterator.
-func (it *Materialize) Size() (int64, bool) {
-	if it.hasRun && !it.aborted {
-		if clog.V(2) {
-			clog.Infof("returning size %v", it.actualSize)
-		}
-		return it.actualSize, true
-	}
-	if clog.V(2) {
-		clog.Infof("bailing size %v", it.actualSize)
-	}
-	return it.subIt.Size()
-}
-
-// The entire point of Materialize is to amortize the cost by
-// putting it all up front.
-func (it *Materialize) Stats() graph.IteratorStats {
-	overhead := int64(2)
-	var (
-		size  int64
-		exact bool
-	)
-	if it.expectSize > 0 {
-		size, exact = it.expectSize, false
-	} else {
-		size, exact = it.Size()
-	}
-	subitStats := it.subIt.Stats()
-	return graph.IteratorStats{
-		ContainsCost: overhead * subitStats.NextCost,
-		NextCost:     overhead * subitStats.NextCost,
-		Size:         size,
-		ExactSize:    exact,
-		Next:         it.runstats.Next,
-		Contains:     it.runstats.Contains,
-	}
-}
-
-func (it *Materialize) Next(ctx context.Context) bool {
-	it.runstats.Next += 1
+func (it *materializeNext) Next(ctx context.Context) bool {
 	if !it.hasRun {
 		it.materializeSet(ctx)
 	}
@@ -176,8 +200,8 @@ func (it *Materialize) Next(ctx context.Context) bool {
 		return false
 	}
 	if it.aborted {
-		n := it.subIt.Next(ctx)
-		it.err = it.subIt.Err()
+		n := it.next.Next(ctx)
+		it.err = it.next.Err()
 		return n
 	}
 
@@ -189,12 +213,11 @@ func (it *Materialize) Next(ctx context.Context) bool {
 	return true
 }
 
-func (it *Materialize) Err() error {
+func (it *materializeNext) Err() error {
 	return it.err
 }
 
-func (it *Materialize) Contains(ctx context.Context, v graph.Ref) bool {
-	it.runstats.Contains += 1
+func (it *materializeNext) NextPath(ctx context.Context) bool {
 	if !it.hasRun {
 		it.materializeSet(ctx)
 	}
@@ -202,26 +225,7 @@ func (it *Materialize) Contains(ctx context.Context, v graph.Ref) bool {
 		return false
 	}
 	if it.aborted {
-		return it.subIt.Contains(ctx, v)
-	}
-	key := graph.ToKey(v)
-	if i, ok := it.containsMap[key]; ok {
-		it.index = i
-		it.subindex = 0
-		return true
-	}
-	return false
-}
-
-func (it *Materialize) NextPath(ctx context.Context) bool {
-	if !it.hasRun {
-		it.materializeSet(ctx)
-	}
-	if it.err != nil {
-		return false
-	}
-	if it.aborted {
-		return it.subIt.NextPath(ctx)
+		return it.next.NextPath(ctx)
 	}
 
 	it.subindex++
@@ -233,16 +237,16 @@ func (it *Materialize) NextPath(ctx context.Context) bool {
 	return true
 }
 
-func (it *Materialize) materializeSet(ctx context.Context) {
+func (it *materializeNext) materializeSet(ctx context.Context) {
 	i := 0
 	mn := 0
-	for it.subIt.Next(ctx) {
+	for it.next.Next(ctx) {
 		i++
 		if i > MaterializeLimit {
 			it.aborted = true
 			break
 		}
-		id := it.subIt.Result()
+		id := it.next.Result()
 		val := graph.ToKey(id)
 		if _, ok := it.containsMap[val]; !ok {
 			it.containsMap[val] = len(it.values)
@@ -250,35 +254,122 @@ func (it *Materialize) materializeSet(ctx context.Context) {
 		}
 		index := it.containsMap[val]
 		tags := make(map[string]graph.Ref, mn)
-		it.subIt.TagResults(tags)
+		it.next.TagResults(tags)
 		if n := len(tags); n > mn {
 			n = mn
 		}
 		it.values[index] = append(it.values[index], result{id: id, tags: tags})
-		it.actualSize += 1
-		for it.subIt.NextPath(ctx) {
+		for it.next.NextPath(ctx) {
 			i++
 			if i > MaterializeLimit {
 				it.aborted = true
 				break
 			}
 			tags := make(map[string]graph.Ref, mn)
-			it.subIt.TagResults(tags)
+			it.next.TagResults(tags)
 			if n := len(tags); n > mn {
 				n = mn
 			}
 			it.values[index] = append(it.values[index], result{id: id, tags: tags})
-			it.actualSize += 1
 		}
 	}
-	it.err = it.subIt.Err()
+	it.err = it.next.Err()
 	if it.err == nil && it.aborted {
 		if clog.V(2) {
 			clog.Infof("Aborting subiterator")
 		}
 		it.values = nil
 		it.containsMap = nil
-		it.subIt.Reset()
+		_ = it.next.Close()
+		it.next = it.sub.Iterate()
 	}
 	it.hasRun = true
+}
+
+type materializeContains struct {
+	next *materializeNext
+	sub  graph.Index // only set if aborted
+}
+
+func newMaterializeContains(sub graph.IteratorShape) *materializeContains {
+	return &materializeContains{
+		next: newMaterializeNext(sub),
+	}
+}
+
+func (it *materializeContains) Close() error {
+	err := it.next.Close()
+	if it.sub != nil {
+		if err2 := it.sub.Close(); err2 != nil && err == nil {
+			err = err2
+		}
+	}
+	return err
+}
+
+func (it *materializeContains) TagResults(dst map[string]graph.Ref) {
+	if it.sub != nil {
+		it.sub.TagResults(dst)
+		return
+	}
+	it.next.TagResults(dst)
+}
+
+func (it *materializeContains) String() string {
+	return "MaterializeContains"
+}
+
+func (it *materializeContains) Result() graph.Ref {
+	if it.sub != nil {
+		return it.sub.Result()
+	}
+	return it.next.Result()
+}
+
+func (it *materializeContains) Err() error {
+	if err := it.next.Err(); err != nil {
+		return err
+	} else if it.sub == nil {
+		return nil
+	}
+	return it.sub.Err()
+}
+
+func (it *materializeContains) run(ctx context.Context) {
+	it.next.materializeSet(ctx)
+	if it.next.aborted {
+		it.sub = it.next.sub.Lookup()
+	}
+}
+
+func (it *materializeContains) Contains(ctx context.Context, v graph.Ref) bool {
+	if !it.next.hasRun {
+		it.run(ctx)
+	}
+	if it.next.Err() != nil {
+		return false
+	}
+	if it.sub != nil {
+		return it.sub.Contains(ctx, v)
+	}
+	key := graph.ToKey(v)
+	if i, ok := it.next.containsMap[key]; ok {
+		it.next.index = i
+		it.next.subindex = 0
+		return true
+	}
+	return false
+}
+
+func (it *materializeContains) NextPath(ctx context.Context) bool {
+	if !it.next.hasRun {
+		it.run(ctx)
+	}
+	if it.next.Err() != nil {
+		return false
+	}
+	if it.sub != nil {
+		return it.sub.NextPath(ctx)
+	}
+	return it.next.NextPath(ctx)
 }

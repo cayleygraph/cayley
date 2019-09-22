@@ -20,14 +20,12 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/quad"
 
 	"google.golang.org/appengine/datastore"
 )
 
 type Iterator struct {
-	uid    uint64
 	size   int64
 	dir    quad.Direction
 	qs     *QuadStore
@@ -77,7 +75,6 @@ func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Ref) *Iter
 	size := foundNode.Size
 
 	return &Iterator{
-		uid:   iterator.NextUID(),
 		name:  name,
 		dir:   d,
 		qs:    qs,
@@ -107,7 +104,6 @@ func NewAllIterator(qs *QuadStore, kind string) *Iterator {
 		size = st.Quads.Size
 	}
 	return &Iterator{
-		uid:   iterator.NextUID(),
 		qs:    qs,
 		size:  size,
 		err:   err,
@@ -116,10 +112,6 @@ func NewAllIterator(qs *QuadStore, kind string) *Iterator {
 		kind:  kind,
 		done:  err != nil,
 	}
-}
-
-func (it *Iterator) UID() uint64 {
-	return it.uid
 }
 
 func (it *Iterator) Reset() {

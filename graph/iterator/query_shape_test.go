@@ -53,11 +53,11 @@ func TestQueryShape(t *testing.T) {
 
 	nodes := shape["nodes"].([]Node)
 	if len(nodes) != 3 {
-		t.Errorf("Failed to get correct number of nodes, got:%d expect:4", len(nodes))
+		t.Fatalf("Failed to get correct number of nodes, got:%d expect:3", len(nodes))
 	}
 	links := shape["links"].([]Link)
 	if len(nodes) != 3 {
-		t.Errorf("Failed to get correct number of links, got:%d expect:1", len(links))
+		t.Fatalf("Failed to get correct number of links, got:%d expect:1", len(links))
 	}
 
 	// Nodes should be correctly tagged.

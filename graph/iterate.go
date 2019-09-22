@@ -12,7 +12,8 @@ import (
 // IterateChain is a chain-enabled helper to setup iterator execution.
 type IterateChain struct {
 	ctx context.Context
-	it  Iterator
+	s   IteratorShape
+	it  Scanner
 	qs  QuadStore
 
 	paths    bool
@@ -31,7 +32,7 @@ func Iterate(ctx context.Context, it Iterator) *IterateChain {
 		ctx = context.Background()
 	}
 	return &IterateChain{
-		ctx: ctx, it: it,
+		ctx: ctx, s: AsShape(it),
 		limit: -1, paths: true,
 		optimize: true,
 	}
@@ -62,12 +63,13 @@ func (c *IterateChain) nextPath() bool {
 }
 func (c *IterateChain) start() {
 	if c.optimize {
-		c.it, _ = c.it.Optimize()
+		c.s, _ = c.s.Optimize(c.ctx)
 	}
+	c.it = c.s.Iterate()
 	if !clog.V(2) {
 		return
 	}
-	if b, err := json.MarshalIndent(DescribeIterator(c.it), "", "  "); err != nil {
+	if b, err := json.MarshalIndent(DescribeIterator(AsLegacy(c.s)), "", "  "); err != nil {
 		clog.Infof("failed to format description: %v", err)
 	} else {
 		clog.Infof("%s", b)
@@ -78,7 +80,7 @@ func (c *IterateChain) end() {
 	if !clog.V(2) {
 		return
 	}
-	if b, err := json.MarshalIndent(DumpStats(c.it), "", "  "); err != nil {
+	if b, err := json.MarshalIndent(DumpStats(AsLegacy(c.s)), "", "  "); err != nil {
 		clog.Infof("failed to format stats: %v", err)
 	} else {
 		clog.Infof("%s", b)
@@ -137,13 +139,19 @@ func (c *IterateChain) Each(fnc func(Ref)) error {
 
 // All will return all results of an iterator.
 func (c *IterateChain) Count() (int64, error) {
+	// TODO(dennwc): this should wrap the shape in Count
+	if c.optimize {
+		c.s, _ = c.s.Optimize(c.ctx)
+	}
+	if st, err := c.s.Stats(c.ctx); err != nil {
+		return st.Size.Size, err
+	} else if st.Size.Exact {
+		return st.Size.Size, nil
+	}
 	c.start()
 	defer c.end()
 	if err := c.it.Err(); err != nil {
 		return 0, err
-	}
-	if size, exact := c.it.Size(); exact {
-		return size, nil
 	}
 	done := c.ctx.Done()
 	var cnt int64

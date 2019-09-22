@@ -541,7 +541,7 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	//}
 
 	optIt, changed := it.Optimize()
-	require.True(t, !changed && optIt == it, "Optimize unexpectedly changed iterator: %v, %T", changed, optIt)
+	require.True(t, !changed && optIt == it, "Optimize unexpectedly changed iterator: %v, %T(%p) vs %T(%p)", changed, optIt, optIt, it, it)
 
 	expect := []string{
 		"A",
@@ -958,9 +958,10 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 
 	all := qs.NodesAllIterator()
 
+	const allTag = "all"
 	innerAnd := iterator.NewAnd(
 		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
-		iterator.NewLinksTo(qs, all, quad.Object),
+		iterator.NewLinksTo(qs, iterator.Tag(all, allTag), quad.Object),
 	)
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
@@ -976,7 +977,9 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 		expect = []string{"B", "D"}
 	)
 	for {
-		got = append(got, quad.ToString(qs.NameOf(all.Result())))
+		m := make(map[string]graph.Ref, 1)
+		outerAnd.TagResults(m)
+		got = append(got, quad.ToString(qs.NameOf(m[allTag])))
 		if !outerAnd.NextPath(ctx) {
 			break
 		}

@@ -6,54 +6,110 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.Iterator = &Unique{}
+var _ graph.IteratorFuture = &Unique{}
 
 // Unique iterator removes duplicate values from it's subiterator.
 type Unique struct {
-	uid      uint64
-	subIt    graph.Iterator
-	result   graph.Ref
-	runstats graph.IteratorStats
-	err      error
-	seen     map[interface{}]bool
+	it *unique
+	graph.Iterator
 }
 
 func NewUnique(subIt graph.Iterator) *Unique {
-	return &Unique{
-		uid:   NextUID(),
+	it := &Unique{
+		it: newUnique(graph.AsShape(subIt)),
+	}
+	it.Iterator = graph.NewLegacy(it.it, it)
+	return it
+}
+
+func (it *Unique) AsShape() graph.IteratorShape {
+	it.Close()
+	return it.it
+}
+
+var _ graph.IteratorShapeCompat = (*unique)(nil)
+
+// Unique iterator removes duplicate values from it's subiterator.
+type unique struct {
+	subIt graph.IteratorShape
+}
+
+func newUnique(subIt graph.IteratorShape) *unique {
+	return &unique{
+		subIt: subIt,
+	}
+}
+
+func (it *unique) Iterate() graph.Scanner {
+	return newUniqueNext(it.subIt.Iterate())
+}
+
+func (it *unique) Lookup() graph.Index {
+	return newUniqueContains(it.subIt.Lookup())
+}
+
+func (it *unique) AsLegacy() graph.Iterator {
+	it2 := &Unique{it: it}
+	it2.Iterator = graph.NewLegacy(it, it2)
+	return it2
+}
+
+// SubIterators returns a slice of the sub iterators. The first iterator is the
+// primary iterator, for which the complement is generated.
+func (it *unique) SubIterators() []graph.IteratorShape {
+	return []graph.IteratorShape{it.subIt}
+}
+
+func (it *unique) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+	newIt, optimized := it.subIt.Optimize(ctx)
+	if optimized {
+		it.subIt = newIt
+	}
+	return it, false
+}
+
+const uniquenessFactor = 2
+
+func (it *unique) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	subStats, err := it.subIt.Stats(ctx)
+	return graph.IteratorCosts{
+		NextCost:     subStats.NextCost * uniquenessFactor,
+		ContainsCost: subStats.ContainsCost,
+		Size: graph.Size{
+			Size:  subStats.Size.Size / uniquenessFactor,
+			Exact: false,
+		},
+	}, err
+}
+
+func (it *unique) String() string {
+	return "Unique"
+}
+
+// Unique iterator removes duplicate values from it's subiterator.
+type uniqueNext struct {
+	subIt  graph.Scanner
+	result graph.Ref
+	err    error
+	seen   map[interface{}]bool
+}
+
+func newUniqueNext(subIt graph.Scanner) *uniqueNext {
+	return &uniqueNext{
 		subIt: subIt,
 		seen:  make(map[interface{}]bool),
 	}
 }
 
-func (it *Unique) UID() uint64 {
-	return it.uid
-}
-
-// Reset resets the internal iterators and the iterator itself.
-func (it *Unique) Reset() {
-	it.result = nil
-	it.subIt.Reset()
-	it.seen = make(map[interface{}]bool)
-}
-
-func (it *Unique) TagResults(dst map[string]graph.Ref) {
+func (it *uniqueNext) TagResults(dst map[string]graph.Ref) {
 	if it.subIt != nil {
 		it.subIt.TagResults(dst)
 	}
 }
 
-// SubIterators returns a slice of the sub iterators. The first iterator is the
-// primary iterator, for which the complement is generated.
-func (it *Unique) SubIterators() []graph.Iterator {
-	return []graph.Iterator{it.subIt}
-}
-
 // Next advances the subiterator, continuing until it returns a value which it
 // has not previously seen.
-func (it *Unique) Next(ctx context.Context) bool {
-	it.runstats.Next += 1
-
+func (it *uniqueNext) Next(ctx context.Context) bool {
 	for it.subIt.Next(ctx) {
 		curr := it.subIt.Result()
 		key := graph.ToKey(curr)
@@ -67,62 +123,74 @@ func (it *Unique) Next(ctx context.Context) bool {
 	return false
 }
 
-func (it *Unique) Err() error {
+func (it *uniqueNext) Err() error {
 	return it.err
 }
 
-func (it *Unique) Result() graph.Ref {
+func (it *uniqueNext) Result() graph.Ref {
 	return it.result
+}
+
+// NextPath for unique always returns false. If we were to return multiple
+// paths, we'd no longer be a unique result, so we have to choose only the first
+// path that got us here. Unique is serious on this point.
+func (it *uniqueNext) NextPath(ctx context.Context) bool {
+	return false
+}
+
+// Close closes the primary iterators.
+func (it *uniqueNext) Close() error {
+	it.seen = nil
+	return it.subIt.Close()
+}
+
+func (it *uniqueNext) String() string {
+	return "UniqueNext"
+}
+
+// Unique iterator removes duplicate values from it's subiterator.
+type uniqueContains struct {
+	subIt graph.Index
+}
+
+func newUniqueContains(subIt graph.Index) *uniqueContains {
+	return &uniqueContains{
+		subIt: subIt,
+	}
+}
+
+func (it *uniqueContains) TagResults(dst map[string]graph.Ref) {
+	if it.subIt != nil {
+		it.subIt.TagResults(dst)
+	}
+}
+
+func (it *uniqueContains) Err() error {
+	return it.subIt.Err()
+}
+
+func (it *uniqueContains) Result() graph.Ref {
+	return it.subIt.Result()
 }
 
 // Contains checks whether the passed value is part of the primary iterator,
 // which is irrelevant for uniqueness.
-func (it *Unique) Contains(ctx context.Context, val graph.Ref) bool {
-	it.runstats.Contains += 1
+func (it *uniqueContains) Contains(ctx context.Context, val graph.Ref) bool {
 	return it.subIt.Contains(ctx, val)
 }
 
 // NextPath for unique always returns false. If we were to return multiple
 // paths, we'd no longer be a unique result, so we have to choose only the first
 // path that got us here. Unique is serious on this point.
-func (it *Unique) NextPath(ctx context.Context) bool {
+func (it *uniqueContains) NextPath(ctx context.Context) bool {
 	return false
 }
 
 // Close closes the primary iterators.
-func (it *Unique) Close() error {
-	it.seen = nil
+func (it *uniqueContains) Close() error {
 	return it.subIt.Close()
 }
 
-func (it *Unique) Optimize() (graph.Iterator, bool) {
-	newIt, optimized := it.subIt.Optimize()
-	if optimized {
-		it.subIt = newIt
-	}
-	return it, false
-}
-
-const uniquenessFactor = 2
-
-func (it *Unique) Stats() graph.IteratorStats {
-	subStats := it.subIt.Stats()
-	return graph.IteratorStats{
-		NextCost:     subStats.NextCost * uniquenessFactor,
-		ContainsCost: subStats.ContainsCost,
-		Size:         subStats.Size / uniquenessFactor,
-		ExactSize:    false,
-		Next:         it.runstats.Next,
-		Contains:     it.runstats.Contains,
-		ContainsNext: it.runstats.ContainsNext,
-	}
-}
-
-func (it *Unique) Size() (int64, bool) {
-	st := it.Stats()
-	return st.Size, st.ExactSize
-}
-
-func (it *Unique) String() string {
-	return "Unique"
+func (it *uniqueContains) String() string {
+	return "UniqueContains"
 }

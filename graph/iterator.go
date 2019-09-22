@@ -37,17 +37,23 @@ type Linkage struct {
 
 // TODO(barakmich): Helper functions as needed, eg, ValuesForDirection(quad.Direction) []Ref
 
-// Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
-type Tagger interface {
-	Iterator
+// TaggerBase is a base interface for Tagger and TaggerShape.
+type TaggerBase interface {
 	Tags() []string
 	FixedTags() map[string]Ref
 	AddTags(tag ...string)
 	AddFixedTag(tag string, value Ref)
-	CopyFromTagger(st Tagger)
 }
 
-type Iterator interface {
+// Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
+type Tagger interface {
+	Iterator
+	TaggerBase
+	CopyFromTagger(st TaggerBase)
+}
+
+// IteratorBase is a set of common methods for Scanner and Index iterators.
+type IteratorBase interface {
 	// String returns a short textual representation of an iterator.
 	String() string
 
@@ -56,12 +62,6 @@ type Iterator interface {
 
 	// Returns the current result.
 	Result() Ref
-
-	// Next advances the iterator to the next value, which will then be available through
-	// the Result method. It returns false if no further advancement is possible, or if an
-	// error was encountered during iteration.  Err should be consulted to distinguish
-	// between the two cases.
-	Next(ctx context.Context) bool
 
 	// These methods are the heart and soul of the iterator, as they constitute
 	// the iteration interface.
@@ -83,11 +83,26 @@ type Iterator interface {
 	// from the bottom up.
 	NextPath(ctx context.Context) bool
 
-	// Contains returns whether the value is within the set held by the iterator.
-	Contains(ctx context.Context, v Ref) bool
-
 	// Err returns any error that was encountered by the Iterator.
 	Err() error
+
+	// TODO: make a requirement that Err should return ErrClosed after Close is called
+
+	// Close the iterator and do internal cleanup.
+	Close() error
+}
+
+type Iterator interface {
+	IteratorBase
+
+	// Next advances the iterator to the next value, which will then be available through
+	// the Result method. It returns false if no further advancement is possible, or if an
+	// error was encountered during iteration.  Err should be consulted to distinguish
+	// between the two cases.
+	Next(ctx context.Context) bool
+
+	// Contains returns whether the value is within the set held by the iterator.
+	Contains(ctx context.Context, v Ref) bool
 
 	// Start iteration from the beginning
 	Reset()
@@ -113,21 +128,20 @@ type Iterator interface {
 
 	// Return a slice of the subiterators for this iterator.
 	SubIterators() []Iterator
+}
 
-	// TODO: make a requirement that Err should return ErrClosed after Close is called
-
-	// Close the iterator and do internal cleanup.
-	Close() error
-
-	// UID returns the unique identifier of the iterator.
-	UID() uint64
+// IteratorFuture is an optional interface for legacy Iterators that support direct conversion
+// to an IteratorShape. This interface should be avoided an will be deprecated in the future.
+type IteratorFuture interface {
+	Iterator
+	AsShape() IteratorShape
 }
 
 // DescribeIterator returns a description of the iterator tree.
 func DescribeIterator(it Iterator) Description {
 	sz, exact := it.Size()
 	d := Description{
-		UID:  it.UID(),
+		UID:  uint64(reflect.ValueOf(it).Pointer()),
 		Name: it.String(),
 		Type: reflect.TypeOf(it).String(),
 		Size: sz, Exact: exact,
@@ -165,7 +179,41 @@ func Height(it Iterator, filter func(Iterator) bool) int {
 	subs := it.SubIterators()
 	maxDepth := 0
 	for _, sub := range subs {
+		if s, ok := sub.(IteratorFuture); ok {
+			h := Height2(s.AsShape(), func(it IteratorShape) bool {
+				return filter(AsLegacy(it))
+			})
+			if h > maxDepth {
+				maxDepth = h
+			}
+			continue
+		}
 		h := Height(sub, filter)
+		if h > maxDepth {
+			maxDepth = h
+		}
+	}
+	return maxDepth + 1
+}
+
+// Height is a convienence function to measure the height of an iterator tree.
+func Height2(it IteratorShape, filter func(IteratorShape) bool) int {
+	if filter != nil && !filter(it) {
+		return 1
+	}
+	subs := it.SubIterators()
+	maxDepth := 0
+	for _, sub := range subs {
+		if s, ok := sub.(IteratorShapeCompat); ok {
+			h := Height(s.AsLegacy(), func(it Iterator) bool {
+				return filter(AsShape(it))
+			})
+			if h > maxDepth {
+				maxDepth = h
+			}
+			continue
+		}
+		h := Height2(sub, filter)
 		if h > maxDepth {
 			maxDepth = h
 		}
@@ -200,7 +248,7 @@ func DumpStats(it Iterator) StatsContainer {
 	var out StatsContainer
 	out.IteratorStats = it.Stats()
 	out.Type = reflect.TypeOf(it).String()
-	out.UID = it.UID()
+	out.UID = uint64(reflect.ValueOf(it).Pointer())
 	for _, sub := range it.SubIterators() {
 		out.SubIts = append(out.SubIts, DumpStats(sub))
 	}

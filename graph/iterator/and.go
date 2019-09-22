@@ -21,30 +21,65 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.Iterator = &And{}
+var _ graph.IteratorFuture = &And{}
 
 // The And iterator. Consists of a number of subiterators, the primary of which will
 // be Next()ed if next is called.
 type And struct {
-	uid uint64
-
-	primary   graph.Iterator
-	sub       []graph.Iterator
-	opt       []graph.Iterator
-	optCheck  []bool
-	checkList []graph.Iterator
-
-	runstats graph.IteratorStats
-	result   graph.Ref
-	err      error
+	it *and
+	graph.Iterator
 }
 
 // NewAnd creates an And iterator. `qs` is only required when needing a handle
 // for QuadStore-specific optimizations, otherwise nil is acceptable.
 func NewAnd(sub ...graph.Iterator) *And {
 	it := &And{
-		uid: NextUID(),
-		sub: make([]graph.Iterator, 0, 20),
+		it: newAnd(),
+	}
+	for _, s := range sub {
+		it.it.AddSubIterator(graph.AsShape(s))
+	}
+	it.Iterator = graph.NewLegacy(it.it, it)
+	return it
+}
+
+func (it *And) AsShape() graph.IteratorShape {
+	it.Close()
+	return it.it
+}
+
+// Add a subiterator to this And iterator.
+//
+// The first iterator that is added becomes the primary iterator. This is
+// important. Calling Optimize() is the way to change the order based on
+// subiterator statistics. Without Optimize(), the order added is the order
+// used.
+func (it *And) AddSubIterator(sub graph.Iterator) {
+	it.it.AddSubIterator(graph.AsShape(sub))
+}
+
+// AddOptionalIterator adds an iterator that will only be Contain'ed and will not affect iteration results.
+// Only tags will be propagated from this iterator.
+func (it *And) AddOptionalIterator(sub graph.Iterator) *And {
+	it.it.AddOptionalIterator(graph.AsShape(sub))
+	return it
+}
+
+var _ graph.IteratorShapeCompat = &and{}
+
+// The And iterator. Consists of a number of subiterators, the primary of which will
+// be Next()ed if next is called.
+type and struct {
+	sub       []graph.IteratorShape
+	checkList []graph.IteratorShape // special order for Contains
+	opt       []graph.IteratorShape
+}
+
+// NewAnd creates an And iterator. `qs` is only required when needing a handle
+// for QuadStore-specific optimizations, otherwise nil is acceptable.
+func newAnd(sub ...graph.IteratorShape) *and {
+	it := &and{
+		sub: make([]graph.IteratorShape, 0, 20),
 	}
 	for _, s := range sub {
 		it.AddSubIterator(s)
@@ -52,26 +87,188 @@ func NewAnd(sub ...graph.Iterator) *And {
 	return it
 }
 
-func (it *And) UID() uint64 {
-	return it.uid
+func (it *and) Iterate() graph.Scanner {
+	if len(it.sub) == 0 {
+		return newNull().Iterate()
+	}
+	sub := make([]graph.Index, 0, len(it.sub)-1)
+	for _, s := range it.sub[1:] {
+		sub = append(sub, s.Lookup())
+	}
+	opt := make([]graph.Index, 0, len(it.opt))
+	for _, s := range it.opt {
+		opt = append(opt, s.Lookup())
+	}
+	return newAndNext(it.sub[0].Iterate(), newAndContains(sub, opt))
 }
 
-// Reset all internal iterators
-func (it *And) Reset() {
-	it.result = nil
-	it.primary.Reset()
-	for _, sub := range it.sub {
-		sub.Reset()
+func (it *and) Lookup() graph.Index {
+	if len(it.sub) == 0 {
+		return newNull().Lookup()
 	}
-	it.checkList = nil
+	sub := make([]graph.Index, 0, len(it.sub))
+	check := it.checkList
+	if check == nil {
+		check = it.sub
+	}
+	for _, s := range check {
+		sub = append(sub, s.Lookup())
+	}
+	opt := make([]graph.Index, 0, len(it.opt))
+	for _, s := range it.opt {
+		opt = append(opt, s.Lookup())
+	}
+	return newAndContains(sub, opt)
+}
+
+func (it *and) AsLegacy() graph.Iterator {
+	it2 := &And{it: it}
+	it2.Iterator = graph.NewLegacy(it, it2)
+	return it2
+}
+
+// Returns a slice of the subiterators, in order (primary iterator first).
+func (it *and) SubIterators() []graph.IteratorShape {
+	iters := make([]graph.IteratorShape, 0, len(it.sub)+len(it.opt))
+	iters = append(iters, it.sub...)
+	iters = append(iters, it.opt...)
+	return iters
+}
+
+func (it *and) String() string {
+	return "And"
+}
+
+// Add a subiterator to this And iterator.
+//
+// The first iterator that is added becomes the primary iterator. This is
+// important. Calling Optimize() is the way to change the order based on
+// subiterator statistics. Without Optimize(), the order added is the order
+// used.
+func (it *and) AddSubIterator(sub graph.IteratorShape) {
+	if sub == nil {
+		panic("nil iterator")
+	}
+	it.sub = append(it.sub, sub)
+}
+
+// AddOptionalIterator adds an iterator that will only be Contain'ed and will not affect iteration results.
+// Only tags will be propagated from this iterator.
+func (it *and) AddOptionalIterator(sub graph.IteratorShape) *and {
+	it.opt = append(it.opt, sub)
+	return it
+}
+
+// The And iterator. Consists of a number of subiterators, the primary of which will
+// be Next()ed if next is called.
+type andNext struct {
+	primary   graph.Scanner
+	secondary graph.Index
+	result    graph.Ref
+}
+
+// NewAnd creates an And iterator. `qs` is only required when needing a handle
+// for QuadStore-specific optimizations, otherwise nil is acceptable.
+func newAndNext(pri graph.Scanner, sec graph.Index) graph.Scanner {
+	return &andNext{
+		primary:   pri,
+		secondary: sec,
+	}
 }
 
 // An extended TagResults, as it needs to add it's own results and
 // recurse down it's subiterators.
-func (it *And) TagResults(dst map[string]graph.Ref) {
-	if it.primary != nil {
-		it.primary.TagResults(dst)
+func (it *andNext) TagResults(dst map[string]graph.Ref) {
+	it.primary.TagResults(dst)
+	it.secondary.TagResults(dst)
+}
+
+func (it *andNext) String() string {
+	return "AndNext"
+}
+
+// Returns advances the And iterator. Because the And is the intersection of its
+// subiterators, it must choose one subiterator to produce a candidate, and check
+// this value against the subiterators. A productive choice of primary iterator
+// is therefore very important.
+func (it *andNext) Next(ctx context.Context) bool {
+	for it.primary.Next(ctx) {
+		cur := it.primary.Result()
+		if it.secondary.Contains(ctx, cur) {
+			it.result = cur
+			return true
+		}
 	}
+	return false
+}
+
+func (it *andNext) Err() error {
+	if err := it.primary.Err(); err != nil {
+		return err
+	}
+	if err := it.secondary.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (it *andNext) Result() graph.Ref {
+	return it.result
+}
+
+// An And has no NextPath of its own -- that is, there are no other values
+// which satisfy our previous result that are not the result itself. Our
+// subiterators might, however, so just pass the call recursively.
+func (it *andNext) NextPath(ctx context.Context) bool {
+	if it.primary.NextPath(ctx) {
+		return true
+	} else if err := it.primary.Err(); err != nil {
+		return false
+	}
+	if it.secondary.NextPath(ctx) {
+		return true
+	} else if err := it.secondary.Err(); err != nil {
+		return false
+	}
+	return false
+}
+
+// Close this iterator, and, by extension, close the subiterators.
+// Close should be idempotent, and it follows that if it's subiterators
+// follow this contract, the And follows the contract.  It closes all
+// subiterators it can, but returns the first error it encounters.
+func (it *andNext) Close() error {
+	err := it.primary.Close()
+	if err2 := it.secondary.Close(); err2 != nil && err == nil {
+		err = err2
+	}
+	return err
+}
+
+// The And iterator. Consists of a number of subiterators, the primary of which will
+// be Next()ed if next is called.
+type andContains struct {
+	base     graph.IteratorShape
+	sub      []graph.Index
+	opt      []graph.Index
+	optCheck []bool
+
+	result graph.Ref
+	err    error
+}
+
+// NewAnd creates an And iterator. `qs` is only required when needing a handle
+// for QuadStore-specific optimizations, otherwise nil is acceptable.
+func newAndContains(sub, opt []graph.Index) graph.Index {
+	return &andContains{
+		sub: sub,
+		opt: opt, optCheck: make([]bool, len(opt)),
+	}
+}
+
+// An extended TagResults, as it needs to add it's own results and
+// recurse down it's subiterators.
+func (it *andContains) TagResults(dst map[string]graph.Ref) {
 	for _, sub := range it.sub {
 		sub.TagResults(dst)
 	}
@@ -83,76 +280,12 @@ func (it *And) TagResults(dst map[string]graph.Ref) {
 	}
 }
 
-// subIterators is like SubIterators but excludes optional.
-func (it *And) subIterators() []graph.Iterator {
-	iters := make([]graph.Iterator, 0, 1+len(it.sub))
-	if it.primary != nil {
-		iters = append(iters, it.primary)
-	}
-	iters = append(iters, it.sub...)
-	// exclude optional
-	return iters
+func (it *andContains) String() string {
+	return "AndContains"
 }
 
-// Returns a slice of the subiterators, in order (primary iterator first).
-func (it *And) SubIterators() []graph.Iterator {
-	iters := make([]graph.Iterator, 0, 1+len(it.sub)+len(it.opt))
-	if it.primary != nil {
-		iters = append(iters, it.primary)
-	}
-	iters = append(iters, it.sub...)
-	iters = append(iters, it.opt...)
-	return iters
-}
-
-func (it *And) String() string {
-	return "And"
-}
-
-// Add a subiterator to this And iterator.
-//
-// The first iterator that is added becomes the primary iterator. This is
-// important. Calling Optimize() is the way to change the order based on
-// subiterator statistics. Without Optimize(), the order added is the order
-// used.
-func (it *And) AddSubIterator(sub graph.Iterator) {
-	if it.primary == nil {
-		it.primary = sub
-		return
-	}
-	it.sub = append(it.sub, sub)
-}
-
-// AddOptionalIterator adds an iterator that will only be Contain'ed and will not affect iteration results.
-// Only tags will be propagated from this iterator.
-func (it *And) AddOptionalIterator(sub graph.Iterator) *And {
-	it.opt = append(it.opt, sub)
-	it.optCheck = append(it.optCheck, false)
-	return it
-}
-
-// Returns advances the And iterator. Because the And is the intersection of its
-// subiterators, it must choose one subiterator to produce a candidate, and check
-// this value against the subiterators. A productive choice of primary iterator
-// is therefore very important.
-func (it *And) Next(ctx context.Context) bool {
-	it.runstats.Next += 1
-	for it.primary.Next(ctx) {
-		cur := it.primary.Result()
-		if it.subContain(ctx, cur, nil) {
-			it.result = cur
-			return true
-		}
-	}
-	it.err = it.primary.Err()
-	return false
-}
-
-func (it *And) Err() error {
+func (it *andContains) Err() error {
 	if err := it.err; err != nil {
-		return err
-	}
-	if err := it.primary.Err(); err != nil {
 		return err
 	}
 	for _, si := range it.sub {
@@ -168,19 +301,14 @@ func (it *And) Err() error {
 	return nil
 }
 
-func (it *And) Result() graph.Ref {
+func (it *andContains) Result() graph.Ref {
 	return it.result
 }
 
-func (it *And) checkOpt(ctx context.Context, val graph.Ref) {
-	for i, sub := range it.opt {
-		// remember if we will need to call TagResults on it, nothing more
-		it.optCheck[i] = sub.Contains(ctx, val)
-	}
-}
-
-func (it *And) allContains(ctx context.Context, check []graph.Iterator, val, prev graph.Ref) bool {
-	for i, sub := range check {
+// Check a value against the entire iterator, in order.
+func (it *andContains) Contains(ctx context.Context, val graph.Ref) bool {
+	prev := it.result
+	for i, sub := range it.sub {
 		if !sub.Contains(ctx, val) {
 			if err := sub.Err(); err != nil {
 				it.err = err
@@ -195,8 +323,8 @@ func (it *And) allContains(ctx context.Context, check []graph.Iterator, val, pre
 			// which will be 'true'
 			if prev != nil {
 				for j := 0; j < i; j++ {
-					check[j].Contains(ctx, prev)
-					if err := check[j].Err(); err != nil {
+					it.sub[j].Contains(ctx, prev)
+					if err := it.sub[j].Err(); err != nil {
 						it.err = err
 						return false
 					}
@@ -206,63 +334,17 @@ func (it *And) allContains(ctx context.Context, check []graph.Iterator, val, pre
 		}
 	}
 	it.result = val
-	it.checkOpt(ctx, val)
+	for i, sub := range it.opt {
+		// remember if we will need to call TagResults on it, nothing more
+		it.optCheck[i] = sub.Contains(ctx, val)
+	}
 	return true
-}
-
-// subContain checks a value against the non-primary iterators, in order.
-func (it *And) subContain(ctx context.Context, cur, prev graph.Ref) bool {
-	return it.allContains(ctx, it.sub, cur, prev)
-}
-
-// checkContain is like subContain but uses optimized order of iterators stored in it.checkList, which includes primary.
-func (it *And) checkContain(ctx context.Context, cur, prev graph.Ref) bool {
-	return it.allContains(ctx, it.checkList, cur, prev)
-}
-
-// Check a value against the entire iterator, in order.
-func (it *And) Contains(ctx context.Context, val graph.Ref) bool {
-	it.runstats.Contains += 1
-	prev := it.result
-	if it.checkList != nil {
-		return it.checkContain(ctx, val, prev)
-	}
-	if it.primary.Contains(ctx, val) && it.subContain(ctx, val, prev) {
-		it.result = val
-		return true
-	}
-	if prev != nil {
-		it.primary.Contains(ctx, prev)
-	}
-	return false
-}
-
-// Returns the approximate size of the And iterator. Because we're dealing
-// with an intersection, we know that the largest we can be is the size of the
-// smallest iterator. This is the heuristic we shall follow. Better heuristics
-// welcome.
-func (it *And) Size() (int64, bool) {
-	sz, exact := it.primary.Size()
-	for _, sub := range it.sub {
-		sz2, exact2 := sub.Size()
-		if sz > sz2 {
-			sz = sz2
-		}
-		exact = exact2 && exact
-	}
-	return sz, exact
 }
 
 // An And has no NextPath of its own -- that is, there are no other values
 // which satisfy our previous result that are not the result itself. Our
 // subiterators might, however, so just pass the call recursively.
-func (it *And) NextPath(ctx context.Context) bool {
-	if it.primary.NextPath(ctx) {
-		return true
-	} else if err := it.primary.Err(); err != nil {
-		it.err = err
-		return false
-	}
+func (it *andContains) NextPath(ctx context.Context) bool {
 	for _, sub := range it.sub {
 		if sub.NextPath(ctx) {
 			return true
@@ -289,8 +371,8 @@ func (it *And) NextPath(ctx context.Context) bool {
 // Close should be idempotent, and it follows that if it's subiterators
 // follow this contract, the And follows the contract.  It closes all
 // subiterators it can, but returns the first error it encounters.
-func (it *And) Close() error {
-	err := it.primary.Close()
+func (it *andContains) Close() error {
+	var err error
 	for _, sub := range it.sub {
 		if err2 := sub.Close(); err2 != nil && err == nil {
 			err = err2

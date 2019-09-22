@@ -69,7 +69,7 @@ func TestAndAndFixedIterators(t *testing.T) {
 	// Should be as big as smallest subiterator
 	size, accurate := and.Size()
 	if size != 3 {
-		t.Error("Incorrect size")
+		t.Error("Incorrect size:", size)
 	}
 	if !accurate {
 		t.Error("not accurate")
@@ -122,8 +122,8 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 
 func TestAllIterators(t *testing.T) {
 	ctx := context.TODO()
-	all1 := NewInt64(1, 5, true)
-	all2 := NewInt64(4, 10, true)
+	all1 := newInt64(1, 5, true)
+	all2 := newInt64(4, 10, true)
 	and := NewAnd(all2, all1)
 
 	if !and.Next(ctx) || and.Result().(Int64Node) != Int64Node(4) {
@@ -146,13 +146,13 @@ func TestAndIteratorErr(t *testing.T) {
 
 	and := NewAnd(
 		allErr,
-		NewInt64(1, 5, true),
+		newInt64(1, 5, true),
 	)
 
 	if and.Next(ctx) != false {
 		t.Errorf("And iterator did not pass through initial 'false'")
 	}
 	if and.Err() != wantErr {
-		t.Errorf("And iterator did not pass through underlying Err")
+		t.Errorf("And iterator did not pass through underlying Err: %v", and.Err())
 	}
 }
