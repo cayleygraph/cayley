@@ -30,7 +30,9 @@ import (
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/quad/pquads"
+
 	"github.com/hidal-go/hidalgo/kv"
+	"github.com/prometheus/client_golang/prometheus"
 	boom "github.com/tylertreat/BoomFilters"
 )
 
@@ -166,6 +168,7 @@ func (qs *QuadStore) readIndexesMeta(ctx context.Context) ([]QuadIndex, error) {
 		return nil, err
 	}
 	defer tx.Close()
+	tx = wrapTx(tx)
 	val, err := tx.Get(ctx, keyMetaIndexes)
 	if err == kv.ErrNotFound {
 		return legacyQuadIndexes, nil
@@ -270,6 +273,7 @@ type nodeUpdate struct {
 }
 
 func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas []nodeUpdate) ([]int, error) {
+	var buf [binary.MaxVarintLen64]byte
 	keys := make([]kv.Key, 0, len(deltas))
 	for _, d := range deltas {
 		keys = append(keys, bucketKeyForHashRefs(d.Hash))
@@ -279,7 +283,6 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas []nodeUpd
 		return nil, err
 	}
 	var del []int
-	var buf [binary.MaxVarintLen64]byte
 	for i, d := range deltas {
 		k := keys[i]
 		var sz int64
@@ -293,6 +296,7 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas []nodeUpd
 			if err := tx.Del(k); err != nil {
 				return del, err
 			}
+			mNodesDel.Inc()
 			del = append(del, i)
 			continue
 		}
@@ -420,11 +424,14 @@ func (w *quadWriter) flush() error {
 		w.err = err
 		return err
 	}
-	w.tx = tx
+	w.tx = wrapTx(tx)
 	return nil
 }
 
 func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
+	mApplyBatch.Observe(float64(len(buf)))
+	defer prometheus.NewTimer(mApplySeconds).ObserveDuration()
+
 	if w.tx == nil {
 		w.qs.writer.Lock()
 		tx, err := w.qs.db.Tx(true)
@@ -433,7 +440,7 @@ func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
 			w.err = err
 			return 0, err
 		}
-		w.tx = tx
+		w.tx = wrapTx(tx)
 	}
 	deltas := graphlog.InsertQuads(buf)
 	if _, err := w.qs.applyAddDeltas(w.tx, nil, deltas, graph.IgnoreOpts{IgnoreDup: true}); err != nil {
@@ -539,6 +546,9 @@ func (qs *QuadStore) applyAddDeltas(tx kv.Tx, in []graph.Delta, deltas *graphlog
 }
 
 func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) error {
+	mApplyBatch.Observe(float64(len(in)))
+	defer prometheus.NewTimer(mApplySeconds).ObserveDuration()
+
 	ctx := context.TODO()
 	qs.writer.Lock()
 	defer qs.writer.Unlock()
@@ -547,6 +557,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		return err
 	}
 	defer tx.Close()
+	tx = wrapTx(tx)
 
 	deltas := graphlog.SplitDeltas(in)
 
@@ -846,8 +857,10 @@ func (qs *QuadStore) bestIndexes(dirs []quad.Direction) []QuadIndex {
 
 func (qs *QuadStore) hasPrimitive(ctx context.Context, tx kv.Tx, p *proto.Primitive, get bool) (*proto.Primitive, error) {
 	if !qs.testBloom(p) {
+		mQuadsBloomHit.Inc()
 		return nil, nil
 	}
+	mQuadsBloomMiss.Inc()
 	inds, err := qs.bestUnique()
 	if err != nil {
 		return nil, err
@@ -928,12 +941,14 @@ func (qs *QuadStore) addToMapBucket(tx kv.Tx, key kv.Key, value uint64) error {
 	if qs.mapBucket == nil {
 		qs.mapBucket = make(map[string]map[string][]uint64)
 	}
-	m, ok := qs.mapBucket[string(b)]
+	bucket := string(b)
+	m, ok := qs.mapBucket[bucket]
 	if !ok {
 		m = make(map[string][]uint64)
-		qs.mapBucket[string(b)] = m
+		qs.mapBucket[bucket] = m
 	}
 	m[string(k)] = append(m[string(k)], value)
+	mIndexWriteBufferEntries.WithLabelValues(bucket).Inc()
 	return nil
 }
 
@@ -945,6 +960,11 @@ func (qs *QuadStore) flushMapBucket(ctx context.Context, tx kv.Tx) error {
 	sort.Strings(bs)
 	for _, bucket := range bs {
 		m := qs.mapBucket[bucket]
+		if len(m) == 0 {
+			continue
+		}
+		mIndexWriteBufferFlushBatch.WithLabelValues(bucket).Observe(float64(len(m)))
+		entryBytes := mIndexEntrySizeBytes.WithLabelValues(bucket)
 		b := kv.Key{[]byte(bucket)}
 		keys := make([]kv.Key, 0, len(m))
 		for k := range m {
@@ -957,13 +977,14 @@ func (qs *QuadStore) flushMapBucket(ctx context.Context, tx kv.Tx) error {
 		}
 		for i, k := range keys {
 			l := m[string(k[1])]
-			list := vals[i]
-			buf := appendIndex(list, l)
-			err = tx.Put(keys[i], buf)
+			buf := appendIndex(vals[i], l)
+			entryBytes.Observe(float64(len(buf)))
+			err = tx.Put(k, buf)
 			if err != nil {
 				return err
 			}
 		}
+		mIndexWriteBufferEntries.WithLabelValues(bucket).Set(0)
 	}
 	qs.mapBucket = nil
 	return nil
@@ -978,7 +999,11 @@ func (qs *QuadStore) addToLog(tx kv.Tx, p *proto.Primitive) error {
 	if err != nil {
 		return err
 	}
-	return tx.Put(logIndex.Append(uint64KeyBytes(p.ID)), buf)
+	if err := tx.Put(logIndex.Append(uint64KeyBytes(p.ID)), buf); err != nil {
+		return err
+	}
+	mPrimitiveAppend.Inc()
+	return nil
 }
 
 func createNodePrimitive(v quad.Value) (*proto.Primitive, error) {
@@ -1074,10 +1099,12 @@ func (qs *QuadStore) getPrimitivesFromLog(ctx context.Context, tx kv.Tx, keys []
 	if err != nil {
 		return nil, err
 	}
+	mPrimitiveFetch.Add(float64(len(vals)))
 	out := make([]*proto.Primitive, len(keys))
 	var last error
 	for i, v := range vals {
 		if v == nil {
+			mPrimitiveFetchMiss.Inc()
 			continue
 		}
 		var p proto.Primitive
