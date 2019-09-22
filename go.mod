@@ -1,5 +1,7 @@
 module github.com/cayleygraph/cayley
 
+go 1.12
+
 require (
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
 	github.com/cockroachdb/apd v1.1.0 // indirect
