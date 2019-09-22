@@ -6,8 +6,8 @@ import (
 	"reflect"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/voc"
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 )
 
 type namespace struct {

@@ -3,7 +3,7 @@ package graph
 import (
 	"testing"
 
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/quad"
 )
 
 func TestTransaction(t *testing.T) {

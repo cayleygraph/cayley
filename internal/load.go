@@ -11,8 +11,8 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/internal/decompressor"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/nquads"
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/nquads"
 )
 
 // Load loads a graph from the given path and write it to qw.  See

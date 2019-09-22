@@ -1,58 +1,92 @@
-// Package rdf contains constants of the RDF Concepts Vocabulary (RDF)
+// Package rdf is deprecated. Use github.com/cayleygraph/quad/voc/rdf.
 package rdf
 
-import "github.com/cayleygraph/cayley/voc"
-
-func init() {
-	voc.RegisterPrefix(Prefix, NS)
-}
+import (
+	"github.com/cayleygraph/quad/voc/rdf"
+)
 
 const (
-	NS     = `http://www.w3.org/1999/02/22-rdf-syntax-ns#`
-	Prefix = `rdf:`
+	NS     = rdf.NS
+	Prefix = rdf.Prefix
 )
 
 const (
 	// Types
 
 	// The datatype of RDF literals storing fragments of HTML content
-	HTML = Prefix + `HTML`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	HTML = rdf.HTML
 	// The datatype of language-tagged string values
-	LangString = Prefix + `langString`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	LangString = rdf.LangString
 	// The class of plain (i.e. untyped) literal values, as used in RIF and OWL 2
-	PlainLiteral = Prefix + `PlainLiteral`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	PlainLiteral = rdf.PlainLiteral
 	// The class of RDF properties.
-	Property = Prefix + `Property`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Property = rdf.Property
 	// The class of RDF statements.
-	Statement = Prefix + `Statement`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Statement = rdf.Statement
 
 	// Properties
 
 	// The subject is an instance of a class.
-	Type = Prefix + `type`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Type = rdf.Type
 	// Idiomatic property used for structured values.
-	Value = Prefix + `value`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Value = rdf.Value
 	// The subject of the subject RDF statement.
-	Subject = Prefix + `subject`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Subject = rdf.Subject
 	// The predicate of the subject RDF statement.
-	Predicate = Prefix + `predicate`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Predicate = rdf.Predicate
 	// The object of the subject RDF statement.
-	Object = Prefix + `object`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Object = rdf.Object
 
 	// The class of unordered containers.
-	Bag = Prefix + `Bag`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Bag = rdf.Bag
 	// The class of ordered containers.
-	Seq = Prefix + `Seq`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Seq = rdf.Seq
 	// The class of containers of alternatives.
-	Alt = Prefix + `Alt`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Alt = rdf.Alt
 	// The class of RDF Lists.
-	List = Prefix + `List`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	List = rdf.List
 	// The empty list, with no items in it. If the rest of a list is nil then the list has no more items in it.
-	Nil = Prefix + `nil`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Nil = rdf.Nil
 	// The first item in the subject RDF list.
-	First = Prefix + `first`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	First = rdf.First
 	// The rest of the subject RDF list after the first item.
-	Rest = Prefix + `rest`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	Rest = rdf.Rest
 	// The datatype of XML literal values.
-	XMLLiteral = Prefix + `XMLLiteral`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdf package instead.
+	XMLLiteral = rdf.XMLLiteral
 )

@@ -1,51 +1,77 @@
-// Package rdfs contains constants of the RDF Schema vocabulary (RDFS)
+// Package rdfs is deprecated. Use github.com/cayleygraph/quad/voc/rdfs.
 package rdfs
 
-import "github.com/cayleygraph/cayley/voc"
-
-func init() {
-	voc.RegisterPrefix(Prefix, NS)
-}
+import "github.com/cayleygraph/quad/voc/rdfs"
 
 const (
-	NS     = `http://www.w3.org/2000/01/rdf-schema#`
-	Prefix = `rdfs:`
+	NS     = rdfs.NS
+	Prefix = rdfs.Prefix
 )
 
 const (
 	// Classes
 
 	// The class resource, everything.
-	Resource = Prefix + `Resource`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Resource = rdfs.Resource
 	// The class of classes.
-	Class = Prefix + `Class`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Class = rdfs.Class
 	// The class of literal values, eg. textual strings and integers.
-	Literal = Prefix + `Literal`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Literal = rdfs.Literal
 	// The class of RDF containers.
-	Container = Prefix + `Container`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Container = rdfs.Container
 	// The class of RDF datatypes.
-	Datatype = Prefix + `Datatype`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Datatype = rdfs.Datatype
 	// The class of container membership properties, rdf:_1, rdf:_2, ..., all of which are sub-properties of 'member'.
-	ContainerMembershipProperty = Prefix + `ContainerMembershipProperty`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	ContainerMembershipProperty = rdfs.ContainerMembershipProperty
 
 	// Properties
 
 	// The subject is a subclass of a class.
-	SubClassOf = Prefix + `subClassOf`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	SubClassOf = rdfs.SubClassOf
 	// The subject is a subproperty of a property.
-	SubPropertyOf = Prefix + `subPropertyOf`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	SubPropertyOf = rdfs.SubPropertyOf
 	// A description of the subject resource.
-	Comment = Prefix + `comment`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Comment = rdfs.Comment
 	// A human-readable name for the subject.
-	Label = Prefix + `label`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Label = rdfs.Label
 	// A domain of the subject property.
-	Domain = Prefix + `domain`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Domain = rdfs.Domain
 	// A range of the subject property.
-	Range = Prefix + `range`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Range = rdfs.Range
 	// Further information about the subject resource.
-	SeeAlso = Prefix + `seeAlso`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	SeeAlso = rdfs.SeeAlso
 	// The defininition of the subject resource.
-	IsDefinedBy = Prefix + `isDefinedBy`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	IsDefinedBy = rdfs.IsDefinedBy
 	// A member of the subject resource.
-	Member = Prefix + `member`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/rdfs package instead.
+	Member = rdfs.Member
 )

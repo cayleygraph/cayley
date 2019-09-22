@@ -33,20 +33,20 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	_ "github.com/cayleygraph/cayley/clog/glog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
 	"github.com/cayleygraph/cayley/version"
+	"github.com/cayleygraph/quad"
 
 	// Load supported backends
 	_ "github.com/cayleygraph/cayley/graph/all"
 
 	// Load all supported quad formats.
-	_ "github.com/cayleygraph/cayley/quad/dot"
-	_ "github.com/cayleygraph/cayley/quad/gml"
-	_ "github.com/cayleygraph/cayley/quad/graphml"
-	_ "github.com/cayleygraph/cayley/quad/json"
-	_ "github.com/cayleygraph/cayley/quad/jsonld"
-	_ "github.com/cayleygraph/cayley/quad/nquads"
-	_ "github.com/cayleygraph/cayley/quad/pquads"
+	_ "github.com/cayleygraph/quad/dot"
+	_ "github.com/cayleygraph/quad/gml"
+	_ "github.com/cayleygraph/quad/graphml"
+	_ "github.com/cayleygraph/quad/json"
+	_ "github.com/cayleygraph/quad/jsonld"
+	_ "github.com/cayleygraph/quad/nquads"
+	_ "github.com/cayleygraph/quad/pquads"
 
 	// Load writer registry
 	_ "github.com/cayleygraph/cayley/writer"
