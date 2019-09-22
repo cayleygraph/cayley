@@ -69,7 +69,7 @@ var testQueries = []struct {
 	query   string
 	limit   int
 	tag     string
-	file 	string
+	file    string
 	expect  []string
 	err     bool // TODO(dennwc): define error types for Gizmo and handle them
 }{
@@ -77,142 +77,142 @@ var testQueries = []struct {
 	{
 		message: "get a single vertex",
 		query: `
-			g.V("<alice>").All()
+			g.V("<alice>").all()
 		`,
 		expect: []string{"<alice>"},
 	},
 	{
-		message: "use .GetLimit",
+		message: "use .getLimit",
 		query: `
-			g.V().GetLimit(5)
+			g.V().getLimit(5)
 		`,
 		expect: []string{"<alice>", "<bob>", "<follows>", "<fred>", "<status>"},
 	},
 	{
 		message: "get a single vertex (IRI)",
 		query: `
-			g.V(iri("alice")).All()
+			g.V(iri("alice")).all()
 		`,
 		expect: []string{"<alice>"},
 	},
 	{
-		message: "use .Out()",
+		message: "use .out()",
 		query: `
-			g.V("<alice>").Out("<follows>").All()
+			g.V("<alice>").out("<follows>").all()
 		`,
 		expect: []string{"<bob>"},
 	},
 	{
-		message: "use .Out() (IRI)",
+		message: "use .out() (IRI)",
 		query: `
-			g.V(iri("alice")).Out(iri("follows")).All()
+			g.V(iri("alice")).out(iri("follows")).all()
 		`,
 		expect: []string{"<bob>"},
 	},
 	{
-		message: "use .Out() (any)",
+		message: "use .out() (any)",
 		query: `
-			g.V("<bob>").Out().All()
+			g.V("<bob>").out().all()
 		`,
 		expect: []string{"<fred>", "cool_person"},
 	},
 	{
-		message: "use .In()",
+		message: "use .in()",
 		query: `
-			g.V("<bob>").In("<follows>").All()
+			g.V("<bob>").in("<follows>").all()
 		`,
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
 	},
 	{
-		message: "use .In() (any)",
+		message: "use .in() (any)",
 		query: `
-			g.V("<bob>").In().All()
+			g.V("<bob>").in().all()
 		`,
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
 	},
 	{
-		message: "use .In() with .Filter()",
+		message: "use .in() with .filter()",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(gt(iri("c")),lt(iri("d"))).All()
+			g.V("<bob>").in("<follows>").filter(gt(iri("c")),lt(iri("d"))).all()
 		`,
 		expect: []string{"<charlie>"},
 	},
 	{
-		message: "use .In() with .Filter(regex)",
+		message: "use .in() with .filter(regex)",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e")).All()
+			g.V("<bob>").in("<follows>").filter(regex("ar?li.*e")).all()
 		`,
 		expect: nil,
 	},
 	{
-		message: "use .In() with .Filter(prefix)",
+		message: "use .in() with .filter(prefix)",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(like("al%")).All()
+			g.V("<bob>").in("<follows>").filter(like("al%")).all()
 		`,
 		expect: []string{"<alice>"},
 	},
 	{
-		message: "use .In() with .Filter(wildcard)",
+		message: "use .in() with .filter(wildcard)",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(like("a?i%e")).All()
+			g.V("<bob>").in("<follows>").filter(like("a?i%e")).all()
 		`,
 		expect: []string{"<alice>"},
 	},
 	{
-		message: "use .In() with .Filter(regex with IRIs)",
+		message: "use .in() with .filter(regex with IRIs)",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true)).All()
+			g.V("<bob>").in("<follows>").filter(regex("ar?li.*e", true)).all()
 		`,
 		expect: []string{"<alice>", "<charlie>"},
 	},
 	{
-		message: "use .In() with .Filter(regex with IRIs)",
+		message: "use .in() with .filter(regex with IRIs)",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(regex(iri("ar?li.*e"))).All()
+			g.V("<bob>").in("<follows>").filter(regex(iri("ar?li.*e"))).all()
 		`,
 		err: true,
 	},
 	{
-		message: "use .In() with .Filter(regex,gt)",
+		message: "use .in() with .filter(regex,gt)",
 		query: `
-			g.V("<bob>").In("<follows>").Filter(regex("ar?li.*e", true),gt(iri("c"))).All()
+			g.V("<bob>").in("<follows>").filter(regex("ar?li.*e", true),gt(iri("c"))).all()
 		`,
 		expect: []string{"<charlie>"},
 	},
 	{
-		message: "use .Both()",
+		message: "use .both()",
 		query: `
-			g.V("<fred>").Both("<follows>").All()
+			g.V("<fred>").both("<follows>").all()
 		`,
 		expect: []string{"<bob>", "<greg>", "<emily>"},
 	},
 	{
-		message: "use .Both() with tag",
+		message: "use .both() with tag",
 		query: `
-			g.V("<fred>").Both(null, "pred").All()
+			g.V("<fred>").both(null, "pred").all()
 		`,
 		tag:    "pred",
 		expect: []string{"<follows>", "<follows>", "<follows>"},
 	},
 	{
-		message: "use .Tag()-.Is()-.Back()",
+		message: "use .tag()-.is()-.back()",
 		query: `
-			g.V("<bob>").In("<follows>").Tag("foo").Out("<status>").Is("cool_person").Back("foo").All()
+			g.V("<bob>").in("<follows>").tag("foo").out("<status>").is("cool_person").back("foo").all()
 		`,
 		expect: []string{"<dani>"},
 	},
 	{
-		message: "separate .Tag()-.Is()-.Back()",
+		message: "separate .tag()-.is()-.back()",
 		query: `
-			x = g.V("<charlie>").Out("<follows>").Tag("foo").Out("<status>").Is("cool_person").Back("foo")
-			x.In("<follows>").Is("<dani>").Back("foo").All()
+			x = g.V("<charlie>").out("<follows>").tag("foo").out("<status>").is("cool_person").back("foo")
+			x.in("<follows>").is("<dani>").back("foo").all()
 		`,
 		expect: []string{"<bob>"},
 	},
 	{
-		message: "do multiple .Back()s",
+		message: "do multiple .back()",
 		query: `
-			g.V("<emily>").Out("<follows>").As("f").Out("<follows>").Out("<status>").Is("cool_person").Back("f").In("<follows>").In("<follows>").As("acd").Out("<status>").Is("cool_person").Back("f").All()
+			g.V("<emily>").out("<follows>").as("f").out("<follows>").out("<status>").is("cool_person").back("f").in("<follows>").in("<follows>").as("acd").out("<status>").is("cool_person").back("f").all()
 		`,
 		tag:    "acd",
 		expect: []string{"<dani>"},
@@ -220,14 +220,14 @@ var testQueries = []struct {
 	{
 		message: "use Except to filter out a single vertex",
 		query: `
-			g.V("<alice>", "<bob>").Except(g.V("<alice>")).All()
+			g.V("<alice>", "<bob>").except(g.V("<alice>")).all()
 		`,
 		expect: []string{"<bob>"},
 	},
 	{
 		message: "use chained Except",
 		query: `
-			g.V("<alice>", "<bob>", "<charlie>").Except(g.V("<bob>")).Except(g.V("<charlie>")).All()
+			g.V("<alice>", "<bob>", "<charlie>").except(g.V("<bob>")).except(g.V("<charlie>")).all()
 		`,
 		expect: []string{"<alice>"},
 	},
@@ -235,7 +235,7 @@ var testQueries = []struct {
 	{
 		message: "use Unique",
 		query: `
-			g.V("<alice>", "<bob>", "<charlie>").Out("<follows>").Unique().All()
+			g.V("<alice>", "<bob>", "<charlie>").out("<follows>").unique().all()
 		`,
 		expect: []string{"<bob>", "<dani>", "<fred>"},
 	},
@@ -244,16 +244,16 @@ var testQueries = []struct {
 	{
 		message: "show simple morphism",
 		query: `
-			grandfollows = g.M().Out("<follows>").Out("<follows>")
-			g.V("<charlie>").Follow(grandfollows).All()
+			grandfollows = g.M().out("<follows>").out("<follows>")
+			g.V("<charlie>").follow(grandfollows).all()
 		`,
 		expect: []string{"<greg>", "<fred>", "<bob>"},
 	},
 	{
 		message: "show reverse morphism",
 		query: `
-			grandfollows = g.M().Out("<follows>").Out("<follows>")
-			g.V("<fred>").FollowR(grandfollows).All()
+			grandfollows = g.M().out("<follows>").out("<follows>")
+			g.V("<fred>").followR(grandfollows).all()
 		`,
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
 	},
@@ -262,49 +262,49 @@ var testQueries = []struct {
 	{
 		message: "show simple intersection",
 		query: `
-			function follows(x) { return g.V(x).Out("<follows>") }
-			follows("<dani>").And(follows("<charlie>")).All()
+			function follows(x) { return g.V(x).out("<follows>") }
+			follows("<dani>").and(follows("<charlie>")).all()
 		`,
 		expect: []string{"<bob>"},
 	},
 	{
 		message: "show simple morphism intersection",
 		query: `
-			grandfollows = g.M().Out("<follows>").Out("<follows>")
-			function gfollows(x) { return g.V(x).Follow(grandfollows) }
-			gfollows("<alice>").And(gfollows("<charlie>")).All()
+			grandfollows = g.M().out("<follows>").out("<follows>")
+			function gfollows(x) { return g.V(x).follow(grandfollows) }
+			gfollows("<alice>").and(gfollows("<charlie>")).all()
 		`,
 		expect: []string{"<fred>"},
 	},
 	{
 		message: "show double morphism intersection",
 		query: `
-			grandfollows = g.M().Out("<follows>").Out("<follows>")
-			function gfollows(x) { return g.V(x).Follow(grandfollows) }
-			gfollows("<emily>").And(gfollows("<charlie>")).And(gfollows("<bob>")).All()
+			grandfollows = g.M().out("<follows>").out("<follows>")
+			function gfollows(x) { return g.V(x).follow(grandfollows) }
+			gfollows("<emily>").and(gfollows("<charlie>")).and(gfollows("<bob>")).all()
 		`,
 		expect: []string{"<greg>"},
 	},
 	{
 		message: "show reverse intersection",
 		query: `
-			grandfollows = g.M().Out("<follows>").Out("<follows>")
-			g.V("<greg>").FollowR(grandfollows).Intersect(g.V("<fred>").FollowR(grandfollows)).All()
+			grandfollows = g.M().out("<follows>").out("<follows>")
+			g.V("<greg>").followR(grandfollows).intersect(g.V("<fred>").followR(grandfollows)).all()
 		`,
 		expect: []string{"<charlie>"},
 	},
 	{
 		message: "show standard sort of morphism intersection, continue follow",
-		query: `gfollowers = g.M().In("<follows>").In("<follows>")
-			function cool(x) { return g.V(x).As("a").Out("<status>").Is("cool_person").Back("a") }
-			cool("<greg>").Follow(gfollowers).Intersect(cool("<bob>").Follow(gfollowers)).All()
+		query: `gfollowers = g.M().in("<follows>").in("<follows>")
+			function cool(x) { return g.V(x).as("a").out("<status>").is("cool_person").back("a") }
+			cool("<greg>").follow(gfollowers).intersect(cool("<bob>").follow(gfollowers)).all()
 		`,
 		expect: []string{"<charlie>"},
 	},
 	{
 		message: "test Or()",
 		query: `
-			g.V("<bob>").Out("<follows>").Or(g.V().Has("<status>", "cool_person")).All()
+			g.V("<bob>").out("<follows>").or(g.V().has("<status>", "cool_person")).all()
 		`,
 		expect: []string{"<fred>", "<bob>", "<greg>", "<dani>"},
 	},
@@ -313,28 +313,28 @@ var testQueries = []struct {
 	{
 		message: "show a simple Has",
 		query: `
-				g.V().Has("<status>", "cool_person").All()
+				g.V().has("<status>", "cool_person").all()
 		`,
 		expect: []string{"<greg>", "<dani>", "<bob>"},
 	},
 	{
 		message: "show a simple HasR",
 		query: `
-				g.V().HasR("<status>", "<bob>").All()
+				g.V().hasR("<status>", "<bob>").all()
 		`,
 		expect: []string{"cool_person"},
 	},
 	{
 		message: "show a double Has",
 		query: `
-				g.V().Has("<status>", "cool_person").Has("<follows>", "<fred>").All()
+				g.V().has("<status>", "cool_person").has("<follows>", "<fred>").all()
 		`,
 		expect: []string{"<bob>"},
 	},
 	{
 		message: "show a Has with filter",
 		query: `
-				g.V().Has("<follows>", gt("<f>")).All()
+				g.V().has("<follows>", gt("<f>")).all()
 		`,
 		expect: []string{"<bob>", "<dani>", "<emily>", "<fred>"},
 	},
@@ -343,21 +343,21 @@ var testQueries = []struct {
 	{
 		message: "use Limit",
 		query: `
-				g.V().Has("<status>", "cool_person").Limit(2).All()
+				g.V().has("<status>", "cool_person").limit(2).all()
 		`,
 		expect: []string{"<bob>", "<dani>"},
 	},
 	{
 		message: "use Skip",
 		query: `
-				g.V().Has("<status>", "cool_person").Skip(2).All()
+				g.V().has("<status>", "cool_person").skip(2).all()
 		`,
 		expect: []string{"<greg>"},
 	},
 	{
 		message: "use Skip and Limit",
 		query: `
-				g.V().Has("<status>", "cool_person").Skip(1).Limit(1).All()
+				g.V().has("<status>", "cool_person").skip(1).limit(1).all()
 		`,
 		expect: []string{"<dani>"},
 	},
@@ -365,14 +365,14 @@ var testQueries = []struct {
 	{
 		message: "show Count",
 		query: `
-				g.V().Has("<status>").Count()
+				g.V().has("<status>").count()
 		`,
 		expect: []string{"5"},
 	},
 	{
 		message: "use Count value",
 		query: `
-				g.Emit(g.V().Has("<status>").Count()+1)
+				g.emit(g.V().has("<status>").count()+1)
 		`,
 		expect: []string{"6"},
 	},
@@ -381,7 +381,7 @@ var testQueries = []struct {
 	{
 		message: "show a simple save",
 		query: `
-			g.V().Save("<status>", "somecool").All()
+			g.V().save("<status>", "somecool").all()
 		`,
 		tag:    "somecool",
 		expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
@@ -389,7 +389,7 @@ var testQueries = []struct {
 	{
 		message: "show a simple save optional",
 		query: `
-			g.V("<bob>","<charlie>").Out("<follows>").SaveOpt("<status>", "somecool").All()
+			g.V("<bob>","<charlie>").out("<follows>").saveOpt("<status>", "somecool").all()
 		`,
 		tag:    "somecool",
 		expect: []string{"cool_person", "cool_person"},
@@ -397,7 +397,7 @@ var testQueries = []struct {
 	{
 		message: "show a simple saveR",
 		query: `
-			g.V("cool_person").SaveR("<status>", "who").All()
+			g.V("cool_person").saveR("<status>", "who").all()
 		`,
 		tag:    "who",
 		expect: []string{"<greg>", "<dani>", "<bob>"},
@@ -405,7 +405,7 @@ var testQueries = []struct {
 	{
 		message: "show an out save",
 		query: `
-			g.V("<dani>").Out(null, "pred").All()
+			g.V("<dani>").out(null, "pred").all()
 		`,
 		tag:    "pred",
 		expect: []string{"<follows>", "<follows>", "<status>"},
@@ -413,7 +413,7 @@ var testQueries = []struct {
 	{
 		message: "show a tag list",
 		query: `
-			g.V("<dani>").Out(null, ["pred", "foo", "bar"]).All()
+			g.V("<dani>").out(null, ["pred", "foo", "bar"]).all()
 		`,
 		tag:    "foo",
 		expect: []string{"<follows>", "<follows>", "<status>"},
@@ -421,28 +421,28 @@ var testQueries = []struct {
 	{
 		message: "show a pred list",
 		query: `
-			g.V("<dani>").Out(["<follows>", "<status>"]).All()
+			g.V("<dani>").out(["<follows>", "<status>"]).all()
 		`,
 		expect: []string{"<bob>", "<greg>", "cool_person"},
 	},
 	{
 		message: "show a predicate path",
 		query: `
-			g.V("<dani>").Out(g.V("<follows>"), "pred").All()
+			g.V("<dani>").out(g.V("<follows>"), "pred").all()
 		`,
 		expect: []string{"<bob>", "<greg>"},
 	},
 	{
 		message: "list all bob's incoming predicates",
 		query: `
-		  g.V("<bob>").InPredicates().All()
+		  g.V("<bob>").inPredicates().all()
 		`,
 		expect: []string{"<follows>"},
 	},
 	{
 		message: "save all bob's incoming predicates",
 		query: `
-		  g.V("<bob>").SaveInPredicates("pred").All()
+		  g.V("<bob>").saveInPredicates("pred").all()
 		`,
 		expect: []string{"<follows>", "<follows>", "<follows>"},
 		tag:    "pred",
@@ -450,88 +450,88 @@ var testQueries = []struct {
 	{
 		message: "list all labels",
 		query: `
-		  g.V().Labels().All()
+		  g.V().labels().all()
 		`,
 		expect: []string{"<smart_graph>"},
 	},
 	{
 		message: "list all in predicates",
 		query: `
-		  g.V().InPredicates().All()
+		  g.V().inPredicates().all()
 		`,
 		expect: []string{"<are>", "<follows>", "<status>"},
 	},
 	{
 		message: "list all out predicates",
 		query: `
-		  g.V().OutPredicates().All()
+		  g.V().outPredicates().all()
 		`,
 		expect: []string{"<are>", "<follows>", "<status>"},
 	},
 	{
 		message: "traverse using LabelContext",
 		query: `
-			g.V("<greg>").LabelContext("<smart_graph>").Out("<status>").All()
+			g.V("<greg>").labelContext("<smart_graph>").out("<status>").all()
 		`,
 		expect: []string{"smart_person"},
 	},
 	{
 		message: "open and close a LabelContext",
 		query: `
-			g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follows>").All()
+			g.V().labelContext("<smart_graph>").in("<status>").labelContext(null).in("<follows>").all()
 		`,
 		expect: []string{"<dani>", "<fred>"},
 	},
 	{
 		message: "issue #254",
-		query:   `g.V({"id":"<alice>"}).All()`,
+		query:   `g.V({"id":"<alice>"}).all()`,
 		expect:  nil, err: true,
 	},
 	{
 		message: "roundtrip values",
 		query: `
-		v = g.V("<bob>").ToValue()
-		s = g.V(v).Out("<status>").ToValue()
-		g.V(s).All()
+		v = g.V("<bob>").toValue()
+		s = g.V(v).out("<status>").toValue()
+		g.V(s).all()
 		`,
 		expect: []string{"cool_person"},
 	},
 	{
 		message: "roundtrip values (tag map)",
 		query: `
-		v = g.V("<bob>").TagValue()
-		s = g.V(v.id).Out("<status>").TagValue()
-		g.V(s.id).All()
+		v = g.V("<bob>").tagValue()
+		s = g.V(v.id).out("<status>").tagValue()
+		g.V(s.id).all()
 		`,
 		expect: []string{"cool_person"},
 	},
 	{
 		message: "show ToArray",
 		query: `
-			arr = g.V("<bob>").In("<follows>").ToArray()
-			for (i in arr) g.Emit(arr[i]);
+			arr = g.V("<bob>").in("<follows>").toArray()
+			for (i in arr) g.emit(arr[i]);
 		`,
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
 	},
 	{
 		message: "show ToArray with limit",
 		query: `
-			arr = g.V("<bob>").In("<follows>").ToArray(2)
-			for (i in arr) g.Emit(arr[i]);
+			arr = g.V("<bob>").in("<follows>").toArray(2)
+			for (i in arr) g.emit(arr[i]);
 		`,
 		expect: []string{"<alice>", "<charlie>"},
 	},
 	{
 		message: "show ForEach",
 		query: `
-			g.V("<bob>").In("<follows>").ForEach(function(o){g.Emit(o.id)});
+			g.V("<bob>").in("<follows>").forEach(function(o){g.emit(o.id)});
 		`,
 		expect: []string{"<alice>", "<charlie>", "<dani>"},
 	},
 	{
 		message: "show ForEach with limit",
 		query: `
-			g.V("<bob>").In("<follows>").ForEach(2, function(o){g.Emit(o.id)});
+			g.V("<bob>").in("<follows>").forEach(2, function(o){g.emit(o.id)});
 		`,
 		expect: []string{"<alice>", "<charlie>"},
 	},
@@ -539,40 +539,40 @@ var testQueries = []struct {
 		message: "clone paths",
 		query: `
 			var alice = g.V('<alice>')
-			g.Emit(alice.ToValue())
-			var out = alice.Out('<follows>')
-			g.Emit(out.ToValue())
-			g.Emit(alice.ToValue())
+			g.emit(alice.toValue())
+			var out = alice.out('<follows>')
+			g.emit(out.toValue())
+			g.emit(alice.toValue())
 		`,
 		expect: []string{"<alice>", "<bob>", "<alice>"},
 	},
 	{
 		message: "default namespaces",
 		query: `
-			g.AddDefaultNamespaces()
-			g.Emit(g.Uri('rdf:type'))
+			g.addDefaultNamespaces()
+			g.emit(g.IRI('rdf:type'))
 		`,
 		expect: []string{"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"},
 	},
 	{
 		message: "add namespace",
 		query: `
-			g.AddNamespace('ex','http://example.net/')
-			g.Emit(g.Uri('ex:alice'))
+			g.addNamespace('ex','http://example.net/')
+			g.emit(g.IRI('ex:alice'))
 		`,
 		expect: []string{"<http://example.net/alice>"},
 	},
 	{
 		message: "recursive follow",
 		query: `
-			g.V("<charlie>").FollowRecursive("<follows>").All();
+			g.V("<charlie>").followRecursive("<follows>").all();
 		`,
 		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
 	},
 	{
 		message: "recursive follow tag",
 		query: `
-			g.V("<charlie>").FollowRecursive("<follows>", "depth").All();
+			g.V("<charlie>").followRecursive("<follows>", "depth").all();
 		`,
 		tag:    "depth",
 		expect: []string{intVal(1), intVal(1), intVal(2), intVal(2)},
@@ -580,21 +580,21 @@ var testQueries = []struct {
 	{
 		message: "recursive follow path",
 		query: `
-			g.V("<charlie>").FollowRecursive(g.V().Out("<follows>")).All();
+			g.V("<charlie>").followRecursive(g.V().out("<follows>")).all();
 		`,
 		expect: []string{"<bob>", "<dani>", "<fred>", "<greg>"},
 	},
 	{
 		message: "find non-existent",
 		query: `
-			g.V('<not-existing>').ForEach(function(d){ g.Emit(d); })
+			g.V('<not-existing>').forEach(function(d){ g.emit(d); })
 		`,
 		expect: nil,
 	},
 	{
 		message: "default limit All",
 		query: `
-			g.V().All()
+			g.V().all()
 		`,
 		limit:  issue718Limit,
 		data:   issue718Graph(),
@@ -603,19 +603,19 @@ var testQueries = []struct {
 	{
 		message: "issue #758. Verify saveOpt respects label context",
 		query: `
-			g.V("<greg>").LabelContext("<smart_graph>").SaveOpt("<status>", "statusTag").All()
+			g.V("<greg>").labelContext("<smart_graph>").saveOpt("<status>", "statusTag").all()
 		`,
 		tag:    "statusTag",
-		file: multiGraphTestFile,
+		file:   multiGraphTestFile,
 		expect: []string{"smart_person"},
 	},
 	{
 		message: "issue #758. Verify saveR respects label context.",
 		query: `
-			g.V("smart_person").LabelContext("<other_graph>").SaveR("<status>", "who").All()
+			g.V("smart_person").labelContext("<other_graph>").saveR("<status>", "who").all()
 		`,
 		tag:    "who",
-		file: multiGraphTestFile,
+		file:   multiGraphTestFile,
 		expect: []string{"<fred>"},
 	},
 }
@@ -668,10 +668,10 @@ func TestGizmo(t *testing.T) {
 				test.tag = TopResultTag
 			}
 			quads := simpleGraph
-			if (test.file == multiGraphTestFile){
+			if test.file == multiGraphTestFile {
 				quads = multiGraph
 			}
-			
+
 			if test.data != nil {
 				quads = test.data
 			}
@@ -708,7 +708,9 @@ var issue160TestGraph = []quad.Quad{
 }
 
 func TestIssue160(t *testing.T) {
-	qu := `g.V().Tag('query').Out(raw('follows')).Out(raw('follows')).ForEach(function (item) { if (item.id !== item.query) g.Emit({ id: item.id }); })`
+	qu := `g.V().tag('query').out(raw('follows')).out(raw('follows')).forEach(function (item) {
+		if (item.id !== item.query) g.emit({ id: item.id });
+	})`
 	expect := []string{
 		"****\nid : alice\n",
 		"****\nid : bob\n",
@@ -737,8 +739,8 @@ func TestIssue160(t *testing.T) {
 
 func TestShapeOf(t *testing.T) {
 	ses := makeTestSession(nil)
-	const query = `g.V().ForEach(function(x){
-g.Emit({id: x.id})
+	const query = `g.V().forEach(function(x){
+g.emit({id: x.id})
 })`
 	_, err := ses.ShapeOf(query)
 	require.NoError(t, err)
@@ -764,6 +766,3 @@ func issue718Nodes() []string {
 	}
 	return nodes
 }
-
-
-

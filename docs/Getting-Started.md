@@ -49,7 +49,7 @@ To select all vertices in the graph call, limit to 5 first results.
 `g` and `V` are synonyms for `graph` and `Vertex` respectively, as they are quite common.
 
 ```javascript
-g.V().GetLimit(5);
+g.V().getLimit(5);
 ```
 
 ### Match a property of a vertex
@@ -58,13 +58,13 @@ Find vertex with property "Humphrey Bogart"
 
 ```javascript
 g.V()
-  .Has("<name>", "Humphrey Bogart")
-  .All();
+  .has("<name>", "Humphrey Bogart")
+  .all();
 ```
 
 You may start to notice a pattern here: with Gizmo, the query lines tend to:
 
-Start somewhere in the graph | Follow a path | Run the query with "All" or "GetLimit"
+Start somewhere in the graph | Follow a path | Run the query with "all" or "getLimit"
 
 ### Match a complex path
 
@@ -72,11 +72,11 @@ Get the list of actors in the film
 
 ```javascript
 g.V()
-  .Has("<name>", "Casablanca")
-  .Out("</film/film/starring>")
-  .Out("</film/performance/actor>")
-  .Out("<name>")
-  .All();
+  .has("<name>", "Casablanca")
+  .out("</film/film/starring>")
+  .out("</film/performance/actor>")
+  .out("<name>")
+  .all();
 ```
 
 ### Match
@@ -86,14 +86,14 @@ This is starting to get long. Let's use a Morphism, a pre-defined path stored in
 ```javascript
 var filmToActor = g
   .Morphism()
-  .Out("</film/film/starring>")
-  .Out("</film/performance/actor>");
+  .out("</film/film/starring>")
+  .out("</film/performance/actor>");
 
 g.V()
-  .Has("<name>", "Casablanca")
-  .Follow(filmToActor)
-  .Out("<name>")
-  .All();
+  .has("<name>", "Casablanca")
+  .follow(filmToActor)
+  .out("<name>")
+  .all();
 ```
 
 To learn more about querying see [Gizmo Documentation](GizmoAPI.md)

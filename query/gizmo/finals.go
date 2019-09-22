@@ -160,12 +160,47 @@ func (p *pathObject) ForEach(call goja.FunctionCall) goja.Value {
 // Example:
 //	// javascript
 //	// Save count as a variable
-//	var n = g.V().Count()
+//	var n = g.V().count()
 //	// Send it as a query result
-//	g.Emit(n)
+//	g.emit(n)
 func (p *pathObject) Count() (int64, error) {
 	it := p.buildIteratorTree()
 	return p.s.countResults(it)
+}
+
+// Backwards compatibility
+func (p *pathObject) CaptializedGetLimit(limit int) error {
+	return p.GetLimit(limit)
+}
+func (p *pathObject) CaptializedAll() error {
+	return p.All()
+}
+func (p *pathObject) CaptializedtoArray(call goja.FunctionCall, withTags bool) goja.Value {
+	return p.toArray(call, withTags)
+}
+func (p *pathObject) CaptializedToArray(call goja.FunctionCall) goja.Value {
+	return p.ToArray(call)
+}
+func (p *pathObject) CaptializedTagArray(call goja.FunctionCall) goja.Value {
+	return p.TagArray(call)
+}
+func (p *pathObject) CaptializedtoValue(withTags bool) (interface{}, error) {
+	return p.toValue(withTags)
+}
+func (p *pathObject) CaptializedToValue() (interface{}, error) {
+	return p.ToValue()
+}
+func (p *pathObject) CaptializedTagValue() (interface{}, error) {
+	return p.TagValue()
+}
+func (p *pathObject) CaptializedMap(call goja.FunctionCall) goja.Value {
+	return p.Map(call)
+}
+func (p *pathObject) CaptializedForEach(call goja.FunctionCall) goja.Value {
+	return p.ForEach(call)
+}
+func (p *pathObject) CaptializedCount() (int64, error) {
+	return p.Count()
 }
 
 func quadValueToString(v quad.Value) string {

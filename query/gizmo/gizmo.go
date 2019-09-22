@@ -17,7 +17,11 @@ package gizmo
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/dop251/goja"
 
@@ -59,6 +63,30 @@ func NewSession(qs graph.QuadStore) *Session {
 	return s
 }
 
+func lcFirst(str string) string {
+	rune, size := utf8.DecodeRuneInString(str)
+	return string(unicode.ToLower(rune)) + str[size:]
+}
+
+type fieldNameMapper struct{}
+
+func (fieldNameMapper) FieldName(t reflect.Type, f reflect.StructField) string {
+	return lcFirst(f.Name)
+}
+
+const constructMethodPrefix = "New"
+const backwardsCompatibilityPrefix = "Capitalized"
+
+func (fieldNameMapper) MethodName(t reflect.Type, m reflect.Method) string {
+	if strings.HasPrefix(m.Name, backwardsCompatibilityPrefix) {
+		return strings.TrimPrefix(m.Name, backwardsCompatibilityPrefix)
+	}
+	if strings.HasPrefix(m.Name, constructMethodPrefix) {
+		return strings.TrimPrefix(m.Name, constructMethodPrefix)
+	}
+	return lcFirst(m.Name)
+}
+
 type Session struct {
 	qs  graph.QuadStore
 	vm  *goja.Runtime
@@ -88,6 +116,7 @@ func (s *Session) buildEnv() error {
 		return nil
 	}
 	s.vm = goja.New()
+	s.vm.SetFieldNameMapper(fieldNameMapper{})
 	s.vm.Set("graph", &graphObject{s: s})
 	s.vm.Set("g", s.vm.Get("graph"))
 	for name, val := range defaultEnv {

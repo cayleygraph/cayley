@@ -94,8 +94,8 @@ func (p *pathObject) buildIteratorTree() graph.Iterator {
 // Example:
 //	// javascript
 //	// Starting from all nodes in the graph, find the paths that follow bob.
-//	// Results in three paths for bob (from alice, charlie and dani).All()
-//	g.V().Out("<follows>").Is("<bob>").All()
+//	// Results in three paths for bob (from alice, charlie and dani).all()
+//	g.V().out("<follows>").is("<bob>").all()
 func (p *pathObject) Is(call goja.FunctionCall) goja.Value {
 	args, err := toQuadValues(exportArgs(call.Arguments))
 	if err != nil {
@@ -138,11 +138,11 @@ func (p *pathObject) inout(call goja.FunctionCall, in bool) goja.Value {
 //
 //	// javascript
 //	// Find the cool people, bob, dani and greg
-//	g.V("cool_person").In("<status>").All()
+//	g.V("cool_person").in("<status>").all()
 //	// Find who follows bob, in this case, alice, charlie, and dani
-//	g.V("<bob>").In("<follows>").All()
+//	g.V("<bob>").in("<follows>").all()
 //	// Find who follows the people emily follows, namely, bob and emily
-//	g.V("<emily>").Out("<follows>").In("<follows>").All()
+//	g.V("<emily>").out("<follows>").in("<follows>").all()
 func (p *pathObject) In(call goja.FunctionCall) goja.Value {
 	return p.inout(call, true)
 }
@@ -167,17 +167,17 @@ func (p *pathObject) In(call goja.FunctionCall) goja.Value {
 //
 //	// javascript
 //	// The working set of this is bob and dani
-//	g.V("<charlie>").Out("<follows>").All()
+//	g.V("<charlie>").out("<follows>").all()
 //	// The working set of this is fred, as alice follows bob and bob follows fred.
-//	g.V("<alice>").Out("<follows>").Out("<follows>").All()
+//	g.V("<alice>").out("<follows>").out("<follows>").all()
 //	// Finds all things dani points at. Result is bob, greg and cool_person
-//	g.V("<dani>").Out().All()
+//	g.V("<dani>").out().all()
 //	// Finds all things dani points at on the status linkage.
 //	// Result is bob, greg and cool_person
-//	g.V("<dani>").Out(["<follows>", "<status>"]).All()
+//	g.V("<dani>").out(["<follows>", "<status>"]).all()
 //	// Finds all things dani points at on the status linkage, given from a separate query path.
 //	// Result is {"id": "cool_person", "pred": "<status>"}
-//	g.V("<dani>").Out(g.V("<status>"), "pred").All()
+//	g.V("<dani>").out(g.V("<status>"), "pred").all()
 func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
 	return p.inout(call, false)
 }
@@ -188,7 +188,7 @@ func (p *pathObject) Out(call goja.FunctionCall) goja.Value {
 // Example:
 //	// javascript
 //	// Find all followers/followees of fred. Returns bob, emily and greg
-//	g.V("<fred>").Both("<follows>").All()
+//	g.V("<fred>").both("<follows>").all()
 func (p *pathObject) Both(call goja.FunctionCall) goja.Value {
 	preds, tags, ok := toViaData(exportArgs(call.Arguments))
 	if !ok {
@@ -220,7 +220,7 @@ func (p *pathObject) follow(ep *pathObject, rev bool) *pathObject {
 //	// Returns the followed people of who charlie follows -- a simplistic "friend of my friend"
 //	// and whether or not they have a "cool" status. Potential for recommending followers abounds.
 //	// Returns bob and greg
-//	g.V("<charlie>").Follow(friendOfFriend).Has("<status>", "cool_person").All()
+//	g.V("<charlie>").follow(friendOfFriend).has("<status>", "cool_person").all()
 func (p *pathObject) Follow(path *pathObject) *pathObject {
 	return p.follow(path, false)
 }
@@ -235,7 +235,7 @@ func (p *pathObject) Follow(path *pathObject) *pathObject {
 //	var friendOfFriend = g.Morphism().Out("<follows>").Out("<follows>")
 //	// Returns the third-tier of influencers -- people who follow people who follow the cool people.
 //	// Returns charlie (from bob), charlie (from greg), bob and emily
-//	g.V().Has("<status>", "cool_person").FollowR(friendOfFriend).All()
+//	g.V().has("<status>", "cool_person").followR(friendOfFriend).all()
 func (p *pathObject) FollowR(path *pathObject) *pathObject {
 	return p.follow(path, true)
 }
@@ -246,10 +246,10 @@ func (p *pathObject) FollowR(path *pathObject) *pathObject {
 //
 // Example:
 // 	// javascript:
-//	var friend = g.Morphism().Out("<follows>")
+//	var friend = g.Morphism().out("<follows>")
 //	// Returns all people in Charlie's network.
 //	// Returns bob and dani (from charlie), fred (from bob) and greg (from dani).
-//	g.V("<charlie>").FollowRecursive(friend).All()
+//	g.V("<charlie>").followRecursive(friend).all()
 func (p *pathObject) FollowRecursive(call goja.FunctionCall) goja.Value {
 	preds, maxDepth, tags, ok := toViaDepthData(exportArgs(call.Arguments))
 	if !ok || len(preds) == 0 {
@@ -333,7 +333,7 @@ func (p *pathObject) Or(path *pathObject) *pathObject {
 //	//   {"id": "<dani>", "start": "<greg>"},
 //	//   {"id": "<fred>", "start": "<greg>"},
 //	//   {"id": "<fred>", "start": "<greg>"}
-//	g.V().Tag("start").Out("<status>").Back("start").In("<follows>").All()
+//	g.V().tag("start").out("<status>").back("start").in("<follows>").all()
 func (p *pathObject) Back(tag string) *pathObject {
 	np := p.clonePath().Back(tag)
 	return p.new(np)
@@ -356,7 +356,7 @@ func (p *pathObject) Back(tag string) *pathObject {
 //	//   {"id": "cool_person", "start": "<greg>"},
 //	//   {"id": "smart_person", "start": "<emily>"},
 //	//   {"id": "smart_person", "start": "<greg>"}
-//	g.V().Tag("start").Out("<status>").All()
+//	g.V().tag("start").out("<status>").All()
 func (p *pathObject) Tag(tags ...string) *pathObject {
 	np := p.clonePath().Tag(tags...)
 	return p.new(np)
@@ -382,11 +382,11 @@ func (p *pathObject) As(tags ...string) *pathObject {
 // Example:
 // 	// javascript
 //	// Start from all nodes that follow bob -- results in alice, charlie and dani
-//	g.V().Has("<follows>", "<bob>").All()
+//	g.V().has("<follows>", "<bob>").all()
 //	// People charlie follows who then follow fred. Results in bob.
-//	g.V("<charlie>").Out("<follows>").Has("<follows>", "<fred>").All()
+//	g.V("<charlie>").Out("<follows>").has("<follows>", "<fred>").all()
 //	// People with friends who have names sorting lower then "f".
-//	g.V().Has("<follows>", gt("<f>")).All()
+//	g.V().has("<follows>", gt("<f>")).all()
 func (p *pathObject) Has(call goja.FunctionCall) goja.Value {
 	return p.has(call, false)
 }
@@ -623,11 +623,11 @@ func (p *pathObject) SaveOutPredicates(tag string) *pathObject {
 // Example:
 // 	// javascript
 //	// Find the status of people Dani follows
-//	g.V("<dani>").Out("<follows>").Out("<status>").All()
+//	g.V("<dani>").out("<follows>").out("<status>").all()
 //	// Find only the statuses provided by the smart_graph
-//	g.V("<dani>").Out("<follows>").LabelContext("<smart_graph>").Out("<status>").All()
+//	g.V("<dani>").out("<follows>").labelContext("<smart_graph>").out("<status>").all()
 //	// Find all people followed by people with statuses in the smart_graph.
-//	g.V().LabelContext("<smart_graph>").In("<status>").LabelContext(null).In("<follows>").All()
+//	g.V().labelContext("<smart_graph>").in("<status>").labelContext(null).in("<follows>").all()
 func (p *pathObject) LabelContext(call goja.FunctionCall) goja.Value {
 	labels, tags, ok := toViaData(exportArgs(call.Arguments))
 	if !ok {
@@ -659,7 +659,7 @@ func (p *pathObject) Filter(args ...valFilter) (*pathObject, error) {
 // Example:
 // 	// javascript
 //	// Start from all nodes that follow bob, and limit them to 2 nodes -- results in alice and charlie
-//	g.V().Has("<follows>", "<bob>").Limit(2).All()
+//	g.V().has("<follows>", "<bob>").limit(2).all()
 func (p *pathObject) Limit(limit int) *pathObject {
 	np := p.clonePath().Limit(int64(limit))
 	return p.new(np)
@@ -674,8 +674,106 @@ func (p *pathObject) Limit(limit int) *pathObject {
 // Example:
 //	// javascript
 //	// Start from all nodes that follow bob, and skip 2 nodes -- results in dani
-//	g.V().Has("<follows>", "<bob>").Skip(2).All()
+//	g.V().has("<follows>", "<bob>").skip(2).all()
 func (p *pathObject) Skip(offset int) *pathObject {
 	np := p.clonePath().Skip(int64(offset))
 	return p.new(np)
+}
+
+// Backwards compatibility
+func (p *pathObject) CapitalizedIs(call goja.FunctionCall) goja.Value {
+	return p.Is(call)
+}
+func (p *pathObject) CapitalizedIn(call goja.FunctionCall) goja.Value {
+	return p.In(call)
+}
+func (p *pathObject) CapitalizedOut(call goja.FunctionCall) goja.Value {
+	return p.Out(call)
+}
+func (p *pathObject) CapitalizedBoth(call goja.FunctionCall) goja.Value {
+	return p.Both(call)
+}
+func (p *pathObject) CapitalizedFollow(path *pathObject) *pathObject {
+	return p.Follow(path)
+}
+func (p *pathObject) CapitalizedFollowR(path *pathObject) *pathObject {
+	return p.FollowR(path)
+}
+func (p *pathObject) CapitalizedFollowRecursive(call goja.FunctionCall) goja.Value {
+	return p.FollowRecursive(call)
+}
+func (p *pathObject) CapitalizedAnd(path *pathObject) *pathObject {
+	return p.And(path)
+}
+func (p *pathObject) CapitalizedIntersect(path *pathObject) *pathObject {
+	return p.Intersect(path)
+}
+func (p *pathObject) CapitalizedUnion(path *pathObject) *pathObject {
+	return p.Union(path)
+}
+func (p *pathObject) CapitalizedOr(path *pathObject) *pathObject {
+	return p.Or(path)
+}
+func (p *pathObject) CapitalizedBack(tag string) *pathObject {
+	return p.Back(tag)
+}
+func (p *pathObject) CapitalizedTag(tags ...string) *pathObject {
+	return p.Tag(tags...)
+}
+func (p *pathObject) CapitalizedAs(tags ...string) *pathObject {
+	return p.As(tags...)
+}
+func (p *pathObject) CapitalizedHas(call goja.FunctionCall) goja.Value {
+	return p.Has(call)
+}
+func (p *pathObject) CapitalizedHasR(call goja.FunctionCall) goja.Value {
+	return p.HasR(call)
+}
+func (p *pathObject) CapitalizedSave(call goja.FunctionCall) goja.Value {
+	return p.Save(call)
+}
+func (p *pathObject) CapitalizedSaveR(call goja.FunctionCall) goja.Value {
+	return p.SaveR(call)
+}
+func (p *pathObject) CapitalizedSaveOpt(call goja.FunctionCall) goja.Value {
+	return p.SaveOpt(call)
+}
+func (p *pathObject) CapitalizedSaveOptR(call goja.FunctionCall) goja.Value {
+	return p.SaveOptR(call)
+}
+func (p *pathObject) CapitalizedExcept(path *pathObject) *pathObject {
+	return p.Except(path)
+}
+func (p *pathObject) CapitalizedUnique() *pathObject {
+	return p.Unique()
+}
+func (p *pathObject) CapitalizedDifference(path *pathObject) *pathObject {
+	return p.Difference(path)
+}
+func (p *pathObject) CapitalizedLabels() *pathObject {
+	return p.Labels()
+}
+func (p *pathObject) CapitalizedInPredicates() *pathObject {
+	return p.InPredicates()
+}
+func (p *pathObject) CapitalizedOutPredicates() *pathObject {
+	return p.OutPredicates()
+}
+func (p *pathObject) CapitalizedSaveInPredicates(tag string) *pathObject {
+	return p.SaveInPredicates(tag)
+}
+func (p *pathObject) CapitalizedSaveOutPredicates(tag string) *pathObject {
+	return p.SaveOutPredicates(tag)
+}
+func (p *pathObject) CapitalizedLabelContext(call goja.FunctionCall) goja.Value {
+	return p.LabelContext(call)
+}
+func (p *pathObject) CapitalizedFilter(args ...valFilter) (*pathObject, error) {
+	return p.Filter(args...)
+}
+func (p *pathObject) CapitalizedLimit(limit int) *pathObject {
+	return p.Limit(limit)
+}
+func (p *pathObject) CapitalizedSkip(offset int) *pathObject {
+	return p.Skip(offset)
 }
