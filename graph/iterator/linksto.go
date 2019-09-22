@@ -34,7 +34,7 @@ import (
 	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/quad"
 )
 
 var _ graph.IteratorFuture = &LinksTo{}

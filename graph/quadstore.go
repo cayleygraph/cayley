@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/quad"
 )
 
 type BatchQuadStore interface {

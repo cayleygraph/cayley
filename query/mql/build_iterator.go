@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/cayleygraph/cayley/graph/shape"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/quad"
 )
 
 func buildFixed(s string) shape.Shape {

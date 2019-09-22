@@ -6,8 +6,8 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/path"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/voc"
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 )
 
 // GenerateID is called when any object without an ID field is being saved.

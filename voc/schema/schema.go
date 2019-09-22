@@ -1,53 +1,79 @@
-// Package schema contains constants of the Schema.org vocabulary.
+// Package schema is deprecated. Use github.com/cayleygraph/quad/voc/schema.
 package schema
 
-import "github.com/cayleygraph/cayley/voc"
-
-func init() {
-	voc.RegisterPrefix(Prefix, NS)
-}
+import "github.com/cayleygraph/quad/voc/schema"
 
 const (
-	NS     = `http://schema.org/`
-	Prefix = `schema:`
+	NS     = schema.NS
+	Prefix = schema.Prefix
 )
 
 const (
 	// Types
 
 	// The basic data types such as Integers, Strings, etc.
-	DataType = Prefix + `DataType`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	DataType = schema.DataType
 	// Boolean: True or False.
-	Boolean = Prefix + `Boolean`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Boolean = schema.Boolean
 	// The boolean value false.
-	False = Prefix + `False`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	False = schema.False
 	// The boolean value true.
-	True = Prefix + `True`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	True = schema.True
 	// Data type: Text.
-	Text = Prefix + `Text`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Text = schema.Text
 	// Data type: URL.
-	URL = Prefix + `URL`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	URL = schema.URL
 	// Data type: Number.
-	Number = Prefix + `Number`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Number = schema.Number
 	// Data type: Floating number.
-	Float = Prefix + `Float`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Float = schema.Float
 	// Data type: Integer.
-	Integer = Prefix + `Integer`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Integer = schema.Integer
 	// A date value in ISO 8601 date format.
-	Date = Prefix + `Date`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Date = schema.Date
 	// A point in time recurring on multiple days in the form hh:mm:ss[Z|(+|-)hh:mm].
-	Time = Prefix + `Time`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Time = schema.Time
 	// A combination of date and time of day in the form [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm] (see Chapter 5.4 of ISO 8601).
-	DateTime = Prefix + `DateTime`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	DateTime = schema.DateTime
 
 	// A class, also often called a 'Type'; equivalent to rdfs:Class.
-	Class = Prefix + "Class"
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Class = schema.Class
 	// A property, used to indicate attributes and relationships of some Thing; equivalent to rdf:Property.
-	Property = Prefix + "Property"
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Property = schema.Property
 )
 
 const (
 	// The name of the item.
-	Name    = Prefix + `name`
-	UrlProp = Prefix + `url`
+	//
+	// Deprecated: use github.com/cayleygraph/quad/voc/schema package instead.
+	Name    = schema.Name
+	UrlProp = schema.UrlProp
 )

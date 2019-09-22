@@ -20,7 +20,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/quad"
 )
 
 // TODO(barakmich): Linkage is general enough that there are places we take

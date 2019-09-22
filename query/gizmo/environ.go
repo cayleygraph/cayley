@@ -26,8 +26,8 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/graph/shape"
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/voc"
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 )
 
 // graphObject is a root graph object.

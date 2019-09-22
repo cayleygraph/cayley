@@ -5,7 +5,7 @@ import (
 	"math"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/quad"
 )
 
 var _ graph.IteratorFuture = &Recursive{}

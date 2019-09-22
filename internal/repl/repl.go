@@ -30,8 +30,8 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad/nquads"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/quad/nquads"
 )
 
 func trace(s string) (string, time.Time) {
@@ -41,7 +41,7 @@ func trace(s string) (string, time.Time) {
 func un(s string, startTime time.Time) {
 	endTime := time.Now()
 
-	fmt.Printf(s, float64(endTime.UnixNano()-startTime.UnixNano())/float64(1E6))
+	fmt.Printf(s, float64(endTime.UnixNano()-startTime.UnixNano())/float64(1e6))
 }
 
 func Run(ctx context.Context, qu string, ses query.REPLSession) error {

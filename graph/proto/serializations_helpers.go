@@ -1,8 +1,8 @@
 package proto
 
 import (
-	"github.com/cayleygraph/cayley/quad"
-	"github.com/cayleygraph/cayley/quad/pquads"
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/pquads"
 )
 
 //go:generate protoc --proto_path=$GOPATH/src:. --gogo_out=. serializations.proto

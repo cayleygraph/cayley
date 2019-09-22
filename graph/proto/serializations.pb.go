@@ -19,7 +19,7 @@ import proto1 "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import _ "github.com/gogo/protobuf/gogoproto"
-import pquads "github.com/cayleygraph/cayley/quad/pquads"
+import pquads "github.com/cayleygraph/quad/pquads"
 
 import io "io"
 

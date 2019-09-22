@@ -29,32 +29,19 @@
 package pio
 
 import (
-	"github.com/gogo/protobuf/proto"
+	"io"
+
+	"github.com/cayleygraph/quad/pquads/pio"
 )
 
-type Writer interface {
-	WriteMsg(proto.Message) (int, error)
+type Writer = pio.Writer
+
+type Reader = pio.Reader
+
+func NewWriter(w io.Writer) Writer {
+	return pio.NewWriter(w)
 }
 
-type Reader interface {
-	ReadMsg(msg proto.Message) error
-	SkipMsg() error
-}
-
-type marshaler interface {
-	MarshalTo(data []byte) (n int, err error)
-}
-
-func getSize(v interface{}) (int, bool) {
-	if sz, ok := v.(interface {
-		Size() (n int)
-	}); ok {
-		return sz.Size(), true
-	} else if sz, ok := v.(interface {
-		ProtoSize() (n int)
-	}); ok {
-		return sz.ProtoSize(), true
-	} else {
-		return 0, false
-	}
+func NewReader(r io.Reader, maxSize int) Reader {
+	return pio.NewReader(r, maxSize)
 }

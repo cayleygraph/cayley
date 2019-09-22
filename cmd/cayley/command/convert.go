@@ -9,7 +9,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/internal"
-	"github.com/cayleygraph/cayley/quad"
+	"github.com/cayleygraph/quad"
 )
 
 func newLazyReader(open func() (quad.ReadCloser, error)) quad.ReadCloser {
