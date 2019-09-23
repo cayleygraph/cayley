@@ -169,37 +169,37 @@ func (p *pathObject) Count() (int64, error) {
 }
 
 // Backwards compatibility
-func (p *pathObject) CaptializedGetLimit(limit int) error {
+func (p *pathObject) CapitalizedGetLimit(limit int) error {
 	return p.GetLimit(limit)
 }
-func (p *pathObject) CaptializedAll() error {
+func (p *pathObject) CapitalizedAll() error {
 	return p.All()
 }
-func (p *pathObject) CaptializedtoArray(call goja.FunctionCall, withTags bool) goja.Value {
+func (p *pathObject) CapitalizedtoArray(call goja.FunctionCall, withTags bool) goja.Value {
 	return p.toArray(call, withTags)
 }
-func (p *pathObject) CaptializedToArray(call goja.FunctionCall) goja.Value {
+func (p *pathObject) CapitalizedToArray(call goja.FunctionCall) goja.Value {
 	return p.ToArray(call)
 }
-func (p *pathObject) CaptializedTagArray(call goja.FunctionCall) goja.Value {
+func (p *pathObject) CapitalizedTagArray(call goja.FunctionCall) goja.Value {
 	return p.TagArray(call)
 }
-func (p *pathObject) CaptializedtoValue(withTags bool) (interface{}, error) {
+func (p *pathObject) CapitalizedtoValue(withTags bool) (interface{}, error) {
 	return p.toValue(withTags)
 }
-func (p *pathObject) CaptializedToValue() (interface{}, error) {
+func (p *pathObject) CapitalizedToValue() (interface{}, error) {
 	return p.ToValue()
 }
-func (p *pathObject) CaptializedTagValue() (interface{}, error) {
+func (p *pathObject) CapitalizedTagValue() (interface{}, error) {
 	return p.TagValue()
 }
-func (p *pathObject) CaptializedMap(call goja.FunctionCall) goja.Value {
+func (p *pathObject) CapitalizedMap(call goja.FunctionCall) goja.Value {
 	return p.Map(call)
 }
-func (p *pathObject) CaptializedForEach(call goja.FunctionCall) goja.Value {
+func (p *pathObject) CapitalizedForEach(call goja.FunctionCall) goja.Value {
 	return p.ForEach(call)
 }
-func (p *pathObject) CaptializedCount() (int64, error) {
+func (p *pathObject) CapitalizedCount() (int64, error) {
 	return p.Count()
 }
 
