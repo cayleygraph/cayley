@@ -328,7 +328,7 @@ func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Ref) ([]quad.Val
 	}
 	var last error
 	for i, p := range prim {
-		if !p.IsNode() {
+		if p == nil || !p.IsNode() {
 			continue
 		}
 		qv, err := pquads.UnmarshalValue(p.Value)
