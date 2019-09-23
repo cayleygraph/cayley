@@ -23,6 +23,7 @@ import (
 	"sort"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
 )
 
@@ -74,32 +75,55 @@ func (s *Session) Parse(input string) error {
 	return errors.New("invalid syntax")
 }
 
-func (s *Session) Execute(ctx context.Context, input string, out chan query.Result, limit int) {
-	defer close(out)
-	it := BuildIteratorTreeForQuery(s.qs, input)
-	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
-		select {
-		case out <- query.TagMapResult(tags):
-		case <-ctx.Done():
-		}
-	})
-	if err != nil {
-		select {
-		case out <- query.ErrorResult(err):
-		case <-ctx.Done():
-		}
+func (s *Session) Execute(ctx context.Context, input string, opt query.Options) (query.Iterator, error) {
+	switch opt.Collation {
+	case query.Raw, query.REPL:
+	default:
+		return nil, &query.ErrUnsupportedCollation{Collation: opt.Collation}
 	}
+	it := BuildIteratorTreeForQuery(s.qs, input)
+	if err := it.Err(); err != nil {
+		return nil, err
+	}
+	if opt.Limit > 0 {
+		it = iterator.NewLimit(it, int64(opt.Limit))
+	}
+	return &results{
+		s:   s,
+		col: opt.Collation,
+		it:  it,
+	}, nil
 }
 
-func (s *Session) FormatREPL(result query.Result) string {
-	out := fmt.Sprintln("****")
-	tags, ok := result.Result().(map[string]graph.Ref)
-	if !ok {
-		return ""
+type results struct {
+	s        *Session
+	col      query.Collation
+	it       graph.Iterator
+	nextPath bool
+}
+
+func (it *results) Next(ctx context.Context) bool {
+	if it.nextPath && it.it.NextPath(ctx) {
+		return true
 	}
-	tagKeys := make([]string, len(tags))
+	it.nextPath = false
+	if it.it.Next(ctx) {
+		it.nextPath = true
+		return true
+	}
+	return false
+}
+
+func (it *results) Result() interface{} {
+	m := make(map[string]graph.Ref)
+	it.it.TagResults(m)
+	if it.col == query.Raw {
+		return m
+	}
+	out := "****\n"
+	tagKeys := make([]string, len(m))
 	i := 0
-	for k := range tags {
+	for k := range m {
 		tagKeys[i] = k
 		i++
 	}
@@ -108,7 +132,15 @@ func (s *Session) FormatREPL(result query.Result) string {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, s.qs.NameOf(tags[k]))
+		out += fmt.Sprintf("%s : %s\n", k, it.s.qs.NameOf(m[k]))
 	}
 	return out
+}
+
+func (it *results) Err() error {
+	return it.it.Err()
+}
+
+func (it *results) Close() error {
+	return it.it.Close()
 }

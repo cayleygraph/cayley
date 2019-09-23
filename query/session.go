@@ -18,6 +18,7 @@ package query
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -25,53 +26,62 @@ import (
 
 var ErrParseMore = errors.New("query: more input required")
 
-type Result interface {
+type ErrUnsupportedCollation struct {
+	Collation Collation
+}
+
+func (e *ErrUnsupportedCollation) Error() string {
+	return fmt.Sprintf("unsupported collation: %v", e.Collation)
+}
+
+// Iterator for query results.
+type Iterator interface {
+	// Next advances the iterator to the next value, which will then be available through
+	// the Result method. It returns false if no further advancement is possible, or if an
+	// error was encountered during iteration.  Err should be consulted to distinguish
+	// between the two cases.
+	Next(ctx context.Context) bool
+	// Results returns the current result. The type depends on the collation mode of the query.
 	Result() interface{}
+	// Err returns any error that was encountered by the Iterator.
 	Err() error
+	// Close the iterator and do internal cleanup.
+	Close() error
 }
 
-func ErrorResult(err error) Result {
-	return errResult{err: err}
+// Collation of results.
+type Collation int
+
+const (
+	// Raw collates results as maps or arrays of graph.Refs or any other query-native or graph-native data type.
+	Raw = Collation(iota)
+	// REPL collates results as strings which will be used in CLI.
+	REPL = Collation(iota)
+	// JSON collates results as maps, arrays and values, that can be encoded to JSON.
+	JSON
+)
+
+// Options for the query execution.
+type Options struct {
+	Limit     int
+	Collation Collation
 }
-
-type errResult struct {
-	err error
-}
-
-func (errResult) Result() interface{} { return nil }
-func (e errResult) Err() error        { return e.err }
-
-func TagMapResult(m map[string]graph.Ref) Result {
-	return tagMap(m)
-}
-
-type tagMap map[string]graph.Ref
-
-func (m tagMap) Result() interface{} { return map[string]graph.Ref(m) }
-func (tagMap) Err() error            { return nil }
 
 type Session interface {
-	// Runs the query and returns individual results on the channel.
-	//
-	// Channel will be closed when function returns.
-	Execute(ctx context.Context, query string, out chan Result, limit int)
+	// Execute runs the query and returns an iterator over the results.
+	// Type of results depends on Collation. See Options for details.
+	Execute(ctx context.Context, query string, opt Options) (Iterator, error)
 }
 
-// TODO(dennwc): review HTTP interface (Collate is weird)
 // TODO(dennwc): specify exact type to return from ShapeOf
 // TODO(dennwc): add context to ShapeOf?
 
 type HTTP interface {
 	Session
 	ShapeOf(string) (interface{}, error)
-	Collate(Result)
-	Results() (interface{}, error)
 }
 
-type REPLSession interface {
-	Session
-	FormatREPL(Result) string
-}
+type REPLSession = Session
 
 // ResponseWriter is a subset of http.ResponseWriter
 type ResponseWriter interface {
@@ -83,7 +93,7 @@ type ResponseWriter interface {
 type Language struct {
 	Name    string
 	Session func(graph.QuadStore) Session
-	REPL    func(graph.QuadStore) REPLSession
+	REPL    func(graph.QuadStore) REPLSession // deprecated
 	HTTP    func(graph.QuadStore) HTTP
 
 	// Custom HTTP handlers
@@ -125,4 +135,15 @@ func Languages() []string {
 		out = append(out, name)
 	}
 	return out
+}
+
+// Execute runs the query in a given language and returns an iterator over the results.
+// Type of results depends on Collation. See Options for details.
+func Execute(ctx context.Context, qs graph.QuadStore, lang, query string, opt Options) (Iterator, error) {
+	l := GetLanguage(lang)
+	if l == nil {
+		return nil, fmt.Errorf("unsupported language: %q", lang)
+	}
+	sess := l.Session(qs)
+	return sess.Execute(ctx, query, opt)
 }

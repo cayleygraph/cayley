@@ -488,23 +488,23 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 		clog.Infof("query: %s: %q", lang, qu)
 	}
 
-	c := make(chan query.Result, 5)
-	go ses.Execute(ctx, qu, c, api.limit)
-
-	for res := range c {
-		if err := res.Err(); err != nil {
-			if err == nil {
-				continue // wait for results channel to close
-			}
-			errFunc(w, err)
-			return
-		}
-		ses.Collate(res)
-	}
-	output, err := ses.Results()
+	it, err := ses.Execute(ctx, qu, query.Options{
+		Collation: query.JSON,
+		Limit:     api.limit,
+	})
 	if err != nil {
 		errFunc(w, err)
 		return
 	}
-	writeResults(w, output)
+	defer it.Close()
+
+	var out []interface{}
+	for it.Next(ctx) {
+		out = append(out, it.Result())
+	}
+	if err = it.Err(); err != nil {
+		errFunc(w, err)
+		return
+	}
+	writeResults(w, out)
 }

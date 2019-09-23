@@ -622,18 +622,20 @@ var testQueries = []struct {
 
 func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string, limit int) ([]string, error) {
 	js := makeTestSession(g)
-	c := make(chan query.Result, 1)
-	go func() {
-		defer rec()
-		js.Execute(context.TODO(), qu, c, limit)
-	}()
+	ctx := context.TODO()
+	it, err := js.Execute(ctx, qu, query.Options{
+		Collation: query.Raw,
+		Limit:     limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer it.Close()
+	defer rec()
 
 	var results []string
-	for res := range c {
-		if err := res.Err(); err != nil {
-			return results, err
-		}
-		data := res.(*Result)
+	for it.Next(ctx) {
+		data := it.Result().(*Result)
 		if data.Val == nil {
 			if val := data.Tags[tag]; val != nil {
 				results = append(results, quadValueToString(js.qs.NameOf(val)))
@@ -646,6 +648,9 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string, limit int)
 				results = append(results, fmt.Sprint(v))
 			}
 		}
+	}
+	if err := it.Err(); err != nil {
+		return results, err
 	}
 	return results, nil
 }
@@ -718,17 +723,24 @@ func TestIssue160(t *testing.T) {
 	}
 
 	ses := makeTestSession(issue160TestGraph)
-	c := make(chan query.Result, 5)
-	go ses.Execute(context.TODO(), qu, c, 100)
+	ctx := context.TODO()
+	it, err := ses.Execute(ctx, qu, query.Options{
+		Collation: query.REPL,
+		Limit:     100,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer it.Close()
 	var got []string
-	for res := range c {
+	for it.Next(ctx) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
 					t.Errorf("Unexpected panic: %v", r)
 				}
 			}()
-			got = append(got, ses.FormatREPL(res))
+			got = append(got, it.Result().(string))
 		}()
 	}
 	sort.Strings(got)

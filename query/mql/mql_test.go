@@ -17,8 +17,9 @@ package mql
 import (
 	"context"
 	"encoding/json"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
@@ -160,31 +161,29 @@ var testQueries = []struct {
 	},
 }
 
-func runQuery(g []quad.Quad, qu string) interface{} {
+func runQuery(t testing.TB, g []quad.Quad, qu string) interface{} {
 	s := makeTestSession(g)
-	c := make(chan query.Result, 5)
-	go s.Execute(context.TODO(), qu, c, -1)
-	for result := range c {
-		s.Collate(result)
+	ctx := context.TODO()
+	it, err := s.Execute(ctx, qu, query.Options{Collation: query.JSON})
+	if err != nil {
+		t.Fatal(err)
 	}
-	result, _ := s.Results()
-	return result
+	defer it.Close()
+	var out []interface{}
+	for it.Next(ctx) {
+		out = append(out, it.Result())
+	}
+	return out
 }
 
 func TestMQL(t *testing.T) {
 	simpleGraph := testutil.LoadGraph(t, "../../data/testdata.nq")
 	for _, test := range testQueries {
 		t.Run(test.message, func(t *testing.T) {
-			got := runQuery(simpleGraph, test.query)
+			got := runQuery(t, simpleGraph, test.query)
 			var expect interface{}
 			json.Unmarshal([]byte(test.expect), &expect)
-			if !reflect.DeepEqual(got, expect) {
-				b, err := json.MarshalIndent(got, "", " ")
-				if err != nil {
-					t.Fatalf("unexpected JSON marshal error: %v", err)
-				}
-				t.Errorf("got: %s expected: %s", b, test.expect)
-			}
+			require.Equal(t, expect, got)
 		})
 	}
 }
