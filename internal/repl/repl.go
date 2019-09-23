@@ -53,14 +53,20 @@ func Run(ctx context.Context, qu string, ses query.REPLSession) error {
 		}
 	}()
 	fmt.Printf("\n")
-	c := make(chan query.Result, 5)
-	go ses.Execute(ctx, qu, c, 100)
-	for res := range c {
-		if err := res.Err(); err != nil {
-			return err
-		}
-		fmt.Print(ses.FormatREPL(res))
+	it, err := ses.Execute(ctx, qu, query.Options{
+		Collation: query.REPL,
+		Limit:     100,
+	})
+	if err != nil {
+		return err
+	}
+	defer it.Close()
+	for it.Next(ctx) {
+		fmt.Print(it.Result())
 		nResults++
+	}
+	if err := it.Err(); err != nil {
+		return err
 	}
 	if nResults > 0 {
 		results := "Result"

@@ -120,27 +120,25 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		errFunc(w, err)
 		return
 	}
-	code := string(bodyBytes)
-
-	c := make(chan query.Result, 5)
-	go ses.Execute(ctx, code, c, limit)
-
-	for res := range c {
-		if err := res.Err(); err != nil {
-			if err == nil {
-				continue // wait for results channel to close
-			}
-			errFunc(w, err)
-			return
-		}
-		ses.Collate(res)
-	}
-	output, err := ses.Results()
+	it, err := ses.Execute(ctx, string(bodyBytes), query.Options{
+		Collation: query.JSON,
+		Limit:     limit,
+	})
 	if err != nil {
 		errFunc(w, err)
 		return
 	}
-	_ = WriteResult(w, output)
+	defer it.Close()
+
+	var out []interface{}
+	for it.Next(ctx) {
+		out = append(out, it.Result())
+	}
+	if err = it.Err(); err != nil {
+		errFunc(w, err)
+		return
+	}
+	_ = WriteResult(w, out)
 }
 
 func (api *API) ServeV1Shape(w http.ResponseWriter, r *http.Request, params httprouter.Params) {

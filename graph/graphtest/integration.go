@@ -507,26 +507,22 @@ func checkQueries(t *testing.T, qs graph.QuadStore, timeout time.Duration) {
 			}
 			start := time.Now()
 			ses := gizmo.NewSession(qs)
-			c := make(chan query.Result, 5)
 			ctx := context.Background()
 			if timeout > 0 {
 				var cancel func()
 				ctx, cancel = context.WithTimeout(ctx, timeout)
 				defer cancel()
 			}
-			go ses.Execute(ctx, test.query, c, -1)
+			it, err := ses.Execute(ctx, test.query, query.Options{
+				Collation: query.JSON,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer it.Close()
 			var got []interface{}
-			for r := range c {
-				if err := r.Err(); err != nil {
-					t.Error("Error:", err)
-					continue
-				}
-				ses.Collate(r)
-				j, err := ses.Results()
-				if j == nil && err == nil {
-					continue
-				}
-				got = append(got, j.([]interface{})...)
+			for it.Next(ctx) {
+				got = append(got, it.Result())
 			}
 			t.Logf("%12v %v", time.Since(start), test.message)
 
@@ -580,26 +576,34 @@ func benchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
 			b.StopTimer()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				c := make(chan query.Result, 5)
-				ctx := context.Background()
-				var cancel func()
-				if timeout > 0 {
-					ctx, cancel = context.WithTimeout(ctx, timeout)
-				}
-				ses := gizmo.NewSession(qs)
-				b.StartTimer()
-				go ses.Execute(ctx, bench.query, c, -1)
-				n := 0
-				for range c {
-					n++
-				}
-				b.StopTimer()
-				if n != len(bench.expect) {
-					b.Fatalf("unexpected number of results: %d vs %d", n, len(bench.expect))
-				}
-				if cancel != nil {
-					cancel()
-				}
+				func() {
+					ctx := context.Background()
+					if timeout > 0 {
+						var cancel func()
+						ctx, cancel = context.WithTimeout(ctx, timeout)
+						defer cancel()
+					}
+					ses := gizmo.NewSession(qs)
+					b.StartTimer()
+					it, err := ses.Execute(ctx, bench.query, query.Options{
+						Collation: query.Raw,
+					})
+					if err != nil {
+						b.Fatal(err)
+					}
+					defer it.Close()
+					n := 0
+					for it.Next(ctx) {
+						n++
+					}
+					if err = it.Err(); err != nil {
+						b.Fatal(err)
+					}
+					b.StopTimer()
+					if n != len(bench.expect) {
+						b.Fatalf("unexpected number of results: %d vs %d", n, len(bench.expect))
+					}
+				}()
 			}
 		})
 	}
