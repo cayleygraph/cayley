@@ -7,7 +7,7 @@ Cayley is an open-source graph inspired by the graph database behind [Freebase](
 Its goal is to be a part of the developer's toolbox where [Linked Data](http://linkeddata.org/) and graph-shaped data (semantic webs, social networks, etc) in general are concerned.
 
 [![Build Status](https://travis-ci.com/cayleygraph/cayley.svg?branch=master)](https://travis-ci.com/cayleygraph/cayley)
-[![Container Repository on Quay](https://quay.io/repository/cayleygraph/cayley/status "Container Repository on Quay")](https://quay.io/repository/cayleygraph/cayley)
+[![Container Repository](https://img.shields.io/docker/cloud/build/cayleygraph/cayley "Container Repository")](https://hub.docker.com/r/cayleygraph/cayley)
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-white.svg)](https://snapcraft.io/cayley)
 

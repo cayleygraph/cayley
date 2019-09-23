@@ -93,7 +93,7 @@ spec:
     spec:
       initContainers:
       - name: cayley-init
-        image: quay.io/cayleygraph/cayley:v0.7.0-alpha
+        image: cayleygraph/cayley:v0.7.5
         command:
         - cayley
         - init
@@ -101,7 +101,7 @@ spec:
         - -a=mongo
       containers:
       - name: cayley
-        image: quay.io/cayleygraph/cayley:v0.7.0-alpha
+        image: cayleygraph/cayley:v0.7.5
         command:
         - cayley
         - http

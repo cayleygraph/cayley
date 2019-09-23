@@ -11,7 +11,7 @@ A container exposing the HTTP API of Cayley is available.
 Container is configured to use BoltDB as a backend by default.
 
 ```
-docker run -p 64210:64210 -d quay.io/cayleygraph/cayley
+docker run -p 64210:64210 -d cayleygraph/cayley:v0.7.5
 ```
 
 New database will be available at http://localhost:64210.
@@ -25,14 +25,14 @@ mkdir data
 cp cayley_example.yml data/cayley.yml
 cp data/testdata.nq data/my_data.nq
 # initialize and serve database
-docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley -c /data/cayley.yml --init -i /data/my_data.nq
+docker run -v $PWD/data:/data -p 64210:64210 -d cayleygraph/cayley:v0.7.5 -c /data/cayley.yml --init -i /data/my_data.nq
 # serve existing database
-docker run -v $PWD/data:/data -p 64210:64210 -d quay.io/cayleygraph/cayley -c /data/cayley.yml
+docker run -v $PWD/data:/data -p 64210:64210 -d cayleygraph/cayley:v0.7.5 -c /data/cayley.yml
 ```
 
 ## Other commands
 
 Container runs `cayley http` command by default. To run any other Cayley command reset the entry point for container:
 ```
-docker run -v $PWD/data:/data quay.io/cayleygraph/cayley --entrypoint=cayley version
+docker run -v $PWD/data:/data cayleygraph/cayley:v0.7.5 --entrypoint=cayley version
 ```
