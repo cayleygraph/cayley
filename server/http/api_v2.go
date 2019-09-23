@@ -397,7 +397,7 @@ func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *APIv2) queryContext(r *http.Request) (ctx context.Context, cancel func()) {
-	ctx = context.TODO() // TODO(dennwc): get from request
+	ctx = r.Context()
 	if api.timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, api.timeout)
 	} else {
