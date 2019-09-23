@@ -115,6 +115,7 @@ const (
 	hdrAccept          = "Accept"
 	hdrAcceptEncoding  = "Accept-Encoding"
 	contentTypeJSON    = "application/json"
+	contentTypeJSONLD  = "application/ld+json"
 )
 
 func getFormat(r *http.Request, formKey string, acceptName string) *quad.Format {
@@ -415,9 +416,11 @@ func defaultErrorFunc(w query.ResponseWriter, err error) {
 }
 
 func writeResults(w io.Writer, r interface{}) {
-	w.Write([]byte(`{"result": `))
-	json.NewEncoder(w).Encode(r)
-	w.Write([]byte("}\n"))
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	enc.Encode(map[string]interface{}{
+		"result": r,
+	})
 }
 
 const maxQuerySize = 1024 * 1024 // 1 MB
@@ -488,10 +491,20 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 		clog.Infof("query: %s: %q", lang, qu)
 	}
 
-	it, err := ses.Execute(ctx, qu, query.Options{
-		Collation: query.JSON,
+	opt := query.Options{
+		Collation: query.JSON, // TODO: switch to JSON-LD by default when the time comes
 		Limit:     api.limit,
-	})
+	}
+	if specs := ParseAccept(r.Header, hdrAccept); len(specs) != 0 {
+		// TODO: sort by Q
+		switch specs[0].Value {
+		case contentTypeJSON:
+			opt.Collation = query.JSON
+		case contentTypeJSONLD:
+			opt.Collation = query.JSONLD
+		}
+	}
+	it, err := ses.Execute(ctx, qu, opt)
 	if err != nil {
 		errFunc(w, err)
 		return
@@ -505,6 +518,11 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 	if err = it.Err(); err != nil {
 		errFunc(w, err)
 		return
+	}
+	if opt.Collation == query.JSONLD {
+		w.Header().Set(hdrContentType, contentTypeJSONLD)
+	} else {
+		w.Header().Set(hdrContentType, contentTypeJSON)
 	}
 	writeResults(w, out)
 }

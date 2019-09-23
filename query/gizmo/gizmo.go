@@ -93,6 +93,7 @@ type Session struct {
 	vm  *goja.Runtime
 	ns  voc.Namespaces
 	sch *schema.Config
+	col query.Collation
 
 	last string
 	p    *goja.Program
@@ -127,10 +128,24 @@ func (s *Session) buildEnv() error {
 	return nil
 }
 
+func (s *Session) quadValueToNative(v quad.Value) interface{} {
+	if v == nil {
+		return nil
+	}
+	if s.col == query.JSONLD {
+		return jsonld.FromValue(v)
+	}
+	out := v.Native()
+	if nv, ok := out.(quad.Value); ok && v == nv {
+		return quad.StringOf(v)
+	}
+	return out
+}
+
 func (s *Session) tagsToValueMap(m map[string]graph.Ref) map[string]interface{} {
 	outputMap := make(map[string]interface{})
 	for k, v := range m {
-		if o := jsonld.FromValue(s.qs.NameOf(v)); o != nil {
+		if o := s.quadValueToNative(s.qs.NameOf(v)); o != nil {
 			outputMap[k] = o
 		}
 	}
@@ -161,7 +176,7 @@ func (s *Session) runIteratorToArrayNoTags(it graph.Iterator, limit int) ([]inte
 
 	output := make([]interface{}, 0)
 	err := graph.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(s.qs, func(v quad.Value) {
-		if o := jsonld.FromValue(v); o != nil {
+		if o := s.quadValueToNative(v); o != nil {
 			output = append(output, o)
 		}
 	})
@@ -282,7 +297,7 @@ func (s *Session) run() (goja.Value, error) {
 }
 func (s *Session) Execute(ctx context.Context, qu string, opt query.Options) (query.Iterator, error) {
 	switch opt.Collation {
-	case query.Raw, query.JSON, query.REPL:
+	case query.Raw, query.JSON, query.JSONLD, query.REPL:
 	default:
 		return nil, &query.ErrUnsupportedCollation{Collation: opt.Collation}
 	}
@@ -293,6 +308,7 @@ func (s *Session) Execute(ctx context.Context, qu string, opt query.Options) (qu
 	s.count = 0
 	ctx, cancel := context.WithCancel(context.Background())
 	s.ctx = ctx
+	s.col = opt.Collation
 	return &results{
 		col: opt.Collation,
 		s:   s,
@@ -362,17 +378,15 @@ func (it *results) Result() interface{} {
 	switch it.col {
 	case query.Raw:
 		return it.cur
-	case query.JSON:
-		return it.jsonResult(false)
-	case query.JSONLD:
-		return it.jsonResult(true)
+	case query.JSON, query.JSONLD:
+		return it.jsonResult()
 	case query.REPL:
 		return it.replResult()
 	}
 	return nil
 }
 
-func (it *results) jsonResult(ld bool) interface{} {
+func (it *results) jsonResult() interface{} {
 	data := it.cur
 	if data.Meta {
 		return nil
@@ -389,13 +403,7 @@ func (it *results) jsonResult(ld bool) interface{} {
 	sort.Strings(tagKeys)
 	for _, k := range tagKeys {
 		if name := it.s.qs.NameOf(tags[k]); name != nil {
-			var v interface{}
-			if ld {
-				v = jsonld.FromValue(v)
-			} else {
-				v = quadValueToNative(name)
-			}
-			obj[k] = v
+			obj[k] = it.s.quadValueToNative(name)
 		} else {
 			delete(obj, k)
 		}

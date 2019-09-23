@@ -59,6 +59,8 @@ const (
 	REPL = Collation(iota)
 	// JSON collates results as maps, arrays and values, that can be encoded to JSON.
 	JSON
+	// JSONLD collates results as maps, arrays and values compatible with JSON-LD spec.
+	JSONLD
 )
 
 // Options for the query execution.
