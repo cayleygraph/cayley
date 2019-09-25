@@ -11,10 +11,12 @@ A container exposing the HTTP API of Cayley is available.
 Container is configured to use BoltDB as a backend by default.
 
 ```
-docker run -p 64210:64210 -d cayleygraph/cayley:v0.7.5
+docker run -p 64210:64210 -d --tmpfs /tmp cayleygraph/cayley:v0.7.5
 ```
 
 New database will be available at http://localhost:64210.
+
+**Notice**: it uses tmpfs mounts to allow uploading large nquad file over HTTP.
 
 ## Custom configuration
 
