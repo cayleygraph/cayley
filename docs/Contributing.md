@@ -4,6 +4,14 @@ Join our community on [discourse.cayley.io](https://discourse.cayley.io) or othe
 
 # Simply building Cayley
 
+If your version of Go < 1.13, you have to run:
+
+```
+export GO111MODULE=on
+```
+
+Follow the instructions for running Cayley locally:
+
 ```
 # clone project
 git clone https://github.com/cayleygraph/cayley
@@ -14,9 +22,13 @@ go mod download
 
 # build the binary
 go build ./cmd/cayley
+
+# try the generated binary
+./cayley help
 ```
 
-Then `cd` to the directory and give it a quick test with:
+Give it a quick test with:
+
 ```
 ./cayley repl -i data/testdata.nq
 ```
@@ -25,6 +37,9 @@ To run the web frontend, replace the "repl" command with "http"
 ```
 ./cayley http -i data/testdata.nq
 ```
+
+You can now open the WebUI in your browser: http://127.0.0.1:64210
+
 
 
 # Hacking on Cayley
@@ -69,6 +84,12 @@ Which will also resolve the relevant static content paths for serving HTTP.
 **Reminder:** add yourself to CONTRIBUTORS and AUTHORS.
 
 # Running Unit Tests
+
+If your version of Go < 1.13, you have to run:
+
+```
+export GO111MODULE=on
+```
 
 First, `cd` into the `cayley` project folder and run:
 ```
