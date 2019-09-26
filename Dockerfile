@@ -17,6 +17,7 @@ RUN mkdir -p /fs/assets
 RUN mkdir -p /fs/bin
 RUN mkdir -p /fs/data
 RUN mkdir -p /fs/etc
+RUN mkdir -p /fs/tmp
 RUN sed 's_%PREFIX%__g' config.json > /fs/etc/cayley.json
 
 ENV PATH /fs/bin:$PATH
