@@ -29,12 +29,12 @@ RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     -v \
     ./cmd/cayley
 
-WORKDIR /fs
-
 # Move assets into the filesystem
-RUN mv docs static templates assets; \
+RUN mv docs static templates /fs/assets; \
     # Move persisted configuration into filesystem
-    mv configurations/persisted.json etc/cayley.json
+    mv configurations/persisted.json /fs/etc/cayley.json
+
+WORKDIR /fs
 
 # Initialize bolt indexes file
 RUN ./bin/cayley init --config etc/cayley.json
