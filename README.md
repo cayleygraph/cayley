@@ -42,6 +42,7 @@ Rough performance testing shows that, on 2014 consumer hardware and an average d
 * Slack: [cayleygraph.slack.com](https://cayleygraph.slack.com) -- Invite [here](https://cayley-slackin.herokuapp.com/)
 * Discourse list: [discourse.cayley.io](https://discourse.cayley.io) (Also acts as mailing list, enable mailing list mode)
 * Twitter: [@cayleygraph](https://twitter.com/cayleygraph)
+* Involvement: [Contribute](./docs/Contributing.md)
 
 ## Documentation
 
