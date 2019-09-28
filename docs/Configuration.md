@@ -1,6 +1,6 @@
 # Configuration
 
-Cayley can be configured using configuration file written in YAML / JSON or by passing flags to the `http` command line.
+Cayley can be configured using configuration file written in YAML / JSON or by passing flags to the command line.
 By default. All command line flags take precedence over the configuration file.
 
 - [Recommended Configuration](#Recommended-Configuration)
@@ -13,8 +13,9 @@ By default. All command line flags take precedence over the configuration file.
 
 ## Recommended Configuration
 
-By default, Cayley is using an on-disk `bolt` store. This will best work for most use cases.
-For read-only datasets that can fit into the memory of the machine `memstore` is better.
+By default, Cayley is using the `memstore` store.
+`memstore` works best for datasets that can fit into the memory of the machine and workloads which doesn't require persistency.
+For large datasets and/or workloads with require persistency it is recommended to use the `bolt` store.
 
 ## Configuration Options
 
@@ -23,7 +24,7 @@ For read-only datasets that can fit into the memory of the machine `memstore` is
 #### **`store.backend`**
 
 - Type: String
-- Default: `"bolt"`
+- Default: `"memory"`
 
 Determines the type of the underlying database. Options include:
 
