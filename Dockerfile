@@ -1,4 +1,4 @@
-FROM golang:1.13.1 as builder
+FROM golang:1.13 as builder
 
 # Set up workdir to make go mod work
 WORKDIR /cayley
@@ -17,7 +17,9 @@ RUN mkdir -p /fs/etc/ssl/certs /fs/lib/x86_64-linux-gnu /fs/tmp /fs/bin /fs/asse
 ADD . .
 
 # Move assets into the filesystem
-RUN mv docs static templates /fs/assets
+RUN mv docs static templates /fs/assets; \
+    # Move persisted configuration into filesystem
+    mv configurations/persisted.json /etc/cayley.json
 
 RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     go build \
@@ -34,4 +36,11 @@ COPY --from=builder /fs /
 
 EXPOSE 64210
 
+# Define volume for configuration and data persistence. If you're using a
+# backend like bolt, make sure the file is saved to this directory.
+VOLUME [ "/data" ]
+
+# Adding everything to entrypoint allows us to init, load and serve only with
+# arguments passed to docker run. For example:
+# `docker run cayleygraph/cayley --init -i /data/my_data.nq`
 ENTRYPOINT ["cayley", "http", "--assets=/assets", "--host=:64210"]
