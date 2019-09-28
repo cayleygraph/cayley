@@ -21,6 +21,7 @@ RUN mv docs static templates /fs/assets; \
     # Move persisted configuration into filesystem
     mv configurations/persisted.json /fs/etc/cayley.json
 
+# Pass a Git short SHA as build information to be used for displaying version
 RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     go build \
     -ldflags="-linkmode external -extldflags -static -X github.com/cayleygraph/cayley/version.GitHash=$SHORT_SHA" \
@@ -29,6 +30,9 @@ RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     -o /fs/bin/cayley \
     -v \
     ./cmd/cayley
+
+# Initialize bolt indexes file
+RUN /fs/bin/cayley init
 
 FROM scratch
 
