@@ -8,13 +8,16 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Create filesystem for minimal image
-RUN mkdir -p /fs/etc/ssl/certs /fs/lib/x86_64-linux-gnu /fs/tmp /fs/bin fs/assets; \
+RUN mkdir -p /fs/etc/ssl/certs /fs/lib/x86_64-linux-gnu /fs/tmp /fs/bin /fs/assets; \
     # Copy CA Certificates
     cp /etc/ssl/certs/ca-certificates.crt /fs/etc/ssl/certs/ca-certificates.crt; \
     # Copy C standard library
     cp /lib/x86_64-linux-gnu/libc-* /fs/lib/x86_64-linux-gnu/
 
 ADD . .
+
+# Move assets into the filesystem
+RUN mv docs static templates /fs/assets
 
 RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     go build \
@@ -28,8 +31,6 @@ RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
 FROM scratch
 
 COPY --from=builder /fs /
-
-COPY docs static templates /assets/
 
 EXPOSE 64210
 
