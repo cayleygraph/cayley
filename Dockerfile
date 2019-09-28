@@ -1,25 +1,23 @@
 FROM golang:1.13 as builder
 
-# Set up workdir to make go mod work
-WORKDIR /cayley
+# Create filesystem for minimal image
+WORKDIR /fs
 
-# Install dependencies first
+RUN mkdir -p etc/ssl/certs lib/x86_64-linux-gnu tmp bin assets data; \
+    # Copy CA Certificates
+    cp /etc/ssl/certs/ca-certificates.crt etc/ssl/certs/ca-certificates.crt; \
+    # Copy C standard library
+    cp /lib/x86_64-linux-gnu/libc-* lib/x86_64-linux-gnu/
+
+# Set up workdir for compiling
+WORKDIR /src
+
+# Copy dependencies and install first
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Create filesystem for minimal image
-RUN mkdir -p /fs/etc/ssl/certs /fs/lib/x86_64-linux-gnu /fs/tmp /fs/bin /fs/assets /fs/data; \
-    # Copy CA Certificates
-    cp /etc/ssl/certs/ca-certificates.crt /fs/etc/ssl/certs/ca-certificates.crt; \
-    # Copy C standard library
-    cp /lib/x86_64-linux-gnu/libc-* /fs/lib/x86_64-linux-gnu/
-
+# Add all the other files
 ADD . .
-
-# Move assets into the filesystem
-RUN mv docs static templates /fs/assets; \
-    # Move persisted configuration into filesystem
-    mv configurations/persisted.json /fs/etc/cayley.json
 
 # Pass a Git short SHA as build information to be used for displaying version
 RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
@@ -31,11 +29,19 @@ RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     -v \
     ./cmd/cayley
 
+WORKDIR /fs
+
+# Move assets into the filesystem
+RUN mv docs static templates assets; \
+    # Move persisted configuration into filesystem
+    mv configurations/persisted.json etc/cayley.json
+
 # Initialize bolt indexes file
-RUN /fs/bin/cayley init --config /fs/etc/cayley.json
+RUN ./bin/cayley init --config etc/cayley.json
 
 FROM scratch
 
+# Copy filesystem as root
 COPY --from=builder /fs /
 
 # Define volume for configuration and data persistence. If you're using a
