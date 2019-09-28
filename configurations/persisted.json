@@ -1,6 +1,6 @@
 {
   "store": {
     "backend": "bolt",
-    "address": "/data/cayley.db"
+    "address": "data/cayley.db"
   }
 }

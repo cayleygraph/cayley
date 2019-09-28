@@ -8,7 +8,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Create filesystem for minimal image
-RUN mkdir -p /fs/etc/ssl/certs /fs/lib/x86_64-linux-gnu /fs/tmp /fs/bin /fs/assets; \
+RUN mkdir -p /fs/etc/ssl/certs /fs/lib/x86_64-linux-gnu /fs/tmp /fs/bin /fs/assets /fs/data; \
     # Copy CA Certificates
     cp /etc/ssl/certs/ca-certificates.crt /fs/etc/ssl/certs/ca-certificates.crt; \
     # Copy C standard library
@@ -34,11 +34,11 @@ FROM scratch
 
 COPY --from=builder /fs /
 
-EXPOSE 64210
-
 # Define volume for configuration and data persistence. If you're using a
 # backend like bolt, make sure the file is saved to this directory.
 VOLUME [ "/data" ]
+
+EXPOSE 64210
 
 # Adding everything to entrypoint allows us to init, load and serve only with
 # arguments passed to docker run. For example:
