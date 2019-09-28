@@ -32,7 +32,7 @@ RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     ./cmd/cayley
 
 # Initialize bolt indexes file
-RUN /fs/bin/cayley init
+RUN /fs/bin/cayley init --config /fs/etc/cayley.json
 
 FROM scratch
 
