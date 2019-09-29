@@ -1,66 +1,56 @@
-FROM golang:1.11 as builder
+FROM golang:1.13 as builder
 
-# Set up workdir
-WORKDIR /cayley
+# Create filesystem for minimal image
+WORKDIR /fs
 
-# Restore dependencies
+RUN mkdir -p etc/ssl/certs lib/x86_64-linux-gnu tmp bin assets data; \
+    # Copy CA Certificates
+    cp /etc/ssl/certs/ca-certificates.crt etc/ssl/certs/ca-certificates.crt; \
+    # Copy C standard library
+    cp /lib/x86_64-linux-gnu/libc-* lib/x86_64-linux-gnu/
+
+# Set up workdir for compiling
+WORKDIR /src
+
+# Copy dependencies and install first
 COPY go.mod go.sum ./
 RUN go mod download
 
-# This will be used to init cayley and as config file in the final image.
-# Make sure you start every path with %PREFIX% to make it available in both 
-# the builder image and the final image.
-RUN echo '{"store":{"backend":"bolt","address":"%PREFIX%/data/cayley.db"}}' > config.json
+# Add all the other files
+ADD . .
 
-# Create filesystem for minimal image
-RUN mkdir -p /fs/assets
-RUN mkdir -p /fs/bin
-RUN mkdir -p /fs/data
-RUN mkdir -p /fs/etc
-RUN mkdir -p /fs/tmp
-RUN sed 's_%PREFIX%__g' config.json > /fs/etc/cayley.json
+# Pass a Git short SHA as build information to be used for displaying version
+RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
+    go build \
+    -ldflags="-linkmode external -extldflags -static -X github.com/cayleygraph/cayley/version.GitHash=$SHORT_SHA" \
+    -a \
+    -installsuffix cgo \
+    -o /fs/bin/cayley \
+    -v \
+    ./cmd/cayley
 
-ENV PATH /fs/bin:$PATH
+# Move assets into the filesystem
+RUN mv docs static templates /fs/assets; \
+    # Move persisted configuration into filesystem
+    mv configurations/persisted.json /fs/etc/cayley.json
 
-# Copy CA certs from builder image to the filesystem of the cayley image
-RUN mkdir -p /fs/etc/ssl/certs
-RUN cp /etc/ssl/certs/ca-certificates.crt /fs/etc/ssl/certs/ca-certificates.crt
+WORKDIR /fs
 
-RUN mkdir -p /fs/lib/x86_64-linux-gnu
-RUN cp /lib/x86_64-linux-gnu/libc-* /fs/lib/x86_64-linux-gnu/
-
-# Add assets to target fs
-COPY docs /fs/assets/docs
-COPY static /fs/assets/static
-COPY templates /fs/assets/templates
-
-# Add and build static linked version of cayley
-# This will show warnings that glibc is required at runtime which can be ignored
-COPY . .
-RUN go build \
-  -ldflags="-linkmode external -extldflags -static -X github.com/cayleygraph/cayley/version.GitHash=$(git rev-parse HEAD | cut -c1-12)" \
-  -a \
-  -installsuffix cgo \
-  -o /fs/bin/cayley \
-  -v \
-  ./cmd/cayley
-
-RUN sed 's_%PREFIX%_/fs_g' config.json > /etc/cayley.json
-RUN cayley init --config /etc/cayley.json
-
+# Initialize bolt indexes file
+RUN ./bin/cayley init --config etc/cayley.json
 
 FROM scratch
-LABEL maintainer="Yannic Bonenberger" \
-           email="contact@yannic-bonenberger.com"
 
-# Expose the port and volume for configuration and data persistence. If you're
-# using a backend like bolt, make sure the file is saved to this directory.
+# Copy filesystem as root
 COPY --from=builder /fs /
-VOLUME ["/data"]
+
+# Define volume for configuration and data persistence. If you're using a
+# backend like bolt, make sure the file is saved to this directory.
+VOLUME [ "/data" ]
 
 EXPOSE 64210
 
-# Adding everything to entrypoint allows us to init+load+serve
-# with default containers parameters:
-#   i.e.: `docker run cayleygraph/cayley --init -i /data/my_data.nq`
-ENTRYPOINT ["cayley", "http", "--assets", "/assets", "--host", ":64210"]
+# Adding everything to entrypoint allows us to init, load and serve only with
+# arguments passed to docker run. For example:
+# `docker run cayleygraph/cayley --init -i /data/my_data.nq`
+ENTRYPOINT ["cayley", "http", "--assets=/assets", "--host=:64210"]
