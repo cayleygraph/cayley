@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide will take you through starting a persistent graph based on the provided data, with some hints for each backend.
+This guide will take you through starting a graph based on provided data.
 
 ## Prerequisites
 
@@ -97,32 +97,3 @@ g.V()
 ```
 
 To learn more about querying see [Gizmo Documentation](GizmoAPI.md)
-
-## Next Steps
-
-### Introduction
-
-- [Installation](Installation.md)
-- [Advanced Use](Advanced-Use.md)
-- [UI Overview](UI-Overview.md)
-- [Project Locations](Locations.md)
-
-### Reference
-
-- [Glossary](glossary.md)
-- [Gizmo API](GizmoAPI.md)
-- [GephiGraphStream](GephiGraphStream.md)
-- [HTTP](HTTP.md)
-- [MQL](MQL.md)
-
-### Administrators
-
-- [Configuration](Configuration.md)
-- [Migration](Migration.md)
-
-### Developers
-
-- [Libraries (3rd party)](3rd-Party-APIs.md)
-- [Contributing](Contributing.md)
-- [Quick Start As Go Library](Quickstart-As-Lib.md)
-- [To Do](Todo.md)
