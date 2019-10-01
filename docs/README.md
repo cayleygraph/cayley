@@ -1,16 +1,33 @@
-# Guide to documentation
+# Cayley Documentation
 
-- [Quickstart-As-Application.md](Quickstart-As-Application.md): This is how to start using Cayley as an application.  This is a great place to start.
-  - [Configuration.md](Configuration.md): This defines how the application configuration file works -- a great thing to scan through when you are getting started.
-  - [GizmoAPI.md](GizmoAPI.md): This is the one of the two query languages used either via the REPL or HTTP interface.
-  - [GraphQL.md](GraphQL.md): The GraphQL-inspired query language. 
-  - [MQL.md](MQL.md): The *other* query language the interfaces support. 
-  - [HTTP.md](HTTP.md): The simple HTTP API interface.
-- [Quickstart-As-Lib.md](Quickstart-As-Lib.md): How to use Cayley as a library directly from Go. 
-- [3rd-Party-APIs.md](3rd-Party-APIs.md): Exactly what it says on the tin, a list of 3rd party APIs.  If you have one you would like to see added, just submit a pull request. 
-- [HACKING.md](HACKING.md): See [Contributing.md](Contributing.md)
-- [Contributing.md](Contributing.md): You starting point for getting involved in the project.
-- [Locations.md](Locations.md): Where you can find parts of our community, and even bits of important code.
-- [Container.md](Container.md): How to use the Cayley docker container.
-- [Todo.md](Todo.md): Basically moved into [Issues](https://github.com/cayleygraph/cayley/issues)
-- [FAQ.md](FAQ.md): Frequently Asked Questions
+Welcome to the Cayley Manual! Cayley is an open-source graph database designed for ease of use and storing complex data. The manual introduces key concepts in Cayley, presents the query languages, and provides operational and administrative considerations and procedures as well as comprehensive reference section.
+
+### Introduction
+
+- [Getting Started](Getting-Started.md)
+- [Installation](Installation.md)
+- [Advanced Use](Advanced-Use.md)
+- [UI Overview](UI-Overview.md)
+- [Project Locations](Locations.md)
+
+### Reference
+
+- [Glossary](glossary.md)
+- [Gizmo API](GizmoAPI.md)
+- [GraphQL](GraphQL.md)
+- [MQL](MQL.md)
+- [HTTP](HTTP.md)
+- [GephiGraphStream](GephiGraphStream.md)
+
+### Administrators
+
+- [Configuration](Configuration.md)
+- [Migration](Migration.md)
+- [Usage as Container](Container.md)
+- [Usage in Kubernetes](k8s.md)
+
+### Developers
+
+- [Libraries (3rd party)](3rd-Party-APIs.md)
+- [Contributing](Contributing.md)
+- [Quick Start As Go Library](Quickstart-As-Lib.md)
