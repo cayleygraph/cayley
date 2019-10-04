@@ -9,6 +9,7 @@ cayley.json
 .DS_Store
 
 # The built binary
+cayley/
 dist/
 vendor/
 cayley
