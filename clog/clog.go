@@ -15,15 +15,7 @@
 // Package clog provides a logging interface for cayley packages.
 package clog
 
-import (
-	"fmt"
-	"log"
-)
-
-func init() {
-	fmt.Printf("Hello!")
-	log.SetFlags(0)
-}
+import "log"
 
 // Logger is the clog logging interface.
 type Logger interface {
