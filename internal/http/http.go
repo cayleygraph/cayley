@@ -17,64 +17,19 @@ package http
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/cayleygraph/cayley/clog"
+	"github.com/gobuffalo/packr"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/internal/gephi"
-	"github.com/cayleygraph/cayley/server/http"
+	cayleyhttp "github.com/cayleygraph/cayley/server/http"
 )
 
-var AssetsPath string
-var defaultAssetPaths = []string{
-	".", "..", "./assets",
-	"/usr/local/share/cayley/assets",
-	os.ExpandEnv("$GOPATH/src/github.com/cayleygraph/cayley"),
-}
-var assetsDirs = []string{"templates", "static", "docs"}
-
-func hasAssets(path string) bool {
-	if len(assetsDirs) == 0 {
-		return false
-	}
-	for _, dir := range assetsDirs {
-		if _, err := os.Stat(fmt.Sprint(path, "/", dir)); os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-func findAssetsPath() (string, error) {
-	if AssetsPath != "" {
-		if hasAssets(AssetsPath) {
-			return AssetsPath, nil
-		}
-		return "", fmt.Errorf("cannot find assets at %q", AssetsPath)
-	}
-	var bin string
-	if len(os.Args) != 0 {
-		bin = filepath.Dir(os.Args[0])
-	}
-	for _, path := range defaultAssetPaths {
-		if hasAssets(path) {
-			return path, nil
-		}
-		if !filepath.IsAbs(path) {
-			path = filepath.Join(bin, path)
-			if hasAssets(path) {
-				return path, nil
-			}
-		}
-	}
-	return "", nil
-}
+var static = packr.NewBox("../../static")
 
 type statusWriter struct {
 	http.ResponseWriter
@@ -110,21 +65,6 @@ func jsonResponse(w http.ResponseWriter, code int, err interface{}) {
 	data, _ := json.Marshal(fmt.Sprint(err))
 	w.Write(data)
 	w.Write([]byte(`}`))
-}
-
-type TemplateRequestHandler struct {
-	templates *template.Template
-}
-
-func (h *TemplateRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	uiType := params.ByName("ui_type")
-	if r.URL.Path == "/" {
-		uiType = "query"
-	}
-	err := h.templates.ExecuteTemplate(w, uiType+".html", h)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 }
 
 type API struct {
@@ -191,20 +131,14 @@ func SetupRoutes(handle *graph.Handle, cfg *Config) error {
 	const gephiPath = "/gephi/gs"
 	r.GET(gephiPath, CORS(gs.ServeHTTP))
 
-	if assets, err := findAssetsPath(); err != nil {
-		return err
-	} else if assets != "" {
-		clog.Infof("using assets from %q", assets)
-		docs := &DocRequestHandler{assets: assets}
-		r.GET("/docs/:docpage", docs.ServeHTTP)
+	r.GET("/docs/:docpage", serveDocPage)
 
-		var templates = template.Must(template.ParseGlob(fmt.Sprint(assets, "/templates/*.tmpl")))
-		templates.ParseGlob(fmt.Sprint(assets, "/templates/*.html"))
-		root := &TemplateRequestHandler{templates: templates}
-		r.GET("/ui/:ui_type", root.ServeHTTP)
-		r.GET("/", root.ServeHTTP)
-		http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(fmt.Sprint(assets, "/static/")))))
-	}
+	setupUI()
+
+	r.GET("/", serveUI)
+	r.GET("/ui/:ui_type", serveUI)
+
+	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(static)))
 
 	http.Handle("/", r)
 	return nil

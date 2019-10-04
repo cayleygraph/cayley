@@ -17,7 +17,6 @@ You should see:
 ```
 Cayley version: 0.7.5 (dev snapshot)
 using backend "memstore"
-using assets from "."
 listening on 127.0.0.1:64210, web interface at http://127.0.0.1:64210
 ```
 

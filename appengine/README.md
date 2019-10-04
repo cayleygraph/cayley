@@ -35,23 +35,23 @@ The latest appengine flexible environment can be tested instead of the
 traditional environment by doing the following:
 
 ```sh
-# calls ./sync-assets.sh
 $ go generate
 
 $ goapp serve app.flexible.yaml
 ```
 
 # Deploying to traditional appengine environment
+
 ```sh
 $ goapp deploy -version 1 -application <MY_PROJECT_ID>
 ```
 
 # Deploying to flexible appengine environment
+
 ```sh
 # install aedeploy if not installed
 $ go get -u google.golang.org/appengine/cmd/aedeploy
 
-# calls ./sync-assets.sh
 $ go generate
 
 # deploy

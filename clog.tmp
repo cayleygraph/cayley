@@ -1,0 +1,22 @@
+package clog
+
+import "log"
+
+var verbosity = 0
+
+func init() {
+	log.SetFlags(0)
+}
+
+// Infof logs to the INFO log. Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
+func Infof(format string, args ...interface{})    { log.Printf(format, args...) }
+// Warningf logs to the WARNING and INFO logs. Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
+func Warningf(format string, args ...interface{}) { log.Printf("WARN: "+format, args...) }
+// Errorf logs to the ERROR, WARNING, and INFO logs. Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
+func Errorf(format string, args ...interface{})   { log.Printf("ERROR: "+format, args...) }
+// Fatalf logs to the FATAL, ERROR, WARNING, and INFO logs, including a stack trace of all running goroutines, then calls os.Exit(255). Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
+func Fatalf(format string, args ...interface{})   { log.Fatalf("FATAL: "+format, args...) }
+// V reports whether verbosity at the call site is at least the requested level. The returned value is a boolean of type Verbose, which implements Info, Infoln and Infof. These methods will write to the Info log if called. Thus, one may write either
+func V(level int) bool                          { return verbosity >= level }
+// SetV sets verbosity level
+func SetV(level int)                            { verbosity = level }
