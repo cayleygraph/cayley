@@ -266,6 +266,10 @@ type Select struct {
 	Params []Value
 	Limit  int64
 	Offset int64
+
+	// TODO(dennwc): this field in unexported because we don't want it to a be a part of the API
+	//               however, it's necessary to make NodesFrom optimizations to work with SQL
+	nextPath bool
 }
 
 func (s Select) Clone() Select {

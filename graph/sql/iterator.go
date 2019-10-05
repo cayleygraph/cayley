@@ -255,79 +255,9 @@ func newIteratorNext(qs *QuadStore, s Select) *iteratorNext {
 type iteratorNext struct {
 	iteratorBase
 	cursor *sql.Rows
-}
-
-func (it *iteratorNext) TagResults(m map[string]graph.Ref) {
-	for tag, val := range it.tags {
-		m[tag] = val
-	}
-}
-
-func (it *iteratorNext) Result() graph.Ref {
-	return it.res
-}
-
-func (it *iteratorNext) ensureColumns() {
-	if it.cols != nil {
-		return
-	}
-	it.cols = it.query.Columns()
-	it.cind = make(map[quad.Direction]int, len(quad.Directions)+1)
-	for i, name := range it.cols {
-		if !strings.HasPrefix(name, tagPref) {
-			continue
-		}
-		if name == tagNode {
-			it.cind[quad.Any] = i
-			continue
-		}
-		name = name[len(tagPref):]
-		for _, d := range quad.Directions {
-			if name == d.String() {
-				it.cind[d] = i
-				break
-			}
-		}
-	}
-}
-
-func (it *iteratorNext) scanValue(r *sql.Rows) bool {
-	it.ensureColumns()
-	nodes := make([]NodeHash, len(it.cols))
-	pointers := make([]interface{}, len(nodes))
-	for i := range pointers {
-		pointers[i] = &nodes[i]
-	}
-	if err := r.Scan(pointers...); err != nil {
-		it.err = err
-		return false
-	}
-	it.tags = make(map[string]graph.Ref)
-	for i, name := range it.cols {
-		if !strings.Contains(name, tagPref) {
-			it.tags[name] = nodes[i].ValueHash
-		}
-	}
-	if len(it.cind) > 1 {
-		var q QuadHashes
-		for _, d := range quad.Directions {
-			i, ok := it.cind[d]
-			if !ok {
-				it.err = fmt.Errorf("cannot find quad %v in query output (columns: %v)", d, it.cols)
-				return false
-			}
-			q.Set(d, nodes[i].ValueHash)
-		}
-		it.res = q
-		return true
-	}
-	i, ok := it.cind[quad.Any]
-	if !ok {
-		it.err = fmt.Errorf("cannot find node hash in query output (columns: %v, cind: %v)", it.cols, it.cind)
-		return false
-	}
-	it.res = nodes[i]
-	return true
+	// TODO(dennwc): nextPath workaround; remove when we get rid of NextPath in general
+	nextPathRes  graph.Ref
+	nextPathTags map[string]graph.Ref
 }
 
 func (it *iteratorNext) Next(ctx context.Context) bool {
@@ -337,7 +267,44 @@ func (it *iteratorNext) Next(ctx context.Context) bool {
 	if it.cursor == nil {
 		it.cursor, it.err = it.qs.Query(ctx, it.query)
 	}
+	// TODO(dennwc): this loop exists only because of nextPath workaround
+	for {
+		if it.err != nil {
+			return false
+		}
+		if it.nextPathRes != nil {
+			it.res = it.nextPathRes
+			it.tags = it.nextPathTags
+			it.nextPathRes = nil
+			it.nextPathTags = nil
+			return true
+		}
+		if !it.cursor.Next() {
+			it.err = it.cursor.Err()
+			it.cursor.Close()
+			return false
+		}
+
+		prev := it.res
+		if !it.scanValue(it.cursor) {
+			return false
+		}
+		if !it.query.nextPath {
+			return true
+		}
+		if prev == nil || prev.Key() != it.res.Key() {
+			return true
+		}
+		// skip the same main key if in nextPath mode
+		// the user should receive accept those results via NextPath of the iterator
+	}
+}
+
+func (it *iteratorNext) NextPath(ctx context.Context) bool {
 	if it.err != nil {
+		return false
+	}
+	if !it.query.nextPath {
 		return false
 	}
 	if !it.cursor.Next() {
@@ -345,19 +312,19 @@ func (it *iteratorNext) Next(ctx context.Context) bool {
 		it.cursor.Close()
 		return false
 	}
-	return it.scanValue(it.cursor)
-}
-
-func (it *iteratorNext) NextPath(ctx context.Context) bool {
+	prev := it.res
+	if !it.scanValue(it.cursor) {
+		return false
+	}
+	if prev.Key() == it.res.Key() {
+		return true
+	}
+	// different main keys - return false, but keep this results for the Next
+	it.nextPathRes = it.res
+	it.nextPathTags = it.tags
+	it.res = nil
+	it.tags = nil
 	return false
-}
-
-func (it *iteratorNext) Err() error {
-	return it.err
-}
-
-func (it *iteratorNext) String() string {
-	return it.query.SQL(NewBuilder(it.qs.flavor.QueryDialect))
 }
 
 func (it *iteratorNext) Close() error {
@@ -376,83 +343,8 @@ func newIteratorContains(qs *QuadStore, s Select) *iteratorContains {
 
 type iteratorContains struct {
 	iteratorBase
-}
-
-func (it *iteratorContains) TagResults(m map[string]graph.Ref) {
-	for tag, val := range it.tags {
-		m[tag] = val
-	}
-}
-
-func (it *iteratorContains) Result() graph.Ref {
-	return it.res
-}
-
-func (it *iteratorContains) ensureColumns() {
-	if it.cols != nil {
-		return
-	}
-	it.cols = it.query.Columns()
-	it.cind = make(map[quad.Direction]int, len(quad.Directions)+1)
-	for i, name := range it.cols {
-		if !strings.HasPrefix(name, tagPref) {
-			continue
-		}
-		if name == tagNode {
-			it.cind[quad.Any] = i
-			continue
-		}
-		name = name[len(tagPref):]
-		for _, d := range quad.Directions {
-			if name == d.String() {
-				it.cind[d] = i
-				break
-			}
-		}
-	}
-}
-
-func (it *iteratorContains) scanValue(r *sql.Rows) bool {
-	it.ensureColumns()
-	nodes := make([]NodeHash, len(it.cols))
-	pointers := make([]interface{}, len(nodes))
-	for i := range pointers {
-		pointers[i] = &nodes[i]
-	}
-	if err := r.Scan(pointers...); err != nil {
-		it.err = err
-		return false
-	}
-	it.tags = make(map[string]graph.Ref)
-	for i, name := range it.cols {
-		if !strings.Contains(name, tagPref) {
-			it.tags[name] = nodes[i].ValueHash
-		}
-	}
-	if len(it.cind) > 1 {
-		var q QuadHashes
-		for _, d := range quad.Directions {
-			i, ok := it.cind[d]
-			if !ok {
-				it.err = fmt.Errorf("cannot find quad %v in query output (columns: %v)", d, it.cols)
-				return false
-			}
-			q.Set(d, nodes[i].ValueHash)
-		}
-		it.res = q
-		return true
-	}
-	i, ok := it.cind[quad.Any]
-	if !ok {
-		it.err = fmt.Errorf("cannot find node hash in query output (columns: %v, cind: %v)", it.cols, it.cind)
-		return false
-	}
-	it.res = nodes[i]
-	return true
-}
-
-func (it *iteratorContains) NextPath(ctx context.Context) bool {
-	return false
+	// TODO(dennwc): nextPath workaround; remove when we get rid of NextPath in general
+	nextPathRows *sql.Rows
 }
 
 func (it *iteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
@@ -489,7 +381,14 @@ func (it *iteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
 		it.err = err
 		return false
 	}
-	defer rows.Close()
+	if it.query.nextPath {
+		if it.nextPathRows != nil {
+			_ = it.nextPathRows.Close()
+		}
+		it.nextPathRows = rows
+	} else {
+		defer rows.Close()
+	}
 	if !rows.Next() {
 		it.err = rows.Err()
 		return false
@@ -497,14 +396,23 @@ func (it *iteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
 	return it.scanValue(rows)
 }
 
-func (it *iteratorContains) Err() error {
-	return it.err
-}
-
-func (it *iteratorContains) String() string {
-	return it.query.SQL(NewBuilder(it.qs.flavor.QueryDialect))
+func (it *iteratorContains) NextPath(ctx context.Context) bool {
+	if it.err != nil {
+		return false
+	}
+	if !it.query.nextPath {
+		return false
+	}
+	if !it.nextPathRows.Next() {
+		it.err = it.nextPathRows.Err()
+		return false
+	}
+	return it.scanValue(it.nextPathRows)
 }
 
 func (it *iteratorContains) Close() error {
+	if it.nextPathRows != nil {
+		return it.nextPathRows.Close()
+	}
 	return nil
 }
