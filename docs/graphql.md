@@ -2,9 +2,9 @@
 
 **Disclaimer:** Cayley's GraphQL implementation is not strictly a GraphQL, but only a query language with the same syntax and mostly the same rules.
 
-We will use [this simple dataset](../data/testdata.nq) for our examples.
+We will use [this simple dataset](https://github.com/cayleygraph/cayley/tree/87c9c341848b59924a054ebc2dd0f2bf8c57c6a9/data/testdata.nq) for our examples.
 
-Every query is represented by tree-like structure of nested objects and properties, similar to [MQL](MQL.md).
+Every query is represented by tree-like structure of nested objects and properties, similar to [MQL](mql.md).
 
 ```graphql
 {
@@ -16,12 +16,11 @@ Every query is represented by tree-like structure of nested objects and properti
 
 This particular query is equivalent to all nodes in the graph, where `id` is the special field name for the value of the node itself.
 
-First root object in traditional GraphQL (named `nodes` here) represents a method that will be called on the server to get results.
-In our current implementation this name serves only as a placeholder and will always execute the object search query.
+First root object in traditional GraphQL \(named `nodes` here\) represents a method that will be called on the server to get results. In our current implementation this name serves only as a placeholder and will always execute the object search query.
 
 Our example returns the following result:
 
-```json
+```javascript
 {
   "data": {
     "nodes": [
@@ -46,9 +45,9 @@ Our example returns the following result:
 
 First level of JSON object corresponds to a request itself, thus either `data` field or `errors` will be present.
 
-Any nested objects will correspond to fields defined in query, including top-level name (`nodes`).
+Any nested objects will correspond to fields defined in query, including top-level name \(`nodes`\).
 
-### Limit and pagination
+## Limit and pagination
 
 Maximal number of results can be limited using `first` keyword:
 
@@ -72,11 +71,11 @@ Pagination can be done with `offset` keyword:
 
 This query returns objects 5-7.
 
-*Note: Values might be sorted differently, depending on what backend is used.*
+_Note: Values might be sorted differently, depending on what backend is used._
 
-### Properties
+## Properties
 
-Predicates (or properties) are added to the object to specify additional fields to load:
+Predicates \(or properties\) are added to the object to specify additional fields to load:
 
 ```graphql
 {
@@ -88,7 +87,7 @@ Predicates (or properties) are added to the object to specify additional fields 
 
 Results:
 
-```json
+```javascript
 {
   "data": {
     "nodes": [
@@ -102,8 +101,7 @@ Results:
 }
 ```
 
-All predicates are interpreted as IRIs and can be written in plain text or with angle brackets: `status` and `<status>` are considered equal.
-Also, well-known namespaces like RDF, RDFS and Schema.org can be written in short form and will be expanded automatically: `schema:name` and `<schema:name>` will be expanded to `<http://schema.org/name>`.
+All predicates are interpreted as IRIs and can be written in plain text or with angle brackets: `status` and `<status>` are considered equal. Also, well-known namespaces like RDF, RDFS and Schema.org can be written in short form and will be expanded automatically: `schema:name` and `<schema:name>` will be expanded to `<http://schema.org/name>`.
 
 Properties are required to be present by default and can be set to optional with `@opt` or `@optional` directive:
 
@@ -118,7 +116,7 @@ Properties are required to be present by default and can be set to optional with
 
 Results:
 
-```json
+```javascript
 {
   "data": {
     "nodes": [
@@ -140,9 +138,10 @@ Results:
   }
 }
 ```
-*Note: Since Cayley has no knowledge about property types and schema, it might decide to return a property as a single value for one object and as an array for another object. This behavior will be fixed in future versions.*
 
-### Nested objects
+_Note: Since Cayley has no knowledge about property types and schema, it might decide to return a property as a single value for one object and as an array for another object. This behavior will be fixed in future versions._
+
+## Nested objects
 
 Objects and properties can be nested:
 
@@ -170,9 +169,9 @@ All operations available on root also works for nested object, for example the l
 }
 ```
 
-### Reversed predicates
+## Reversed predicates
 
-Any predicate can be reversed with `@rev` or `@reverse` directive (search for "in" links instead of "out"):
+Any predicate can be reversed with `@rev` or `@reverse` directive \(search for "in" links instead of "out"\):
 
 ```graphql
 {
@@ -185,7 +184,7 @@ Any predicate can be reversed with `@rev` or `@reverse` directive (search for "i
 }
 ```
 
-### Filters
+## Filters
 
 Objects can be filtered by specific values of properties:
 
@@ -199,10 +198,9 @@ Objects can be filtered by specific values of properties:
 
 Only exact match is supported for now.
 
-GraphQL names are interpreted as IRIs and string literals are interpreted as strings.
-Boolean, integer and float value are also supported and will be converted to `schema:Boolean`, `schema:Integer` and `schema:Float` accordingly.
+GraphQL names are interpreted as IRIs and string literals are interpreted as strings. Boolean, integer and float value are also supported and will be converted to `schema:Boolean`, `schema:Integer` and `schema:Float` accordingly.
 
-### Labels
+## Labels
 
 Any fields and traversals can be filtered by quad label with `@label` directive:
 
@@ -222,7 +220,7 @@ Any fields and traversals can be filtered by quad label with `@label` directive:
 
 Label will be inherited by child objects. To reset label filter add `@label` directive without parameters.
 
-### Expanding all properties
+## Expanding all properties
 
 To expand all properties of an object, `*` can be used instead of property name:
 
@@ -235,7 +233,7 @@ To expand all properties of an object, `*` can be used instead of property name:
 }
 ```
 
-### Un-nest objects
+## Un-nest objects
 
 The following query will return objects with `{id: x, status: {name: y}}` structure:
 
@@ -265,8 +263,7 @@ It is possible to un-nest `status` field object into parent:
 
 Resulted objects will have a flat structure: `{id: x, status: y}`.
 
-Arrays fields cannot be un-nested. You can still un-nest such fields by
-providing a limit directive (will select the first value from array):
+Arrays fields cannot be un-nested. You can still un-nest such fields by providing a limit directive \(will select the first value from array\):
 
 ```graphql
 {
@@ -278,3 +275,4 @@ providing a limit directive (will select the first value from array):
   }
 }
 ```
+

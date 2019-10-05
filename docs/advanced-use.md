@@ -1,20 +1,20 @@
 # Advanced Use
 
-### Initialize A Graph
+## Initialize A Graph
 
-Now that Cayley is downloaded (or built), let's create our database. `init` is the subcommand to set up a database and the right indices.
+Now that Cayley is downloaded \(or built\), let's create our database. `init` is the subcommand to set up a database and the right indices.
 
-You can set up a full [configuration file](Configuration.md) if you'd prefer, but it will also work from the command line.
+You can set up a full [configuration file](configuration.md) if you'd prefer, but it will also work from the command line.
 
-Examples for each backend can be found in `store.address` format from [config file](Configuration.md).
+Examples for each backend can be found in `store.address` format from [config file](configuration.md).
 
-Those two options (db and dbpath) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley_example.yml` in the root directory.
+Those two options \(db and dbpath\) are always going to be present. If you feel like not repeating yourself, setting up a configuration file for your backend might be something to do now. There's an example file, `cayley_example.yml` in the root directory.
 
 You can repeat the `--db (-i)` and `--dbpath (-a)` flags from here forward instead of the config flag, but let's assume you created `cayley_overview.yml`
 
-Note: when you specify parameters in the config file the config flags (command line arguments) are ignored.
+Note: when you specify parameters in the config file the config flags \(command line arguments\) are ignored.
 
-### Load Data Into A Graph
+## Load Data Into A Graph
 
 After the database is initialized we load the data.
 
@@ -30,8 +30,7 @@ And wait. It will load. If you'd like to watch it load, you can run
 
 And watch the log output go by.
 
-If you plan to import a large dataset into Cayley and try multiple backends, it makes sense to first convert the dataset
-to Cayley-specific binary format by running:
+If you plan to import a large dataset into Cayley and try multiple backends, it makes sense to first convert the dataset to Cayley-specific binary format by running:
 
 ```bash
 ./cayley conv -i dataset.nq.gz -o dataset.pq.gz
@@ -39,7 +38,7 @@ to Cayley-specific binary format by running:
 
 This will minimize parsing overhead on future imports and will compress dataset a bit better.
 
-### Connect a REPL To Your Graph
+## Connect a REPL To Your Graph
 
 Now it's loaded. We can use Cayley now to connect to the graph. As you might have guessed, that command is:
 
@@ -65,7 +64,7 @@ This is great for testing, and ultimately also for scripting, but the real workh
 
 Go ahead and give it a try:
 
-```
+```text
 // Simple math
 cayley> 2 + 2
 
@@ -83,7 +82,7 @@ cayley> graph.Vertex("<dani>").All()
 cayley> graph.Vertex("<dani>").Out("<follows>").All()
 ```
 
-### Serve Your Graph
+## Serve Your Graph
 
 Just as before:
 
@@ -97,9 +96,9 @@ And you'll see a message not unlike
 listening on :64210, web interface at http://localhost:64210
 ```
 
-If you visit that address (often, [http://localhost:64210](http://localhost:64210)) you'll see the full web interface and also have a graph ready to serve queries via the [HTTP API](HTTP.md)
+If you visit that address \(often, [http://localhost:64210](http://localhost:64210)\) you'll see the full web interface and also have a graph ready to serve queries via the [HTTP API](http.md)
 
-#### Access from other machines
+### Access from other machines
 
 When you want to reach the API or UI from another machine in the network you need to specify the host argument:
 
@@ -110,3 +109,4 @@ When you want to reach the API or UI from another machine in the network you nee
 This makes it listen on all interfaces. You can also give it the specific the IP address you want Cayley to bind to.
 
 **Warning**: for security reasons you might not want to do this on a public accessible machine.
+

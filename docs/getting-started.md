@@ -4,7 +4,7 @@ This guide will take you through starting a graph based on provided data.
 
 ## Prerequisites
 
-This tutorial requires you to be connected to **local Cayley installation**. For more information on installing Cayley locally, see [Install Cayley](installation.md).
+This tutorial requires you to be connected to **local Cayley installation**. For more information on installing Cayley locally, see [Install Cayley](https://github.com/cayleygraph/cayley/tree/06f7114d4ad1725d58f16fc5fdc9394f293c3539/docs/installation.md).
 
 ## Start Cayley
 
@@ -14,7 +14,7 @@ cayley http
 
 You should see:
 
-```
+```text
 Cayley version: 0.7.5 (dev snapshot)
 using backend "memstore"
 using assets from "."
@@ -23,9 +23,9 @@ listening on 127.0.0.1:64210, web interface at http://127.0.0.1:64210
 
 You can now open the web-interface on: [localhost:64210](http://localhost:64210/).
 
-Cayley is configured by default to run in memory (That's what `backend memstore` means). To change the configuration see the documentation for [Configuration File](Configuration.md) or run `cayley http --help`.
+Cayley is configured by default to run in memory \(That's what `backend memstore` means\). To change the configuration see the documentation for [Configuration File](configuration.md) or run `cayley http --help`.
 
-For more information about the UI see: [UI Overview](UI-Overview.md)
+For more information about the UI see: [UI Overview](ui-overview.md)
 
 ## Run with sample data
 
@@ -45,8 +45,7 @@ Using the 30kmoviedata.nq dataset from above, let's walk through some simple que
 
 ### Query all vertices in the graph
 
-To select all vertices in the graph call, limit to 5 first results.
-`g` and `V` are synonyms for `graph` and `Vertex` respectively, as they are quite common.
+To select all vertices in the graph call, limit to 5 first results. `g` and `V` are synonyms for `graph` and `Vertex` respectively, as they are quite common.
 
 ```javascript
 g.V().getLimit(5);
@@ -64,7 +63,7 @@ g.V()
 
 You may start to notice a pattern here: with Gizmo, the query lines tend to:
 
-Start somewhere in the graph | Follow a path | Run the query with "all" or "getLimit"
+Start somewhere in the graph \| Follow a path \| Run the query with "all" or "getLimit"
 
 ### Match a complex path
 
@@ -96,4 +95,5 @@ g.V()
   .all();
 ```
 
-To learn more about querying see [Gizmo Documentation](GizmoAPI.md)
+To learn more about querying see [Gizmo Documentation](gizmoapi.md)
+
