@@ -237,6 +237,18 @@ func testSet(qs graph.QuadStore) []test {
 			expect:  []quad.Value{vGreg, vDani, vBob},
 		},
 		{
+			message: "save with a next path",
+			path:    StartPath(qs, vDani, vBob).Save(vFollows, "target"),
+			tag:     "target",
+			expect:  []quad.Value{vBob, vFred, vGreg},
+		},
+		{
+			message: "save all with a next path",
+			path:    StartPath(qs).Save(vFollows, "target"),
+			tag:     "target",
+			expect:  []quad.Value{vBob, vBob, vBob, vDani, vFred, vFred, vGreg, vGreg},
+		},
+		{
 			message: "simple Has",
 			path:    StartPath(qs).Has(vStatus, vCool),
 			expect:  []quad.Value{vGreg, vDani, vBob},
