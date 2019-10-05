@@ -12,7 +12,7 @@ export GO111MODULE=on
 
 Follow the instructions for running Cayley locally:
 
-````
+```
 # clone project
 git clone https://github.com/cayleygraph/cayley
 cd cayley
@@ -22,9 +22,8 @@ go mod download
 
 # Install packr
 
-```bash
 go get -u github.com/gobuffalo/packr/packr
-````
+```
 
 # build the binary
 
