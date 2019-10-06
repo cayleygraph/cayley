@@ -100,7 +100,7 @@ type sortNext struct {
 	namer   graph.Namer
 	subIt   graph.Scanner
 	ordered values
-	result  graph.Ref
+	result  result
 	err     error
 	index   int
 }
@@ -113,8 +113,8 @@ func newSortNext(namer graph.Namer, subIt graph.Scanner) *sortNext {
 }
 
 func (it *sortNext) TagResults(dst map[string]graph.Value) {
-	if it.subIt != nil {
-		it.subIt.TagResults(dst)
+	for tag, value := range it.result.tags {
+		dst[tag] = value
 	}
 }
 
@@ -123,7 +123,7 @@ func (it *sortNext) Err() error {
 }
 
 func (it *sortNext) Result() graph.Value {
-	return it.result
+	return it.result.id
 }
 
 func (it *sortNext) Next(ctx context.Context) bool {
@@ -137,7 +137,7 @@ func (it *sortNext) Next(ctx context.Context) bool {
 	}
 	ordered := it.ordered
 	if it.index < len(ordered) {
-		it.result = ordered[it.index].result.id
+		it.result = ordered[it.index].result
 		it.index++
 		return true
 	}
