@@ -64,7 +64,7 @@ func (it *sortIt) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 func (it *sortIt) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	subStats, err := it.subIt.Stats(ctx)
 	return graph.IteratorCosts{
-		NextCost:     subStats.NextCost,
+		NextCost:     subStats.NextCost*2, // TODO(dennwc): better cost calculation,
 		ContainsCost: subStats.ContainsCost,
 		Size: graph.Size{
 			Size:  subStats.Size.Size,
