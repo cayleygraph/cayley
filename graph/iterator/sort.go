@@ -16,7 +16,8 @@ type Sort struct {
 	graph.Iterator
 }
 
-// NewSort creates a new Sort iterator
+// NewSort creates a new Sort iterator.
+// TODO(dennwc): This iterator must not be used inside And: in this cases it may be moved to a Contains branch and won't do anything. We should make And account for this.
 func NewSort(namer graph.Namer, it graph.Iterator) *Sort {
 	return &Sort{
 		it: newSort(namer, graph.AsShape(it)),
@@ -64,7 +65,7 @@ func (it *sortIt) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 func (it *sortIt) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	subStats, err := it.subIt.Stats(ctx)
 	return graph.IteratorCosts{
-		NextCost:     subStats.NextCost*2, // TODO(dennwc): better cost calculation,
+		NextCost:     subStats.NextCost * 2, // TODO(dennwc): better cost calculation,
 		ContainsCost: subStats.ContainsCost,
 		Size: graph.Size{
 			Size:  subStats.Size.Size,
