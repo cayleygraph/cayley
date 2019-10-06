@@ -50,7 +50,7 @@ func (it *sortIt) AsLegacy() graph.Iterator {
 }
 
 func (it *sortIt) Lookup() graph.Index {
-	return newSortContains(it.subIt.Lookup())
+	return it.subIt.Lookup()
 }
 
 func (it *sortIt) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
@@ -177,48 +177,4 @@ func getSortedValues(ctx context.Context, namer graph.Namer, it graph.Scanner) (
 	sort.Sort(v)
 
 	return v, nil
-}
-
-type sortContains struct {
-	subIt graph.Index
-}
-
-func newSortContains(subIt graph.Index) *sortContains {
-	return &sortContains{subIt}
-}
-
-func (it *sortContains) TagResults(dst map[string]graph.Value) {
-	if it.subIt != nil {
-		it.subIt.TagResults(dst)
-	}
-}
-
-func (it *sortContains) Err() error {
-	return it.subIt.Err()
-}
-
-func (it *sortContains) Result() graph.Value {
-	return it.subIt.Result()
-}
-
-// Contains checks whether the passed value is part of the primary iterator,
-// which is irrelevant for sorted.
-func (it *sortContains) Contains(ctx context.Context, val graph.Value) bool {
-	return it.subIt.Contains(ctx, val)
-}
-
-// NextPath for Sort always returns false. If we were to return multiple
-// paths, we'd no longer be a Sort result, so we have to choose only the first
-// path that got us here. Sort is serious on this point.
-func (it *sortContains) NextPath(ctx context.Context) bool {
-	return false
-}
-
-// Close closes the primary iterators.
-func (it *sortContains) Close() error {
-	return it.subIt.Close()
-}
-
-func (it *sortContains) String() string {
-	return "SortContains"
 }
