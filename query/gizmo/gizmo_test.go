@@ -194,6 +194,13 @@ var testQueries = []struct {
 		expect: []string{"<charlie>"},
 	},
 	{
+		message: "filter with a wrong type",
+		query: `
+			g.V().filter(/<alice>/).all()
+		`,
+		err: true,
+	},
+	{
 		message: "use .both()",
 		query: `
 			g.V("<fred>").both("<follows>").all()
