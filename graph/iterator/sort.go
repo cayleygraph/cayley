@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/quad"
 )
 
 var _ graph.IteratorFuture = &Sort{}
@@ -88,32 +87,34 @@ func (it *sortIt) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.subIt}
 }
 
-type value struct {
-	result result
-	name   quad.Value
-	str    string
+type sortValue struct {
+	result
+	str   string
+	paths []result
 }
-type values []value
+type sortByString []sortValue
 
-func (v values) Len() int { return len(v) }
-func (v values) Less(i, j int) bool {
+func (v sortByString) Len() int { return len(v) }
+func (v sortByString) Less(i, j int) bool {
 	return v[i].str < v[j].str
 }
-func (v values) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
+func (v sortByString) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
 type sortNext struct {
-	namer   graph.Namer
-	subIt   graph.Scanner
-	ordered values
-	result  result
-	err     error
-	index   int
+	namer     graph.Namer
+	subIt     graph.Scanner
+	ordered   sortByString
+	result    result
+	err       error
+	index     int
+	pathIndex int
 }
 
 func newSortNext(namer graph.Namer, subIt graph.Scanner) *sortNext {
 	return &sortNext{
-		namer: namer,
-		subIt: subIt,
+		namer:     namer,
+		subIt:     subIt,
+		pathIndex: -1,
 	}
 }
 
@@ -139,18 +140,30 @@ func (it *sortNext) Next(ctx context.Context) bool {
 		v, err := getSortedValues(ctx, it.namer, it.subIt)
 		it.ordered = v
 		it.err = err
+		if it.err != nil {
+			return false
+		}
 	}
-	ordered := it.ordered
-	if it.index < len(ordered) {
-		it.result = ordered[it.index].result
-		it.index++
-		return true
+	if it.index >= len(it.ordered) {
+		return false
 	}
-	return false
+	it.pathIndex = -1
+	it.result = it.ordered[it.index].result
+	it.index++
+	return true
 }
 
 func (it *sortNext) NextPath(ctx context.Context) bool {
-	return false
+	if it.index >= len(it.ordered) {
+		return false
+	}
+	r := it.ordered[it.index]
+	if it.pathIndex+1 >= len(r.paths) {
+		return false
+	}
+	it.pathIndex++
+	it.result = r.paths[it.pathIndex]
+	return true
 }
 
 func (it *sortNext) Close() error {
@@ -162,25 +175,29 @@ func (it *sortNext) String() string {
 	return "SortNext"
 }
 
-func getSortedValues(ctx context.Context, namer graph.Namer, it graph.Scanner) (values, error) {
-	var v values
-
+func getSortedValues(ctx context.Context, namer graph.Namer, it graph.Scanner) (sortByString, error) {
+	var v sortByString
 	for it.Next(ctx) {
-		var id = it.Result()
-		var name = namer.NameOf(id)
-		var str = name.String()
-		var tags = make(map[string]graph.Value)
+		id := it.Result()
+		// TODO(dennwc): batch and use graph.ValuesOf
+		name := namer.NameOf(id)
+		str := name.String()
+		tags := make(map[string]graph.Ref)
 		it.TagResults(tags)
-		result := result{id, tags}
-		value := value{result, name, str}
-		v = append(v, value)
-		err := it.Err()
-		if err != nil {
-			return v, err
+		val := sortValue{
+			result: result{id, tags},
+			str:    str,
 		}
+		for it.NextPath(ctx) {
+			tags = make(map[string]graph.Ref)
+			it.TagResults(tags)
+			val.paths = append(val.paths, result{id, tags})
+		}
+		v = append(v, val)
 	}
-
+	if err := it.Err(); err != nil {
+		return v, err
+	}
 	sort.Sort(v)
-
 	return v, nil
 }
