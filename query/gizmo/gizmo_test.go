@@ -640,7 +640,7 @@ var testQueries = []struct {
 		expect: []string{"<fred>"},
 	},
 	{
-		message: "Use order",
+		message: "use order",
 		query: `
 			g.V().order().all()
 		`,
@@ -662,7 +662,7 @@ var testQueries = []struct {
 		},
 	},
 	{
-		message: "Use order tags",
+		message: "use order tags",
 		query: `
 			g.V().Tag("target").order().all()
 		`,
