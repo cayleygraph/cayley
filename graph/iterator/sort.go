@@ -17,7 +17,8 @@ type Sort struct {
 }
 
 // NewSort creates a new Sort iterator.
-// TODO(dennwc): This iterator must not be used inside And: in this cases it may be moved to a Contains branch and won't do anything. We should make And account for this.
+// TODO(dennwc): This iterator must not be used inside And: it may be moved to a Contains branch and won't do anything.
+//               We should make And/Intersect account for this.
 func NewSort(namer graph.Namer, it graph.Iterator) *Sort {
 	return &Sort{
 		it: newSort(namer, graph.AsShape(it)),
@@ -51,6 +52,9 @@ func (it *sortIt) AsLegacy() graph.Iterator {
 }
 
 func (it *sortIt) Lookup() graph.Index {
+	// TODO(dennwc): Lookup doesn't need any sorting. Using it this way is a bug in the optimizer.
+	//               But instead of failing here, let still allow the query to execute. It won't be sorted,
+	//               but it will work at least. Later consider changing returning an error here.
 	return it.subIt.Lookup()
 }
 
@@ -65,7 +69,8 @@ func (it *sortIt) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 func (it *sortIt) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	subStats, err := it.subIt.Stats(ctx)
 	return graph.IteratorCosts{
-		NextCost:     subStats.NextCost * 2, // TODO(dennwc): better cost calculation,
+		// TODO(dennwc): better cost calculation; we probably need an InitCost defined in graph.IteratorCosts
+		NextCost:     subStats.NextCost * 2,
 		ContainsCost: subStats.ContainsCost,
 		Size: graph.Size{
 			Size:  subStats.Size.Size,
