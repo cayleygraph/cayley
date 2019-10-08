@@ -92,6 +92,7 @@ type test struct {
 	expect    []quad.Value
 	expectAlt [][]quad.Value
 	tag       string
+	unsorted  bool
 }
 
 // Define morphisms without a QuadStore
@@ -480,6 +481,13 @@ func testSet(qs graph.QuadStore) []test {
 			tag:     "target",
 			expect:  []quad.Value{vBob, vFred, vGreg},
 		},
+		{
+			message:  "order with a next path",
+			path:     StartPath(qs).Order().Has(vFollows, vBob),
+			expect:   []quad.Value{vAlice, vCharlie, vDani},
+			unsorted: true,
+			skip:     true, // TODO(dennwc): optimize Order in And properly
+		},
 	}
 }
 
@@ -517,20 +525,26 @@ func RunTestMorphisms(t *testing.T, fnc testutil.DatabaseFunc) {
 					t.Error(err)
 					return
 				}
-				sort.Sort(quad.ByValueString(got))
+				if !test.unsorted {
+					sort.Sort(quad.ByValueString(got))
+				}
 				var eq bool
 				exp := test.expect
 				if test.expectAlt != nil {
 					for _, alt := range test.expectAlt {
 						exp = alt
-						sort.Sort(quad.ByValueString(exp))
+						if !test.unsorted {
+							sort.Sort(quad.ByValueString(exp))
+						}
 						eq = reflect.DeepEqual(got, exp)
 						if eq {
 							break
 						}
 					}
 				} else {
-					sort.Sort(quad.ByValueString(test.expect))
+					if !test.unsorted {
+						sort.Sort(quad.ByValueString(test.expect))
+					}
 					eq = reflect.DeepEqual(got, test.expect)
 				}
 				if !eq {
