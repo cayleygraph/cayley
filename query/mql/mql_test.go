@@ -69,8 +69,8 @@ var testQueries = []struct {
 				{"id": "<fred>"},
 				{"id": "<status>"},
 				{"id": "cool_person"},
-				{"id": "<charlie>"},
 				{"id": "<dani>"},
+				{"id": "<charlie>"},
 				{"id": "<greg>"},
 				{"id": "<emily>"},
 				{"id": "<predicates>"},
@@ -124,8 +124,8 @@ var testQueries = []struct {
 		expect: `
 			[
 				{"id": "<alice>", "<follows>": {"id": "<bob>", "<status>": "cool_person"}},
-				{"id": "<charlie>", "<follows>": {"id": "<dani>", "<status>": "cool_person"}},
 				{"id": "<dani>", "<follows>": {"id": "<greg>", "<status>": "cool_person"}},
+				{"id": "<charlie>", "<follows>": {"id": "<dani>", "<status>": "cool_person"}},
 				{"id": "<fred>", "<follows>": {"id": "<greg>", "<status>": "cool_person"}}
 			]
 		`,

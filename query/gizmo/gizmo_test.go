@@ -540,7 +540,7 @@ var testQueries = []struct {
 			arr = g.V("<bob>").in("<follows>").toArray(2)
 			for (i in arr) g.emit(arr[i]);
 		`,
-		expect: []string{"<alice>", "<charlie>"},
+		expect: []string{"<alice>", "<dani>"},
 	},
 	{
 		message: "show ForEach",
@@ -554,7 +554,7 @@ var testQueries = []struct {
 		query: `
 			g.V("<bob>").in("<follows>").forEach(2, function(o){g.emit(o.id)});
 		`,
-		expect: []string{"<alice>", "<charlie>"},
+		expect: []string{"<alice>", "<dani>"},
 	},
 	{
 		message: "clone paths",
