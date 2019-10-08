@@ -684,6 +684,11 @@ func (p *pathObject) Skip(offset int) *pathObject {
 	return p.new(np)
 }
 
+func (p *pathObject) Order() *pathObject {
+	np := p.clonePath().Order()
+	return p.new(np)
+}
+
 // Backwards compatibility
 func (p *pathObject) CapitalizedIs(call goja.FunctionCall) goja.Value {
 	return p.Is(call)

@@ -540,7 +540,7 @@ var testQueries = []struct {
 			arr = g.V("<bob>").in("<follows>").toArray(2)
 			for (i in arr) g.emit(arr[i]);
 		`,
-		expect: []string{"<alice>", "<charlie>"},
+		expect: []string{"<alice>", "<dani>"},
 	},
 	{
 		message: "show ForEach",
@@ -554,7 +554,7 @@ var testQueries = []struct {
 		query: `
 			g.V("<bob>").in("<follows>").forEach(2, function(o){g.emit(o.id)});
 		`,
-		expect: []string{"<alice>", "<charlie>"},
+		expect: []string{"<alice>", "<dani>"},
 	},
 	{
 		message: "clone paths",
@@ -638,6 +638,51 @@ var testQueries = []struct {
 		tag:    "who",
 		file:   multiGraphTestFile,
 		expect: []string{"<fred>"},
+	},
+	{
+		message: "use order",
+		query: `
+			g.V().order().all()
+		`,
+		expect: []string{
+			"<alice>",
+			"<are>",
+			"<bob>",
+			"<charlie>",
+			"<dani>",
+			"<emily>",
+			"<follows>",
+			"<fred>",
+			"<greg>",
+			"<predicates>",
+			"<smart_graph>",
+			"<status>",
+			"cool_person",
+			"smart_person",
+		},
+	},
+	{
+		message: "use order tags",
+		query: `
+			g.V().Tag("target").order().all()
+		`,
+		tag: "target",
+		expect: []string{
+			"<alice>",
+			"<are>",
+			"<bob>",
+			"<charlie>",
+			"<dani>",
+			"<emily>",
+			"<follows>",
+			"<fred>",
+			"<greg>",
+			"<predicates>",
+			"<smart_graph>",
+			"<status>",
+			"cool_person",
+			"smart_person",
+		},
 	},
 }
 

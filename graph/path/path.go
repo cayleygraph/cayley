@@ -536,6 +536,11 @@ func (p *Path) Skip(v int64) *Path {
 	return p
 }
 
+func (p *Path) Order() *Path {
+	p.stack = append(p.stack, orderMorphism())
+	return p
+}
+
 // Limit will limit a number of values in result set.
 func (p *Path) Limit(v int64) *Path {
 	p.stack = append(p.stack, limitMorphism(v))

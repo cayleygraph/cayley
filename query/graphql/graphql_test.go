@@ -123,8 +123,8 @@ var casesExecute = []struct {
 					"follows": nil,
 					"followed": []M{
 						{ValueKey: quad.IRI("alice")},
-						{ValueKey: quad.IRI("charlie")},
 						{ValueKey: quad.IRI("dani")},
+						{ValueKey: quad.IRI("charlie")},
 					},
 				},
 				{
@@ -283,8 +283,8 @@ var casesExecute = []struct {
 				{"id": quad.IRI("fred")},
 				{"id": quad.IRI("status")},
 				{"id": quad.String("cool_person")},
-				{"id": quad.IRI("charlie")},
 				{"id": quad.IRI("dani"), "status": quad.String("cool_person")},
+				{"id": quad.IRI("charlie")},
 				{"id": quad.IRI("greg"), "status": []quad.Value{
 					quad.String("cool_person"),
 					quad.String("smart_person"),
