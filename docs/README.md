@@ -2,32 +2,33 @@
 
 Welcome to the Cayley Manual! Cayley is an open-source graph database designed for ease of use and storing complex data. The manual introduces key concepts in Cayley, presents the query languages, and provides operational and administrative considerations and procedures as well as comprehensive reference section.
 
-### Introduction
+## Introduction
 
-- [Getting Started](Getting-Started.md)
-- [Installation](Installation.md)
-- [Advanced Use](Advanced-Use.md)
-- [UI Overview](UI-Overview.md)
-- [Project Locations](Locations.md)
+* [Getting Started](getting-started.md)
+* [Installation](installation.md)
+* [Advanced Use](advanced-use.md)
+* [UI Overview](ui-overview.md)
+* [Project Locations](locations.md)
 
-### Reference
+## Reference
 
-- [Glossary](glossary.md)
-- [Gizmo API](GizmoAPI.md)
-- [GraphQL](GraphQL.md)
-- [MQL](MQL.md)
-- [HTTP](HTTP.md)
-- [GephiGraphStream](GephiGraphStream.md)
+* [Glossary](glossary.md)
+* [Gizmo API](gizmoapi.md)
+* [GraphQL](graphql.md)
+* [MQL](mql.md)
+* [HTTP](http.md)
+* [GephiGraphStream](gephigraphstream.md)
 
-### Administrators
+## Administrators
 
-- [Configuration](Configuration.md)
-- [Migration](Migration.md)
-- [Usage as Container](Container.md)
-- [Usage in Kubernetes](k8s.md)
+* [Configuration](configuration.md)
+* [Migration](migration.md)
+* [Usage as Container](container.md)
+* [Usage in Kubernetes](https://github.com/cayleygraph/cayley/tree/06f7114d4ad1725d58f16fc5fdc9394f293c3539/docs/k8s.md)
 
-### Developers
+## Developers
 
-- [Libraries (3rd party)](3rd-Party-APIs.md)
-- [Contributing](Contributing.md)
-- [Quick Start As Go Library](Quickstart-As-Lib.md)
+* [Libraries \(3rd party\)](3rd-party-apis.md)
+* [Contributing](contributing.md)
+* [Quick Start As Go Library](quickstart-as-lib.md)
+

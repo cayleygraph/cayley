@@ -412,6 +412,15 @@ func skipMorphism(v int64) morphism {
 	}
 }
 
+func orderMorphism() morphism {
+	return morphism{
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return orderMorphism(), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			return shape.Sort{From: in}, ctx
+		},
+	}
+}
+
 // limitMorphism will limit a number of values-- if number is negative or zero, this function
 // acts as a passthrough for the previous iterator.
 func limitMorphism(v int64) morphism {

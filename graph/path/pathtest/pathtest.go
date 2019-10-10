@@ -92,6 +92,7 @@ type test struct {
 	expect    []quad.Value
 	expectAlt [][]quad.Value
 	tag       string
+	unsorted  bool
 }
 
 // Define morphisms without a QuadStore
@@ -235,6 +236,18 @@ func testSet(qs graph.QuadStore) []test {
 			path:    StartPath(qs, vCool).SaveReverse(vStatus, "who"),
 			tag:     "who",
 			expect:  []quad.Value{vGreg, vDani, vBob},
+		},
+		{
+			message: "save with a next path",
+			path:    StartPath(qs, vDani, vBob).Save(vFollows, "target"),
+			tag:     "target",
+			expect:  []quad.Value{vBob, vFred, vGreg},
+		},
+		{
+			message: "save all with a next path",
+			path:    StartPath(qs).Save(vFollows, "target"),
+			tag:     "target",
+			expect:  []quad.Value{vBob, vBob, vBob, vDani, vFred, vFred, vGreg, vGreg},
 		},
 		{
 			message: "simple Has",
@@ -421,6 +434,60 @@ func testSet(qs graph.QuadStore) []test {
 			path:    StartPath(qs, quad.IRI("<not-existing>")),
 			expect:  nil,
 		},
+		{
+			message: "use order",
+			path:    StartPath(qs).Order(),
+			expect: []quad.Value{
+				vAlice,
+				vAre,
+				vBob,
+				vCharlie,
+				vDani,
+				vEmily,
+				vFollows,
+				vFred,
+				vGreg,
+				vPredicate,
+				vSmartGraph,
+				vStatus,
+				vCool,
+				vSmart,
+			},
+		},
+		{
+			message: "use order tags",
+			path:    StartPath(qs).Tag("target").Order(),
+			tag:     "target",
+			expect: []quad.Value{
+				vAlice,
+				vAre,
+				vBob,
+				vCharlie,
+				vDani,
+				vEmily,
+				vFollows,
+				vFred,
+				vGreg,
+				vPredicate,
+				vSmartGraph,
+				vStatus,
+				vCool,
+				vSmart,
+			},
+		},
+		{
+			message: "order with a next path",
+			path:    StartPath(qs, vDani, vBob).Save(vFollows, "target").Order(),
+			tag:     "target",
+			expect:  []quad.Value{vBob, vFred, vGreg},
+		},
+		{
+			message:  "order with a next path",
+			path:     StartPath(qs).Order().Has(vFollows, vBob),
+			expect:   []quad.Value{vAlice, vCharlie, vDani},
+			unsorted: true,
+			skip:     true, // TODO(dennwc): optimize Order in And properly
+		},
 	}
 }
 
@@ -458,20 +525,26 @@ func RunTestMorphisms(t *testing.T, fnc testutil.DatabaseFunc) {
 					t.Error(err)
 					return
 				}
-				sort.Sort(quad.ByValueString(got))
+				if !test.unsorted {
+					sort.Sort(quad.ByValueString(got))
+				}
 				var eq bool
 				exp := test.expect
 				if test.expectAlt != nil {
 					for _, alt := range test.expectAlt {
 						exp = alt
-						sort.Sort(quad.ByValueString(exp))
+						if !test.unsorted {
+							sort.Sort(quad.ByValueString(exp))
+						}
 						eq = reflect.DeepEqual(got, exp)
 						if eq {
 							break
 						}
 					}
 				} else {
-					sort.Sort(quad.ByValueString(test.expect))
+					if !test.unsorted {
+						sort.Sort(quad.ByValueString(test.expect))
+					}
 					eq = reflect.DeepEqual(got, test.expect)
 				}
 				if !eq {

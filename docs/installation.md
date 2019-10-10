@@ -2,7 +2,7 @@
 
 ## Install Cayley on Ubuntu
 
-```
+```text
 snap install --edge --devmode cayley
 ```
 
@@ -24,8 +24,9 @@ brew install cayley
 docker run -p 64210:64210 cayleygraph/cayley
 ```
 
-For more information see [Container Documentation](Container.md)
+For more information see [Container Documentation](container.md)
 
 ## Build from Source
 
-See instructions in [Contributing](Contributing.md)
+See instructions in [Contributing](contributing.md)
+

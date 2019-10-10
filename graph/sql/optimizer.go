@@ -399,6 +399,8 @@ func (opt *Optimizer) optimizeNodesFrom(s shape.NodesFrom) (shape.Shape, bool) {
 	if !found {
 		return s, false
 	}
+	// NodesFrom implies that the iterator will use NextPath
+	sel.nextPath = true
 	return sel, true
 }
 
@@ -410,6 +412,8 @@ func (opt *Optimizer) optimizeQuadsAction(s shape.QuadsAction) (shape.Shape, boo
 		From: []Source{
 			Table{Name: "quads"},
 		},
+		// NodesFrom (that is a part of QuadsAction) implies that the iterator will use NextPath
+		nextPath: true,
 	}
 	var dirs []quad.Direction
 	for d := range s.Save {
@@ -522,11 +526,13 @@ func (opt *Optimizer) optimizeIntersect(s shape.Intersect) (shape.Shape, bool) {
 	}
 	sec := sels[1:]
 
+	nextPath := false
 	for _, s2 := range sec {
 		// merge From, Where and Params
 		pri.From = append(pri.From, s2.From...)
 		pri.Where = append(pri.Where, s2.Where...)
 		pri.Params = append(pri.Params, s2.Params...)
+		nextPath = nextPath || s2.nextPath
 		// also find and remove primary tag, but add the same field to WHERE
 		ok := false
 		for _, f := range s2.Fields {
@@ -550,6 +556,7 @@ func (opt *Optimizer) optimizeIntersect(s shape.Intersect) (shape.Shape, bool) {
 		}
 	}
 	if len(other) == 1 {
+		pri.nextPath = pri.nextPath || nextPath
 		return pri, true
 	}
 	other[0] = pri

@@ -6,8 +6,7 @@
 
 Name: `graph`, Alias: `g`
 
-This is the only special object in the environment, generates the query objects.
-Under the hood, they're simple objects that get compiled to a Go iterator tree when executed.
+This is the only special object in the environment, generates the query objects. Under the hood, they're simple objects that get compiled to a Go iterator tree when executed.
 
 ### `graph.addDefaultNamespaces()`
 
@@ -35,8 +34,7 @@ M is a shorthand for Morphism.
 
 ### `graph.Morphism()`
 
-Morphism creates a morphism path object. Unqueryable on it's own, defines one end of the path.
-Saving these to variables with
+Morphism creates a morphism path object. Unqueryable on it's own, defines one end of the path. Saving these to variables with
 
 ```javascript
 var shorterPath = graph
@@ -45,7 +43,7 @@ var shorterPath = graph
   .out("bar");
 ```
 
-is the common use case. See also: path.follow(), path.followR().
+is the common use case. See also: path.follow\(\), path.followR\(\).
 
 ### `graph.IRI(s)`
 
@@ -61,18 +59,17 @@ Vertex starts a query path at the given vertex/vertices. No ids means "all verti
 
 Arguments:
 
-- `nodeId` (Optional): A string or list of strings representing the starting vertices.
+* `nodeId` \(Optional\): A string or list of strings representing the starting vertices.
 
 Returns: Path object
 
 ## Path object
 
-Both `.Morphism()` and `.Vertex()` create path objects, which provide the following traversal methods.
-Note that `.Vertex()` returns a query object, which is a subclass of path object.
+Both `.Morphism()` and `.Vertex()` create path objects, which provide the following traversal methods. Note that `.Vertex()` returns a query object, which is a subclass of path object.
 
 For these examples, suppose we have the following graph:
 
-```
+```text
 +-------+                        +------+
 | alice |-----                 ->| fred |<--
 +-------+     \---->+-------+-/  +------+   \-+-------+
@@ -87,20 +84,19 @@ For these examples, suppose we have the following graph:
 
 Where every link is a `<follows>` relationship, and the nodes with an extra `#` in the name have an extra `<status>` link. As in,
 
-```
+```text
 <dani> -- <status> --> "cool_person"
 ```
 
-Perhaps these are the influencers in our community. So too are extra `*`s in the name -- these are our smart people,
-according to the `<smart_graph>` label, eg, the quad:
+Perhaps these are the influencers in our community. So too are extra `*`s in the name -- these are our smart people, according to the `<smart_graph>` label, eg, the quad:
 
-```
+```text
 <greg> <status> "smart_person" <smart_graph> .
 ```
 
 ### `path.all()`
 
-All executes the query and adds the results, with all tags, as a string-to-string (tag to node) map in the output set, one for each path that a traversal could take.
+All executes the query and adds the results, with all tags, as a string-to-string \(tag to node\) map in the output set, one for each path that a traversal could take.
 
 ### `path.and(path)`
 
@@ -114,13 +110,11 @@ As is an alias for Tag.
 
 Back returns current path to a set of nodes on a given tag, preserving all constraints.
 
-If still valid, a path will now consider their vertex to be the same one as the previously tagged one,
-with the added constraint that it was valid all the way here.
-Useful for traversing back in queries and taking another route for things that have matched so far.
+If still valid, a path will now consider their vertex to be the same one as the previously tagged one, with the added constraint that it was valid all the way here. Useful for traversing back in queries and taking another route for things that have matched so far.
 
 Arguments:
 
-- `tag`: A previous tag in the query to jump back to.
+* `tag`: A previous tag in the query to jump back to.
 
 Example:
 
@@ -178,8 +172,7 @@ Difference is an alias for Except.
 
 Except removes all paths which match query from current path.
 
-In a set-theoretic sense, this is (A - B). While `g.V().except(path)` to achieve `U - B = !B` is supported, it's often very slow.
-Example:
+In a set-theoretic sense, this is \(A - B\). While `g.V().except(path)` to achieve `U - B = !B` is supported, it's often very slow. Example:
 
 ```javascript
 var cFollows = g.V("<charlie>").out("<follows>");
@@ -195,13 +188,13 @@ Filter applies constraints to a set of nodes. Can be used to filter values by ra
 
 #### `path.filter(regex(expression, includeIRIs))`
 
-Filters by match a regular expression ([syntax](https://github.com/google/re2/wiki/Syntax)). By default works only on literals unless includeEntities is set to `true`.
+Filters by match a regular expression \([syntax](https://github.com/google/re2/wiki/Syntax)\). By default works only on literals unless includeEntities is set to `true`.
 
 ### `path.follow(path)`
 
 Follow is the way to use a path prepared with Morphism. Applies the path chain on the morphism object to the current path.
 
-Starts as if at the g.M() and follows through the morphism path.
+Starts as if at the g.M\(\) and follows through the morphism path.
 
 Example:
 
@@ -221,10 +214,9 @@ g.V("<charlie>")
 
 ### `path.followR(path)`
 
-FollowR is the same as Follow but follows the chain in the reverse direction. Flips "In" and "Out" where appropriate,
-the net result being a virtual predicate followed in the reverse direction.
+FollowR is the same as Follow but follows the chain in the reverse direction. Flips "In" and "Out" where appropriate, the net result being a virtual predicate followed in the reverse direction.
 
-Starts at the end of the morphism and follows it backwards (with appropriate flipped directions) to the g.M() location.
+Starts at the end of the morphism and follows it backwards \(with appropriate flipped directions\) to the g.M\(\) location.
 
 Example:
 
@@ -245,7 +237,7 @@ g.V()
 
 FollowRecursive is the same as Follow but follows the chain recursively.
 
-Starts as if at the g.M() and follows through the morphism path multiple times, returning all nodes encountered.
+Starts as if at the g.M\(\) and follows through the morphism path multiple times, returning all nodes encountered.
 
 Example:
 
@@ -260,12 +252,12 @@ g.V("<charlie>")
 
 ### `path.forEach(callback) or (limit, callback)`
 
-ForEach calls callback(data) for each result, where data is the tag-to-string map as in All case.
+ForEach calls callback\(data\) for each result, where data is the tag-to-string map as in All case.
 
 Arguments:
 
-- `limit` (Optional): An integer value on the first `limit` paths to process.
-- `callback`: A javascript function of the form `function(data)`
+* `limit` \(Optional\): An integer value on the first `limit` paths to process.
+* `callback`: A javascript function of the form `function(data)`
 
 Example:
 
@@ -282,15 +274,14 @@ GetLimit is the same as All, but limited to the first N unique nodes at the end 
 
 ### `path.has(predicate, object)`
 
-Has filters all paths which are, at this point, on the subject for the given predicate and object,
-but do not follow the path, merely filter the possible paths.
+Has filters all paths which are, at this point, on the subject for the given predicate and object, but do not follow the path, merely filter the possible paths.
 
 Usually useful for starting with all nodes, or limiting to a subset depending on some predicate/value pair.
 
 Arguments:
 
-- `predicate`: A string for a predicate node.
-- `object`: A string for a object node or a set of filters to find it.
+* `predicate`: A string for a predicate node.
+* `object`: A string for a object node or a set of filters to find it.
 
 Example:
 
@@ -316,20 +307,19 @@ HasR is the same as Has, but sets constraint in reverse direction.
 
 ### `path.in([predicatePath], [tags])`
 
-In is inverse of Out.
-Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects.
+In is inverse of Out. Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects.
 
 Arguments:
 
-- `predicatePath` (Optional): One of:
-  - null or undefined: All predicates pointing into this node
-  - a string: The predicate name to follow into this node
-  - a list of strings: The predicates to follow into this node
-  - a query path object: The target of which is a set of predicates to follow.
-- `tags` (Optional): One of:
-  - null or undefined: No tags
-  - a string: A single tag to add the predicate used to the output set.
-  - a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
+* `predicatePath` \(Optional\): One of:
+  * null or undefined: All predicates pointing into this node
+  * a string: The predicate name to follow into this node
+  * a list of strings: The predicates to follow into this node
+  * a query path object: The target of which is a set of predicates to follow.
+* `tags` \(Optional\): One of:
+  * null or undefined: No tags
+  * a string: A single tag to add the predicate used to the output set.
+  * a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
 
 Example:
 
@@ -367,8 +357,7 @@ g.V("<bob>")
 
 Intersect filters all paths by the result of another query path.
 
-This is essentially a join where, at the stage of each path, a node is shared.
-Example:
+This is essentially a join where, at the stage of each path, a node is shared. Example:
 
 ```javascript
 var cFollows = g.V("<charlie>").out("<follows>");
@@ -384,7 +373,7 @@ Filter all paths to ones which, at this point, are on the given node.
 
 Arguments:
 
-- `node`: A string for a node. Can be repeated or a list of strings.
+* `node`: A string for a node. Can be repeated or a list of strings.
 
 Example:
 
@@ -399,20 +388,19 @@ g.V()
 
 ### `path.labelContext([labelPath], [tags])`
 
-LabelContext sets (or removes) the subgraph context to consider in the following traversals.
-Affects all In(), Out(), and Both() calls that follow it. The default LabelContext is null (all subgraphs).
+LabelContext sets \(or removes\) the subgraph context to consider in the following traversals. Affects all In\(\), Out\(\), and Both\(\) calls that follow it. The default LabelContext is null \(all subgraphs\).
 
 Arguments:
 
-- `predicatePath` (Optional): One of:
-  - null or undefined: In future traversals, consider all edges, regardless of subgraph.
-  - a string: The name of the subgraph to restrict traversals to.
-  - a list of strings: A set of subgraphs to restrict traversals to.
-  - a query path object: The target of which is a set of subgraphs.
-- `tags` (Optional): One of:
-  - null or undefined: No tags
-  - a string: A single tag to add the last traversed label to the output set.
-  - a list of strings: Multiple tags to use as keys to save the label used to the output set.
+* `predicatePath` \(Optional\): One of:
+  * null or undefined: In future traversals, consider all edges, regardless of subgraph.
+  * a string: The name of the subgraph to restrict traversals to.
+  * a list of strings: A set of subgraphs to restrict traversals to.
+  * a query path object: The target of which is a set of subgraphs.
+* `tags` \(Optional\): One of:
+  * null or undefined: No tags
+  * a string: A single tag to add the last traversed label to the output set.
+  * a list of strings: Multiple tags to use as keys to save the label used to the output set.
 
 Example:
 
@@ -447,7 +435,7 @@ Limit limits a number of nodes for current path.
 
 Arguments:
 
-- `limit`: A number of nodes to limit results to.
+* `limit`: A number of nodes to limit results to.
 
 Example:
 
@@ -469,20 +457,19 @@ Or is an alias for Union.
 
 ### `path.out([predicatePath], [tags])`
 
-Out is the work-a-day way to get between nodes, in the forward direction.
-Starting with the nodes in `path` on the subject, follow the quads with predicates defined by `predicatePath` to their objects.
+Out is the work-a-day way to get between nodes, in the forward direction. Starting with the nodes in `path` on the subject, follow the quads with predicates defined by `predicatePath` to their objects.
 
 Arguments:
 
-- `predicatePath` (Optional): One of:
-  - null or undefined: All predicates pointing out from this node
-  - a string: The predicate name to follow out from this node
-  - a list of strings: The predicates to follow out from this node
-  - a query path object: The target of which is a set of predicates to follow.
-- `tags` (Optional): One of:
-  - null or undefined: No tags
-  - a string: A single tag to add the predicate used to the output set.
-  - a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
+* `predicatePath` \(Optional\): One of:
+  * null or undefined: All predicates pointing out from this node
+  * a string: The predicate name to follow out from this node
+  * a list of strings: The predicates to follow out from this node
+  * a query path object: The target of which is a set of predicates to follow.
+* `tags` \(Optional\): One of:
+  * null or undefined: No tags
+  * a string: A single tag to add the predicate used to the output set.
+  * a list of strings: Multiple tags to use as keys to save the predicate used to the output set.
 
 Example:
 
@@ -532,8 +519,8 @@ Save saves the object of all quads with predicate into tag, without traversal.
 
 Arguments:
 
-- `predicate`: A string for a predicate node.
-- `tag`: A string for a tag key to store the object node.
+* `predicate`: A string for a predicate node.
+* `tag`: A string for a tag key to store the object node.
 
 Example:
 
@@ -594,7 +581,7 @@ Skip skips a number of nodes for current path.
 
 Arguments:
 
-- `offset`: A number of nodes to skip.
+* `offset`: A number of nodes to skip.
 
 Example:
 
@@ -610,12 +597,12 @@ g.V()
 
 Tag saves a list of nodes to a given tag.
 
-In order to save your work or learn more about how a path got to the end, we have tags.
-The simplest thing to do is to add a tag anywhere you'd like to put each node in the result set.
+In order to save your work or learn more about how a path got to the end, we have tags. The simplest thing to do is to add a tag anywhere you'd like to put each node in the result set.
 
 Arguments:
 
-- `tag`: A string or list of strings to act as a result key. The value for tag was the vertex the path was on at the time it reached "Tag"
+* `tag`: A string or list of strings to act as a result key. The value for tag was the vertex the path was on at the time it reached "Tag"
+
   Example:
 
 ```javascript
@@ -675,9 +662,7 @@ ToValue is the same as ToArray, but limited to one result node.
 
 Union returns the combined paths of the two queries.
 
-Notice that it's per-path, not per-node. Once again, if multiple paths reach the same destination,
-they might have had different ways of getting there (and different tags).
-See also: `path.Tag()`
+Notice that it's per-path, not per-node. Once again, if multiple paths reach the same destination, they might have had different ways of getting there \(and different tags\). See also: `path.Tag()`
 
 Example:
 
@@ -691,3 +676,7 @@ cFollows.union(dFollows).all();
 ### `path.unique()`
 
 Unique removes duplicate values from the path.
+
+### `path.order()`
+
+Order returns values from the path in ascending order.

@@ -17,6 +17,7 @@ package gizmo
 // Adds special traversal functions to JS Gizmo objects. Most of these just build the chain of objects, and won't often need the session.
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dop251/goja"
@@ -644,6 +645,9 @@ func (p *pathObject) Filter(args ...valFilter) (*pathObject, error) {
 	}
 	filt := make([]shape.ValueFilter, 0, len(args))
 	for _, f := range args {
+		if f.f == nil {
+			return nil, errors.New("invalid argument type in filter()")
+		}
 		filt = append(filt, f.f)
 	}
 	np := p.clonePath().Filters(filt...)
@@ -677,6 +681,11 @@ func (p *pathObject) Limit(limit int) *pathObject {
 //	g.V().has("<follows>", "<bob>").skip(2).all()
 func (p *pathObject) Skip(offset int) *pathObject {
 	np := p.clonePath().Skip(int64(offset))
+	return p.new(np)
+}
+
+func (p *pathObject) Order() *pathObject {
+	np := p.clonePath().Order()
 	return p.new(np)
 }
 
