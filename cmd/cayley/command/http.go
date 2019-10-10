@@ -46,6 +46,10 @@ func NewHttpCmd() *cobra.Command {
 	cmd.Flags().String("host", "127.0.0.1:64210", "host:port to listen on")
 	cmd.Flags().Bool("init", false, "initialize the database before using it")
 	cmd.Flags().DurationP("timeout", "t", 30*time.Second, "elapsed time until an individual query times out")
+	cmd.Flags().String("assets", "", "[depreacted]")
+	if cmd.Flags().Lookup("assets") != nil || cmd.Flags().Lookup("assets").Value.String() == "" {
+		clog.Errorf("The assets flag is deprecated as assets are provided as part of the binary.")
+	}
 	registerLoadFlags(cmd)
 	viper.BindPFlag(keyQueryTimeout, cmd.Flags().Lookup("timeout"))
 	return cmd

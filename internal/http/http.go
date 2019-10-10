@@ -29,7 +29,7 @@ import (
 	cayleyhttp "github.com/cayleygraph/cayley/server/http"
 )
 
-var static = packr.NewBox("../../static")
+var static = packr.New("Static", "../../static")
 
 type statusWriter struct {
 	http.ResponseWriter

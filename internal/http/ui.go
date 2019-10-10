@@ -8,7 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var templatesBox = packr.NewBox("../../templates")
+var templatesBox = packr.New("Templates", "../../templates")
 var t *template.Template
 
 func setupUI() {

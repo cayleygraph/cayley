@@ -26,7 +26,7 @@ import (
 
 const markdownCSS = "/static/css/docs.css"
 
-var docsBox = packr.NewBox("../../docs")
+var docsBox = packr.New("Docs", "../../docs")
 
 func markdownWithCSS(input []byte, title string) []byte {
 	// set up the HTML renderer
