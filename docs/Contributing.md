@@ -20,14 +20,18 @@ cd cayley
 # download dependencies
 go mod download
 
-# Install packr
+# Install packr 2
 
-go get -u github.com/gobuffalo/packr/packr
+go get -u github.com/gobuffalo/packr/v2/packr2
 ```
+
+# Generate static files go modules
+
+packr2
 
 # build the binary
 
-packr build ./cmd/cayley
+go build ./cmd/cayley
 
 # try the generated binary
 
@@ -89,7 +93,7 @@ With that in place, that folder will reflect your local fork, be able to take ch
 For iterating, it can be helpful to, from the directory, run
 
 ```bash
-packr build ./cmd/cayley && ./cayley <subcommand> <your options>
+packr2 && go build ./cmd/cayley && ./cayley <subcommand> <your options>
 ```
 
 Which will also resolve the relevant static content paths for serving HTTP.

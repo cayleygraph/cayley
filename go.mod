@@ -20,8 +20,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.2.2
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/gobuffalo/packr v1.30.1
-	github.com/gobuffalo/packr/v2 v2.7.1 // indirect
+	github.com/gobuffalo/packr/v2 v2.7.1
 	github.com/gogo/protobuf v1.3.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/go-cmp v0.3.0 // indirect
@@ -40,6 +39,7 @@ require (
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/peterh/liner v0.0.0-20170317030525-88609521dc4b
 	github.com/prometheus/client_golang v0.9.3
+	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/russross/blackfriday v1.5.2
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
@@ -54,7 +54,8 @@ require (
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
-	golang.org/x/sys v0.0.0-20191003212358-c178f38b412c // indirect
+	golang.org/x/sys v0.0.0-20191009170203-06d7bd2c5f4f // indirect
+	golang.org/x/tools v0.0.0-20191010075000-0337d82405ff // indirect
 	google.golang.org/appengine v1.6.1
 	gopkg.in/olivere/elastic.v5 v5.0.81 // indirect
 )

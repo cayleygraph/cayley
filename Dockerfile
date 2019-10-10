@@ -1,7 +1,7 @@
 FROM golang:1.13 as builder
 
 # Install packr
-RUN go get -u github.com/gobuffalo/packr/packr
+RUN go get -u github.com/gobuffalo/packr/v2/packr2
 
 # Create filesystem for minimal image
 WORKDIR /fs
@@ -22,9 +22,12 @@ RUN go mod download
 # Add all the other files
 ADD . .
 
+# Run packr to generate .go files that pack the static files into bytes that can be bundled into the Go binary.
+RUN packr2
+
 # Pass a Git short SHA as build information to be used for displaying version
 RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
-    packr build \
+    go build \
     -ldflags="-linkmode external -extldflags -static -X github.com/cayleygraph/cayley/version.GitHash=$SHORT_SHA" \
     -a \
     -installsuffix cgo \

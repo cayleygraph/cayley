@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/cayleygraph/cayley/clog"
-	"github.com/gobuffalo/packr"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/graph"

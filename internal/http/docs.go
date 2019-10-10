@@ -19,7 +19,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gobuffalo/packr"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/julienschmidt/httprouter"
 	"github.com/russross/blackfriday"
 )
