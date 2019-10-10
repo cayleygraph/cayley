@@ -22,10 +22,22 @@ cd cayley
 # download dependencies
 go mod download
 
+# Install packr 2
+
+go get -u github.com/gobuffalo/packr/v2/packr2
+```
+
+# Generate static files go modules
+
+packr2
+
 # build the binary
+
 go build ./cmd/cayley
 
 # try the generated binary
+
+```bash
 ./cayley help
 ```
 
@@ -55,7 +67,7 @@ export GO111MODULE=on
 
 If you just want to build Cayley and check out the source, or use it as a library, a simple `go get github.com/cayleygraph/cayley` will work!
 
-But suppose you want to contribute back on your own fork \(and pull requests are welcome!\). A good way to do this is to set up your $GOPATH and then...
+But suppose you want to contribute back on your own fork \(and pull requests are welcome!\). A good way to do this is to set up your \$GOPATH and then...
 
 ```text
 mkdir -p $GOPATH/src/github.com/cayleygraph
@@ -63,7 +75,7 @@ cd $GOPATH/src/github.com/cayleygraph
 git clone https://github.com/$GITHUBUSERNAME/cayley
 ```
 
-...where $GITHUBUSERNAME is, well, your GitHub username :\) You'll probably want to add
+...where \$GITHUBUSERNAME is, well, your GitHub username :\) You'll probably want to add
 
 ```text
 cd cayley
@@ -81,7 +93,7 @@ With that in place, that folder will reflect your local fork, be able to take ch
 For iterating, it can be helpful to, from the directory, run
 
 ```text
-go build ./cmd/cayley && ./cayley <subcommand> <your options>
+packr2 && go build ./cmd/cayley && ./cayley <subcommand> <your options>
 ```
 
 Which will also resolve the relevant static content paths for serving HTTP.
@@ -99,7 +111,7 @@ export GO111MODULE=on
 First, `cd` into the `cayley` project folder and run:
 
 ```text
-go test ./...
+packr && go test ./...
 ```
 
 If you have a Docker installed, you can also run tests for remote backend implementations:
@@ -119,4 +131,3 @@ Integration tests can be enabled with environment variable:
 ```text
 RUN_INTEGRATION=true go test ./...
 ```
-

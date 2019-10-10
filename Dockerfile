@@ -1,9 +1,12 @@
 FROM golang:1.13 as builder
 
+# Install packr
+RUN go get -u github.com/gobuffalo/packr/v2/packr2
+
 # Create filesystem for minimal image
 WORKDIR /fs
 
-RUN mkdir -p etc/ssl/certs lib/x86_64-linux-gnu tmp bin assets data; \
+RUN mkdir -p etc/ssl/certs lib/x86_64-linux-gnu tmp bin data; \
     # Copy CA Certificates
     cp /etc/ssl/certs/ca-certificates.crt etc/ssl/certs/ca-certificates.crt; \
     # Copy C standard library
@@ -19,6 +22,9 @@ RUN go mod download
 # Add all the other files
 ADD . .
 
+# Run packr to generate .go files that pack the static files into bytes that can be bundled into the Go binary.
+RUN packr2
+
 # Pass a Git short SHA as build information to be used for displaying version
 RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     go build \
@@ -29,10 +35,8 @@ RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
     -v \
     ./cmd/cayley
 
-# Move assets into the filesystem
-RUN mv docs static templates /fs/assets; \
-    # Move persisted configuration into filesystem
-    mv configurations/persisted.json /fs/etc/cayley.json
+# Move persisted configuration into filesystem
+RUN mv configurations/persisted.json /fs/etc/cayley.json
 
 WORKDIR /fs
 
@@ -53,4 +57,4 @@ EXPOSE 64210
 # Adding everything to entrypoint allows us to init, load and serve only with
 # arguments passed to docker run. For example:
 # `docker run cayleygraph/cayley --init -i /data/my_data.nq`
-ENTRYPOINT ["cayley", "http", "--assets=/assets", "--host=:64210"]
+ENTRYPOINT ["cayley", "http", "--host=:64210"]
