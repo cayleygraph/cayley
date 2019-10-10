@@ -15,6 +15,7 @@ matrix:
 
 install:
   - sudo snap install snapcraft --classic
+  - go get -u github.com/gobuffalo/packr/v2/packr2
   - GO111MODULE=on go mod download
 
 cache:
@@ -22,7 +23,7 @@ cache:
     - $GOPATH/pkg/mod
 
 script:
-  - GO111MODULE=on go test -v ./...
+  - packr2 && GO111MODULE=on go test -v ./...
 
 # TODO(dennwc): snapcraft config
 #after_success:

@@ -111,7 +111,7 @@ export GO111MODULE=on
 First, `cd` into the `cayley` project folder and run:
 
 ```text
-go test ./...
+packr && go test ./...
 ```
 
 If you have a Docker installed, you can also run tests for remote backend implementations:
