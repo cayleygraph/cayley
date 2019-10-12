@@ -10,7 +10,7 @@ import (
     "log"
 
     "github.com/cayleygraph/cayley"
-    "github.com/cayleygraph/quad"
+    "github.com/cayleygraph/cayley/quad"
 )
 
 func main() {
