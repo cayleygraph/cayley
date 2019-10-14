@@ -12,7 +12,13 @@ func init() {
 	RegisterType(quad.IRI(schema.Property), Property{})
 }
 
-type Object struct {
+// Object is a basic RDF resource object.
+//
+// Deprecated: use Resource instead.
+type Object = Resource
+
+// Resource is a basic RDF resource object.
+type Resource struct {
 	ID quad.IRI `quad:"@id"`
 
 	Label   string `quad:"rdfs:label,optional"`
@@ -23,14 +29,14 @@ type Object struct {
 }
 
 type Property struct {
-	Object
+	Resource
 	InverseOf    quad.IRI   `quad:"schema:inverseOf,optional"`
 	SupersededBy []quad.IRI `quad:"schema:supersededBy,optional"`
 	Expects      []quad.IRI `quad:"schema:rangeIncludes"`
 }
 
 type Class struct {
-	Object
+	Resource
 	Properties   []Property `quad:"schema:domainIncludes < *,optional"`
 	SupersededBy []quad.IRI `quad:"schema:supersededBy,optional"`
 	Extends      []quad.IRI `quad:"rdfs:subClassOf,optional"`
