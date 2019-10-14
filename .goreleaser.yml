@@ -54,7 +54,7 @@ changelog:
       - "^ci:"
 snapcrafts:
   - name: cayley
-    publish: false # TODO(dennwc)
+    publish: true
     summary: Open-source graph inspired by Freebase and Google's Knowledge Graph.
     description: |
       Cayley is an open-source graph inspired by the graph database behind Freebase and Google's Knowledge Graph.
