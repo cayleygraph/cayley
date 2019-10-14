@@ -283,10 +283,11 @@ func (qs *QuadStore) indexesForQuad(q internalQuad) []*Tree {
 // AddQuad adds a quad to quad store. It returns an id of the quad.
 // False is returned as a second parameter if quad exists already.
 func (qs *QuadStore) AddQuad(q quad.Quad) (int64, bool) {
-	p, _ := qs.resolveQuad(q, true)
+	p, _ := qs.resolveQuad(q, false)
 	if id := qs.quads[p]; id != 0 {
 		return id, false
 	}
+	p, _ = qs.resolveQuad(q, true)
 	pr := &primitive{Quad: p}
 	id := qs.addPrimitive(pr)
 	qs.quads[p] = id
