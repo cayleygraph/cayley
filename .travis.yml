@@ -15,7 +15,6 @@ matrix:
 
 install:
   - sudo snap install snapcraft --classic
-  - go get -u github.com/gobuffalo/packr/v2/packr2
   - GO111MODULE=on go mod download
 
 cache:
@@ -24,7 +23,8 @@ cache:
 
 script:
   - GO111MODULE=on go build ./cmd/cayley
-  - packr2 && GO111MODULE=on go test -v ./...
+  - GO111MODULE=on go run github.com/gobuffalo/packr/v2/packr2
+  - GO111MODULE=on go test -v ./...
 
 after_success:
   - test -n "$TRAVIS_TAG" && echo "$SNAP_TOKEN" > snap.login && snapcraft login --with snap.login

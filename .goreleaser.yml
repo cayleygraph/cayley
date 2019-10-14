@@ -1,8 +1,7 @@
 before:
   hooks:
     - go mod download
-    - go get github.com/gobuffalo/packr/v2/packr2
-    - packr2
+    - go run github.com/gobuffalo/packr/v2/packr2
     - git checkout -- ./packrd/dummy.go
 builds:
   - main: ./cmd/cayley
