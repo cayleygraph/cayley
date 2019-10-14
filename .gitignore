@@ -12,5 +12,5 @@ cayley.json
 cayley/
 dist/
 vendor/
-packrd/
+packrd/packed-*
 cayley

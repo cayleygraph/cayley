@@ -23,6 +23,7 @@ cache:
     - $GOPATH/pkg/mod
 
 script:
+  - GO111MODULE=on go build ./cmd/cayley
   - packr2 && GO111MODULE=on go test -v ./...
 
 # TODO(dennwc): snapcraft config
