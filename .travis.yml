@@ -20,6 +20,7 @@ install:
 cache:
   directories:
     - $GOPATH/pkg/mod
+    - /var/lib/snapd/cache
 
 script:
   - CGO_ENABLED=0 go build ./cmd/cayley
