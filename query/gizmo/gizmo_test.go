@@ -416,6 +416,14 @@ var testQueries = []struct {
 		expect: []string{"cool_person", "cool_person"},
 	},
 	{
+		message: "save iri no tag",
+		query: `
+			g.V().save(g.IRI("status")).all()
+		`,
+		tag:    "<status>",
+		expect: []string{"cool_person", "cool_person", "cool_person", "smart_person", "smart_person"},
+	},
+	{
 		message: "show a simple saveR",
 		query: `
 			g.V("cool_person").saveR("<status>", "who").all()

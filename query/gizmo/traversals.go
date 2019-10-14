@@ -26,6 +26,8 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/graph/shape"
+	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/quad"
 )
 
 // pathObject is a Path object in Gizmo.
@@ -452,7 +454,7 @@ func (p *pathObject) save(call goja.FunctionCall, rev, opt bool) goja.Value {
 	if len(args) > 2 || len(args) == 0 {
 		return throwErr(p.s.vm, errArgCount{Got: len(args)})
 	}
-	vtag := args[0]
+	var vtag interface{} = ""
 	if len(args) == 2 {
 		vtag = args[1]
 	}
@@ -463,11 +465,28 @@ func (p *pathObject) save(call goja.FunctionCall, rev, opt bool) goja.Value {
 	via := args[0]
 	if vp, ok := via.(*pathObject); ok {
 		via = vp.path
+		if tag == "" {
+			return throwErr(p.s.vm, errors.New("must specify a tag name when saving a path"))
+		}
 	} else {
-		var err error
-		via, err = toQuadValue(via)
+		qv, err := toQuadValue(via)
+		via = qv
 		if err != nil {
 			return throwErr(p.s.vm, err)
+		}
+		if tag == "" {
+			if p.s.col == query.JSONLD {
+				switch qv := qv.(type) {
+				case quad.IRI:
+					tag = string(qv)
+				case quad.String:
+					tag = string(qv)
+				default:
+					tag = quad.StringOf(qv)
+				}
+			} else {
+				tag = quad.StringOf(qv)
+			}
 		}
 	}
 	np := p.clonePath()
