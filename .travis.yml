@@ -26,9 +26,8 @@ script:
   - GO111MODULE=on go build ./cmd/cayley
   - packr2 && GO111MODULE=on go test -v ./...
 
-# TODO(dennwc): snapcraft config
-#after_success:
-#  - test -n "$TRAVIS_TAG" && snapcraft login --with snap.login
+after_success:
+  - test -n "$TRAVIS_TAG" && echo "$SNAP_TOKEN" > snap.login && snapcraft login --with snap.login
 
 deploy:
   - provider: script
