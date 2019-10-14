@@ -6,7 +6,7 @@ addons:
       - snapd
 
 go:
-  - "1.12.x"
+  - "1.13.x"
   - tip
 
 matrix:
@@ -15,16 +15,16 @@ matrix:
 
 install:
   - sudo snap install snapcraft --classic
-  - GO111MODULE=on go mod download
+  - go mod download
 
 cache:
   directories:
     - $GOPATH/pkg/mod
 
 script:
-  - GO111MODULE=on CGO_ENABLED=0 go build ./cmd/cayley
-  - GO111MODULE=on go run github.com/gobuffalo/packr/v2/packr2
-  - GO111MODULE=on go test -v ./...
+  - CGO_ENABLED=0 go build ./cmd/cayley
+  - go run github.com/gobuffalo/packr/v2/packr2
+  - go test -v ./...
 
 after_success:
   - test -n "$TRAVIS_TAG" && echo "$SNAP_TOKEN" > snap.login && snapcraft login --with snap.login
@@ -35,4 +35,4 @@ deploy:
     script: curl -sL https://git.io/goreleaser | bash
     on:
       tags: true
-      condition: $TRAVIS_OS_NAME = linux && $TRAVIS_GO_VERSION =~ ^1\.12
+      condition: $TRAVIS_OS_NAME = linux && $TRAVIS_GO_VERSION =~ ^1\.13
