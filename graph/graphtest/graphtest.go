@@ -57,6 +57,7 @@ var graphTests = []struct {
 	{"compare typed values", TestCompareTypedValues},
 	{"schema", TestSchema},
 	{"delete reinserted", TestDeleteReinserted},
+	{"delete reinserted dup", TestDeleteReinsertedDup},
 }
 
 func TestAll(t *testing.T, gen testutil.DatabaseFunc, conf *Config) {
@@ -1195,13 +1196,67 @@ func TestDeleteReinserted(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	})
 	require.NoError(t, err, "Add quadset failed")
 
-	for i := 0; i < 2; i++ {
-		err = w.AddQuad(quad.Make("<bob>", "<follows>", "<sally>", nil))
-		require.NoError(t, err, "Add quad failed")
-		err = w.RemoveQuad(quad.Make("<bob>", "<follows>", "<sally>", nil))
-		require.NoError(t, err, "Remove quad failed")
-	}
+	ctx := context.TODO()
 
+	q := quad.Make("<bob>", "<follows>", "<sally>", nil)
+	for i := 0; i < 2; i++ {
+		err = w.AddQuad(q)
+		require.NoError(t, err, "Add quad failed")
+		err = w.RemoveQuad(q)
+		require.NoError(t, err, "Remove quad failed")
+		refs, err := graph.RefsOf(ctx, qs, []quad.Value{
+			q.Subject, q.Predicate, q.Object,
+		})
+		require.NoError(t, err, "Get values failed")
+		require.Len(t, refs, 3)
+		for _, r := range refs {
+			require.NotNil(t, r)
+		}
+	}
+}
+
+func TestDeleteReinsertedDup(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
+	qs, opts, closer := gen(t)
+	defer closer()
+
+	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
+
+	err := w.AddQuadSet([]quad.Quad{
+		quad.Make("<bob>", "<status>", "Feeling happy", nil),
+		quad.Make("<sally>", "<follows>", "<jim>", nil),
+	})
+	require.NoError(t, err, "Add quadset failed")
+
+	ctx := context.TODO()
+
+	q := quad.Make("<bob>", "<follows>", "<x>", nil)
+	for i := 0; i < 2; i++ {
+		err = w.AddQuad(q)
+		require.NoError(t, err, "Add quad failed")
+		// must be ignored
+		err = w.AddQuad(q)
+		require.NoError(t, err, "Add quad failed")
+		err = w.RemoveQuad(q)
+		require.NoError(t, err, "Remove quad failed")
+
+		refs, err := graph.RefsOf(ctx, qs, []quad.Value{
+			q.Subject, q.Predicate,
+		})
+		require.NoError(t, err, "Get values failed")
+		require.Len(t, refs, 2)
+		for _, r := range refs {
+			require.NotNil(t, r)
+		}
+
+		// the node should be garbage-collected
+		refs, err = graph.RefsOf(ctx, qs, []quad.Value{
+			q.Object,
+		})
+		if err == nil {
+			// FIXME(dennwc): the graphlog.SplitDeltas adds an increment even though the quad is duplicated and ignored
+			t.Skip("value must be garbage-collected")
+		}
+	}
 }
 
 func irif(format string, args ...interface{}) quad.IRI {
