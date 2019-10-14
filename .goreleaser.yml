@@ -3,6 +3,7 @@ before:
     - go mod download
     - go get github.com/gobuffalo/packr/v2/packr2
     - packr2
+    - git checkout -- ./packrd/dummy.go
 builds:
   - main: ./cmd/cayley
     binary: cayley
