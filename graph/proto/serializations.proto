@@ -17,7 +17,7 @@ syntax = "proto3";
 package proto;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/cayleygraph/cayley/quad/pquads/quads.proto";
+import "github.com/cayleygraph/quad/pquads/quads.proto";
 option (gogoproto.protosizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) =  true;

@@ -14,7 +14,7 @@ _Note: this definitions in this glossary are sequenced so that they build on eac
 
 1. where triples have the form `{subject, predicate, object}`, quads would have a form along the lines of `{subject, predicate, object, context}` [source](https://en.wikipedia.org/wiki/Named_graph#Named_graphs_and_quads) 
 2. You can add context or extra values to triples that identifies them and makes it easy to define subgraphs, or named properties. [source](https://neo4j.com/blog/rdf-triple-store-vs-labeled-property-graph-difference/)
-3. From [Cayley godoc](https://godoc.org/github.com/cayleygraph/cayley/quad#Quad):
+3. From [Cayley godoc](https://godoc.org/github.com/cayleygraph/quad#Quad):
 
    ```go
    type Quad struct {
@@ -32,7 +32,7 @@ _Note: this definitions in this glossary are sequenced so that they build on eac
 
 ## IRI
 
-1. IRI is an RDF Internationalized Resource Identifier. [source](https://godoc.org/github.com/cayleygraph/cayley/quad#IRI)
+1. IRI is an RDF Internationalized Resource Identifier. [source](https://godoc.org/github.com/cayleygraph/quad#IRI)
 2. An IRI \(Internationalized Resource Identifier\) within an RDF graph is a Unicode string that conforms to the syntax defined in RFC 3987. [source](https://www.w3.org/TR/rdf11-concepts/#h3_section-IRIs)
 3. IRIs are a generalization of URIs that permits a wider range of Unicode characters. Every absolute URI and URL is an IRI, but not every IRI is an URI. [source](https://www.w3.org/TR/rdf11-concepts/#h3_section-IRIs)
 
@@ -80,7 +80,7 @@ _Note: this definitions in this glossary are sequenced so that they build on eac
 
 ## direction
 
-1. Direction specifies a node's position within a quad. [source](https://godoc.org/github.com/cayleygraph/cayley/quad#Direction)
+1. Direction specifies a node's position within a quad. [source](https://godoc.org/github.com/cayleygraph/quad#Direction)
 
    ```go
    const (
@@ -92,7 +92,7 @@ _Note: this definitions in this glossary are sequenced so that they build on eac
    )
    ```
 
-2. Direction is passed to the `Get` method of a quad to access one of its four parts, see [quad.Get\(d Direction\) Value](https://godoc.org/github.com/cayleygraph/cayley/quad#Quad.Get)
+2. Direction is passed to the `Get` method of a quad to access one of its four parts, see [quad.Get\(d Direction\) Value](https://godoc.org/github.com/cayleygraph/quad#Quad.Get)
 3. The term "Direction" comes about from the concept of traversing a graph. Take for example the triple `{A, follows, B}` and supposing you "select" the predicate `follows`. Now you want to traverse the graph, so you move in the `Object` direction, and you now have `B` selected. Whereas the high-level [path](glossary.md#path) abstraction for queries uses inbound/outbound predicates to represent movement on the graph, the bottom-level [iterator](glossary.md#iterator) mechanic uses Direction.
 
 ## path
