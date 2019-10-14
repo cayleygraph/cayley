@@ -30,6 +30,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/shape"
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
+	"github.com/stretchr/testify/require"
 )
 
 // This is a simple test graph.
@@ -81,6 +82,18 @@ func runTag(qs graph.QuadStore, path *Path, tag string, opt bool) ([]quad.Value,
 		if t, ok := tags[tag]; ok {
 			out = append(out, qs.NameOf(t))
 		}
+	})
+	return out, err
+}
+
+func runAllTags(qs graph.QuadStore, path *Path, opt bool) ([]map[string]quad.Value, error) {
+	var out []map[string]quad.Value
+	pb := path.Iterate(context.TODO())
+	if !opt {
+		pb = pb.UnOptimized()
+	}
+	err := pb.Paths(true).TagValues(qs, func(tags map[string]quad.Value) {
+		out = append(out, tags)
 	})
 	return out, err
 }
@@ -494,6 +507,7 @@ func testSet(qs graph.QuadStore) []test {
 func RunTestMorphisms(t *testing.T, fnc testutil.DatabaseFunc) {
 	for _, ftest := range []func(*testing.T, testutil.DatabaseFunc){
 		testFollowRecursive,
+		testFollowRecursiveHas,
 	} {
 		ftest(t, fnc)
 	}
@@ -592,6 +606,81 @@ func testFollowRecursive(t *testing.T, fnc testutil.DatabaseFunc) {
 			if !reflect.DeepEqual(got, expect) {
 				t.Errorf("Failed to %s%s, got: %v(%d) expected: %v(%d)", msg, unopt, got, len(got), expect, len(expect))
 			}
+		})
+	}
+}
+
+type byTags struct {
+	tags []string
+	arr  []map[string]quad.Value
+}
+
+func (b byTags) Len() int {
+	return len(b.arr)
+}
+
+func (b byTags) Less(i, j int) bool {
+	m1, m2 := b.arr[i], b.arr[j]
+	for _, t := range b.tags {
+		v1, v2 := m1[t], m2[t]
+		s1, s2 := quad.ToString(v1), quad.ToString(v2)
+		if s1 < s2 {
+			return true
+		} else if s1 > s2 {
+			return false
+		}
+	}
+	return false
+}
+
+func (b byTags) Swap(i, j int) {
+	b.arr[i], b.arr[j] = b.arr[j], b.arr[i]
+}
+
+func testFollowRecursiveHas(t *testing.T, fnc testutil.DatabaseFunc) {
+	qs, closer := makeTestStore(t, fnc, []quad.Quad{
+		quad.MakeIRI("1", "relatesTo", "x", ""),
+		quad.MakeIRI("2", "relatesTo", "x", ""),
+		quad.MakeIRI("3", "relatesTo", "y", ""),
+		quad.MakeIRI("1", "knows", "2", ""),
+		quad.MakeIRI("2", "knows", "3", ""),
+		quad.MakeIRI("2", "knows", "1", ""),
+	}...)
+	defer closer()
+
+	qu := StartPath(qs, quad.IRI("1")).FollowRecursive(
+		StartMorphism().Tag("pid").Out(quad.IRI("knows")), 2, nil,
+	).Has(quad.IRI("relatesTo")).Tag("id")
+
+	expect := []map[string]quad.Value{
+		{"id": quad.IRI("1"), "pid": quad.IRI("2")},
+		{"id": quad.IRI("2"), "pid": quad.IRI("1")},
+		{"id": quad.IRI("3"), "pid": quad.IRI("2")},
+	}
+	sortTags := []string{"id", "pid"}
+	sort.Sort(byTags{
+		tags: sortTags,
+		arr:  expect,
+	})
+
+	const msg = "follows recursive loop"
+
+	for _, opt := range []bool{true, false} {
+		unopt := ""
+		if !opt {
+			unopt = " (unoptimized)"
+		}
+		t.Run(msg+unopt, func(t *testing.T) {
+			got, err := runAllTags(qs, qu, opt)
+			if err != nil {
+				t.Errorf("Failed to check %s%s: %v", msg, unopt, err)
+				return
+			}
+			sort.Sort(byTags{
+				tags: sortTags,
+				arr:  got,
+			})
+			require.Equal(t, expect, got)
 		})
 	}
 }

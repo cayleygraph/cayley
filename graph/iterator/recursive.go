@@ -20,6 +20,7 @@ type Recursive struct {
 
 type seenAt struct {
 	depth int
+	tags  map[string]graph.Ref
 	val   graph.Ref
 }
 
@@ -210,9 +211,12 @@ func (it *recursiveNext) Next(ctx context.Context) bool {
 		it.nextIt.TagResults(results)
 		key := graph.ToKey(val)
 		if _, seen := it.seen[key]; !seen {
+			base := results[recursiveBaseTag]
+			delete(results, recursiveBaseTag)
 			it.seen[key] = seenAt{
-				val:   results[recursiveBaseTag],
+				val:   base,
 				depth: it.depth,
+				tags:  results,
 			}
 			it.result.depth = it.depth
 			it.result.val = val
@@ -274,6 +278,7 @@ func (it *recursiveNext) String() string {
 // Recursive iterator takes a base iterator and a morphism to be applied recursively, for each result.
 type recursiveContains struct {
 	next *recursiveNext
+	tags map[string]graph.Ref
 }
 
 func newRecursiveContains(next *recursiveNext) *recursiveContains {
@@ -284,6 +289,9 @@ func newRecursiveContains(next *recursiveNext) *recursiveContains {
 
 func (it *recursiveContains) TagResults(dst map[string]graph.Ref) {
 	it.next.TagResults(dst)
+	for k, v := range it.tags {
+		dst[k] = v
+	}
 }
 
 func (it *recursiveContains) Err() error {
@@ -301,6 +309,7 @@ func (it *recursiveContains) Contains(ctx context.Context, val graph.Ref) bool {
 		it.next.containsValue = it.next.getBaseValue(val)
 		it.next.result.depth = at.depth
 		it.next.result.val = val
+		it.tags = at.tags
 		return true
 	}
 	for it.next.Next(ctx) {
