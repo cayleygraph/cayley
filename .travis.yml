@@ -22,7 +22,7 @@ cache:
     - $GOPATH/pkg/mod
 
 script:
-  - GO111MODULE=on go build ./cmd/cayley
+  - GO111MODULE=on CGO_ENABLED=0 go build ./cmd/cayley
   - GO111MODULE=on go run github.com/gobuffalo/packr/v2/packr2
   - GO111MODULE=on go test -v ./...
 
