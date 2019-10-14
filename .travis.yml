@@ -23,17 +23,17 @@ cache:
     - /var/lib/snapd/cache
 
 script:
-  - CGO_ENABLED=0 go build ./cmd/cayley
+  - CGO_ENABLED=0 go build -o /tmp/cayley ./cmd/cayley
   - go run github.com/gobuffalo/packr/v2/packr2
   - go test -v ./...
 
 after_success:
-  - test -n "$TRAVIS_TAG" && echo "$SNAP_TOKEN" > snap.login && snapcraft login --with snap.login
+  - test -n "$TRAVIS_TAG" && echo "$SNAP_TOKEN" > /tmp/snap.login && snapcraft login --with /tmp/snap.login
 
 deploy:
   - provider: script
     skip_cleanup: true
-    script: curl -sL https://git.io/goreleaser | bash
+    script: git status && curl -sL https://git.io/goreleaser | bash
     on:
       tags: true
       condition: $TRAVIS_OS_NAME = linux && $TRAVIS_GO_VERSION =~ ^1\.13
