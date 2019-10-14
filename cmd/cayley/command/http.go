@@ -12,7 +12,7 @@ import (
 	chttp "github.com/cayleygraph/cayley/internal/http"
 )
 
-func NewHttpCmd() *cobra.Command {
+func NewHTTPCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "http",
 		Short: "Serve an HTTP endpoint on the given host and port.",

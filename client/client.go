@@ -19,7 +19,7 @@ type Client struct {
 	cli  *http.Client
 }
 
-func (c *Client) SetHttpClient(cli *http.Client) {
+func (c *Client) SetHTTPClient(cli *http.Client) {
 	c.cli = cli
 }
 func (c *Client) url(s string, q map[string]string) string {

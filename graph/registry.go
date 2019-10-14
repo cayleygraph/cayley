@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	ErrQuadStoreNotRegistred  = fmt.Errorf("This QuadStore is not registered.")
+	ErrQuadStoreNotRegistred  = fmt.Errorf("this QuadStore is not registered")
 	ErrQuadStoreNotPersistent = fmt.Errorf("cannot specify address for non-persistent backend")
-	ErrOperationNotSupported  = fmt.Errorf("This Operation is not supported.")
+	ErrOperationNotSupported  = fmt.Errorf("this Operation is not supported")
 )
 
 var storeRegistry = make(map[string]QuadStoreRegistration)

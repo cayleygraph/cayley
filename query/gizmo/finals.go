@@ -97,16 +97,15 @@ func (p *pathObject) toValue(withTags bool) (interface{}, error) {
 			return nil, nil
 		}
 		return array[0], nil
-	} else {
-		array, err := p.s.runIteratorToArray(it, limit)
-		if err != nil {
-			return nil, err
-		}
-		if len(array) == 0 {
-			return nil, nil
-		}
-		return array[0], nil
 	}
+	array, err := p.s.runIteratorToArray(it, limit)
+	if err != nil {
+		return nil, err
+	}
+	if len(array) == 0 {
+		return nil, nil
+	}
+	return array[0], nil
 }
 
 // ToValue is the same as ToArray, but limited to one result node.
