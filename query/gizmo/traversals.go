@@ -24,9 +24,9 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/path"
 	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 )
 

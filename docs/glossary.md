@@ -98,7 +98,7 @@ _Note: this definitions in this glossary are sequenced so that they build on eac
 ## path
 
 1. Paths are just a set of helpers to build a query, but they are not that good for building something more complex. You can try using [Shapes](glossary.md#shape) for this - it will give you a full control of what the query actually does. [source](https://discourse.cayley.io/t/a-variety-of-questions/1183/2)
-2. Path represents either a morphism \(a pre-defined path stored for later use\), or a concrete path, consisting of a morphism and an underlying QuadStore. [source](https://godoc.org/github.com/cayleygraph/cayley/graph/path#Path)
+2. Path represents either a morphism \(a pre-defined path stored for later use\), or a concrete path, consisting of a morphism and an underlying QuadStore. [source](https://godoc.org/github.com/cayleygraph/cayley/query/path#Path)
 3. Underlying code:
 
    ```go
@@ -118,7 +118,7 @@ _Note: this definitions in this glossary are sequenced so that they build on eac
    type applyMorphism func(shape.Shape, *pathContext) (shape.Shape, *pathContext)
    ```
 
-   So, as previously stated, the [path](https://godoc.org/github.com/cayleygraph/cayley/graph/path) package is just helper methods on top of the [shape](https://godoc.org/github.com/cayleygraph/cayley/graph/shape) package.
+   So, as previously stated, the [path](https://godoc.org/github.com/cayleygraph/cayley/query/path) package is just helper methods on top of the [shape](https://godoc.org/github.com/cayleygraph/cayley/graph/shape) package.
 
 ## morphism
 
