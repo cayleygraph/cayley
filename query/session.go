@@ -95,7 +95,6 @@ type ResponseWriter interface {
 type Language struct {
 	Name    string
 	Session func(graph.QuadStore) Session
-	REPL    func(graph.QuadStore) REPLSession // deprecated
 	HTTP    func(graph.QuadStore) HTTP
 
 	// Custom HTTP handlers

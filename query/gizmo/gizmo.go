@@ -46,9 +46,6 @@ func init() {
 		HTTP: func(qs graph.QuadStore) query.HTTP {
 			return NewSession(qs)
 		},
-		REPL: func(qs graph.QuadStore) query.REPLSession {
-			return NewSession(qs)
-		},
 	})
 }
 
