@@ -90,6 +90,12 @@ type QuadIndexer interface {
 	//  qs.ValueOf(qs.Quad(id).Get(dir))
 	//
 	QuadDirection(id Ref, d quad.Direction) Ref
+
+	// Stats returns the number of nodes and quads currently stored.
+	// Exact flag controls the correctness of the value. It can be an estimation, or a precise calculation.
+	// The quadstore may have a fast way of retrieving the precise stats, in this case it may ignore 'exact'
+	// flag and always return correct stats (with an appropriate flags set in the output).
+	Stats(ctx context.Context, exact bool) (Stats, error)
 }
 
 // Size of a graph (either in nodes or quads).
@@ -121,12 +127,6 @@ type QuadStore interface {
 
 	// Returns an iterator enumerating all links in the graph.
 	QuadsAllIterator() IteratorShape
-
-	// Stats returns the number of nodes and quads currently stored.
-	// Exact flag controls the correctness of the value. It can be an estimation, or a precise calculation.
-	// The quadstore may have a fast way of retrieving the precise stats, in this case it may ignore 'exact'
-	// flag and always return correct stats (with an appropriate flags set in the output).
-	Stats(ctx context.Context, exact bool) (Stats, error)
 
 	// Close the quad store and clean up. (Flush to disk, cleanly
 	// sever connections, etc)

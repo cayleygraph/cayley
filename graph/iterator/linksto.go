@@ -122,10 +122,15 @@ func (it *LinksTo) getSize(ctx context.Context) graph.Size {
 		return it.size
 	}
 	// TODO(barakmich): It should really come from the quadstore itself
+	stats, _ := it.qs.Stats(ctx, false)
+	maxSize := stats.Quads.Value/2 + 1
 	const fanoutFactor = 20
 	st, _ := it.primary.Stats(ctx)
-	st.Size.Value *= fanoutFactor
-	it.size.Value, it.size.Exact = st.Size.Value, false
+	value := st.Size.Value * fanoutFactor
+	if value > maxSize {
+		value = maxSize
+	}
+	it.size.Value, it.size.Exact = value, false
 	return it.size
 }
 
