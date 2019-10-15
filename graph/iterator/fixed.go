@@ -27,95 +27,55 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.IteratorFuture = &Fixed{}
+var _ graph.IteratorShape = &Fixed{}
 
 // A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
 // an equality function.
 type Fixed struct {
-	it *fixed
-	graph.Iterator
+	values []graph.Ref
 }
 
 // Creates a new Fixed iterator with a custom comparator.
 func NewFixed(vals ...graph.Ref) *Fixed {
-	it := &Fixed{
-		it: newFixed(vals...),
+	return &Fixed{
+		values: append([]graph.Ref{}, vals...),
 	}
-	it.Iterator = graph.AsLegacy(it.it)
-	return it
+}
+
+func (it *Fixed) Iterate() graph.Scanner {
+	return newFixedNext(it.values)
+}
+
+func (it *Fixed) Lookup() graph.Index {
+	return newFixedContains(it.values)
 }
 
 // Add a value to the iterator. The array now contains this value.
 // TODO(barakmich): This ought to be a set someday, disallowing repeated values.
 func (it *Fixed) Add(v graph.Ref) {
-	it.it.Add(v)
-}
-
-// Values returns a list of values stored in iterator. Slice should not be modified.
-func (it *Fixed) Values() []graph.Ref {
-	return it.it.Values()
-}
-
-func (it *Fixed) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShape = &fixed{}
-
-// A Fixed iterator consists of it's values, an index (where it is in the process of Next()ing) and
-// an equality function.
-type fixed struct {
-	values []graph.Ref
-}
-
-// Creates a new Fixed iterator with a custom comparator.
-func newFixed(vals ...graph.Ref) *fixed {
-	return &fixed{
-		values: append([]graph.Ref{}, vals...),
-	}
-}
-
-func (it *fixed) Iterate() graph.Scanner {
-	return newFixedNext(it.values)
-}
-
-func (it *fixed) Lookup() graph.Index {
-	return newFixedContains(it.values)
-}
-
-func (it *fixed) AsLegacy() graph.Iterator {
-	it2 := &Fixed{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-// Add a value to the iterator. The array now contains this value.
-// TODO(barakmich): This ought to be a set someday, disallowing repeated values.
-func (it *fixed) Add(v graph.Ref) {
 	it.values = append(it.values, v)
 }
 
 // Values returns a list of values stored in iterator. Slice must not be modified.
-func (it *fixed) Values() []graph.Ref {
+func (it *Fixed) Values() []graph.Ref {
 	return it.values
 }
 
-func (it *fixed) String() string {
+func (it *Fixed) String() string {
 	return fmt.Sprintf("Fixed(%v)", it.values)
 }
 
 // No sub-iterators.
-func (it *fixed) SubIterators() []graph.IteratorShape {
+func (it *Fixed) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
 // Optimize() for a Fixed iterator is simple. Returns a Null iterator if it's empty
 // (so that other iterators upstream can treat this as null) or there is no
 // optimization.
-func (it *fixed) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Fixed) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	if len(it.values) == 1 && it.values[0] == nil {
-		return newNull(), true
+		return NewNull(), true
 	}
 
 	return it, false
@@ -123,12 +83,12 @@ func (it *fixed) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 
 // As we right now have to scan the entire list, Next and Contains are linear with the
 // size. However, a better data structure could remove these limits.
-func (it *fixed) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Fixed) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	return graph.IteratorCosts{
 		ContainsCost: 1,
 		NextCost:     1,
 		Size: graph.Size{
-			Size:  int64(len(it.values)),
+			Value: int64(len(it.values)),
 			Exact: true,
 		},
 	}, nil

@@ -307,16 +307,16 @@ func NewQuadStoreReader(qs QuadStore) quad.ReadSkipCloser {
 // Only quads returned by iterator's Result will be used.
 //
 // Iterator will be closed with the reader.
-func NewResultReader(qs QuadStore, it Iterator) quad.ReadSkipCloser {
+func NewResultReader(qs QuadStore, it Scanner) quad.ReadSkipCloser {
 	if it == nil {
-		it = qs.QuadsAllIterator()
+		it = qs.QuadsAllIterator().Iterate()
 	}
 	return &quadReader{qs: qs, it: it}
 }
 
 type quadReader struct {
 	qs QuadStore
-	it Iterator
+	it Scanner
 }
 
 func (r *quadReader) ReadQuad() (quad.Quad, error) {

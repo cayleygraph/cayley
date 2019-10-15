@@ -302,12 +302,12 @@ func (s Select) Columns() []string {
 	return names
 }
 
-func (s Select) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Select) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	sq, ok := qs.(*QuadStore)
 	if !ok {
 		return iterator.NewError(fmt.Errorf("not a SQL quadstore: %T", qs))
 	}
-	return sq.NewIterator(s)
+	return sq.newIterator(s)
 }
 
 func (s Select) Optimize(r shape.Optimizer) (shape.Shape, bool) {

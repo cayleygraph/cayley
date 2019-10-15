@@ -55,14 +55,14 @@ func LoadNamespaces(ctx context.Context, qs graph.QuadStore, dest *voc.Namespace
 // LoadIteratorToDepth is the same as LoadIteratorTo, but stops at a specified depth.
 //
 // Deprecated: see Config.LoadIteratorToDepth
-func LoadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
+func LoadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.IteratorShape) error {
 	return global.LoadIteratorToDepth(ctx, qs, dst, depth, list)
 }
 
 // LoadIteratorTo is a lower level version of LoadTo.
 //
 // Deprecated: see Config.LoadIteratorTo
-func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.Iterator) error {
+func LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.IteratorShape) error {
 	return global.LoadIteratorToDepth(ctx, qs, dst, -1, list)
 }
 

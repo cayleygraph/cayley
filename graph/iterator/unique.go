@@ -6,61 +6,32 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.IteratorFuture = &Unique{}
-
 // Unique iterator removes duplicate values from it's subiterator.
 type Unique struct {
-	it *unique
-	graph.Iterator
-}
-
-func NewUnique(subIt graph.Iterator) *Unique {
-	it := &Unique{
-		it: newUnique(graph.AsShape(subIt)),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *Unique) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShapeCompat = (*unique)(nil)
-
-// Unique iterator removes duplicate values from it's subiterator.
-type unique struct {
 	subIt graph.IteratorShape
 }
 
-func newUnique(subIt graph.IteratorShape) *unique {
-	return &unique{
+func NewUnique(subIt graph.IteratorShape) *Unique {
+	return &Unique{
 		subIt: subIt,
 	}
 }
 
-func (it *unique) Iterate() graph.Scanner {
+func (it *Unique) Iterate() graph.Scanner {
 	return newUniqueNext(it.subIt.Iterate())
 }
 
-func (it *unique) Lookup() graph.Index {
+func (it *Unique) Lookup() graph.Index {
 	return newUniqueContains(it.subIt.Lookup())
-}
-
-func (it *unique) AsLegacy() graph.Iterator {
-	it2 := &Unique{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
 }
 
 // SubIterators returns a slice of the sub iterators. The first iterator is the
 // primary iterator, for which the complement is generated.
-func (it *unique) SubIterators() []graph.IteratorShape {
+func (it *Unique) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.subIt}
 }
 
-func (it *unique) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Unique) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newIt, optimized := it.subIt.Optimize(ctx)
 	if optimized {
 		it.subIt = newIt
@@ -70,19 +41,19 @@ func (it *unique) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 
 const uniquenessFactor = 2
 
-func (it *unique) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Unique) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	subStats, err := it.subIt.Stats(ctx)
 	return graph.IteratorCosts{
 		NextCost:     subStats.NextCost * uniquenessFactor,
 		ContainsCost: subStats.ContainsCost,
 		Size: graph.Size{
-			Size:  subStats.Size.Size / uniquenessFactor,
+			Value: subStats.Size.Value / uniquenessFactor,
 			Exact: false,
 		},
 	}, err
 }
 
-func (it *unique) String() string {
+func (it *Unique) String() string {
 	return "Unique"
 }
 

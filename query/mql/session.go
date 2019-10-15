@@ -70,7 +70,7 @@ func (s *Session) ShapeOf(query string) (interface{}, error) {
 type mqlIterator struct {
 	q   *Query
 	col query.Collation
-	it  graph.Iterator
+	it  graph.Scanner
 	res []interface{}
 }
 
@@ -132,9 +132,9 @@ func (s *Session) Execute(ctx context.Context, input string, opt query.Options) 
 		return nil, q.err
 	}
 
-	it := q.it
+	it := q.it.Iterate()
 	if opt.Limit > 0 {
-		it = iterator.NewLimit(it, int64(opt.Limit))
+		it = iterator.NewLimitNext(it, int64(opt.Limit))
 	}
 	return &mqlIterator{
 		q:   q,

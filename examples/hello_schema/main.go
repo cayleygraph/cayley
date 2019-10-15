@@ -122,7 +122,8 @@ func main() {
 	// Print quads
 	fmt.Println("\nquads:")
 	ctx := context.TODO()
-	it := store.QuadsAllIterator()
+	it := store.QuadsAllIterator().Iterate()
+	defer it.Close()
 	for it.Next(ctx) {
 		fmt.Println(store.Quad(it.Result()))
 	}

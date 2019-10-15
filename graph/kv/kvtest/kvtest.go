@@ -99,17 +99,20 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 
 	oldIt := shape.BuildIterator(qs, shape.Quads{
 		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("F")}},
-	})
-	newIt, ok := lto.Optimize()
+	}).Iterate()
+	defer oldIt.Close()
+	newIts, ok := lto.Optimize(ctx)
 	if ok {
 		t.Errorf("unexpected optimization step")
 	}
-	if _, ok := newIt.(*kv.QuadIterator); !ok {
-		t.Errorf("Optimized iterator type does not match original, got: %T", newIt)
+	if _, ok := newIts.(*kv.QuadIterator); !ok {
+		t.Errorf("Optimized iterator type does not match original, got: %T", newIts)
 	}
+	newIt := newIts.Iterate()
+	defer newIt.Close()
 
-	newQuads := graphtest.IteratedQuads(t, qs, newIt)
-	oldQuads := graphtest.IteratedQuads(t, qs, oldIt)
+	newQuads := graphtest.IteratedQuadsNext(t, qs, newIt)
+	oldQuads := graphtest.IteratedQuadsNext(t, qs, oldIt)
 	if !reflect.DeepEqual(newQuads, oldQuads) {
 		t.Errorf("Optimized iteration does not match original")
 	}

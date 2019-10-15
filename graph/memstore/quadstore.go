@@ -476,14 +476,14 @@ func (qs *QuadStore) Quad(index graph.Ref) quad.Quad {
 	return qs.lookupQuadDirs(q)
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) graph.IteratorShape {
 	id, ok := asID(value)
 	if !ok {
 		return iterator.NewNull()
 	}
 	index, ok := qs.index.Get(d, id)
 	if ok && index.Len() != 0 {
-		return NewIterator(index, qs, d, id)
+		return qs.newIterator(index, d, id)
 	}
 	return iterator.NewNull()
 }
@@ -491,23 +491,23 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) graph.Itera
 func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
 	id, ok := asID(v)
 	if !ok {
-		return graph.Size{Size: 0, Exact: true}, nil
+		return graph.Size{Value: 0, Exact: true}, nil
 	}
 	index, ok := qs.index.Get(d, id)
 	if !ok {
-		return graph.Size{Size: 0, Exact: true}, nil
+		return graph.Size{Value: 0, Exact: true}, nil
 	}
-	return graph.Size{Size: int64(index.Len()), Exact: true}, nil
+	return graph.Size{Value: int64(index.Len()), Exact: true}, nil
 }
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	return graph.Stats{
 		Nodes: graph.Size{
-			Size:  int64(len(qs.vals)),
+			Value: int64(len(qs.vals)),
 			Exact: true,
 		},
 		Quads: graph.Size{
-			Size:  int64(len(qs.quads)),
+			Value: int64(len(qs.quads)),
 			Exact: true,
 		},
 	}, nil
@@ -540,8 +540,8 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	return qs.lookupVal(n)
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return newAllIterator(qs, false, qs.last)
+func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+	return qs.newAllIterator(false, qs.last)
 }
 
 func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) graph.Ref {
@@ -556,8 +556,8 @@ func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) graph.Ref {
 	return bnode(id)
 }
 
-func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return newAllIterator(qs, true, qs.last)
+func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+	return qs.newAllIterator(true, qs.last)
 }
 
 func (qs *QuadStore) Close() error { return nil }

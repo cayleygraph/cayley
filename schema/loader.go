@@ -99,7 +99,7 @@ func (c *Config) LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interf
 	if dst == nil {
 		return fmt.Errorf("nil destination object")
 	}
-	var it graph.Iterator
+	var it graph.IteratorShape
 	if len(ids) != 0 {
 		fixed := iterator.NewFixed()
 		for _, id := range ids {
@@ -127,13 +127,13 @@ func (c *Config) LoadPathTo(ctx context.Context, qs graph.QuadStore, dst interfa
 // destination value to be obtained via reflect package manually.
 //
 // Nodes iterator can be nil, All iterator will be used in this case.
-func (c *Config) LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.Iterator) error {
+func (c *Config) LoadIteratorTo(ctx context.Context, qs graph.QuadStore, dst reflect.Value, list graph.IteratorShape) error {
 	return c.LoadIteratorToDepth(ctx, qs, dst, -1, list)
 }
 
 // LoadIteratorToDepth is the same as LoadIteratorTo, but stops at a specified depth.
 // Negative value means unlimited depth, and zero means top level only.
-func (c *Config) LoadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.Iterator) error {
+func (c *Config) LoadIteratorToDepth(ctx context.Context, qs graph.QuadStore, dst reflect.Value, depth int, list graph.IteratorShape) error {
 	if depth >= 0 {
 		// 0 depth means "current level only" for user, but it's easier to make depth=0 a stop condition
 		depth++
@@ -390,12 +390,12 @@ func (l *loader) loadToValue(ctx context.Context, dst reflect.Value, depth int, 
 	return nil
 }
 
-func (l *loader) iteratorForType(root graph.Iterator, rt reflect.Type, rootOnly bool) (graph.Iterator, error) {
+func (l *loader) iteratorForType(ctx context.Context, root graph.IteratorShape, rt reflect.Type, rootOnly bool) (graph.IteratorShape, error) {
 	p, err := l.makePathForType(rt, "", rootOnly)
 	if err != nil {
 		return nil, err
 	}
-	return l.iteratorFromPath(root, p)
+	return l.iteratorFromPath(ctx, root, p)
 }
 
 func mergeMap(dst map[string][]graph.Ref, m map[string]graph.Ref) {
@@ -411,7 +411,7 @@ loop:
 	}
 }
 
-func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, depth int, list graph.Iterator) error {
+func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, depth int, list graph.IteratorShape) error {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -447,10 +447,11 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 	}
 
 	rootOnly := depth == 0
-	it, err := l.iteratorForType(list, et, rootOnly)
+	its, err := l.iteratorForType(ctx, list, et, rootOnly)
 	if err != nil {
 		return err
 	}
+	it := its.Iterate()
 	defer it.Close()
 
 	ctx = context.WithValue(ctx, fieldsCtxKey{}, fields)
@@ -532,8 +533,7 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 	}
 	if list != nil { // TODO(dennwc): optional optimization: do this only if iterator is not "all nodes"
 		// distinguish between missing object and type constraints
-		list.Reset()
-		and := iterator.NewAnd(list, l.qs.NodesAllIterator())
+		and := iterator.NewAnd(list, l.qs.NodesAllIterator()).Iterate()
 		defer and.Close()
 		if and.Next(ctx) {
 			return errRequiredFieldIsMissing
@@ -542,13 +542,13 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 	return errNotFound
 }
 
-func (l *loader) iteratorFromPath(root graph.Iterator, p *path.Path) (graph.Iterator, error) {
+func (l *loader) iteratorFromPath(ctx context.Context, root graph.IteratorShape, p *path.Path) (graph.IteratorShape, error) {
 	it := p.BuildIteratorOn(l.qs)
 	if root != nil {
 		it = iterator.NewAnd(root, it)
 	}
 	if Optimize {
-		it, _ = it.Optimize()
+		it, _ = it.Optimize(ctx)
 	}
 	return it, nil
 }

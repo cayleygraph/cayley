@@ -23,31 +23,7 @@ import (
 	"github.com/hidal-go/hidalgo/kv"
 )
 
-var _ graph.IteratorFuture = &QuadIterator{}
-
 type QuadIterator struct {
-	it *quadIterator
-	graph.Iterator
-}
-
-func NewQuadIterator(qs *QuadStore, ind QuadIndex, vals []uint64) *QuadIterator {
-	it := &QuadIterator{
-		it: newQuadIterator(qs, ind, vals),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *QuadIterator) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-func (it *QuadIterator) Sorted() bool { return true }
-
-var _ graph.IteratorShapeCompat = &quadIterator{}
-
-type quadIterator struct {
 	qs   *QuadStore
 	ind  QuadIndex
 	vals []uint64
@@ -56,37 +32,31 @@ type quadIterator struct {
 	err  error
 }
 
-func newQuadIterator(qs *QuadStore, ind QuadIndex, vals []uint64) *quadIterator {
-	return &quadIterator{
+func (qs *QuadStore) newQuadIterator(ind QuadIndex, vals []uint64) *QuadIterator {
+	return &QuadIterator{
 		qs:   qs,
 		ind:  ind,
 		vals: vals,
-		size: graph.Size{Size: -1},
+		size: graph.Size{Value: -1},
 	}
 }
 
-func (it *quadIterator) Iterate() graph.Scanner {
-	return newQuadIteratorNext(it.qs, it.ind, it.vals)
+func (it *QuadIterator) Iterate() graph.Scanner {
+	return it.qs.newQuadIteratorNext(it.ind, it.vals)
 }
 
-func (it *quadIterator) Lookup() graph.Index {
-	return newQuadIteratorContains(it.qs, it.ind, it.vals)
+func (it *QuadIterator) Lookup() graph.Index {
+	return it.qs.newQuadIteratorContains(it.ind, it.vals)
 }
 
-func (it *quadIterator) AsLegacy() graph.Iterator {
-	it2 := &QuadIterator{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *quadIterator) SubIterators() []graph.IteratorShape {
+func (it *QuadIterator) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
-func (it *quadIterator) getSize(ctx context.Context) (graph.Size, error) {
+func (it *QuadIterator) getSize(ctx context.Context) (graph.Size, error) {
 	if it.err != nil {
 		return graph.Size{}, it.err
-	} else if it.size.Size >= 0 {
+	} else if it.size.Value >= 0 {
 		return it.size, nil
 	}
 	if len(it.ind.Dirs) == len(it.vals) {
@@ -98,20 +68,20 @@ func (it *quadIterator) getSize(ctx context.Context) (graph.Size, error) {
 		it.size = sz
 		return sz, nil
 	}
-	return graph.Size{Size: 1 + it.qs.Size()/2, Exact: false}, nil
+	return graph.Size{Value: 1 + it.qs.Size()/2, Exact: false}, nil
 }
 
-func (it *quadIterator) String() string {
+func (it *QuadIterator) String() string {
 	return fmt.Sprintf("KVQuads(%v)", it.ind)
 }
 
-func (it *quadIterator) Sorted() bool { return true }
+func (it *QuadIterator) Sorted() bool { return true }
 
-func (it *quadIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *QuadIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 
-func (it *quadIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *QuadIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	s, err := it.getSize(ctx)
 	return graph.IteratorCosts{
 		ContainsCost: 1,
@@ -136,7 +106,7 @@ type quadIteratorNext struct {
 	prim *proto.Primitive
 }
 
-func newQuadIteratorNext(qs *QuadStore, ind QuadIndex, vals []uint64) *quadIteratorNext {
+func (qs *QuadStore) newQuadIteratorNext(ind QuadIndex, vals []uint64) *quadIteratorNext {
 	return &quadIteratorNext{
 		qs:   qs,
 		ind:  ind,
@@ -256,7 +226,7 @@ type quadIteratorContains struct {
 	prim *proto.Primitive
 }
 
-func newQuadIteratorContains(qs *QuadStore, ind QuadIndex, vals []uint64) *quadIteratorContains {
+func (qs *QuadStore) newQuadIteratorContains(ind QuadIndex, vals []uint64) *quadIteratorContains {
 	return &quadIteratorContains{
 		qs:   qs,
 		ind:  ind,

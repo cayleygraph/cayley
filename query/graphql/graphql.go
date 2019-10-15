@@ -149,8 +149,8 @@ type object struct {
 	fields map[string]interface{}
 }
 
-func buildIterator(qs graph.QuadStore, p *path.Path) graph.Iterator {
-	it, _ := p.BuildIterator().Optimize()
+func buildIterator(ctx context.Context, qs graph.QuadStore, p *path.Path) graph.IteratorShape {
+	it, _ := p.BuildIterator().Optimize(ctx)
 	return it
 }
 
@@ -210,7 +210,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 	if f.AllFields {
 		tail()
 
-		it := buildIterator(qs, p)
+		it := buildIterator(ctx, qs, p).Iterate()
 		defer it.Close()
 
 		// we don't care about alternative paths to nodes here, so we will not call NextPath
@@ -228,7 +228,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			obj := make(map[string]interface{})
 			obj[ValueKey] = qs.NameOf(nv)
 			func() {
-				sit := qs.QuadIterator(quad.Subject, nv)
+				sit := qs.QuadIterator(quad.Subject, nv).Iterate()
 				defer sit.Close()
 				for sit.Next(ctx) {
 					q := qs.Quad(sit.Result())
@@ -278,7 +278,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 	tail()
 
 	// first, collect result node ids and any tags associated with it (flat values)
-	it := buildIterator(qs, p)
+	it := buildIterator(ctx, qs, p).Iterate()
 	defer it.Close()
 
 	var results []object

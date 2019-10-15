@@ -7,62 +7,33 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.IteratorFuture = &Skip{}
-
 // Skip iterator will skip certain number of values from primary iterator.
 type Skip struct {
-	it *skip
-	graph.Iterator
-}
-
-func NewSkip(primaryIt graph.Iterator, skip int64) *Skip {
-	it := &Skip{
-		it: newSkip(graph.AsShape(primaryIt), skip),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *Skip) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShapeCompat = &skip{}
-
-// Skip iterator will skip certain number of values from primary iterator.
-type skip struct {
 	skip      int64
 	primaryIt graph.IteratorShape
 }
 
-func newSkip(primaryIt graph.IteratorShape, off int64) *skip {
-	return &skip{
+func NewSkip(primaryIt graph.IteratorShape, off int64) *Skip {
+	return &Skip{
 		skip:      off,
 		primaryIt: primaryIt,
 	}
 }
 
-func (it *skip) Iterate() graph.Scanner {
+func (it *Skip) Iterate() graph.Scanner {
 	return newSkipNext(it.primaryIt.Iterate(), it.skip)
 }
 
-func (it *skip) Lookup() graph.Index {
+func (it *Skip) Lookup() graph.Index {
 	return newSkipContains(it.primaryIt.Lookup(), it.skip)
 }
 
-func (it *skip) AsLegacy() graph.Iterator {
-	it2 := &Skip{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
 // SubIterators returns a slice of the sub iterators.
-func (it *skip) SubIterators() []graph.IteratorShape {
+func (it *Skip) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.primaryIt}
 }
 
-func (it *skip) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Skip) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	optimizedPrimaryIt, optimized := it.primaryIt.Optimize(ctx)
 	if it.skip == 0 { // nothing to skip
 		return optimizedPrimaryIt, true
@@ -71,18 +42,18 @@ func (it *skip) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, optimized
 }
 
-func (it *skip) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Skip) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	primaryStats, err := it.primaryIt.Stats(ctx)
 	if primaryStats.Size.Exact {
-		primaryStats.Size.Size -= it.skip
-		if primaryStats.Size.Size < 0 {
-			primaryStats.Size.Size = 0
+		primaryStats.Size.Value -= it.skip
+		if primaryStats.Size.Value < 0 {
+			primaryStats.Size.Value = 0
 		}
 	}
 	return primaryStats, err
 }
 
-func (it *skip) String() string {
+func (it *Skip) String() string {
 	return fmt.Sprintf("Skip(%d)", it.skip)
 }
 

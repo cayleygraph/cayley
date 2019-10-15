@@ -2,8 +2,9 @@ package iterator_test
 
 import (
 	"context"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -19,42 +20,25 @@ func TestLimitIteratorBasics(t *testing.T) {
 	)
 
 	u := NewLimit(allIt, 0)
-	expectSz, _ := allIt.Size()
-	if sz, _ := u.Size(); sz != expectSz {
-		t.Errorf("Failed to check Limit size: got:%v expected:%v", sz, expectSz)
-	}
-	expect := []int{1, 2, 3, 4, 5}
-	if got := iterated(u); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to iterate Limit correctly: got:%v expected:%v", got, expect)
-	}
-
-	allIt.Reset()
+	expectSz, _ := allIt.Stats(ctx)
+	sz, _ := u.Stats(ctx)
+	require.Equal(t, expectSz.Size.Value, sz.Size.Value)
+	require.Equal(t, []int{1, 2, 3, 4, 5}, iterated(u))
 
 	u = NewLimit(allIt, 3)
-	expectSz = 3
-	if sz, _ := u.Size(); sz != expectSz {
-		t.Errorf("Failed to check Limit size: got:%v expected:%v", sz, expectSz)
-	}
-	expect = []int{1, 2, 3}
-	if got := iterated(u); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to iterate Limit correctly: got:%v expected:%v", got, expect)
-	}
+	sz, _ = u.Stats(ctx)
+	require.Equal(t, int64(3), sz.Size.Value)
+	require.Equal(t, []int{1, 2, 3}, iterated(u))
 
+	uc := u.Lookup()
 	for _, v := range []int{1, 2, 3} {
-		if !u.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to find a correct value in the Limit iterator.")
-		}
+		require.True(t, uc.Contains(ctx, Int64Node(v)))
 	}
-	if u.Contains(ctx, Int64Node(4)) {
-		t.Error("should have no more results")
-	}
-	u.Reset()
+	require.False(t, uc.Contains(ctx, Int64Node(4)))
+
+	uc = u.Lookup()
 	for _, v := range []int{5, 4, 3} {
-		if !u.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to find a correct value in the Limit iterator.")
-		}
+		require.True(t, uc.Contains(ctx, Int64Node(v)))
 	}
-	if u.Contains(ctx, Int64Node(2)) {
-		t.Error("should have no more results")
-	}
+	require.False(t, uc.Contains(ctx, Int64Node(2)))
 }

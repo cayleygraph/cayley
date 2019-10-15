@@ -16,9 +16,10 @@ package iterator_test
 
 import (
 	"context"
-	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphmock"
@@ -27,7 +28,7 @@ import (
 )
 
 func singleHop(qs graph.QuadIndexer, pred string) Morphism {
-	return func(it graph.Iterator) graph.Iterator {
+	return func(it graph.IteratorShape) graph.IteratorShape {
 		fixed := NewFixed()
 		fixed.Add(graph.PreFetched(quad.Raw(pred)))
 		predlto := NewLinksTo(qs, fixed, quad.Predicate)
@@ -39,7 +40,7 @@ func singleHop(qs graph.QuadIndexer, pred string) Morphism {
 	}
 }
 
-var rec_test_qs = &graphmock.Store{
+var recTestQs = &graphmock.Store{
 	Data: []quad.Quad{
 		quad.MakeRaw("alice", "parent", "bob", ""),
 		quad.MakeRaw("bob", "parent", "charlie", ""),
@@ -53,43 +54,39 @@ var rec_test_qs = &graphmock.Store{
 
 func TestRecursiveNext(t *testing.T) {
 	ctx := context.TODO()
-	qs := rec_test_qs
+	qs := recTestQs
 	start := NewFixed()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
-	r := NewRecursive(start, singleHop(qs, "parent"), 0)
-	expected := []string{"bob", "charlie", "dani", "emily"}
+	r := NewRecursive(start, singleHop(qs, "parent"), 0).Iterate()
 
+	expected := []string{"bob", "charlie", "dani", "emily"}
 	var got []string
 	for r.Next(ctx) {
 		got = append(got, quad.ToString(qs.NameOf(r.Result())))
 	}
 	sort.Strings(expected)
 	sort.Strings(got)
-	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("Failed to %s, got: %v, expected: %v", "check basic recursive iterator", got, expected)
-	}
+	require.Equal(t, expected, got)
 }
 
 func TestRecursiveContains(t *testing.T) {
 	ctx := context.TODO()
-	qs := rec_test_qs
+	qs := recTestQs
 	start := NewFixed()
 	start.Add(graph.PreFetched(quad.Raw("alice")))
-	r := NewRecursive(start, singleHop(qs, "parent"), 0)
+	r := NewRecursive(start, singleHop(qs, "parent"), 0).Lookup()
 	values := []string{"charlie", "bob", "not"}
 	expected := []bool{true, true, false}
 
 	for i, v := range values {
 		ok := r.Contains(ctx, qs.ValueOf(quad.Raw(v)))
-		if expected[i] != ok {
-			t.Errorf("Failed to %s, value: %s, got: %v, expected: %v", "check basic recursive contains", v, ok, expected[i])
-		}
+		require.Equal(t, expected[i], ok)
 	}
 }
 
 func TestRecursiveNextPath(t *testing.T) {
 	ctx := context.TODO()
-	qs := rec_test_qs
+	qs := recTestQs
 	start := qs.NodesAllIterator()
 	start = Tag(start, "person")
 	it := singleHop(qs, "follows")(start)
@@ -98,7 +95,7 @@ func TestRecursiveNextPath(t *testing.T) {
 	fixed := NewFixed()
 	fixed.Add(graph.PreFetched(quad.Raw("alice")))
 	and.AddSubIterator(fixed)
-	r := NewRecursive(and, singleHop(qs, "parent"), 0)
+	r := NewRecursive(and, singleHop(qs, "parent"), 0).Iterate()
 
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string
@@ -114,7 +111,5 @@ func TestRecursiveNextPath(t *testing.T) {
 	}
 	sort.Strings(expected)
 	sort.Strings(got)
-	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("Failed to check NextPath, got: %v, expected: %v", got, expected)
-	}
+	require.Equal(t, expected, got)
 }

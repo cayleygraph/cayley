@@ -234,21 +234,21 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}
 	st := graph.Stats{
 		Nodes: graph.Size{
-			Size:  sz / 3,
+			Value: sz / 3,
 			Exact: false, // TODO(dennwc): store nodes count
 		},
 		Quads: graph.Size{
-			Size:  sz,
+			Value: sz,
 			Exact: true,
 		},
 	}
 	if exact {
 		// calculate the exact number of nodes
-		st.Nodes.Size = 0
-		it := qs.NodesAllIterator()
+		st.Nodes.Value = 0
+		it := qs.NodesAllIterator().Iterate()
 		defer it.Close()
 		for it.Next(ctx) {
-			st.Nodes.Size++
+			st.Nodes.Value++
 		}
 		if err := it.Err(); err != nil {
 			return st, err

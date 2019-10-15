@@ -22,64 +22,34 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-var _ graph.IteratorFuture = &AllIterator{}
-
-type AllIterator struct {
-	it *allIterator
-	graph.Iterator
-}
-
 type constraint struct {
 	dir quad.Direction
 	val Int64Value
 }
 
-func NewAllIterator(nodes bool, qs *QuadStore, cons *constraint) *AllIterator {
-	it := &AllIterator{
-		it: newAllIterator(nodes, qs, cons),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *AllIterator) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-func (it *AllIterator) Sorted() bool { return false }
-
-var _ graph.IteratorShapeCompat = &allIterator{}
-
 type allIterator struct {
-	nodes bool
 	qs    *QuadStore
+	nodes bool
 	cons  *constraint
 }
 
-func newAllIterator(nodes bool, qs *QuadStore, cons *constraint) *allIterator {
+func (qs *QuadStore) newAllIterator(nodes bool, cons *constraint) *allIterator {
 	if nodes && cons != nil {
 		panic("cannot use a kv all iterator across nodes with a constraint")
 	}
 	return &allIterator{
-		nodes: nodes,
 		qs:    qs,
+		nodes: nodes,
 		cons:  cons,
 	}
 }
 
 func (it *allIterator) Iterate() graph.Scanner {
-	return newAllIteratorNext(it.nodes, it.qs, it.cons)
+	return it.qs.newAllIteratorNext(it.nodes, it.cons)
 }
 
 func (it *allIterator) Lookup() graph.Index {
-	return newAllIteratorContains(it.nodes, it.qs, it.cons)
-}
-
-func (it *allIterator) AsLegacy() graph.Iterator {
-	it2 := &AllIterator{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
+	return it.qs.newAllIteratorContains(it.nodes, it.cons)
 }
 
 // No subiterators.
@@ -106,7 +76,7 @@ func (it *allIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 		ContainsCost: 1,
 		NextCost:     2,
 		Size: graph.Size{
-			Size:  it.qs.Size(),
+			Value: it.qs.Size(),
 			Exact: false,
 		},
 	}, nil
@@ -123,13 +93,13 @@ type allIteratorNext struct {
 	cons    *constraint
 }
 
-func newAllIteratorNext(nodes bool, qs *QuadStore, cons *constraint) *allIteratorNext {
+func (qs *QuadStore) newAllIteratorNext(nodes bool, cons *constraint) *allIteratorNext {
 	if nodes && cons != nil {
-		panic("cannot use a kv all iterator across nodes with a constraint")
+		panic("cannot use a kv all iterator across nodes with a constraint\n")
 	}
 	return &allIteratorNext{
-		nodes:   nodes,
 		qs:      qs,
+		nodes:   nodes,
 		horizon: qs.horizon(context.TODO()),
 		cons:    cons,
 	}
@@ -229,13 +199,13 @@ type allIteratorContains struct {
 	cons    *constraint
 }
 
-func newAllIteratorContains(nodes bool, qs *QuadStore, cons *constraint) *allIteratorContains {
+func (qs *QuadStore) newAllIteratorContains(nodes bool, cons *constraint) *allIteratorContains {
 	if nodes && cons != nil {
 		panic("cannot use a kv all iterator across nodes with a constraint")
 	}
 	return &allIteratorContains{
-		nodes:   nodes,
 		qs:      qs,
+		nodes:   nodes,
 		horizon: qs.horizon(context.TODO()),
 		cons:    cons,
 	}

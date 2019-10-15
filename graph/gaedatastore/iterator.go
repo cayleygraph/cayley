@@ -25,8 +25,120 @@ import (
 	"google.golang.org/appengine/datastore"
 )
 
+var _ graph.IteratorShape = &Iterator{}
+
+const (
+	bufferSize = 50
+)
+
 type Iterator struct {
-	size   int64
+	size  int64
+	dir   quad.Direction
+	qs    *QuadStore
+	t     *Token
+	isAll bool
+	kind  string
+}
+
+func (it *Iterator) Iterate() graph.Scanner {
+	if it.isAll {
+		return newAllIteratorNext(it.qs, it.kind)
+	}
+	return newIteratorNext(it.qs, it.kind, it.dir, it.t)
+}
+
+func (it *Iterator) Lookup() graph.Index {
+	if it.isAll {
+		return newAllIteratorContains(it.qs, it.kind)
+	}
+	return newIteratorContains(it.qs, it.kind, it.dir, it.t)
+}
+
+func (qs *QuadStore) newIterator(k string, d quad.Direction, val graph.Ref) *Iterator {
+	t := val.(*Token)
+	if t == nil {
+		clog.Errorf("Token == nil")
+	}
+	return &Iterator{
+		dir:   d,
+		qs:    qs,
+		isAll: false,
+		t:     t,
+		kind:  k,
+	}
+}
+
+func (qs *QuadStore) newAllIterator(kind string) *Iterator {
+	return &Iterator{
+		qs:    qs,
+		dir:   quad.Any,
+		isAll: true,
+		kind:  kind,
+	}
+}
+
+// No subiterators.
+func (it *Iterator) SubIterators() []graph.IteratorShape {
+	return nil
+}
+
+func (it *Iterator) Sorted() bool                                             { return false }
+func (it *Iterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
+func (it *Iterator) String() string {
+	name := ""
+	if it.t != nil {
+		name = quad.StringOf(it.qs.NameOf(it.t)) + "/" + it.t.Hash
+	}
+	return fmt.Sprintf("GAE(%s)", name)
+}
+
+func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
+	if it.size != 0 {
+		return graph.Size{
+			Value: it.size,
+			Exact: true,
+		}, nil
+	}
+	if !it.isAll {
+		// The number of references to this node is held in the nodes entity
+		key := it.qs.createKeyFromToken(it.t)
+		foundNode := new(NodeEntry)
+		err := datastore.Get(it.qs.context, key, foundNode)
+		if err != datastore.ErrNoSuchEntity {
+			err = nil
+		}
+		size := foundNode.Size
+		it.size = size
+		return graph.Size{
+			Value: it.size,
+			Exact: err == nil,
+		}, err
+	}
+	var size int64
+	st, err := it.qs.Stats(context.Background(), true)
+	if it.kind == nodeKind {
+		size = st.Nodes.Value
+	} else {
+		size = st.Quads.Value
+	}
+	it.size = size
+	return graph.Size{
+		Value: it.size,
+		Exact: err == nil,
+	}, err
+}
+
+func (it *Iterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+	sz, err := it.getSize(ctx)
+	// TODO (panamafrancis) calculate costs
+	return graph.IteratorCosts{
+		ContainsCost: 1,
+		NextCost:     5,
+		Size:         sz,
+	}, err
+}
+
+type iteratorNext struct {
 	dir    quad.Direction
 	qs     *QuadStore
 	name   string
@@ -41,44 +153,27 @@ type Iterator struct {
 	err    error
 }
 
-var (
-	bufferSize = 50
-)
-
-func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Ref) *Iterator {
-	t := val.(*Token)
+func newIteratorNext(qs *QuadStore, k string, d quad.Direction, t *Token) *iteratorNext {
 	if t == nil {
 		clog.Errorf("Token == nil")
 	}
 	if t.Kind != nodeKind {
 		clog.Errorf("Cannot create an iterator from a non-node value")
-		return &Iterator{done: true}
+		return &iteratorNext{done: true}
 	}
 	if k != nodeKind && k != quadKind {
 		clog.Errorf("Cannot create iterator for unknown kind")
-		return &Iterator{done: true}
+		return &iteratorNext{done: true}
 	}
 	if qs.context == nil {
 		clog.Errorf("Cannot create iterator without a valid context")
-		return &Iterator{done: true}
+		return &iteratorNext{done: true}
 	}
 	name := quad.StringOf(qs.NameOf(t))
-
-	// The number of references to this node is held in the nodes entity
-	key := qs.createKeyFromToken(t)
-	foundNode := new(NodeEntry)
-	err := datastore.Get(qs.context, key, foundNode)
-	if err != nil && err != datastore.ErrNoSuchEntity {
-		clog.Errorf("Error: %v", err)
-		return &Iterator{done: true}
-	}
-	size := foundNode.Size
-
-	return &Iterator{
+	return &iteratorNext{
 		name:  name,
 		dir:   d,
 		qs:    qs,
-		size:  size,
 		isAll: false,
 		kind:  k,
 		hash:  t.Hash,
@@ -86,43 +181,24 @@ func NewIterator(qs *QuadStore, k string, d quad.Direction, val graph.Ref) *Iter
 	}
 }
 
-func NewAllIterator(qs *QuadStore, kind string) *Iterator {
+func newAllIteratorNext(qs *QuadStore, kind string) *iteratorNext {
 	if kind != nodeKind && kind != quadKind {
 		clog.Errorf("Cannot create iterator for an unknown kind")
-		return &Iterator{done: true}
+		return &iteratorNext{done: true}
 	}
 	if qs.context == nil {
 		clog.Errorf("Cannot create iterator without a valid context")
-		return &Iterator{done: true}
+		return &iteratorNext{done: true}
 	}
-
-	st, err := qs.Stats(context.Background(), true)
-	var size int64
-	if kind == nodeKind {
-		size = st.Nodes.Size
-	} else {
-		size = st.Quads.Size
-	}
-	return &Iterator{
+	return &iteratorNext{
 		qs:    qs,
-		size:  size,
-		err:   err,
 		dir:   quad.Any,
 		isAll: true,
 		kind:  kind,
-		done:  err != nil,
 	}
 }
 
-func (it *Iterator) Reset() {
-	it.buffer = nil
-	it.offset = 0
-	it.done = false
-	it.last = ""
-	it.result = nil
-}
-
-func (it *Iterator) Close() error {
+func (it *iteratorNext) Close() error {
 	it.buffer = nil
 	it.offset = 0
 	it.done = true
@@ -131,56 +207,17 @@ func (it *Iterator) Close() error {
 	return nil
 }
 
-func (it *Iterator) Contains(ctx context.Context, v graph.Ref) bool {
-	if it.isAll {
-		// The result needs to be set, so when contains is called, the result can be retrieved
-		it.result = v
-		return true
-	}
-	t := v.(*Token)
-	if t == nil {
-		clog.Errorf("Could not cast to token")
-		return false
-	}
-	if t.Kind == nodeKind {
-		clog.Errorf("Contains does not work with node values")
-		return false
-	}
-	// Contains is for when you want to know that an iterator refers to a quad
-	var offset int
-	switch it.dir {
-	case quad.Subject:
-		offset = 0
-	case quad.Predicate:
-		offset = (quad.HashSize * 2)
-	case quad.Object:
-		offset = (quad.HashSize * 2) * 2
-	case quad.Label:
-		offset = (quad.HashSize * 2) * 3
-	}
-	val := t.Hash[offset : offset+(quad.HashSize*2)]
-	if val == it.hash {
-		return true
-	}
+func (it *iteratorNext) TagResults(dst map[string]graph.Ref) {}
+
+func (it *iteratorNext) NextPath(ctx context.Context) bool {
 	return false
 }
 
-func (it *Iterator) TagResults(dst map[string]graph.Ref) {}
-
-func (it *Iterator) NextPath(ctx context.Context) bool {
-	return false
-}
-
-// No subiterators.
-func (it *Iterator) SubIterators() []graph.Iterator {
-	return nil
-}
-
-func (it *Iterator) Result() graph.Ref {
+func (it *iteratorNext) Result() graph.Ref {
 	return it.result
 }
 
-func (it *Iterator) Next(ctx context.Context) bool {
+func (it *iteratorNext) Next(ctx context.Context) bool {
 	if it.offset+1 < len(it.buffer) {
 		it.offset++
 		it.result = &Token{Kind: it.kind, Hash: it.buffer[it.offset]}
@@ -254,29 +291,127 @@ func (it *Iterator) Next(ctx context.Context) bool {
 	return true
 }
 
-func (it *Iterator) Err() error {
+func (it *iteratorNext) Err() error {
 	return it.err
 }
 
-func (it *Iterator) Size() (int64, bool) {
-	return it.size, true
-}
-
-func (it *Iterator) Sorted() bool                     { return false }
-func (it *Iterator) Optimize() (graph.Iterator, bool) { return it, false }
-func (it *Iterator) String() string {
+func (it *iteratorNext) Sorted() bool { return false }
+func (it *iteratorNext) String() string {
 	return fmt.Sprintf("GAE(%s/%s)", it.name, it.hash)
 }
 
-// TODO (panamafrancis) calculate costs
-func (it *Iterator) Stats() graph.IteratorStats {
-	size, exact := it.Size()
-	return graph.IteratorStats{
-		ContainsCost: 1,
-		NextCost:     5,
-		Size:         size,
-		ExactSize:    exact,
+type iteratorContains struct {
+	dir    quad.Direction
+	qs     *QuadStore
+	name   string
+	isAll  bool
+	kind   string
+	hash   string
+	done   bool
+	result graph.Ref
+	err    error
+}
+
+func newIteratorContains(qs *QuadStore, k string, d quad.Direction, t *Token) *iteratorContains {
+	if t == nil {
+		clog.Errorf("Token == nil")
+	}
+	if t.Kind != nodeKind {
+		clog.Errorf("Cannot create an iterator from a non-node value")
+		return &iteratorContains{done: true}
+	}
+	if k != nodeKind && k != quadKind {
+		clog.Errorf("Cannot create iterator for unknown kind")
+		return &iteratorContains{done: true}
+	}
+	if qs.context == nil {
+		clog.Errorf("Cannot create iterator without a valid context")
+		return &iteratorContains{done: true}
+	}
+	name := quad.StringOf(qs.NameOf(t))
+	return &iteratorContains{
+		name:  name,
+		dir:   d,
+		qs:    qs,
+		isAll: false,
+		kind:  k,
+		hash:  t.Hash,
+		done:  false,
 	}
 }
 
-var _ graph.Iterator = &Iterator{}
+func newAllIteratorContains(qs *QuadStore, kind string) *iteratorContains {
+	if kind != nodeKind && kind != quadKind {
+		clog.Errorf("Cannot create iterator for an unknown kind")
+		return &iteratorContains{done: true}
+	}
+	if qs.context == nil {
+		clog.Errorf("Cannot create iterator without a valid context")
+		return &iteratorContains{done: true}
+	}
+	return &iteratorContains{
+		qs:    qs,
+		dir:   quad.Any,
+		isAll: true,
+		kind:  kind,
+	}
+}
+
+func (it *iteratorContains) Close() error {
+	it.done = true
+	it.result = nil
+	return nil
+}
+
+func (it *iteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
+	if it.isAll {
+		// The result needs to be set, so when contains is called, the result can be retrieved
+		it.result = v
+		return true
+	}
+	t := v.(*Token)
+	if t == nil {
+		clog.Errorf("Could not cast to token")
+		return false
+	}
+	if t.Kind == nodeKind {
+		clog.Errorf("Contains does not work with node values")
+		return false
+	}
+	// Contains is for when you want to know that an iterator refers to a quad
+	var offset int
+	switch it.dir {
+	case quad.Subject:
+		offset = 0
+	case quad.Predicate:
+		offset = (quad.HashSize * 2)
+	case quad.Object:
+		offset = (quad.HashSize * 2) * 2
+	case quad.Label:
+		offset = (quad.HashSize * 2) * 3
+	}
+	val := t.Hash[offset : offset+(quad.HashSize*2)]
+	if val == it.hash {
+		return true
+	}
+	return false
+}
+
+func (it *iteratorContains) TagResults(dst map[string]graph.Ref) {}
+
+func (it *iteratorContains) NextPath(ctx context.Context) bool {
+	return false
+}
+
+func (it *iteratorContains) Result() graph.Ref {
+	return it.result
+}
+
+func (it *iteratorContains) Err() error {
+	return it.err
+}
+
+func (it *iteratorContains) Sorted() bool { return false }
+func (it *iteratorContains) String() string {
+	return fmt.Sprintf("GAE(%s/%s)", it.name, it.hash)
+}
