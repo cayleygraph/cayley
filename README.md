@@ -17,9 +17,9 @@ Cayley is an open-source database for [Linked Data](https://www.w3.org/standards
 
 - Built-in query editor, visualizer and REPL
 - Multiple query languages:
-  - [Gizmo](./docs/GizmoAPI.md): query language inspired by [Gremlin](http://gremlindocs.com/)
-  - [GraphQL](./docs/GraphQL.md)-inspired query language
-  - [MQL](./docs/MQL.md): simplified version for [Freebase](https://en.wikipedia.org/wiki/Freebase) fans
+  - [Gizmo](./docs/gizmoapi.md): query language inspired by [Gremlin](http://gremlindocs.com/)
+  - [GraphQL](./docs/graphql.md)-inspired query language
+  - [MQL](./docs/mql.md): simplified version for [Freebase](https://en.wikipedia.org/wiki/Freebase) fans
 - Modular: easy to connect to your favorite programming languages and back-end stores
 - Production ready: well tested and used by various companies for their production workloads
 - Fast: optimized specifically for usage in applications
@@ -34,4 +34,4 @@ Rough performance testing shows that, on 2014 consumer hardware and an average d
 - Slack: [cayleygraph.slack.com](https://cayleygraph.slack.com) -- Invite [here](https://cayley-slackin.herokuapp.com/)
 - Discourse list: [discourse.cayley.io](https://discourse.cayley.io) (Also acts as mailing list, enable mailing list mode)
 - Twitter: [@cayleygraph](https://twitter.com/cayleygraph)
-- Involvement: [Contribute](./docs/Contributing.md)
+- Involvement: [Contribute](./docs/contributing.md)
