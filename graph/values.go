@@ -23,11 +23,6 @@ type Ref interface {
 	Key() interface{}
 }
 
-// Value is an alias for Ref.
-//
-// Deprecated: use Ref instead.
-type Value = Ref
-
 func HashOf(s quad.Value) (out ValueHash) {
 	if s == nil {
 		return

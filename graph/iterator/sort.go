@@ -92,7 +92,7 @@ func newSortNext(namer graph.Namer, subIt graph.Scanner) *sortNext {
 	}
 }
 
-func (it *sortNext) TagResults(dst map[string]graph.Value) {
+func (it *sortNext) TagResults(dst map[string]graph.Ref) {
 	for tag, value := range it.result.tags {
 		dst[tag] = value
 	}
@@ -102,7 +102,7 @@ func (it *sortNext) Err() error {
 	return it.err
 }
 
-func (it *sortNext) Result() graph.Value {
+func (it *sortNext) Result() graph.Ref {
 	return it.result.id
 }
 
