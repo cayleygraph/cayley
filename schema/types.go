@@ -12,11 +12,6 @@ func init() {
 	RegisterType(quad.IRI(schema.Property), Property{})
 }
 
-// Object is a basic RDF resource object.
-//
-// Deprecated: use Resource instead.
-type Object = Resource
-
 // Resource is a basic RDF resource object.
 type Resource struct {
 	ID quad.IRI `quad:"@id"`
