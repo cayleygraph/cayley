@@ -14,7 +14,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/path"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc/rdf"
 )

@@ -3,7 +3,7 @@ package cayley
 import (
 	"github.com/cayleygraph/cayley/graph"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
-	"github.com/cayleygraph/cayley/graph/path"
+	"github.com/cayleygraph/cayley/query/path"
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
 )

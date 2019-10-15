@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	_ "github.com/cayleygraph/cayley/graph/memstore"
-	"github.com/cayleygraph/cayley/graph/path/pathtest"
+	"github.com/cayleygraph/cayley/query/path/pathtest"
 )
 
 func TestMorphisms(t *testing.T) {
