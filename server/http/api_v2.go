@@ -30,8 +30,8 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/shape"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/shape"
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
 )

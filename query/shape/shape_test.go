@@ -21,7 +21,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphmock"
-	. "github.com/cayleygraph/cayley/graph/shape"
+	. "github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

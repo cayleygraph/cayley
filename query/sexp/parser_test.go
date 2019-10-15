@@ -23,7 +23,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	_ "github.com/cayleygraph/cayley/graph/memstore"
-	sh "github.com/cayleygraph/cayley/graph/shape"
+	sh "github.com/cayleygraph/cayley/query/shape"
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/stretchr/testify/require"
 )

@@ -20,7 +20,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/cayleygraph/cayley/graph/shape"
+	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 )
 
