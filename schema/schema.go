@@ -18,6 +18,13 @@ import (
 	"github.com/cayleygraph/quad/voc/rdf"
 )
 
+var global = NewConfig()
+
+// Global returns a default global schema config.
+func Global() *Config {
+	return global
+}
+
 var reflQuadValue = reflect.TypeOf((*quad.Value)(nil)).Elem()
 
 type ErrReqFieldNotSet struct {
