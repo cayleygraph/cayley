@@ -28,7 +28,7 @@ import (
 	"google.golang.org/appengine/datastore"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/http"
+	httpgraph "github.com/cayleygraph/cayley/graph/http"
 	"github.com/cayleygraph/quad"
 )
 
@@ -320,7 +320,7 @@ func (qs *QuadStore) updateNodes(in []graph.Delta) (int64, error) {
 				}
 			}
 			// Carry forward the sizes of the nodes from the datastore
-			for k, _ := range foundNodes {
+			for k := range foundNodes {
 				if foundNodes[k].Name != "" {
 					tempNodes[i+k].Size += foundNodes[k].Size
 				}
@@ -351,7 +351,7 @@ func (qs *QuadStore) updateQuads(in []graph.Delta, ids []int64) (int64, error) {
 			// We don't process errors from GetMulti as they don't mean anything,
 			// we've handled existing quad conflicts above and we overwrite everything again anyways
 			datastore.GetMulti(c, keys, foundQuads)
-			for k, _ := range foundQuads {
+			for k := range foundQuads {
 				x := i + k
 				foundQuads[k].Hash = keys[x].StringID()
 				foundQuads[k].Subject = in[x].Quad.Subject.String()
@@ -362,10 +362,10 @@ func (qs *QuadStore) updateQuads(in []graph.Delta, ids []int64) (int64, error) {
 				// If the quad exists the Added[] will be non-empty
 				if in[x].Action == graph.Add {
 					foundQuads[k].Added = append(foundQuads[k].Added, ids[x])
-					quadCount += 1
+					quadCount++
 				} else {
 					foundQuads[k].Deleted = append(foundQuads[k].Deleted, ids[x])
-					quadCount -= 1
+					quadCount--
 				}
 			}
 			_, err := datastore.PutMulti(c, keys[i:i+j], foundQuads)

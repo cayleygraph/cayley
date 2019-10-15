@@ -83,13 +83,13 @@ func NewQueryCmd() *cobra.Command {
 			if len(args) == 0 {
 				bytes, err := ioutil.ReadAll(os.Stdin)
 				if err != nil {
-					return fmt.Errorf("Error occured while reading from stdin : %s.", err)
+					return fmt.Errorf("error occured while reading from stdin : %s", err)
 				}
 				querystr = string(bytes)
 			} else if len(args) == 1 {
 				querystr = args[0]
 			} else {
-				return fmt.Errorf("Query accepts only one argument, the query string or nothing for reading from stdin.")
+				return fmt.Errorf("query accepts only one argument, the query string or nothing for reading from stdin")
 			}
 			clog.Infof("Query:\n%s", querystr)
 			printBackendInfo()

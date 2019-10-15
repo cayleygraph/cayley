@@ -192,9 +192,8 @@ func (c Config) fieldRule(fld reflect.StructField) (rule, error) {
 	p := c.toIRI(ps)
 	if vs == "" || vs == any && fld.Type != reflEmptyStruct {
 		return saveRule{Pred: p, Rev: rev, Opt: opt}, nil
-	} else {
-		return constraintRule{Pred: p, Val: c.toIRI(vs), Rev: rev}, nil
 	}
+	return constraintRule{Pred: p, Val: c.toIRI(vs), Rev: rev}, nil
 }
 
 func checkFieldType(ftp reflect.Type) error {

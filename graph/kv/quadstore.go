@@ -162,7 +162,7 @@ func New(kv kv.KV, opt graph.Options) (graph.QuadStore, error) {
 	} else if err != nil {
 		return nil, err
 	} else if vers != latestDataVersion {
-		return nil, errors.New("kv: data version is out of date. Run cayleyupgrade for your config to update the data.")
+		return nil, errors.New("kv: data version is out of date. Run cayleyupgrade for your config to update the data")
 	}
 	if list, err := qs.readIndexesMeta(ctx); err != nil {
 		return nil, err

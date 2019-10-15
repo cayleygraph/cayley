@@ -139,7 +139,7 @@ func init() {
 		command.NewUpgradeCmd(),
 		command.NewReplCmd(),
 		command.NewQueryCmd(),
-		command.NewHttpCmd(),
+		command.NewHTTPCmd(),
 		command.NewConvertCmd(),
 		command.NewDedupCommand(),
 	)
