@@ -10,13 +10,6 @@ import (
 	"github.com/cayleygraph/quad/voc"
 )
 
-// GenerateID is called when any object without an ID field is being saved.
-//
-// Deprecated: see Config.GenerateID
-var GenerateID = func(_ interface{}) quad.Value {
-	return quad.RandomBlankNode()
-}
-
 var global = NewConfig()
 
 // Global returns a default global schema config.

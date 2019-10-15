@@ -65,9 +65,6 @@ type Config struct {
 func (c *Config) genID(o interface{}) quad.Value {
 	gen := c.GenerateID
 	if gen == nil {
-		gen = GenerateID
-	}
-	if gen == nil {
 		gen = func(_ interface{}) quad.Value {
 			return quad.RandomBlankNode()
 		}
