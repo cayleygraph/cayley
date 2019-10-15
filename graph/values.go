@@ -66,14 +66,6 @@ func (v fetchedValue) IsNode() bool       { return true }
 func (v fetchedValue) NameOf() quad.Value { return v.Val }
 func (v fetchedValue) Key() interface{}   { return v.Val }
 
-// Keyer provides a method for comparing types that are not otherwise comparable.
-// The Key method must return a dynamic type that is comparable according to the
-// Go language specification. The returned value must be unique for each receiver
-// value.
-//
-// Deprecated: Ref contains the same method now.
-type Keyer = Ref
-
 // ToKey prepares Ref to be stored inside maps, calling Key() if necessary.
 func ToKey(v Ref) interface{} {
 	if v == nil {
