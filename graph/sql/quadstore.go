@@ -18,16 +18,6 @@ import (
 	"github.com/cayleygraph/quad/pquads"
 )
 
-// Type string for generic sql QuadStore.
-//
-// Deprecated: use specific types from sub-packages.
-const QuadStoreType = "sql"
-
-func init() {
-	// Deprecated QS registration that resolves backend type via "flavor" option.
-	registerQuadStore(QuadStoreType, "")
-}
-
 func registerQuadStore(name, typ string) {
 	graph.RegisterQuadStore(name, graph.QuadStoreRegistration{
 		NewFunc: func(addr string, options graph.Options) (graph.QuadStore, error) {
@@ -206,18 +196,10 @@ var nodeInsertColumns = [][]string{
 	{"value_time"},
 }
 
-func typeFromOpts(opts graph.Options) string {
-	flavor, _ := opts.StringKey("flavor", "postgres")
-	return flavor
-}
-
 func Init(typ string, addr string, options graph.Options) error {
-	if typ == "" {
-		typ = typeFromOpts(options)
-	}
 	fl, ok := types[typ]
 	if !ok {
-		return fmt.Errorf("unsupported sql database: %s", typ)
+		return fmt.Errorf("unsupported sql database: %q", typ)
 	}
 	conn, err := connect(addr, fl.Driver, options)
 	if err != nil {
@@ -282,12 +264,9 @@ func Init(typ string, addr string, options graph.Options) error {
 }
 
 func New(typ string, addr string, options graph.Options) (graph.QuadStore, error) {
-	if typ == "" {
-		typ = typeFromOpts(options)
-	}
 	fl, ok := types[typ]
 	if !ok {
-		return nil, fmt.Errorf("unsupported sql database: %s", typ)
+		return nil, fmt.Errorf("unsupported sql database: %q", typ)
 	}
 	conn, err := connect(addr, fl.Driver, options)
 	if err != nil {
