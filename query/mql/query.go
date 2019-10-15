@@ -28,7 +28,7 @@ type (
 
 type Query struct {
 	ses            *Session
-	it             graph.Iterator
+	it             graph.IteratorShape
 	isRepeated     map[Path]bool
 	queryStructure map[Path]map[string]interface{}
 	queryResult    map[ResultPath]map[string]interface{}

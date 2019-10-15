@@ -618,35 +618,35 @@ func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 	}
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.IteratorShape {
 	h, ok := val.(NodeHash)
 	if !ok {
 		return iterator.NewNull()
 	}
-	return NewLinksToIterator(qs, "quads", []Linkage{{Dir: d, Val: h}})
+	return qs.newLinksToIterator("quads", []Linkage{{Dir: d, Val: h}})
 }
 
 func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
 	h, ok := v.(NodeHash)
 	if !ok {
-		return graph.Size{Size: 0, Exact: true}, nil
+		return graph.Size{Value: 0, Exact: true}, nil
 	}
 	sz, err := qs.getSize("quads", linkageToFilters([]Linkage{{Dir: d, Val: h}}))
 	if err != nil {
 		return graph.Size{}, err
 	}
 	return graph.Size{
-		Size:  sz,
+		Value: sz,
 		Exact: true,
 	}, nil
 }
 
-func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return NewIterator(qs, "nodes")
+func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+	return qs.newIterator("nodes")
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return NewIterator(qs, "quads")
+func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+	return qs.newIterator("quads")
 }
 
 func (qs *QuadStore) hashOf(s quad.Value) NodeHash {
@@ -702,11 +702,11 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}
 	return graph.Stats{
 		Nodes: graph.Size{
-			Size:  nodes,
+			Value: nodes,
 			Exact: true,
 		},
 		Quads: graph.Size{
-			Size:  quads,
+			Value: quads,
 			Exact: true,
 		},
 	}, nil

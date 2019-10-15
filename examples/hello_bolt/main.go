@@ -42,14 +42,15 @@ func main() {
 	// This is more advanced example of the query.
 	// Simpler equivalent can be found in hello_world example.
 
+	ctx := context.TODO()
 	// Now we get an iterator for the path and optimize it.
 	// The second return is if it was optimized, but we don't care for now.
-	it, _ := p.BuildIterator().Optimize()
+	its, _ := p.BuildIterator().Optimize(ctx)
+	it := its.Iterate()
 
 	// remember to cleanup after yourself
 	defer it.Close()
 
-	ctx := context.TODO()
 	// While we have items
 	for it.Next(ctx) {
 		token := it.Result()                // get a ref to a node (backend-specific)

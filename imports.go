@@ -15,7 +15,7 @@ var (
 	NewTransaction = graph.NewTransaction
 )
 
-type Iterator = graph.Iterator
+type Iterator = graph.IteratorShape
 type QuadStore = graph.QuadStore
 type QuadWriter = graph.QuadWriter
 

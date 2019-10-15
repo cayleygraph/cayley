@@ -30,7 +30,7 @@ func TestHasAIteratorErr(t *testing.T) {
 	errIt := newTestIterator(false, wantErr)
 
 	// TODO(andrew-d): pass a non-nil quadstore
-	hasa := NewHasA(nil, errIt, quad.Subject)
+	hasa := NewHasA(nil, errIt, quad.Subject).Iterate()
 
 	require.False(t, hasa.Next(ctx), "HasA iterator did not pass through initial 'false'")
 	require.Equal(t, wantErr, hasa.Err(), "HasA iterator did not pass through underlying Err")

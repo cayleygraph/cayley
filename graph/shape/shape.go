@@ -20,7 +20,7 @@ var (
 // Shape represent a query tree shape.
 type Shape interface {
 	// BuildIterator constructs an iterator tree from a given shapes and binds it to QuadStore.
-	BuildIterator(qs graph.QuadStore) graph.Iterator
+	BuildIterator(qs graph.QuadStore) graph.IteratorShape
 	// Optimize runs an optimization pass over a query shape.
 	//
 	// It returns a bool that indicates if shape was replaced and should always return a copy of shape in this case.
@@ -204,7 +204,7 @@ func IsNull(s Shape) bool {
 }
 
 // BuildIterator optimizes the shape and builds a corresponding iterator tree.
-func BuildIterator(qs graph.QuadStore, s Shape) graph.Iterator {
+func BuildIterator(qs graph.QuadStore, s Shape) graph.IteratorShape {
 	qs = graph.Unwrap(qs)
 	if s != nil {
 		if debugShapes || clog.V(2) {
@@ -224,7 +224,7 @@ func BuildIterator(qs graph.QuadStore, s Shape) graph.Iterator {
 // Null represent an empty set. Mostly used as a safe alias for nil shape.
 type Null struct{}
 
-func (Null) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (Null) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	return iterator.NewNull()
 }
 func (s Null) Optimize(r Optimizer) (Shape, bool) {
@@ -237,7 +237,7 @@ func (s Null) Optimize(r Optimizer) (Shape, bool) {
 // AllNodes represents all nodes in QuadStore.
 type AllNodes struct{}
 
-func (s AllNodes) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s AllNodes) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	return qs.NodesAllIterator()
 }
 func (s AllNodes) Optimize(r Optimizer) (Shape, bool) {
@@ -253,8 +253,8 @@ type Except struct {
 	From    Shape // a set of all nodes to exclude from; nil means AllNodes
 }
 
-func (s Except) BuildIterator(qs graph.QuadStore) graph.Iterator {
-	var all graph.Iterator
+func (s Except) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
+	var all graph.IteratorShape
 	if s.From != nil {
 		all = s.From.BuildIterator(qs)
 	} else {
@@ -287,7 +287,7 @@ func (s Except) Optimize(r Optimizer) (Shape, bool) {
 
 // ValueFilter is an interface for iterator wrappers that can filter node values.
 type ValueFilter interface {
-	BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Iterator
+	BuildIterator(qs graph.QuadStore, it graph.IteratorShape) graph.IteratorShape
 }
 
 // Filter filters all values from the source using a list of operations.
@@ -296,7 +296,7 @@ type Filter struct {
 	Filters []ValueFilter // filters to apply
 }
 
-func (s Filter) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Filter) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.From) {
 		return iterator.NewNull()
 	}
@@ -332,7 +332,7 @@ type Comparison struct {
 	Val quad.Value
 }
 
-func (f Comparison) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
+func (f Comparison) BuildIterator(qs graph.QuadStore, it graph.IteratorShape) graph.IteratorShape {
 	return iterator.NewComparison(it, f.Op, f.Val, qs)
 }
 
@@ -346,7 +346,7 @@ type Regexp struct {
 	Refs bool // allow to match IRIs
 }
 
-func (f Regexp) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
+func (f Regexp) BuildIterator(qs graph.QuadStore, it graph.IteratorShape) graph.IteratorShape {
 	if f.Refs {
 		return iterator.NewRegexWithRefs(it, f.Re, qs)
 	}
@@ -387,7 +387,7 @@ func (f Wildcard) Regexp() string {
 	return pattern
 }
 
-func (f Wildcard) BuildIterator(qs graph.QuadStore, it graph.Iterator) graph.Iterator {
+func (f Wildcard) BuildIterator(qs graph.QuadStore, it graph.IteratorShape) graph.IteratorShape {
 	if f.Pattern == "" {
 		return iterator.NewNull()
 	} else if strings.Trim(f.Pattern, "%") == "" {
@@ -405,8 +405,8 @@ type Count struct {
 	Values Shape
 }
 
-func (s Count) BuildIterator(qs graph.QuadStore) graph.Iterator {
-	var it graph.Iterator
+func (s Count) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
+	var it graph.IteratorShape
 	if IsNull(s.Values) {
 		it = iterator.NewNull()
 	} else {
@@ -439,7 +439,7 @@ type QuadFilter struct {
 }
 
 // buildIterator is not exposed to force to use Quads and group filters together.
-func (s QuadFilter) buildIterator(qs graph.QuadStore) graph.Iterator {
+func (s QuadFilter) buildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if s.Values == nil {
 		return iterator.NewNull()
 	} else if v, ok := One(s.Values); ok {
@@ -459,11 +459,11 @@ type Quads []QuadFilter
 func (s *Quads) Intersect(q ...QuadFilter) {
 	*s = append(*s, q...)
 }
-func (s Quads) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Quads) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if len(s) == 0 {
 		return qs.QuadsAllIterator()
 	}
-	its := make([]graph.Iterator, 0, len(s))
+	its := make([]graph.IteratorShape, 0, len(s))
 	for _, f := range s {
 		its = append(its, f.buildIterator(qs))
 	}
@@ -517,7 +517,7 @@ type NodesFrom struct {
 	Quads Shape
 }
 
-func (s NodesFrom) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s NodesFrom) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.Quads) {
 		return iterator.NewNull()
 	}
@@ -677,7 +677,7 @@ func (s QuadsAction) SimplifyFrom(quads Shape) Shape {
 func (s QuadsAction) Simplify() Shape {
 	return s.simplify()
 }
-func (s QuadsAction) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s QuadsAction) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	h := s.simplify()
 	return h.BuildIterator(qs)
 }
@@ -742,7 +742,7 @@ type Fixed []graph.Ref
 func (s *Fixed) Add(v ...graph.Ref) {
 	*s = append(*s, v...)
 }
-func (s Fixed) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Fixed) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	it := iterator.NewFixed()
 	for _, v := range s {
 		if _, ok := v.(quad.Value); ok {
@@ -770,7 +770,7 @@ type FixedTags struct {
 	On   Shape
 }
 
-func (s FixedTags) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s FixedTags) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.On) {
 		return iterator.NewNull()
 	}
@@ -832,7 +832,7 @@ func (s Lookup) resolve(qs valueResolver) Shape {
 	}
 	return Fixed(vals)
 }
-func (s Lookup) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Lookup) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	f := s.resolve(qs)
 	if IsNull(f) {
 		return iterator.NewNull()
@@ -861,7 +861,7 @@ type Materialize struct {
 	Values Shape
 }
 
-func (s Materialize) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Materialize) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.Values) {
 		return iterator.NewNull()
 	}
@@ -903,11 +903,11 @@ func clearFixedTags(arr []Shape) ([]Shape, map[string]graph.Ref) {
 // Intersect computes an intersection of nodes between multiple queries. Similar to And iterator.
 type Intersect []Shape
 
-func (s Intersect) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Intersect) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if len(s) == 0 {
 		return iterator.NewNull()
 	}
-	sub := make([]graph.Iterator, 0, len(s))
+	sub := make([]graph.IteratorShape, 0, len(s))
 	for _, c := range s {
 		sub = append(sub, c.BuildIterator(qs))
 	}
@@ -1138,7 +1138,7 @@ func (s *IntersectOpt) AddOptional(arr ...Shape) {
 	s.Opt = append(s.Opt, arr...)
 }
 
-func (s IntersectOpt) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s IntersectOpt) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if len(s.Sub) == 0 && len(s.Opt) == 0 {
 		return iterator.NewNull()
 	}
@@ -1148,8 +1148,8 @@ func (s IntersectOpt) BuildIterator(qs graph.QuadStore) graph.Iterator {
 		}
 		s.Sub = Intersect{AllNodes{}}
 	}
-	sub := make([]graph.Iterator, 0, len(s.Sub))
-	opt := make([]graph.Iterator, 0, len(s.Opt))
+	sub := make([]graph.IteratorShape, 0, len(s.Sub))
+	opt := make([]graph.IteratorShape, 0, len(s.Opt))
 	for _, c := range s.Sub {
 		sub = append(sub, c.BuildIterator(qs))
 	}
@@ -1234,11 +1234,11 @@ func (s IntersectOpt) Optimize(r Optimizer) (_ Shape, opt bool) {
 // Union joins results of multiple queries together. It does not make results unique.
 type Union []Shape
 
-func (s Union) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Union) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if len(s) == 0 {
 		return iterator.NewNull()
 	}
-	sub := make([]graph.Iterator, 0, len(s))
+	sub := make([]graph.IteratorShape, 0, len(s))
 	for _, c := range s {
 		sub = append(sub, c.BuildIterator(qs))
 	}
@@ -1303,7 +1303,7 @@ type Page struct {
 	Limit int64 // zero means unlimited
 }
 
-func (s Page) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Page) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.From) {
 		return iterator.NewNull()
 	}
@@ -1360,7 +1360,7 @@ type Unique struct {
 	From Shape
 }
 
-func (s Unique) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Unique) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.From) {
 		return iterator.NewNull()
 	}
@@ -1389,7 +1389,7 @@ type Save struct {
 	From Shape
 }
 
-func (s Save) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Save) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.From) {
 		return iterator.NewNull()
 	}
@@ -1438,7 +1438,7 @@ type Sort struct {
 	From Shape
 }
 
-func (s Sort) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s Sort) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if IsNull(s.From) {
 		return iterator.NewNull()
 	}

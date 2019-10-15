@@ -75,7 +75,7 @@ type QuadIndexer interface {
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	QuadIterator(quad.Direction, Ref) Iterator
+	QuadIterator(quad.Direction, Ref) IteratorShape
 
 	// QuadIteratorSize returns an estimated size of an iterator.
 	QuadIteratorSize(ctx context.Context, d quad.Direction, v Ref) (Size, error)
@@ -94,7 +94,7 @@ type QuadIndexer interface {
 
 // Size of a graph (either in nodes or quads).
 type Size struct {
-	Size  int64
+	Value int64
 	Exact bool
 }
 
@@ -117,10 +117,10 @@ type QuadStore interface {
 	NewQuadWriter() (quad.WriteCloser, error)
 
 	// Returns an iterator enumerating all nodes in the graph.
-	NodesAllIterator() Iterator
+	NodesAllIterator() IteratorShape
 
 	// Returns an iterator enumerating all links in the graph.
-	QuadsAllIterator() Iterator
+	QuadsAllIterator() IteratorShape
 
 	// Stats returns the number of nodes and quads currently stored.
 	// Exact flag controls the correctness of the value. It can be an estimation, or a precise calculation.

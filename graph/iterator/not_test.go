@@ -3,8 +3,9 @@ package iterator_test
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -25,28 +26,21 @@ func TestNotIteratorBasics(t *testing.T) {
 
 	not := NewNot(toComplementIt, allIt)
 
-	if v, _ := not.Size(); v != 2 {
-		t.Errorf("Unexpected iterator size: got:%d, expected: %d", v, 2)
-	}
+	st, _ := not.Stats(ctx)
+	require.Equal(t, int64(2), st.Size.Value)
 
 	expect := []int{1, 3}
 	for i := 0; i < 2; i++ {
-		if got := iterated(not); !reflect.DeepEqual(got, expect) {
-			t.Errorf("Failed to iterate Not correctly on repeat %d: got:%v expected:%v", i, got, expect)
-		}
-		not.Reset()
+		require.Equal(t, expect, iterated(not))
 	}
 
+	nc := not.Lookup()
 	for _, v := range []int{1, 3} {
-		if !not.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to correctly check %d as true", v)
-		}
+		require.True(t, nc.Contains(ctx, Int64Node(v)))
 	}
 
 	for _, v := range []int{2, 4} {
-		if not.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to correctly check %d as false", v)
-		}
+		require.False(t, nc.Contains(ctx, Int64Node(v)))
 	}
 }
 
@@ -57,12 +51,8 @@ func TestNotIteratorErr(t *testing.T) {
 
 	toComplementIt := NewFixed()
 
-	not := NewNot(toComplementIt, allIt)
+	not := NewNot(toComplementIt, allIt).Iterate()
 
-	if not.Next(ctx) != false {
-		t.Errorf("Not iterator did not pass through initial 'false'")
-	}
-	if not.Err() != wantErr {
-		t.Errorf("Not iterator did not pass through underlying Err")
-	}
+	require.False(t, not.Next(ctx))
+	require.Equal(t, wantErr, not.Err())
 }

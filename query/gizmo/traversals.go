@@ -80,7 +80,7 @@ func (p *pathObject) clonePath() *path.Path {
 	p.path, np = np, p.path
 	return np
 }
-func (p *pathObject) buildIteratorTree() graph.Iterator {
+func (p *pathObject) buildIteratorTree() graph.IteratorShape {
 	if p.path == nil {
 		return iterator.NewNull()
 	}

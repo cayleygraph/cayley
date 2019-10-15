@@ -154,7 +154,7 @@ func (s *Session) tagsToValueMap(m map[string]graph.Ref) map[string]interface{} 
 	}
 	return outputMap
 }
-func (s *Session) runIteratorToArray(it graph.Iterator, limit int) ([]map[string]interface{}, error) {
+func (s *Session) runIteratorToArray(it graph.IteratorShape, limit int) ([]map[string]interface{}, error) {
 	ctx := s.context()
 
 	output := make([]map[string]interface{}, 0)
@@ -171,7 +171,7 @@ func (s *Session) runIteratorToArray(it graph.Iterator, limit int) ([]map[string
 	return output, nil
 }
 
-func (s *Session) runIteratorToArrayNoTags(it graph.Iterator, limit int) ([]interface{}, error) {
+func (s *Session) runIteratorToArrayNoTags(it graph.IteratorShape, limit int) ([]interface{}, error) {
 	ctx := s.context()
 
 	output := make([]interface{}, 0)
@@ -186,7 +186,7 @@ func (s *Session) runIteratorToArrayNoTags(it graph.Iterator, limit int) ([]inte
 	return output, nil
 }
 
-func (s *Session) runIteratorWithCallback(it graph.Iterator, callback goja.Value, this goja.FunctionCall, limit int) error {
+func (s *Session) runIteratorWithCallback(it graph.IteratorShape, callback goja.Value, this goja.FunctionCall, limit int) error {
 	fnc, ok := goja.AssertFunction(callback)
 	if !ok {
 		return fmt.Errorf("expected js callback function")
@@ -229,7 +229,7 @@ func (s *Session) send(ctx context.Context, r *Result) bool {
 	return s.limit <= 0 || s.count < s.limit
 }
 
-func (s *Session) runIterator(it graph.Iterator) error {
+func (s *Session) runIterator(it graph.IteratorShape) error {
 	if s.shape != nil {
 		iterator.OutputQueryShapeForIterator(it, s.qs, s.shape)
 		return nil
@@ -250,7 +250,7 @@ func (s *Session) runIterator(it graph.Iterator) error {
 	return err
 }
 
-func (s *Session) countResults(it graph.Iterator) (int64, error) {
+func (s *Session) countResults(it graph.IteratorShape) (int64, error) {
 	if s.shape != nil {
 		iterator.OutputQueryShapeForIterator(it, s.qs, s.shape)
 		return 0, nil

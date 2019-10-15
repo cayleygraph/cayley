@@ -19,6 +19,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
@@ -29,14 +31,10 @@ func TestMaterializeIteratorError(t *testing.T) {
 
 	// This tests that we properly return 0 results and the error when the
 	// underlying iterator returns an error.
-	mIt := NewMaterialize(errIt)
+	mIt := NewMaterialize(errIt).Iterate()
 
-	if mIt.Next(ctx) != false {
-		t.Errorf("Materialize iterator did not pass through underlying 'false'")
-	}
-	if mIt.Err() != wantErr {
-		t.Errorf("Materialize iterator did not pass through underlying Err")
-	}
+	require.False(t, mIt.Next(ctx))
+	require.Equal(t, wantErr, mIt.Err())
 }
 
 func TestMaterializeIteratorErrorAbort(t *testing.T) {
@@ -52,25 +50,15 @@ func TestMaterializeIteratorErrorAbort(t *testing.T) {
 		errIt,
 	)
 
-	mIt := NewMaterialize(or)
+	mIt := NewMaterialize(or).Iterate()
 
 	// We should get all the underlying values...
 	for i := 0; i < MaterializeLimit+1; i++ {
-		if !mIt.Next(ctx) {
-			t.Errorf("Materialize iterator returned spurious 'false' on iteration %d", i)
-			return
-		}
-		if mIt.Err() != nil {
-			t.Errorf("Materialize iterator returned non-nil Err on iteration %d", i)
-			return
-		}
+		require.True(t, mIt.Next(ctx))
+		require.NoError(t, mIt.Err())
 	}
 
 	// ... and then the error value.
-	if mIt.Next(ctx) != false {
-		t.Errorf("Materialize iterator did not pass through underlying 'false'")
-	}
-	if mIt.Err() != wantErr {
-		t.Errorf("Materialize iterator did not pass through underlying Err")
-	}
+	require.False(t, mIt.Next(ctx))
+	require.Equal(t, wantErr, mIt.Err())
 }

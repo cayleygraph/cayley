@@ -228,11 +228,11 @@ func savePredicatesMorphism(isIn bool, tag string) morphism {
 }
 
 type iteratorShape struct {
-	it   graph.Iterator
+	it   graph.IteratorShape
 	sent bool
 }
 
-func (s *iteratorShape) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s *iteratorShape) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	if s.sent {
 		return iterator.NewError(fmt.Errorf("iterator already used in query"))
 	}
@@ -245,7 +245,7 @@ func (s *iteratorShape) Optimize(r shape.Optimizer) (shape.Shape, bool) {
 }
 
 // iteratorMorphism simply tacks the input iterator onto the chain.
-func iteratorMorphism(it graph.Iterator) morphism {
+func iteratorMorphism(it graph.IteratorShape) morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return iteratorMorphism(it), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
@@ -283,9 +283,9 @@ func followMorphism(p *Path) morphism {
 	}
 }
 
-type iteratorBuilder func(qs graph.QuadStore) graph.Iterator
+type iteratorBuilder func(qs graph.QuadStore) graph.IteratorShape
 
-func (s iteratorBuilder) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s iteratorBuilder) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	return s(qs)
 }
 func (s iteratorBuilder) Optimize(r shape.Optimizer) (shape.Shape, bool) {
@@ -298,7 +298,7 @@ func followRecursiveMorphism(p *Path, maxDepth int, depthTags []string) morphism
 			return followRecursiveMorphism(p.Reverse(), maxDepth, depthTags), ctx
 		},
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return iteratorBuilder(func(qs graph.QuadStore) graph.Iterator {
+			return iteratorBuilder(func(qs graph.QuadStore) graph.IteratorShape {
 				in := in.BuildIterator(qs)
 				it := iterator.NewRecursive(in, p.MorphismFor(qs), maxDepth)
 				for _, s := range depthTags {

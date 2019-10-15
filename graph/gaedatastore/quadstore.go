@@ -437,16 +437,16 @@ func (qs *QuadStore) updateLog(in []graph.Delta) ([]int64, error) {
 	return out, nil
 }
 
-func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.Iterator {
-	return NewIterator(qs, quadKind, dir, v)
+func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.IteratorShape {
+	return qs.newIterator(quadKind, dir, v)
 }
 
-func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return NewAllIterator(qs, nodeKind)
+func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+	return qs.newAllIterator(nodeKind)
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return NewAllIterator(qs, quadKind)
+func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+	return qs.newAllIterator(quadKind)
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
@@ -525,11 +525,11 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}
 	return graph.Stats{
 		Nodes: graph.Size{
-			Size:  m.NodeCount,
+			Value: m.NodeCount,
 			Exact: true,
 		},
 		Quads: graph.Size{
-			Size:  m.QuadCount,
+			Value: m.QuadCount,
 			Exact: true,
 		},
 	}, nil
@@ -538,7 +538,7 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
 	t, ok := val.(*Token)
 	if !ok || t.Kind != nodeKind {
-		return graph.Size{Size: 0, Exact: true}, nil
+		return graph.Size{Value: 0, Exact: true}, nil
 	} else if qs.context == nil {
 		return graph.Size{}, errors.New("cannot count iterator without a valid context")
 	}
@@ -548,7 +548,7 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val
 	if err != nil && err != datastore.ErrNoSuchEntity {
 		return graph.Size{}, err
 	}
-	return graph.Size{Size: n.Size, Exact: true}, nil
+	return graph.Size{Value: n.Size, Exact: true}, nil
 }
 
 func (qs *QuadStore) Close() error {

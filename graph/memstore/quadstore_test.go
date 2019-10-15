@@ -104,8 +104,8 @@ type pair struct {
 func TestMemstoreValueOf(t *testing.T) {
 	qs, _, index := makeTestStore(simpleGraph)
 	exp := graph.Stats{
-		Nodes: graph.Size{Size: 11, Exact: true},
-		Quads: graph.Size{Size: 11, Exact: true},
+		Nodes: graph.Size{Value: 11, Exact: true},
+		Quads: graph.Size{Value: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -141,7 +141,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	)
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
-	outerAnd := iterator.NewAnd(fixed, hasa)
+	outerAnd := iterator.NewAnd(fixed, hasa).Iterate()
 
 	if !outerAnd.Next(ctx) {
 		t.Error("Expected one matching subtree")
@@ -181,7 +181,7 @@ func TestLinksToOptimization(t *testing.T) {
 		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("cool")}},
 	})
 
-	newIt, changed := lto.Optimize()
+	newIt, changed := lto.Optimize(context.TODO())
 	if changed {
 		t.Errorf("unexpected optimization step")
 	}
@@ -218,8 +218,8 @@ func TestRemoveQuad(t *testing.T) {
 
 	hasa := iterator.NewHasA(qs, innerAnd, quad.Object)
 
-	newIt, _ := hasa.Optimize()
-	if newIt.Next(ctx) {
+	newIt, _ := hasa.Optimize(ctx)
+	if newIt.Iterate().Next(ctx) {
 		t.Error("E should not have any followers.")
 	}
 }

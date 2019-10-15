@@ -56,56 +56,28 @@ func (qs *QuadStore) Query(ctx context.Context, s Shape) (*sql.Rows, error) {
 	return rows, nil
 }
 
-var _ graph.IteratorFuture = (*Iterator)(nil)
-
-func (qs *QuadStore) NewIterator(s Select) *Iterator {
-	it := &Iterator{
-		it: qs.newIterator(s),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-type Iterator struct {
-	it *iterator2
-	graph.Iterator
-}
-
-func (it *Iterator) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShapeCompat = (*iterator2)(nil)
-
-func (qs *QuadStore) newIterator(s Select) *iterator2 {
-	return &iterator2{
+func (qs *QuadStore) newIterator(s Select) *Iterator {
+	return &Iterator{
 		qs:    qs,
 		query: s,
 	}
 }
 
-type iterator2 struct {
+type Iterator struct {
 	qs    *QuadStore
 	query Select
 	err   error
 }
 
-func (it *iterator2) Iterate() graph.Scanner {
-	return newIteratorNext(it.qs, it.query)
+func (it *Iterator) Iterate() graph.Scanner {
+	return it.qs.newIteratorNext(it.query)
 }
 
-func (it *iterator2) Lookup() graph.Index {
-	return newIteratorContains(it.qs, it.query)
+func (it *Iterator) Lookup() graph.Index {
+	return it.qs.newIteratorContains(it.query)
 }
 
-func (it *iterator2) AsLegacy() graph.Iterator {
-	it2 := &Iterator{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *iterator2) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Iterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	sz, err := it.getSize(ctx)
 	return graph.IteratorCosts{
 		NextCost:     1,
@@ -114,7 +86,7 @@ func (it *iterator2) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	}, err
 }
 
-func (it *iterator2) estimateSize(ctx context.Context) int64 {
+func (it *Iterator) estimateSize(ctx context.Context) int64 {
 	if it.query.Limit > 0 {
 		return it.query.Limit
 	}
@@ -122,27 +94,27 @@ func (it *iterator2) estimateSize(ctx context.Context) int64 {
 	if err != nil && it.err == nil {
 		it.err = err
 	}
-	return st.Quads.Size
+	return st.Quads.Value
 }
 
-func (it *iterator2) getSize(ctx context.Context) (graph.Size, error) {
+func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
 	sz, err := it.qs.querySize(ctx, it.query)
 	if err != nil {
 		it.err = err
-		return graph.Size{Size: it.estimateSize(ctx), Exact: false}, err
+		return graph.Size{Value: it.estimateSize(ctx), Exact: false}, err
 	}
 	return sz, nil
 }
 
-func (it *iterator2) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Iterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 
-func (it *iterator2) SubIterators() []graph.IteratorShape {
+func (it *Iterator) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
-func (it *iterator2) String() string {
+func (it *Iterator) String() string {
 	return it.query.SQL(NewBuilder(it.qs.flavor.QueryDialect))
 }
 
@@ -246,7 +218,7 @@ func (it *iteratorBase) String() string {
 	return it.query.SQL(NewBuilder(it.qs.flavor.QueryDialect))
 }
 
-func newIteratorNext(qs *QuadStore, s Select) *iteratorNext {
+func (qs *QuadStore) newIteratorNext(s Select) *iteratorNext {
 	return &iteratorNext{
 		iteratorBase: newIteratorBase(qs, s),
 	}
@@ -335,7 +307,7 @@ func (it *iteratorNext) Close() error {
 	return nil
 }
 
-func newIteratorContains(qs *QuadStore, s Select) *iteratorContains {
+func (qs *QuadStore) newIteratorContains(s Select) *iteratorContains {
 	return &iteratorContains{
 		iteratorBase: newIteratorBase(qs, s),
 	}

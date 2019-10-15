@@ -21,70 +21,42 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-var _ graph.IteratorFuture = &ValueFilter{}
-
-type ValueFilter struct {
-	it *valueFilter
-	graph.Iterator
-}
-
 type ValueFilterFunc func(quad.Value) (bool, error)
 
-func NewValueFilter(qs graph.Namer, sub graph.Iterator, filter ValueFilterFunc) *ValueFilter {
-	it := &ValueFilter{
-		it: newValueFilter(qs, graph.AsShape(sub), filter),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *ValueFilter) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShapeCompat = (*valueFilter)(nil)
-
-type valueFilter struct {
+type ValueFilter struct {
 	sub    graph.IteratorShape
 	filter ValueFilterFunc
 	qs     graph.Namer
 }
 
-func newValueFilter(qs graph.Namer, sub graph.IteratorShape, filter ValueFilterFunc) *valueFilter {
-	return &valueFilter{
+func NewValueFilter(qs graph.Namer, sub graph.IteratorShape, filter ValueFilterFunc) *ValueFilter {
+	return &ValueFilter{
 		sub:    sub,
 		qs:     qs,
 		filter: filter,
 	}
 }
 
-func (it *valueFilter) Iterate() graph.Scanner {
+func (it *ValueFilter) Iterate() graph.Scanner {
 	return newValueFilterNext(it.qs, it.sub.Iterate(), it.filter)
 }
 
-func (it *valueFilter) Lookup() graph.Index {
+func (it *ValueFilter) Lookup() graph.Index {
 	return newValueFilterContains(it.qs, it.sub.Lookup(), it.filter)
 }
 
-func (it *valueFilter) AsLegacy() graph.Iterator {
-	it2 := &ValueFilter{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *valueFilter) SubIterators() []graph.IteratorShape {
+func (it *ValueFilter) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.sub}
 }
 
-func (it *valueFilter) String() string {
+func (it *ValueFilter) String() string {
 	return "ValueFilter"
 }
 
 // There's nothing to optimize, locally, for a value-comparison iterator.
 // Replace the underlying iterator if need be.
 // potentially replace it.
-func (it *valueFilter) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *ValueFilter) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newSub, changed := it.sub.Optimize(ctx)
 	if changed {
 		it.sub = newSub
@@ -94,9 +66,9 @@ func (it *valueFilter) Optimize(ctx context.Context) (graph.IteratorShape, bool)
 
 // We're only as expensive as our subiterator.
 // Again, optimized value comparison iterators should do better.
-func (it *valueFilter) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *ValueFilter) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	st, err := it.sub.Stats(ctx)
-	st.Size.Size = st.Size.Size/2 + 1
+	st.Size.Value = st.Size.Value/2 + 1
 	st.Size.Exact = false
 	return st, err
 }

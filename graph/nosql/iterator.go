@@ -42,39 +42,7 @@ func linkageToFilters(links []Linkage) []nosql.FieldFilter {
 	return filters
 }
 
-var _ graph.IteratorFuture = (*Iterator)(nil)
-
-func NewLinksToIterator(qs *QuadStore, collection string, links []Linkage) *Iterator {
-	it := &Iterator{
-		it: newLinksToIterator(qs, collection, links),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func NewIterator(qs *QuadStore, collection string, constraints ...nosql.FieldFilter) *Iterator {
-	it := &Iterator{
-		it: newIterator(qs, collection, constraints...),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
 type Iterator struct {
-	it *iterator2
-	graph.Iterator
-}
-
-func (it *Iterator) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-func (it *Iterator) Sorted() bool { return true }
-
-var _ graph.IteratorShapeCompat = (*iterator2)(nil)
-
-type iterator2 struct {
 	qs         *QuadStore
 	collection string
 	limit      int64
@@ -85,71 +53,65 @@ type iterator2 struct {
 	err  error
 }
 
-func newLinksToIterator(qs *QuadStore, collection string, links []Linkage) *iterator2 {
+func (qs *QuadStore) newLinksToIterator(collection string, links []Linkage) *Iterator {
 	filters := linkageToFilters(links)
-	it := newIterator(qs, collection, filters...)
+	it := qs.newIterator(collection, filters...)
 	it.links = links
 	return it
 }
 
-func newIterator(qs *QuadStore, collection string, constraints ...nosql.FieldFilter) *iterator2 {
-	return &iterator2{
+func (qs *QuadStore) newIterator(collection string, constraints ...nosql.FieldFilter) *Iterator {
+	return &Iterator{
 		qs:         qs,
 		constraint: constraints,
 		collection: collection,
-		size:       graph.Size{Size: -1},
+		size:       graph.Size{Value: -1},
 	}
 }
 
-func (it *iterator2) Iterate() graph.Scanner {
-	return newIteratorNext(it.qs, it.collection, it.constraint, it.limit)
+func (it *Iterator) Iterate() graph.Scanner {
+	return it.qs.newIteratorNext(it.collection, it.constraint, it.limit)
 }
 
-func (it *iterator2) Lookup() graph.Index {
-	return newIteratorContains(it.qs, it.collection, it.constraint, it.links, it.limit)
+func (it *Iterator) Lookup() graph.Index {
+	return it.qs.newIteratorContains(it.collection, it.constraint, it.links, it.limit)
 }
 
-func (it *iterator2) AsLegacy() graph.Iterator {
-	it2 := &Iterator{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *iterator2) SubIterators() []graph.IteratorShape {
+func (it *Iterator) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
-func (it *iterator2) getSize(ctx context.Context) (graph.Size, error) {
-	if it.size.Size == -1 {
+func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
+	if it.size.Value == -1 {
 		size, err := it.qs.getSize(it.collection, it.constraint)
 		if err != nil {
 			it.err = err
 		}
 		it.size = graph.Size{
-			Size:  size,
+			Value: size,
 			Exact: true,
 		}
 	}
-	if it.limit > 0 && it.size.Size > it.limit {
-		it.size.Size = it.limit
+	if it.limit > 0 && it.size.Value > it.limit {
+		it.size.Value = it.limit
 	}
-	if it.size.Size < 0 {
+	if it.size.Value < 0 {
 		return graph.Size{
-			Size:  it.qs.Size(),
+			Value: it.qs.Size(),
 			Exact: false,
 		}, it.err
 	}
 	return it.size, nil
 }
 
-func (it *iterator2) Sorted() bool                                             { return true }
-func (it *iterator2) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
+func (it *Iterator) Sorted() bool                                             { return true }
+func (it *Iterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
 
-func (it *iterator2) String() string {
+func (it *Iterator) String() string {
 	return fmt.Sprintf("NoSQL(%v)", it.collection)
 }
 
-func (it *iterator2) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Iterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	size, err := it.getSize(ctx)
 	return graph.IteratorCosts{
 		ContainsCost: 1,
@@ -169,7 +131,7 @@ type iteratorNext struct {
 	err    error
 }
 
-func newIteratorNext(qs *QuadStore, collection string, constraints []nosql.FieldFilter, limit int64) *iteratorNext {
+func (qs *QuadStore) newIteratorNext(collection string, constraints []nosql.FieldFilter, limit int64) *iteratorNext {
 	return &iteratorNext{
 		qs:         qs,
 		constraint: constraints,
@@ -262,7 +224,7 @@ type iteratorContains struct {
 	err    error
 }
 
-func newIteratorContains(qs *QuadStore, collection string, constraints []nosql.FieldFilter, links []Linkage, limit int64) *iteratorContains {
+func (qs *QuadStore) newIteratorContains(collection string, constraints []nosql.FieldFilter, links []Linkage, limit int64) *iteratorContains {
 	return &iteratorContains{
 		qs:         qs,
 		collection: collection,

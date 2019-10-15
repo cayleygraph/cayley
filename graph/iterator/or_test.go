@@ -17,16 +17,19 @@ package iterator_test
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/cayleygraph/cayley/graph"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
 
-func iterated(it graph.Iterator) []int {
+func iterated(s graph.IteratorShape) []int {
 	ctx := context.TODO()
 	var res []int
+	it := s.Iterate()
+	defer it.Close()
 	for it.Next(ctx) {
 		res = append(res, int(it.Result().(Int64Node)))
 	}
@@ -50,34 +53,25 @@ func TestOrIteratorBasics(t *testing.T) {
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
 
-	if v, _ := or.Size(); v != 7 {
-		t.Errorf("Unexpected iterator size, got:%d expected %d", v, 7)
-	}
+	st, _ := or.Stats(ctx)
+	require.Equal(t, int64(7), st.Size.Value)
 
 	expect := []int{1, 2, 3, 3, 9, 20, 21}
 	for i := 0; i < 2; i++ {
-		if got := iterated(or); !reflect.DeepEqual(got, expect) {
-			t.Errorf("Failed to iterate Or correctly on repeat %d, got:%v expect:%v", i, got, expect)
-		}
-		or.Reset()
+		require.Equal(t, expect, iterated(or))
 	}
 
 	// Check that optimization works.
-	optOr, _ := or.Optimize()
-	if got := iterated(optOr); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to iterate optimized Or correctly, got:%v expect:%v", got, expect)
-	}
+	optOr, _ := or.Optimize(ctx)
+	require.Equal(t, expect, iterated(optOr))
 
+	orc := or.Lookup()
 	for _, v := range []int{2, 3, 21} {
-		if !or.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to correctly check %d as true", v)
-		}
+		require.True(t, orc.Contains(ctx, Int64Node(v)))
 	}
 
 	for _, v := range []int{22, 5, 0} {
-		if or.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to correctly check %d as false", v)
-		}
+		require.False(t, orc.Contains(ctx, Int64Node(v)))
 	}
 }
 
@@ -100,67 +94,50 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
-	f2.Reset()
-	size, exact := or.Size()
-	if size != 4 {
-		t.Errorf("Unexpected iterator size, got:%d expected %d", size, 4)
-	}
-	if !exact {
-		t.Error("Size not exact.")
-	}
+	st, _ := or.Stats(ctx)
+	require.Equal(t, graph.Size{
+		Value: 4,
+		Exact: true,
+	}, st.Size)
 
 	// It should extract the first iterators' numbers.
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
-	f2.Reset()
 	expect := []int{1, 2, 3}
 	for i := 0; i < 2; i++ {
-		if got := iterated(or); !reflect.DeepEqual(got, expect) {
-			t.Errorf("Failed to iterate Or correctly on repeat %d, got:%v expect:%v", i, got, expect)
-		}
-		or.Reset()
+		require.Equal(t, expect, iterated(or))
 	}
 
 	// Check optimization works.
-	optOr, _ := or.Optimize()
-	if got := iterated(optOr); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to iterate optimized Or correctly, got:%v expect:%v", got, expect)
-	}
+	optOr, _ := or.Optimize(ctx)
+	require.Equal(t, expect, iterated(optOr))
 
 	// Check that numbers in either iterator exist.
 	or = NewShortCircuitOr()
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
-	f2.Reset()
+
+	orc := or.Lookup()
 	for _, v := range []int{2, 3, 21} {
-		if !or.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to correctly check %d as true", v)
-		}
+		require.True(t, orc.Contains(ctx, Int64Node(v)))
 	}
 	for _, v := range []int{22, 5, 0} {
-		if or.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to correctly check %d as false", v)
-		}
+		require.False(t, orc.Contains(ctx, Int64Node(v)))
 	}
 
 	// Check that it pulls the second iterator's numbers if the first is empty.
 	or = NewShortCircuitOr()
 	or.AddSubIterator(NewFixed())
 	or.AddSubIterator(f2)
-	f2.Reset()
+
 	expect = []int{3, 9, 20, 21}
 	for i := 0; i < 2; i++ {
-		if got := iterated(or); !reflect.DeepEqual(got, expect) {
-			t.Errorf("Failed to iterate Or correctly on repeat %d, got:%v expect:%v", i, got, expect)
-		}
-		or.Reset()
+		require.Equal(t, expect, iterated(or))
 	}
 	// Check optimization works.
-	optOr, _ = or.Optimize()
-	if got := iterated(optOr); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to iterate optimized Or correctly, got:%v expect:%v", got, expect)
-	}
+	optOr, _ = or.Optimize(ctx)
+	require.Equal(t, expect, iterated(optOr))
 }
 
 func TestOrIteratorErr(t *testing.T) {
@@ -174,21 +151,13 @@ func TestOrIteratorErr(t *testing.T) {
 		fix1,
 		orErr,
 		newInt64(1, 5, true),
-	)
+	).Iterate()
 
-	if !or.Next(ctx) {
-		t.Errorf("Failed to iterate Or correctly")
-	}
-	if got := or.Result(); got.(Int64Node) != 1 {
-		t.Errorf("Failed to iterate Or correctly, got:%v expect:1", got)
-	}
+	require.True(t, or.Next(ctx))
+	require.Equal(t, Int64Node(1), or.Result())
 
-	if or.Next(ctx) != false {
-		t.Errorf("Or iterator did not pass through underlying 'false'")
-	}
-	if or.Err() != wantErr {
-		t.Errorf("Or iterator did not pass through underlying Err")
-	}
+	require.False(t, or.Next(ctx))
+	require.Equal(t, wantErr, or.Err())
 }
 
 func TestShortCircuitOrIteratorErr(t *testing.T) {
@@ -199,12 +168,8 @@ func TestShortCircuitOrIteratorErr(t *testing.T) {
 	or := NewOr(
 		orErr,
 		newInt64(1, 5, true),
-	)
+	).Iterate()
 
-	if or.Next(ctx) != false {
-		t.Errorf("Or iterator did not pass through underlying 'false'")
-	}
-	if or.Err() != wantErr {
-		t.Errorf("Or iterator did not pass through underlying Err")
-	}
+	require.False(t, or.Next(ctx))
+	require.Equal(t, wantErr, or.Err())
 }

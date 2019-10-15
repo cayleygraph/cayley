@@ -37,40 +37,10 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-var _ graph.IteratorFuture = &LinksTo{}
-
 // A LinksTo has a reference back to the graph.QuadStore (to create the iterators
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
-	it *linksTo
-	graph.Iterator
-}
-
-// Construct a new LinksTo iterator around a direction and a subiterator of
-// nodes.
-func NewLinksTo(qs graph.QuadIndexer, sub graph.Iterator, d quad.Direction) *LinksTo {
-	it := &LinksTo{
-		it: newLinksTo(qs, graph.AsShape(sub), d),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *LinksTo) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-// Return the direction under consideration.
-func (it *LinksTo) Direction() quad.Direction { return it.it.Direction() }
-
-var _ graph.IteratorShapeCompat = &linksTo{}
-
-// A LinksTo has a reference back to the graph.QuadStore (to create the iterators
-// for each node) the subiterator, and the direction the iterator comes from.
-// `next_it` is the tempoarary iterator held per result in `primary_it`.
-type linksTo struct {
 	qs      graph.QuadIndexer
 	primary graph.IteratorShape
 	dir     quad.Direction
@@ -79,8 +49,8 @@ type linksTo struct {
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func newLinksTo(qs graph.QuadIndexer, it graph.IteratorShape, d quad.Direction) *linksTo {
-	return &linksTo{
+func NewLinksTo(qs graph.QuadIndexer, it graph.IteratorShape, d quad.Direction) *LinksTo {
+	return &LinksTo{
 		qs:      qs,
 		primary: it,
 		dir:     d,
@@ -88,37 +58,31 @@ func newLinksTo(qs graph.QuadIndexer, it graph.IteratorShape, d quad.Direction) 
 }
 
 // Return the direction under consideration.
-func (it *linksTo) Direction() quad.Direction { return it.dir }
+func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
-func (it *linksTo) Iterate() graph.Scanner {
+func (it *LinksTo) Iterate() graph.Scanner {
 	return newLinksToNext(it.qs, it.primary.Iterate(), it.dir)
 }
 
-func (it *linksTo) Lookup() graph.Index {
+func (it *LinksTo) Lookup() graph.Index {
 	return newLinksToContains(it.qs, it.primary.Lookup(), it.dir)
 }
 
-func (it *linksTo) AsLegacy() graph.Iterator {
-	it2 := &LinksTo{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *linksTo) String() string {
+func (it *LinksTo) String() string {
 	return fmt.Sprintf("LinksTo(%v)", it.dir)
 }
 
 // Return a list containing only our subiterator.
-func (it *linksTo) SubIterators() []graph.IteratorShape {
+func (it *LinksTo) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.primary}
 }
 
 // Optimize the LinksTo, by replacing it if it can be.
-func (it *linksTo) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *LinksTo) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newPrimary, changed := it.primary.Optimize(ctx)
 	if changed {
 		it.primary = newPrimary
-		if IsNull2(it.primary) {
+		if IsNull(it.primary) {
 			return it.primary, true
 		}
 	}
@@ -126,7 +90,7 @@ func (it *linksTo) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 }
 
 // Return a guess as to how big or costly it is to next the iterator.
-func (it *linksTo) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *LinksTo) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	subitStats, err := it.primary.Stats(ctx)
 	// TODO(barakmich): These should really come from the quadstore itself
 	checkConstant := int64(1)
@@ -138,11 +102,11 @@ func (it *linksTo) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	}, err
 }
 
-func (it *linksTo) getSize(ctx context.Context) graph.Size {
-	if it.size.Size != 0 {
+func (it *LinksTo) getSize(ctx context.Context) graph.Size {
+	if it.size.Value != 0 {
 		return it.size
 	}
-	if fixed, ok := graph.AsLegacy(it.primary).(*Fixed); ok {
+	if fixed, ok := it.primary.(*Fixed); ok {
 		// get real sizes from sub iterators
 		var (
 			sz    int64
@@ -150,19 +114,18 @@ func (it *linksTo) getSize(ctx context.Context) graph.Size {
 		)
 		for _, v := range fixed.Values() {
 			sit := it.qs.QuadIterator(it.dir, v)
-			n, ex := sit.Size()
-			sit.Close()
-			sz += n
-			exact = exact && ex
+			st, _ := sit.Stats(ctx)
+			sz += st.Size.Value
+			exact = exact && st.Size.Exact
 		}
-		it.size.Size, it.size.Exact = sz, exact
+		it.size.Value, it.size.Exact = sz, exact
 		return it.size
 	}
 	// TODO(barakmich): It should really come from the quadstore itself
 	const fanoutFactor = 20
 	st, _ := it.primary.Stats(ctx)
-	st.Size.Size *= fanoutFactor
-	it.size.Size, it.size.Exact = st.Size.Size, false
+	st.Size.Value *= fanoutFactor
+	it.size.Value, it.size.Exact = st.Size.Value, false
 	return it.size
 }
 
@@ -185,7 +148,7 @@ func newLinksToNext(qs graph.QuadIndexer, it graph.Scanner, d quad.Direction) gr
 		qs:      qs,
 		primary: it,
 		dir:     d,
-		nextIt:  newNull().Iterate(),
+		nextIt:  NewNull().Iterate(),
 	}
 }
 
@@ -224,7 +187,7 @@ func (it *linksToNext) Next(ctx context.Context) bool {
 			return false
 		}
 		it.nextIt.Close()
-		it.nextIt = it.qs.QuadIterator(it.dir, it.primary.Result())
+		it.nextIt = it.qs.QuadIterator(it.dir, it.primary.Result()).Iterate()
 
 		// Continue -- return the first in the next set.
 	}

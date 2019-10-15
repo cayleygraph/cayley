@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/quad"
@@ -31,17 +33,12 @@ func TestLinksTo(t *testing.T) {
 	}
 	qs.Iter.(*Fixed).Add(Int64Quad(2))
 	fixed := NewFixed()
+
 	val := qs.ValueOf(quad.Raw("cool"))
-	if val.(Int64Node) != 1 {
-		t.Fatalf("Failed to return correct value, got:%v expect:1", val)
-	}
+	require.Equal(t, Int64Node(1), val)
+
 	fixed.Add(val)
-	lto := NewLinksTo(qs, fixed, quad.Object)
-	if !lto.Next(ctx) {
-		t.Error("At least one quad matches the fixed object")
-	}
-	val = lto.Result()
-	if val.(Int64Quad) != 2 {
-		t.Errorf("Quad index 2, such as %s, should match %s", qs.Quad(Int64Quad(2)), qs.Quad(val))
-	}
+	lto := NewLinksTo(qs, fixed, quad.Object).Iterate()
+	require.True(t, lto.Next(ctx))
+	require.Equal(t, Int64Quad(2), lto.Result())
 }

@@ -2,8 +2,9 @@ package iterator_test
 
 import (
 	"context"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -22,15 +23,11 @@ func TestUniqueIteratorBasics(t *testing.T) {
 
 	expect := []int{1, 2, 3}
 	for i := 0; i < 2; i++ {
-		if got := iterated(u); !reflect.DeepEqual(got, expect) {
-			t.Errorf("Failed to iterate Unique correctly on repeat %d: got:%v expected:%v", i, got, expect)
-		}
-		u.Reset()
+		require.Equal(t, expect, iterated(u))
 	}
 
+	uc := u.Lookup()
 	for _, v := range []int{1, 2, 3} {
-		if !u.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to find a correct value in the unique iterator.")
-		}
+		require.True(t, uc.Contains(ctx, Int64Node(v)))
 	}
 }

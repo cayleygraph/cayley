@@ -30,79 +30,43 @@ type result struct {
 	tags map[string]graph.Ref
 }
 
-var _ graph.IteratorFuture = &Materialize{}
-
 type Materialize struct {
-	it *materialize
-	graph.Iterator
-}
-
-func NewMaterialize(sub graph.Iterator) *Materialize {
-	it := &Materialize{
-		it: newMaterialize(graph.AsShape(sub)),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func NewMaterializeWithSize(sub graph.Iterator, size int64) *Materialize {
-	it := &Materialize{
-		it: newMaterializeWithSize(graph.AsShape(sub), size),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *Materialize) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShapeCompat = &materialize{}
-
-type materialize struct {
 	sub        graph.IteratorShape
 	expectSize int64
 }
 
-func newMaterialize(sub graph.IteratorShape) *materialize {
-	return newMaterializeWithSize(sub, 0)
+func NewMaterialize(sub graph.IteratorShape) *Materialize {
+	return NewMaterializeWithSize(sub, 0)
 }
 
-func newMaterializeWithSize(sub graph.IteratorShape, size int64) *materialize {
-	return &materialize{
+func NewMaterializeWithSize(sub graph.IteratorShape, size int64) *Materialize {
+	return &Materialize{
 		sub:        sub,
 		expectSize: size,
 	}
 }
 
-func (it *materialize) Iterate() graph.Scanner {
+func (it *Materialize) Iterate() graph.Scanner {
 	return newMaterializeNext(it.sub)
 }
 
-func (it *materialize) Lookup() graph.Index {
+func (it *Materialize) Lookup() graph.Index {
 	return newMaterializeContains(it.sub)
 }
 
-func (it *materialize) AsLegacy() graph.Iterator {
-	it2 := &Materialize{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *materialize) String() string {
+func (it *Materialize) String() string {
 	return "Materialize"
 }
 
-func (it *materialize) SubIterators() []graph.IteratorShape {
+func (it *Materialize) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.sub}
 }
 
-func (it *materialize) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Materialize) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newSub, changed := it.sub.Optimize(ctx)
 	if changed {
 		it.sub = newSub
-		if IsNull2(it.sub) {
+		if IsNull(it.sub) {
 			return it.sub, true
 		}
 	}
@@ -111,12 +75,12 @@ func (it *materialize) Optimize(ctx context.Context) (graph.IteratorShape, bool)
 
 // The entire point of Materialize is to amortize the cost by
 // putting it all up front.
-func (it *materialize) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Materialize) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	overhead := int64(2)
 	var size graph.Size
 	subitStats, err := it.sub.Stats(ctx)
 	if it.expectSize > 0 {
-		size = graph.Size{Size: it.expectSize, Exact: false}
+		size = graph.Size{Value: it.expectSize, Exact: false}
 	} else {
 		size = subitStats.Size
 	}

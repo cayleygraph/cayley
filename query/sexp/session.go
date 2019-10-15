@@ -81,12 +81,12 @@ func (s *Session) Execute(ctx context.Context, input string, opt query.Options) 
 	default:
 		return nil, &query.ErrUnsupportedCollation{Collation: opt.Collation}
 	}
-	it := BuildIteratorTreeForQuery(s.qs, input)
+	it := BuildIteratorTreeForQuery(s.qs, input).Iterate()
 	if err := it.Err(); err != nil {
 		return nil, err
 	}
 	if opt.Limit > 0 {
-		it = iterator.NewLimit(it, int64(opt.Limit))
+		it = iterator.NewLimitNext(it, int64(opt.Limit))
 	}
 	return &results{
 		s:   s,
@@ -98,7 +98,7 @@ func (s *Session) Execute(ctx context.Context, input string, opt query.Options) 
 type results struct {
 	s        *Session
 	col      query.Collation
-	it       graph.Iterator
+	it       graph.Scanner
 	nextPath bool
 }
 

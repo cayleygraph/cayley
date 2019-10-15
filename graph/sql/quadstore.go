@@ -539,14 +539,14 @@ func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 	}
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.Iterator {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.IteratorShape {
 	v, ok := val.(Value)
 	if !ok {
 		return iterator.NewNull()
 	}
 	sel := AllQuads("")
 	sel.WhereEq("", dirField(d), v)
-	return qs.NewIterator(sel)
+	return qs.newIterator(sel)
 }
 
 func (qs *QuadStore) querySize(ctx context.Context, sel Select) (graph.Size, error) {
@@ -559,7 +559,7 @@ func (qs *QuadStore) querySize(ctx context.Context, sel Select) (graph.Size, err
 		return graph.Size{}, err
 	}
 	return graph.Size{
-		Size:  sz,
+		Value: sz,
 		Exact: true,
 	}, nil
 }
@@ -567,19 +567,19 @@ func (qs *QuadStore) querySize(ctx context.Context, sel Select) (graph.Size, err
 func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
 	v, ok := val.(Value)
 	if !ok {
-		return graph.Size{Size: 0, Exact: true}, nil
+		return graph.Size{Value: 0, Exact: true}, nil
 	}
 	sel := AllQuads("")
 	sel.WhereEq("", dirField(d), v)
 	return qs.querySize(ctx, sel)
 }
 
-func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return qs.NewIterator(AllNodes())
+func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+	return qs.newIterator(AllNodes())
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return qs.NewIterator(AllQuads(""))
+func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+	return qs.newIterator(AllQuads(""))
 }
 
 func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
@@ -741,10 +741,10 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 		Quads: graph.Size{Exact: true},
 	}
 	qs.mu.RLock()
-	st.Quads.Size = qs.quads
-	st.Nodes.Size = qs.nodes
+	st.Quads.Value = qs.quads
+	st.Nodes.Value = qs.nodes
 	qs.mu.RUnlock()
-	if st.Quads.Size >= 0 {
+	if st.Quads.Value >= 0 {
 		return st, nil
 	}
 	query := func(table string) string {
@@ -755,18 +755,18 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 		st.Quads.Exact = false
 		st.Nodes.Exact = false
 	}
-	err := qs.db.QueryRow(query("quads")).Scan(&st.Quads.Size)
+	err := qs.db.QueryRow(query("quads")).Scan(&st.Quads.Value)
 	if err != nil {
 		return graph.Stats{}, err
 	}
-	err = qs.db.QueryRow(query("nodes")).Scan(&st.Nodes.Size)
+	err = qs.db.QueryRow(query("nodes")).Scan(&st.Nodes.Value)
 	if err != nil {
 		return graph.Stats{}, err
 	}
 	if st.Quads.Exact {
 		qs.mu.Lock()
-		qs.quads = st.Quads.Size
-		qs.nodes = st.Nodes.Size
+		qs.quads = st.Quads.Value
+		qs.nodes = st.Nodes.Value
 		qs.mu.Unlock()
 	}
 	return st, nil
@@ -785,9 +785,9 @@ func (qs *QuadStore) sizeForIterator(dir quad.Direction, hash NodeHash) int64 {
 	if qs.noSizes {
 		st, _ := qs.Stats(context.TODO(), false)
 		if dir == quad.Predicate {
-			return (st.Quads.Size / 100) + 1
+			return (st.Quads.Value / 100) + 1
 		}
-		return (st.Quads.Size / 1000) + 1
+		return (st.Quads.Value / 1000) + 1
 	}
 	if val, ok := qs.sizes.Get(hash.String() + string(dir.Prefix())); ok {
 		return val.(int64)

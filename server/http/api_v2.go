@@ -330,7 +330,7 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 		valuesFromString(r.FormValue("obj")),
 		valuesFromString(r.FormValue("label")),
 	)
-	it := values.BuildIterator(h.QuadStore)
+	it := values.BuildIterator(h.QuadStore).Iterate()
 	qr := graph.NewResultReader(h.QuadStore, it)
 
 	defer qr.Close()

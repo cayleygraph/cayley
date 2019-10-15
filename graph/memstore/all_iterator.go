@@ -20,26 +20,6 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.IteratorFuture = (*AllIterator)(nil)
-
-type AllIterator struct {
-	it *allIterator
-	graph.Iterator
-}
-
-func newAllIterator(qs *QuadStore, nodes bool, maxid int64) *AllIterator {
-	it := &AllIterator{
-		it: newAllIterator2(qs, nodes, maxid),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *AllIterator) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
 var _ graph.IteratorShape = (*allIterator)(nil)
 
 type allIterator struct {
@@ -49,7 +29,7 @@ type allIterator struct {
 	nodes bool
 }
 
-func newAllIterator2(qs *QuadStore, nodes bool, maxid int64) *allIterator {
+func (qs *QuadStore) newAllIterator(nodes bool, maxid int64) *allIterator {
 	return &allIterator{
 		qs: qs, all: qs.cloneAll(), nodes: nodes,
 		maxid: maxid,
@@ -57,17 +37,11 @@ func newAllIterator2(qs *QuadStore, nodes bool, maxid int64) *allIterator {
 }
 
 func (it *allIterator) Iterate() graph.Scanner {
-	return newAllIteratorNext(it.qs, it.nodes, it.maxid, it.all)
+	return it.qs.newAllIteratorNext(it.nodes, it.maxid, it.all)
 }
 
 func (it *allIterator) Lookup() graph.Index {
-	return newAllIteratorContains(it.qs, it.nodes, it.maxid)
-}
-
-func (it *allIterator) AsLegacy() graph.Iterator {
-	it2 := &AllIterator{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
+	return it.qs.newAllIteratorContains(it.nodes, it.maxid)
 }
 
 func (it *allIterator) SubIterators() []graph.IteratorShape { return nil }
@@ -85,7 +59,7 @@ func (it *allIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 		ContainsCost: 1,
 		Size: graph.Size{
 			// TODO(dennwc): use maxid?
-			Size:  int64(len(it.all)),
+			Value: int64(len(it.all)),
 			Exact: true,
 		},
 	}, nil
@@ -113,7 +87,7 @@ type allIteratorNext struct {
 	done bool
 }
 
-func newAllIteratorNext(qs *QuadStore, nodes bool, maxid int64, all []*primitive) *allIteratorNext {
+func (qs *QuadStore) newAllIteratorNext(nodes bool, maxid int64, all []*primitive) *allIteratorNext {
 	return &allIteratorNext{
 		qs: qs, all: all, nodes: nodes,
 		i: -1, maxid: maxid,
@@ -182,7 +156,7 @@ type allIteratorContains struct {
 	done bool
 }
 
-func newAllIteratorContains(qs *QuadStore, nodes bool, maxid int64) *allIteratorContains {
+func (qs *QuadStore) newAllIteratorContains(nodes bool, maxid int64) *allIteratorContains {
 	return &allIteratorContains{
 		qs: qs, nodes: nodes,
 		maxid: maxid,

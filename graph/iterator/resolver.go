@@ -22,41 +22,16 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-var _ graph.IteratorFuture = &Resolver{}
-
 // A Resolver iterator consists of it's order, an index (where it is in the,
 // process of iterating) and a store to resolve values from.
 type Resolver struct {
-	it *resolver
-	graph.Iterator
-}
-
-// Creates a new Resolver iterator.
-func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
-	it := &Resolver{
-		it: newResolver(qs, nodes...),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *Resolver) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShapeCompat = (*resolver)(nil)
-
-// A Resolver iterator consists of it's order, an index (where it is in the,
-// process of iterating) and a store to resolve values from.
-type resolver struct {
 	qs    graph.QuadStore
 	order []quad.Value
 }
 
 // Creates a new Resolver iterator.
-func newResolver(qs graph.QuadStore, nodes ...quad.Value) *resolver {
-	it := &resolver{
+func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
+	it := &Resolver{
 		qs:    qs,
 		order: make([]quad.Value, len(nodes)),
 	}
@@ -64,44 +39,38 @@ func newResolver(qs graph.QuadStore, nodes ...quad.Value) *resolver {
 	return it
 }
 
-func (it *resolver) Iterate() graph.Scanner {
+func (it *Resolver) Iterate() graph.Scanner {
 	return newResolverNext(it.qs, it.order)
 }
 
-func (it *resolver) Lookup() graph.Index {
+func (it *Resolver) Lookup() graph.Index {
 	return newResolverContains(it.qs, it.order)
 }
 
-func (it *resolver) AsLegacy() graph.Iterator {
-	it2 := &Resolver{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *resolver) String() string {
+func (it *Resolver) String() string {
 	return fmt.Sprintf("Resolver(%v)", it.order)
 }
 
-func (it *resolver) SubIterators() []graph.IteratorShape {
+func (it *Resolver) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
 // Returns a Null iterator if it's empty so that upstream iterators can optimize it
 // away, otherwise there is no optimization.
-func (it *resolver) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Resolver) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	if len(it.order) == 0 {
-		return newNull(), true
+		return NewNull(), true
 	}
 	return it, false
 }
 
-func (it *resolver) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Resolver) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	return graph.IteratorCosts{
 		// Next is (presumably) O(1) from store
 		NextCost:     1,
 		ContainsCost: 1,
 		Size: graph.Size{
-			Size:  int64(len(it.order)),
+			Value: int64(len(it.order)),
 			Exact: true,
 		},
 	}, nil

@@ -2,8 +2,9 @@ package iterator_test
 
 import (
 	"context"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -19,49 +20,33 @@ func TestSkipIteratorBasics(t *testing.T) {
 	)
 
 	u := NewSkip(allIt, 0)
-	expectSz, _ := allIt.Size()
-	if sz, _ := u.Size(); sz != expectSz {
-		t.Errorf("Failed to check Skip size: got:%v expected:%v", sz, expectSz)
-	}
-	expect := []int{1, 2, 3, 4, 5}
-	if got := iterated(u); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to iterate Skip correctly: got:%v expected:%v", got, expect)
-	}
+	expectSz, _ := allIt.Stats(ctx)
+	sz, _ := u.Stats(ctx)
+	require.Equal(t, expectSz.Size.Value, sz.Size.Value)
 
-	allIt.Reset()
+	require.Equal(t, []int{1, 2, 3, 4, 5}, iterated(u))
 
 	u = NewSkip(allIt, 3)
-	expectSz = 2
-	if sz, _ := u.Size(); sz != expectSz {
-		t.Errorf("Failed to check Skip size: got:%v expected:%v", sz, expectSz)
+	expectSz.Size.Value = 2
+	if sz, _ := u.Stats(ctx); sz.Size.Value != expectSz.Size.Value {
+		t.Errorf("Failed to check Skip size: got:%v expected:%v", sz.Size, expectSz.Size)
 	}
-	expect = []int{4, 5}
-	if got := iterated(u); !reflect.DeepEqual(got, expect) {
-		t.Errorf("Failed to iterate Skip correctly: got:%v expected:%v", got, expect)
-	}
+	require.Equal(t, []int{4, 5}, iterated(u))
 
-	u.Reset()
+	uc := u.Lookup()
 	for _, v := range []int{1, 2, 3} {
-		if u.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to find a correct value in the Skip iterator.")
-		}
+		require.False(t, uc.Contains(ctx, Int64Node(v)))
 	}
 	for _, v := range []int{4, 5} {
-		if !u.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to find a correct value in the Skip iterator.")
-		}
+		require.True(t, uc.Contains(ctx, Int64Node(v)))
 	}
 
-	u.Reset()
+	uc = u.Lookup()
 	for _, v := range []int{5, 4, 3} {
-		if u.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to find a correct value in the Skip iterator.")
-		}
+		require.False(t, uc.Contains(ctx, Int64Node(v)))
 	}
 	for _, v := range []int{1, 2} {
-		if !u.Contains(ctx, Int64Node(v)) {
-			t.Errorf("Failed to find a correct value in the Skip iterator.")
-		}
+		require.True(t, uc.Contains(ctx, Int64Node(v)))
 	}
 
 	// TODO(dennwc): check with NextPath

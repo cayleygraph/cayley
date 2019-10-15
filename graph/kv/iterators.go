@@ -12,12 +12,12 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-func (qs *QuadStore) NodesAllIterator() graph.Iterator {
-	return NewAllIterator(true, qs, nil)
+func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+	return qs.newAllIterator(true, nil)
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.Iterator {
-	return NewAllIterator(false, qs, nil)
+func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+	return qs.newAllIterator(false, nil)
 }
 
 func (qs *QuadStore) indexSize(ctx context.Context, ind QuadIndex, vals []uint64) (graph.Size, error) {
@@ -38,12 +38,12 @@ func (qs *QuadStore) indexSize(ctx context.Context, ind QuadIndex, vals []uint64
 	}
 	if len(ind.Dirs) == len(vals) {
 		return graph.Size{
-			Size:  sz,
+			Value: sz,
 			Exact: true,
 		}, nil
 	}
 	return graph.Size{
-		Size:  1 + sz/2,
+		Value: 1 + sz/2,
 		Exact: false,
 	}, nil
 }
@@ -51,7 +51,7 @@ func (qs *QuadStore) indexSize(ctx context.Context, ind QuadIndex, vals []uint64
 func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
 	vi, ok := v.(Int64Value)
 	if !ok {
-		return graph.Size{Size: 0, Exact: true}, nil
+		return graph.Size{Value: 0, Exact: true}, nil
 	}
 	qs.indexes.RLock()
 	all := qs.indexes.all
@@ -66,12 +66,12 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v g
 		return graph.Size{}, err
 	}
 	return graph.Size{
-		Size:  1 + st.Quads.Size/2,
+		Value: 1 + st.Quads.Value/2,
 		Exact: false,
 	}, nil
 }
 
-func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.Iterator {
+func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.IteratorShape {
 	if v == nil {
 		return iterator.NewNull()
 	}
@@ -82,10 +82,10 @@ func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.Iterato
 	// Find the best index for this direction.
 	if ind := qs.bestIndexes([]quad.Direction{dir}); len(ind) == 1 {
 		// this will scan the prefix automatically
-		return NewQuadIterator(qs, ind[0], []uint64{uint64(vi)})
+		return qs.newQuadIterator(ind[0], []uint64{uint64(vi)})
 	}
 	// Fallback: iterate all quads and check the corresponding direction.
-	return NewAllIterator(false, qs, &constraint{
+	return qs.newAllIterator(false, &constraint{
 		dir: dir,
 		val: vi,
 	})
@@ -127,12 +127,12 @@ type IndexScan struct {
 	Values []uint64
 }
 
-func (s IndexScan) BuildIterator(qs graph.QuadStore) graph.Iterator {
+func (s IndexScan) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	kqs, ok := qs.(*QuadStore)
 	if !ok {
 		return iterator.NewError(fmt.Errorf("expected KV quadstore, got: %T", qs))
 	}
-	return NewQuadIterator(kqs, s.Index, s.Values)
+	return kqs.newQuadIterator(s.Index, s.Values)
 }
 
 func (s IndexScan) Optimize(r shape.Optimizer) (shape.Shape, bool) {

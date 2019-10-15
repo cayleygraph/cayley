@@ -83,7 +83,7 @@ func TestLoadIteratorTo(t *testing.T) {
 			} else {
 				out = reflect.New(rt)
 			}
-			var it graph.Iterator
+			var it graph.IteratorShape
 			if c.from != nil {
 				fixed := iterator.NewFixed()
 				for _, id := range c.from {

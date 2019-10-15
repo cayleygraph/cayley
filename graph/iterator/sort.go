@@ -7,57 +7,31 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.IteratorFuture = &Sort{}
-
 // Sort iterator orders values from it's subiterator.
 type Sort struct {
-	it *sortIt
-	graph.Iterator
+	namer graph.Namer
+	subIt graph.IteratorShape
 }
 
 // NewSort creates a new Sort iterator.
 // TODO(dennwc): This iterator must not be used inside And: it may be moved to a Contains branch and won't do anything.
 //               We should make And/Intersect account for this.
-func NewSort(namer graph.Namer, it graph.Iterator) *Sort {
-	return &Sort{
-		it: newSort(namer, graph.AsShape(it)),
-	}
+func NewSort(namer graph.Namer, subIt graph.IteratorShape) *Sort {
+	return &Sort{namer, subIt}
 }
 
-// AsShape returns Sort's underlying iterator shape
-func (it *Sort) AsShape() graph.IteratorShape {
-	return it.it
-}
-
-type sortIt struct {
-	namer graph.Namer
-	subIt graph.IteratorShape
-}
-
-var _ graph.IteratorShapeCompat = (*sortIt)(nil)
-
-func newSort(namer graph.Namer, subIt graph.IteratorShape) *sortIt {
-	return &sortIt{namer, subIt}
-}
-
-func (it *sortIt) Iterate() graph.Scanner {
+func (it *Sort) Iterate() graph.Scanner {
 	return newSortNext(it.namer, it.subIt.Iterate())
 }
 
-func (it *sortIt) AsLegacy() graph.Iterator {
-	it2 := &Sort{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
-func (it *sortIt) Lookup() graph.Index {
+func (it *Sort) Lookup() graph.Index {
 	// TODO(dennwc): Lookup doesn't need any sorting. Using it this way is a bug in the optimizer.
 	//               But instead of failing here, let still allow the query to execute. It won't be sorted,
 	//               but it will work at least. Later consider changing returning an error here.
 	return it.subIt.Lookup()
 }
 
-func (it *sortIt) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Sort) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	newIt, optimized := it.subIt.Optimize(ctx)
 	if optimized {
 		it.subIt = newIt
@@ -65,25 +39,25 @@ func (it *sortIt) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 
-func (it *sortIt) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Sort) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	subStats, err := it.subIt.Stats(ctx)
 	return graph.IteratorCosts{
 		// TODO(dennwc): better cost calculation; we probably need an InitCost defined in graph.IteratorCosts
 		NextCost:     subStats.NextCost * 2,
 		ContainsCost: subStats.ContainsCost,
 		Size: graph.Size{
-			Size:  subStats.Size.Size,
+			Value: subStats.Size.Value,
 			Exact: true,
 		},
 	}, err
 }
 
-func (it *sortIt) String() string {
+func (it *Sort) String() string {
 	return "Sort"
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *sortIt) SubIterators() []graph.IteratorShape {
+func (it *Sort) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.subIt}
 }
 

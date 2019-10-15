@@ -26,7 +26,7 @@ func (s StringNode) Key() interface{} { return s }
 type Oldstore struct {
 	Parse bool
 	Data  []string
-	Iter  graph.Iterator
+	Iter  graph.IteratorShape
 }
 
 func (qs *Oldstore) valueAt(i int) quad.Value {
@@ -74,18 +74,18 @@ func (qs *Oldstore) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return 
 
 func (qs *Oldstore) Quad(graph.Ref) quad.Quad { return quad.Quad{} }
 
-func (qs *Oldstore) QuadIterator(d quad.Direction, i graph.Ref) graph.Iterator {
+func (qs *Oldstore) QuadIterator(d quad.Direction, i graph.Ref) graph.IteratorShape {
 	return qs.Iter
 }
 
 func (qs *Oldstore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
-	sz, exact := qs.Iter.Size()
-	return graph.Size{Size: sz, Exact: exact}, nil
+	st, err := qs.Iter.Stats(ctx)
+	return st.Size, err
 }
 
-func (qs *Oldstore) NodesAllIterator() graph.Iterator { return &iterator.Null{} }
+func (qs *Oldstore) NodesAllIterator() graph.IteratorShape { return &iterator.Null{} }
 
-func (qs *Oldstore) QuadsAllIterator() graph.Iterator { return &iterator.Null{} }
+func (qs *Oldstore) QuadsAllIterator() graph.IteratorShape { return &iterator.Null{} }
 
 func (qs *Oldstore) NameOf(v graph.Ref) quad.Value {
 	switch v := v.(type) {
@@ -109,8 +109,8 @@ func (qs *Oldstore) Size() int64 { return 0 }
 
 func (qs *Oldstore) DebugPrint() {}
 
-func (qs *Oldstore) OptimizeIterator(it graph.Iterator) (graph.Iterator, bool) {
-	return &iterator.Null{}, false
+func (qs *Oldstore) OptimizeIterator(it graph.IteratorShape) (graph.IteratorShape, bool) {
+	return iterator.NewNull(), false
 }
 
 func (qs *Oldstore) Close() error { return nil }
@@ -173,7 +173,7 @@ func (qs *Store) Close() error { return nil }
 
 func (qs *Store) DebugPrint() {}
 
-func (qs *Store) QuadIterator(d quad.Direction, i graph.Ref) graph.Iterator {
+func (qs *Store) QuadIterator(d quad.Direction, i graph.Ref) graph.IteratorShape {
 	fixed := iterator.NewFixed()
 	v := i.(graph.PreFetchedValue).NameOf()
 	for _, q := range qs.Data {
@@ -189,13 +189,13 @@ func (qs *Store) QuadIteratorSize(ctx context.Context, d quad.Direction, val gra
 	sz := graph.Size{Exact: true}
 	for _, q := range qs.Data {
 		if q.Get(d) == v {
-			sz.Size++
+			sz.Value++
 		}
 	}
 	return sz, nil
 }
 
-func (qs *Store) NodesAllIterator() graph.Iterator {
+func (qs *Store) NodesAllIterator() graph.IteratorShape {
 	set := make(map[string]bool)
 	for _, q := range qs.Data {
 		for _, d := range quad.Directions {
@@ -212,7 +212,7 @@ func (qs *Store) NodesAllIterator() graph.Iterator {
 	return fixed
 }
 
-func (qs *Store) QuadsAllIterator() graph.Iterator {
+func (qs *Store) QuadsAllIterator() graph.IteratorShape {
 	fixed := iterator.NewFixed()
 	for _, q := range qs.Data {
 		fixed.Add(quadValue{q})
@@ -231,7 +231,7 @@ func (qs *Store) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 		}
 	}
 	return graph.Stats{
-		Nodes: graph.Size{Size: int64(len(set)), Exact: true},
-		Quads: graph.Size{Size: int64(len(qs.Data)), Exact: true},
+		Nodes: graph.Size{Value: int64(len(set)), Exact: true},
+		Quads: graph.Size{Value: int64(len(qs.Data)), Exact: true},
 	}, nil
 }

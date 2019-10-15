@@ -6,76 +6,46 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.IteratorFuture = &Not{}
-
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type Not struct {
-	it *not
-	graph.Iterator
-}
-
-func NewNot(primaryIt, allIt graph.Iterator) *Not {
-	it := &Not{
-		it: newNot(graph.AsShape(primaryIt), graph.AsShape(allIt)),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *Not) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-var _ graph.IteratorShapeCompat = (*not)(nil)
-
-// Not iterator acts like a complement for the primary iterator.
-// It will return all the vertices which are not part of the primary iterator.
-type not struct {
 	primary graph.IteratorShape
 	allIt   graph.IteratorShape
 }
 
-func newNot(primaryIt, allIt graph.IteratorShape) *not {
-	return &not{
+func NewNot(primaryIt, allIt graph.IteratorShape) *Not {
+	return &Not{
 		primary: primaryIt,
 		allIt:   allIt,
 	}
 }
 
-func (it *not) Iterate() graph.Scanner {
+func (it *Not) Iterate() graph.Scanner {
 	return newNotNext(it.primary.Lookup(), it.allIt.Iterate())
 }
 
-func (it *not) Lookup() graph.Index {
+func (it *Not) Lookup() graph.Index {
 	return newNotContains(it.primary.Lookup())
-}
-
-func (it *not) AsLegacy() graph.Iterator {
-	it2 := &Not{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
 }
 
 // SubIterators returns a slice of the sub iterators.
 // The first iterator is the primary iterator, for which the complement
 // is generated.
-func (it *not) SubIterators() []graph.IteratorShape {
+func (it *Not) SubIterators() []graph.IteratorShape {
 	return []graph.IteratorShape{it.primary, it.allIt}
 }
 
-func (it *not) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Not) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	// TODO - consider wrapping the primary with a MaterializeIt
 	optimizedPrimaryIt, optimized := it.primary.Optimize(ctx)
 	if optimized {
 		it.primary = optimizedPrimaryIt
 	}
-	it.primary = newMaterialize(it.primary)
+	it.primary = NewMaterialize(it.primary)
 	return it, false
 }
 
-func (it *not) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Not) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	primaryStats, err := it.primary.Stats(ctx)
 	allStats, err2 := it.allIt.Stats(ctx)
 	if err == nil {
@@ -85,13 +55,13 @@ func (it *not) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 		NextCost:     allStats.NextCost + primaryStats.ContainsCost,
 		ContainsCost: primaryStats.ContainsCost,
 		Size: graph.Size{
-			Size:  allStats.Size.Size - primaryStats.Size.Size,
+			Value: allStats.Size.Value - primaryStats.Size.Value,
 			Exact: false,
 		},
 	}, err
 }
 
-func (it *not) String() string {
+func (it *Not) String() string {
 	return "Not"
 }
 

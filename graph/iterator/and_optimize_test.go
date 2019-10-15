@@ -18,16 +18,18 @@ package iterator_test
 // nonetheless cover a lot of basic cases.
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNullIteratorAnd(t *testing.T) {
 	all := newInt64(1, 3, true)
 	null := NewNull()
 	a := NewAnd(all, null)
-	newIt, changed := a.Optimize()
+	newIt, changed := a.Optimize(context.TODO())
 	if !changed {
 		t.Error("Didn't change")
 	}
@@ -49,11 +51,8 @@ func TestReorderWithTag(t *testing.T) {
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)
 
-	newIt, changed := a.Optimize()
-	if !changed {
-		t.Error("Expected new iterator")
-	}
-	newIt.Close()
+	_, changed := a.Optimize(context.TODO())
+	require.True(t, changed, "expected new iterator")
 }
 
 func TestAndStatistics(t *testing.T) {
@@ -63,12 +62,12 @@ func TestAndStatistics(t *testing.T) {
 	// Make all2 the default iterator
 	a.AddSubIterator(all2)
 	a.AddSubIterator(all)
-	stats1 := a.Stats()
-	newIt, changed := a.Optimize()
-	if !changed {
-		t.Error("Didn't optimize")
-	}
-	stats2 := newIt.Stats()
+	ctx := context.TODO()
+	stats1, _ := a.Stats(ctx)
+	newIt, changed := a.Optimize(ctx)
+	require.True(t, changed, "didn't optimize")
+
+	stats2, _ := newIt.Stats(ctx)
 	if stats2.NextCost > stats1.NextCost {
 		t.Error("And didn't optimize. Next cost old ", stats1.NextCost, "and new ", stats2.NextCost)
 	}

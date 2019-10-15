@@ -52,16 +52,16 @@ func (ValLookup) ApplyDeltas(_ []graph.Delta, _ graph.IgnoreOpts) error {
 func (ValLookup) Quad(_ graph.Ref) quad.Quad {
 	panic("not implemented")
 }
-func (ValLookup) QuadIterator(_ quad.Direction, _ graph.Ref) graph.Iterator {
+func (ValLookup) QuadIterator(_ quad.Direction, _ graph.Ref) graph.IteratorShape {
 	panic("not implemented")
 }
 func (ValLookup) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
 	panic("not implemented")
 }
-func (ValLookup) NodesAllIterator() graph.Iterator {
+func (ValLookup) NodesAllIterator() graph.IteratorShape {
 	panic("not implemented")
 }
-func (ValLookup) QuadsAllIterator() graph.Iterator {
+func (ValLookup) QuadsAllIterator() graph.IteratorShape {
 	panic("not implemented")
 }
 func (ValLookup) NameOf(_ graph.Ref) quad.Value {

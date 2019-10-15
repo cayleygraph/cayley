@@ -43,7 +43,7 @@ type queryShape struct {
 	hasaDirs []quad.Direction
 }
 
-func OutputQueryShapeForIterator(it graph.Iterator, qs graph.Namer, outputMap map[string]interface{}) {
+func OutputQueryShapeForIterator(it graph.IteratorShape, qs graph.Namer, outputMap map[string]interface{}) {
 	s := &queryShape{
 		qs:     qs,
 		nodeID: 1,
@@ -106,19 +106,19 @@ func (s *queryShape) StealNode(left *Node, right *Node) {
 	}
 }
 
-func (s *queryShape) MakeNode(it graph.Iterator) *Node {
+func (s *queryShape) MakeNode(it graph.IteratorShape) *Node {
 	n := Node{ID: s.nodeID}
 	return s.makeNode(&n, it)
 }
-func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
-	if tg, ok := it.(graph.Tagger); ok {
+func (s *queryShape) makeNode(n *Node, it graph.IteratorShape) *Node {
+	if tg, ok := it.(graph.TaggerShape); ok {
 		for _, tag := range tg.Tags() {
 			n.Tags = append(n.Tags, tag)
 		}
 		for k := range tg.FixedTags() {
 			n.Tags = append(n.Tags, k)
 		}
-		if sub := tg.SubIterators(); len(sub) == 1 {
+		if sub := it.SubIterators(); len(sub) == 1 {
 			return s.makeNode(n, sub[0])
 		}
 	}
@@ -142,9 +142,9 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		}
 	case *HasA:
 		hasa := it
-		s.PushHasa(n.ID, hasa.it.dir)
+		s.PushHasa(n.ID, hasa.dir)
 		s.nodeID++
-		newNode := s.MakeNode(graph.AsLegacy(hasa.it.primary))
+		newNode := s.MakeNode(hasa.primary)
 		s.AddNode(newNode)
 		s.RemoveHasa()
 	case *Or:
@@ -162,17 +162,17 @@ func (s *queryShape) makeNode(n *Node, it graph.Iterator) *Node {
 		n.IsLinkNode = true
 		lto := it
 		s.nodeID++
-		newNode := s.MakeNode(graph.AsLegacy(lto.it.primary))
+		newNode := s.MakeNode(lto.primary)
 		hasaID, hasaDir := s.LastHasa()
-		if (hasaDir == quad.Subject && lto.it.dir == quad.Object) ||
-			(hasaDir == quad.Object && lto.it.dir == quad.Subject) {
+		if (hasaDir == quad.Subject && lto.dir == quad.Object) ||
+			(hasaDir == quad.Object && lto.dir == quad.Subject) {
 			s.AddNode(newNode)
 			if hasaDir == quad.Subject {
 				s.AddLink(&Link{hasaID, newNode.ID, 0, n.ID})
 			} else {
 				s.AddLink(&Link{newNode.ID, hasaID, 0, n.ID})
 			}
-		} else if _, ok := graph.AsLegacy(lto.it.primary).(*Fixed); ok {
+		} else if _, ok := lto.primary.(*Fixed); ok {
 			s.StealNode(n, newNode)
 		} else {
 			s.AddNode(newNode)

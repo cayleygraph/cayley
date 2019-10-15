@@ -2,10 +2,8 @@ package graph
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/quad"
 )
 
@@ -27,12 +25,12 @@ type IterateChain struct {
 // Iterator will be optimized and closed after execution.
 //
 // By default, iteration has no limit and includes sub-paths.
-func Iterate(ctx context.Context, it Iterator) *IterateChain {
+func Iterate(ctx context.Context, it IteratorShape) *IterateChain {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	return &IterateChain{
-		ctx: ctx, s: AsShape(it),
+		ctx: ctx, s: it,
 		limit: -1, paths: true,
 		optimize: true,
 	}
@@ -66,25 +64,10 @@ func (c *IterateChain) start() {
 		c.s, _ = c.s.Optimize(c.ctx)
 	}
 	c.it = c.s.Iterate()
-	if !clog.V(2) {
-		return
-	}
-	if b, err := json.MarshalIndent(DescribeIterator(AsLegacy(c.s)), "", "  "); err != nil {
-		clog.Infof("failed to format description: %v", err)
-	} else {
-		clog.Infof("%s", b)
-	}
 }
+
 func (c *IterateChain) end() {
 	c.it.Close()
-	if !clog.V(2) {
-		return
-	}
-	if b, err := json.MarshalIndent(DumpStats(AsLegacy(c.s)), "", "  "); err != nil {
-		clog.Infof("failed to format stats: %v", err)
-	} else {
-		clog.Infof("%s", b)
-	}
 }
 
 // Limit limits a total number of results returned.
@@ -144,9 +127,9 @@ func (c *IterateChain) Count() (int64, error) {
 		c.s, _ = c.s.Optimize(c.ctx)
 	}
 	if st, err := c.s.Stats(c.ctx); err != nil {
-		return st.Size.Size, err
+		return st.Size.Value, err
 	} else if st.Size.Exact {
-		return st.Size.Size, nil
+		return st.Size.Value, nil
 	}
 	c.start()
 	defer c.end()

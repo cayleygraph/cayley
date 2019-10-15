@@ -169,7 +169,7 @@ func TestSexp(t *testing.T) {
 			s, _ := BuildShape(test.query)
 			require.Equal(t, test.shape, s, "%s\n%#v\nvs\n%#v", test.message, test.shape, s)
 
-			it := BuildIteratorTreeForQuery(qs, test.query)
+			it := BuildIteratorTreeForQuery(qs, test.query).Iterate()
 			if it.Next(ctx) != (test.expect != "") {
 				t.Errorf("Failed to %s", test.message)
 			}

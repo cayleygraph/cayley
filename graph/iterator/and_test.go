@@ -19,6 +19,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 )
@@ -28,27 +30,20 @@ func TestAndTag(t *testing.T) {
 	ctx := context.TODO()
 	fix1 := NewFixed(Int64Node(234))
 	fix2 := NewFixed(Int64Node(234))
-	var and graph.Iterator = NewAnd(Tag(fix1, "foo")).AddOptionalIterator(Tag(fix2, "baz"))
-	and = Tag(and, "bar")
+	var ands graph.IteratorShape = NewAnd(Tag(fix1, "foo")).AddOptionalIterator(Tag(fix2, "baz"))
+	ands = Tag(ands, "bar")
 
-	if !and.Next(ctx) {
-		t.Errorf("And did not next")
-	}
-	val := and.Result()
-	if val.(Int64Node) != 234 {
-		t.Errorf("Unexpected value")
-	}
+	and := ands.Iterate()
+	require.True(t, and.Next(ctx))
+	require.Equal(t, Int64Node(234), and.Result())
+
 	tags := make(map[string]graph.Ref)
 	and.TagResults(tags)
-	if tags["bar"].(Int64Node) != 234 {
-		t.Errorf("no bar tag")
-	}
-	if tags["foo"].(Int64Node) != 234 {
-		t.Errorf("no foo tag")
-	}
-	if tags["baz"].(Int64Node) != 234 {
-		t.Errorf("no baz tag")
-	}
+	require.Equal(t, map[string]graph.Ref{
+		"foo": Int64Node(234),
+		"bar": Int64Node(234),
+		"baz": Int64Node(234),
+	}, tags)
 }
 
 // Do a simple itersection of fixed values.
@@ -65,28 +60,24 @@ func TestAndAndFixedIterators(t *testing.T) {
 		Int64Node(4),
 		Int64Node(5),
 	)
-	and := NewAnd(fix1, fix2)
+	ands := NewAnd(fix1, fix2)
 	// Should be as big as smallest subiterator
-	size, accurate := and.Size()
-	if size != 3 {
-		t.Error("Incorrect size:", size)
-	}
-	if !accurate {
-		t.Error("not accurate")
-	}
+	st, err := ands.Stats(ctx)
+	require.NoError(t, err)
+	require.Equal(t, graph.Size{
+		Value: 3,
+		Exact: true,
+	}, st.Size)
 
-	if !and.Next(ctx) || and.Result().(Int64Node) != 3 {
-		t.Error("Incorrect first value")
-	}
+	and := ands.Iterate()
 
-	if !and.Next(ctx) || and.Result().(Int64Node) != 4 {
-		t.Error("Incorrect second value")
-	}
+	require.True(t, and.Next(ctx))
+	require.Equal(t, Int64Node(3), and.Result())
 
-	if and.Next(ctx) {
-		t.Error("Too many values")
-	}
+	require.True(t, and.Next(ctx))
+	require.Equal(t, Int64Node(4), and.Result())
 
+	require.False(t, and.Next(ctx))
 }
 
 // If there's no intersection, the size should still report the same,
@@ -104,39 +95,32 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 		Int64Node(6),
 		Int64Node(7),
 	)
-	and := NewAnd(fix1, fix2)
+	ands := NewAnd(fix1, fix2)
 	// Should be as big as smallest subiterator
-	size, accurate := and.Size()
-	if size != 3 {
-		t.Error("Incorrect size")
-	}
-	if !accurate {
-		t.Error("not accurate")
-	}
+	st, err := ands.Stats(ctx)
+	require.NoError(t, err)
+	require.Equal(t, graph.Size{
+		Value: 3,
+		Exact: true,
+	}, st.Size)
 
-	if and.Next(ctx) {
-		t.Error("Too many values")
-	}
-
+	and := ands.Iterate()
+	require.False(t, and.Next(ctx))
 }
 
 func TestAllIterators(t *testing.T) {
 	ctx := context.TODO()
 	all1 := newInt64(1, 5, true)
 	all2 := newInt64(4, 10, true)
-	and := NewAnd(all2, all1)
+	and := NewAnd(all2, all1).Iterate()
 
-	if !and.Next(ctx) || and.Result().(Int64Node) != Int64Node(4) {
-		t.Error("Incorrect first value")
-	}
+	require.True(t, and.Next(ctx))
+	require.Equal(t, Int64Node(4), and.Result())
 
-	if !and.Next(ctx) || and.Result().(Int64Node) != Int64Node(5) {
-		t.Error("Incorrect second value")
-	}
+	require.True(t, and.Next(ctx))
+	require.Equal(t, Int64Node(5), and.Result())
 
-	if and.Next(ctx) {
-		t.Error("Too many values")
-	}
+	require.False(t, and.Next(ctx))
 }
 
 func TestAndIteratorErr(t *testing.T) {
@@ -147,12 +131,8 @@ func TestAndIteratorErr(t *testing.T) {
 	and := NewAnd(
 		allErr,
 		newInt64(1, 5, true),
-	)
+	).Iterate()
 
-	if and.Next(ctx) != false {
-		t.Errorf("And iterator did not pass through initial 'false'")
-	}
-	if and.Err() != wantErr {
-		t.Errorf("And iterator did not pass through underlying Err: %v", and.Err())
-	}
+	require.False(t, and.Next(ctx))
+	require.Equal(t, wantErr, and.Err())
 }

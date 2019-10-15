@@ -59,7 +59,7 @@ const (
 	// Why no Equals? Because that's usually an AndIterator.
 )
 
-func NewComparison(sub graph.Iterator, op Operator, val quad.Value, qs graph.Namer) graph.Iterator {
+func NewComparison(sub graph.IteratorShape, op Operator, val quad.Value, qs graph.Namer) graph.IteratorShape {
 	return NewValueFilter(qs, sub, func(qval quad.Value) (bool, error) {
 		switch cVal := val.(type) {
 		case quad.Int:

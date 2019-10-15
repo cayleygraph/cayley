@@ -27,50 +27,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 )
 
-var _ graph.IteratorFuture = &Or{}
-
 type Or struct {
-	it *or
-	graph.Iterator
-}
-
-func NewOr(sub ...graph.Iterator) *Or {
-	in := make([]graph.IteratorShape, 0, len(sub))
-	for _, s := range sub {
-		in = append(in, graph.AsShape(s))
-	}
-	it := &Or{
-		it: newOr(in...),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func NewShortCircuitOr(sub ...graph.Iterator) *Or {
-	in := make([]graph.IteratorShape, 0, len(sub))
-	for _, s := range sub {
-		in = append(in, graph.AsShape(s))
-	}
-	it := &Or{
-		it: newShortCircuitOr(in...),
-	}
-	it.Iterator = graph.NewLegacy(it.it, it)
-	return it
-}
-
-func (it *Or) AsShape() graph.IteratorShape {
-	it.Close()
-	return it.it
-}
-
-// Add a subiterator to this Or graph.iterator. Order matters.
-func (it *Or) AddSubIterator(sub graph.Iterator) {
-	it.it.AddSubIterator(graph.AsShape(sub))
-}
-
-var _ graph.IteratorShapeCompat = &or{}
-
-type or struct {
 	isShortCircuiting bool
 	sub               []graph.IteratorShape
 	curInd            int
@@ -78,8 +35,8 @@ type or struct {
 	err               error
 }
 
-func newOr(sub ...graph.IteratorShape) *or {
-	it := &or{
+func NewOr(sub ...graph.IteratorShape) *Or {
+	it := &Or{
 		sub:    make([]graph.IteratorShape, 0, 20),
 		curInd: -1,
 	}
@@ -89,8 +46,8 @@ func newOr(sub ...graph.IteratorShape) *or {
 	return it
 }
 
-func newShortCircuitOr(sub ...graph.IteratorShape) *or {
-	it := &or{
+func NewShortCircuitOr(sub ...graph.IteratorShape) *Or {
+	it := &Or{
 		sub:               make([]graph.IteratorShape, 0, 20),
 		isShortCircuiting: true,
 		curInd:            -1,
@@ -101,7 +58,7 @@ func newShortCircuitOr(sub ...graph.IteratorShape) *or {
 	return it
 }
 
-func (it *or) Iterate() graph.Scanner {
+func (it *Or) Iterate() graph.Scanner {
 	sub := make([]graph.Scanner, 0, len(it.sub))
 	for _, s := range it.sub {
 		sub = append(sub, s.Iterate())
@@ -109,7 +66,7 @@ func (it *or) Iterate() graph.Scanner {
 	return newOrNext(sub, it.isShortCircuiting)
 }
 
-func (it *or) Lookup() graph.Index {
+func (it *Or) Lookup() graph.Index {
 	sub := make([]graph.Index, 0, len(it.sub))
 	for _, s := range it.sub {
 		sub = append(sub, s.Lookup())
@@ -117,30 +74,24 @@ func (it *or) Lookup() graph.Index {
 	return newOrContains(sub, it.isShortCircuiting)
 }
 
-func (it *or) AsLegacy() graph.Iterator {
-	it2 := &Or{it: it}
-	it2.Iterator = graph.NewLegacy(it, it2)
-	return it2
-}
-
 // Returns a list.List of the subiterators, in order. The returned slice must not be modified.
-func (it *or) SubIterators() []graph.IteratorShape {
+func (it *Or) SubIterators() []graph.IteratorShape {
 	return it.sub
 }
 
-func (it *or) String() string {
+func (it *Or) String() string {
 	return "Or"
 }
 
 // Add a subiterator to this Or graph.iterator. Order matters.
-func (it *or) AddSubIterator(sub graph.IteratorShape) {
+func (it *Or) AddSubIterator(sub graph.IteratorShape) {
 	it.sub = append(it.sub, sub)
 }
 
-func (it *or) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Or) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	old := it.SubIterators()
-	optIts := optimizeSubIterators2(ctx, old)
-	newOr := newOr()
+	optIts := optimizeSubIterators(ctx, old)
+	newOr := NewOr()
 	newOr.isShortCircuiting = it.isShortCircuiting
 
 	// Add the subiterators in order.
@@ -153,11 +104,11 @@ func (it *or) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 // Returns the approximate size of the Or graph.iterator. Because we're dealing
 // with a union, we know that the largest we can be is the sum of all the iterators,
 // or in the case of short-circuiting, the longest.
-func (it *or) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Or) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	ContainsCost := int64(0)
 	NextCost := int64(0)
 	Size := graph.Size{
-		Size:  0,
+		Value: 0,
 		Exact: true,
 	}
 	var last error
@@ -169,11 +120,11 @@ func (it *or) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 		NextCost += stats.NextCost
 		ContainsCost += stats.ContainsCost
 		if it.isShortCircuiting {
-			if Size.Size < stats.Size.Size {
+			if Size.Value < stats.Size.Value {
 				Size = stats.Size
 			}
 		} else {
-			Size.Size += stats.Size.Size
+			Size.Value += stats.Size.Value
 			Size.Exact = Size.Exact && stats.Size.Exact
 		}
 	}
@@ -285,8 +236,6 @@ func (it *orNext) Close() error {
 	}
 	return err
 }
-
-var _ graph.Iterator = &Or{}
 
 type orContains struct {
 	shortCircuit bool
