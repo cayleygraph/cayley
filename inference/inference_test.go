@@ -37,3 +37,23 @@ func TestNewProperty(t *testing.T) {
 		t.Error("Property was not created")
 	}
 }
+
+func TestSubClass(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person"), Label: nil}
+	store.ProcessQuad(q)
+	createdClass := store.GetClass(quad.IRI("Engineer"))
+	createdSuperClass := store.GetClass(quad.IRI("Person"))
+	if createdClass == nil {
+		t.Error("Class was not created")
+	}
+	if createdSuperClass == nil {
+		t.Error("Super class was not created")
+	}
+	if _, ok := createdClass.super[createdSuperClass]; !ok {
+		t.Error("Super class was not registered for class")
+	}
+	if _, ok := createdSuperClass.sub[createdClass]; !ok {
+		t.Error("Class was not registered for super class")
+	}
+}
