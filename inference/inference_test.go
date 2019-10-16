@@ -77,3 +77,37 @@ func TestSubProperty(t *testing.T) {
 		t.Error("Property was not registered for super property")
 	}
 }
+
+func TestPropertyDomain(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Domain), Object: quad.IRI("Person"), Label: nil}
+	store.ProcessQuad(q)
+	createdProperty := store.GetProperty(quad.IRI("name"))
+	createdClass := store.GetClass(quad.IRI("Person"))
+	if createdProperty == nil {
+		t.Error("Property was not created")
+	}
+	if createdClass == nil {
+		t.Error("Domain class was not created")
+	}
+	if createdProperty.Domain() != createdClass {
+		t.Error("Domain class was not registered for property")
+	}
+}
+
+func TestPropertyRange(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Range), Object: quad.IRI("Person"), Label: nil}
+	store.ProcessQuad(q)
+	createdProperty := store.GetProperty(quad.IRI("name"))
+	createdClass := store.GetClass(quad.IRI("Person"))
+	if createdProperty == nil {
+		t.Error("Property was not created")
+	}
+	if createdClass == nil {
+		t.Error("Range class was not created")
+	}
+	if createdProperty.Range() != createdClass {
+		t.Error("Range class was not registered for property")
+	}
+}
