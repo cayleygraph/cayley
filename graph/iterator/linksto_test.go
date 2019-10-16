@@ -18,27 +18,25 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/quad"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLinksTo(t *testing.T) {
 	ctx := context.TODO()
-	qs := &graphmock.Oldstore{
-		Data: []string{1: "cool"},
-		Iter: NewFixed(),
+	object := quad.Raw("cool")
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("is"), Object: object, Label: nil}
+	qs := &graphmock.Store{
+		Data: []quad.Quad{q},
 	}
-	qs.Iter.(*Fixed).Add(Int64Quad(2))
 	fixed := NewFixed()
 
-	val := qs.ValueOf(quad.Raw("cool"))
-	require.Equal(t, Int64Node(1), val)
+	val := qs.ValueOf(object)
 
 	fixed.Add(val)
 	lto := NewLinksTo(qs, fixed, quad.Object).Iterate()
 	require.True(t, lto.Next(ctx))
-	require.Equal(t, Int64Quad(2), lto.Result())
+	require.Equal(t, q, qs.Quad(lto.Result()))
 }
