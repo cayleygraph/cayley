@@ -56,6 +56,14 @@ type Store struct {
 	properties map[quad.Value]*Property
 }
 
+// NewStore creates a new Store
+func NewStore() Store {
+	return Store{
+		classes:    map[quad.Value]*Class{},
+		properties: map[quad.Value]*Property{},
+	}
+}
+
 // GetClass returns a class struct for class name, if it doesn't exist in the store then it returns nil
 func (store *Store) GetClass(name quad.Value) *Class {
 	return store.classes[name]
@@ -136,6 +144,8 @@ func (store *Store) ProcessQuad(q quad.Quad) {
 			store.addClass(subject)
 		case rdf.Property:
 			store.addProperty(subject)
+		default:
+			store.addClass(object)
 		}
 	case rdfs.SubPropertyOf:
 		store.addPropertyRelationship(subject, object)
