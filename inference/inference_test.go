@@ -34,6 +34,17 @@ func TestReferencedType(t *testing.T) {
 	}
 }
 
+func TestReferencedBNodeType(t *testing.T) {
+	store := NewStore()
+	name := quad.BNode("123")
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: name, Label: nil}
+	store.ProcessQuad(q)
+	createdClass := store.GetClass(name)
+	if createdClass == nil {
+		t.Error("Class was not created")
+	}
+}
+
 func TestReferencedProperty(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
@@ -49,6 +60,17 @@ func TestNewClass(t *testing.T) {
 	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
 	store.ProcessQuad(q)
 	createdClass := store.GetClass(quad.IRI("Person"))
+	if createdClass == nil {
+		t.Error("Class was not created")
+	}
+}
+
+func TestNewBNodeClass(t *testing.T) {
+	store := NewStore()
+	name := quad.BNode("123")
+	q := quad.Quad{Subject: name, Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	store.ProcessQuad(q)
+	createdClass := store.GetClass(name)
 	if createdClass == nil {
 		t.Error("Class was not created")
 	}
