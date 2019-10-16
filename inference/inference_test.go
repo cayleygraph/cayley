@@ -209,6 +209,15 @@ func TestIsSubClassOfRecursive(t *testing.T) {
 	}
 }
 
+func TestIsSubClassOfItself(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	store.ProcessQuad(q)
+	if !store.GetClass(quad.IRI("Person")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+		t.Error("IsSubClassOf itself doesn't work")
+	}
+}
+
 func TestIsSubPropertyOf(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
