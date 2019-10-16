@@ -27,24 +27,26 @@ import (
 
 // Class represents a RDF Class with the links to classes and other properties
 type Class struct {
-	name          quad.Value
-	references    int
-	super         map[*Class]struct{}
-	sub           map[*Class]struct{}
-	ownProperties map[*Property]struct{}
-	inProperties  map[*Property]struct{}
-	store         *Store
+	name               quad.Value
+	explicit           bool
+	instanceReferences int
+	super              map[*Class]struct{}
+	sub                map[*Class]struct{}
+	ownProperties      map[*Property]struct{}
+	inProperties       map[*Property]struct{}
+	store              *Store
 }
 
-func newClass(name quad.Value, store *Store) *Class {
+func newClass(name quad.Value, explicit bool, store *Store) *Class {
 	return &Class{
-		name:          name,
-		references:    1,
-		super:         map[*Class]struct{}{},
-		sub:           map[*Class]struct{}{},
-		ownProperties: map[*Property]struct{}{},
-		inProperties:  map[*Property]struct{}{},
-		store:         store,
+		name:               name,
+		explicit:           explicit,
+		instanceReferences: 0,
+		super:              map[*Class]struct{}{},
+		sub:                map[*Class]struct{}{},
+		ownProperties:      map[*Property]struct{}{},
+		inProperties:       map[*Property]struct{}{},
+		store:              store,
 	}
 }
 
@@ -72,31 +74,40 @@ func (class *Class) IsSubClassOf(superClass *Class) bool {
 	return false
 }
 
-func (class *Class) removeReference() {
-	class.references--
-	if class.references == 0 {
-		delete(class.store.classes, class.name)
+func (class *Class) isReferenced() bool {
+	return class.explicit || len(class.super) > 0 ||
+		len(class.sub) > 0 ||
+		len(class.ownProperties) > 0 ||
+		len(class.inProperties) > 0 ||
+		class.instanceReferences > 0
+}
+
+func (class *Class) deleteIfUnreferenced() {
+	if !class.isReferenced() {
+		class.store.deleteClass(class.name)
 	}
 }
 
 // Property represents a RDF Property with the links to classes and other properties
 type Property struct {
-	name       quad.Value
-	references int
-	domain     *Class
-	_range     *Class
-	super      map[*Property]struct{}
-	sub        map[*Property]struct{}
-	store      *Store
+	name               quad.Value
+	explicit           bool
+	instanceReferences int
+	domain             *Class
+	_range             *Class
+	super              map[*Property]struct{}
+	sub                map[*Property]struct{}
+	store              *Store
 }
 
-func newProperty(name quad.Value, store *Store) *Property {
+func newProperty(name quad.Value, explicit bool, store *Store) *Property {
 	return &Property{
-		name:       name,
-		references: 1,
-		super:      map[*Property]struct{}{},
-		sub:        map[*Property]struct{}{},
-		store:      store,
+		name:               name,
+		explicit:           explicit,
+		instanceReferences: 0,
+		super:              map[*Property]struct{}{},
+		sub:                map[*Property]struct{}{},
+		store:              store,
 	}
 }
 
@@ -131,10 +142,15 @@ func (property *Property) IsSubPropertyOf(superProperty *Property) bool {
 	return false
 }
 
-func (property *Property) removeReference() {
-	property.references--
-	if property.references == 0 {
-		delete(property.store.properties, property.name)
+func (property *Property) isReferenced() bool {
+	return property.explicit || property.instanceReferences > 0 ||
+		len(property.super) > 0 ||
+		len(property.sub) > 0
+}
+
+func (property *Property) deleteIfUnreferenced() {
+	if !property.isReferenced() {
+		property.store.deleteProperty(property.name)
 	}
 }
 
@@ -150,7 +166,7 @@ func NewStore() Store {
 		classes:    map[quad.Value]*Class{},
 		properties: map[quad.Value]*Property{},
 	}
-	rdfsResource := newClass(quad.IRI(rdfs.Resource), &store)
+	rdfsResource := newClass(quad.IRI(rdfs.Resource), true, &store)
 	store.classes[rdfsResource.name] = rdfsResource
 	return store
 }
@@ -165,29 +181,43 @@ func (store *Store) GetProperty(name quad.Value) *Property {
 	return store.properties[name]
 }
 
-func (store *Store) addClass(class quad.Value) *Class {
-	if c, ok := store.classes[class]; ok {
-		c.references++
-		return c
+func (store *Store) createClass(name quad.Value) {
+	if class, ok := store.classes[name]; ok {
+		class.explicit = true
+		return
 	}
-	c := newClass(class, store)
-	store.classes[class] = c
-	return c
+	store.classes[name] = newClass(name, true, store)
 }
 
-func (store *Store) addProperty(property quad.Value) *Property {
-	if p, ok := store.properties[property]; ok {
-		p.references++
-		return p
+func (store *Store) getOrCreateImplicitClass(name quad.Value) *Class {
+	if class, ok := store.classes[name]; ok {
+		return class
 	}
-	p := newProperty(property, store)
-	store.properties[property] = p
-	return p
+	class := newClass(name, false, store)
+	store.classes[name] = class
+	return class
+}
+
+func (store *Store) createProperty(name quad.Value) {
+	if property, ok := store.properties[name]; ok {
+		property.explicit = true
+		return
+	}
+	store.properties[name] = newProperty(name, true, store)
+}
+
+func (store *Store) getOrCreateImplicitProperty(name quad.Value) *Property {
+	if property, ok := store.properties[name]; ok {
+		return property
+	}
+	property := newProperty(name, false, store)
+	store.properties[name] = property
+	return property
 }
 
 func (store *Store) addClassRelationship(child quad.Value, parent quad.Value) {
-	parentClass := store.addClass(parent)
-	childClass := store.addClass(child)
+	parentClass := store.getOrCreateImplicitClass(parent)
+	childClass := store.getOrCreateImplicitClass(child)
 	if _, ok := parentClass.sub[childClass]; !ok {
 		parentClass.sub[childClass] = struct{}{}
 		childClass.super[parentClass] = struct{}{}
@@ -195,8 +225,8 @@ func (store *Store) addClassRelationship(child quad.Value, parent quad.Value) {
 }
 
 func (store *Store) addPropertyRelationship(child quad.Value, parent quad.Value) {
-	parentProperty := store.addProperty(parent)
-	childProperty := store.addProperty(child)
+	parentProperty := store.getOrCreateImplicitProperty(parent)
+	childProperty := store.getOrCreateImplicitProperty(child)
 	if _, ok := parentProperty.sub[childProperty]; !ok {
 		parentProperty.sub[childProperty] = struct{}{}
 		childProperty.super[parentProperty] = struct{}{}
@@ -204,19 +234,35 @@ func (store *Store) addPropertyRelationship(child quad.Value, parent quad.Value)
 }
 
 func (store *Store) setPropertyDomain(property quad.Value, domain quad.Value) {
-	p := store.addProperty(property)
-	class := store.addClass(domain)
+	p := store.getOrCreateImplicitProperty(property)
+	class := store.getOrCreateImplicitClass(domain)
 	// FIXME(iddan): Currently doesn't support multiple domains as they are very rare
 	p.domain = class
 	class.ownProperties[p] = struct{}{}
 }
 
 func (store *Store) setPropertyRange(property quad.Value, _range quad.Value) {
-	p := store.addProperty(property)
-	class := store.addClass(_range)
+	p := store.getOrCreateImplicitProperty(property)
+	class := store.getOrCreateImplicitClass(_range)
 	p._range = class
 	// FIXME(iddan): Currently doesn't support multiple ranges as they are very rare
 	class.inProperties[p] = struct{}{}
+}
+
+func (store *Store) addClassInstance(name quad.Value) {
+	class := store.GetClass(name)
+	if class == nil {
+		class = store.getOrCreateImplicitClass(name)
+	}
+	class.instanceReferences++
+}
+
+func (store *Store) addPropertyInstance(name quad.Value) {
+	property := store.GetProperty(name)
+	if property == nil {
+		property = store.getOrCreateImplicitProperty(name)
+	}
+	property.instanceReferences++
 }
 
 // ProcessQuad is used to update the store with a new quad
@@ -229,7 +275,7 @@ func (store *Store) ProcessQuad(q quad.Quad) {
 	switch predicateIRI {
 	case rdf.Type:
 		if _, ok := object.(quad.BNode); ok {
-			store.addClass(object)
+			store.addClassInstance(object)
 		}
 		objectIRI, ok := object.(quad.IRI)
 		if !ok {
@@ -237,11 +283,11 @@ func (store *Store) ProcessQuad(q quad.Quad) {
 		}
 		switch objectIRI {
 		case rdfs.Class:
-			store.addClass(subject)
+			store.createClass(subject)
 		case rdf.Property:
-			store.addProperty(subject)
+			store.createProperty(subject)
 		default:
-			store.addClass(object)
+			store.addClassInstance(object)
 		}
 	case rdfs.SubPropertyOf:
 		store.addPropertyRelationship(subject, object)
@@ -252,7 +298,7 @@ func (store *Store) ProcessQuad(q quad.Quad) {
 	case rdfs.Range:
 		store.setPropertyRange(subject, object)
 	default:
-		store.addProperty(predicate)
+		store.addPropertyInstance(predicate)
 	}
 }
 
@@ -263,31 +309,27 @@ func (store *Store) ProcessQuads(quads []quad.Quad) {
 	}
 }
 
-func (store *Store) deleteClass(class quad.Value) {
-	if c, ok := store.classes[class]; ok {
-		for sub := range c.sub {
-			c.removeReference()
-			delete(sub.super, c)
+func (store *Store) deleteClass(name quad.Value) {
+	if class, ok := store.classes[name]; ok {
+		for sub := range class.sub {
+			delete(sub.super, class)
 		}
-		for super := range c.super {
-			c.removeReference()
-			delete(super.sub, c)
+		for super := range class.super {
+			delete(super.sub, class)
 		}
-		delete(store.classes, class)
+		delete(store.classes, name)
 	}
 }
 
-func (store *Store) deleteProperty(property quad.Value) {
-	if p, ok := store.properties[property]; ok {
-		for super := range p.super {
-			p.removeReference()
-			delete(super.sub, p)
+func (store *Store) deleteProperty(name quad.Value) {
+	if property, ok := store.properties[name]; ok {
+		for super := range property.super {
+			delete(super.sub, property)
 		}
-		for sub := range p.sub {
-			p.removeReference()
-			delete(sub.super, p)
+		for sub := range property.sub {
+			delete(sub.super, property)
 		}
-		delete(store.properties, property)
+		delete(store.properties, name)
 	}
 }
 
@@ -295,10 +337,10 @@ func (store *Store) deleteClassRelationship(child quad.Value, parent quad.Value)
 	parentClass := store.GetClass(parent)
 	childClass := store.GetClass(child)
 	if _, ok := parentClass.sub[childClass]; ok {
-		parentClass.removeReference()
 		delete(parentClass.sub, childClass)
-		childClass.removeReference()
 		delete(childClass.super, parentClass)
+		parentClass.deleteIfUnreferenced()
+		childClass.deleteIfUnreferenced()
 	}
 }
 
@@ -306,10 +348,10 @@ func (store *Store) deletePropertyRelationship(child quad.Value, parent quad.Val
 	parentProperty := store.GetProperty(parent)
 	childProperty := store.GetProperty(child)
 	if _, ok := parentProperty.sub[childProperty]; ok {
-		parentProperty.removeReference()
 		delete(parentProperty.sub, childProperty)
-		childProperty.removeReference()
 		delete(childProperty.super, parentProperty)
+		parentProperty.deleteIfUnreferenced()
+		childProperty.deleteIfUnreferenced()
 	}
 }
 
@@ -319,8 +361,8 @@ func (store *Store) unsetPropertyDomain(property quad.Value, domain quad.Value) 
 	// FIXME(iddan): Currently doesn't support multiple domains as they are very rare
 	p.domain = nil
 	delete(class.ownProperties, p)
-	p.removeReference()
-	class.removeReference()
+	p.deleteIfUnreferenced()
+	class.deleteIfUnreferenced()
 }
 
 func (store *Store) unsetPropertyRange(property quad.Value, _range quad.Value) {
@@ -329,8 +371,24 @@ func (store *Store) unsetPropertyRange(property quad.Value, _range quad.Value) {
 	p._range = nil
 	// FIXME(iddan): Currently doesn't support multiple ranges as they are very rare
 	delete(class.inProperties, p)
-	p.removeReference()
-	class.removeReference()
+	p.deleteIfUnreferenced()
+	class.deleteIfUnreferenced()
+}
+
+func (store *Store) deleteClassInstance(name quad.Value) {
+	class := store.GetClass(name)
+	if class != nil {
+		class.instanceReferences--
+	}
+	class.deleteIfUnreferenced()
+}
+
+func (store *Store) deletePropertyInstance(name quad.Value) {
+	property := store.GetProperty(name)
+	if property != nil {
+		property.instanceReferences--
+	}
+	property.deleteIfUnreferenced()
 }
 
 // UnprocessQuad is used to delete a quad from the store
@@ -352,7 +410,7 @@ func (store *Store) UnprocessQuad(q quad.Quad) {
 		case rdf.Property:
 			store.deleteProperty(subject)
 		default:
-			store.deleteClass(object)
+			store.deleteClassInstance(object)
 		}
 	case rdfs.SubPropertyOf:
 		store.deletePropertyRelationship(subject, object)
@@ -363,7 +421,7 @@ func (store *Store) UnprocessQuad(q quad.Quad) {
 	case rdfs.Range:
 		store.unsetPropertyRange(subject, object)
 	default:
-		store.deleteProperty(predicate)
+		store.deletePropertyInstance(predicate)
 	}
 }
 
