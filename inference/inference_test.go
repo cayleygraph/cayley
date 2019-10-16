@@ -363,7 +363,28 @@ func TestDeleteIsSubPropertyOfRecursive(t *testing.T) {
 	}
 }
 
-func TestClassReferenceCounting(t *testing.T) {
+func TestClassRemoveReference(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
+	store.ProcessQuad(q)
+	class := store.GetClass(quad.IRI("Person"))
+	class.removeReference()
+	if store.GetClass(quad.IRI("Person")) != nil {
+		t.Error("class was not garbage collected")
+	}
+}
+func TestPropertyRemoveReference(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
+	store.ProcessQuad(q)
+	class := store.GetProperty(quad.IRI("likes"))
+	class.removeReference()
+	if store.GetClass(quad.IRI("likes")) != nil {
+		t.Error("property was not garbage collected")
+	}
+}
+
+func TestClassDereference(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
 	store.ProcessQuad(q)
@@ -373,7 +394,7 @@ func TestClassReferenceCounting(t *testing.T) {
 	}
 }
 
-func TestPropertyReferenceCounting(t *testing.T) {
+func TestPropertyDereference(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
 	store.ProcessQuad(q)
