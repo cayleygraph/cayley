@@ -230,6 +230,15 @@ func TestIsSubPropertyOfRecursive(t *testing.T) {
 	}
 }
 
+func TestIsSubPropertyOfItself(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
+	store.ProcessQuad(q)
+	if !store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("name"))) {
+		t.Error("IsSubPropertyOf itself doesn't work")
+	}
+}
+
 func TestUnprocessInvalidQuad(t *testing.T) {
 	store := NewStore()
 	store.UnprocessQuad(quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.String("Foo"), Object: quad.IRI("Person"), Label: nil})
