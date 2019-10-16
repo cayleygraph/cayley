@@ -18,6 +18,16 @@ func TestReferencedType(t *testing.T) {
 	}
 }
 
+func TestReferencedProperty(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("Bob"), Label: nil}
+	store.ProcessQuad(q)
+	createdProperty := store.GetProperty(quad.IRI("likes"))
+	if createdProperty == nil {
+		t.Error("Property was not created")
+	}
+}
+
 func TestNewClass(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}

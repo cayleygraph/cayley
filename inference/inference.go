@@ -9,10 +9,16 @@ import (
 // Class represents a RDF Class with the links to classes and other properties
 type Class struct {
 	name          quad.Value
+	references    int
 	super         map[*Class]struct{}
 	sub           map[*Class]struct{}
 	ownProperties map[*Property]struct{}
 	inProperties  map[*Property]struct{}
+}
+
+// Name returns the class's name
+func (class *Class) Name() quad.Value {
+	return class.name
 }
 
 // IsSubClassOf recursively checks whether class is a superClass
@@ -30,11 +36,17 @@ func (class *Class) IsSubClassOf(superClass *Class) bool {
 
 // Property represents a RDF Property with the links to classes and other properties
 type Property struct {
-	name   quad.Value
-	domain *Class
-	_range *Class
-	super  map[*Property]struct{}
-	sub    map[*Property]struct{}
+	name       quad.Value
+	references int
+	domain     *Class
+	_range     *Class
+	super      map[*Property]struct{}
+	sub        map[*Property]struct{}
+}
+
+// Name returns the property's name
+func (property *Property) Name() quad.Value {
+	return property.name
 }
 
 // Domain returns the domain of the property
@@ -148,8 +160,8 @@ func (store *Store) setPropertyRange(property quad.Value, _range quad.Value) {
 
 // ProcessQuad is used to update the store with a new quad
 func (store *Store) ProcessQuad(q quad.Quad) {
-	subject, object := q.Subject, q.Object
-	predicateIRI, ok := q.Predicate.(quad.IRI)
+	subject, predicate, object := q.Subject, q.Predicate, q.Object
+	predicateIRI, ok := predicate.(quad.IRI)
 	if !ok {
 		return
 	}
@@ -175,6 +187,8 @@ func (store *Store) ProcessQuad(q quad.Quad) {
 		store.setPropertyDomain(subject, object)
 	case rdfs.Range:
 		store.setPropertyRange(subject, object)
+	default:
+		store.addProperty(predicate)
 	}
 }
 
