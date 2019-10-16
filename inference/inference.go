@@ -14,6 +14,7 @@ type Class struct {
 	sub           map[*Class]struct{}
 	ownProperties map[*Property]struct{}
 	inProperties  map[*Property]struct{}
+	store         *Store
 }
 
 // Name returns the class's name
@@ -34,6 +35,13 @@ func (class *Class) IsSubClassOf(superClass *Class) bool {
 	return false
 }
 
+func (class *Class) removeReference() {
+	class.references--
+	if class.references == 0 {
+		delete(class.store.classes, class.name)
+	}
+}
+
 // Property represents a RDF Property with the links to classes and other properties
 type Property struct {
 	name       quad.Value
@@ -42,6 +50,7 @@ type Property struct {
 	_range     *Class
 	super      map[*Property]struct{}
 	sub        map[*Property]struct{}
+	store      *Store
 }
 
 // Name returns the property's name
@@ -72,6 +81,13 @@ func (property *Property) IsSubPropertyOf(superProperty *Property) bool {
 	return false
 }
 
+func (property *Property) removeReference() {
+	property.references--
+	if property.references == 0 {
+		delete(property.store.properties, property.name)
+	}
+}
+
 // Store is a struct holding the inference data
 type Store struct {
 	classes    map[quad.Value]*Class
@@ -98,14 +114,17 @@ func (store *Store) GetProperty(name quad.Value) *Property {
 
 func (store *Store) addClass(class quad.Value) *Class {
 	if c, ok := store.classes[class]; ok {
+		c.references++
 		return c
 	}
 	c := &Class{
 		name:          class,
+		references:    1,
 		super:         map[*Class]struct{}{},
 		sub:           map[*Class]struct{}{},
 		ownProperties: map[*Property]struct{}{},
 		inProperties:  map[*Property]struct{}{},
+		store:         store,
 	}
 	store.classes[class] = c
 	return c
@@ -113,12 +132,15 @@ func (store *Store) addClass(class quad.Value) *Class {
 
 func (store *Store) addProperty(property quad.Value) *Property {
 	if p, ok := store.properties[property]; ok {
+		p.references++
 		return p
 	}
 	p := &Property{
-		name:  property,
-		super: map[*Property]struct{}{},
-		sub:   map[*Property]struct{}{},
+		name:       property,
+		references: 1,
+		super:      map[*Property]struct{}{},
+		sub:        map[*Property]struct{}{},
+		store:      store,
 	}
 	store.properties[property] = p
 	return p
@@ -200,8 +222,15 @@ func (store *Store) ProcessQuads(quads []quad.Quad) {
 }
 
 func (store *Store) deleteClass(class quad.Value) {
-	if _, ok := store.classes[class]; ok {
-		// TODO delete refrences
+	if c, ok := store.classes[class]; ok {
+		for sub := range c.sub {
+			c.removeReference()
+			delete(sub.super, c)
+		}
+		for super := range c.super {
+			c.removeReference()
+			delete(super.sub, c)
+		}
 		delete(store.classes, class)
 	}
 }
@@ -209,12 +238,13 @@ func (store *Store) deleteClass(class quad.Value) {
 func (store *Store) deleteProperty(property quad.Value) {
 	if p, ok := store.properties[property]; ok {
 		for super := range p.super {
+			p.removeReference()
 			delete(super.sub, p)
 		}
 		for sub := range p.sub {
+			p.removeReference()
 			delete(sub.super, p)
 		}
-		// TODO delete refrences
 		delete(store.properties, property)
 	}
 }
@@ -223,7 +253,9 @@ func (store *Store) deleteClassRelationship(child quad.Value, parent quad.Value)
 	parentClass := store.GetClass(parent)
 	childClass := store.GetClass(child)
 	if _, ok := parentClass.sub[childClass]; ok {
+		parentClass.removeReference()
 		delete(parentClass.sub, childClass)
+		childClass.removeReference()
 		delete(childClass.super, parentClass)
 	}
 }
@@ -232,7 +264,9 @@ func (store *Store) deletePropertyRelationship(child quad.Value, parent quad.Val
 	parentProperty := store.GetProperty(parent)
 	childProperty := store.GetProperty(child)
 	if _, ok := parentProperty.sub[childProperty]; ok {
+		parentProperty.removeReference()
 		delete(parentProperty.sub, childProperty)
+		childProperty.removeReference()
 		delete(childProperty.super, parentProperty)
 	}
 }
@@ -243,6 +277,8 @@ func (store *Store) unsetPropertyDomain(property quad.Value, domain quad.Value) 
 	// FIXME(iddan): Currently doesn't support multiple domains as they are very rare
 	p.domain = nil
 	delete(class.ownProperties, p)
+	p.removeReference()
+	class.removeReference()
 }
 
 func (store *Store) unsetPropertyRange(property quad.Value, _range quad.Value) {
@@ -251,6 +287,8 @@ func (store *Store) unsetPropertyRange(property quad.Value, _range quad.Value) {
 	p._range = nil
 	// FIXME(iddan): Currently doesn't support multiple ranges as they are very rare
 	delete(class.inProperties, p)
+	p.removeReference()
+	class.removeReference()
 }
 
 // UnprocessQuad is used to delete a quad from the store
