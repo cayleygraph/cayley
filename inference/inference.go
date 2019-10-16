@@ -44,6 +44,9 @@ func (class *Class) IsSubClassOf(superClass *Class) bool {
 	if class == superClass {
 		return true
 	}
+	if superClass.name == quad.IRI(rdfs.Resource) {
+		return true
+	}
 	if _, ok := class.super[superClass]; ok {
 		return true
 	}
@@ -119,10 +122,21 @@ type Store struct {
 
 // NewStore creates a new Store
 func NewStore() Store {
-	return Store{
+	store := Store{
 		classes:    map[quad.Value]*Class{},
 		properties: map[quad.Value]*Property{},
 	}
+	rdfsResourceClass := Class{
+		name:          quad.IRI(rdfs.Resource),
+		references:    1,
+		super:         map[*Class]struct{}{},
+		sub:           map[*Class]struct{}{},
+		ownProperties: map[*Property]struct{}{},
+		inProperties:  map[*Property]struct{}{},
+		store:         &store,
+	}
+	store.classes[rdfsResourceClass.name] = &rdfsResourceClass
+	return store
 }
 
 // GetClass returns a class struct for class name, if it doesn't exist in the store then it returns nil
