@@ -78,7 +78,13 @@ func (store *Store) addClass(class quad.Value) *Class {
 	if c, ok := store.classes[class]; ok {
 		return c
 	}
-	c := &Class{name: class}
+	c := &Class{
+		name:          class,
+		super:         map[*Class]struct{}{},
+		sub:           map[*Class]struct{}{},
+		ownProperties: map[*Property]struct{}{},
+		inProperties:  map[*Property]struct{}{},
+	}
 	store.classes[class] = c
 	return c
 }
@@ -87,12 +93,16 @@ func (store *Store) addProperty(property quad.Value) *Property {
 	if p, ok := store.properties[property]; ok {
 		return p
 	}
-	p := &Property{name: property}
+	p := &Property{
+		name:  property,
+		super: map[*Property]struct{}{},
+		sub:   map[*Property]struct{}{},
+	}
 	store.properties[property] = p
 	return p
 }
 
-func (store *Store) addClassRelationship(parent quad.Value, child quad.Value) {
+func (store *Store) addClassRelationship(child quad.Value, parent quad.Value) {
 	parentClass := store.addClass(parent)
 	childClass := store.addClass(child)
 	if _, ok := parentClass.sub[childClass]; !ok {
@@ -101,7 +111,7 @@ func (store *Store) addClassRelationship(parent quad.Value, child quad.Value) {
 	}
 }
 
-func (store *Store) addPropertyRelationship(parent quad.Value, child quad.Value) {
+func (store *Store) addPropertyRelationship(child quad.Value, parent quad.Value) {
 	parentProperty := store.addProperty(parent)
 	childProperty := store.addProperty(child)
 	if _, ok := parentProperty.sub[childProperty]; !ok {
