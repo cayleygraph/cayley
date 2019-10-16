@@ -54,6 +54,17 @@ func TestNewClass(t *testing.T) {
 	}
 }
 
+func TestInvalidNewClass(t *testing.T) {
+	store := NewStore()
+	name := quad.String("Foo")
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: name, Label: nil}
+	store.ProcessQuad(q)
+	createdClass := store.GetClass(name)
+	if createdClass != nil {
+		t.Error("Invalid class was created")
+	}
+}
+
 func TestNewProperty(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
@@ -61,6 +72,17 @@ func TestNewProperty(t *testing.T) {
 	createdProperty := store.GetProperty(quad.IRI("name"))
 	if createdProperty == nil {
 		t.Error("Property was not created")
+	}
+}
+
+func TestInvalidNewProperty(t *testing.T) {
+	store := NewStore()
+	name := quad.String("Foo")
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: name, Object: quad.IRI("bob"), Label: nil}
+	store.ProcessQuad(q)
+	createdProperty := store.GetProperty(name)
+	if createdProperty != nil {
+		t.Error("Invalid property was created")
 	}
 }
 

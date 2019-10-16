@@ -189,6 +189,9 @@ func (store *Store) ProcessQuad(q quad.Quad) {
 	}
 	switch predicateIRI {
 	case rdf.Type:
+		if _, ok := object.(quad.BNode); ok {
+			store.addClass(object)
+		}
 		objectIRI, ok := object.(quad.IRI)
 		if !ok {
 			return
