@@ -293,8 +293,8 @@ func (store *Store) unsetPropertyRange(property quad.Value, _range quad.Value) {
 
 // UnprocessQuad is used to delete a quad from the store
 func (store *Store) UnprocessQuad(q quad.Quad) {
-	subject, object := q.Subject, q.Object
-	predicateIRI, ok := q.Predicate.(quad.IRI)
+	subject, predicate, object := q.Subject, q.Predicate, q.Object
+	predicateIRI, ok := predicate.(quad.IRI)
 	if !ok {
 		return
 	}
@@ -320,6 +320,8 @@ func (store *Store) UnprocessQuad(q quad.Quad) {
 		store.unsetPropertyDomain(subject, object)
 	case rdfs.Range:
 		store.unsetPropertyRange(subject, object)
+	default:
+		store.deleteProperty(predicate)
 	}
 }
 
