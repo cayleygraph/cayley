@@ -178,6 +178,13 @@ func (store *Store) ProcessQuad(q quad.Quad) {
 	}
 }
 
+// ProcessQuads is used to update the store with multiple quads
+func (store *Store) ProcessQuads(quads []quad.Quad) {
+	for _, q := range quads {
+		store.ProcessQuad(q)
+	}
+}
+
 func (store *Store) deleteClass(class quad.Value) {
 	if _, ok := store.classes[class]; ok {
 		// TODO delete refrences

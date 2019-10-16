@@ -93,6 +93,9 @@ func TestPropertyDomain(t *testing.T) {
 	if createdProperty.Domain() != createdClass {
 		t.Error("Domain class was not registered for property")
 	}
+	if _, ok := createdClass.ownProperties[createdProperty]; !ok {
+		t.Error("Property was not registered for class")
+	}
 }
 
 func TestPropertyRange(t *testing.T) {
@@ -109,5 +112,29 @@ func TestPropertyRange(t *testing.T) {
 	}
 	if createdProperty.Range() != createdClass {
 		t.Error("Range class was not registered for property")
+	}
+	if _, ok := createdClass.inProperties[createdProperty]; !ok {
+		t.Error("Property was not registered for class")
+	}
+}
+
+func TestIsSubClassOf(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")}
+	store.ProcessQuad(q)
+	if !store.GetClass(quad.IRI("Engineer")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+		t.Error("Class was not registered as subclass of super class")
+	}
+}
+
+func TestIsSubClassOfRecursive(t *testing.T) {
+	store := NewStore()
+	quads := []quad.Quad{
+		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")},
+		quad.Quad{Subject: quad.IRI("SoftwareEngineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Engineer")},
+	}
+	store.ProcessQuads(quads)
+	if !store.GetClass(quad.IRI("SoftwareEngineer")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+		t.Error("Class was not registered as subclass of super class")
 	}
 }
