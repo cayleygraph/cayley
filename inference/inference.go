@@ -34,6 +34,18 @@ type Class struct {
 	store         *Store
 }
 
+func newClass(name quad.Value, store *Store) *Class {
+	return &Class{
+		name:          name,
+		references:    1,
+		super:         map[*Class]struct{}{},
+		sub:           map[*Class]struct{}{},
+		ownProperties: map[*Property]struct{}{},
+		inProperties:  map[*Property]struct{}{},
+		store:         store,
+	}
+}
+
 // Name returns the class's name
 func (class *Class) Name() quad.Value {
 	return class.name
@@ -74,6 +86,16 @@ type Property struct {
 	super      map[*Property]struct{}
 	sub        map[*Property]struct{}
 	store      *Store
+}
+
+func newProperty(name quad.Value, store *Store) *Property {
+	return &Property{
+		name:       name,
+		references: 1,
+		super:      map[*Property]struct{}{},
+		sub:        map[*Property]struct{}{},
+		store:      store,
+	}
 }
 
 // Name returns the property's name
@@ -126,16 +148,8 @@ func NewStore() Store {
 		classes:    map[quad.Value]*Class{},
 		properties: map[quad.Value]*Property{},
 	}
-	rdfsResourceClass := Class{
-		name:          quad.IRI(rdfs.Resource),
-		references:    1,
-		super:         map[*Class]struct{}{},
-		sub:           map[*Class]struct{}{},
-		ownProperties: map[*Property]struct{}{},
-		inProperties:  map[*Property]struct{}{},
-		store:         &store,
-	}
-	store.classes[rdfsResourceClass.name] = &rdfsResourceClass
+	rdfsResource := newClass(quad.IRI(rdfs.Resource), &store)
+	store.classes[rdfsResource.name] = rdfsResource
 	return store
 }
 
@@ -154,15 +168,7 @@ func (store *Store) addClass(class quad.Value) *Class {
 		c.references++
 		return c
 	}
-	c := &Class{
-		name:          class,
-		references:    1,
-		super:         map[*Class]struct{}{},
-		sub:           map[*Class]struct{}{},
-		ownProperties: map[*Property]struct{}{},
-		inProperties:  map[*Property]struct{}{},
-		store:         store,
-	}
+	c := newClass(class, store)
 	store.classes[class] = c
 	return c
 }
@@ -172,13 +178,7 @@ func (store *Store) addProperty(property quad.Value) *Property {
 		p.references++
 		return p
 	}
-	p := &Property{
-		name:       property,
-		references: 1,
-		super:      map[*Property]struct{}{},
-		sub:        map[*Property]struct{}{},
-		store:      store,
-	}
+	p := newProperty(property, store)
 	store.properties[property] = p
 	return p
 }
