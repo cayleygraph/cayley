@@ -205,6 +205,10 @@ func TestDeleteNewProperty(t *testing.T) {
 
 func TestDeleteSubClass(t *testing.T) {
 	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+	})
 	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person"), Label: nil}
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
@@ -221,6 +225,10 @@ func TestDeleteSubClass(t *testing.T) {
 
 func TestDeleteSubProperty(t *testing.T) {
 	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+	})
 	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
@@ -237,6 +245,10 @@ func TestDeleteSubProperty(t *testing.T) {
 
 func TestDeletePropertyDomain(t *testing.T) {
 	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+	})
 	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Domain), Object: quad.IRI("Person"), Label: nil}
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
@@ -253,11 +265,15 @@ func TestDeletePropertyDomain(t *testing.T) {
 
 func TestDeletePropertyRange(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Range), Object: quad.IRI("Person"), Label: nil}
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		quad.Quad{Subject: quad.IRI(rdfs.Literal), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+	})
+	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Range), Object: quad.IRI(rdfs.Literal), Label: nil}
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
 	createdProperty := store.GetProperty(quad.IRI("name"))
-	createdClass := store.GetClass(quad.IRI("Person"))
+	createdClass := store.GetClass(quad.IRI(rdfs.Literal))
 	// TODO(iddan): what about garbage collection?
 	if createdProperty.Range() == createdClass {
 		t.Error("Range class was not unregistered for property")
@@ -269,6 +285,10 @@ func TestDeletePropertyRange(t *testing.T) {
 
 func TestDeleteIsSubClassOf(t *testing.T) {
 	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+	})
 	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")}
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
@@ -279,6 +299,11 @@ func TestDeleteIsSubClassOf(t *testing.T) {
 
 func TestDeleteIsSubClassOfRecursive(t *testing.T) {
 	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		quad.Quad{Subject: quad.IRI("SoftwareEngineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+	})
 	quads := []quad.Quad{
 		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")},
 		quad.Quad{Subject: quad.IRI("SoftwareEngineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Engineer")},
@@ -292,6 +317,10 @@ func TestDeleteIsSubClassOfRecursive(t *testing.T) {
 
 func TestDeleteIsSubPropertyOf(t *testing.T) {
 	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+	})
 	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
@@ -302,6 +331,11 @@ func TestDeleteIsSubPropertyOf(t *testing.T) {
 
 func TestDeleteIsSubPropertyOfRecursive(t *testing.T) {
 	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		quad.Quad{Subject: quad.IRI("information"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+	})
 	quads := []quad.Quad{
 		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil},
 		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("information"), Label: nil},
