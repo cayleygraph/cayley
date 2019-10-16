@@ -70,6 +70,9 @@ func (property *Property) Range() *Class {
 
 // IsSubPropertyOf recursively checks whether property is a superProperty
 func (property *Property) IsSubPropertyOf(superProperty *Property) bool {
+	if property == superProperty {
+		return true
+	}
 	if _, ok := property.super[superProperty]; ok {
 		return true
 	}
