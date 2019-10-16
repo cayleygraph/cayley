@@ -205,7 +205,7 @@ func (store *Store) deleteProperty(property quad.Value) {
 	}
 }
 
-func (store *Store) deleteClassRelationship(parent quad.Value, child quad.Value) {
+func (store *Store) deleteClassRelationship(child quad.Value, parent quad.Value) {
 	parentClass := store.GetClass(parent)
 	childClass := store.GetClass(child)
 	if _, ok := parentClass.sub[childClass]; ok {
@@ -214,10 +214,10 @@ func (store *Store) deleteClassRelationship(parent quad.Value, child quad.Value)
 	}
 }
 
-func (store *Store) deletePropertyRelationship(parent quad.Value, child quad.Value) {
+func (store *Store) deletePropertyRelationship(child quad.Value, parent quad.Value) {
 	parentProperty := store.GetProperty(parent)
 	childProperty := store.GetProperty(child)
-	if _, ok := parentProperty.sub[childProperty]; !ok {
+	if _, ok := parentProperty.sub[childProperty]; ok {
 		delete(parentProperty.sub, childProperty)
 		delete(childProperty.super, parentProperty)
 	}
@@ -257,6 +257,8 @@ func (store *Store) UnprocessQuad(q quad.Quad) {
 			store.deleteClass(subject)
 		case rdf.Property:
 			store.deleteProperty(subject)
+		default:
+			store.deleteClass(object)
 		}
 	case rdfs.SubPropertyOf:
 		store.deletePropertyRelationship(subject, object)
@@ -266,5 +268,12 @@ func (store *Store) UnprocessQuad(q quad.Quad) {
 		store.unsetPropertyDomain(subject, object)
 	case rdfs.Range:
 		store.unsetPropertyRange(subject, object)
+	}
+}
+
+// UnprocessQuads is used to delete multiple quads from the store
+func (store *Store) UnprocessQuads(quads []quad.Quad) {
+	for _, q := range quads {
+		store.UnprocessQuad(q)
 	}
 }
