@@ -230,6 +230,16 @@ func TestIsSubPropertyOfRecursive(t *testing.T) {
 	}
 }
 
+func TestUnprocessInvalidQuad(t *testing.T) {
+	store := NewStore()
+	store.UnprocessQuad(quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.String("Foo"), Object: quad.IRI("Person"), Label: nil})
+}
+
+func TestUnprocessInvalidTypeQuad(t *testing.T) {
+	store := NewStore()
+	store.UnprocessQuad(quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.String("Foo"), Label: nil})
+}
+
 func TestDeleteReferencedType(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
