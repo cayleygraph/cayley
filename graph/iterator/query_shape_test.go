@@ -37,11 +37,11 @@ func hasaWithTag(namer graph.Namer, quads graph.QuadIndexer, tag string, target 
 }
 
 func TestQueryShape(t *testing.T) {
-	qs := &graphmock.Oldstore{Data: []string{
-		1: "cool",
-		2: "status",
-		3: "fun",
-		4: "name",
+	qs := &graphmock.Store{Data: []quad.Quad{
+		quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("is"), Object: quad.Raw("cool"), Label: nil},
+		quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("is"), Object: quad.Raw("status"), Label: nil},
+		quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("is"), Object: quad.Raw("fun"), Label: nil},
+		quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("is"), Object: quad.Raw("name"), Label: nil},
 	}}
 
 	// Given a single linkage iterator's shape.

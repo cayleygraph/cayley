@@ -68,7 +68,9 @@ func (it *QuadIterator) getSize(ctx context.Context) (graph.Size, error) {
 		it.size = sz
 		return sz, nil
 	}
-	return graph.Size{Value: 1 + it.qs.Size()/2, Exact: false}, nil
+	sz := graph.Size{Value: 1 + it.qs.Size()/2, Exact: false}
+	it.size = sz
+	return sz, nil
 }
 
 func (it *QuadIterator) String() string {
