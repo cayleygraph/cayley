@@ -37,6 +37,16 @@ type Property struct {
 	sub    map[*Property]struct{}
 }
 
+// Domain returns the domain of the property
+func (property *Property) Domain() *Class {
+	return property.domain
+}
+
+// Range returns the range of the property
+func (property *Property) Range() *Class {
+	return property._range
+}
+
 // IsSubPropertyOf recursively checks whether property is a superProperty
 func (property *Property) IsSubPropertyOf(superProperty *Property) bool {
 	if _, ok := property.super[superProperty]; ok {
