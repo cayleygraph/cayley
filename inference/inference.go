@@ -15,6 +15,8 @@
 // 12. (p rdf:type rdfs:ContainerMembershipProperty) -> (p rdfs:subPropertyOf rdfs:member)
 // 13. (x rdf:type rdfs:Datatype) -> (x rdfs:subClassOf rdfs:Literal)
 // Exported from: https://www.researchgate.net/figure/RDF-RDFS-entailment-rules_tbl1_268419911
+// Implemented here:
+// 1 5 6 8 10 11
 package inference
 
 import (
