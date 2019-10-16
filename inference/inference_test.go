@@ -138,3 +138,24 @@ func TestIsSubClassOfRecursive(t *testing.T) {
 		t.Error("Class was not registered as subclass of super class")
 	}
 }
+
+func TestIsSubPropertyOf(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
+	store.ProcessQuad(q)
+	if !store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("personal"))) {
+		t.Error("Property was not registered as subproperty of super property")
+	}
+}
+
+func TestIsSubPropertyOfRecursive(t *testing.T) {
+	store := NewStore()
+	quads := []quad.Quad{
+		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil},
+		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("information"), Label: nil},
+	}
+	store.ProcessQuads(quads)
+	if !store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("information"))) {
+		t.Error("Property was not registered as subproperty of super property")
+	}
+}
