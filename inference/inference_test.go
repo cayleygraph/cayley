@@ -8,6 +8,22 @@ import (
 	"github.com/cayleygraph/quad/voc/rdfs"
 )
 
+func TestClassName(t *testing.T) {
+	iri := quad.IRI("alice")
+	c := Class{name: iri}
+	if c.Name() != iri {
+		t.Error("Name was not set correctly for the class")
+	}
+}
+
+func TestPropertyName(t *testing.T) {
+	iri := quad.IRI("likes")
+	p := Property{name: iri}
+	if p.Name() != iri {
+		t.Error("Name was not set correctly for the class")
+	}
+}
+
 func TestReferencedType(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
@@ -20,7 +36,7 @@ func TestReferencedType(t *testing.T) {
 
 func TestReferencedProperty(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("Bob"), Label: nil}
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
 	store.ProcessQuad(q)
 	createdProperty := store.GetProperty(quad.IRI("likes"))
 	if createdProperty == nil {
@@ -344,5 +360,25 @@ func TestDeleteIsSubPropertyOfRecursive(t *testing.T) {
 	store.UnprocessQuads(quads)
 	if store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("information"))) {
 		t.Error("Property was not unregistered as subproperty of super property")
+	}
+}
+
+func TestClassReferenceCounting(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
+	store.ProcessQuad(q)
+	store.UnprocessQuad(q)
+	if store.GetClass(quad.IRI("Person")) != nil {
+		t.Error("class was not garbage collected")
+	}
+}
+
+func TestPropertyReferenceCounting(t *testing.T) {
+	store := NewStore()
+	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
+	store.ProcessQuad(q)
+	store.UnprocessQuad(q)
+	if store.GetProperty(quad.IRI("likes")) != nil {
+		t.Error("property was not garbage collected")
 	}
 }
