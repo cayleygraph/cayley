@@ -212,6 +212,21 @@ func TestDeleteClassWithSubClass(t *testing.T) {
 	}
 }
 
+func TestDeleteClassWithSuperClass(t *testing.T) {
+	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person"), Label: nil},
+	})
+	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	store.ProcessQuad(q)
+	store.UnprocessQuad(q)
+	superClass := store.GetClass(quad.IRI("Person"))
+	if len(superClass.sub) != 0 {
+		t.Error("Class was not unreferenced")
+	}
+}
+
 func TestDeleteNewClass(t *testing.T) {
 	store := NewStore()
 	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
@@ -245,6 +260,21 @@ func TestDeletePropertyWithSubProperty(t *testing.T) {
 	store.UnprocessQuad(q)
 	subProperty := store.GetProperty(quad.IRI("name"))
 	if len(subProperty.super) != 0 {
+		t.Error("Property was not unreferenced")
+	}
+}
+
+func TestDeletePropertyWithSuperProperty(t *testing.T) {
+	store := NewStore()
+	store.ProcessQuads([]quad.Quad{
+		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil},
+	})
+	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
+	store.ProcessQuad(q)
+	store.UnprocessQuad(q)
+	superProperty := store.GetProperty(quad.IRI("personal"))
+	if len(superProperty.sub) != 0 {
 		t.Error("Property was not unreferenced")
 	}
 }
