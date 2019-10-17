@@ -18,19 +18,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
 // A Resolver iterator consists of it's order, an index (where it is in the,
 // process of iterating) and a store to resolve values from.
 type Resolver struct {
-	qs    graph.QuadStore
+	qs    refs.Namer
 	order []quad.Value
 }
 
 // Creates a new Resolver iterator.
-func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
+func NewResolver(qs refs.Namer, nodes ...quad.Value) *Resolver {
 	it := &Resolver{
 		qs:    qs,
 		order: make([]quad.Value, len(nodes)),
@@ -39,11 +39,11 @@ func NewResolver(qs graph.QuadStore, nodes ...quad.Value) *Resolver {
 	return it
 }
 
-func (it *Resolver) Iterate() graph.Scanner {
+func (it *Resolver) Iterate() Scanner {
 	return newResolverNext(it.qs, it.order)
 }
 
-func (it *Resolver) Lookup() graph.Index {
+func (it *Resolver) Lookup() Index {
 	return newResolverContains(it.qs, it.order)
 }
 
@@ -51,25 +51,25 @@ func (it *Resolver) String() string {
 	return fmt.Sprintf("Resolver(%v)", it.order)
 }
 
-func (it *Resolver) SubIterators() []graph.IteratorShape {
+func (it *Resolver) SubIterators() []Shape {
 	return nil
 }
 
 // Returns a Null iterator if it's empty so that upstream iterators can optimize it
 // away, otherwise there is no optimization.
-func (it *Resolver) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Resolver) Optimize(ctx context.Context) (Shape, bool) {
 	if len(it.order) == 0 {
 		return NewNull(), true
 	}
 	return it, false
 }
 
-func (it *Resolver) Stats(ctx context.Context) (graph.IteratorCosts, error) {
-	return graph.IteratorCosts{
+func (it *Resolver) Stats(ctx context.Context) (Costs, error) {
+	return Costs{
 		// Next is (presumably) O(1) from store
 		NextCost:     1,
 		ContainsCost: 1,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: int64(len(it.order)),
 			Exact: true,
 		},
@@ -79,17 +79,17 @@ func (it *Resolver) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 // A Resolver iterator consists of it's order, an index (where it is in the,
 // process of iterating) and a store to resolve values from.
 type resolverNext struct {
-	qs     graph.QuadStore
+	qs     refs.Namer
 	order  []quad.Value
-	values []graph.Ref
+	values []refs.Ref
 	cached bool
 	index  int
 	err    error
-	result graph.Ref
+	result refs.Ref
 }
 
 // Creates a new Resolver iterator.
-func newResolverNext(qs graph.QuadStore, nodes []quad.Value) *resolverNext {
+func newResolverNext(qs refs.Namer, nodes []quad.Value) *resolverNext {
 	it := &resolverNext{
 		qs:    qs,
 		order: make([]quad.Value, len(nodes)),
@@ -102,7 +102,7 @@ func (it *resolverNext) Close() error {
 	return nil
 }
 
-func (it *resolverNext) TagResults(dst map[string]graph.Ref) {}
+func (it *resolverNext) TagResults(dst map[string]refs.Ref) {}
 
 func (it *resolverNext) String() string {
 	return fmt.Sprintf("ResolverNext(%v, %v)", it.order, it.values)
@@ -110,11 +110,11 @@ func (it *resolverNext) String() string {
 
 // Resolve nodes to values
 func (it *resolverNext) resolve(ctx context.Context) error {
-	values, err := graph.RefsOf(ctx, it.qs, it.order)
+	values, err := refs.RefsOf(ctx, it.qs, it.order)
 	if err != nil {
 		return err
 	}
-	it.values = make([]graph.Ref, len(it.order))
+	it.values = make([]refs.Ref, len(it.order))
 	for i, value := range values {
 		it.values[i] = value
 	}
@@ -144,7 +144,7 @@ func (it *resolverNext) Err() error {
 	return it.err
 }
 
-func (it *resolverNext) Result() graph.Ref {
+func (it *resolverNext) Result() refs.Ref {
 	return it.result
 }
 
@@ -155,16 +155,16 @@ func (it *resolverNext) NextPath(ctx context.Context) bool {
 // A Resolver iterator consists of it's order, an index (where it is in the,
 // process of iterating) and a store to resolve values from.
 type resolverContains struct {
-	qs     graph.QuadStore
+	qs     refs.Namer
 	order  []quad.Value
 	nodes  map[interface{}]quad.Value
 	cached bool
 	err    error
-	result graph.Ref
+	result refs.Ref
 }
 
 // Creates a new Resolver iterator.
-func newResolverContains(qs graph.QuadStore, nodes []quad.Value) *resolverContains {
+func newResolverContains(qs refs.Namer, nodes []quad.Value) *resolverContains {
 	it := &resolverContains{
 		qs:    qs,
 		order: make([]quad.Value, len(nodes)),
@@ -177,7 +177,7 @@ func (it *resolverContains) Close() error {
 	return nil
 }
 
-func (it *resolverContains) TagResults(dst map[string]graph.Ref) {}
+func (it *resolverContains) TagResults(dst map[string]refs.Ref) {}
 
 func (it *resolverContains) String() string {
 	return fmt.Sprintf("ResolverContains(%v, %v)", it.order, it.nodes)
@@ -185,7 +185,7 @@ func (it *resolverContains) String() string {
 
 // Resolve nodes to values
 func (it *resolverContains) resolve(ctx context.Context) error {
-	values, err := graph.RefsOf(ctx, it.qs, it.order)
+	values, err := refs.RefsOf(ctx, it.qs, it.order)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (it *resolverContains) resolve(ctx context.Context) error {
 }
 
 // Check if the passed value is equal to one of the order stored in the iterator.
-func (it *resolverContains) Contains(ctx context.Context, value graph.Ref) bool {
+func (it *resolverContains) Contains(ctx context.Context, value refs.Ref) bool {
 	if !it.cached {
 		it.err = it.resolve(ctx)
 		if it.err != nil {
@@ -220,7 +220,7 @@ func (it *resolverContains) Err() error {
 	return it.err
 }
 
-func (it *resolverContains) Result() graph.Ref {
+func (it *resolverContains) Result() refs.Ref {
 	return it.result
 }
 

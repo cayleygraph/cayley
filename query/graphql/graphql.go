@@ -15,6 +15,8 @@ import (
 	"github.com/dennwc/graphql/language/parser"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
@@ -146,7 +148,7 @@ type object struct {
 	fields map[string]interface{}
 }
 
-func buildIterator(ctx context.Context, qs graph.QuadStore, p *path.Path) graph.IteratorShape {
+func buildIterator(ctx context.Context, qs graph.QuadStore, p *path.Path) iterator.Shape {
 	it, _ := p.BuildIterator(ctx).Optimize(ctx)
 	return it
 }
@@ -307,7 +309,7 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			for k, v := range tags {
 				vals := fields[k]
 				for _, v2 := range vals {
-					if graph.ToKey(v) == graph.ToKey(v2) {
+					if refs.ToKey(v) == refs.ToKey(v2) {
 						continue dedup
 					}
 				}

@@ -20,12 +20,14 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 
 	"google.golang.org/appengine/datastore"
 )
 
-var _ graph.IteratorShape = &Iterator{}
+var _ iterator.Shape = &Iterator{}
 
 const (
 	bufferSize = 50
@@ -40,14 +42,14 @@ type Iterator struct {
 	kind  string
 }
 
-func (it *Iterator) Iterate() graph.Scanner {
+func (it *Iterator) Iterate() iterator.Scanner {
 	if it.isAll {
 		return newAllIteratorNext(it.qs, it.kind)
 	}
 	return newIteratorNext(it.qs, it.kind, it.dir, it.t)
 }
 
-func (it *Iterator) Lookup() graph.Index {
+func (it *Iterator) Lookup() iterator.Index {
 	if it.isAll {
 		return newAllIteratorContains(it.qs, it.kind)
 	}
@@ -78,12 +80,12 @@ func (qs *QuadStore) newAllIterator(kind string) *Iterator {
 }
 
 // No subiterators.
-func (it *Iterator) SubIterators() []graph.IteratorShape {
+func (it *Iterator) SubIterators() []iterator.Shape {
 	return nil
 }
 
-func (it *Iterator) Sorted() bool                                             { return false }
-func (it *Iterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
+func (it *Iterator) Sorted() bool                                        { return false }
+func (it *Iterator) Optimize(ctx context.Context) (iterator.Shape, bool) { return it, false }
 func (it *Iterator) String() string {
 	name := ""
 	if it.t != nil {
@@ -92,9 +94,9 @@ func (it *Iterator) String() string {
 	return fmt.Sprintf("GAE(%s)", name)
 }
 
-func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
+func (it *Iterator) getSize(ctx context.Context) (refs.Size, error) {
 	if it.size != 0 {
-		return graph.Size{
+		return refs.Size{
 			Value: it.size,
 			Exact: true,
 		}, nil
@@ -109,7 +111,7 @@ func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
 		}
 		size := foundNode.Size
 		it.size = size
-		return graph.Size{
+		return refs.Size{
 			Value: it.size,
 			Exact: err == nil,
 		}, err
@@ -122,16 +124,16 @@ func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
 		size = st.Quads.Value
 	}
 	it.size = size
-	return graph.Size{
+	return refs.Size{
 		Value: it.size,
 		Exact: err == nil,
 	}, err
 }
 
-func (it *Iterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Iterator) Stats(ctx context.Context) (iterator.Costs, error) {
 	sz, err := it.getSize(ctx)
 	// TODO (panamafrancis) calculate costs
-	return graph.IteratorCosts{
+	return iterator.Costs{
 		ContainsCost: 1,
 		NextCost:     5,
 		Size:         sz,

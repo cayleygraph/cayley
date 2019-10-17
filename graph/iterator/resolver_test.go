@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -29,7 +29,7 @@ func TestResolverIteratorIterate(t *testing.T) {
 	qs := &graphmock.Store{
 		Data: data,
 	}
-	expected := make(map[quad.Value]graph.Ref)
+	expected := make(map[quad.Value]refs.Ref)
 	for _, node := range nodes {
 		expected[node] = qs.ValueOf(node)
 	}
@@ -112,7 +112,7 @@ func TestResolverIteratorContains(t *testing.T) {
 				Data: data,
 			}
 			it := iterator.NewResolver(qs, test.nodes...).Lookup()
-			require.Equal(t, test.contains, it.Contains(ctx, graph.PreFetched(test.subject)))
+			require.Equal(t, test.contains, it.Contains(ctx, refs.PreFetched(test.subject)))
 		})
 	}
 }

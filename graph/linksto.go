@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package graph
 
 // Defines one of the base iterators, the LinksTo iterator. A LinksTo takes a
 // subiterator of nodes, and contains an iteration of links which "link to"
@@ -33,7 +33,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -41,15 +42,15 @@ import (
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type LinksTo struct {
-	qs      graph.QuadIndexer
-	primary graph.IteratorShape
+	qs      QuadIndexer
+	primary iterator.Shape
 	dir     quad.Direction
-	size    graph.Size
+	size    refs.Size
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func NewLinksTo(qs graph.QuadIndexer, it graph.IteratorShape, d quad.Direction) *LinksTo {
+func NewLinksTo(qs QuadIndexer, it iterator.Shape, d quad.Direction) *LinksTo {
 	return &LinksTo{
 		qs:      qs,
 		primary: it,
@@ -60,11 +61,11 @@ func NewLinksTo(qs graph.QuadIndexer, it graph.IteratorShape, d quad.Direction) 
 // Return the direction under consideration.
 func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
-func (it *LinksTo) Iterate() graph.Scanner {
+func (it *LinksTo) Iterate() iterator.Scanner {
 	return newLinksToNext(it.qs, it.primary.Iterate(), it.dir)
 }
 
-func (it *LinksTo) Lookup() graph.Index {
+func (it *LinksTo) Lookup() iterator.Index {
 	return newLinksToContains(it.qs, it.primary.Lookup(), it.dir)
 }
 
@@ -73,16 +74,16 @@ func (it *LinksTo) String() string {
 }
 
 // Return a list containing only our subiterator.
-func (it *LinksTo) SubIterators() []graph.IteratorShape {
-	return []graph.IteratorShape{it.primary}
+func (it *LinksTo) SubIterators() []iterator.Shape {
+	return []iterator.Shape{it.primary}
 }
 
 // Optimize the LinksTo, by replacing it if it can be.
-func (it *LinksTo) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *LinksTo) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	newPrimary, changed := it.primary.Optimize(ctx)
 	if changed {
 		it.primary = newPrimary
-		if IsNull(it.primary) {
+		if iterator.IsNull(it.primary) {
 			return it.primary, true
 		}
 	}
@@ -90,23 +91,23 @@ func (it *LinksTo) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 }
 
 // Return a guess as to how big or costly it is to next the iterator.
-func (it *LinksTo) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *LinksTo) Stats(ctx context.Context) (iterator.Costs, error) {
 	subitStats, err := it.primary.Stats(ctx)
 	// TODO(barakmich): These should really come from the quadstore itself
 	checkConstant := int64(1)
 	nextConstant := int64(2)
-	return graph.IteratorCosts{
+	return iterator.Costs{
 		NextCost:     nextConstant + subitStats.NextCost,
 		ContainsCost: checkConstant + subitStats.ContainsCost,
 		Size:         it.getSize(ctx),
 	}, err
 }
 
-func (it *LinksTo) getSize(ctx context.Context) graph.Size {
+func (it *LinksTo) getSize(ctx context.Context) refs.Size {
 	if it.size.Value != 0 {
 		return it.size
 	}
-	if fixed, ok := it.primary.(*Fixed); ok {
+	if fixed, ok := it.primary.(*iterator.Fixed); ok {
 		// get real sizes from sub iterators
 		var (
 			sz    int64
@@ -138,22 +139,22 @@ func (it *LinksTo) getSize(ctx context.Context) graph.Size {
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type linksToNext struct {
-	qs      graph.QuadIndexer
-	primary graph.Scanner
+	qs      QuadIndexer
+	primary iterator.Scanner
 	dir     quad.Direction
-	nextIt  graph.Scanner
-	result  graph.Ref
+	nextIt  iterator.Scanner
+	result  refs.Ref
 	err     error
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func newLinksToNext(qs graph.QuadIndexer, it graph.Scanner, d quad.Direction) graph.Scanner {
+func newLinksToNext(qs QuadIndexer, it iterator.Scanner, d quad.Direction) iterator.Scanner {
 	return &linksToNext{
 		qs:      qs,
 		primary: it,
 		dir:     d,
-		nextIt:  NewNull().Iterate(),
+		nextIt:  iterator.NewNull().Iterate(),
 	}
 }
 
@@ -161,7 +162,7 @@ func newLinksToNext(qs graph.QuadIndexer, it graph.Scanner, d quad.Direction) gr
 func (it *linksToNext) Direction() quad.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
-func (it *linksToNext) TagResults(dst map[string]graph.Ref) {
+func (it *linksToNext) TagResults(dst map[string]refs.Ref) {
 	it.primary.TagResults(dst)
 }
 
@@ -202,7 +203,7 @@ func (it *linksToNext) Err() error {
 	return it.err
 }
 
-func (it *linksToNext) Result() graph.Ref {
+func (it *linksToNext) Result() refs.Ref {
 	return it.result
 }
 
@@ -232,15 +233,15 @@ func (it *linksToNext) NextPath(ctx context.Context) bool {
 // for each node) the subiterator, and the direction the iterator comes from.
 // `next_it` is the tempoarary iterator held per result in `primary_it`.
 type linksToContains struct {
-	qs      graph.QuadIndexer
-	primary graph.Index
+	qs      QuadIndexer
+	primary iterator.Index
 	dir     quad.Direction
-	result  graph.Ref
+	result  refs.Ref
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
-func newLinksToContains(qs graph.QuadIndexer, it graph.Index, d quad.Direction) graph.Index {
+func newLinksToContains(qs QuadIndexer, it iterator.Index, d quad.Direction) iterator.Index {
 	return &linksToContains{
 		qs:      qs,
 		primary: it,
@@ -252,7 +253,7 @@ func newLinksToContains(qs graph.QuadIndexer, it graph.Index, d quad.Direction) 
 func (it *linksToContains) Direction() quad.Direction { return it.dir }
 
 // Tag these results, and our subiterator's results.
-func (it *linksToContains) TagResults(dst map[string]graph.Ref) {
+func (it *linksToContains) TagResults(dst map[string]refs.Ref) {
 	it.primary.TagResults(dst)
 }
 
@@ -262,7 +263,7 @@ func (it *linksToContains) String() string {
 
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
-func (it *linksToContains) Contains(ctx context.Context, val graph.Ref) bool {
+func (it *linksToContains) Contains(ctx context.Context, val refs.Ref) bool {
 	node := it.qs.QuadDirection(val, it.dir)
 	if it.primary.Contains(ctx, node) {
 		it.result = val
@@ -275,7 +276,7 @@ func (it *linksToContains) Err() error {
 	return it.primary.Err()
 }
 
-func (it *linksToContains) Result() graph.Ref {
+func (it *linksToContains) Result() refs.Ref {
 	return it.result
 }
 

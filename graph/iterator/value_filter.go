@@ -17,19 +17,19 @@ package iterator
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
 type ValueFilterFunc func(quad.Value) (bool, error)
 
 type ValueFilter struct {
-	sub    graph.IteratorShape
+	sub    Shape
 	filter ValueFilterFunc
-	qs     graph.Namer
+	qs     refs.Namer
 }
 
-func NewValueFilter(qs graph.Namer, sub graph.IteratorShape, filter ValueFilterFunc) *ValueFilter {
+func NewValueFilter(qs refs.Namer, sub Shape, filter ValueFilterFunc) *ValueFilter {
 	return &ValueFilter{
 		sub:    sub,
 		qs:     qs,
@@ -37,16 +37,16 @@ func NewValueFilter(qs graph.Namer, sub graph.IteratorShape, filter ValueFilterF
 	}
 }
 
-func (it *ValueFilter) Iterate() graph.Scanner {
+func (it *ValueFilter) Iterate() Scanner {
 	return newValueFilterNext(it.qs, it.sub.Iterate(), it.filter)
 }
 
-func (it *ValueFilter) Lookup() graph.Index {
+func (it *ValueFilter) Lookup() Index {
 	return newValueFilterContains(it.qs, it.sub.Lookup(), it.filter)
 }
 
-func (it *ValueFilter) SubIterators() []graph.IteratorShape {
-	return []graph.IteratorShape{it.sub}
+func (it *ValueFilter) SubIterators() []Shape {
+	return []Shape{it.sub}
 }
 
 func (it *ValueFilter) String() string {
@@ -56,7 +56,7 @@ func (it *ValueFilter) String() string {
 // There's nothing to optimize, locally, for a value-comparison iterator.
 // Replace the underlying iterator if need be.
 // potentially replace it.
-func (it *ValueFilter) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *ValueFilter) Optimize(ctx context.Context) (Shape, bool) {
 	newSub, changed := it.sub.Optimize(ctx)
 	if changed {
 		it.sub = newSub
@@ -66,7 +66,7 @@ func (it *ValueFilter) Optimize(ctx context.Context) (graph.IteratorShape, bool)
 
 // We're only as expensive as our subiterator.
 // Again, optimized value comparison iterators should do better.
-func (it *ValueFilter) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *ValueFilter) Stats(ctx context.Context) (Costs, error) {
 	st, err := it.sub.Stats(ctx)
 	st.Size.Value = st.Size.Value/2 + 1
 	st.Size.Exact = false
@@ -74,14 +74,14 @@ func (it *ValueFilter) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 }
 
 type valueFilterNext struct {
-	sub    graph.Scanner
+	sub    Scanner
 	filter ValueFilterFunc
-	qs     graph.Namer
-	result graph.Ref
+	qs     refs.Namer
+	result refs.Ref
 	err    error
 }
 
-func newValueFilterNext(qs graph.Namer, sub graph.Scanner, filter ValueFilterFunc) *valueFilterNext {
+func newValueFilterNext(qs refs.Namer, sub Scanner, filter ValueFilterFunc) *valueFilterNext {
 	return &valueFilterNext{
 		sub:    sub,
 		qs:     qs,
@@ -89,7 +89,7 @@ func newValueFilterNext(qs graph.Namer, sub graph.Scanner, filter ValueFilterFun
 	}
 }
 
-func (it *valueFilterNext) doFilter(val graph.Ref) bool {
+func (it *valueFilterNext) doFilter(val refs.Ref) bool {
 	qval := it.qs.NameOf(val)
 	ok, err := it.filter(qval)
 	if err != nil {
@@ -118,7 +118,7 @@ func (it *valueFilterNext) Err() error {
 	return it.err
 }
 
-func (it *valueFilterNext) Result() graph.Ref {
+func (it *valueFilterNext) Result() refs.Ref {
 	return it.result
 }
 
@@ -128,7 +128,7 @@ func (it *valueFilterNext) NextPath(ctx context.Context) bool {
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *valueFilterNext) TagResults(dst map[string]graph.Ref) {
+func (it *valueFilterNext) TagResults(dst map[string]refs.Ref) {
 	it.sub.TagResults(dst)
 }
 
@@ -137,14 +137,14 @@ func (it *valueFilterNext) String() string {
 }
 
 type valueFilterContains struct {
-	sub    graph.Index
+	sub    Index
 	filter ValueFilterFunc
-	qs     graph.Namer
-	result graph.Ref
+	qs     refs.Namer
+	result refs.Ref
 	err    error
 }
 
-func newValueFilterContains(qs graph.Namer, sub graph.Index, filter ValueFilterFunc) *valueFilterContains {
+func newValueFilterContains(qs refs.Namer, sub Index, filter ValueFilterFunc) *valueFilterContains {
 	return &valueFilterContains{
 		sub:    sub,
 		qs:     qs,
@@ -152,7 +152,7 @@ func newValueFilterContains(qs graph.Namer, sub graph.Index, filter ValueFilterF
 	}
 }
 
-func (it *valueFilterContains) doFilter(val graph.Ref) bool {
+func (it *valueFilterContains) doFilter(val refs.Ref) bool {
 	qval := it.qs.NameOf(val)
 	ok, err := it.filter(qval)
 	if err != nil {
@@ -169,7 +169,7 @@ func (it *valueFilterContains) Err() error {
 	return it.err
 }
 
-func (it *valueFilterContains) Result() graph.Ref {
+func (it *valueFilterContains) Result() refs.Ref {
 	return it.result
 }
 
@@ -177,7 +177,7 @@ func (it *valueFilterContains) NextPath(ctx context.Context) bool {
 	return it.sub.NextPath(ctx)
 }
 
-func (it *valueFilterContains) Contains(ctx context.Context, val graph.Ref) bool {
+func (it *valueFilterContains) Contains(ctx context.Context, val refs.Ref) bool {
 	if !it.doFilter(val) {
 		return false
 	}
@@ -190,7 +190,7 @@ func (it *valueFilterContains) Contains(ctx context.Context, val graph.Ref) bool
 
 // If we failed the check, then the subiterator should not contribute to the result
 // set. Otherwise, go ahead and tag it.
-func (it *valueFilterContains) TagResults(dst map[string]graph.Ref) {
+func (it *valueFilterContains) TagResults(dst map[string]refs.Ref) {
 	it.sub.TagResults(dst)
 }
 

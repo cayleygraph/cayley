@@ -10,13 +10,15 @@ import (
 	"sync"
 	"testing"
 
+	hkv "github.com/hidal-go/hidalgo/kv"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/kv/btree"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
-	hkv "github.com/hidal-go/hidalgo/kv"
-	"github.com/stretchr/testify/require"
 )
 
 func hex(s string) []byte {
@@ -28,17 +30,17 @@ func hex(s string) []byte {
 }
 
 func irih(s string) []byte {
-	h := graph.HashOf(quad.IRI(s))
+	h := refs.HashOf(quad.IRI(s))
 	return h[:]
 }
 
 func irib(s string) string {
-	h := graph.HashOf(quad.IRI(s))
+	h := refs.HashOf(quad.IRI(s))
 	return string([]byte{'v', h[0], h[1]})
 }
 
 func iric(s string) string {
-	h := graph.HashOf(quad.IRI(s))
+	h := refs.HashOf(quad.IRI(s))
 	return string([]byte{'n', h[0], h[1]})
 }
 

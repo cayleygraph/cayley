@@ -17,11 +17,11 @@ package iterator
 import (
 	"regexp"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
-func newRegex(qs graph.Namer, sub graph.IteratorShape, re *regexp.Regexp, refs bool) graph.IteratorShape {
+func newRegex(qs refs.Namer, sub Shape, re *regexp.Regexp, refs bool) Shape {
 	return NewValueFilter(qs, sub, func(v quad.Value) (bool, error) {
 		switch v := v.(type) {
 		case quad.String:
@@ -48,7 +48,7 @@ func newRegex(qs graph.Namer, sub graph.IteratorShape, re *regexp.Regexp, refs b
 // subiterator. It works similarly to gremlin's filter{it.matches('exp')},
 // reducing the iterator set to values whose string representation passes a
 // regular expression test.
-func NewRegex(sub graph.IteratorShape, re *regexp.Regexp, qs graph.Namer) graph.IteratorShape {
+func NewRegex(sub Shape, re *regexp.Regexp, qs refs.Namer) Shape {
 	return newRegex(qs, sub, re, false)
 }
 
@@ -65,6 +65,6 @@ func NewRegex(sub graph.IteratorShape, re *regexp.Regexp, qs graph.Namer) graph.
 //
 // The right way is to explicitly link graph nodes and query them by this relation:
 // 	<http://example.org/page/foo> <type> <http://example.org/page>
-func NewRegexWithRefs(sub graph.IteratorShape, re *regexp.Regexp, qs graph.Namer) graph.IteratorShape {
+func NewRegexWithRefs(sub Shape, re *regexp.Regexp, qs refs.Namer) Shape {
 	return newRegex(qs, sub, re, true)
 }

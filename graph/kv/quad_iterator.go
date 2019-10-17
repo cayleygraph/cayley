@@ -18,9 +18,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/hidal-go/hidalgo/kv"
+
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
 type QuadIterator struct {
@@ -28,7 +31,7 @@ type QuadIterator struct {
 	ind  QuadIndex
 	vals []uint64
 
-	size graph.Size
+	size refs.Size
 	err  error
 }
 
@@ -37,25 +40,25 @@ func (qs *QuadStore) newQuadIterator(ind QuadIndex, vals []uint64) *QuadIterator
 		qs:   qs,
 		ind:  ind,
 		vals: vals,
-		size: graph.Size{Value: -1},
+		size: refs.Size{Value: -1},
 	}
 }
 
-func (it *QuadIterator) Iterate() graph.Scanner {
+func (it *QuadIterator) Iterate() iterator.Scanner {
 	return it.qs.newQuadIteratorNext(it.ind, it.vals)
 }
 
-func (it *QuadIterator) Lookup() graph.Index {
+func (it *QuadIterator) Lookup() iterator.Index {
 	return it.qs.newQuadIteratorContains(it.ind, it.vals)
 }
 
-func (it *QuadIterator) SubIterators() []graph.IteratorShape {
+func (it *QuadIterator) SubIterators() []iterator.Shape {
 	return nil
 }
 
-func (it *QuadIterator) getSize(ctx context.Context) (graph.Size, error) {
+func (it *QuadIterator) getSize(ctx context.Context) (refs.Size, error) {
 	if it.err != nil {
-		return graph.Size{}, it.err
+		return refs.Size{}, it.err
 	} else if it.size.Value >= 0 {
 		return it.size, nil
 	}
@@ -63,12 +66,12 @@ func (it *QuadIterator) getSize(ctx context.Context) (graph.Size, error) {
 		sz, err := it.qs.indexSize(ctx, it.ind, it.vals)
 		if err != nil {
 			it.err = err
-			return graph.Size{}, it.err
+			return refs.Size{}, it.err
 		}
 		it.size = sz
 		return sz, nil
 	}
-	sz := graph.Size{Value: 1 + it.qs.Size()/2, Exact: false}
+	sz := refs.Size{Value: 1 + it.qs.Size()/2, Exact: false}
 	it.size = sz
 	return sz, nil
 }
@@ -79,13 +82,13 @@ func (it *QuadIterator) String() string {
 
 func (it *QuadIterator) Sorted() bool { return true }
 
-func (it *QuadIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *QuadIterator) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	return it, false
 }
 
-func (it *QuadIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *QuadIterator) Stats(ctx context.Context) (iterator.Costs, error) {
 	s, err := it.getSize(ctx)
-	return graph.IteratorCosts{
+	return iterator.Costs{
 		ContainsCost: 1,
 		NextCost:     2,
 		Size:         s,

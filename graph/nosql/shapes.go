@@ -39,7 +39,7 @@ type Shape struct {
 	Limit      int64               // limits a number of documents
 }
 
-func (s Shape) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
+func (s Shape) BuildIterator(qs graph.QuadStore) iterator.Shape {
 	db, ok := qs.(*QuadStore)
 	if !ok {
 		return iterator.NewError(fmt.Errorf("not a nosql database: %T", qs))
@@ -57,7 +57,7 @@ type Quads struct {
 	Limit int64     // limits a number of documents
 }
 
-func (s Quads) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
+func (s Quads) BuildIterator(qs graph.QuadStore) iterator.Shape {
 	db, ok := qs.(*QuadStore)
 	if !ok {
 		return iterator.NewError(fmt.Errorf("not a nosql database: %T", qs))

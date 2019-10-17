@@ -8,19 +8,20 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 )
 
-func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+func (qs *QuadStore) NodesAllIterator() iterator.Shape {
 	return qs.newAllIterator(true, nil)
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+func (qs *QuadStore) QuadsAllIterator() iterator.Shape {
 	return qs.newAllIterator(false, nil)
 }
 
-func (qs *QuadStore) indexSize(ctx context.Context, ind QuadIndex, vals []uint64) (graph.Size, error) {
+func (qs *QuadStore) indexSize(ctx context.Context, ind QuadIndex, vals []uint64) (refs.Size, error) {
 	var sz int64
 	err := kv.View(qs.db, func(tx kv.Tx) error {
 		val, err := tx.Get(ctx, ind.Key(vals))
@@ -34,24 +35,24 @@ func (qs *QuadStore) indexSize(ctx context.Context, ind QuadIndex, vals []uint64
 		return nil
 	})
 	if err != nil {
-		return graph.Size{}, err
+		return refs.Size{}, err
 	}
 	if len(ind.Dirs) == len(vals) {
-		return graph.Size{
+		return refs.Size{
 			Value: sz,
 			Exact: true,
 		}, nil
 	}
-	return graph.Size{
+	return refs.Size{
 		Value: 1 + sz/2,
 		Exact: false,
 	}, nil
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (refs.Size, error) {
 	vi, ok := v.(Int64Value)
 	if !ok {
-		return graph.Size{Value: 0, Exact: true}, nil
+		return refs.Size{Value: 0, Exact: true}, nil
 	}
 	qs.indexes.RLock()
 	all := qs.indexes.all
@@ -63,15 +64,15 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v g
 	}
 	st, err := qs.Stats(ctx, false)
 	if err != nil {
-		return graph.Size{}, err
+		return refs.Size{}, err
 	}
-	return graph.Size{
+	return refs.Size{
 		Value: 1 + st.Quads.Value/2,
 		Exact: false,
 	}, nil
 }
 
-func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.IteratorShape {
+func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) iterator.Shape {
 	if v == nil {
 		return iterator.NewNull()
 	}
@@ -127,7 +128,7 @@ type IndexScan struct {
 	Values []uint64
 }
 
-func (s IndexScan) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
+func (s IndexScan) BuildIterator(qs graph.QuadStore) iterator.Shape {
 	kqs, ok := qs.(*QuadStore)
 	if !ok {
 		return iterator.NewError(fmt.Errorf("expected KV quadstore, got: %T", qs))

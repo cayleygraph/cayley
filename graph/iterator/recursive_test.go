@@ -24,19 +24,20 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
 func singleHop(qs graph.QuadIndexer, pred string) Morphism {
-	return func(it graph.IteratorShape) graph.IteratorShape {
+	return func(it Shape) Shape {
 		fixed := NewFixed()
-		fixed.Add(graph.PreFetched(quad.Raw(pred)))
-		predlto := NewLinksTo(qs, fixed, quad.Predicate)
-		lto := NewLinksTo(qs, it, quad.Subject)
+		fixed.Add(refs.PreFetched(quad.Raw(pred)))
+		predlto := graph.NewLinksTo(qs, fixed, quad.Predicate)
+		lto := graph.NewLinksTo(qs, it, quad.Subject)
 		and := NewAnd()
 		and.AddSubIterator(lto)
 		and.AddSubIterator(predlto)
-		return NewHasA(qs, and, quad.Object)
+		return graph.NewHasA(qs, and, quad.Object)
 	}
 }
 
@@ -56,7 +57,7 @@ func TestRecursiveNext(t *testing.T) {
 	ctx := context.TODO()
 	qs := recTestQs
 	start := NewFixed()
-	start.Add(graph.PreFetched(quad.Raw("alice")))
+	start.Add(refs.PreFetched(quad.Raw("alice")))
 	r := NewRecursive(start, singleHop(qs, "parent"), 0).Iterate()
 
 	expected := []string{"bob", "charlie", "dani", "emily"}
@@ -73,7 +74,7 @@ func TestRecursiveContains(t *testing.T) {
 	ctx := context.TODO()
 	qs := recTestQs
 	start := NewFixed()
-	start.Add(graph.PreFetched(quad.Raw("alice")))
+	start.Add(refs.PreFetched(quad.Raw("alice")))
 	r := NewRecursive(start, singleHop(qs, "parent"), 0).Lookup()
 	values := []string{"charlie", "bob", "not"}
 	expected := []bool{true, true, false}
@@ -93,18 +94,18 @@ func TestRecursiveNextPath(t *testing.T) {
 	and := NewAnd()
 	and.AddSubIterator(it)
 	fixed := NewFixed()
-	fixed.Add(graph.PreFetched(quad.Raw("alice")))
+	fixed.Add(refs.PreFetched(quad.Raw("alice")))
 	and.AddSubIterator(fixed)
 	r := NewRecursive(and, singleHop(qs, "parent"), 0).Iterate()
 
 	expected := []string{"fred", "fred", "fred", "fred", "greg", "greg", "greg", "greg"}
 	var got []string
 	for r.Next(ctx) {
-		res := make(map[string]graph.Ref)
+		res := make(map[string]refs.Ref)
 		r.TagResults(res)
 		got = append(got, quad.ToString(qs.NameOf(res["person"])))
 		for r.NextPath(ctx) {
-			res := make(map[string]graph.Ref)
+			res := make(map[string]refs.Ref)
 			r.TagResults(res)
 			got = append(got, quad.ToString(qs.NameOf(res["person"])))
 		}

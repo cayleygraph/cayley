@@ -4,37 +4,37 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cayleygraph/cayley/graph"
 	. "github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
 // A testing iterator that returns the given values for Next() and Err().
 type testIterator struct {
-	graph.IteratorShape
+	Shape
 
 	NextVal bool
 	ErrVal  error
 }
 
-func newTestIterator(next bool, err error) graph.IteratorShape {
+func newTestIterator(next bool, err error) Shape {
 	return &testIterator{
-		IteratorShape: NewFixed(),
-		NextVal:       next,
-		ErrVal:        err,
+		Shape:   NewFixed(),
+		NextVal: next,
+		ErrVal:  err,
 	}
 }
 
-func (it *testIterator) Iterate() graph.Scanner {
+func (it *testIterator) Iterate() Scanner {
 	return &testIteratorNext{
-		Scanner: it.IteratorShape.Iterate(),
+		Scanner: it.Shape.Iterate(),
 		NextVal: it.NextVal,
 		ErrVal:  it.ErrVal,
 	}
 }
 
-func (it *testIterator) Lookup() graph.Index {
+func (it *testIterator) Lookup() Index {
 	return &testIteratorContains{
-		Index:   it.IteratorShape.Lookup(),
+		Index:   it.Shape.Lookup(),
 		NextVal: it.NextVal,
 		ErrVal:  it.ErrVal,
 	}
@@ -42,7 +42,7 @@ func (it *testIterator) Lookup() graph.Index {
 
 // A testing iterator that returns the given values for Next() and Err().
 type testIteratorNext struct {
-	graph.Scanner
+	Scanner
 
 	NextVal bool
 	ErrVal  error
@@ -58,13 +58,13 @@ func (it *testIteratorNext) Err() error {
 
 // A testing iterator that returns the given values for Next() and Err().
 type testIteratorContains struct {
-	graph.Index
+	Index
 
 	NextVal bool
 	ErrVal  error
 }
 
-func (it *testIteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
+func (it *testIteratorContains) Contains(ctx context.Context, v refs.Ref) bool {
 	return it.NextVal
 }
 
@@ -78,7 +78,7 @@ func (v Int64Quad) Key() interface{} { return v }
 
 func (Int64Quad) IsNode() bool { return false }
 
-var _ graph.IteratorShape = &Int64{}
+var _ Shape = &Int64{}
 
 // An All iterator across a range of int64 values, from `max` to `min`.
 type Int64 struct {
@@ -86,11 +86,11 @@ type Int64 struct {
 	max, min int64
 }
 
-func (it *Int64) Iterate() graph.Scanner {
+func (it *Int64) Iterate() Scanner {
 	return newInt64Next(it.min, it.max, it.node)
 }
 
-func (it *Int64) Lookup() graph.Index {
+func (it *Int64) Lookup() Index {
 	return newInt64Contains(it.min, it.max, it.node)
 }
 
@@ -108,7 +108,7 @@ func (it *Int64) String() string {
 }
 
 // No sub-iterators.
-func (it *Int64) SubIterators() []graph.IteratorShape {
+func (it *Int64) SubIterators() []Shape {
 	return nil
 }
 
@@ -119,7 +119,7 @@ func (it *Int64) Size() (int64, bool) {
 	return sz, true
 }
 
-func valToInt64(v graph.Ref) int64 {
+func valToInt64(v refs.Ref) int64 {
 	if v, ok := v.(Int64Node); ok {
 		return int64(v)
 	}
@@ -127,16 +127,16 @@ func valToInt64(v graph.Ref) int64 {
 }
 
 // There's nothing to optimize about this little iterator.
-func (it *Int64) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
+func (it *Int64) Optimize(ctx context.Context) (Shape, bool) { return it, false }
 
 // Stats for an Int64 are simple. Super cheap to do any operation,
 // and as big as the range.
-func (it *Int64) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Int64) Stats(ctx context.Context) (Costs, error) {
 	s, exact := it.Size()
-	return graph.IteratorCosts{
+	return Costs{
 		ContainsCost: 1,
 		NextCost:     1,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: s,
 			Exact: exact,
 		},
@@ -165,7 +165,7 @@ func (it *int64Next) Close() error {
 	return nil
 }
 
-func (it *int64Next) TagResults(dst map[string]graph.Ref) {}
+func (it *int64Next) TagResults(dst map[string]refs.Ref) {}
 
 func (it *int64Next) String() string {
 	return fmt.Sprintf("Int64(%d-%d)", it.min, it.max)
@@ -190,14 +190,14 @@ func (it *int64Next) Err() error {
 	return nil
 }
 
-func (it *int64Next) toValue(v int64) graph.Ref {
+func (it *int64Next) toValue(v int64) refs.Ref {
 	if it.node {
 		return Int64Node(v)
 	}
 	return Int64Quad(v)
 }
 
-func (it *int64Next) Result() graph.Ref {
+func (it *int64Next) Result() refs.Ref {
 	return it.toValue(it.result)
 }
 
@@ -227,7 +227,7 @@ func (it *int64Contains) Close() error {
 	return nil
 }
 
-func (it *int64Contains) TagResults(dst map[string]graph.Ref) {}
+func (it *int64Contains) TagResults(dst map[string]refs.Ref) {}
 
 func (it *int64Contains) String() string {
 	return fmt.Sprintf("Int64(%d-%d)", it.min, it.max)
@@ -237,14 +237,14 @@ func (it *int64Contains) Err() error {
 	return nil
 }
 
-func (it *int64Contains) toValue(v int64) graph.Ref {
+func (it *int64Contains) toValue(v int64) refs.Ref {
 	if it.node {
 		return Int64Node(v)
 	}
 	return Int64Quad(v)
 }
 
-func (it *int64Contains) Result() graph.Ref {
+func (it *int64Contains) Result() refs.Ref {
 	return it.toValue(it.result)
 }
 
@@ -253,13 +253,13 @@ func (it *int64Contains) NextPath(ctx context.Context) bool {
 }
 
 // No sub-iterators.
-func (it *int64Contains) SubIterators() []graph.IteratorShape {
+func (it *int64Contains) SubIterators() []Shape {
 	return nil
 }
 
 // Contains() for an Int64 is merely seeing if the passed value is
 // within the range, assuming the value is an int64.
-func (it *int64Contains) Contains(ctx context.Context, tsv graph.Ref) bool {
+func (it *int64Contains) Contains(ctx context.Context, tsv refs.Ref) bool {
 	v := valToInt64(tsv)
 	if it.min <= v && v <= it.max {
 		it.result = v

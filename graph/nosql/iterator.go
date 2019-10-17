@@ -22,6 +22,8 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -49,7 +51,7 @@ type Iterator struct {
 	constraint []nosql.FieldFilter
 	links      []Linkage // used in Contains
 
-	size graph.Size
+	size refs.Size
 	err  error
 }
 
@@ -65,29 +67,29 @@ func (qs *QuadStore) newIterator(collection string, constraints ...nosql.FieldFi
 		qs:         qs,
 		constraint: constraints,
 		collection: collection,
-		size:       graph.Size{Value: -1},
+		size:       refs.Size{Value: -1},
 	}
 }
 
-func (it *Iterator) Iterate() graph.Scanner {
+func (it *Iterator) Iterate() iterator.Scanner {
 	return it.qs.newIteratorNext(it.collection, it.constraint, it.limit)
 }
 
-func (it *Iterator) Lookup() graph.Index {
+func (it *Iterator) Lookup() iterator.Index {
 	return it.qs.newIteratorContains(it.collection, it.constraint, it.links, it.limit)
 }
 
-func (it *Iterator) SubIterators() []graph.IteratorShape {
+func (it *Iterator) SubIterators() []iterator.Shape {
 	return nil
 }
 
-func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
+func (it *Iterator) getSize(ctx context.Context) (refs.Size, error) {
 	if it.size.Value == -1 {
 		size, err := it.qs.getSize(it.collection, it.constraint)
 		if err != nil {
 			it.err = err
 		}
-		it.size = graph.Size{
+		it.size = refs.Size{
 			Value: size,
 			Exact: true,
 		}
@@ -96,7 +98,7 @@ func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
 		it.size.Value = it.limit
 	}
 	if it.size.Value < 0 {
-		return graph.Size{
+		return refs.Size{
 			Value: it.qs.Size(),
 			Exact: false,
 		}, it.err
@@ -104,16 +106,16 @@ func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
 	return it.size, nil
 }
 
-func (it *Iterator) Sorted() bool                                             { return true }
-func (it *Iterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) { return it, false }
+func (it *Iterator) Sorted() bool                                        { return true }
+func (it *Iterator) Optimize(ctx context.Context) (iterator.Shape, bool) { return it, false }
 
 func (it *Iterator) String() string {
 	return fmt.Sprintf("NoSQL(%v)", it.collection)
 }
 
-func (it *Iterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Iterator) Stats(ctx context.Context) (iterator.Costs, error) {
 	size, err := it.getSize(ctx)
-	return graph.IteratorCosts{
+	return iterator.Costs{
 		ContainsCost: 1,
 		NextCost:     5,
 		Size:         size,

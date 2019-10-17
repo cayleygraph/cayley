@@ -101,7 +101,7 @@ func StartPathNodes(qs graph.QuadStore, nodes ...graph.Ref) *Path {
 }
 
 // PathFromIterator creates a new Path from a set of nodes contained in iterator.
-func PathFromIterator(qs graph.QuadStore, it graph.IteratorShape) *Path {
+func PathFromIterator(qs graph.QuadStore, it iterator.Shape) *Path {
 	return newPath(qs, iteratorMorphism(it))
 }
 
@@ -501,7 +501,7 @@ func (p *Path) Back(tag string) *Path {
 // call this with a full path (not a morphism), since a morphism does not have
 // the ability to fetch the underlying quads.  This function will panic if
 // called with a morphism (i.e. if p.IsMorphism() is true).
-func (p *Path) BuildIterator(ctx context.Context) graph.IteratorShape {
+func (p *Path) BuildIterator(ctx context.Context) iterator.Shape {
 	if p.IsMorphism() {
 		panic("Building an iterator from a morphism. Bind a QuadStore with BuildIteratorOn(qs)")
 	}
@@ -509,23 +509,16 @@ func (p *Path) BuildIterator(ctx context.Context) graph.IteratorShape {
 }
 
 // BuildIteratorOn will return an iterator for this path on the given QuadStore.
-func (p *Path) BuildIteratorOn(ctx context.Context, qs graph.QuadStore) graph.IteratorShape {
+func (p *Path) BuildIteratorOn(ctx context.Context, qs graph.QuadStore) iterator.Shape {
 	return shape.BuildIterator(ctx, qs, p.Shape())
 }
 
-// Morphism returns the morphism of this path.  The returned value is a
-// function that, when given a QuadStore and an existing Iterator, will
-// return a new Iterator that yields the subset of values from the existing
-// iterator matched by the current Path.
-func (p *Path) Morphism() graph.ApplyMorphism {
-	return func(qs graph.QuadStore, it graph.IteratorShape) graph.IteratorShape {
-		return p.ShapeFrom(&iteratorShape{it: it}).BuildIterator(qs)
-	}
-}
-
-// MorphismFor is the same as Morphism but binds returned function to a specific QuadStore.
+// MorphismFor returns the morphism of this path. The returned value is a
+// function that, when given an existing Iterator, will return a new Iterator
+// that yields the subset of values from the existing iterator matched by the
+// current Path.
 func (p *Path) MorphismFor(qs graph.QuadStore) iterator.Morphism {
-	return func(it graph.IteratorShape) graph.IteratorShape {
+	return func(it iterator.Shape) iterator.Shape {
 		return p.ShapeFrom(&iteratorShape{it: it}).BuildIterator(qs)
 	}
 }
@@ -554,7 +547,7 @@ func (p *Path) Count() *Path {
 }
 
 // Iterate is an shortcut for graph.Iterate.
-func (p *Path) Iterate(ctx context.Context) *graph.IterateChain {
+func (p *Path) Iterate(ctx context.Context) *iterator.Chain {
 	return shape.Iterate(ctx, p.qs, p.Shape())
 }
 func (p *Path) Shape() shape.Shape {

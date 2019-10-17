@@ -21,6 +21,8 @@ import (
 	"math"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -40,16 +42,16 @@ func (qs *QuadStore) newIterator(tree *Tree, d quad.Direction, value int64) *Ite
 	}
 }
 
-func (it *Iterator) Iterate() graph.Scanner {
+func (it *Iterator) Iterate() iterator.Scanner {
 	// TODO(dennwc): it doesn't check the direction and value, while Contains does; is it expected?
 	return it.qs.newIteratorNext(it.tree, it.d)
 }
 
-func (it *Iterator) Lookup() graph.Index {
+func (it *Iterator) Lookup() iterator.Index {
 	return it.qs.newIteratorContains(it.tree, it.d, it.value)
 }
 
-func (it *Iterator) SubIterators() []graph.IteratorShape {
+func (it *Iterator) SubIterators() []iterator.Shape {
 	return nil
 }
 
@@ -59,15 +61,15 @@ func (it *Iterator) String() string {
 
 func (it *Iterator) Sorted() bool { return true }
 
-func (it *Iterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Iterator) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	return it, false
 }
 
-func (it *Iterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
-	return graph.IteratorCosts{
+func (it *Iterator) Stats(ctx context.Context) (iterator.Costs, error) {
+	return iterator.Costs{
 		ContainsCost: int64(math.Log(float64(it.tree.Len()))) + 1,
 		NextCost:     1,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: int64(it.tree.Len()),
 			Exact: true,
 		},

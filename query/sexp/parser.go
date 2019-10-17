@@ -25,7 +25,7 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-func BuildIteratorTreeForQuery(ctx context.Context, qs graph.QuadStore, query string) graph.IteratorShape {
+func BuildIteratorTreeForQuery(ctx context.Context, qs graph.QuadStore, query string) iterator.Shape {
 	s, err := BuildShape(ctx, query)
 	if err != nil {
 		return iterator.NewError(err)

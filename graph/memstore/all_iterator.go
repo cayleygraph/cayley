@@ -18,9 +18,11 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
-var _ graph.IteratorShape = (*allIterator)(nil)
+var _ iterator.Shape = (*allIterator)(nil)
 
 type allIterator struct {
 	qs    *QuadStore
@@ -36,16 +38,16 @@ func (qs *QuadStore) newAllIterator(nodes bool, maxid int64) *allIterator {
 	}
 }
 
-func (it *allIterator) Iterate() graph.Scanner {
+func (it *allIterator) Iterate() iterator.Scanner {
 	return it.qs.newAllIteratorNext(it.nodes, it.maxid, it.all)
 }
 
-func (it *allIterator) Lookup() graph.Index {
+func (it *allIterator) Lookup() iterator.Index {
 	return it.qs.newAllIteratorContains(it.nodes, it.maxid)
 }
 
-func (it *allIterator) SubIterators() []graph.IteratorShape { return nil }
-func (it *allIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *allIterator) SubIterators() []iterator.Shape { return nil }
+func (it *allIterator) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	return it, false
 }
 
@@ -53,11 +55,11 @@ func (it *allIterator) String() string {
 	return "MemStoreAll"
 }
 
-func (it *allIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
-	return graph.IteratorCosts{
+func (it *allIterator) Stats(ctx context.Context) (iterator.Costs, error) {
+	return iterator.Costs{
 		NextCost:     1,
 		ContainsCost: 1,
-		Size: graph.Size{
+		Size: refs.Size{
 			// TODO(dennwc): use maxid?
 			Value: int64(len(it.all)),
 			Exact: true,

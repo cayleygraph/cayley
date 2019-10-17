@@ -4,34 +4,34 @@ import (
 	"context"
 	"sort"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
 // Sort iterator orders values from it's subiterator.
 type Sort struct {
-	namer graph.Namer
-	subIt graph.IteratorShape
+	namer refs.Namer
+	subIt Shape
 }
 
 // NewSort creates a new Sort iterator.
 // TODO(dennwc): This iterator must not be used inside And: it may be moved to a Contains branch and won't do anything.
 //               We should make And/Intersect account for this.
-func NewSort(namer graph.Namer, subIt graph.IteratorShape) *Sort {
+func NewSort(namer refs.Namer, subIt Shape) *Sort {
 	return &Sort{namer, subIt}
 }
 
-func (it *Sort) Iterate() graph.Scanner {
+func (it *Sort) Iterate() Scanner {
 	return newSortNext(it.namer, it.subIt.Iterate())
 }
 
-func (it *Sort) Lookup() graph.Index {
+func (it *Sort) Lookup() Index {
 	// TODO(dennwc): Lookup doesn't need any sorting. Using it this way is a bug in the optimizer.
 	//               But instead of failing here, let still allow the query to execute. It won't be sorted,
 	//               but it will work at least. Later consider changing returning an error here.
 	return it.subIt.Lookup()
 }
 
-func (it *Sort) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Sort) Optimize(ctx context.Context) (Shape, bool) {
 	newIt, optimized := it.subIt.Optimize(ctx)
 	if optimized {
 		it.subIt = newIt
@@ -39,13 +39,13 @@ func (it *Sort) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 
-func (it *Sort) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Sort) Stats(ctx context.Context) (Costs, error) {
 	subStats, err := it.subIt.Stats(ctx)
-	return graph.IteratorCosts{
-		// TODO(dennwc): better cost calculation; we probably need an InitCost defined in graph.IteratorCosts
+	return Costs{
+		// TODO(dennwc): better cost calculation; we probably need an InitCost defined in Costs
 		NextCost:     subStats.NextCost * 2,
 		ContainsCost: subStats.ContainsCost,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: subStats.Size.Value,
 			Exact: true,
 		},
@@ -57,8 +57,8 @@ func (it *Sort) String() string {
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *Sort) SubIterators() []graph.IteratorShape {
-	return []graph.IteratorShape{it.subIt}
+func (it *Sort) SubIterators() []Shape {
+	return []Shape{it.subIt}
 }
 
 type sortValue struct {
@@ -75,8 +75,8 @@ func (v sortByString) Less(i, j int) bool {
 func (v sortByString) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
 type sortNext struct {
-	namer     graph.Namer
-	subIt     graph.Scanner
+	namer     refs.Namer
+	subIt     Scanner
 	ordered   sortByString
 	result    result
 	err       error
@@ -84,7 +84,7 @@ type sortNext struct {
 	pathIndex int
 }
 
-func newSortNext(namer graph.Namer, subIt graph.Scanner) *sortNext {
+func newSortNext(namer refs.Namer, subIt Scanner) *sortNext {
 	return &sortNext{
 		namer:     namer,
 		subIt:     subIt,
@@ -92,7 +92,7 @@ func newSortNext(namer graph.Namer, subIt graph.Scanner) *sortNext {
 	}
 }
 
-func (it *sortNext) TagResults(dst map[string]graph.Ref) {
+func (it *sortNext) TagResults(dst map[string]refs.Ref) {
 	for tag, value := range it.result.tags {
 		dst[tag] = value
 	}
@@ -102,7 +102,7 @@ func (it *sortNext) Err() error {
 	return it.err
 }
 
-func (it *sortNext) Result() graph.Ref {
+func (it *sortNext) Result() refs.Ref {
 	return it.result.id
 }
 
@@ -149,21 +149,21 @@ func (it *sortNext) String() string {
 	return "SortNext"
 }
 
-func getSortedValues(ctx context.Context, namer graph.Namer, it graph.Scanner) (sortByString, error) {
+func getSortedValues(ctx context.Context, namer refs.Namer, it Scanner) (sortByString, error) {
 	var v sortByString
 	for it.Next(ctx) {
 		id := it.Result()
-		// TODO(dennwc): batch and use graph.ValuesOf
+		// TODO(dennwc): batch and use refs.ValuesOf
 		name := namer.NameOf(id)
 		str := name.String()
-		tags := make(map[string]graph.Ref)
+		tags := make(map[string]refs.Ref)
 		it.TagResults(tags)
 		val := sortValue{
 			result: result{id, tags},
 			str:    str,
 		}
 		for it.NextPath(ctx) {
-			tags = make(map[string]graph.Ref)
+			tags = make(map[string]refs.Ref)
 			it.TagResults(tags)
 			val.paths = append(val.paths, result{id, tags})
 		}

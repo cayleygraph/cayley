@@ -45,7 +45,7 @@ func NewSession(qs graph.QuadStore) *Session {
 type mqlIterator struct {
 	q   *Query
 	col query.Collation
-	it  graph.Scanner
+	it  iterator.Scanner
 	res []interface{}
 }
 

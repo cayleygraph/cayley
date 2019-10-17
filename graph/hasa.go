@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator
+package graph
 
 // Defines one of the base iterators, the HasA iterator. The HasA takes a
 // subiterator of links, and acts as an iterator of nodes in the given
@@ -38,7 +38,8 @@ import (
 	"fmt"
 
 	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -46,14 +47,14 @@ import (
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type HasA struct {
-	qs      graph.QuadIndexer
-	primary graph.IteratorShape
+	qs      QuadIndexer
+	primary iterator.Shape
 	dir     quad.Direction
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func NewHasA(qs graph.QuadIndexer, subIt graph.IteratorShape, d quad.Direction) *HasA {
+func NewHasA(qs QuadIndexer, subIt iterator.Shape, d quad.Direction) *HasA {
 	return &HasA{
 		qs:      qs,
 		primary: subIt,
@@ -61,17 +62,17 @@ func NewHasA(qs graph.QuadIndexer, subIt graph.IteratorShape, d quad.Direction) 
 	}
 }
 
-func (it *HasA) Iterate() graph.Scanner {
+func (it *HasA) Iterate() iterator.Scanner {
 	return newHasANext(it.qs, it.primary.Iterate(), it.dir)
 }
 
-func (it *HasA) Lookup() graph.Index {
+func (it *HasA) Lookup() iterator.Index {
 	return newHasAContains(it.qs, it.primary.Lookup(), it.dir)
 }
 
 // Return our sole subiterator.
-func (it *HasA) SubIterators() []graph.IteratorShape {
-	return []graph.IteratorShape{it.primary}
+func (it *HasA) SubIterators() []iterator.Shape {
+	return []iterator.Shape{it.primary}
 }
 
 // Direction accessor.
@@ -79,11 +80,11 @@ func (it *HasA) Direction() quad.Direction { return it.dir }
 
 // Pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no quads that have any directions).
-func (it *HasA) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *HasA) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	newPrimary, changed := it.primary.Optimize(ctx)
 	if changed {
 		it.primary = newPrimary
-		if IsNull(it.primary) {
+		if iterator.IsNull(it.primary) {
 			return it.primary, true
 		}
 	}
@@ -100,7 +101,7 @@ func (it *HasA) String() string {
 // one sticks -- potentially expensive, depending on fanout. Size, however, is
 // potentially smaller. we know at worst it's the size of the subiterator, but
 // if there are many repeated values, it could be much smaller in totality.
-func (it *HasA) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *HasA) Stats(ctx context.Context) (iterator.Costs, error) {
 	subitStats, err := it.primary.Stats(ctx)
 	// TODO(barakmich): These should really come from the quadstore itself
 	// and be optimized.
@@ -108,10 +109,10 @@ func (it *HasA) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 	fanoutFactor := int64(30)
 	nextConstant := int64(2)
 	quadConstant := int64(1)
-	return graph.IteratorCosts{
+	return iterator.Costs{
 		NextCost:     quadConstant + subitStats.NextCost,
 		ContainsCost: (fanoutFactor * nextConstant) * subitStats.ContainsCost,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: faninFactor * subitStats.Size.Value,
 			Exact: false,
 		},
@@ -122,15 +123,15 @@ func (it *HasA) Stats(ctx context.Context) (graph.IteratorCosts, error) {
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type hasANext struct {
-	qs      graph.QuadIndexer
-	primary graph.Scanner
+	qs      QuadIndexer
+	primary iterator.Scanner
 	dir     quad.Direction
-	result  graph.Ref
+	result  refs.Ref
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func newHasANext(qs graph.QuadIndexer, subIt graph.Scanner, d quad.Direction) *hasANext {
+func newHasANext(qs QuadIndexer, subIt iterator.Scanner, d quad.Direction) *hasANext {
 	return &hasANext{
 		qs:      qs,
 		primary: subIt,
@@ -142,7 +143,7 @@ func newHasANext(qs graph.QuadIndexer, subIt graph.Scanner, d quad.Direction) *h
 func (it *hasANext) Direction() quad.Direction { return it.dir }
 
 // Pass the TagResults down the chain.
-func (it *hasANext) TagResults(dst map[string]graph.Ref) {
+func (it *hasANext) TagResults(dst map[string]refs.Ref) {
 	it.primary.TagResults(dst)
 }
 
@@ -170,7 +171,7 @@ func (it *hasANext) Err() error {
 	return it.primary.Err()
 }
 
-func (it *hasANext) Result() graph.Ref {
+func (it *hasANext) Result() refs.Ref {
 	return it.result
 }
 
@@ -184,17 +185,17 @@ func (it *hasANext) Close() error {
 // a primary subiterator, a direction in which the quads for that subiterator point,
 // and a temporary holder for the iterator generated on Contains().
 type hasAContains struct {
-	qs      graph.QuadIndexer
-	primary graph.Index
+	qs      QuadIndexer
+	primary iterator.Index
 	dir     quad.Direction
-	results graph.Scanner
-	result  graph.Ref
+	results iterator.Scanner
+	result  refs.Ref
 	err     error
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
-func newHasAContains(qs graph.QuadIndexer, subIt graph.Index, d quad.Direction) graph.Index {
+func newHasAContains(qs QuadIndexer, subIt iterator.Index, d quad.Direction) iterator.Index {
 	return &hasAContains{
 		qs:      qs,
 		primary: subIt,
@@ -206,7 +207,7 @@ func newHasAContains(qs graph.QuadIndexer, subIt graph.Index, d quad.Direction) 
 func (it *hasAContains) Direction() quad.Direction { return it.dir }
 
 // Pass the TagResults down the chain.
-func (it *hasAContains) TagResults(dst map[string]graph.Ref) {
+func (it *hasAContains) TagResults(dst map[string]refs.Ref) {
 	it.primary.TagResults(dst)
 }
 
@@ -217,7 +218,7 @@ func (it *hasAContains) String() string {
 // Check a value against our internal iterator. In order to do this, we must first open a new
 // iterator of "quads that have `val` in our direction", given to us by the quad store,
 // and then Next() values out of that iterator and Contains() them against our subiterator.
-func (it *hasAContains) Contains(ctx context.Context, val graph.Ref) bool {
+func (it *hasAContains) Contains(ctx context.Context, val refs.Ref) bool {
 	if clog.V(4) {
 		clog.Infof("Id is %v", val)
 	}
@@ -287,7 +288,7 @@ func (it *hasAContains) Err() error {
 	return it.err
 }
 
-func (it *hasAContains) Result() graph.Ref {
+func (it *hasAContains) Result() refs.Ref {
 	return it.result
 }
 

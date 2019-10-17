@@ -3,35 +3,35 @@ package iterator
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
 // Unique iterator removes duplicate values from it's subiterator.
 type Unique struct {
-	subIt graph.IteratorShape
+	subIt Shape
 }
 
-func NewUnique(subIt graph.IteratorShape) *Unique {
+func NewUnique(subIt Shape) *Unique {
 	return &Unique{
 		subIt: subIt,
 	}
 }
 
-func (it *Unique) Iterate() graph.Scanner {
+func (it *Unique) Iterate() Scanner {
 	return newUniqueNext(it.subIt.Iterate())
 }
 
-func (it *Unique) Lookup() graph.Index {
+func (it *Unique) Lookup() Index {
 	return newUniqueContains(it.subIt.Lookup())
 }
 
 // SubIterators returns a slice of the sub iterators. The first iterator is the
 // primary iterator, for which the complement is generated.
-func (it *Unique) SubIterators() []graph.IteratorShape {
-	return []graph.IteratorShape{it.subIt}
+func (it *Unique) SubIterators() []Shape {
+	return []Shape{it.subIt}
 }
 
-func (it *Unique) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Unique) Optimize(ctx context.Context) (Shape, bool) {
 	newIt, optimized := it.subIt.Optimize(ctx)
 	if optimized {
 		it.subIt = newIt
@@ -41,12 +41,12 @@ func (it *Unique) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 
 const uniquenessFactor = 2
 
-func (it *Unique) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Unique) Stats(ctx context.Context) (Costs, error) {
 	subStats, err := it.subIt.Stats(ctx)
-	return graph.IteratorCosts{
+	return Costs{
 		NextCost:     subStats.NextCost * uniquenessFactor,
 		ContainsCost: subStats.ContainsCost,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: subStats.Size.Value / uniquenessFactor,
 			Exact: false,
 		},
@@ -59,20 +59,20 @@ func (it *Unique) String() string {
 
 // Unique iterator removes duplicate values from it's subiterator.
 type uniqueNext struct {
-	subIt  graph.Scanner
-	result graph.Ref
+	subIt  Scanner
+	result refs.Ref
 	err    error
 	seen   map[interface{}]bool
 }
 
-func newUniqueNext(subIt graph.Scanner) *uniqueNext {
+func newUniqueNext(subIt Scanner) *uniqueNext {
 	return &uniqueNext{
 		subIt: subIt,
 		seen:  make(map[interface{}]bool),
 	}
 }
 
-func (it *uniqueNext) TagResults(dst map[string]graph.Ref) {
+func (it *uniqueNext) TagResults(dst map[string]refs.Ref) {
 	if it.subIt != nil {
 		it.subIt.TagResults(dst)
 	}
@@ -83,7 +83,7 @@ func (it *uniqueNext) TagResults(dst map[string]graph.Ref) {
 func (it *uniqueNext) Next(ctx context.Context) bool {
 	for it.subIt.Next(ctx) {
 		curr := it.subIt.Result()
-		key := graph.ToKey(curr)
+		key := refs.ToKey(curr)
 		if ok := it.seen[key]; !ok {
 			it.result = curr
 			it.seen[key] = true
@@ -98,7 +98,7 @@ func (it *uniqueNext) Err() error {
 	return it.err
 }
 
-func (it *uniqueNext) Result() graph.Ref {
+func (it *uniqueNext) Result() refs.Ref {
 	return it.result
 }
 
@@ -121,16 +121,16 @@ func (it *uniqueNext) String() string {
 
 // Unique iterator removes duplicate values from it's subiterator.
 type uniqueContains struct {
-	subIt graph.Index
+	subIt Index
 }
 
-func newUniqueContains(subIt graph.Index) *uniqueContains {
+func newUniqueContains(subIt Index) *uniqueContains {
 	return &uniqueContains{
 		subIt: subIt,
 	}
 }
 
-func (it *uniqueContains) TagResults(dst map[string]graph.Ref) {
+func (it *uniqueContains) TagResults(dst map[string]refs.Ref) {
 	if it.subIt != nil {
 		it.subIt.TagResults(dst)
 	}
@@ -140,13 +140,13 @@ func (it *uniqueContains) Err() error {
 	return it.subIt.Err()
 }
 
-func (it *uniqueContains) Result() graph.Ref {
+func (it *uniqueContains) Result() refs.Ref {
 	return it.subIt.Result()
 }
 
 // Contains checks whether the passed value is part of the primary iterator,
 // which is irrelevant for uniqueness.
-func (it *uniqueContains) Contains(ctx context.Context, val graph.Ref) bool {
+func (it *uniqueContains) Contains(ctx context.Context, val refs.Ref) bool {
 	return it.subIt.Contains(ctx, val)
 }
 
