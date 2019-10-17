@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/cayleygraph/quad"
 )
 
 var (
@@ -27,6 +29,9 @@ func Register(typ Step) {
 	typeByName[name] = tp
 	nameByType[tp] = name
 }
+
+var quadValue = reflect.TypeOf((*quad.Value)(nil)).Elem()
+var quadSliceValue = reflect.TypeOf(([]quad.Value)(nil))
 
 func UnmarshalStep(data []byte) (Step, error) {
 	var m map[string]json.RawMessage
@@ -57,6 +62,36 @@ func UnmarshalStep(data []byte) (Step, error) {
 			continue
 		}
 		fv := step.Field(i)
+		switch f.Type {
+		case quadValue:
+			var a interface{}
+			err := json.Unmarshal(v, &a)
+			if err != nil {
+				return nil, err
+			}
+			value, err := parseValue(v)
+			if err != nil {
+				return nil, err
+			}
+			fv.Set(reflect.ValueOf(value))
+			continue
+		case quadSliceValue:
+			var a []interface{}
+			err := json.Unmarshal(v, &a)
+			if err != nil {
+				return nil, err
+			}
+			var values []quad.Value
+			for _, item := range a {
+				value, err := parseValue(item)
+				if err != nil {
+					return nil, err
+				}
+				values = append(values, value)
+			}
+			fv.Set(reflect.ValueOf(values))
+			continue
+		}
 		switch f.Type.Kind() {
 		case reflect.Interface:
 			s, err := UnmarshalStep(v)
