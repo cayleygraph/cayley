@@ -80,6 +80,9 @@ func (s *Out) BuildIterator(qs graph.QuadStore) query.Iterator {
 		panic("Out must be called from ValueIterator")
 	}
 	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Out must be called from ValueIterator")
+	}
 	path := fromIt.path.OutWithTags(s.Tags, viaIt.path)
 	return NewValueIterator(path, qs)
 }
@@ -168,6 +171,7 @@ func (s *Intersect) BuildIterator(qs graph.QuadStore) query.Iterator {
 	return NewValueIterator(fromIt.path.And(intersecteeIt.path), qs)
 }
 
+// Is corresponds to .back()
 type Is struct {
 	From   Step         `json:"from"`
 	Values []quad.Value `json:"values"`
@@ -185,4 +189,49 @@ func (s *Is) BuildIterator(qs graph.QuadStore) query.Iterator {
 		panic("Is must be called from ValueIterator")
 	}
 	return NewValueIterator(fromIt.path.Is(s.Values...), qs)
+}
+
+// Back corresponds to .back()
+type Back struct {
+	From Step   `json:"from"`
+	Tag  string `json:"tag"`
+}
+
+// Type implements Step
+func (s *Back) Type() quad.IRI {
+	return prefix + "Back"
+}
+
+// BuildIterator implements Step
+func (s *Back) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Back must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Back(s.Tag), qs)
+}
+
+// Both corresponds to .both()
+type Both struct {
+	From Step     `json:"from"`
+	Via  Step     `json:"via"`
+	Tags []string `json:"tags"`
+}
+
+// Type implements Step
+func (s *Both) Type() quad.IRI {
+	return prefix + "Both"
+}
+
+// BuildIterator implements Step
+func (s *Both) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Both must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Both must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.BothWithTags(s.Tags, viaIt.path), qs)
 }
