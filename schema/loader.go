@@ -118,7 +118,7 @@ func (c *Config) LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interf
 
 // LoadPathTo is the same as LoadTo, but starts loading objects from a given path.
 func (c *Config) LoadPathTo(ctx context.Context, qs graph.QuadStore, dst interface{}, p *path.Path) error {
-	return c.LoadIteratorTo(ctx, qs, reflect.ValueOf(dst), p.BuildIterator())
+	return c.LoadIteratorTo(ctx, qs, reflect.ValueOf(dst), p.BuildIterator(ctx))
 }
 
 // LoadIteratorTo is a lower level version of LoadTo.
@@ -543,7 +543,7 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 }
 
 func (l *loader) iteratorFromPath(ctx context.Context, root graph.IteratorShape, p *path.Path) (graph.IteratorShape, error) {
-	it := p.BuildIteratorOn(l.qs)
+	it := p.BuildIteratorOn(ctx, l.qs)
 	if root != nil {
 		it = iterator.NewAnd(root, it)
 	}

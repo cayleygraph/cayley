@@ -93,11 +93,11 @@ func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 	testutil.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
 
 	// With an linksto-fixed pair
-	lto := shape.BuildIterator(qs, shape.Quads{
+	lto := shape.BuildIterator(ctx, qs, shape.Quads{
 		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("F")}},
 	})
 
-	oldIt := shape.BuildIterator(qs, shape.Quads{
+	oldIt := shape.BuildIterator(ctx, qs, shape.Quads{
 		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("F")}},
 	}).Iterate()
 	defer oldIt.Close()

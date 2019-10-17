@@ -27,8 +27,8 @@ import (
 
 var _ shape.Optimizer = (*QuadStore)(nil)
 
-func (qs *QuadStore) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
-	return qs.opt.OptimizeShape(s)
+func (qs *QuadStore) OptimizeShape(ctx context.Context, s shape.Shape) (shape.Shape, bool) {
+	return qs.opt.OptimizeShape(ctx, s)
 }
 
 func (qs *QuadStore) prepareQuery(s Shape) (string, []interface{}) {

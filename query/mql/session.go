@@ -52,7 +52,7 @@ func (s *Session) ShapeOf(query string) (interface{}, error) {
 		return nil, err
 	}
 	q := NewQuery(s)
-	q.BuildIteratorTree(mqlQuery)
+	q.BuildIteratorTree(context.TODO(), mqlQuery)
 	output := make(map[string]interface{})
 	iterator.OutputQueryShapeForIterator(q.it, s.qs, output)
 	nodes := make([]iterator.Node, 0)
@@ -124,7 +124,7 @@ func (s *Session) Execute(ctx context.Context, input string, opt query.Options) 
 		return nil, err
 	}
 	q := NewQuery(s)
-	q.BuildIteratorTree(mqlQuery)
+	q.BuildIteratorTree(ctx, mqlQuery)
 	if q.isError() {
 		return nil, q.err
 	}

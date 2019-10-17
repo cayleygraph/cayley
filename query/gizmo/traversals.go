@@ -84,7 +84,7 @@ func (p *pathObject) buildIteratorTree() graph.IteratorShape {
 	if p.path == nil {
 		return iterator.NewNull()
 	}
-	return p.path.BuildIteratorOn(p.s.qs)
+	return p.path.BuildIteratorOn(p.s.ctx, p.s.qs)
 }
 
 // Filter all paths to ones which, at this point, are on the given node.

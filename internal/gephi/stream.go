@@ -214,7 +214,7 @@ type graphStreamEvent struct {
 }
 
 func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream, quads shape.Shape, limit int) {
-	it := shape.BuildIterator(s.QS, quads).Iterate()
+	it := shape.BuildIterator(ctx, s.QS, quads).Iterate()
 	defer it.Close()
 
 	var sh, oh valHash
@@ -265,7 +265,7 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 
 	ignore := make(map[quad.Value]struct{})
 
-	nodes := iterator.NewNot(propsPath.BuildIterator(), s.QS.NodesAllIterator())
+	nodes := iterator.NewNot(propsPath.BuildIterator(ctx), s.QS.NodesAllIterator())
 
 	ictx, cancel := context.WithCancel(ctx)
 	defer cancel()

@@ -78,7 +78,7 @@ func (s *Session) Execute(ctx context.Context, input string, opt query.Options) 
 	default:
 		return nil, &query.ErrUnsupportedCollation{Collation: opt.Collation}
 	}
-	it := BuildIteratorTreeForQuery(s.qs, input).Iterate()
+	it := BuildIteratorTreeForQuery(ctx, s.qs, input).Iterate()
 	if err := it.Err(); err != nil {
 		return nil, err
 	}

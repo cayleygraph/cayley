@@ -15,6 +15,7 @@
 package sql
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -310,7 +311,7 @@ func (s Select) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	return sq.newIterator(s)
 }
 
-func (s Select) Optimize(r shape.Optimizer) (shape.Shape, bool) {
+func (s Select) Optimize(ctx context.Context, r shape.Optimizer) (shape.Shape, bool) {
 	// TODO: call optimize on sub-tables? but what if it decides to de-optimize our SQL shape?
 	return s, false
 }

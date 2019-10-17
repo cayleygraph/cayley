@@ -15,6 +15,7 @@
 package mql
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -35,7 +36,7 @@ func buildAllResult(path Path) shape.Shape {
 	}
 }
 
-func (q *Query) BuildIteratorTree(query interface{}) {
+func (q *Query) BuildIteratorTree(ctx context.Context, query interface{}) {
 	q.isRepeated = make(map[Path]bool)
 	q.queryStructure = make(map[Path]map[string]interface{})
 	q.queryResult = make(map[ResultPath]map[string]interface{})
@@ -49,7 +50,7 @@ func (q *Query) BuildIteratorTree(query interface{}) {
 	if q.err == nil && opt {
 		q.err = errors.New("optional iterator at the top level")
 	}
-	q.it = shape.BuildIterator(q.ses.qs, s)
+	q.it = shape.BuildIterator(ctx, q.ses.qs, s)
 }
 
 func (q *Query) buildShape(query interface{}, path Path) (s shape.Shape, optional bool, err error) {

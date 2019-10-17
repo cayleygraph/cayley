@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -364,7 +365,7 @@ func TestSQLShapes(t *testing.T) {
 	for _, c := range shapeCases {
 		t.Run(c.name, func(t *testing.T) {
 			opt := NewOptimizer()
-			s, ok := c.s.Optimize(opt)
+			s, ok := c.s.Optimize(context.TODO(), opt)
 			if c.skip {
 				t.Skipf("%#v", s)
 			}
