@@ -75,14 +75,6 @@ type Session interface {
 	Execute(ctx context.Context, query string, opt Options) (Iterator, error)
 }
 
-// TODO(dennwc): specify exact type to return from ShapeOf
-// TODO(dennwc): add context to ShapeOf?
-
-type HTTP interface {
-	Session
-	ShapeOf(string) (interface{}, error)
-}
-
 type REPLSession = Session
 
 // ResponseWriter is a subset of http.ResponseWriter
@@ -95,7 +87,6 @@ type ResponseWriter interface {
 type Language struct {
 	Name    string
 	Session func(graph.QuadStore) Session
-	HTTP    func(graph.QuadStore) HTTP
 
 	// Custom HTTP handlers
 
