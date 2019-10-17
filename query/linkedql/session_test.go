@@ -68,26 +68,26 @@ var testCases = []struct {
 				"from": {
 					"@type": "linkedql:Out",
 					"from": {
-						"@type": "linkedql:Vertex"
-					},
-					"via": {
 						"@type": "linkedql:Tag",
 						"tags": ["liker"],
 						"from": {
-							"@type": "linkedql:Vertex",
-							"values": [
-								{
-									"@id": "likes"
-								}
-							]
+							"@type": "linkedql:Vertex"
 						}
+					},
+					"via": {
+						"@type": "linkedql:Vertex",
+						"values": [
+							{
+								"@id": "likes"
+							}
+						]
 					}
 				}
 			}
 		}
 		`,
 		results: []interface{}{
-			map[string]quad.IRI{
+			map[string]quad.Value{
 				"liker": quad.IRI("alice"),
 				"liked": quad.IRI("bob"),
 			},
