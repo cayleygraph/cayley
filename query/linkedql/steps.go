@@ -19,8 +19,10 @@ func init() {
 	voc.Register(voc.Namespace{Full: namespace, Prefix: prefix})
 	Register(&Vertex{})
 	Register(&Out{})
-	Register(&Tag{})
+	Register(&As{})
 	Register(&TagArray{})
+	Register(&Value{})
+	Register(&Intersect{})
 }
 
 // Vertex corresponds to g.V()
@@ -95,22 +97,22 @@ func (s *Out) BuildIterator(qs graph.QuadStore) query.Iterator {
 	return NewValueIterator(path, qs)
 }
 
-// Tag corresponds to .tag()
-type Tag struct {
+// As corresponds to .tag()
+type As struct {
 	From Step     `json:"from"`
 	Tags []string `json:"tags"`
 }
 
 // Type implements Step
-func (s *Tag) Type() quad.IRI {
-	return prefix + "Tag"
+func (s *As) Type() quad.IRI {
+	return prefix + "As"
 }
 
 // BuildIterator implements Step
-func (s *Tag) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *As) BuildIterator(qs graph.QuadStore) query.Iterator {
 	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
 	if !ok {
-		panic("TagArray must be called from ValueIterator")
+		panic("As must be called from ValueIterator")
 	}
 	path := fromIt.path.Tag(s.Tags...)
 	return NewValueIterator(path, qs)
@@ -133,4 +135,48 @@ func (s *TagArray) BuildIterator(qs graph.QuadStore) query.Iterator {
 		panic("TagArray must be called from ValueIterator")
 	}
 	return &TagArrayIterator{fromIt}
+}
+
+// Value corresponds to .value()
+type Value struct {
+	From Step `json:"from"`
+}
+
+// Type implements Step
+func (s *Value) Type() quad.IRI {
+	return prefix + "Value"
+}
+
+// BuildIterator implements Step
+func (s *Value) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Value must be called from ValueIterator")
+	}
+	// TODO(@iddan): support non iterators for query result
+	return fromIt
+}
+
+// Intersect represents .intersect() and .and()
+type Intersect struct {
+	From        Step `json:"from"`
+	Intersectee Step `json:"intersectee"`
+}
+
+// Type implements Step
+func (s *Intersect) Type() quad.IRI {
+	return prefix + "Intersect"
+}
+
+// BuildIterator implements Step
+func (s *Intersect) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Intersect must be called from ValueIterator")
+	}
+	intersecteeIt, ok := s.Intersectee.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Intersect must be called with ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.And(intersecteeIt.path), qs)
 }

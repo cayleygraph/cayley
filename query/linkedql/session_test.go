@@ -63,12 +63,12 @@ var testCases = []struct {
 		{
 			"@type": "linkedql:TagArray",
 			"from": {
-				"@type": "linkedql:Tag",
+				"@type": "linkedql:As",
 				"tags": ["liked"],
 				"from": {
 					"@type": "linkedql:Out",
 					"from": {
-						"@type": "linkedql:Tag",
+						"@type": "linkedql:As",
 						"tags": ["liker"],
 						"from": {
 							"@type": "linkedql:Vertex"
@@ -91,6 +91,51 @@ var testCases = []struct {
 				"liker": quad.IRI("alice"),
 				"liked": quad.IRI("bob"),
 			},
+		},
+	},
+	{
+		name: "Intersect",
+		data: []quad.Quad{
+			quad.MakeIRI("bob", "likes", "alice", ""),
+			quad.MakeIRI("dani", "likes", "alice", ""),
+		},
+		query: `
+		{
+			"@type": "linkedql:Intersect",
+			"from": {
+				"@type": "linkedql:Out",
+				"from": {
+					"@type": "linkedql:Vertex",
+					"values": [{ "@id": "bob" }]
+				},
+				"via": {
+					"@type": "linkedql:Vertex",
+					"values": [
+						{
+							"@id": "likes"
+						}
+					]
+				}
+			},
+			"intersectee": {
+				"@type": "linkedql:Out",
+				"from": {
+					"@type": "linkedql:Vertex",
+					"values": [{ "@id": "bob" }]
+				},
+				"via": {
+					"@type": "linkedql:Vertex",
+					"values": [
+						{
+							"@id": "likes"
+						}
+					]
+				}
+			}
+		}
+		`,
+		results: []interface{}{
+			quad.IRI("alice"),
 		},
 	},
 }
