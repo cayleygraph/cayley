@@ -10,20 +10,18 @@ import (
 
 func TestNodeQuery(t *testing.T) {
 	q := `
-[
-	{
+{
+	"@type": "linkedql:AllStep",
+	"parent": {
 		"@type": "linkedql:NewVStep"
-	},
-	{
-		"@type": "linkedql:AllStep"
 	}
-]
+}
 	`
 	store := memstore.New()
 	session := NewSession(store)
 	iterator, err := session.Execute(context.TODO(), q, query.Options{})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if iterator.Result() != nil {
 		t.Error("Returned result for an empty store")
