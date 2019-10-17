@@ -19,6 +19,8 @@ func init() {
 	voc.Register(voc.Namespace{Full: namespace, Prefix: prefix})
 	Register(&Vertex{})
 	Register(&Out{})
+	Register(&Tag{})
+	Register(&TagArray{})
 }
 
 // Vertex corresponds to g.V()
@@ -91,4 +93,44 @@ func (s *Out) BuildIterator(qs graph.QuadStore) query.Iterator {
 	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
 	path := fromIt.path.OutWithTags(s.Tags, viaIt.path)
 	return NewValueIterator(path, qs)
+}
+
+// Tag corresponds to .tag()
+type Tag struct {
+	From Step     `json:"from"`
+	Tags []string `json:"tags"`
+}
+
+// Type implements Step
+func (s *Tag) Type() quad.IRI {
+	return prefix + "Tag"
+}
+
+// BuildIterator implements Step
+func (s *Tag) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("TagArray must be called from ValueIterator")
+	}
+	path := fromIt.path.Tag(s.Tags...)
+	return NewValueIterator(path, qs)
+}
+
+// TagArray corresponds to .tagArray()
+type TagArray struct {
+	From Step `json:"from"`
+}
+
+// Type implements Step
+func (s *TagArray) Type() quad.IRI {
+	return prefix + "TagArray"
+}
+
+// BuildIterator implements Step
+func (s *TagArray) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("TagArray must be called from ValueIterator")
+	}
+	return &TagArrayIterator{fromIt}
 }
