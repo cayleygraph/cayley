@@ -46,7 +46,6 @@ func init() {
 	Register(&LabelContext{})
 	Register(&Labels{})
 	Register(&Limit{})
-	Register(&Or{})
 	Register(&OutPredicates{})
 	Register(&Save{})
 	Register(&SaveInPredicates{})
@@ -518,7 +517,9 @@ func (s *FollowReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // Has corresponds to .has()
 type Has struct {
-	From Step `json:"from"`
+	From   Step         `json:"from"`
+	Via    Step         `json:"via"`
+	Values []quad.Value `json:"values"`
 }
 
 // Type implements Step
@@ -528,12 +529,22 @@ func (s *Has) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Has) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Has must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Has must be called with ValueIterator via")
+	}
+	return NewValueIterator(fromIt.path.Has(viaIt.path, s.Values...), qs)
 }
 
 // HasR corresponds to .hasR()
 type HasR struct {
-	From Step `json:"from"`
+	From   Step         `json:"from"`
+	Via    Step         `json:"via"`
+	Values []quad.Value `json:"values"`
 }
 
 // Type implements Step
@@ -543,12 +554,22 @@ func (s *HasR) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *HasR) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Has must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Has must be called with ValueIterator via")
+	}
+	return NewValueIterator(fromIt.path.HasReverse(viaIt.path, s.Values...), qs)
 }
 
 // In corresponds to .in()
 type In struct {
-	From Step `json:"from"`
+	From Step     `json:"from"`
+	Via  Step     `json:"via"`
+	Tags []string `json:"tags"`
 }
 
 // Type implements Step
@@ -608,7 +629,8 @@ func (s *Labels) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // Limit corresponds to .limit()
 type Limit struct {
-	From Step `json:"from"`
+	From  Step `json:"from"`
+	Limit int  `json:"limit"`
 }
 
 // Type implements Step
@@ -618,21 +640,6 @@ func (s *Limit) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Limit) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
-}
-
-// Or corresponds to .or()
-type Or struct {
-	From Step `json:"from"`
-}
-
-// Type implements Step
-func (s *Or) Type() quad.IRI {
-	return prefix + "Or"
-}
-
-// BuildIterator implements Step
-func (s *Or) BuildIterator(qs graph.QuadStore) query.Iterator {
 	panic("Not Implemeneted!")
 }
 
@@ -653,7 +660,9 @@ func (s *OutPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // Save corresponds to .save()
 type Save struct {
-	From Step `json:"from"`
+	From  Step     `json:"from"`
+	Saved Step     `json:"saved"`
+	Tag   []string `json:"tag"`
 }
 
 // Type implements Step
@@ -668,7 +677,9 @@ func (s *Save) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // SaveInPredicates corresponds to .saveInPredicates()
 type SaveInPredicates struct {
-	From Step `json:"from"`
+	From  Step     `json:"from"`
+	Saved Step     `json:"saved"`
+	Tag   []string `json:"tag"`
 }
 
 // Type implements Step
@@ -683,7 +694,9 @@ func (s *SaveInPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // SaveOpt corresponds to .saveOpt()
 type SaveOpt struct {
-	From Step `json:"from"`
+	From  Step     `json:"from"`
+	Saved Step     `json:"saved"`
+	Tag   []string `json:"tag"`
 }
 
 // Type implements Step
@@ -698,7 +711,9 @@ func (s *SaveOpt) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // SaveOptR corresponds to .saveOptR()
 type SaveOptR struct {
-	From Step `json:"from"`
+	From  Step     `json:"from"`
+	Saved Step     `json:"saved"`
+	Tag   []string `json:"tag"`
 }
 
 // Type implements Step
@@ -713,7 +728,8 @@ func (s *SaveOptR) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // SaveOutPredicates corresponds to .saveOutPredicates()
 type SaveOutPredicates struct {
-	From Step `json:"from"`
+	From Step     `json:"from"`
+	Tag  []string `json:"tag"`
 }
 
 // Type implements Step
@@ -728,7 +744,9 @@ func (s *SaveOutPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // SaveR corresponds to .saveR()
 type SaveR struct {
-	From Step `json:"from"`
+	From  Step     `json:"from"`
+	Saved Step     `json:"saved"`
+	Tag   []string `json:"tag"`
 }
 
 // Type implements Step
@@ -743,7 +761,8 @@ func (s *SaveR) BuildIterator(qs graph.QuadStore) query.Iterator {
 
 // Skip corresponds to .skip()
 type Skip struct {
-	From Step `json:"from"`
+	From   Step `json:"from"`
+	Offset int  `json:"offset"`
 }
 
 // Type implements Step
@@ -756,9 +775,10 @@ func (s *Skip) BuildIterator(qs graph.QuadStore) query.Iterator {
 	panic("Not Implemeneted!")
 }
 
-// Union corresponds to .union()
+// Union corresponds to .union() and .or()
 type Union struct {
-	From Step `json:"from"`
+	From      Step `json:"from"`
+	Unionized Step `json:"unionized"`
 }
 
 // Type implements Step
