@@ -2,6 +2,8 @@ package linkedql
 
 import (
 	"encoding/json"
+	"errors"
+	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/path"
@@ -28,9 +30,42 @@ func (s *Vertex) Type() quad.IRI {
 	return prefix + "Vertex"
 }
 
+func parseValue(rawValue []byte) (quad.Value, error) {
+	var a interface{}
+	err := json.Unmarshal(rawValue, &a)
+	if err != nil {
+		return nil, err
+	}
+	switch a := a.(type) {
+	case string:
+		return quad.String(a), nil
+	case map[string]interface{}:
+		id, ok := a["@id"].(string)
+		if ok {
+			if strings.HasPrefix(id, "_:") {
+				return quad.BNode(id[2:]), nil
+			}
+			return quad.IRI(id), nil
+		}
+		_, ok = a["@value"].(string)
+		if ok {
+			panic("Doesn't support special literals yet")
+		}
+	}
+	return nil, errors.New("Couldn't parse rawValue to a quad.Value")
+}
+
 // BuildPath implements Step
 func (s *Vertex) BuildPath(qs graph.QuadStore) *path.Path {
-	return path.StartPath(qs)
+	var values []quad.Value
+	for _, rawValue := range s.Values {
+		value, err := parseValue(rawValue)
+		if err != nil {
+			panic(err)
+		}
+		values = append(values, value)
+	}
+	return path.StartPath(qs, values...)
 }
 
 // Out corresponds to .out()
@@ -47,5 +82,5 @@ func (s *Out) Type() quad.IRI {
 
 // BuildPath implements Step
 func (s *Out) BuildPath(qs graph.QuadStore) *path.Path {
-	return path.StartPath(qs)
+	return s.From.BuildPath(qs).OutWithTags(s.Tags, s.Via.BuildPath(qs))
 }
