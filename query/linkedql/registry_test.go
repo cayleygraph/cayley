@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/quad"
 
 	"github.com/stretchr/testify/require"
@@ -100,7 +100,7 @@ func (s *TestStep) Type() quad.IRI {
 	return "cayley:TestStep"
 }
 
-func (s *TestStep) BuildPath(qs graph.QuadStore) *path.Path {
+func (s *TestStep) BuildIterator(qs graph.QuadStore) query.Iterator {
 	panic("Can't build path for TestStep")
 }
 
