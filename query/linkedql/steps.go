@@ -2,11 +2,14 @@ package linkedql
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
@@ -23,6 +26,17 @@ func init() {
 	Register(&Value{})
 	Register(&Intersect{})
 	Register(&Is{})
+	Register(&Back{})
+	Register(&Both{})
+	Register(&Count{})
+	Register(&Except{})
+	Register(&LessThan{})
+	Register(&LessThanEquals{})
+	Register(&GreaterThan{})
+	Register(&GreaterThanEquals{})
+	Register(&RegExp{})
+	Register(&Like{})
+	Register(&Filter{})
 }
 
 // Vertex corresponds to g.V()
@@ -81,7 +95,7 @@ func (s *Out) BuildIterator(qs graph.QuadStore) query.Iterator {
 	}
 	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
 	if !ok {
-		panic("Out must be called from ValueIterator")
+		panic("Out must be called with ValueIterator via")
 	}
 	path := fromIt.path.OutWithTags(s.Tags, viaIt.path)
 	return NewValueIterator(path, qs)
@@ -166,7 +180,7 @@ func (s *Intersect) BuildIterator(qs graph.QuadStore) query.Iterator {
 	}
 	intersecteeIt, ok := s.Intersectee.BuildIterator(qs).(*ValueIterator)
 	if !ok {
-		panic("Intersect must be called with ValueIterator")
+		panic("Intersect must be called with ValueIterator intersectee")
 	}
 	return NewValueIterator(fromIt.path.And(intersecteeIt.path), qs)
 }
@@ -231,7 +245,183 @@ func (s *Both) BuildIterator(qs graph.QuadStore) query.Iterator {
 	}
 	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
 	if !ok {
-		panic("Both must be called from ValueIterator")
+		panic("Both must be called with ValueIterator via")
 	}
 	return NewValueIterator(fromIt.path.BothWithTags(s.Tags, viaIt.path), qs)
+}
+
+// Count corresponds to .count()
+type Count struct {
+	From Step `json:"from"`
+}
+
+// Type implements Step
+func (s *Count) Type() quad.IRI {
+	return prefix + "Count"
+}
+
+// BuildIterator implements Step
+func (s *Count) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Count must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Count(), qs)
+}
+
+// Except corresponds to .except() and .difference()
+type Except struct {
+	From     Step `json:"from"`
+	Excepted Step `json:"excepted"`
+}
+
+// Type implements Step
+func (s *Except) Type() quad.IRI {
+	return prefix + "Except"
+}
+
+// BuildIterator implements Step
+func (s *Except) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Except must be called from ValueIterator")
+	}
+	exceptedIt, ok := s.Excepted.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Except must be called with ValueIterator excepted")
+	}
+	return NewValueIterator(fromIt.path.Except(exceptedIt.path), qs)
+}
+
+// LessThan corresponds to lt()
+type LessThan struct {
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step
+func (s *LessThan) Type() quad.IRI {
+	return prefix + "LessThan"
+}
+
+// BuildIterator implements Step
+func (s *LessThan) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Can't BuildIterator for " + s.Type())
+}
+
+// LessThanEquals corresponds to lte()
+type LessThanEquals struct {
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step
+func (s *LessThanEquals) Type() quad.IRI {
+	return prefix + "LessThanEquals"
+}
+
+// BuildIterator implements Step
+func (s *LessThanEquals) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Can't BuildIterator for " + s.Type())
+}
+
+// GreaterThan corresponds to gt()
+type GreaterThan struct {
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step
+func (s *GreaterThan) Type() quad.IRI {
+	return prefix + "GreaterThan"
+}
+
+// BuildIterator implements Step
+func (s *GreaterThan) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Can't BuildIterator for " + s.Type())
+}
+
+// GreaterThanEquals corresponds to gte()
+type GreaterThanEquals struct {
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step
+func (s *GreaterThanEquals) Type() quad.IRI {
+	return prefix + "GreaterThanEquals"
+}
+
+// BuildIterator implements Step
+func (s *GreaterThanEquals) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Can't BuildIterator for " + s.Type())
+}
+
+// RegExp corresponds to regex()
+type RegExp struct {
+	Expression  string `json:"expression"`
+	IncludeIRIs bool   `json:"includeIRIs"`
+}
+
+// Type implements Step
+func (s *RegExp) Type() quad.IRI {
+	return prefix + "RegExp"
+}
+
+// BuildIterator implements Step
+func (s *RegExp) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Can't BuildIterator for " + s.Type())
+}
+
+// Like corresponds to like()
+type Like struct {
+	Pattern string `json:"pattern"`
+}
+
+// Type implements Step
+func (s *Like) Type() quad.IRI {
+	return prefix + "Like"
+}
+
+// BuildIterator implements Step
+func (s *Like) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Can't BuildIterator for " + s.Type())
+}
+
+// Filter corresponds to filter()
+type Filter struct {
+	From   Step `json:"from"`
+	Filter Step `json:"filter"`
+}
+
+// Type implements Step
+func (s *Filter) Type() quad.IRI {
+	return prefix + "Filter"
+}
+
+// BuildIterator implements Step
+func (s *Filter) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Except must be called from ValueIterator")
+	}
+	switch filter := s.Filter.(type) {
+	case *LessThan:
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLT), filter.Value), qs)
+	case *LessThanEquals:
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLTE), filter.Value), qs)
+	case *GreaterThan:
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGT), filter.Value), qs)
+	case *GreaterThanEquals:
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGTE), filter.Value), qs)
+	case *RegExp:
+		expression, err := regexp.Compile(string(filter.Expression))
+		if err != nil {
+			panic("Invalid RegExp")
+		}
+		if filter.IncludeIRIs {
+			return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs)
+		}
+		return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs)
+	case *Like:
+		return NewValueIterator(fromIt.path.Filters(shape.Wildcard{Pattern: filter.Pattern}), qs)
+	default:
+		panic("Filter is not recognized")
+	}
 }
