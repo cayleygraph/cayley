@@ -2,6 +2,7 @@ package linkedql
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -131,4 +132,24 @@ func UnmarshalStep(data []byte) (Step, error) {
 		}
 	}
 	return step.Addr().Interface().(Step), nil
+}
+
+func parseValue(a interface{}) (quad.Value, error) {
+	switch a := a.(type) {
+	case string:
+		return quad.String(a), nil
+	case map[string]interface{}:
+		id, ok := a["@id"].(string)
+		if ok {
+			if strings.HasPrefix(id, "_:") {
+				return quad.BNode(id[2:]), nil
+			}
+			return quad.IRI(id), nil
+		}
+		_, ok = a["@value"].(string)
+		if ok {
+			panic("Doesn't support special literals yet")
+		}
+	}
+	return nil, errors.New("Couldn't parse rawValue to a quad.Value")
 }
