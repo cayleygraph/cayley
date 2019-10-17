@@ -113,7 +113,6 @@ func optimizeOrder(ctx context.Context, its []graph.IteratorShape) []graph.Itera
 	var (
 		// bad contains iterators that can't be (efficiently) nexted, such as
 		// graph.Optional or graph.Not. Separate them out and tack them on at the end.
-		bad      []graph.IteratorShape
 		best     graph.IteratorShape
 		bestCost = int64(1 << 62)
 	)
@@ -122,14 +121,19 @@ func optimizeOrder(ctx context.Context, its []graph.IteratorShape) []graph.Itera
 	// Total cost is defined as The Next()ed iterator's cost to Next() out
 	// all of it's contents, and to Contains() each of those against everyone
 	// else.
-	for _, root := range its {
-		rootStats, _ := root.Stats(ctx)
+	costs := make([]graph.IteratorCosts, 0, len(its))
+	for _, it := range its {
+		st, _ := it.Stats(ctx)
+		costs = append(costs, st)
+	}
+	for i, root := range its {
+		rootStats := costs[i]
 		cost := rootStats.NextCost
-		for _, f := range its {
+		for j, f := range its {
 			if f == root {
 				continue
 			}
-			stats, _ := f.Stats(ctx)
+			stats := costs[j]
 			cost += stats.ContainsCost * (1 + (rootStats.Size.Value / (stats.Size.Value + 1)))
 		}
 		cost *= rootStats.Size.Value
@@ -161,9 +165,7 @@ func optimizeOrder(ctx context.Context, its []graph.IteratorShape) []graph.Itera
 			out = append(out, it)
 		}
 	}
-
-	// ...and finally, the difficult children on the end.
-	return append(out, bad...)
+	return out
 }
 
 func sortByContainsCost(ctx context.Context, arr []graph.IteratorShape) error {
