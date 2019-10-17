@@ -11,10 +11,7 @@ import (
 func TestNodeQuery(t *testing.T) {
 	q := `
 {
-	"@type": "linkedql:All",
-	"parent": {
-		"@type": "linkedql:NewVertex"
-	}
+	"@type": "linkedql:NewVertex"
 }
 	`
 	store := memstore.New()

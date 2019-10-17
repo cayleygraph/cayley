@@ -3,6 +3,8 @@ package linkedql
 import (
 	"testing"
 
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 
 	"github.com/stretchr/testify/require"
@@ -96,6 +98,10 @@ type TestStep struct {
 
 func (s *TestStep) Type() quad.IRI {
 	return "cayley:TestStep"
+}
+
+func (s *TestStep) BuildPath(qs graph.QuadStore) *path.Path {
+	panic("Can't build path for TestStep")
 }
 
 func TestUnmarshalStep(t *testing.T) {
