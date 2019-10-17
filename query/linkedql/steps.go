@@ -22,6 +22,7 @@ func init() {
 	Register(&TagArray{})
 	Register(&Value{})
 	Register(&Intersect{})
+	Register(&Is{})
 }
 
 // Vertex corresponds to g.V()
@@ -168,5 +169,20 @@ func (s *Intersect) BuildIterator(qs graph.QuadStore) query.Iterator {
 }
 
 type Is struct {
+	From   Step         `json:"from"`
 	Values []quad.Value `json:"values"`
+}
+
+// Type implements Step
+func (s *Is) Type() quad.IRI {
+	return prefix + "Is"
+}
+
+// BuildIterator implements Step
+func (s *Is) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Is must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Is(s.Values...), qs)
 }

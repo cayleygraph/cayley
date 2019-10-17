@@ -138,6 +138,36 @@ var testCases = []struct {
 			quad.IRI("alice"),
 		},
 	},
+	{
+		name: "Is",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: `
+		{
+			"@type": "linkedql:Is",
+			"values": [{ "@id": "bob" }],
+			"from": {
+				"@type": "linkedql:Out",
+				"from": {
+					"@type": "linkedql:Vertex",
+					"values": [{ "@id": "alice" }]
+				},
+				"via": {
+					"@type": "linkedql:Vertex",
+					"values": [
+						{
+							"@id": "likes"
+						}
+					]
+				}
+			}
+		}
+		`,
+		results: []interface{}{
+			quad.IRI("bob"),
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
