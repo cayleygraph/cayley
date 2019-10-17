@@ -54,6 +54,45 @@ var testCases = []struct {
 			quad.IRI("bob"),
 		},
 	},
+	{
+		name: "TagArray",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: `
+		{
+			"@type": "linkedql:TagArray",
+			"from": {
+				"@type": "linkedql:Tag",
+				"tags": ["liked"],
+				"from": {
+					"@type": "linkedql:Out",
+					"from": {
+						"@type": "linkedql:Vertex"
+					},
+					"via": {
+						"@type": "linkedql:Tag",
+						"tags": ["liker"],
+						"from": {
+							"@type": "linkedql:Vertex",
+							"values": [
+								{
+									"@id": "likes"
+								}
+							]
+						}
+					}
+				}
+			}
+		}
+		`,
+		results: []interface{}{
+			map[string]quad.IRI{
+				"liker": quad.IRI("alice"),
+				"liked": quad.IRI("bob"),
+			},
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
