@@ -177,7 +177,7 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 func TestLinksToOptimization(t *testing.T) {
 	qs, _, _ := makeTestStore(simpleGraph)
 
-	lto := shape.BuildIterator(qs, shape.Quads{
+	lto := shape.BuildIterator(context.TODO(), qs, shape.Quads{
 		{Dir: quad.Object, Values: shape.Lookup{quad.Raw("cool")}},
 	})
 

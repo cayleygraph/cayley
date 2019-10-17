@@ -36,7 +36,7 @@ var _ graph.QuadStore = ValLookup(nil)
 
 type ValLookup map[quad.Value]graph.Ref
 
-func (qs ValLookup) OptimizeShape(s Shape) (Shape, bool) {
+func (qs ValLookup) OptimizeShape(ctx context.Context, s Shape) (Shape, bool) {
 	return s, false // emulate dumb quad store
 }
 func (qs ValLookup) ValueOf(v quad.Value) graph.Ref {
@@ -355,7 +355,7 @@ func TestOptimize(t *testing.T) {
 	for _, c := range optimizeCases {
 		t.Run(c.name, func(t *testing.T) {
 			qs := c.qs
-			got, opt := Optimize(c.from, qs)
+			got, opt := Optimize(context.TODO(), c.from, qs)
 			assert.Equal(t, c.expect, got)
 			assert.Equal(t, c.opt, opt)
 		})

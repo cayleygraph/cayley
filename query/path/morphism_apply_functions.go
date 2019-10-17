@@ -15,6 +15,7 @@
 package path
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -240,7 +241,7 @@ func (s *iteratorShape) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	s.it, s.sent = nil, true
 	return it
 }
-func (s *iteratorShape) Optimize(r shape.Optimizer) (shape.Shape, bool) {
+func (s *iteratorShape) Optimize(ctx context.Context, r shape.Optimizer) (shape.Shape, bool) {
 	return s, false
 }
 
@@ -288,7 +289,7 @@ type iteratorBuilder func(qs graph.QuadStore) graph.IteratorShape
 func (s iteratorBuilder) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	return s(qs)
 }
-func (s iteratorBuilder) Optimize(r shape.Optimizer) (shape.Shape, bool) {
+func (s iteratorBuilder) Optimize(ctx context.Context, r shape.Optimizer) (shape.Shape, bool) {
 	return s, false
 }
 

@@ -1099,16 +1099,17 @@ func TestCompareTypedValues(t testing.TB, gen testutil.DatabaseFunc, conf *Confi
 		ExpectIteratedValues(t, qs, it, c.expect, true)
 	}
 
+	ctx := context.TODO()
 	for _, c := range casesCompare {
 		s := shape.Compare(shape.AllNodes{}, c.op, c.val)
-		ns, ok := shape.Optimize(s, qs)
+		ns, ok := shape.Optimize(ctx, s, qs)
 		require.Equal(t, conf.OptimizesComparison, ok)
 		if conf.OptimizesComparison {
 			require.NotEqual(t, s, ns)
 		} else {
 			require.Equal(t, s, ns)
 		}
-		nit := shape.BuildIterator(qs, ns)
+		nit := shape.BuildIterator(ctx, qs, ns)
 		ExpectIteratedValues(t, qs, nit, c.expect, true)
 	}
 }

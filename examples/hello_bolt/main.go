@@ -45,7 +45,7 @@ func main() {
 	ctx := context.TODO()
 	// Now we get an iterator for the path and optimize it.
 	// The second return is if it was optimized, but we don't care for now.
-	its, _ := p.BuildIterator().Optimize(ctx)
+	its, _ := p.BuildIterator(ctx).Optimize(ctx)
 	it := its.Iterate()
 
 	// remember to cleanup after yourself

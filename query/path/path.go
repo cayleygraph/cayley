@@ -501,16 +501,16 @@ func (p *Path) Back(tag string) *Path {
 // call this with a full path (not a morphism), since a morphism does not have
 // the ability to fetch the underlying quads.  This function will panic if
 // called with a morphism (i.e. if p.IsMorphism() is true).
-func (p *Path) BuildIterator() graph.IteratorShape {
+func (p *Path) BuildIterator(ctx context.Context) graph.IteratorShape {
 	if p.IsMorphism() {
 		panic("Building an iterator from a morphism. Bind a QuadStore with BuildIteratorOn(qs)")
 	}
-	return p.BuildIteratorOn(p.qs)
+	return p.BuildIteratorOn(ctx, p.qs)
 }
 
 // BuildIteratorOn will return an iterator for this path on the given QuadStore.
-func (p *Path) BuildIteratorOn(qs graph.QuadStore) graph.IteratorShape {
-	return shape.BuildIterator(qs, p.Shape())
+func (p *Path) BuildIteratorOn(ctx context.Context, qs graph.QuadStore) graph.IteratorShape {
+	return shape.BuildIterator(ctx, qs, p.Shape())
 }
 
 // Morphism returns the morphism of this path.  The returned value is a

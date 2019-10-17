@@ -91,7 +91,7 @@ func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.Iterato
 	})
 }
 
-func (qs *QuadStore) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
+func (qs *QuadStore) OptimizeShape(ctx context.Context, s shape.Shape) (shape.Shape, bool) {
 	switch s := s.(type) {
 	case shape.QuadsAction:
 		return qs.optimizeQuadsAction(s)
@@ -135,6 +135,6 @@ func (s IndexScan) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
 	return kqs.newQuadIterator(s.Index, s.Values)
 }
 
-func (s IndexScan) Optimize(r shape.Optimizer) (shape.Shape, bool) {
+func (s IndexScan) Optimize(ctx context.Context, r shape.Optimizer) (shape.Shape, bool) {
 	return s, false
 }

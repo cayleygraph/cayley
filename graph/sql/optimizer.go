@@ -15,6 +15,7 @@
 package sql
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -76,7 +77,7 @@ func sortDirs(dirs []quad.Direction) {
 	})
 }
 
-func (opt *Optimizer) OptimizeShape(s shape.Shape) (shape.Shape, bool) {
+func (opt *Optimizer) OptimizeShape(ctx context.Context, s shape.Shape) (shape.Shape, bool) {
 	switch s := s.(type) {
 	case shape.AllNodes:
 		return AllNodes(), true
