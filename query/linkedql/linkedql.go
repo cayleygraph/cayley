@@ -3,6 +3,7 @@ package linkedql
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/quad"
 )
 
 // Name is the name exposed to the query interface
@@ -18,4 +19,8 @@ func init() {
 			return NewSession(qs)
 		},
 	})
+}
+
+type Step interface {
+	Type() quad.IRI
 }
