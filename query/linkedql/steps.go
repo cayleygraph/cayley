@@ -37,6 +37,8 @@ func init() {
 	Register(&RegExp{})
 	Register(&Like{})
 	Register(&Filter{})
+	Register(&Follow{})
+	Register(&FollowReverse{})
 }
 
 // Vertex corresponds to g.V()
@@ -425,3 +427,66 @@ func (s *Filter) BuildIterator(qs graph.QuadStore) query.Iterator {
 		panic("Filter is not recognized")
 	}
 }
+
+type Follow struct {
+	From     Step `json:"from"`
+	Followed Step `json:"followed"`
+}
+
+func (s *Follow) Type() quad.IRI {
+	return prefix + "Follow"
+}
+
+func (s *Follow) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Follow must be called from ValueIterator")
+	}
+	followedIt, ok := s.Followed.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Follow must be called with ValueIterator followed")
+	}
+	return NewValueIterator(fromIt.path.Follow(followedIt.path), qs)
+}
+
+type FollowReverse struct {
+	From     Step `json:"from"`
+	Followed Step `json:"followed"`
+}
+
+func (s *FollowReverse) Type() quad.IRI {
+	return prefix + "FollowReverse"
+}
+
+func (s *FollowReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("FollowR must be called from ValueIterator")
+	}
+	followedIt, ok := s.Followed.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("FollowR must be called with ValueIterator followed")
+	}
+	return NewValueIterator(fromIt.path.FollowReverse(followedIt.path), qs)
+}
+
+// type FollowRecursive struct {
+// 	From     Step `json:"from"`
+// 	Followed Step `json:"followed"`
+// }
+
+// func (s *FollowRecursive) Type() quad.IRI {
+// 	return prefix + "FollowRecursive"
+// }
+
+// func (s *FollowRecursive) BuildIterator(qs graph.QuadStore) query.Iterator {
+// 	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+// 	if !ok {
+// 		panic("FollowRecursive must be called from ValueIterator")
+// 	}
+// 	followedIt, ok := s.Followed.BuildIterator(qs).(*ValueIterator)
+// 	if !ok {
+// 		panic("FollowRecursive must be called with ValueIterator followed")
+// 	}
+// 	return NewValueIterator(fromIt.path.Follow(followedIt.path), qs)
+// }
