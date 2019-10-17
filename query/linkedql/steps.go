@@ -40,7 +40,7 @@ func init() {
 	Register(&Follow{})
 	Register(&FollowReverse{})
 	Register(&Has{})
-	Register(&HasR{})
+	Register(&HasReverse{})
 	Register(&In{})
 	Register(&InPredicates{})
 	Register(&LabelContext{})
@@ -540,20 +540,20 @@ func (s *Has) BuildIterator(qs graph.QuadStore) query.Iterator {
 	return NewValueIterator(fromIt.path.Has(viaIt.path, s.Values...), qs)
 }
 
-// HasR corresponds to .hasR()
-type HasR struct {
+// HasReverse corresponds to .hasR()
+type HasReverse struct {
 	From   Step         `json:"from"`
 	Via    Step         `json:"via"`
 	Values []quad.Value `json:"values"`
 }
 
 // Type implements Step
-func (s *HasR) Type() quad.IRI {
-	return prefix + "HasR"
+func (s *HasReverse) Type() quad.IRI {
+	return prefix + "HasReverse"
 }
 
 // BuildIterator implements Step
-func (s *HasR) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *HasReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
 	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
 	if !ok {
 		panic("Has must be called from ValueIterator")
