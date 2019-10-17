@@ -22,6 +22,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -476,7 +477,7 @@ func (qs *QuadStore) Quad(index graph.Ref) quad.Quad {
 	return qs.lookupQuadDirs(q)
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) graph.IteratorShape {
+func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) iterator.Shape {
 	id, ok := asID(value)
 	if !ok {
 		return iterator.NewNull()
@@ -488,25 +489,25 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) graph.Itera
 	return iterator.NewNull()
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v graph.Ref) (refs.Size, error) {
 	id, ok := asID(v)
 	if !ok {
-		return graph.Size{Value: 0, Exact: true}, nil
+		return refs.Size{Value: 0, Exact: true}, nil
 	}
 	index, ok := qs.index.Get(d, id)
 	if !ok {
-		return graph.Size{Value: 0, Exact: true}, nil
+		return refs.Size{Value: 0, Exact: true}, nil
 	}
-	return graph.Size{Value: int64(index.Len()), Exact: true}, nil
+	return refs.Size{Value: int64(index.Len()), Exact: true}, nil
 }
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	return graph.Stats{
-		Nodes: graph.Size{
+		Nodes: refs.Size{
 			Value: int64(len(qs.vals)),
 			Exact: true,
 		},
-		Quads: graph.Size{
+		Quads: refs.Size{
 			Value: int64(len(qs.quads)),
 			Exact: true,
 		},
@@ -527,7 +528,7 @@ func (qs *QuadStore) ValueOf(name quad.Value) graph.Ref {
 func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	if v == nil {
 		return nil
-	} else if v, ok := v.(graph.PreFetchedValue); ok {
+	} else if v, ok := v.(refs.PreFetchedValue); ok {
 		return v.NameOf()
 	}
 	n, ok := asID(v)
@@ -540,7 +541,7 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	return qs.lookupVal(n)
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+func (qs *QuadStore) QuadsAllIterator() iterator.Shape {
 	return qs.newAllIterator(false, qs.last)
 }
 
@@ -556,7 +557,7 @@ func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) graph.Ref {
 	return bnode(id)
 }
 
-func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+func (qs *QuadStore) NodesAllIterator() iterator.Shape {
 	return qs.newAllIterator(true, qs.last)
 }
 

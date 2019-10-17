@@ -28,6 +28,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
 
@@ -329,11 +330,11 @@ type resolvedNode struct {
 	New bool
 }
 
-func (qs *QuadStore) incNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.NodeUpdate) (map[graph.ValueHash]resolvedNode, error) {
+func (qs *QuadStore) incNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.NodeUpdate) (map[refs.ValueHash]resolvedNode, error) {
 	var (
 		ins []nodeUpdate
 		upd = make([]nodeUpdate, 0, len(deltas))
-		ids = make(map[graph.ValueHash]resolvedNode, len(deltas))
+		ids = make(map[refs.ValueHash]resolvedNode, len(deltas))
 	)
 	err := qs.resolveValDeltas(ctx, tx, deltas, func(i int, id uint64) {
 		if id == 0 {
@@ -373,7 +374,7 @@ func (qs *QuadStore) incNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.N
 	_, err = qs.incNodesCnt(ctx, tx, upd, ins)
 	return ids, err
 }
-func (qs *QuadStore) decNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.NodeUpdate, nodes map[graph.ValueHash]uint64) error {
+func (qs *QuadStore) decNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.NodeUpdate, nodes map[refs.ValueHash]uint64) error {
 	upds := make([]nodeUpdate, 0, len(deltas))
 	for i, d := range deltas {
 		id := nodes[d.Hash]
@@ -494,7 +495,7 @@ func (w *quadWriter) Close() error {
 	return err
 }
 
-func (qs *QuadStore) applyAddDeltas(tx kv.Tx, in []graph.Delta, deltas *graphlog.Deltas, ignoreOpts graph.IgnoreOpts) (map[graph.ValueHash]resolvedNode, error) {
+func (qs *QuadStore) applyAddDeltas(tx kv.Tx, in []graph.Delta, deltas *graphlog.Deltas, ignoreOpts graph.IgnoreOpts) (map[refs.ValueHash]resolvedNode, error) {
 	ctx := context.TODO()
 
 	// first add all new nodes
@@ -585,7 +586,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	if len(deltas.QuadDel) != 0 || len(deltas.DecNode) != 0 {
 		links := make([]proto.Primitive, 0, len(deltas.QuadDel))
 		// resolve all nodes that will be removed
-		dnodes := make(map[graph.ValueHash]uint64, len(deltas.DecNode))
+		dnodes := make(map[refs.ValueHash]uint64, len(deltas.DecNode))
 		if err := qs.resolveValDeltas(ctx, tx, deltas.DecNode, func(i int, id uint64) {
 			dnodes[deltas.DecNode[i].Hash] = id
 		}); err != nil {
@@ -593,7 +594,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		}
 
 		// check for existence and delete quads
-		fixNodes := make(map[graph.ValueHash]int)
+		fixNodes := make(map[refs.ValueHash]int)
 		for _, q := range deltas.QuadDel {
 			var link proto.Primitive
 			exists := true
@@ -1075,15 +1076,15 @@ func (qs *QuadStore) resolveQuadValue(ctx context.Context, tx kv.Tx, v quad.Valu
 }
 
 func bucketKeyForVal(v quad.Value) kv.Key {
-	hash := graph.HashOf(v)
+	hash := refs.HashOf(v)
 	return bucketKeyForHash(hash)
 }
 
-func bucketKeyForHash(h graph.ValueHash) kv.Key {
+func bucketKeyForHash(h refs.ValueHash) kv.Key {
 	return bucketForVal(h[0], h[1]).AppendBytes(h[:])
 }
 
-func bucketKeyForHashRefs(h graph.ValueHash) kv.Key {
+func bucketKeyForHashRefs(h refs.ValueHash) kv.Key {
 	return bucketForValRefs(h[0], h[1]).AppendBytes(h[:])
 }
 

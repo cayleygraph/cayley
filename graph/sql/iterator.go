@@ -21,6 +21,8 @@ import (
 	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 )
@@ -69,17 +71,17 @@ type Iterator struct {
 	err   error
 }
 
-func (it *Iterator) Iterate() graph.Scanner {
+func (it *Iterator) Iterate() iterator.Scanner {
 	return it.qs.newIteratorNext(it.query)
 }
 
-func (it *Iterator) Lookup() graph.Index {
+func (it *Iterator) Lookup() iterator.Index {
 	return it.qs.newIteratorContains(it.query)
 }
 
-func (it *Iterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Iterator) Stats(ctx context.Context) (iterator.Costs, error) {
 	sz, err := it.getSize(ctx)
-	return graph.IteratorCosts{
+	return iterator.Costs{
 		NextCost:     1,
 		ContainsCost: 10,
 		Size:         sz,
@@ -97,20 +99,20 @@ func (it *Iterator) estimateSize(ctx context.Context) int64 {
 	return st.Quads.Value
 }
 
-func (it *Iterator) getSize(ctx context.Context) (graph.Size, error) {
+func (it *Iterator) getSize(ctx context.Context) (refs.Size, error) {
 	sz, err := it.qs.querySize(ctx, it.query)
 	if err != nil {
 		it.err = err
-		return graph.Size{Value: it.estimateSize(ctx), Exact: false}, err
+		return refs.Size{Value: it.estimateSize(ctx), Exact: false}, err
 	}
 	return sz, nil
 }
 
-func (it *Iterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Iterator) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	return it, false
 }
 
-func (it *Iterator) SubIterators() []graph.IteratorShape {
+func (it *Iterator) SubIterators() []iterator.Shape {
 	return nil
 }
 

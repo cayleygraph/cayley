@@ -21,14 +21,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cayleygraph/cayley/clog"
-
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	httpgraph "github.com/cayleygraph/cayley/graph/http"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -437,15 +438,15 @@ func (qs *QuadStore) updateLog(in []graph.Delta) ([]int64, error) {
 	return out, nil
 }
 
-func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) graph.IteratorShape {
+func (qs *QuadStore) QuadIterator(dir quad.Direction, v graph.Ref) iterator.Shape {
 	return qs.newIterator(quadKind, dir, v)
 }
 
-func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+func (qs *QuadStore) NodesAllIterator() iterator.Shape {
 	return qs.newAllIterator(nodeKind)
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+func (qs *QuadStore) QuadsAllIterator() iterator.Shape {
 	return qs.newAllIterator(quadKind)
 }
 
@@ -458,7 +459,7 @@ func (qs *QuadStore) NameOf(val graph.Ref) quad.Value {
 	if qs.context == nil {
 		clog.Errorf("Error in NameOf, context is nil, graph not correctly initialised")
 		return nil
-	} else if v, ok := val.(graph.PreFetchedValue); ok {
+	} else if v, ok := val.(refs.PreFetchedValue); ok {
 		return v.NameOf()
 	}
 	var key *datastore.Key
@@ -524,31 +525,31 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 		return graph.Stats{}, err
 	}
 	return graph.Stats{
-		Nodes: graph.Size{
+		Nodes: refs.Size{
 			Value: m.NodeCount,
 			Exact: true,
 		},
-		Quads: graph.Size{
+		Quads: refs.Size{
 			Value: m.QuadCount,
 			Exact: true,
 		},
 	}, nil
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (refs.Size, error) {
 	t, ok := val.(*Token)
 	if !ok || t.Kind != nodeKind {
-		return graph.Size{Value: 0, Exact: true}, nil
+		return refs.Size{Value: 0, Exact: true}, nil
 	} else if qs.context == nil {
-		return graph.Size{}, errors.New("cannot count iterator without a valid context")
+		return refs.Size{}, errors.New("cannot count iterator without a valid context")
 	}
 	key := qs.createKeyFromToken(t)
 	n := new(NodeEntry)
 	err := datastore.Get(qs.context, key, n)
 	if err != nil && err != datastore.ErrNoSuchEntity {
-		return graph.Size{}, err
+		return refs.Size{}, err
 	}
-	return graph.Size{Value: n.Size, Exact: true}, nil
+	return refs.Size{Value: n.Size, Exact: true}, nil
 }
 
 func (qs *QuadStore) Close() error {

@@ -95,7 +95,7 @@ func (s *Session) Execute(ctx context.Context, input string, opt query.Options) 
 type results struct {
 	s        *Session
 	col      query.Collation
-	it       graph.Scanner
+	it       iterator.Scanner
 	nextPath bool
 }
 

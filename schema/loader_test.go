@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/schema"
@@ -83,7 +82,7 @@ func TestLoadIteratorTo(t *testing.T) {
 			} else {
 				out = reflect.New(rt)
 			}
-			var it graph.IteratorShape
+			var it iterator.Shape
 			if c.from != nil {
 				fixed := iterator.NewFixed()
 				for _, id := range c.from {

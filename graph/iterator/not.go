@@ -3,39 +3,39 @@ package iterator
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type Not struct {
-	primary graph.IteratorShape
-	allIt   graph.IteratorShape
+	primary Shape
+	allIt   Shape
 }
 
-func NewNot(primaryIt, allIt graph.IteratorShape) *Not {
+func NewNot(primaryIt, allIt Shape) *Not {
 	return &Not{
 		primary: primaryIt,
 		allIt:   allIt,
 	}
 }
 
-func (it *Not) Iterate() graph.Scanner {
+func (it *Not) Iterate() Scanner {
 	return newNotNext(it.primary.Lookup(), it.allIt.Iterate())
 }
 
-func (it *Not) Lookup() graph.Index {
+func (it *Not) Lookup() Index {
 	return newNotContains(it.primary.Lookup())
 }
 
 // SubIterators returns a slice of the sub iterators.
 // The first iterator is the primary iterator, for which the complement
 // is generated.
-func (it *Not) SubIterators() []graph.IteratorShape {
-	return []graph.IteratorShape{it.primary, it.allIt}
+func (it *Not) SubIterators() []Shape {
+	return []Shape{it.primary, it.allIt}
 }
 
-func (it *Not) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Not) Optimize(ctx context.Context) (Shape, bool) {
 	// TODO - consider wrapping the primary with a MaterializeIt
 	optimizedPrimaryIt, optimized := it.primary.Optimize(ctx)
 	if optimized {
@@ -45,16 +45,16 @@ func (it *Not) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
 	return it, false
 }
 
-func (it *Not) Stats(ctx context.Context) (graph.IteratorCosts, error) {
+func (it *Not) Stats(ctx context.Context) (Costs, error) {
 	primaryStats, err := it.primary.Stats(ctx)
 	allStats, err2 := it.allIt.Stats(ctx)
 	if err == nil {
 		err = err2
 	}
-	return graph.IteratorCosts{
+	return Costs{
 		NextCost:     allStats.NextCost + primaryStats.ContainsCost,
 		ContainsCost: primaryStats.ContainsCost,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: allStats.Size.Value - primaryStats.Size.Value,
 			Exact: false,
 		},
@@ -68,19 +68,19 @@ func (it *Not) String() string {
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type notNext struct {
-	primaryIt graph.Index
-	allIt     graph.Scanner
-	result    graph.Ref
+	primaryIt Index
+	allIt     Scanner
+	result    refs.Ref
 }
 
-func newNotNext(primaryIt graph.Index, allIt graph.Scanner) *notNext {
+func newNotNext(primaryIt Index, allIt Scanner) *notNext {
 	return &notNext{
 		primaryIt: primaryIt,
 		allIt:     allIt,
 	}
 }
 
-func (it *notNext) TagResults(dst map[string]graph.Ref) {
+func (it *notNext) TagResults(dst map[string]refs.Ref) {
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)
 	}
@@ -109,7 +109,7 @@ func (it *notNext) Err() error {
 	return nil
 }
 
-func (it *notNext) Result() graph.Ref {
+func (it *notNext) Result() refs.Ref {
 	return it.result
 }
 
@@ -136,18 +136,18 @@ func (it *notNext) String() string {
 // Not iterator acts like a complement for the primary iterator.
 // It will return all the vertices which are not part of the primary iterator.
 type notContains struct {
-	primaryIt graph.Index
-	result    graph.Ref
+	primaryIt Index
+	result    refs.Ref
 	err       error
 }
 
-func newNotContains(primaryIt graph.Index) *notContains {
+func newNotContains(primaryIt Index) *notContains {
 	return &notContains{
 		primaryIt: primaryIt,
 	}
 }
 
-func (it *notContains) TagResults(dst map[string]graph.Ref) {
+func (it *notContains) TagResults(dst map[string]refs.Ref) {
 	if it.primaryIt != nil {
 		it.primaryIt.TagResults(dst)
 	}
@@ -157,14 +157,14 @@ func (it *notContains) Err() error {
 	return it.err
 }
 
-func (it *notContains) Result() graph.Ref {
+func (it *notContains) Result() refs.Ref {
 	return it.result
 }
 
 // Contains checks whether the passed value is part of the primary iterator's
 // complement. For a valid value, it updates the Result returned by the iterator
 // to the value itself.
-func (it *notContains) Contains(ctx context.Context, val graph.Ref) bool {
+func (it *notContains) Contains(ctx context.Context, val refs.Ref) bool {
 	if it.primaryIt.Contains(ctx, val) {
 		return false
 	}

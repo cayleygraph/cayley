@@ -22,9 +22,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphmock"
 	. "github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -63,7 +63,7 @@ var comparisonTests = []struct {
 	operand  quad.Value
 	operator Operator
 	expect   []quad.Value
-	qs       graph.Namer
+	qs       refs.Namer
 	iterator func() *Fixed
 }{
 	{
@@ -159,9 +159,9 @@ func TestValueComparison(t *testing.T) {
 var vciContainsTests = []struct {
 	message  string
 	operator Operator
-	check    graph.Ref
+	check    refs.Ref
 	expect   bool
-	qs       graph.Namer
+	qs       refs.Namer
 	val      quad.Value
 	iterator func() *Fixed
 }{
@@ -242,7 +242,7 @@ func TestVCIContains(t *testing.T) {
 
 var comparisonIteratorTests = []struct {
 	message string
-	qs      graph.Namer
+	qs      refs.Namer
 	val     quad.Value
 }{
 	{

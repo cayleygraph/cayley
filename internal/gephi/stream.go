@@ -270,7 +270,7 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 	ictx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	itc := graph.Iterate(ictx, nodes).On(s.QS).Limit(limit)
+	itc := iterator.Iterate(ictx, nodes).On(s.QS).Limit(limit)
 
 	qi := 0
 	_ = itc.EachValuePair(s.QS, func(v graph.Ref, nv quad.Value) {

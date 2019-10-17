@@ -14,6 +14,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc/rdf"
@@ -147,7 +148,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 			q := it.Result()
 			p := qs.QuadDirection(q, quad.Predicate)
 			o := qs.QuadDirection(q, quad.Object)
-			k := graph.ToKey(p)
+			k := refs.ToKey(p)
 			prop := m[k]
 			prop.Pred = p
 			prop.Values = append(prop.Values, o)

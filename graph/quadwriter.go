@@ -26,6 +26,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/quad"
 )
 
@@ -307,7 +308,7 @@ func NewQuadStoreReader(qs QuadStore) quad.ReadSkipCloser {
 // Only quads returned by iterator's Result will be used.
 //
 // Iterator will be closed with the reader.
-func NewResultReader(qs QuadStore, it Scanner) quad.ReadSkipCloser {
+func NewResultReader(qs QuadStore, it iterator.Scanner) quad.ReadSkipCloser {
 	if it == nil {
 		it = qs.QuadsAllIterator().Iterate()
 	}
@@ -316,7 +317,7 @@ func NewResultReader(qs QuadStore, it Scanner) quad.ReadSkipCloser {
 
 type quadReader struct {
 	qs QuadStore
-	it Scanner
+	it iterator.Scanner
 }
 
 func (r *quadReader) ReadQuad() (quad.Quad, error) {

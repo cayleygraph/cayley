@@ -1,11 +1,18 @@
-package graph
+package refs
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 
 	"github.com/cayleygraph/quad"
 )
+
+// Size of a graph (either in nodes or quads).
+type Size struct {
+	Value int64
+	Exact bool
+}
 
 // Ref defines an opaque "quad store reference" type. However the backend wishes
 // to implement it, a Ref is merely a token to a quad or a node that the
@@ -21,6 +28,19 @@ type Ref interface {
 	// Key returns a dynamic type that is comparable according to the Go language specification.
 	// The returned value must be unique for each receiver value.
 	Key() interface{}
+}
+
+type Namer interface {
+	// Given a node ID, return the opaque token used by the QuadStore
+	// to represent that id.
+	ValueOf(quad.Value) Ref
+	// Given an opaque token, return the node that it represents.
+	NameOf(Ref) quad.Value
+}
+
+type BatchNamer interface {
+	ValuesOf(ctx context.Context, vals []Ref) ([]quad.Value, error)
+	RefsOf(ctx context.Context, nodes []quad.Value) ([]Ref, error)
 }
 
 func HashOf(s quad.Value) (out ValueHash) {
@@ -118,4 +138,30 @@ func (q *QuadHash) Set(d quad.Direction, h ValueHash) {
 	default:
 		panic(fmt.Errorf("unknown direction: %v", d))
 	}
+}
+
+func ValuesOf(ctx context.Context, qs Namer, vals []Ref) ([]quad.Value, error) {
+	if bq, ok := qs.(BatchNamer); ok {
+		return bq.ValuesOf(ctx, vals)
+	}
+	out := make([]quad.Value, len(vals))
+	for i, v := range vals {
+		out[i] = qs.NameOf(v)
+	}
+	return out, nil
+}
+
+func RefsOf(ctx context.Context, qs Namer, nodes []quad.Value) ([]Ref, error) {
+	if bq, ok := qs.(BatchNamer); ok {
+		return bq.RefsOf(ctx, nodes)
+	}
+	values := make([]Ref, len(nodes))
+	for i, node := range nodes {
+		value := qs.ValueOf(node)
+		if value == nil {
+			return nil, fmt.Errorf("not found: %v", node)
+		}
+		values[i] = value
+	}
+	return values, nil
 }

@@ -23,14 +23,16 @@ import (
 	"os"
 	"sync"
 
+	"github.com/hidal-go/hidalgo/kv"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
-	"github.com/hidal-go/hidalgo/kv"
 	boom "github.com/tylertreat/BoomFilters"
 )
 
@@ -84,8 +86,8 @@ const (
 )
 
 var (
-	_ graph.BatchQuadStore = (*QuadStore)(nil)
-	_ shape.Optimizer      = (*QuadStore)(nil)
+	_ refs.BatchNamer = (*QuadStore)(nil)
+	_ shape.Optimizer = (*QuadStore)(nil)
 )
 
 type QuadStore struct {
@@ -233,11 +235,11 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 		return graph.Stats{}, err
 	}
 	st := graph.Stats{
-		Nodes: graph.Size{
+		Nodes: refs.Size{
 			Value: sz / 3,
 			Exact: false, // TODO(dennwc): store nodes count
 		},
-		Quads: graph.Size{
+		Quads: refs.Size{
 			Value: sz,
 			Exact: true,
 		},
@@ -298,13 +300,13 @@ func (qs *QuadStore) horizon(ctx context.Context) int64 {
 func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Ref) ([]quad.Value, error) {
 	out := make([]quad.Value, len(vals))
 	var (
-		inds []int
-		refs []uint64
+		inds  []int
+		irefs []uint64
 	)
 	for i, v := range vals {
 		if v == nil {
 			continue
-		} else if pv, ok := v.(graph.PreFetchedValue); ok {
+		} else if pv, ok := v.(refs.PreFetchedValue); ok {
 			out[i] = pv.NameOf()
 			continue
 		}
@@ -314,15 +316,15 @@ func (qs *QuadStore) ValuesOf(ctx context.Context, vals []graph.Ref) ([]quad.Val
 				continue
 			}
 			inds = append(inds, i)
-			refs = append(refs, uint64(v))
+			irefs = append(irefs, uint64(v))
 		default:
 			return out, fmt.Errorf("unknown type of graph.Ref; not meant for this quadstore. apparently a %#v", v)
 		}
 	}
-	if len(refs) == 0 {
+	if len(irefs) == 0 {
 		return out, nil
 	}
-	prim, err := qs.getPrimitives(ctx, refs)
+	prim, err := qs.getPrimitives(ctx, irefs)
 	if err != nil {
 		return out, err
 	}

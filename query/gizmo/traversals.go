@@ -22,7 +22,6 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
@@ -80,7 +79,7 @@ func (p *pathObject) clonePath() *path.Path {
 	p.path, np = np, p.path
 	return np
 }
-func (p *pathObject) buildIteratorTree() graph.IteratorShape {
+func (p *pathObject) buildIteratorTree() iterator.Shape {
 	if p.path == nil {
 		return iterator.NewNull()
 	}

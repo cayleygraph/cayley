@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cayleygraph/cayley/graph"
 	. "github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
 // Make sure that tags work on the And.
@@ -30,16 +30,16 @@ func TestAndTag(t *testing.T) {
 	ctx := context.TODO()
 	fix1 := NewFixed(Int64Node(234))
 	fix2 := NewFixed(Int64Node(234))
-	var ands graph.IteratorShape = NewAnd(Tag(fix1, "foo")).AddOptionalIterator(Tag(fix2, "baz"))
+	var ands Shape = NewAnd(Tag(fix1, "foo")).AddOptionalIterator(Tag(fix2, "baz"))
 	ands = Tag(ands, "bar")
 
 	and := ands.Iterate()
 	require.True(t, and.Next(ctx))
 	require.Equal(t, Int64Node(234), and.Result())
 
-	tags := make(map[string]graph.Ref)
+	tags := make(map[string]refs.Ref)
 	and.TagResults(tags)
-	require.Equal(t, map[string]graph.Ref{
+	require.Equal(t, map[string]refs.Ref{
 		"foo": Int64Node(234),
 		"bar": Int64Node(234),
 		"baz": Int64Node(234),
@@ -64,7 +64,7 @@ func TestAndAndFixedIterators(t *testing.T) {
 	// Should be as big as smallest subiterator
 	st, err := ands.Stats(ctx)
 	require.NoError(t, err)
-	require.Equal(t, graph.Size{
+	require.Equal(t, refs.Size{
 		Value: 3,
 		Exact: true,
 	}, st.Size)
@@ -99,7 +99,7 @@ func TestNonOverlappingFixedIterators(t *testing.T) {
 	// Should be as big as smallest subiterator
 	st, err := ands.Stats(ctx)
 	require.NoError(t, err)
-	require.Equal(t, graph.Size{
+	require.Equal(t, refs.Size{
 		Value: 3,
 		Exact: true,
 	}, st.Size)

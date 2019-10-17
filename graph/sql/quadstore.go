@@ -13,6 +13,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/log"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
@@ -64,7 +65,7 @@ func (v TimeVal) SQLValue() interface{} {
 }
 
 type NodeHash struct {
-	graph.ValueHash
+	refs.ValueHash
 }
 
 func (h NodeHash) SQLValue() interface{} {
@@ -93,11 +94,11 @@ func (h *NodeHash) Scan(src interface{}) error {
 }
 
 func HashOf(s quad.Value) NodeHash {
-	return NodeHash{graph.HashOf(s)}
+	return NodeHash{refs.HashOf(s)}
 }
 
 type QuadHashes struct {
-	graph.QuadHash
+	refs.QuadHash
 }
 
 type QuadStore struct {
@@ -424,7 +425,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 			deleteQuad   *sql.Stmt
 			deleteTriple *sql.Stmt
 		)
-		fixNodes := make(map[graph.ValueHash]int)
+		fixNodes := make(map[refs.ValueHash]int)
 		for _, d := range deltas.QuadDel {
 			dirs := make([]interface{}, 0, len(quad.Directions))
 			for _, h := range d.Quad.Dirs() {
@@ -518,7 +519,7 @@ func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 	}
 }
 
-func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.IteratorShape {
+func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) iterator.Shape {
 	v, ok := val.(Value)
 	if !ok {
 		return iterator.NewNull()
@@ -528,36 +529,36 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) graph.Iterato
 	return qs.newIterator(sel)
 }
 
-func (qs *QuadStore) querySize(ctx context.Context, sel Select) (graph.Size, error) {
+func (qs *QuadStore) querySize(ctx context.Context, sel Select) (refs.Size, error) {
 	sel.Fields = []Field{
 		{Name: "COUNT(*)", Raw: true}, // TODO: proper support for expressions
 	}
 	var sz int64
 	err := qs.QueryRow(ctx, sel).Scan(&sz)
 	if err != nil {
-		return graph.Size{}, err
+		return refs.Size{}, err
 	}
-	return graph.Size{
+	return refs.Size{
 		Value: sz,
 		Exact: true,
 	}, nil
 }
 
-func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
+func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (refs.Size, error) {
 	v, ok := val.(Value)
 	if !ok {
-		return graph.Size{Value: 0, Exact: true}, nil
+		return refs.Size{Value: 0, Exact: true}, nil
 	}
 	sel := AllQuads("")
 	sel.WhereEq("", dirField(d), v)
 	return qs.querySize(ctx, sel)
 }
 
-func (qs *QuadStore) NodesAllIterator() graph.IteratorShape {
+func (qs *QuadStore) NodesAllIterator() iterator.Shape {
 	return qs.newIterator(AllNodes())
 }
 
-func (qs *QuadStore) QuadsAllIterator() graph.IteratorShape {
+func (qs *QuadStore) QuadsAllIterator() iterator.Shape {
 	return qs.newIterator(AllQuads(""))
 }
 
@@ -608,16 +609,16 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 			clog.Infof("NameOf was nil")
 		}
 		return nil
-	} else if v, ok := v.(graph.PreFetchedValue); ok {
+	} else if v, ok := v.(refs.PreFetchedValue); ok {
 		return v.NameOf()
 	}
 	var hash NodeHash
 	switch h := v.(type) {
-	case graph.PreFetchedValue:
+	case refs.PreFetchedValue:
 		return h.NameOf()
 	case NodeHash:
 		hash = h
-	case graph.ValueHash:
+	case refs.ValueHash:
 		hash = NodeHash{h}
 	default:
 		panic(fmt.Errorf("unexpected token: %T", v))
@@ -716,8 +717,8 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	st := graph.Stats{
-		Nodes: graph.Size{Exact: true},
-		Quads: graph.Size{Exact: true},
+		Nodes: refs.Size{Exact: true},
+		Quads: refs.Size{Exact: true},
 	}
 	qs.mu.RLock()
 	st.Quads.Value = qs.quads

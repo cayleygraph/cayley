@@ -27,6 +27,7 @@ import (
 	"github.com/dop251/goja"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/quad"
@@ -146,11 +147,11 @@ func (s *Session) tagsToValueMap(m map[string]graph.Ref) map[string]interface{} 
 	}
 	return outputMap
 }
-func (s *Session) runIteratorToArray(it graph.IteratorShape, limit int) ([]map[string]interface{}, error) {
+func (s *Session) runIteratorToArray(it iterator.Shape, limit int) ([]map[string]interface{}, error) {
 	ctx := s.context()
 
 	output := make([]map[string]interface{}, 0)
-	err := graph.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
+	err := iterator.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
 		tm := s.tagsToValueMap(tags)
 		if tm == nil {
 			return
@@ -163,11 +164,11 @@ func (s *Session) runIteratorToArray(it graph.IteratorShape, limit int) ([]map[s
 	return output, nil
 }
 
-func (s *Session) runIteratorToArrayNoTags(it graph.IteratorShape, limit int) ([]interface{}, error) {
+func (s *Session) runIteratorToArrayNoTags(it iterator.Shape, limit int) ([]interface{}, error) {
 	ctx := s.context()
 
 	output := make([]interface{}, 0)
-	err := graph.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(s.qs, func(v quad.Value) {
+	err := iterator.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(s.qs, func(v quad.Value) {
 		if o := s.quadValueToNative(v); o != nil {
 			output = append(output, o)
 		}
@@ -178,7 +179,7 @@ func (s *Session) runIteratorToArrayNoTags(it graph.IteratorShape, limit int) ([
 	return output, nil
 }
 
-func (s *Session) runIteratorWithCallback(it graph.IteratorShape, callback goja.Value, this goja.FunctionCall, limit int) error {
+func (s *Session) runIteratorWithCallback(it iterator.Shape, callback goja.Value, this goja.FunctionCall, limit int) error {
 	fnc, ok := goja.AssertFunction(callback)
 	if !ok {
 		return fmt.Errorf("expected js callback function")
@@ -186,7 +187,7 @@ func (s *Session) runIteratorWithCallback(it graph.IteratorShape, callback goja.
 	ctx, cancel := context.WithCancel(s.context())
 	defer cancel()
 	var gerr error
-	err := graph.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
+	err := iterator.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
 		tm := s.tagsToValueMap(tags)
 		if tm == nil {
 			return
@@ -221,11 +222,11 @@ func (s *Session) send(ctx context.Context, r *Result) bool {
 	return s.limit <= 0 || s.count < s.limit
 }
 
-func (s *Session) runIterator(it graph.IteratorShape) error {
+func (s *Session) runIterator(it iterator.Shape) error {
 	ctx, cancel := context.WithCancel(s.context())
 	defer cancel()
 	stop := false
-	err := graph.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Ref) {
+	err := iterator.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Ref) {
 		if !s.send(ctx, &Result{Tags: tags}) {
 			cancel()
 			stop = true
@@ -237,8 +238,8 @@ func (s *Session) runIterator(it graph.IteratorShape) error {
 	return err
 }
 
-func (s *Session) countResults(it graph.IteratorShape) (int64, error) {
-	return graph.Iterate(s.context(), it).Paths(true).Count()
+func (s *Session) countResults(it iterator.Shape) (int64, error) {
+	return iterator.Iterate(s.context(), it).Paths(true).Count()
 }
 
 type Result struct {

@@ -18,7 +18,9 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/proto"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -44,16 +46,16 @@ func (qs *QuadStore) newAllIterator(nodes bool, cons *constraint) *allIterator {
 	}
 }
 
-func (it *allIterator) Iterate() graph.Scanner {
+func (it *allIterator) Iterate() iterator.Scanner {
 	return it.qs.newAllIteratorNext(it.nodes, it.cons)
 }
 
-func (it *allIterator) Lookup() graph.Index {
+func (it *allIterator) Lookup() iterator.Index {
 	return it.qs.newAllIteratorContains(it.nodes, it.cons)
 }
 
 // No subiterators.
-func (it *allIterator) SubIterators() []graph.IteratorShape {
+func (it *allIterator) SubIterators() []iterator.Shape {
 	return nil
 }
 
@@ -63,15 +65,15 @@ func (it *allIterator) String() string {
 
 func (it *allIterator) Sorted() bool { return false }
 
-func (it *allIterator) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *allIterator) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	return it, false
 }
 
-func (it *allIterator) Stats(ctx context.Context) (graph.IteratorCosts, error) {
-	return graph.IteratorCosts{
+func (it *allIterator) Stats(ctx context.Context) (iterator.Costs, error) {
+	return iterator.Costs{
 		ContainsCost: 1,
 		NextCost:     2,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: it.qs.Size(),
 			Exact: false,
 		},

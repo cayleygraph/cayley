@@ -12,31 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iterator_test
+package graph_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph/graphmock"
-	. "github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/quad"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/quad"
 )
 
-func TestLinksTo(t *testing.T) {
+func TestHasAIteratorErr(t *testing.T) {
+	wantErr := errors.New("unique")
 	ctx := context.TODO()
-	object := quad.Raw("cool")
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("is"), Object: object, Label: nil}
-	qs := &graphmock.Store{
-		Data: []quad.Quad{q},
-	}
-	fixed := NewFixed()
+	errIt := iterator.NewError(wantErr)
 
-	val := qs.ValueOf(object)
+	// TODO(andrew-d): pass a non-nil quadstore
+	hasa := graph.NewHasA(nil, errIt, quad.Subject).Iterate()
 
-	fixed.Add(val)
-	lto := NewLinksTo(qs, fixed, quad.Object).Iterate()
-	require.True(t, lto.Next(ctx))
-	require.Equal(t, q, qs.Quad(lto.Result()))
+	require.False(t, hasa.Next(ctx), "HasA iterator did not pass through initial 'false'")
+	require.Equal(t, wantErr, hasa.Err(), "HasA iterator did not pass through underlying Err")
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/path/pathtest"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/cayley/schema"
@@ -126,13 +127,13 @@ func MakeQuadSet() []quad.Quad {
 	}
 }
 
-func IteratedQuads(t testing.TB, qs graph.QuadStore, s graph.IteratorShape) []quad.Quad {
+func IteratedQuads(t testing.TB, qs graph.QuadStore, s iterator.Shape) []quad.Quad {
 	it := s.Iterate()
 	defer it.Close()
 	return IteratedQuadsNext(t, qs, it)
 }
 
-func IteratedQuadsNext(t testing.TB, qs graph.QuadStore, it graph.Scanner) []quad.Quad {
+func IteratedQuadsNext(t testing.TB, qs graph.QuadStore, it iterator.Scanner) []quad.Quad {
 	ctx := context.TODO()
 	var res quad.ByQuadString
 	for it.Next(ctx) {
@@ -146,7 +147,7 @@ func IteratedQuadsNext(t testing.TB, qs graph.QuadStore, it graph.Scanner) []qua
 	return res
 }
 
-func ExpectIteratedQuads(t testing.TB, qs graph.QuadStore, it graph.IteratorShape, exp []quad.Quad, sortQuads bool) {
+func ExpectIteratedQuads(t testing.TB, qs graph.QuadStore, it iterator.Shape, exp []quad.Quad, sortQuads bool) {
 	got := IteratedQuads(t, qs, it)
 	if sortQuads {
 		sort.Sort(quad.ByQuadString(exp))
@@ -158,14 +159,14 @@ func ExpectIteratedQuads(t testing.TB, qs graph.QuadStore, it graph.IteratorShap
 	require.Equal(t, exp, got)
 }
 
-func ExpectIteratedRawStrings(t testing.TB, qs graph.QuadStore, it graph.IteratorShape, exp []string) {
+func ExpectIteratedRawStrings(t testing.TB, qs graph.QuadStore, it iterator.Shape, exp []string) {
 	//sort.Strings(exp)
 	got := IteratedStrings(t, qs, it)
 	//sort.Strings(got)
 	require.Equal(t, exp, got)
 }
 
-func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.IteratorShape, exp []quad.Value, sortVals bool) {
+func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it iterator.Shape, exp []quad.Value, sortVals bool) {
 	//sort.Strings(exp)
 	got := IteratedValues(t, qs, it)
 	//sort.Strings(got)
@@ -184,7 +185,7 @@ func ExpectIteratedValues(t testing.TB, qs graph.QuadStore, it graph.IteratorSha
 	}
 }
 
-func IteratedStrings(t testing.TB, qs graph.QuadStore, s graph.IteratorShape) []string {
+func IteratedStrings(t testing.TB, qs graph.QuadStore, s iterator.Shape) []string {
 	ctx := context.TODO()
 	it := s.Iterate()
 	defer it.Close()
@@ -197,7 +198,7 @@ func IteratedStrings(t testing.TB, qs graph.QuadStore, s graph.IteratorShape) []
 	return res
 }
 
-func IteratedValues(t testing.TB, qs graph.QuadStore, s graph.IteratorShape) []quad.Value {
+func IteratedValues(t testing.TB, qs graph.QuadStore, s iterator.Shape) []quad.Value {
 	ctx := context.TODO()
 	it := s.Iterate()
 	var res []quad.Value
@@ -232,8 +233,8 @@ func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 		require.Equal(t, pq, val, "quad store failed to roundtrip value: %q", pq)
 	}
 	exp := graph.Stats{
-		Nodes: graph.Size{Value: 4, Exact: true},
-		Quads: graph.Size{Value: 1, Exact: true},
+		Nodes: refs.Size{Value: 4, Exact: true},
+		Quads: refs.Size{Value: 1, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -266,8 +267,8 @@ func testLoadDup(t testing.TB, gen testutil.DatabaseFunc, c *Config, single bool
 	}
 
 	exp := graph.Stats{
-		Nodes: graph.Size{Value: 4, Exact: true},
-		Quads: graph.Size{Value: 1, Exact: true},
+		Nodes: refs.Size{Value: 4, Exact: true},
+		Quads: refs.Size{Value: 1, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -302,8 +303,8 @@ func TestLoadDupRaw(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 	require.NoError(t, err)
 
 	exp := graph.Stats{
-		Nodes: graph.Size{Value: 4, Exact: true},
-		Quads: graph.Size{Value: 1, Exact: true},
+		Nodes: refs.Size{Value: 4, Exact: true},
+		Quads: refs.Size{Value: 1, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -481,8 +482,8 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	require.NoError(t, err)
 
 	exp := graph.Stats{
-		Nodes: graph.Size{Value: 11, Exact: true},
-		Quads: graph.Size{Value: 11, Exact: true},
+		Nodes: refs.Size{Value: 11, Exact: true},
+		Quads: refs.Size{Value: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -509,16 +510,16 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	require.True(t, graph.IsQuadNotExist(err))
 	if !conf.SkipSizeCheckAfterDelete {
 		exp = graph.Stats{
-			Nodes: graph.Size{Value: 10, Exact: true},
-			Quads: graph.Size{Value: 10, Exact: true},
+			Nodes: refs.Size{Value: 10, Exact: true},
+			Quads: refs.Size{Value: 10, Exact: true},
 		}
 		st, err := qs.Stats(context.Background(), true)
 		require.NoError(t, err)
 		require.Equal(t, exp, st, "Unexpected quadstore size after RemoveQuad")
 	} else {
 		exp = graph.Stats{
-			Nodes: graph.Size{Value: 10, Exact: true},
-			Quads: graph.Size{Value: 11, Exact: true},
+			Nodes: refs.Size{Value: 10, Exact: true},
+			Quads: refs.Size{Value: 11, Exact: true},
 		}
 		st, err := qs.Stats(context.Background(), true)
 		require.NoError(t, err)
@@ -538,7 +539,7 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	var it graph.IteratorShape
+	var it iterator.Shape
 
 	it = qs.NodesAllIterator()
 	require.NotNil(t, it)
@@ -615,8 +616,8 @@ func TestHasA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	var it graph.IteratorShape = iterator.NewHasA(qs,
-		iterator.NewLinksTo(qs, qs.NodesAllIterator(), quad.Predicate),
+	var it iterator.Shape = graph.NewHasA(qs,
+		graph.NewLinksTo(qs, qs.NodesAllIterator(), quad.Predicate),
 		quad.Predicate)
 
 	it, _ = it.Optimize(context.TODO())
@@ -637,7 +638,7 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	expectIteratedQuads := func(it graph.IteratorShape, exp []quad.Quad) {
+	expectIteratedQuads := func(it iterator.Shape, exp []quad.Quad) {
 		ExpectIteratedQuads(t, qs, it, exp, false)
 	}
 
@@ -833,8 +834,8 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 		}
 	}
 	exp := graph.Stats{
-		Nodes: graph.Size{Value: 12, Exact: true},
-		Quads: graph.Size{Value: 7, Exact: true},
+		Nodes: refs.Size{Value: 12, Exact: true},
+		Quads: refs.Size{Value: 7, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -855,8 +856,8 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	exp := graph.Stats{
-		Nodes: graph.Size{Value: 11, Exact: true},
-		Quads: graph.Size{Value: 11, Exact: true},
+		Nodes: refs.Size{Value: 11, Exact: true},
+		Quads: refs.Size{Value: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -888,8 +889,8 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	assert.Nil(t, err, "AddQuadSet failed")
 
 	exp = graph.Stats{
-		Nodes: graph.Size{Value: 12, Exact: true},
-		Quads: graph.Size{Value: 13, Exact: true},
+		Nodes: refs.Size{Value: 12, Exact: true},
+		Quads: refs.Size{Value: 13, Exact: true},
 	}
 	st, err = qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -944,8 +945,8 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	exp := graph.Stats{
-		Nodes: graph.Size{Value: 11, Exact: true},
-		Quads: graph.Size{Value: 11, Exact: true},
+		Nodes: refs.Size{Value: 11, Exact: true},
+		Quads: refs.Size{Value: 11, Exact: true},
 	}
 	st, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
@@ -959,11 +960,11 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 
 	const allTag = "all"
 	innerAnd := iterator.NewAnd(
-		iterator.NewLinksTo(qs, fixed2, quad.Predicate),
-		iterator.NewLinksTo(qs, iterator.Tag(all, allTag), quad.Object),
+		graph.NewLinksTo(qs, fixed2, quad.Predicate),
+		graph.NewLinksTo(qs, iterator.Tag(all, allTag), quad.Object),
 	)
 
-	hasa := iterator.NewHasA(qs, innerAnd, quad.Subject)
+	hasa := graph.NewHasA(qs, innerAnd, quad.Subject)
 	outerAnd := iterator.NewAnd(fixed, hasa).Iterate()
 
 	require.True(t, outerAnd.Next(ctx), "Expected one matching subtree")

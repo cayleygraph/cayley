@@ -19,27 +19,30 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/graphmock"
-	. "github.com/cayleygraph/cayley/query/shape"
-	"github.com/cayleygraph/quad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/graphmock"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
+	. "github.com/cayleygraph/cayley/query/shape"
+	"github.com/cayleygraph/quad"
 )
 
-func intVal(v int) graph.Ref {
+func intVal(v int) refs.Ref {
 	return graphmock.IntVal(v)
 }
 
 var _ Optimizer = ValLookup(nil)
 var _ graph.QuadStore = ValLookup(nil)
 
-type ValLookup map[quad.Value]graph.Ref
+type ValLookup map[quad.Value]refs.Ref
 
 func (qs ValLookup) OptimizeShape(ctx context.Context, s Shape) (Shape, bool) {
 	return s, false // emulate dumb quad store
 }
-func (qs ValLookup) ValueOf(v quad.Value) graph.Ref {
+func (qs ValLookup) ValueOf(v quad.Value) refs.Ref {
 	return qs[v]
 }
 
@@ -49,22 +52,22 @@ func (ValLookup) NewQuadWriter() (quad.WriteCloser, error) {
 func (ValLookup) ApplyDeltas(_ []graph.Delta, _ graph.IgnoreOpts) error {
 	panic("not implemented")
 }
-func (ValLookup) Quad(_ graph.Ref) quad.Quad {
+func (ValLookup) Quad(_ refs.Ref) quad.Quad {
 	panic("not implemented")
 }
-func (ValLookup) QuadIterator(_ quad.Direction, _ graph.Ref) graph.IteratorShape {
+func (ValLookup) QuadIterator(_ quad.Direction, _ refs.Ref) iterator.Shape {
 	panic("not implemented")
 }
-func (ValLookup) QuadIteratorSize(ctx context.Context, d quad.Direction, val graph.Ref) (graph.Size, error) {
+func (ValLookup) QuadIteratorSize(ctx context.Context, d quad.Direction, val refs.Ref) (refs.Size, error) {
 	panic("not implemented")
 }
-func (ValLookup) NodesAllIterator() graph.IteratorShape {
+func (ValLookup) NodesAllIterator() iterator.Shape {
 	panic("not implemented")
 }
-func (ValLookup) QuadsAllIterator() graph.IteratorShape {
+func (ValLookup) QuadsAllIterator() iterator.Shape {
 	panic("not implemented")
 }
-func (ValLookup) NameOf(_ graph.Ref) quad.Value {
+func (ValLookup) NameOf(_ refs.Ref) quad.Value {
 	panic("not implemented")
 }
 func (ValLookup) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
@@ -73,7 +76,7 @@ func (ValLookup) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 func (ValLookup) Close() error {
 	panic("not implemented")
 }
-func (ValLookup) QuadDirection(_ graph.Ref, _ quad.Direction) graph.Ref {
+func (ValLookup) QuadDirection(_ refs.Ref, _ quad.Direction) refs.Ref {
 	panic("not implemented")
 }
 func (ValLookup) Type() string {
@@ -242,11 +245,11 @@ var optimizeCases = []struct {
 		from: NodesFrom{Dir: quad.Subject, Quads: Quads{
 			QuadFilter{Dir: quad.Predicate, Values: Intersect{
 				FixedTags{
-					Tags: map[string]graph.Ref{"foo": intVal(1)},
+					Tags: map[string]refs.Ref{"foo": intVal(1)},
 					On: NodesFrom{Dir: quad.Subject,
 						Quads: Quads{
 							QuadFilter{Dir: quad.Object, Values: FixedTags{
-								Tags: map[string]graph.Ref{"bar": intVal(2)},
+								Tags: map[string]refs.Ref{"bar": intVal(2)},
 								On:   Fixed{intVal(3)},
 							}},
 						},
@@ -256,11 +259,11 @@ var optimizeCases = []struct {
 		}},
 		opt: true,
 		expect: FixedTags{
-			Tags: map[string]graph.Ref{"foo": intVal(1), "bar": intVal(2)},
+			Tags: map[string]refs.Ref{"foo": intVal(1), "bar": intVal(2)},
 			On: NodesFrom{Dir: quad.Subject, Quads: Quads{
 				QuadFilter{Dir: quad.Predicate, Values: QuadsAction{
 					Result: quad.Subject,
-					Filter: map[quad.Direction]graph.Ref{quad.Object: intVal(3)},
+					Filter: map[quad.Direction]refs.Ref{quad.Object: intVal(3)},
 				}},
 			}},
 		},
@@ -314,7 +317,7 @@ var optimizeCases = []struct {
 					Dir: quad.Object,
 					Values: QuadsAction{
 						Result: quad.Subject,
-						Filter: map[quad.Direction]graph.Ref{
+						Filter: map[quad.Direction]refs.Ref{
 							quad.Predicate: intVal(2),
 						},
 					},
@@ -343,7 +346,7 @@ var optimizeCases = []struct {
 				Opt: []Shape{
 					QuadsAction{Result: quad.Subject,
 						Save:   map[quad.Direction][]string{quad.Object: {"status"}},
-						Filter: map[quad.Direction]graph.Ref{quad.Predicate: intVal(1)},
+						Filter: map[quad.Direction]refs.Ref{quad.Predicate: intVal(1)},
 					},
 				},
 			},
@@ -372,7 +375,7 @@ func TestWalk(t *testing.T) {
 				Dir: quad.Object,
 				Values: QuadsAction{
 					Result: quad.Subject,
-					Filter: map[quad.Direction]graph.Ref{
+					Filter: map[quad.Direction]refs.Ref{
 						quad.Predicate: intVal(2),
 					},
 				},

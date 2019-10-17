@@ -303,7 +303,7 @@ func (s Select) Columns() []string {
 	return names
 }
 
-func (s Select) BuildIterator(qs graph.QuadStore) graph.IteratorShape {
+func (s Select) BuildIterator(qs graph.QuadStore) iterator.Shape {
 	sq, ok := qs.(*QuadStore)
 	if !ok {
 		return iterator.NewError(fmt.Errorf("not a SQL quadstore: %T", qs))

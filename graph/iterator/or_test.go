@@ -21,11 +21,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cayleygraph/cayley/graph"
 	. "github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 )
 
-func iterated(s graph.IteratorShape) []int {
+func iterated(s Shape) []int {
 	ctx := context.TODO()
 	var res []int
 	it := s.Iterate()
@@ -95,7 +95,7 @@ func TestShortCircuitingOrBasics(t *testing.T) {
 	or.AddSubIterator(f1)
 	or.AddSubIterator(f2)
 	st, _ := or.Stats(ctx)
-	require.Equal(t, graph.Size{
+	require.Equal(t, refs.Size{
 		Value: 4,
 		Exact: true,
 	}, st.Size)

@@ -27,46 +27,29 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
-type BatchQuadStore interface {
-	ValuesOf(ctx context.Context, vals []Ref) ([]quad.Value, error)
-	RefsOf(ctx context.Context, nodes []quad.Value) ([]Ref, error)
+// Ref defines an opaque "quad store reference" type. However the backend wishes
+// to implement it, a Ref is merely a token to a quad or a node that the
+// backing store itself understands, and the base iterators pass around.
+//
+// For example, in a very traditional, graphd-style graph, these are int64s
+// (guids of the primitives). In a very direct sort of graph, these could be
+// pointers to structs, or merely quads, or whatever works best for the
+// backing store.
+//
+// These must be comparable, or return a comparable version on Key.
+type Ref = refs.Ref
+
+func ValuesOf(ctx context.Context, qs refs.Namer, vals []Ref) ([]quad.Value, error) {
+	return refs.ValuesOf(ctx, qs, vals)
 }
 
-func ValuesOf(ctx context.Context, qs Namer, vals []Ref) ([]quad.Value, error) {
-	if bq, ok := qs.(BatchQuadStore); ok {
-		return bq.ValuesOf(ctx, vals)
-	}
-	out := make([]quad.Value, len(vals))
-	for i, v := range vals {
-		out[i] = qs.NameOf(v)
-	}
-	return out, nil
-}
-
-func RefsOf(ctx context.Context, qs QuadStore, nodes []quad.Value) ([]Ref, error) {
-	if bq, ok := qs.(BatchQuadStore); ok {
-		return bq.RefsOf(ctx, nodes)
-	}
-	values := make([]Ref, len(nodes))
-	for i, node := range nodes {
-		value := qs.ValueOf(node)
-		if value == nil {
-			return nil, fmt.Errorf("not found: %v", node)
-		}
-		values[i] = value
-	}
-	return values, nil
-}
-
-type Namer interface {
-	// Given a node ID, return the opaque token used by the QuadStore
-	// to represent that id.
-	ValueOf(quad.Value) Ref
-	// Given an opaque token, return the node that it represents.
-	NameOf(Ref) quad.Value
+func RefsOf(ctx context.Context, qs refs.Namer, nodes []quad.Value) ([]Ref, error) {
+	return refs.RefsOf(ctx, qs, nodes)
 }
 
 type QuadIndexer interface {
@@ -75,10 +58,10 @@ type QuadIndexer interface {
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
-	QuadIterator(quad.Direction, Ref) IteratorShape
+	QuadIterator(quad.Direction, Ref) iterator.Shape
 
 	// QuadIteratorSize returns an estimated size of an iterator.
-	QuadIteratorSize(ctx context.Context, d quad.Direction, v Ref) (Size, error)
+	QuadIteratorSize(ctx context.Context, d quad.Direction, v Ref) (refs.Size, error)
 
 	// Convenience function for speed. Given a quad token and a direction
 	// return the node token for that direction. Sometimes, a QuadStore
@@ -98,20 +81,14 @@ type QuadIndexer interface {
 	Stats(ctx context.Context, exact bool) (Stats, error)
 }
 
-// Size of a graph (either in nodes or quads).
-type Size struct {
-	Value int64
-	Exact bool
-}
-
 // Stats of a graph.
 type Stats struct {
-	Nodes Size // number of nodes
-	Quads Size // number of quads
+	Nodes refs.Size // number of nodes
+	Quads refs.Size // number of quads
 }
 
 type QuadStore interface {
-	Namer
+	refs.Namer
 	QuadIndexer
 
 	// The only way in is through building a transaction, which
@@ -123,10 +100,10 @@ type QuadStore interface {
 	NewQuadWriter() (quad.WriteCloser, error)
 
 	// Returns an iterator enumerating all nodes in the graph.
-	NodesAllIterator() IteratorShape
+	NodesAllIterator() iterator.Shape
 
 	// Returns an iterator enumerating all links in the graph.
-	QuadsAllIterator() IteratorShape
+	QuadsAllIterator() iterator.Shape
 
 	// Close the quad store and clean up. (Flush to disk, cleanly
 	// sever connections, etc)
@@ -179,10 +156,3 @@ var (
 	ErrDatabaseExists = errors.New("quadstore: cannot init; database already exists")
 	ErrNotInitialized = errors.New("quadstore: not initialized")
 )
-
-type BulkLoader interface {
-	// BulkLoad loads Quads from a quad.Unmarshaler in bulk to the QuadStore.
-	// It returns ErrCannotBulkLoad if bulk loading is not possible. For example if
-	// you cannot load in bulk to a non-empty database, and the db is non-empty.
-	BulkLoad(quad.Reader) error
-}

@@ -3,47 +3,47 @@ package iterator
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
 // Count iterator returns one element with size of underlying iterator.
 type Count struct {
-	it graph.IteratorShape
-	qs graph.Namer
+	it Shape
+	qs refs.Namer
 }
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
 // qs may be nil - it's used to check if count Contains (is) a given value.
-func NewCount(it graph.IteratorShape, qs graph.Namer) *Count {
+func NewCount(it Shape, qs refs.Namer) *Count {
 	return &Count{
 		it: it, qs: qs,
 	}
 }
 
-func (it *Count) Iterate() graph.Scanner {
+func (it *Count) Iterate() Scanner {
 	return newCountNext(it.it)
 }
 
-func (it *Count) Lookup() graph.Index {
+func (it *Count) Lookup() Index {
 	return newCountContains(it.it, it.qs)
 }
 
 // SubIterators returns a slice of the sub iterators.
-func (it *Count) SubIterators() []graph.IteratorShape {
-	return []graph.IteratorShape{it.it}
+func (it *Count) SubIterators() []Shape {
+	return []Shape{it.it}
 }
 
-func (it *Count) Optimize(ctx context.Context) (graph.IteratorShape, bool) {
+func (it *Count) Optimize(ctx context.Context) (Shape, bool) {
 	sub, optimized := it.it.Optimize(ctx)
 	it.it = sub
 	return it, optimized
 }
 
-func (it *Count) Stats(ctx context.Context) (graph.IteratorCosts, error) {
-	stats := graph.IteratorCosts{
+func (it *Count) Stats(ctx context.Context) (Costs, error) {
+	stats := Costs{
 		NextCost: 1,
-		Size: graph.Size{
+		Size: refs.Size{
 			Value: 1,
 			Exact: true,
 		},
@@ -59,7 +59,7 @@ func (it *Count) String() string { return "Count" }
 
 // Count iterator returns one element with size of underlying iterator.
 type countNext struct {
-	it     graph.IteratorShape
+	it     Shape
 	done   bool
 	result quad.Value
 	err    error
@@ -67,13 +67,13 @@ type countNext struct {
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
 // qs may be nil - it's used to check if count Contains (is) a given value.
-func newCountNext(it graph.IteratorShape) *countNext {
+func newCountNext(it Shape) *countNext {
 	return &countNext{
 		it: it,
 	}
 }
 
-func (it *countNext) TagResults(dst map[string]graph.Ref) {}
+func (it *countNext) TagResults(dst map[string]refs.Ref) {}
 
 // Next counts a number of results in underlying iterator.
 func (it *countNext) Next(ctx context.Context) bool {
@@ -105,11 +105,11 @@ func (it *countNext) Err() error {
 	return it.err
 }
 
-func (it *countNext) Result() graph.Ref {
+func (it *countNext) Result() refs.Ref {
 	if it.result == nil {
 		return nil
 	}
-	return graph.PreFetched(it.result)
+	return refs.PreFetched(it.result)
 }
 
 func (it *countNext) NextPath(ctx context.Context) bool {
@@ -125,33 +125,33 @@ func (it *countNext) String() string { return "CountNext" }
 // Count iterator returns one element with size of underlying iterator.
 type countContains struct {
 	it *countNext
-	qs graph.Namer
+	qs refs.Namer
 }
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
 // qs may be nil - it's used to check if count Contains (is) a given value.
-func newCountContains(it graph.IteratorShape, qs graph.Namer) *countContains {
+func newCountContains(it Shape, qs refs.Namer) *countContains {
 	return &countContains{
 		it: newCountNext(it),
 		qs: qs,
 	}
 }
 
-func (it *countContains) TagResults(dst map[string]graph.Ref) {}
+func (it *countContains) TagResults(dst map[string]refs.Ref) {}
 
 func (it *countContains) Err() error {
 	return it.it.Err()
 }
 
-func (it *countContains) Result() graph.Ref {
+func (it *countContains) Result() refs.Ref {
 	return it.it.Result()
 }
 
-func (it *countContains) Contains(ctx context.Context, val graph.Ref) bool {
+func (it *countContains) Contains(ctx context.Context, val refs.Ref) bool {
 	if !it.it.done {
 		it.it.Next(ctx)
 	}
-	if v, ok := val.(graph.PreFetchedValue); ok {
+	if v, ok := val.(refs.PreFetchedValue); ok {
 		return v.NameOf() == it.it.result
 	}
 	if it.qs != nil {

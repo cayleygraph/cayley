@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
 )
 
@@ -18,7 +19,7 @@ var (
 )
 
 type NodeUpdate struct {
-	Hash   graph.ValueHash
+	Hash   refs.ValueHash
 	Val    quad.Value
 	RefInc int
 }
@@ -27,7 +28,7 @@ func (NodeUpdate) isOp() {}
 
 type QuadUpdate struct {
 	Ind  int
-	Quad graph.QuadHash
+	Quad refs.QuadHash
 	Del  bool
 }
 
@@ -41,16 +42,16 @@ type Deltas struct {
 }
 
 func InsertQuads(in []quad.Quad) *Deltas {
-	hnodes := make(map[graph.ValueHash]*NodeUpdate, len(in)*2)
+	hnodes := make(map[refs.ValueHash]*NodeUpdate, len(in)*2)
 	quadAdd := make([]QuadUpdate, 0, len(in))
 	for i, qd := range in {
-		var q graph.QuadHash
+		var q refs.QuadHash
 		for _, dir := range quad.Directions {
 			v := qd.Get(dir)
 			if v == nil {
 				continue
 			}
-			h := graph.HashOf(v)
+			h := refs.HashOf(v)
 			q.Set(dir, h)
 			n := hnodes[h]
 			if n == nil {
@@ -76,7 +77,7 @@ func InsertQuads(in []quad.Quad) *Deltas {
 }
 
 func SplitDeltas(in []graph.Delta) *Deltas {
-	hnodes := make(map[graph.ValueHash]*NodeUpdate, len(in)*2)
+	hnodes := make(map[refs.ValueHash]*NodeUpdate, len(in)*2)
 	quadAdd := make([]QuadUpdate, 0, len(in))
 	quadDel := make([]QuadUpdate, 0, len(in)/2)
 	var nadd, ndel int
@@ -92,13 +93,13 @@ func SplitDeltas(in []graph.Delta) *Deltas {
 		default:
 			panic("unknown action")
 		}
-		var q graph.QuadHash
+		var q refs.QuadHash
 		for _, dir := range quad.Directions {
 			v := d.Quad.Get(dir)
 			if v == nil {
 				continue
 			}
-			h := graph.HashOf(v)
+			h := refs.HashOf(v)
 			q.Set(dir, h)
 			n := hnodes[h]
 			if n == nil {
