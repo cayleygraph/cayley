@@ -467,11 +467,11 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 		l.HTTPQuery(ctx, h.QuadStore, w, r.Body)
 		return
 	}
-	if l.HTTP == nil {
+	if l.Session == nil {
 		errFunc(w, errors.New("HTTP interface is not supported for this query language"))
 		return
 	}
-	ses := l.HTTP(h.QuadStore)
+	ses := l.Session(h.QuadStore)
 	var qu string
 	if r.Method == "GET" {
 		qu = vals.Get("qu")

@@ -31,9 +31,6 @@ func init() {
 		Session: func(qs graph.QuadStore) query.Session {
 			return NewSession(qs)
 		},
-		HTTP: func(qs graph.QuadStore) query.HTTP {
-			return NewSession(qs)
-		},
 	})
 }
 
@@ -43,25 +40,6 @@ type Session struct {
 
 func NewSession(qs graph.QuadStore) *Session {
 	return &Session{qs: qs}
-}
-
-func (s *Session) ShapeOf(query string) (interface{}, error) {
-	var mqlQuery interface{}
-	err := json.Unmarshal([]byte(query), &mqlQuery)
-	if err != nil {
-		return nil, err
-	}
-	q := NewQuery(s)
-	q.BuildIteratorTree(context.TODO(), mqlQuery)
-	output := make(map[string]interface{})
-	iterator.OutputQueryShapeForIterator(q.it, s.qs, output)
-	nodes := make([]iterator.Node, 0)
-	for _, n := range output["nodes"].([]iterator.Node) {
-		n.Tags = nil
-		nodes = append(nodes, n)
-	}
-	output["nodes"] = nodes
-	return output, nil
 }
 
 type mqlIterator struct {

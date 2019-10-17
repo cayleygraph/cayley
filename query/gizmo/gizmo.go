@@ -27,7 +27,6 @@ import (
 	"github.com/dop251/goja"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/quad"
@@ -41,9 +40,6 @@ func init() {
 	query.RegisterLanguage(query.Language{
 		Name: Name,
 		Session: func(qs graph.QuadStore) query.Session {
-			return NewSession(qs)
-		},
-		HTTP: func(qs graph.QuadStore) query.HTTP {
 			return NewSession(qs)
 		},
 	})
@@ -100,8 +96,7 @@ type Session struct {
 	limit int
 	count int
 
-	err   error
-	shape map[string]interface{}
+	err error
 }
 
 func (s *Session) context() context.Context {
@@ -227,11 +222,6 @@ func (s *Session) send(ctx context.Context, r *Result) bool {
 }
 
 func (s *Session) runIterator(it graph.IteratorShape) error {
-	if s.shape != nil {
-		iterator.OutputQueryShapeForIterator(it, s.qs, s.shape)
-		return nil
-	}
-
 	ctx, cancel := context.WithCancel(s.context())
 	defer cancel()
 	stop := false
@@ -248,10 +238,6 @@ func (s *Session) runIterator(it graph.IteratorShape) error {
 }
 
 func (s *Session) countResults(it graph.IteratorShape) (int64, error) {
-	if s.shape != nil {
-		iterator.OutputQueryShapeForIterator(it, s.qs, s.shape)
-		return 0, nil
-	}
 	return graph.Iterate(s.context(), it).Paths(true).Count()
 }
 
@@ -462,18 +448,4 @@ func (it *results) Err() error {
 func (it *results) Close() error {
 	it.stop(errors.New("iterator closed"))
 	return nil
-}
-
-// Web stuff
-
-func (s *Session) ShapeOf(qu string) (interface{}, error) {
-	s.shape = make(map[string]interface{})
-	err := s.compile(qu)
-	if err != nil {
-		return nil, err
-	}
-	_, err = s.run()
-	out := s.shape
-	s.shape = nil
-	return out, err
 }
