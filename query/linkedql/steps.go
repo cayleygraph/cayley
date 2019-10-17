@@ -1,6 +1,8 @@
 package linkedql
 
 import (
+	"encoding/json"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
@@ -12,18 +14,38 @@ const prefix = "linkedql:"
 
 func init() {
 	voc.Register(voc.Namespace{Full: namespace, Prefix: prefix})
-	Register(&NewVertex{})
+	Register(&Vertex{})
+	Register(&Out{})
 }
 
-// NewVertex corresponds to g.V()
-type NewVertex struct{}
-
-// Type returns the name of NewVertex
-func (s *NewVertex) Type() quad.IRI {
-	return prefix + "NewVertex"
+// Vertex corresponds to g.V()
+type Vertex struct {
+	Values []json.RawMessage `json:"values"`
 }
 
-// BuildPath returns a path of NewVertex
-func (s *NewVertex) BuildPath(qs graph.QuadStore) *path.Path {
+// Type implements Step
+func (s *Vertex) Type() quad.IRI {
+	return prefix + "Vertex"
+}
+
+// BuildPath implements Step
+func (s *Vertex) BuildPath(qs graph.QuadStore) *path.Path {
+	return path.StartPath(qs)
+}
+
+// Out corresponds to .out()
+type Out struct {
+	From Step     `json:"from"`
+	Via  Step     `json:"via"`
+	Tags []string `json:"tags"`
+}
+
+// Type implements Step
+func (s *Out) Type() quad.IRI {
+	return prefix + "Out"
+}
+
+// BuildPath implements Step
+func (s *Out) BuildPath(qs graph.QuadStore) *path.Path {
 	return path.StartPath(qs)
 }
