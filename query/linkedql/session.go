@@ -23,11 +23,17 @@ func NewSession(qs graph.QuadStore) *Session {
 }
 
 // Execute for a given context, query and options return an iterator of results
-func (session *Session) Execute(ctx context.Context, query string, opt query.Options) (query.Iterator, error) {
-	return nil, errors.New("Not implemented")
+func (s *Session) Execute(ctx context.Context, query string, opt query.Options) (query.Iterator, error) {
+	step, err := UnmarshalStep([]byte(query))
+	if err != nil {
+		return nil, err
+	}
+	path := step.BuildPath(s.qs)
+	scanner := path.BuildIterator().Iterate()
+	return &Iterator{scanner: scanner, namer: s.qs}, nil
 }
 
 // ShapeOf returns for given query a Shape
-func (session *Session) ShapeOf(query string) (interface{}, error) {
+func (s *Session) ShapeOf(query string) (interface{}, error) {
 	return nil, errors.New("Not implemented")
 }
