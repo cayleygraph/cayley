@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
@@ -55,8 +56,8 @@ func parseValue(rawValue []byte) (quad.Value, error) {
 	return nil, errors.New("Couldn't parse rawValue to a quad.Value")
 }
 
-// BuildPath implements Step
-func (s *Vertex) BuildPath(qs graph.QuadStore) *path.Path {
+// BuildIterator implements Step
+func (s *Vertex) BuildIterator(qs graph.QuadStore) query.Iterator {
 	var values []quad.Value
 	for _, rawValue := range s.Values {
 		value, err := parseValue(rawValue)
@@ -65,7 +66,8 @@ func (s *Vertex) BuildPath(qs graph.QuadStore) *path.Path {
 		}
 		values = append(values, value)
 	}
-	return path.StartPath(qs, values...)
+	path := path.StartPath(qs, values...)
+	return NewValueIterator(path, qs)
 }
 
 // Out corresponds to .out()
@@ -80,7 +82,13 @@ func (s *Out) Type() quad.IRI {
 	return prefix + "Out"
 }
 
-// BuildPath implements Step
-func (s *Out) BuildPath(qs graph.QuadStore) *path.Path {
-	return s.From.BuildPath(qs).OutWithTags(s.Tags, s.Via.BuildPath(qs))
+// BuildIterator implements Step
+func (s *Out) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Out must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	path := fromIt.path.OutWithTags(s.Tags, viaIt.path)
+	return NewValueIterator(path, qs)
 }
