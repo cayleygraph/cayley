@@ -1,7 +1,6 @@
 package linkedql
 
 import (
-	"encoding/json"
 	"errors"
 	"strings"
 
@@ -27,7 +26,7 @@ func init() {
 
 // Vertex corresponds to g.V()
 type Vertex struct {
-	Values []json.RawMessage `json:"values"`
+	Values []quad.Value `json:"values"`
 }
 
 // Type implements Step
@@ -35,12 +34,7 @@ func (s *Vertex) Type() quad.IRI {
 	return prefix + "Vertex"
 }
 
-func parseValue(rawValue []byte) (quad.Value, error) {
-	var a interface{}
-	err := json.Unmarshal(rawValue, &a)
-	if err != nil {
-		return nil, err
-	}
+func parseValue(a interface{}) (quad.Value, error) {
 	switch a := a.(type) {
 	case string:
 		return quad.String(a), nil
@@ -62,15 +56,7 @@ func parseValue(rawValue []byte) (quad.Value, error) {
 
 // BuildIterator implements Step
 func (s *Vertex) BuildIterator(qs graph.QuadStore) query.Iterator {
-	var values []quad.Value
-	for _, rawValue := range s.Values {
-		value, err := parseValue(rawValue)
-		if err != nil {
-			panic(err)
-		}
-		values = append(values, value)
-	}
-	path := path.StartPath(qs, values...)
+	path := path.StartPath(qs, s.Values...)
 	return NewValueIterator(path, qs)
 }
 
@@ -179,4 +165,8 @@ func (s *Intersect) BuildIterator(qs graph.QuadStore) query.Iterator {
 		panic("Intersect must be called with ValueIterator")
 	}
 	return NewValueIterator(fromIt.path.And(intersecteeIt.path), qs)
+}
+
+type Is struct {
+	Values []quad.Value `json:"values"`
 }
