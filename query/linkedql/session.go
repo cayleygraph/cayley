@@ -8,21 +8,17 @@ import (
 	"github.com/cayleygraph/cayley/query"
 )
 
-const noLimit = -1
-
 var _ query.HTTP = &Session{}
 
 // Session represents a LinkedQL query processing
 type Session struct {
-	qs    graph.QuadStore
-	limit int
+	qs graph.QuadStore
 }
 
 // NewSession creates a new Session
 func NewSession(qs graph.QuadStore) *Session {
 	return &Session{
-		qs:    qs,
-		limit: noLimit,
+		qs: qs,
 	}
 }
 
