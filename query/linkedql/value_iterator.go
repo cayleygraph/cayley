@@ -10,7 +10,7 @@ import (
 type ValueIterator struct {
 	namer   graph.Namer
 	path    *path.Path
-	Scanner graph.Scanner
+	scanner graph.Scanner
 }
 
 func NewValueIterator(p *path.Path, namer graph.Namer) *ValueIterator {
@@ -18,29 +18,29 @@ func NewValueIterator(p *path.Path, namer graph.Namer) *ValueIterator {
 }
 
 func (it *ValueIterator) Next(ctx context.Context) bool {
-	if it.Scanner == nil {
-		it.Scanner = it.path.BuildIterator().Iterate()
+	if it.scanner == nil {
+		it.scanner = it.path.BuildIterator().Iterate()
 	}
-	return it.Scanner.Next(ctx)
+	return it.scanner.Next(ctx)
 }
 
 func (it *ValueIterator) Result() interface{} {
-	if it.Scanner == nil {
+	if it.scanner == nil {
 		return nil
 	}
-	return it.namer.NameOf(it.Scanner.Result())
+	return it.namer.NameOf(it.scanner.Result())
 }
 
 func (it *ValueIterator) Err() error {
-	if it.Scanner == nil {
+	if it.scanner == nil {
 		return nil
 	}
-	return it.Scanner.Err()
+	return it.scanner.Err()
 }
 
 func (it *ValueIterator) Close() error {
-	if it.Scanner == nil {
+	if it.scanner == nil {
 		return nil
 	}
-	return it.Scanner.Close()
+	return it.scanner.Close()
 }
