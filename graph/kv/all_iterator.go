@@ -57,10 +57,6 @@ func (it *allIterator) SubIterators() []graph.IteratorShape {
 	return nil
 }
 
-func (it *allIterator) Size() (int64, bool) {
-	return it.qs.Size(), false
-}
-
 func (it *allIterator) String() string {
 	return "KVAll"
 }
