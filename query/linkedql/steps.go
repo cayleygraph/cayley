@@ -1,9 +1,7 @@
 package linkedql
 
 import (
-	"errors"
 	"regexp"
-	"strings"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -49,17 +47,17 @@ func init() {
 	Register(&OutPredicates{})
 	Register(&Save{})
 	Register(&SaveInPredicates{})
-	Register(&SaveOpt{})
-	Register(&SaveOptR{})
+	Register(&SaveOptional{})
+	Register(&SaveOptionalReverse{})
 	Register(&SaveOutPredicates{})
-	Register(&SaveR{})
+	Register(&SaveReverse{})
 	Register(&Skip{})
 	Register(&Union{})
 	Register(&Unique{})
 	Register(&Order{})
 }
 
-// Vertex corresponds to g.V()
+// Vertex corresponds to g.Vertex() and g.V()
 type Vertex struct {
 	Values []quad.Value `json:"values"`
 }
@@ -69,30 +67,24 @@ func (s *Vertex) Type() quad.IRI {
 	return prefix + "Vertex"
 }
 
-func parseValue(a interface{}) (quad.Value, error) {
-	switch a := a.(type) {
-	case string:
-		return quad.String(a), nil
-	case map[string]interface{}:
-		id, ok := a["@id"].(string)
-		if ok {
-			if strings.HasPrefix(id, "_:") {
-				return quad.BNode(id[2:]), nil
-			}
-			return quad.IRI(id), nil
-		}
-		_, ok = a["@value"].(string)
-		if ok {
-			panic("Doesn't support special literals yet")
-		}
-	}
-	return nil, errors.New("Couldn't parse rawValue to a quad.Value")
-}
-
 // BuildIterator implements Step
 func (s *Vertex) BuildIterator(qs graph.QuadStore) query.Iterator {
 	path := path.StartPath(qs, s.Values...)
 	return NewValueIterator(path, qs)
+}
+
+// Morphism corresponds to g.Morphism() and g.M()
+type Morphism struct {
+}
+
+// Type implements Step
+func (s *Morphism) Type() quad.IRI {
+	return prefix + "Morphism"
+}
+
+// BuildIterator implements Step
+func (s *Morphism) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Not implemented")
 }
 
 // Out corresponds to .out()
@@ -494,26 +486,21 @@ func (s *FollowReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
 	return NewValueIterator(fromIt.path.FollowReverse(followedIt.path), qs)
 }
 
-// type FollowRecursive struct {
-// 	From     Step `json:"from"`
-// 	Followed Step `json:"followed"`
-// }
+// FollowRecursive corresponds to .followRecursive()
+type FollowRecursive struct {
+	From     Step `json:"from"`
+	Followed Step `json:"followed"`
+}
 
-// func (s *FollowRecursive) Type() quad.IRI {
-// 	return prefix + "FollowRecursive"
-// }
+// Type implements Step
+func (s *FollowRecursive) Type() quad.IRI {
+	return prefix + "FollowRecursive"
+}
 
-// func (s *FollowRecursive) BuildIterator(qs graph.QuadStore) query.Iterator {
-// 	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-// 	if !ok {
-// 		panic("FollowRecursive must be called from ValueIterator")
-// 	}
-// 	followedIt, ok := s.Followed.BuildIterator(qs).(*ValueIterator)
-// 	if !ok {
-// 		panic("FollowRecursive must be called with ValueIterator followed")
-// 	}
-// 	return NewValueIterator(fromIt.path.Follow(followedIt.path), qs)
-// }
+// BuildIterator implements Step
+func (s *FollowRecursive) BuildIterator(qs graph.QuadStore) query.Iterator {
+	panic("Not Implemented")
+}
 
 // Has corresponds to .has()
 type Has struct {
@@ -579,7 +566,15 @@ func (s *In) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *In) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("In must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("In must be called with ValueIterator via")
+	}
+	return NewValueIterator(fromIt.path.InWithTags(s.Tags, viaIt.path), qs)
 }
 
 // InPredicates corresponds to .inPredicates()
@@ -594,12 +589,17 @@ func (s *InPredicates) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *InPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("InPredicates must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.InPredicates(), qs)
 }
 
 // LabelContext corresponds to .labelContext()
 type LabelContext struct {
 	From Step `json:"from"`
+	// TODO(@iddan): Via
 }
 
 // Type implements Step
@@ -609,7 +609,11 @@ func (s *LabelContext) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *LabelContext) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("LabelContext must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.LabelContext(), qs)
 }
 
 // Labels corresponds to .labels()
@@ -624,13 +628,17 @@ func (s *Labels) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Labels) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Labels must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Labels(), qs)
 }
 
 // Limit corresponds to .limit()
 type Limit struct {
-	From  Step `json:"from"`
-	Limit int  `json:"limit"`
+	From  Step  `json:"from"`
+	Limit int64 `json:"limit"`
 }
 
 // Type implements Step
@@ -640,7 +648,11 @@ func (s *Limit) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Limit) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Limit must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Limit(s.Limit), qs)
 }
 
 // OutPredicates corresponds to .outPredicates()
@@ -655,14 +667,18 @@ func (s *OutPredicates) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *OutPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("OutPredicates must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.OutPredicates(), qs)
 }
 
 // Save corresponds to .save()
 type Save struct {
-	From  Step     `json:"from"`
-	Saved Step     `json:"saved"`
-	Tag   []string `json:"tag"`
+	From Step   `json:"from"`
+	Via  Step   `json:"via"`
+	Tag  string `json:"tag"`
 }
 
 // Type implements Step
@@ -672,14 +688,21 @@ func (s *Save) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Save) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Save must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Save must be called with ValueIterator via")
+	}
+	return NewValueIterator(fromIt.path.Save(viaIt.path, s.Tag), qs)
 }
 
 // SaveInPredicates corresponds to .saveInPredicates()
 type SaveInPredicates struct {
-	From  Step     `json:"from"`
-	Saved Step     `json:"saved"`
-	Tag   []string `json:"tag"`
+	From Step   `json:"from"`
+	Tag  string `json:"tag"`
 }
 
 // Type implements Step
@@ -689,47 +712,67 @@ func (s *SaveInPredicates) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *SaveInPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveInPredicates must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.SavePredicates(true, s.Tag), qs)
 }
 
-// SaveOpt corresponds to .saveOpt()
-type SaveOpt struct {
-	From  Step     `json:"from"`
-	Saved Step     `json:"saved"`
-	Tag   []string `json:"tag"`
-}
-
-// Type implements Step
-func (s *SaveOpt) Type() quad.IRI {
-	return prefix + "SaveOpt"
-}
-
-// BuildIterator implements Step
-func (s *SaveOpt) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
-}
-
-// SaveOptR corresponds to .saveOptR()
-type SaveOptR struct {
-	From  Step     `json:"from"`
-	Saved Step     `json:"saved"`
-	Tag   []string `json:"tag"`
+// SaveOptional corresponds to .saveOpt()
+type SaveOptional struct {
+	From Step   `json:"from"`
+	Via  Step   `json:"via"`
+	Tag  string `json:"tag"`
 }
 
 // Type implements Step
-func (s *SaveOptR) Type() quad.IRI {
-	return prefix + "SaveOptR"
+func (s *SaveOptional) Type() quad.IRI {
+	return prefix + "SaveOptional"
 }
 
 // BuildIterator implements Step
-func (s *SaveOptR) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+func (s *SaveOptional) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveOptional must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveOptional must be called with ValueIterator via")
+	}
+	return NewValueIterator(fromIt.path.SaveOptional(viaIt.path, s.Tag), qs)
+}
+
+// SaveOptionalReverse corresponds to .saveOptR()
+type SaveOptionalReverse struct {
+	From Step   `json:"from"`
+	Via  Step   `json:"via"`
+	Tag  string `json:"tag"`
+}
+
+// Type implements Step
+func (s *SaveOptionalReverse) Type() quad.IRI {
+	return prefix + "SaveOptionalReverse"
+}
+
+// BuildIterator implements Step
+func (s *SaveOptionalReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveOptionalReverse must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveOptionalReverse must be called with ValueIterator via")
+	}
+	return NewValueIterator(fromIt.path.SaveOptionalReverse(viaIt.path, s.Tag), qs)
 }
 
 // SaveOutPredicates corresponds to .saveOutPredicates()
 type SaveOutPredicates struct {
-	From Step     `json:"from"`
-	Tag  []string `json:"tag"`
+	From Step   `json:"from"`
+	Tag  string `json:"tag"`
 }
 
 // Type implements Step
@@ -739,30 +782,42 @@ func (s *SaveOutPredicates) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *SaveOutPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveOutPredicates must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.SavePredicates(false, s.Tag), qs)
 }
 
-// SaveR corresponds to .saveR()
-type SaveR struct {
-	From  Step     `json:"from"`
-	Saved Step     `json:"saved"`
-	Tag   []string `json:"tag"`
+// SaveReverse corresponds to .saveR()
+type SaveReverse struct {
+	From Step   `json:"from"`
+	Via  Step   `json:"via"`
+	Tag  string `json:"tag"`
 }
 
 // Type implements Step
-func (s *SaveR) Type() quad.IRI {
-	return prefix + "SaveR"
+func (s *SaveReverse) Type() quad.IRI {
+	return prefix + "SaveReverse"
 }
 
 // BuildIterator implements Step
-func (s *SaveR) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+func (s *SaveReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveReverse must be called from ValueIterator")
+	}
+	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveReverse must be called with ValueIterator via")
+	}
+	return NewValueIterator(fromIt.path.SaveReverse(viaIt.path, s.Tag), qs)
 }
 
 // Skip corresponds to .skip()
 type Skip struct {
-	From   Step `json:"from"`
-	Offset int  `json:"offset"`
+	From   Step  `json:"from"`
+	Offset int64 `json:"offset"`
 }
 
 // Type implements Step
@@ -772,7 +827,11 @@ func (s *Skip) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Skip) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("SaveReverse must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Limit(s.Offset), qs)
 }
 
 // Union corresponds to .union() and .or()
@@ -788,7 +847,15 @@ func (s *Union) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Union) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Union must be called from ValueIterator")
+	}
+	unionizedIt, ok := s.Unionized.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Union must be called with ValueIterator Unionized")
+	}
+	return NewValueIterator(fromIt.path.Or(unionizedIt.path), qs)
 }
 
 // Unique corresponds to .unique()
@@ -803,7 +870,11 @@ func (s *Unique) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Unique) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Unique must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Unique(), qs)
 }
 
 // Order corresponds to .order()
@@ -818,5 +889,9 @@ func (s *Order) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Order) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemeneted!")
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("Order must be called from ValueIterator")
+	}
+	return NewValueIterator(fromIt.path.Order(), qs)
 }
