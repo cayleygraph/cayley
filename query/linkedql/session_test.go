@@ -11,9 +11,9 @@ import (
 func TestNodeQuery(t *testing.T) {
 	q := `
 {
-	"@type": "linkedql:AllStep",
+	"@type": "linkedql:All",
 	"parent": {
-		"@type": "linkedql:NewVStep"
+		"@type": "linkedql:NewVertex"
 	}
 }
 	`
