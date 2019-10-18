@@ -406,6 +406,24 @@ var testCases = []struct {
 			quad.IRI("bob"),
 		},
 	},
+	{
+		name: "Union",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Union{
+			From: &Vertex{
+				Values: []quad.Value{quad.IRI("alice")},
+			},
+			Unionized: &Vertex{
+				Values: []quad.Value{quad.IRI("bob")},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+			quad.IRI("bob"),
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
