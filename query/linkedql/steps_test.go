@@ -373,6 +373,24 @@ var testCases = []struct {
 			},
 		},
 	},
+	{
+		name: "SaveReverse",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &TagArray{
+			From: &SaveReverse{
+				From: &Vertex{Values: []quad.Value{}},
+				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+				Tag:  "likes",
+			},
+		},
+		results: []interface{}{
+			map[string]quad.Value{
+				"likes": quad.IRI("alice"),
+			},
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
