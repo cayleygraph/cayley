@@ -332,6 +332,30 @@ var testCases = []struct {
 			map[string]quad.Value{},
 		},
 	},
+	{
+		name: "SaveOptionalReverse",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+			quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
+			quad.MakeIRI("bob", "likes", "alice", ""),
+		},
+		query: &TagArray{
+			From: &SaveOptionalReverse{
+				From: &Vertex{Values: []quad.Value{}},
+				Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
+				Tag:  "name",
+			},
+		},
+		results: []interface{}{
+			map[string]quad.Value{},
+			map[string]quad.Value{},
+			map[string]quad.Value{},
+			map[string]quad.Value{},
+			map[string]quad.Value{
+				"name": quad.IRI("alice"),
+			},
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
