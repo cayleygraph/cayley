@@ -233,7 +233,7 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "In",
+		name: "Limit",
 		data: []quad.Quad{
 			quad.MakeIRI("alice", "likes", "bob", ""),
 		},
@@ -389,6 +389,21 @@ var testCases = []struct {
 			map[string]quad.Value{
 				"likes": quad.IRI("alice"),
 			},
+		},
+	},
+	{
+		name: "Skip",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Skip{
+			Offset: 2,
+			From: &Vertex{
+				Values: []quad.Value{},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("bob"),
 		},
 	},
 }
