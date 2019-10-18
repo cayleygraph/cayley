@@ -164,6 +164,7 @@ func (s *TagValue) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
+// TODO(iddan): Limit one result
 func (s *TagValue) BuildIterator(qs graph.QuadStore) query.Iterator {
 	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
 	if !ok {
@@ -173,6 +174,7 @@ func (s *TagValue) BuildIterator(qs graph.QuadStore) query.Iterator {
 }
 
 // Value corresponds to .value()
+// TODO(iddan): Limit one result
 type Value struct {
 	From Step `json:"from"`
 }
