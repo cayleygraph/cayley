@@ -832,7 +832,7 @@ func (s *Skip) BuildIterator(qs graph.QuadStore) query.Iterator {
 	if !ok {
 		panic("SaveReverse must be called from ValueIterator")
 	}
-	return NewValueIterator(fromIt.path.Limit(s.Offset), qs)
+	return NewValueIterator(fromIt.path.Skip(s.Offset), qs)
 }
 
 // Union corresponds to .union() and .or()
