@@ -153,6 +153,25 @@ func (s *TagArray) BuildIterator(qs graph.QuadStore) query.Iterator {
 	return &TagArrayIterator{fromIt}
 }
 
+// TagValue corresponds to .tagValue()
+type TagValue struct {
+	From Step `json:"from"`
+}
+
+// Type implements Step
+func (s *TagValue) Type() quad.IRI {
+	return prefix + "TagValue"
+}
+
+// BuildIterator implements Step
+func (s *TagValue) BuildIterator(qs graph.QuadStore) query.Iterator {
+	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
+	if !ok {
+		panic("TagValue must be called from ValueIterator")
+	}
+	return &TagArrayIterator{fromIt}
+}
+
 // Value corresponds to .value()
 type Value struct {
 	From Step `json:"from"`
