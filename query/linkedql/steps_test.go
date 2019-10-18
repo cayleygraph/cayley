@@ -463,6 +463,20 @@ var testCases = []struct {
 			quad.IRI("bob"),
 		},
 	},
+	{
+		name: "Order",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Order{
+			From: &Vertex{},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+			quad.IRI("bob"),
+			quad.IRI("likes"),
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
