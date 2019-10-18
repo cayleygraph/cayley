@@ -65,46 +65,6 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Intersect",
-		data: []quad.Quad{
-			quad.MakeIRI("bob", "likes", "alice", ""),
-			quad.MakeIRI("dani", "likes", "alice", ""),
-		},
-		query: &Intersect{
-			From: &Out{
-				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-				Via: &Vertex{
-					Values: []quad.Value{quad.IRI("likes")},
-				},
-			},
-			Intersectee: &Out{
-				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
-			},
-		},
-		results: []interface{}{
-			quad.IRI("alice"),
-		},
-	},
-	{
-		name: "Is",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
-		query: &Is{
-			Values: []quad.Value{quad.IRI("bob")},
-			From: &Out{
-				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
-				Via: &Vertex{
-					Values: []quad.Value{quad.IRI("likes")},
-				},
-			},
-		},
-		results: []interface{}{
-			quad.IRI("bob"),
-		},
-	},
-	{
 		name: "Back",
 		data: []quad.Quad{
 			quad.MakeIRI("alice", "likes", "bob", ""),
@@ -231,6 +191,74 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			quad.IRI("alice"),
+		},
+	},
+	{
+		name: "InPredicates",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &InPredicates{
+			From: &Vertex{Values: []quad.Value{}},
+		},
+		results: []interface{}{
+			quad.IRI("likes"),
+		},
+	},
+	{
+		name: "Intersect",
+		data: []quad.Quad{
+			quad.MakeIRI("bob", "likes", "alice", ""),
+			quad.MakeIRI("dani", "likes", "alice", ""),
+		},
+		query: &Intersect{
+			From: &Out{
+				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
+				Via: &Vertex{
+					Values: []quad.Value{quad.IRI("likes")},
+				},
+			},
+			Intersectee: &Out{
+				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
+				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+		},
+	},
+	{
+		name: "Is",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Is{
+			Values: []quad.Value{quad.IRI("bob")},
+			From: &Out{
+				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
+				Via: &Vertex{
+					Values: []quad.Value{quad.IRI("likes")},
+				},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("bob"),
+		},
+	},
+	{
+		name: "In",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Limit{
+			Limit: 2,
+			From: &Vertex{
+				Values: []quad.Value{},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+			quad.IRI("likes"),
 		},
 	},
 }
