@@ -119,7 +119,7 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Filter",
+		name: "Filter RegExp",
 		data: []quad.Quad{
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
 		},
@@ -129,6 +129,19 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			quad.String("Alice"),
+		},
+	},
+	{
+		name: "Filter Like",
+		data: []quad.Quad{
+			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
+		},
+		query: &Filter{
+			From:   &Vertex{Values: []quad.Value{}},
+			Filter: &Like{Pattern: "a%"},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
 		},
 	},
 	{
