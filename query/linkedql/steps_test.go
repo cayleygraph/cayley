@@ -356,6 +356,23 @@ var testCases = []struct {
 			},
 		},
 	},
+	{
+		name: "SaveOutPredicates",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &TagArray{
+			From: &SaveOutPredicates{
+				From: &Vertex{Values: []quad.Value{}},
+				Tag:  "predicate",
+			},
+		},
+		results: []interface{}{
+			map[string]quad.Value{
+				"predicate": quad.IRI("likes"),
+			},
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
