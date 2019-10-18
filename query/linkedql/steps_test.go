@@ -202,6 +202,37 @@ var testCases = []struct {
 			quad.IRI("alice"),
 		},
 	},
+	{
+		name: "HasReverse",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &HasReverse{
+			From: &Vertex{
+				Values: []quad.Value{},
+			},
+			Via: &Vertex{
+				Values: []quad.Value{quad.IRI("likes")},
+			},
+			Values: []quad.Value{quad.IRI("alice")},
+		},
+		results: []interface{}{
+			quad.IRI("bob"),
+		},
+	},
+	{
+		name: "In",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &In{
+			From: &Vertex{Values: []quad.Value{}},
+			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
