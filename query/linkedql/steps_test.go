@@ -28,19 +28,6 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Out",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
-		query: &Out{
-			From: &Vertex{Values: []quad.Value{}},
-			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
-		},
-		results: []interface{}{
-			quad.IRI("bob"),
-		},
-	},
-	{
 		name: "TagArray",
 		data: []quad.Quad{
 			quad.MakeIRI("alice", "likes", "bob", ""),
@@ -258,6 +245,31 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			quad.IRI("alice"),
+			quad.IRI("likes"),
+		},
+	},
+	{
+		name: "Out",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Out{
+			From: &Vertex{Values: []quad.Value{}},
+			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+		},
+		results: []interface{}{
+			quad.IRI("bob"),
+		},
+	},
+	{
+		name: "OutPredicates",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &OutPredicates{
+			From: &Vertex{Values: []quad.Value{}},
+		},
+		results: []interface{}{
 			quad.IRI("likes"),
 		},
 	},
