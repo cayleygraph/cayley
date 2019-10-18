@@ -448,6 +448,21 @@ var testCases = []struct {
 			},
 		},
 	},
+	{
+		name: "Unique",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Unique{
+			From: &Vertex{
+				Values: []quad.Value{quad.IRI("alice"), quad.IRI("alice"), quad.IRI("bob")},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+			quad.IRI("bob"),
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
