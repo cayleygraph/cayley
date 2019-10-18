@@ -687,6 +687,7 @@ func (s *Save) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
+// TODO(iddan): Default tag to Via
 func (s *Save) BuildIterator(qs graph.QuadStore) query.Iterator {
 	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
 	if !ok {
