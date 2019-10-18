@@ -1,0 +1,221 @@
+package linkedql
+
+import (
+	"context"
+	"testing"
+
+	"github.com/cayleygraph/cayley/graph/memstore"
+	"github.com/cayleygraph/quad"
+	"github.com/stretchr/testify/require"
+)
+
+var testCases = []struct {
+	name    string
+	data    []quad.Quad
+	query   Step
+	results []interface{}
+}{
+	{
+		name: "All Vertices",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Vertex{Values: []quad.Value{}},
+		results: []interface{}{
+			quad.IRI("alice"),
+			quad.IRI("likes"),
+			quad.IRI("bob"),
+		},
+	},
+	{
+		name: "Out",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Out{
+			From: &Vertex{Values: []quad.Value{}},
+			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+		},
+		results: []interface{}{
+			quad.IRI("bob"),
+		},
+	},
+	{
+		name: "TagArray",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &TagArray{
+			From: &As{
+				Tags: []string{"liked"},
+				From: &Out{
+					From: &As{
+						Tags: []string{"liker"},
+						From: &Vertex{},
+					},
+					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+				},
+			},
+		},
+		results: []interface{}{
+			map[string]quad.Value{
+				"liker": quad.IRI("alice"),
+				"liked": quad.IRI("bob"),
+			},
+		},
+	},
+	{
+		name: "Intersect",
+		data: []quad.Quad{
+			quad.MakeIRI("bob", "likes", "alice", ""),
+			quad.MakeIRI("dani", "likes", "alice", ""),
+		},
+		query: &Intersect{
+			From: &Out{
+				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
+				Via: &Vertex{
+					Values: []quad.Value{quad.IRI("likes")},
+				},
+			},
+			Intersectee: &Out{
+				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
+				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+		},
+	},
+	{
+		name: "Is",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Is{
+			Values: []quad.Value{quad.IRI("bob")},
+			From: &Out{
+				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
+				Via: &Vertex{
+					Values: []quad.Value{quad.IRI("likes")},
+				},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("bob"),
+		},
+	},
+	{
+		name: "Back",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Back{
+			From: &Out{
+				From: &Vertex{
+					Values: []quad.Value{quad.IRI("alice")},
+				},
+				Via: &Vertex{
+					Values: []quad.Value{
+						quad.IRI("likes"),
+					},
+				},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+		},
+	},
+	{
+		name: "Both",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+			quad.MakeIRI("bob", "likes", "dan", ""),
+		},
+		query: &Both{
+			From: &Vertex{
+				Values: []quad.Value{quad.IRI("bob")},
+			},
+			Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+			quad.IRI("dan"),
+		},
+	},
+	{
+		name: "Count",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Count{
+			From: &Vertex{Values: []quad.Value{}},
+		},
+		results: []interface{}{
+			quad.Int(4),
+		},
+	},
+	{
+		name: "Except",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Except{
+			From: &Vertex{
+				Values: []quad.Value{quad.IRI("alice"), quad.IRI("likes")},
+			},
+			Excepted: &Vertex{
+				Values: []quad.Value{quad.IRI("likes")},
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+		},
+	},
+	{
+		name: "Filter",
+		data: []quad.Quad{
+			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
+		},
+		query: &Filter{
+			From:   &Vertex{Values: []quad.Value{}},
+			Filter: &RegExp{Expression: "A"},
+		},
+		results: []interface{}{
+			quad.String("Alice"),
+		},
+	},
+	{
+		name: "Has",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+		},
+		query: &Has{
+			From: &Vertex{
+				Values: []quad.Value{},
+			},
+			Via: &Vertex{
+				Values: []quad.Value{quad.IRI("likes")},
+			},
+			Values: []quad.Value{quad.IRI("bob")},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+		},
+	},
+}
+
+func TestLinkedQL(t *testing.T) {
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			store := memstore.New(c.data...)
+			ctx := context.TODO()
+			iterator := c.query.BuildIterator(store)
+			var results []interface{}
+			for iterator.Next(ctx) {
+				results = append(results, iterator.Result())
+			}
+			require.NoError(t, iterator.Err())
+			require.Equal(t, c.results, results)
+		})
+	}
+}
