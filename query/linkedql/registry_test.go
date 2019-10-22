@@ -100,8 +100,8 @@ func (s *TestStep) Type() quad.IRI {
 	return "cayley:TestStep"
 }
 
-func (s *TestStep) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Can't build path for TestStep")
+func (s *TestStep) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	panic("Can't build iterator for TestStep")
 }
 
 func TestUnmarshalStep(t *testing.T) {
