@@ -107,7 +107,7 @@ func (s *TestStep) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 func TestUnmarshalStep(t *testing.T) {
 	for _, c := range unmarshalCases {
 		t.Run(c.name, func(t *testing.T) {
-			s, err := UnmarshalStep([]byte(c.data))
+			s, err := Unmarshal([]byte(c.data))
 			require.NoError(t, err)
 			require.Equal(t, c.exp, s)
 		})
