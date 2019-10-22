@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var singleQuadData = []quad.Quad{
+	quad.MakeIRI("alice", "likes", "bob", ""),
+}
+
 var testCases = []struct {
 	name    string
 	data    []quad.Quad
@@ -16,10 +20,8 @@ var testCases = []struct {
 	results []interface{}
 }{
 	{
-		name: "All Vertices",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		name:  "All Vertices",
+		data:  singleQuadData,
 		query: &Vertex{Values: []quad.Value{}},
 		results: []interface{}{
 			quad.IRI("alice"),
@@ -29,9 +31,7 @@ var testCases = []struct {
 	},
 	{
 		name: "TagArray",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &TagArray{
 			From: &As{
 				Tags: []string{"liked"},
@@ -53,9 +53,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Back",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Back{
 			From: &Out{
 				From: &Vertex{
@@ -91,9 +89,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Count",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Count{
 			From: &Vertex{Values: []quad.Value{}},
 		},
@@ -103,9 +99,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Except",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Except{
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice"), quad.IRI("likes")},
@@ -125,7 +119,7 @@ var testCases = []struct {
 		},
 		query: &Filter{
 			From:   &Vertex{Values: []quad.Value{}},
-			Filter: &RegExp{Expression: "A"},
+			Filter: &RegExp{Pattern: "A"},
 		},
 		results: []interface{}{
 			quad.String("Alice"),
@@ -206,9 +200,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Has",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Has{
 			From: &Vertex{
 				Values: []quad.Value{},
@@ -224,9 +216,7 @@ var testCases = []struct {
 	},
 	{
 		name: "HasReverse",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &HasReverse{
 			From: &Vertex{
 				Values: []quad.Value{},
@@ -242,9 +232,7 @@ var testCases = []struct {
 	},
 	{
 		name: "In",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &In{
 			From: &Vertex{Values: []quad.Value{}},
 			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
@@ -255,9 +243,7 @@ var testCases = []struct {
 	},
 	{
 		name: "InPredicates",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &InPredicates{
 			From: &Vertex{Values: []quad.Value{}},
 		},
@@ -289,9 +275,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Is",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Is{
 			Values: []quad.Value{quad.IRI("bob")},
 			From: &Out{
@@ -307,9 +291,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Limit",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Limit{
 			Limit: 2,
 			From: &Vertex{
@@ -323,9 +305,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Out",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Out{
 			From: &Vertex{Values: []quad.Value{}},
 			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
@@ -336,9 +316,7 @@ var testCases = []struct {
 	},
 	{
 		name: "OutPredicates",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &OutPredicates{
 			From: &Vertex{Values: []quad.Value{}},
 		},
@@ -348,9 +326,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Save",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &TagArray{
 			From: &Save{
 				From: &Vertex{Values: []quad.Value{}},
@@ -366,9 +342,7 @@ var testCases = []struct {
 	},
 	{
 		name: "SaveInPredicates",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &TagArray{
 			From: &SaveInPredicates{
 				From: &Vertex{Values: []quad.Value{}},
@@ -431,9 +405,7 @@ var testCases = []struct {
 	},
 	{
 		name: "SaveOutPredicates",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &TagArray{
 			From: &SaveOutPredicates{
 				From: &Vertex{Values: []quad.Value{}},
@@ -448,9 +420,7 @@ var testCases = []struct {
 	},
 	{
 		name: "SaveReverse",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &TagArray{
 			From: &SaveReverse{
 				From: &Vertex{Values: []quad.Value{}},
@@ -466,9 +436,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Skip",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Skip{
 			Offset: 2,
 			From: &Vertex{
@@ -481,9 +449,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Union",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Union{
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice")},
@@ -499,9 +465,7 @@ var testCases = []struct {
 	},
 	{
 		name: "TagValue",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &TagValue{
 			From: &As{
 				Tags: []string{"liked"},
@@ -523,9 +487,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Unique",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Unique{
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice"), quad.IRI("alice"), quad.IRI("bob")},
@@ -538,9 +500,7 @@ var testCases = []struct {
 	},
 	{
 		name: "Order",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-		},
+		data: singleQuadData,
 		query: &Order{
 			From: &Vertex{},
 		},
