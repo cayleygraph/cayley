@@ -8,7 +8,7 @@ import (
 	"github.com/cayleygraph/cayley/query"
 )
 
-var _ query.HTTP = &Session{}
+var _ query.Session = &Session{}
 
 // Session represents a LinkedQL query processing
 type Session struct {
@@ -33,9 +33,4 @@ func (s *Session) Execute(ctx context.Context, query string, opt query.Options) 
 		return nil, errors.New("Must execute a valid step")
 	}
 	return step.BuildIterator(s.qs)
-}
-
-// ShapeOf returns for given query a Shape
-func (s *Session) ShapeOf(query string) (interface{}, error) {
-	return nil, errors.New("Not implemented")
 }
