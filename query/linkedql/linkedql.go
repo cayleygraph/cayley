@@ -14,8 +14,5 @@ func init() {
 		Session: func(qs graph.QuadStore) query.Session {
 			return NewSession(qs)
 		},
-		HTTP: func(qs graph.QuadStore) query.HTTP {
-			return NewSession(qs)
-		},
 	})
 }
