@@ -41,18 +41,21 @@ func (s *TagValue) Type() quad.IRI {
 	return prefix + "TagValue"
 }
 
+func singleValueIterator(it *ValueIterator) *ValueIterator {
+	p := it.path.Limit(1)
+	return NewValueIterator(p, it.namer)
+}
+
 // BuildIterator implements Step
-// TODO(iddan): Limit one result
 func (s *TagValue) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	fromIt, err := s.From.BuildValueIterator(qs)
+	it, err := s.From.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
 	}
-	return &TagArrayIterator{fromIt}, nil
+	return &TagArrayIterator{singleValueIterator(it)}, nil
 }
 
 // Value corresponds to .value()
-// TODO(iddan): Limit one result
 type Value struct {
 	From ValueStep `json:"from"`
 }
@@ -64,5 +67,9 @@ func (s *Value) Type() quad.IRI {
 
 // BuildIterator implements Step
 func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return s.BuildValueIterator(qs)
+	it, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
+	}
+	return singleValueIterator(it), nil
 }
