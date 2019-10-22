@@ -22,12 +22,6 @@ func init() {
 	Register(&Both{})
 	Register(&Count{})
 	Register(&Except{})
-	Register(&LessThan{})
-	Register(&LessThanEquals{})
-	Register(&GreaterThan{})
-	Register(&GreaterThanEquals{})
-	Register(&RegExp{})
-	Register(&Like{})
 	Register(&Filter{})
 	Register(&Follow{})
 	Register(&FollowReverse{})
@@ -56,7 +50,7 @@ func init() {
 // g.V(g.IRI("alice")) is represented as &V{ values: quad.Value[]{quad.IRI("alice")} }
 // g.V().out(g.IRI("likes")) is represented as &Out{ Via: quad.Value[]{quad.IRI("likes")}, From: &V{} }
 type Step interface {
-	Type() quad.IRI
+	RegistryItem
 	BuildIterator(qs graph.QuadStore) (query.Iterator, error)
 }
 
@@ -329,101 +323,10 @@ func (s *Except) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 	return NewValueIterator(fromIt.path.Except(exceptedIt.path), qs), nil
 }
 
-// LessThan corresponds to lt()
-type LessThan struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Step
-func (s *LessThan) Type() quad.IRI {
-	return prefix + "LessThan"
-}
-
-// BuildIterator implements Step
-func (s *LessThan) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return nil, errors.New("Can't build iterator for " + s.Type().String())
-}
-
-// LessThanEquals corresponds to lte()
-type LessThanEquals struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Step
-func (s *LessThanEquals) Type() quad.IRI {
-	return prefix + "LessThanEquals"
-}
-
-// BuildIterator implements Step
-func (s *LessThanEquals) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	panic("Can't BuildIterator for " + s.Type())
-}
-
-// GreaterThan corresponds to gt()
-type GreaterThan struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Step
-func (s *GreaterThan) Type() quad.IRI {
-	return prefix + "GreaterThan"
-}
-
-// BuildIterator implements Step
-func (s *GreaterThan) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	panic("Can't BuildIterator for " + s.Type())
-}
-
-// GreaterThanEquals corresponds to gte()
-type GreaterThanEquals struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Step
-func (s *GreaterThanEquals) Type() quad.IRI {
-	return prefix + "GreaterThanEquals"
-}
-
-// BuildIterator implements Step
-func (s *GreaterThanEquals) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	panic("Can't BuildIterator for " + s.Type())
-}
-
-// RegExp corresponds to regex()
-type RegExp struct {
-	Expression  string `json:"expression"`
-	IncludeIRIs bool   `json:"includeIRIs"`
-}
-
-// Type implements Step
-func (s *RegExp) Type() quad.IRI {
-	return prefix + "RegExp"
-}
-
-// BuildIterator implements Step
-func (s *RegExp) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	panic("Can't BuildIterator for " + s.Type())
-}
-
-// Like corresponds to like()
-type Like struct {
-	Pattern string `json:"pattern"`
-}
-
-// Type implements Step
-func (s *Like) Type() quad.IRI {
-	return prefix + "Like"
-}
-
-// BuildIterator implements Step
-func (s *Like) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	panic("Can't BuildIterator for " + s.Type())
-}
-
 // Filter corresponds to filter()
 type Filter struct {
 	From   ValueStep `json:"from"`
-	Filter Step      `json:"filter"`
+	Filter Operator  `json:"filter"`
 }
 
 // Type implements Step
