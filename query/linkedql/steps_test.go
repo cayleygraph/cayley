@@ -557,7 +557,8 @@ func TestLinkedQL(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			store := memstore.New(c.data...)
 			ctx := context.TODO()
-			iterator := c.query.BuildIterator(store)
+			iterator, err := c.query.BuildIterator(store)
+			require.NoError(t, err)
 			var results []interface{}
 			for iterator.Next(ctx) {
 				results = append(results, iterator.Result())

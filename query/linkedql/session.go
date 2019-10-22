@@ -28,8 +28,7 @@ func (s *Session) Execute(ctx context.Context, query string, opt query.Options) 
 	if err != nil {
 		return nil, err
 	}
-	iterator := step.BuildIterator(s.qs)
-	return iterator, nil
+	return step.BuildIterator(s.qs)
 }
 
 // ShapeOf returns for given query a Shape
