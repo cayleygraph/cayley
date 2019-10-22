@@ -163,7 +163,7 @@ func (s *Value) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO(@iddan): support non iterators for query result
+	// TODO(iddan): support non iterators for query result
 	return fromIt, nil
 }
 
@@ -642,7 +642,7 @@ func (s *InPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, e
 // LabelContext corresponds to .labelContext()
 type LabelContext struct {
 	From ValueStep `json:"from"`
-	// TODO(@iddan): Via
+	// TODO(iddan): Via
 }
 
 // Type implements Step
