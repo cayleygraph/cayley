@@ -542,31 +542,6 @@ func (s *InPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, e
 	return NewValueIterator(fromIt.path.InPredicates(), qs), nil
 }
 
-// LabelContext corresponds to .labelContext()
-type LabelContext struct {
-	From ValueStep `json:"from"`
-	// TODO(iddan): Via
-}
-
-// Type implements Step
-func (s *LabelContext) Type() quad.IRI {
-	return prefix + "LabelContext"
-}
-
-// BuildIterator implements Step
-func (s *LabelContext) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return s.BuildValueIterator(qs)
-}
-
-// BuildValueIterator implements ValueStep
-func (s *LabelContext) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
-	fromIt, err := s.From.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(fromIt.path.LabelContext(), qs), nil
-}
-
 // Labels corresponds to .labels()
 type Labels struct {
 	From ValueStep `json:"from"`
