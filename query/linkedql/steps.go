@@ -29,7 +29,6 @@ func init() {
 	Register(&HasReverse{})
 	Register(&In{})
 	Register(&InPredicates{})
-	Register(&LabelContext{})
 	Register(&Labels{})
 	Register(&Limit{})
 	Register(&OutPredicates{})
