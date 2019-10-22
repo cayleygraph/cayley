@@ -2,7 +2,6 @@ package linkedql
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -153,7 +152,7 @@ func parseValue(a interface{}) (quad.Value, error) {
 			panic("Doesn't support special literals yet")
 		}
 	}
-	return nil, errors.New("Couldn't parse rawValue to a quad.Value")
+	return nil, fmt.Errorf("cannot parse JSON-LD value: %#v", a)
 }
 
 // RegistryItem in the registry
