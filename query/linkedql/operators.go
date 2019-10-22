@@ -51,7 +51,7 @@ func (s *GreaterThanEquals) Type() quad.IRI {
 
 // RegExp corresponds to regex()
 type RegExp struct {
-	Expression  string `json:"expression"`
+	Pattern     string `json:"pattern"`
 	IncludeIRIs bool   `json:"includeIRIs"`
 }
 
