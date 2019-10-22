@@ -1,6 +1,7 @@
 package linkedql
 
 import (
+	"errors"
 	"regexp"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -57,6 +58,34 @@ func init() {
 	Register(&Order{})
 }
 
+// Step is the tree representation of a call in a Path context.
+// For example:
+// g.V(g.IRI("alice")) is represented as &V{ values: quad.Value[]{quad.IRI("alice")} }
+// g.V().out(g.IRI("likes")) is represented as &Out{ Via: quad.Value[]{quad.IRI("likes")}, From: &V{} }
+type Step interface {
+	Type() quad.IRI
+	BuildIterator(qs graph.QuadStore) (query.Iterator, error)
+}
+
+// ValueStep is a ValueStep that can build a ValueIterator
+type ValueStep interface {
+
+	// BuildValueIterator implements ValueStepStep
+	BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error)
+}
+
+// func buildValueIterator(s Step, qs graph.QuadStore, property string) (*ValueIterator, error) {
+// 	it, err := s.BuildIterator(qs)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	valueIt, ok := it.(*ValueIterator)
+// 	if !ok {
+// 		return nil, errors.New(s.Type().String() + " must be called with ValueIterator " + property)
+// 	}
+// 	return valueIt, err
+// }
+
 // Vertex corresponds to g.Vertex() and g.V()
 type Vertex struct {
 	Values []quad.Value `json:"values"`
@@ -68,30 +97,21 @@ func (s *Vertex) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Vertex) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *Vertex) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Vertex) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	path := path.StartPath(qs, s.Values...)
-	return NewValueIterator(path, qs)
-}
-
-// Morphism corresponds to g.Morphism() and g.M()
-type Morphism struct {
-}
-
-// Type implements Step
-func (s *Morphism) Type() quad.IRI {
-	return prefix + "Morphism"
-}
-
-// BuildIterator implements Step
-func (s *Morphism) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not implemented")
+	return NewValueIterator(path, qs), nil
 }
 
 // Out corresponds to .out()
 type Out struct {
-	From Step     `json:"from"`
-	Via  Step     `json:"via"`
-	Tags []string `json:"tags"`
+	From ValueStep `json:"from"`
+	Via  ValueStep `json:"via"`
+	Tags []string  `json:"tags"`
 }
 
 // Type implements Step
@@ -100,23 +120,28 @@ func (s *Out) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Out) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Out must be called from ValueIterator")
+func (s *Out) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Out) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Out must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
 	path := fromIt.path.OutWithTags(s.Tags, viaIt.path)
-	return NewValueIterator(path, qs)
+	return NewValueIterator(path, qs), nil
 }
 
 // As corresponds to .tag()
 type As struct {
-	From Step     `json:"from"`
-	Tags []string `json:"tags"`
+	From ValueStep `json:"from"`
+	Tags []string  `json:"tags"`
 }
 
 // Type implements Step
@@ -125,18 +150,23 @@ func (s *As) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *As) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("As must be called from ValueIterator")
+func (s *As) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *As) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
 	path := fromIt.path.Tag(s.Tags...)
-	return NewValueIterator(path, qs)
+	return NewValueIterator(path, qs), nil
 }
 
 // TagArray corresponds to .tagArray()
 type TagArray struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -145,17 +175,17 @@ func (s *TagArray) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *TagArray) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("TagArray must be called from ValueIterator")
+func (s *TagArray) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return &TagArrayIterator{fromIt}
+	return &TagArrayIterator{fromIt}, nil
 }
 
 // TagValue corresponds to .tagValue()
 type TagValue struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -165,18 +195,18 @@ func (s *TagValue) Type() quad.IRI {
 
 // BuildIterator implements Step
 // TODO(iddan): Limit one result
-func (s *TagValue) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("TagValue must be called from ValueIterator")
+func (s *TagValue) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return &TagArrayIterator{fromIt}
+	return &TagArrayIterator{fromIt}, nil
 }
 
 // Value corresponds to .value()
 // TODO(iddan): Limit one result
 type Value struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -185,19 +215,24 @@ func (s *Value) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Value) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Value must be called from ValueIterator")
+func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Value) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
 	// TODO(@iddan): support non iterators for query result
-	return fromIt
+	return fromIt, nil
 }
 
 // Intersect represents .intersect() and .and()
 type Intersect struct {
-	From        Step `json:"from"`
-	Intersectee Step `json:"intersectee"`
+	From        ValueStep `json:"from"`
+	Intersectee ValueStep `json:"intersectee"`
 }
 
 // Type implements Step
@@ -206,21 +241,26 @@ func (s *Intersect) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Intersect) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Intersect must be called from ValueIterator")
+func (s *Intersect) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Intersect) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	intersecteeIt, ok := s.Intersectee.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Intersect must be called with ValueIterator intersectee")
+	intersecteeIt, err := s.Intersectee.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.And(intersecteeIt.path), qs)
+	return NewValueIterator(fromIt.path.And(intersecteeIt.path), qs), nil
 }
 
 // Is corresponds to .back()
 type Is struct {
-	From   Step         `json:"from"`
+	From   ValueStep    `json:"from"`
 	Values []quad.Value `json:"values"`
 }
 
@@ -230,18 +270,23 @@ func (s *Is) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Is) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Is must be called from ValueIterator")
+func (s *Is) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Is) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Is(s.Values...), qs)
+	return NewValueIterator(fromIt.path.Is(s.Values...), qs), nil
 }
 
 // Back corresponds to .back()
 type Back struct {
-	From Step   `json:"from"`
-	Tag  string `json:"tag"`
+	From ValueStep `json:"from"`
+	Tag  string    `json:"tag"`
 }
 
 // Type implements Step
@@ -250,19 +295,24 @@ func (s *Back) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Back) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Back must be called from ValueIterator")
+func (s *Back) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Back) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Back(s.Tag), qs)
+	return NewValueIterator(fromIt.path.Back(s.Tag), qs), nil
 }
 
 // Both corresponds to .both()
 type Both struct {
-	From Step     `json:"from"`
-	Via  Step     `json:"via"`
-	Tags []string `json:"tags"`
+	From ValueStep `json:"from"`
+	Via  ValueStep `json:"via"`
+	Tags []string  `json:"tags"`
 }
 
 // Type implements Step
@@ -271,21 +321,26 @@ func (s *Both) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Both) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Both must be called from ValueIterator")
+func (s *Both) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Both) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Both must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.BothWithTags(s.Tags, viaIt.path), qs)
+	return NewValueIterator(fromIt.path.BothWithTags(s.Tags, viaIt.path), qs), nil
 }
 
 // Count corresponds to .count()
 type Count struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -294,18 +349,23 @@ func (s *Count) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Count) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Count must be called from ValueIterator")
+func (s *Count) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Count) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Count(), qs)
+	return NewValueIterator(fromIt.path.Count(), qs), nil
 }
 
 // Except corresponds to .except() and .difference()
 type Except struct {
-	From     Step `json:"from"`
-	Excepted Step `json:"excepted"`
+	From     ValueStep `json:"from"`
+	Excepted ValueStep `json:"excepted"`
 }
 
 // Type implements Step
@@ -314,16 +374,21 @@ func (s *Except) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Except) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Except must be called from ValueIterator")
+func (s *Except) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Except) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	exceptedIt, ok := s.Excepted.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Except must be called with ValueIterator excepted")
+	exceptedIt, err := s.Excepted.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Except(exceptedIt.path), qs)
+	return NewValueIterator(fromIt.path.Except(exceptedIt.path), qs), nil
 }
 
 // LessThan corresponds to lt()
@@ -337,8 +402,8 @@ func (s *LessThan) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *LessThan) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Can't BuildIterator for " + s.Type())
+func (s *LessThan) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return nil, errors.New("Can't build iterator for " + s.Type().String())
 }
 
 // LessThanEquals corresponds to lte()
@@ -352,7 +417,7 @@ func (s *LessThanEquals) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *LessThanEquals) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *LessThanEquals) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	panic("Can't BuildIterator for " + s.Type())
 }
 
@@ -367,7 +432,7 @@ func (s *GreaterThan) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *GreaterThan) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *GreaterThan) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	panic("Can't BuildIterator for " + s.Type())
 }
 
@@ -382,7 +447,7 @@ func (s *GreaterThanEquals) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *GreaterThanEquals) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *GreaterThanEquals) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	panic("Can't BuildIterator for " + s.Type())
 }
 
@@ -398,7 +463,7 @@ func (s *RegExp) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *RegExp) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *RegExp) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	panic("Can't BuildIterator for " + s.Type())
 }
 
@@ -413,14 +478,14 @@ func (s *Like) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Like) BuildIterator(qs graph.QuadStore) query.Iterator {
+func (s *Like) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	panic("Can't BuildIterator for " + s.Type())
 }
 
 // Filter corresponds to filter()
 type Filter struct {
-	From   Step `json:"from"`
-	Filter Step `json:"filter"`
+	From   ValueStep `json:"from"`
+	Filter Step      `json:"filter"`
 }
 
 // Type implements Step
@@ -429,40 +494,45 @@ func (s *Filter) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Filter) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Except must be called from ValueIterator")
+func (s *Filter) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Filter) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
 	switch filter := s.Filter.(type) {
 	case *LessThan:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLT), filter.Value), qs)
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLT), filter.Value), qs), nil
 	case *LessThanEquals:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLTE), filter.Value), qs)
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLTE), filter.Value), qs), nil
 	case *GreaterThan:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGT), filter.Value), qs)
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGT), filter.Value), qs), nil
 	case *GreaterThanEquals:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGTE), filter.Value), qs)
+		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGTE), filter.Value), qs), nil
 	case *RegExp:
 		expression, err := regexp.Compile(string(filter.Expression))
 		if err != nil {
-			panic("Invalid RegExp")
+			return nil, errors.New("Invalid RegExp")
 		}
 		if filter.IncludeIRIs {
-			return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs)
+			return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs), nil
 		}
-		return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs)
+		return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs), nil
 	case *Like:
-		return NewValueIterator(fromIt.path.Filters(shape.Wildcard{Pattern: filter.Pattern}), qs)
+		return NewValueIterator(fromIt.path.Filters(shape.Wildcard{Pattern: filter.Pattern}), qs), nil
 	default:
-		panic("Filter is not recognized")
+		return nil, errors.New("Filter is not recognized")
 	}
 }
 
 // Follow corresponds to .follow()
 type Follow struct {
-	From     Step `json:"from"`
-	Followed Step `json:"followed"`
+	From     ValueStep `json:"from"`
+	Followed ValueStep `json:"followed"`
 }
 
 // Type implements Step
@@ -471,22 +541,27 @@ func (s *Follow) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Follow) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Follow must be called from ValueIterator")
+func (s *Follow) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Follow) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	followedIt, ok := s.Followed.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Follow must be called with ValueIterator followed")
+	followedIt, err := s.Followed.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Follow(followedIt.path), qs)
+	return NewValueIterator(fromIt.path.Follow(followedIt.path), qs), nil
 }
 
 // FollowReverse corresponds to .followR()
 type FollowReverse struct {
-	From     Step `json:"from"`
-	Followed Step `json:"followed"`
+	From     ValueStep `json:"from"`
+	Followed ValueStep `json:"followed"`
 }
 
 // Type implements Step
@@ -495,38 +570,27 @@ func (s *FollowReverse) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *FollowReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("FollowR must be called from ValueIterator")
+func (s *FollowReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *FollowReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	followedIt, ok := s.Followed.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("FollowR must be called with ValueIterator followed")
+	followedIt, err := s.Followed.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.FollowReverse(followedIt.path), qs)
-}
-
-// FollowRecursive corresponds to .followRecursive()
-type FollowRecursive struct {
-	From     Step `json:"from"`
-	Followed Step `json:"followed"`
-}
-
-// Type implements Step
-func (s *FollowRecursive) Type() quad.IRI {
-	return prefix + "FollowRecursive"
-}
-
-// BuildIterator implements Step
-func (s *FollowRecursive) BuildIterator(qs graph.QuadStore) query.Iterator {
-	panic("Not Implemented")
+	return NewValueIterator(fromIt.path.FollowReverse(followedIt.path), qs), nil
 }
 
 // Has corresponds to .has()
 type Has struct {
-	From   Step         `json:"from"`
-	Via    Step         `json:"via"`
+	From   ValueStep    `json:"from"`
+	Via    ValueStep    `json:"via"`
 	Values []quad.Value `json:"values"`
 }
 
@@ -536,22 +600,27 @@ func (s *Has) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Has) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Has must be called from ValueIterator")
+func (s *Has) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Has) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Has must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Has(viaIt.path, s.Values...), qs)
+	return NewValueIterator(fromIt.path.Has(viaIt.path, s.Values...), qs), nil
 }
 
 // HasReverse corresponds to .hasR()
 type HasReverse struct {
-	From   Step         `json:"from"`
-	Via    Step         `json:"via"`
+	From   ValueStep    `json:"from"`
+	Via    ValueStep    `json:"via"`
 	Values []quad.Value `json:"values"`
 }
 
@@ -561,23 +630,28 @@ func (s *HasReverse) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *HasReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Has must be called from ValueIterator")
+func (s *HasReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *HasReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Has must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.HasReverse(viaIt.path, s.Values...), qs)
+	return NewValueIterator(fromIt.path.HasReverse(viaIt.path, s.Values...), qs), nil
 }
 
 // In corresponds to .in()
 type In struct {
-	From Step     `json:"from"`
-	Via  Step     `json:"via"`
-	Tags []string `json:"tags"`
+	From ValueStep `json:"from"`
+	Via  ValueStep `json:"via"`
+	Tags []string  `json:"tags"`
 }
 
 // Type implements Step
@@ -586,21 +660,26 @@ func (s *In) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *In) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("In must be called from ValueIterator")
+func (s *In) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *In) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("In must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.InWithTags(s.Tags, viaIt.path), qs)
+	return NewValueIterator(fromIt.path.InWithTags(s.Tags, viaIt.path), qs), nil
 }
 
 // InPredicates corresponds to .inPredicates()
 type InPredicates struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -609,17 +688,22 @@ func (s *InPredicates) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *InPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("InPredicates must be called from ValueIterator")
+func (s *InPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *InPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.InPredicates(), qs)
+	return NewValueIterator(fromIt.path.InPredicates(), qs), nil
 }
 
 // LabelContext corresponds to .labelContext()
 type LabelContext struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 	// TODO(@iddan): Via
 }
 
@@ -629,17 +713,22 @@ func (s *LabelContext) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *LabelContext) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("LabelContext must be called from ValueIterator")
+func (s *LabelContext) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *LabelContext) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.LabelContext(), qs)
+	return NewValueIterator(fromIt.path.LabelContext(), qs), nil
 }
 
 // Labels corresponds to .labels()
 type Labels struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -648,18 +737,23 @@ func (s *Labels) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Labels) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Labels must be called from ValueIterator")
+func (s *Labels) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Labels) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Labels(), qs)
+	return NewValueIterator(fromIt.path.Labels(), qs), nil
 }
 
 // Limit corresponds to .limit()
 type Limit struct {
-	From  Step  `json:"from"`
-	Limit int64 `json:"limit"`
+	From  ValueStep `json:"from"`
+	Limit int64     `json:"limit"`
 }
 
 // Type implements Step
@@ -668,17 +762,22 @@ func (s *Limit) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Limit) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Limit must be called from ValueIterator")
+func (s *Limit) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Limit) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Limit(s.Limit), qs)
+	return NewValueIterator(fromIt.path.Limit(s.Limit), qs), nil
 }
 
 // OutPredicates corresponds to .outPredicates()
 type OutPredicates struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -687,19 +786,24 @@ func (s *OutPredicates) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *OutPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("OutPredicates must be called from ValueIterator")
+func (s *OutPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *OutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.OutPredicates(), qs)
+	return NewValueIterator(fromIt.path.OutPredicates(), qs), nil
 }
 
 // Save corresponds to .save()
 type Save struct {
-	From Step   `json:"from"`
-	Via  Step   `json:"via"`
-	Tag  string `json:"tag"`
+	From ValueStep `json:"from"`
+	Via  ValueStep `json:"via"`
+	Tag  string    `json:"tag"`
 }
 
 // Type implements Step
@@ -709,22 +813,27 @@ func (s *Save) Type() quad.IRI {
 
 // BuildIterator implements Step
 // TODO(iddan): Default tag to Via
-func (s *Save) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Save must be called from ValueIterator")
+func (s *Save) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Save) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Save must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Save(viaIt.path, s.Tag), qs)
+	return NewValueIterator(fromIt.path.Save(viaIt.path, s.Tag), qs), nil
 }
 
 // SaveInPredicates corresponds to .saveInPredicates()
 type SaveInPredicates struct {
-	From Step   `json:"from"`
-	Tag  string `json:"tag"`
+	From ValueStep `json:"from"`
+	Tag  string    `json:"tag"`
 }
 
 // Type implements Step
@@ -733,19 +842,24 @@ func (s *SaveInPredicates) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *SaveInPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveInPredicates must be called from ValueIterator")
+func (s *SaveInPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *SaveInPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.SavePredicates(true, s.Tag), qs)
+	return NewValueIterator(fromIt.path.SavePredicates(true, s.Tag), qs), nil
 }
 
 // SaveOptional corresponds to .saveOpt()
 type SaveOptional struct {
-	From Step   `json:"from"`
-	Via  Step   `json:"via"`
-	Tag  string `json:"tag"`
+	From ValueStep `json:"from"`
+	Via  ValueStep `json:"via"`
+	Tag  string    `json:"tag"`
 }
 
 // Type implements Step
@@ -754,23 +868,28 @@ func (s *SaveOptional) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *SaveOptional) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveOptional must be called from ValueIterator")
+func (s *SaveOptional) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *SaveOptional) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveOptional must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.SaveOptional(viaIt.path, s.Tag), qs)
+	return NewValueIterator(fromIt.path.SaveOptional(viaIt.path, s.Tag), qs), nil
 }
 
 // SaveOptionalReverse corresponds to .saveOptR()
 type SaveOptionalReverse struct {
-	From Step   `json:"from"`
-	Via  Step   `json:"via"`
-	Tag  string `json:"tag"`
+	From ValueStep `json:"from"`
+	Via  ValueStep `json:"via"`
+	Tag  string    `json:"tag"`
 }
 
 // Type implements Step
@@ -779,22 +898,27 @@ func (s *SaveOptionalReverse) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *SaveOptionalReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveOptionalReverse must be called from ValueIterator")
+func (s *SaveOptionalReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *SaveOptionalReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveOptionalReverse must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.SaveOptionalReverse(viaIt.path, s.Tag), qs)
+	return NewValueIterator(fromIt.path.SaveOptionalReverse(viaIt.path, s.Tag), qs), nil
 }
 
 // SaveOutPredicates corresponds to .saveOutPredicates()
 type SaveOutPredicates struct {
-	From Step   `json:"from"`
-	Tag  string `json:"tag"`
+	From ValueStep `json:"from"`
+	Tag  string    `json:"tag"`
 }
 
 // Type implements Step
@@ -803,19 +927,24 @@ func (s *SaveOutPredicates) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *SaveOutPredicates) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveOutPredicates must be called from ValueIterator")
+func (s *SaveOutPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *SaveOutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.SavePredicates(false, s.Tag), qs)
+	return NewValueIterator(fromIt.path.SavePredicates(false, s.Tag), qs), nil
 }
 
 // SaveReverse corresponds to .saveR()
 type SaveReverse struct {
-	From Step   `json:"from"`
-	Via  Step   `json:"via"`
-	Tag  string `json:"tag"`
+	From ValueStep `json:"from"`
+	Via  ValueStep `json:"via"`
+	Tag  string    `json:"tag"`
 }
 
 // Type implements Step
@@ -824,22 +953,27 @@ func (s *SaveReverse) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *SaveReverse) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveReverse must be called from ValueIterator")
+func (s *SaveReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *SaveReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	viaIt, ok := s.Via.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveReverse must be called with ValueIterator via")
+	viaIt, err := s.Via.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.SaveReverse(viaIt.path, s.Tag), qs)
+	return NewValueIterator(fromIt.path.SaveReverse(viaIt.path, s.Tag), qs), nil
 }
 
 // Skip corresponds to .skip()
 type Skip struct {
-	From   Step  `json:"from"`
-	Offset int64 `json:"offset"`
+	From   ValueStep `json:"from"`
+	Offset int64     `json:"offset"`
 }
 
 // Type implements Step
@@ -848,18 +982,23 @@ func (s *Skip) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Skip) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("SaveReverse must be called from ValueIterator")
+func (s *Skip) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Skip) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Skip(s.Offset), qs)
+	return NewValueIterator(fromIt.path.Skip(s.Offset), qs), nil
 }
 
 // Union corresponds to .union() and .or()
 type Union struct {
-	From      Step `json:"from"`
-	Unionized Step `json:"unionized"`
+	From      ValueStep `json:"from"`
+	Unionized ValueStep `json:"unionized"`
 }
 
 // Type implements Step
@@ -868,21 +1007,26 @@ func (s *Union) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Union) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Union must be called from ValueIterator")
+func (s *Union) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Union) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	unionizedIt, ok := s.Unionized.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Union must be called with ValueIterator Unionized")
+	unionizedIt, err := s.Unionized.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Or(unionizedIt.path), qs)
+	return NewValueIterator(fromIt.path.Or(unionizedIt.path), qs), nil
 }
 
 // Unique corresponds to .unique()
 type Unique struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -891,17 +1035,22 @@ func (s *Unique) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Unique) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Unique must be called from ValueIterator")
+func (s *Unique) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Unique) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Unique(), qs)
+	return NewValueIterator(fromIt.path.Unique(), qs), nil
 }
 
 // Order corresponds to .order()
 type Order struct {
-	From Step `json:"from"`
+	From ValueStep `json:"from"`
 }
 
 // Type implements Step
@@ -910,10 +1059,15 @@ func (s *Order) Type() quad.IRI {
 }
 
 // BuildIterator implements Step
-func (s *Order) BuildIterator(qs graph.QuadStore) query.Iterator {
-	fromIt, ok := s.From.BuildIterator(qs).(*ValueIterator)
-	if !ok {
-		panic("Order must be called from ValueIterator")
+func (s *Order) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return s.BuildValueIterator(qs)
+}
+
+// BuildValueIterator implements ValueStep
+func (s *Order) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+	fromIt, err := s.From.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
 	}
-	return NewValueIterator(fromIt.path.Order(), qs)
+	return NewValueIterator(fromIt.path.Order(), qs), nil
 }
