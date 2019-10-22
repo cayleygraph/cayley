@@ -3,26 +3,27 @@ package linkedql
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/path"
 )
 
 // ValueIterator is an iterator of values from the graph
 type ValueIterator struct {
-	namer   graph.Namer
+	namer   refs.Namer
 	path    *path.Path
-	scanner graph.Scanner
+	scanner iterator.Scanner
 }
 
 // NewValueIterator returns a new ValueIterator for a path and namer
-func NewValueIterator(p *path.Path, namer graph.Namer) *ValueIterator {
+func NewValueIterator(p *path.Path, namer refs.Namer) *ValueIterator {
 	return &ValueIterator{namer, p, nil}
 }
 
 // Next implements query.Iterator
 func (it *ValueIterator) Next(ctx context.Context) bool {
 	if it.scanner == nil {
-		it.scanner = it.path.BuildIterator().Iterate()
+		it.scanner = it.path.BuildIterator(ctx).Iterate()
 	}
 	return it.scanner.Next(ctx)
 }
