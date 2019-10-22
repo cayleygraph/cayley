@@ -10,19 +10,12 @@ import (
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/voc"
 )
 
-const namespace = "http://cayley.io/linkedql#"
-const prefix = "linkedql:"
-
 func init() {
-	voc.Register(voc.Namespace{Full: namespace, Prefix: prefix})
 	Register(&Vertex{})
 	Register(&Out{})
 	Register(&As{})
-	Register(&TagArray{})
-	Register(&Value{})
 	Register(&Intersect{})
 	Register(&Is{})
 	Register(&Back{})
@@ -162,61 +155,6 @@ func (s *As) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	}
 	path := fromIt.path.Tag(s.Tags...)
 	return NewValueIterator(path, qs), nil
-}
-
-// TagArray corresponds to .tagArray()
-type TagArray struct {
-	From ValueStep `json:"from"`
-}
-
-// Type implements Step
-func (s *TagArray) Type() quad.IRI {
-	return prefix + "TagArray"
-}
-
-// BuildIterator implements Step
-func (s *TagArray) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	fromIt, err := s.From.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
-	}
-	return &TagArrayIterator{fromIt}, nil
-}
-
-// TagValue corresponds to .tagValue()
-type TagValue struct {
-	From ValueStep `json:"from"`
-}
-
-// Type implements Step
-func (s *TagValue) Type() quad.IRI {
-	return prefix + "TagValue"
-}
-
-// BuildIterator implements Step
-// TODO(iddan): Limit one result
-func (s *TagValue) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	fromIt, err := s.From.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
-	}
-	return &TagArrayIterator{fromIt}, nil
-}
-
-// Value corresponds to .value()
-// TODO(iddan): Limit one result
-type Value struct {
-	From ValueStep `json:"from"`
-}
-
-// Type implements Step
-func (s *Value) Type() quad.IRI {
-	return prefix + "Value"
-}
-
-// BuildIterator implements Step
-func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return s.BuildValueIterator(qs)
 }
 
 // BuildValueIterator implements ValueStep
