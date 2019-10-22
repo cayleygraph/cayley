@@ -355,14 +355,14 @@ func (s *Filter) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 	case *GreaterThanEquals:
 		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGTE), filter.Value), qs), nil
 	case *RegExp:
-		expression, err := regexp.Compile(string(filter.Expression))
+		pattern, err := regexp.Compile(string(filter.Pattern))
 		if err != nil {
 			return nil, errors.New("Invalid RegExp")
 		}
 		if filter.IncludeIRIs {
-			return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs), nil
+			return NewValueIterator(fromIt.path.RegexWithRefs(pattern), qs), nil
 		}
-		return NewValueIterator(fromIt.path.RegexWithRefs(expression), qs), nil
+		return NewValueIterator(fromIt.path.RegexWithRefs(pattern), qs), nil
 	case *Like:
 		return NewValueIterator(fromIt.path.Filters(shape.Wildcard{Pattern: filter.Pattern}), qs), nil
 	default:
