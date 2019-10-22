@@ -346,13 +346,13 @@ func (s *Filter) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 	}
 	switch filter := s.Filter.(type) {
 	case *LessThan:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLT), filter.Value), qs), nil
+		return NewValueIterator(fromIt.path.Filter(iterator.CompareLT, filter.Value), qs), nil
 	case *LessThanEquals:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareLTE), filter.Value), qs), nil
+		return NewValueIterator(fromIt.path.Filter(iterator.CompareLTE, filter.Value), qs), nil
 	case *GreaterThan:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGT), filter.Value), qs), nil
+		return NewValueIterator(fromIt.path.Filter(iterator.CompareGT, filter.Value), qs), nil
 	case *GreaterThanEquals:
-		return NewValueIterator(fromIt.path.Filter(iterator.Operator(iterator.CompareGTE), filter.Value), qs), nil
+		return NewValueIterator(fromIt.path.Filter(iterator.CompareGTE, filter.Value), qs), nil
 	case *RegExp:
 		pattern, err := regexp.Compile(string(filter.Pattern))
 		if err != nil {
