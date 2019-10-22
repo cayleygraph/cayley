@@ -15,7 +15,8 @@ var (
 	nameByType = make(map[reflect.Type]string)
 )
 
-func Register(typ Step) {
+// Register adds an Item type to the registry
+func Register(typ RegistryItem) {
 	tp := reflect.TypeOf(typ)
 	if tp.Kind() == reflect.Ptr {
 		tp = tp.Elem()
@@ -34,7 +35,8 @@ func Register(typ Step) {
 var quadValue = reflect.TypeOf((*quad.Value)(nil)).Elem()
 var quadSliceValue = reflect.TypeOf(([]quad.Value)(nil))
 
-func UnmarshalStep(data []byte) (Step, error) {
+// Unmarshal attempts to unmarshal an Item or returns error
+func Unmarshal(data []byte) (RegistryItem, error) {
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(data, &m); err != nil {
 		return nil, err
@@ -46,9 +48,9 @@ func UnmarshalStep(data []byte) (Step, error) {
 	delete(m, "@type")
 	tp, ok := typeByName[typ]
 	if !ok {
-		return nil, fmt.Errorf("unsupported step: %q", typ)
+		return nil, fmt.Errorf("unsupported item: %q", typ)
 	}
-	step := reflect.New(tp).Elem()
+	item := reflect.New(tp).Elem()
 	for i := 0; i < tp.NumField(); i++ {
 		f := tp.Field(i)
 		name := f.Name
@@ -62,7 +64,7 @@ func UnmarshalStep(data []byte) (Step, error) {
 		if !ok {
 			continue
 		}
-		fv := step.Field(i)
+		fv := item.Field(i)
 		switch f.Type {
 		case quadValue:
 			var a interface{}
@@ -95,7 +97,7 @@ func UnmarshalStep(data []byte) (Step, error) {
 		}
 		switch f.Type.Kind() {
 		case reflect.Interface:
-			s, err := UnmarshalStep(v)
+			s, err := Unmarshal(v)
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +117,7 @@ func UnmarshalStep(data []byte) (Step, error) {
 				if arr != nil {
 					va := reflect.MakeSlice(f.Type, len(arr), len(arr))
 					for i, v := range arr {
-						s, err := UnmarshalStep(v)
+						s, err := Unmarshal(v)
 						if err != nil {
 							return nil, err
 						}
@@ -131,7 +133,7 @@ func UnmarshalStep(data []byte) (Step, error) {
 			}
 		}
 	}
-	return step.Addr().Interface().(Step), nil
+	return item.Addr().Interface().(RegistryItem), nil
 }
 
 func parseValue(a interface{}) (quad.Value, error) {
@@ -152,4 +154,9 @@ func parseValue(a interface{}) (quad.Value, error) {
 		}
 	}
 	return nil, errors.New("Couldn't parse rawValue to a quad.Value")
+}
+
+// RegistryItem in the registry
+type RegistryItem interface {
+	Type() quad.IRI
 }
