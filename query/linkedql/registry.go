@@ -135,10 +135,21 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 	return item.Addr().Interface().(RegistryItem), nil
 }
 
+const xsd = "http://www.w3.org/2001/XMLSchema#"
+const xsdInt = xsd + "integer"
+const xsdFloat = xsd + "float"
+const xsdBool = xsd + "boolean"
+
 func parseValue(a interface{}) (quad.Value, error) {
 	switch a := a.(type) {
 	case string:
 		return quad.String(a), nil
+	case int64:
+		return quad.TypedString{Value: quad.String(a), Type: quad.IRI(xsdInt)}, nil
+	case float64:
+		return quad.TypedString{Value: quad.String(fmt.Sprintf("%f", a)), Type: quad.IRI(xsdFloat)}, nil
+	case bool:
+		return quad.TypedString{Value: quad.String(fmt.Sprintf("%t", a)), Type: quad.IRI(xsdBool)}, nil
 	case map[string]interface{}:
 		id, ok := a["@id"].(string)
 		if ok {
@@ -147,9 +158,14 @@ func parseValue(a interface{}) (quad.Value, error) {
 			}
 			return quad.IRI(id), nil
 		}
-		_, ok = a["@value"].(string)
+		value, ok := a["@value"].(string)
 		if ok {
-			panic("Doesn't support special literals yet")
+			if language, ok := a["@language"].(string); ok {
+				return quad.LangString{Value: quad.String("value"), Lang: language}, nil
+			}
+			if _type, ok := a["@type"].(string); ok {
+				return quad.TypedString{Value: quad.String(value), Type: quad.IRI(_type)}, nil
+			}
 		}
 	}
 	return nil, fmt.Errorf("cannot parse JSON-LD value: %#v", a)
