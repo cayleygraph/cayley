@@ -162,8 +162,8 @@ func (s *Value) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 
 // Intersect represents .intersect() and .and()
 type Intersect struct {
-	From        ValueStep `json:"from"`
-	Intersectee ValueStep `json:"intersectee"`
+	From        ValueStep   `json:"from"`
+	Intersected []ValueStep `json:"intersected"`
 }
 
 // Type implements Step
@@ -182,11 +182,15 @@ func (s *Intersect) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, erro
 	if err != nil {
 		return nil, err
 	}
-	intersecteeIt, err := s.Intersectee.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
+	path := fromIt.path
+	for _, step := range s.Intersected {
+		stepIt, err := step.BuildValueIterator(qs)
+		if err != nil {
+			return nil, err
+		}
+		path = path.And(stepIt.path)
 	}
-	return NewValueIterator(fromIt.path.And(intersecteeIt.path), qs), nil
+	return NewValueIterator(path, qs), nil
 }
 
 // Is corresponds to .back()
