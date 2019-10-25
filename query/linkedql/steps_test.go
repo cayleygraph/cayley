@@ -264,9 +264,11 @@ var testCases = []struct {
 					Values: []quad.Value{quad.IRI("likes")},
 				},
 			},
-			Intersectee: &Out{
-				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			Intersected: []ValueStep{
+				&Out{
+					From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
+					Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+				},
 			},
 		},
 		results: []interface{}{
