@@ -1,14 +1,9 @@
 package linkedql
 
 import (
-	"errors"
-	"regexp"
-
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 )
 
@@ -348,29 +343,7 @@ func (s *Filter) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 	if err != nil {
 		return nil, err
 	}
-	switch filter := s.Filter.(type) {
-	case *LessThan:
-		return NewValueIterator(fromIt.path.Filter(iterator.CompareLT, filter.Value), qs), nil
-	case *LessThanEquals:
-		return NewValueIterator(fromIt.path.Filter(iterator.CompareLTE, filter.Value), qs), nil
-	case *GreaterThan:
-		return NewValueIterator(fromIt.path.Filter(iterator.CompareGT, filter.Value), qs), nil
-	case *GreaterThanEquals:
-		return NewValueIterator(fromIt.path.Filter(iterator.CompareGTE, filter.Value), qs), nil
-	case *RegExp:
-		pattern, err := regexp.Compile(string(filter.Pattern))
-		if err != nil {
-			return nil, errors.New("Invalid RegExp")
-		}
-		if filter.IncludeIRIs {
-			return NewValueIterator(fromIt.path.RegexWithRefs(pattern), qs), nil
-		}
-		return NewValueIterator(fromIt.path.RegexWithRefs(pattern), qs), nil
-	case *Like:
-		return NewValueIterator(fromIt.path.Filters(shape.Wildcard{Pattern: filter.Pattern}), qs), nil
-	default:
-		return nil, errors.New("Filter is not recognized")
-	}
+	return s.Filter.Apply(fromIt)
 }
 
 // Follow corresponds to .follow()
