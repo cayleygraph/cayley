@@ -17,7 +17,7 @@ type ValueIterator struct {
 
 // NewValueIterator returns a new ValueIterator for a path and namer.
 func NewValueIterator(p *path.Path, namer refs.Namer) *ValueIterator {
-	return &ValueIterator{namer, p, nil}
+	return &ValueIterator{namer: namer, path: p}
 }
 
 // Next implements query.Iterator.
