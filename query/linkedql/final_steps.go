@@ -12,18 +12,18 @@ func init() {
 	Register(&Value{})
 }
 
-// Select corresponds to .select()
+// Select corresponds to .select().
 type Select struct {
 	Tags []string  `json:"tags"`
 	From ValueStep `json:"from"`
 }
 
-// Type implements Step
+// Type implements Step.
 func (s *Select) Type() quad.IRI {
 	return prefix + "Select"
 }
 
-// BuildIterator implements Step
+// BuildIterator implements Step.
 func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	fromIt, err := s.From.BuildValueIterator(qs)
 	if err != nil {
@@ -32,13 +32,13 @@ func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return &TagsIterator{fromIt, s.Tags}, nil
 }
 
-// SelectFirst corresponds to .selectFirst()
+// SelectFirst corresponds to .selectFirst().
 type SelectFirst struct {
 	Tags []string  `json:"tags"`
 	From ValueStep `json:"from"`
 }
 
-// Type implements Step
+// Type implements Step.
 func (s *SelectFirst) Type() quad.IRI {
 	return prefix + "SelectFirst"
 }
@@ -48,7 +48,7 @@ func singleValueIterator(it *ValueIterator) *ValueIterator {
 	return NewValueIterator(p, it.namer)
 }
 
-// BuildIterator implements Step
+// BuildIterator implements Step.
 func (s *SelectFirst) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	it, err := s.From.BuildValueIterator(qs)
 	if err != nil {
@@ -57,17 +57,17 @@ func (s *SelectFirst) BuildIterator(qs graph.QuadStore) (query.Iterator, error) 
 	return &TagsIterator{singleValueIterator(it), s.Tags}, nil
 }
 
-// Value corresponds to .value()
+// Value corresponds to .value().
 type Value struct {
 	From ValueStep `json:"from"`
 }
 
-// Type implements Step
+// Type implements Step.
 func (s *Value) Type() quad.IRI {
 	return prefix + "Value"
 }
 
-// BuildIterator implements Step
+// BuildIterator implements Step.
 func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	it, err := s.From.BuildValueIterator(qs)
 	if err != nil {

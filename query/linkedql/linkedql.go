@@ -5,7 +5,7 @@ import (
 	"github.com/cayleygraph/cayley/query"
 )
 
-// Name is the name exposed to the query interface
+// Name is the name exposed to the query interface.
 const Name = "linkedql"
 
 func init() {
