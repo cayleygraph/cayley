@@ -3,6 +3,7 @@ module github.com/cayleygraph/cayley
 go 1.12
 
 require (
+	github.com/alecthomas/jsonschema v0.0.0-20191017121752-4bb6e3fae4f2 // indirect
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
 	github.com/cayleygraph/quad v1.1.0
 	github.com/cockroachdb/apd v1.1.0 // indirect
