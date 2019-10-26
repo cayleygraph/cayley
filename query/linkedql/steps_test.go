@@ -30,9 +30,9 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "TagArray",
+		name: "Select",
 		data: singleQuadData,
-		query: &TagArray{
+		query: &Select{
 			From: &As{
 				Tags: []string{"liked"},
 				From: &Out{
@@ -48,6 +48,28 @@ var testCases = []struct {
 			map[string]quad.Value{
 				"liker": quad.IRI("alice"),
 				"liked": quad.IRI("bob"),
+			},
+		},
+	},
+	{
+		name: "Select with tags",
+		data: singleQuadData,
+		query: &Select{
+			Tags: []string{"liker"},
+			From: &As{
+				Tags: []string{"liked"},
+				From: &Out{
+					From: &As{
+						Tags: []string{"liker"},
+						From: &Vertex{},
+					},
+					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+				},
+			},
+		},
+		results: []interface{}{
+			map[string]quad.Value{
+				"liker": quad.IRI("alice"),
 			},
 		},
 	},
@@ -329,7 +351,7 @@ var testCases = []struct {
 	{
 		name: "Save",
 		data: singleQuadData,
-		query: &TagArray{
+		query: &Select{
 			From: &Save{
 				From: &Vertex{Values: []quad.Value{}},
 				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
@@ -345,7 +367,7 @@ var testCases = []struct {
 	{
 		name: "SaveInPredicates",
 		data: singleQuadData,
-		query: &TagArray{
+		query: &Select{
 			From: &SaveInPredicates{
 				From: &Vertex{Values: []quad.Value{}},
 				Tag:  "predicate",
@@ -364,7 +386,7 @@ var testCases = []struct {
 			quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
 			quad.MakeIRI("bob", "likes", "alice", ""),
 		},
-		query: &TagArray{
+		query: &Select{
 			From: &SaveOptional{
 				From: &Vertex{Values: []quad.Value{}},
 				Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
@@ -388,7 +410,7 @@ var testCases = []struct {
 			quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
 			quad.MakeIRI("bob", "likes", "alice", ""),
 		},
-		query: &TagArray{
+		query: &Select{
 			From: &SaveOptionalReverse{
 				From: &Vertex{Values: []quad.Value{}},
 				Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
@@ -408,7 +430,7 @@ var testCases = []struct {
 	{
 		name: "SaveOutPredicates",
 		data: singleQuadData,
-		query: &TagArray{
+		query: &Select{
 			From: &SaveOutPredicates{
 				From: &Vertex{Values: []quad.Value{}},
 				Tag:  "predicate",
@@ -423,7 +445,7 @@ var testCases = []struct {
 	{
 		name: "SaveReverse",
 		data: singleQuadData,
-		query: &TagArray{
+		query: &Select{
 			From: &SaveReverse{
 				From: &Vertex{Values: []quad.Value{}},
 				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
@@ -466,9 +488,9 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "TagValue",
+		name: "SelectFirst",
 		data: singleQuadData,
-		query: &TagValue{
+		query: &SelectFirst{
 			From: &As{
 				Tags: []string{"liked"},
 				From: &Out{
