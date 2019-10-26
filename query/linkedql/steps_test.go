@@ -480,8 +480,10 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice")},
 			},
-			Unionized: &Vertex{
-				Values: []quad.Value{quad.IRI("bob")},
+			Unionized: []ValueStep{
+				&Vertex{
+					Values: []quad.Value{quad.IRI("bob")},
+				},
 			},
 		},
 		results: []interface{}{
