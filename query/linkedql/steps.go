@@ -721,8 +721,8 @@ func (s *Skip) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 
 // Union corresponds to .union() and .or().
 type Union struct {
-	From      ValueStep `json:"from"`
-	Unionized ValueStep `json:"unionized"`
+	From      ValueStep   `json:"from"`
+	Unionized []ValueStep `json:"unionized"`
 }
 
 // Type implements Step.
@@ -741,11 +741,15 @@ func (s *Union) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	if err != nil {
 		return nil, err
 	}
-	unionizedIt, err := s.Unionized.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
+	path := fromIt.path
+	for _, step := range s.Unionized {
+		unionizedIt, err := step.BuildValueIterator(qs)
+		if err != nil {
+			return nil, err
+		}
+		path = path.Or(unionizedIt.path)
 	}
-	return NewValueIterator(fromIt.path.Or(unionizedIt.path), qs), nil
+	return NewValueIterator(path, qs), nil
 }
 
 // Unique corresponds to .unique().
