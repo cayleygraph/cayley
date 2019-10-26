@@ -380,17 +380,18 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "SaveOptional",
+		name: "Save with Optional",
 		data: []quad.Quad{
 			quad.MakeIRI("alice", "likes", "bob", ""),
 			quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
 			quad.MakeIRI("bob", "likes", "alice", ""),
 		},
 		query: &Select{
-			From: &SaveOptional{
-				From: &Vertex{Values: []quad.Value{}},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
-				Tag:  "name",
+			From: &Save{
+				Optional: true,
+				From:     &Vertex{Values: []quad.Value{}},
+				Via:      &Vertex{Values: []quad.Value{quad.IRI("name")}},
+				Tag:      "name",
 			},
 		},
 		results: []interface{}{
@@ -404,17 +405,18 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "SaveOptionalReverse",
+		name: "SaveReverse with Optional",
 		data: []quad.Quad{
 			quad.MakeIRI("alice", "likes", "bob", ""),
 			quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
 			quad.MakeIRI("bob", "likes", "alice", ""),
 		},
 		query: &Select{
-			From: &SaveOptionalReverse{
-				From: &Vertex{Values: []quad.Value{}},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
-				Tag:  "name",
+			From: &SaveReverse{
+				Optional: true,
+				From:     &Vertex{Values: []quad.Value{}},
+				Via:      &Vertex{Values: []quad.Value{quad.IRI("name")}},
+				Tag:      "name",
 			},
 		},
 		results: []interface{}{
