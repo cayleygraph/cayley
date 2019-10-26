@@ -14,7 +14,7 @@ var (
 	nameByType = make(map[reflect.Type]string)
 )
 
-// Register adds an Item type to the registry
+// Register adds an Item type to the registry.
 func Register(typ RegistryItem) {
 	tp := reflect.TypeOf(typ)
 	if tp.Kind() == reflect.Ptr {
@@ -34,7 +34,7 @@ func Register(typ RegistryItem) {
 var quadValue = reflect.TypeOf((*quad.Value)(nil)).Elem()
 var quadSliceValue = reflect.TypeOf(([]quad.Value)(nil))
 
-// Unmarshal attempts to unmarshal an Item or returns error
+// Unmarshal attempts to unmarshal an Item or returns error.
 func Unmarshal(data []byte) (RegistryItem, error) {
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -171,7 +171,7 @@ func parseValue(a interface{}) (quad.Value, error) {
 	return nil, fmt.Errorf("cannot parse JSON-LD value: %#v", a)
 }
 
-// RegistryItem in the registry
+// RegistryItem in the registry.
 type RegistryItem interface {
 	Type() quad.IRI
 }
