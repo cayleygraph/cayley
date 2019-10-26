@@ -10,19 +10,19 @@ import (
 
 var _ query.Session = &Session{}
 
-// Session represents a LinkedQL query processing
+// Session represents a LinkedQL query processing.
 type Session struct {
 	qs graph.QuadStore
 }
 
-// NewSession creates a new Session
+// NewSession creates a new Session.
 func NewSession(qs graph.QuadStore) *Session {
 	return &Session{
 		qs: qs,
 	}
 }
 
-// Execute for a given context, query and options return an iterator of results
+// Execute for a given context, query and options return an iterator of results.
 func (s *Session) Execute(ctx context.Context, query string, opt query.Options) (query.Iterator, error) {
 	item, err := Unmarshal([]byte(query))
 	if err != nil {

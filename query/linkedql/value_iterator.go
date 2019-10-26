@@ -8,19 +8,19 @@ import (
 	"github.com/cayleygraph/cayley/query/path"
 )
 
-// ValueIterator is an iterator of values from the graph
+// ValueIterator is an iterator of values from the graph.
 type ValueIterator struct {
 	namer   refs.Namer
 	path    *path.Path
 	scanner iterator.Scanner
 }
 
-// NewValueIterator returns a new ValueIterator for a path and namer
+// NewValueIterator returns a new ValueIterator for a path and namer.
 func NewValueIterator(p *path.Path, namer refs.Namer) *ValueIterator {
 	return &ValueIterator{namer, p, nil}
 }
 
-// Next implements query.Iterator
+// Next implements query.Iterator.
 func (it *ValueIterator) Next(ctx context.Context) bool {
 	if it.scanner == nil {
 		it.scanner = it.path.BuildIterator(ctx).Iterate()
@@ -28,7 +28,7 @@ func (it *ValueIterator) Next(ctx context.Context) bool {
 	return it.scanner.Next(ctx)
 }
 
-// Result implements query.Iterator
+// Result implements query.Iterator.
 func (it *ValueIterator) Result() interface{} {
 	if it.scanner == nil {
 		return nil
@@ -36,7 +36,7 @@ func (it *ValueIterator) Result() interface{} {
 	return it.namer.NameOf(it.scanner.Result())
 }
 
-// Err implements query.Iterator
+// Err implements query.Iterator.
 func (it *ValueIterator) Err() error {
 	if it.scanner == nil {
 		return nil
@@ -44,7 +44,7 @@ func (it *ValueIterator) Err() error {
 	return it.scanner.Err()
 }
 
-// Close implements query.Iterator
+// Close implements query.Iterator.
 func (it *ValueIterator) Close() error {
 	if it.scanner == nil {
 		return nil

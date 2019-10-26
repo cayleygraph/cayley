@@ -14,12 +14,12 @@ type TagsIterator struct {
 	selected      []string
 }
 
-// Next implements query.Iterator
+// Next implements query.Iterator.
 func (it *TagsIterator) Next(ctx context.Context) bool {
 	return it.valueIterator.Next(ctx)
 }
 
-// Result implements query.Iterator
+// Result implements query.Iterator.
 func (it *TagsIterator) Result() interface{} {
 	refTags := make(map[string]graph.Ref)
 	it.valueIterator.scanner.TagResults(refTags)
@@ -36,12 +36,12 @@ func (it *TagsIterator) Result() interface{} {
 	return tags
 }
 
-// Err implements query.Iterator
+// Err implements query.Iterator.
 func (it *TagsIterator) Err() error {
 	return it.valueIterator.Err()
 }
 
-// Close implements query.Iterator
+// Close implements query.Iterator.
 func (it *TagsIterator) Close() error {
 	return it.valueIterator.Close()
 }
