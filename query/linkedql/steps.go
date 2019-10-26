@@ -29,8 +29,6 @@ func init() {
 	Register(&OutPredicates{})
 	Register(&Save{})
 	Register(&SaveInPredicates{})
-	Register(&SaveOptional{})
-	Register(&SaveOptionalReverse{})
 	Register(&SaveOutPredicates{})
 	Register(&SaveReverse{})
 	Register(&Skip{})
@@ -579,9 +577,10 @@ func (s *OutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, 
 
 // Save corresponds to .save().
 type Save struct {
-	From ValueStep `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tag  string    `json:"tag"`
+	From     ValueStep `json:"from"`
+	Via      ValueStep `json:"via"`
+	Tag      string    `json:"tag"`
+	Optional bool      `json:"optional"`
 }
 
 // Type implements Step.
@@ -604,6 +603,9 @@ func (s *Save) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	viaIt, err := s.Via.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
+	}
+	if s.Optional {
+		return NewValueIterator(fromIt.path.SaveOptional(viaIt.path, s.Tag), qs), nil
 	}
 	return NewValueIterator(fromIt.path.Save(viaIt.path, s.Tag), qs), nil
 }
@@ -633,66 +635,6 @@ func (s *SaveInPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterato
 	return NewValueIterator(fromIt.path.SavePredicates(true, s.Tag), qs), nil
 }
 
-// SaveOptional corresponds to .saveOpt().
-type SaveOptional struct {
-	From ValueStep `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tag  string    `json:"tag"`
-}
-
-// Type implements Step.
-func (s *SaveOptional) Type() quad.IRI {
-	return prefix + "SaveOptional"
-}
-
-// BuildIterator implements Step.
-func (s *SaveOptional) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return s.BuildValueIterator(qs)
-}
-
-// BuildValueIterator implements ValueStep.
-func (s *SaveOptional) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
-	fromIt, err := s.From.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
-	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(fromIt.path.SaveOptional(viaIt.path, s.Tag), qs), nil
-}
-
-// SaveOptionalReverse corresponds to .saveOptR().
-type SaveOptionalReverse struct {
-	From ValueStep `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tag  string    `json:"tag"`
-}
-
-// Type implements Step.
-func (s *SaveOptionalReverse) Type() quad.IRI {
-	return prefix + "SaveOptionalReverse"
-}
-
-// BuildIterator implements Step.
-func (s *SaveOptionalReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return s.BuildValueIterator(qs)
-}
-
-// BuildValueIterator implements ValueStep.
-func (s *SaveOptionalReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
-	fromIt, err := s.From.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
-	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(fromIt.path.SaveOptionalReverse(viaIt.path, s.Tag), qs), nil
-}
-
 // SaveOutPredicates corresponds to .saveOutPredicates().
 type SaveOutPredicates struct {
 	From ValueStep `json:"from"`
@@ -720,9 +662,10 @@ func (s *SaveOutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterat
 
 // SaveReverse corresponds to .saveR().
 type SaveReverse struct {
-	From ValueStep `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tag  string    `json:"tag"`
+	From     ValueStep `json:"from"`
+	Via      ValueStep `json:"via"`
+	Tag      string    `json:"tag"`
+	Optional bool      `json:"optional"`
 }
 
 // Type implements Step.
@@ -744,6 +687,9 @@ func (s *SaveReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, er
 	viaIt, err := s.Via.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
+	}
+	if s.Optional {
+		return NewValueIterator(fromIt.path.SaveOptionalReverse(viaIt.path, s.Tag), qs), nil
 	}
 	return NewValueIterator(fromIt.path.SaveReverse(viaIt.path, s.Tag), qs), nil
 }
