@@ -15,78 +15,78 @@ type Operator interface {
 	Apply(it *ValueIterator) (*ValueIterator, error)
 }
 
-// LessThan corresponds to lt()
+// LessThan corresponds to lt().
 type LessThan struct {
 	Value quad.Value `json:"value"`
 }
 
-// Type implements Operator
+// Type implements Operator.
 func (s *LessThan) Type() quad.IRI {
 	return prefix + "LessThan"
 }
 
-// Apply implements Operator
+// Apply implements Operator.
 func (s *LessThan) Apply(it *ValueIterator) (*ValueIterator, error) {
 	return NewValueIterator(it.path.Filter(iterator.CompareLT, s.Value), it.namer), nil
 }
 
-// LessThanEquals corresponds to lte()
+// LessThanEquals corresponds to lte().
 type LessThanEquals struct {
 	Value quad.Value `json:"value"`
 }
 
-// Type implements Operator
+// Type implements Operator.
 func (s *LessThanEquals) Type() quad.IRI {
 	return prefix + "LessThanEquals"
 }
 
-// Apply implements Operator
+// Apply implements Operator.
 func (s *LessThanEquals) Apply(it *ValueIterator) (*ValueIterator, error) {
 	return NewValueIterator(it.path.Filter(iterator.CompareLTE, s.Value), it.namer), nil
 }
 
-// GreaterThan corresponds to gt()
+// GreaterThan corresponds to gt().
 type GreaterThan struct {
 	Value quad.Value `json:"value"`
 }
 
-// Apply implements Operator
+// Apply implements Operator.
 func (s *GreaterThan) Apply(it *ValueIterator) (*ValueIterator, error) {
 	return NewValueIterator(it.path.Filter(iterator.CompareGT, s.Value), it.namer), nil
 }
 
-// Type implements Operator
+// Type implements Operator.
 func (s *GreaterThan) Type() quad.IRI {
 	return prefix + "GreaterThan"
 }
 
-// GreaterThanEquals corresponds to gte()
+// GreaterThanEquals corresponds to gte().
 type GreaterThanEquals struct {
 	Value quad.Value `json:"value"`
 }
 
-// Type implements Operator
+// Type implements Operator.
 func (s *GreaterThanEquals) Type() quad.IRI {
 	return prefix + "GreaterThanEquals"
 }
 
-// Apply implements Operator
+// Apply implements Operator.
 func (s *GreaterThanEquals) Apply(it *ValueIterator) (*ValueIterator, error) {
 	return NewValueIterator(it.path.Filter(iterator.CompareGTE, s.Value), it.namer), nil
 }
 
-// RegExp corresponds to regex()
+// RegExp corresponds to regex().
 type RegExp struct {
 	Pattern     string `json:"pattern"`
 	IncludeIRIs bool   `json:"includeIRIs"`
 }
 
-// Type implements Operator
+// Type implements Operator.
 func (s *RegExp) Type() quad.IRI {
 	return prefix + "RegExp"
 }
 
-// Apply implements Operator
+// Apply implements Operator.
 func (s *RegExp) Apply(it *ValueIterator) (*ValueIterator, error) {
 	pattern, err := regexp.Compile(string(s.Pattern))
 	if err != nil {
@@ -98,17 +98,17 @@ func (s *RegExp) Apply(it *ValueIterator) (*ValueIterator, error) {
 	return NewValueIterator(it.path.RegexWithRefs(pattern), it.namer), nil
 }
 
-// Like corresponds to like()
+// Like corresponds to like().
 type Like struct {
 	Pattern string `json:"pattern"`
 }
 
-// Type implements Operator
+// Type implements Operator.
 func (s *Like) Type() quad.IRI {
 	return prefix + "Like"
 }
 
-// Apply implements Operator
+// Apply implements Operator.
 func (s *Like) Apply(it *ValueIterator) (*ValueIterator, error) {
 	return NewValueIterator(it.path.Filters(shape.Wildcard{Pattern: s.Pattern}), it.namer), nil
 }
