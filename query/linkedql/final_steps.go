@@ -7,38 +7,40 @@ import (
 )
 
 func init() {
-	Register(&TagArray{})
-	Register(&TagValue{})
+	Register(&Select{})
+	Register(&SelectFirst{})
 	Register(&Value{})
 }
 
-// TagArray corresponds to .tagArray()
-type TagArray struct {
+// Select corresponds to .select()
+type Select struct {
+	Tags []string  `json:"tags"`
 	From ValueStep `json:"from"`
 }
 
 // Type implements Step
-func (s *TagArray) Type() quad.IRI {
-	return prefix + "TagArray"
+func (s *Select) Type() quad.IRI {
+	return prefix + "Select"
 }
 
 // BuildIterator implements Step
-func (s *TagArray) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	fromIt, err := s.From.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
 	}
-	return &TagArrayIterator{fromIt}, nil
+	return &TagsIterator{fromIt, s.Tags}, nil
 }
 
-// TagValue corresponds to .tagValue()
-type TagValue struct {
+// SelectFirst corresponds to .selectFirst()
+type SelectFirst struct {
+	Tags []string  `json:"tags"`
 	From ValueStep `json:"from"`
 }
 
 // Type implements Step
-func (s *TagValue) Type() quad.IRI {
-	return prefix + "TagValue"
+func (s *SelectFirst) Type() quad.IRI {
+	return prefix + "SelectFirst"
 }
 
 func singleValueIterator(it *ValueIterator) *ValueIterator {
@@ -47,12 +49,12 @@ func singleValueIterator(it *ValueIterator) *ValueIterator {
 }
 
 // BuildIterator implements Step
-func (s *TagValue) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *SelectFirst) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	it, err := s.From.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
 	}
-	return &TagArrayIterator{singleValueIterator(it)}, nil
+	return &TagsIterator{singleValueIterator(it), s.Tags}, nil
 }
 
 // Value corresponds to .value()
