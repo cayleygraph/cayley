@@ -9,67 +9,90 @@ import (
 var valueStep = reflect.TypeOf((*ValueStep)(nil)).Elem()
 var step = reflect.TypeOf((*Step)(nil)).Elem()
 
-func typeToRange(t reflect.Type) interface{} {
+func typeToRange(t reflect.Type) Identified {
 	if t.Kind() == reflect.Slice {
 		return typeToRange(t.Elem())
 	}
 	if t.Kind() == reflect.String {
-		return map[string]interface{}{"@id": "xsd:string"}
+		return Identified{ID: "xsd:string"}
 	}
 	if t.Kind() == reflect.Bool {
-		return map[string]interface{}{"@id": "xsd:bool"}
+		return Identified{ID: "xsd:bool"}
 	}
 	if kind := t.Kind(); kind == reflect.Int64 || kind == reflect.Int {
-		return map[string]interface{}{"@id": "xsd:int"}
+		return Identified{ID: "xsd:int"}
 	}
 	if t.Implements(valueStep) {
-		return map[string]interface{}{"@id": "linkedql:ValueStep"}
+		return Identified{ID: "linkedql:ValueStep"}
 	}
 	if t.Implements(step) {
-		return map[string]interface{}{"@id": "linkedql:Step"}
+		return Identified{ID: "linkedql:Step"}
 	}
 	if t.Implements(reflect.TypeOf((*Operator)(nil)).Elem()) {
-		return map[string]interface{}{"@id": "linkedql:Operator"}
+		return Identified{ID: "linkedql:Operator"}
 	}
 	if t.Implements(reflect.TypeOf((*quad.Value)(nil)).Elem()) {
-		return map[string]interface{}{"@id": "rdfs:Resource"}
+		return Identified{ID: "rdfs:Resource"}
 	}
 	panic("Unexpected type " + t.String())
 }
 
+type Identified struct {
+	ID string `@id`
+}
+
+type CardinalityRestriction struct {
+	ID          string     `json:"@id"`
+	Type        string     `json:"@type"`
+	Cardinality int        `json:"owl:cardinality"`
+	Property    Identified `json:"owl:onProperty"`
+}
+
+type Property struct {
+	ID     string     `json:"@id"`
+	Type   string     `json:"@type"`
+	Domain Identified `json:"rdfs:domain"`
+	Range  Identified `json:"rdfs:range"`
+}
+
+type Class struct {
+	ID         string       `json:"@id"`
+	Type       string       `json:"@type"`
+	SubClasses []Identified `json:"rdfs:subClassOf"`
+}
+
 func typeToDocuments(name string, t reflect.Type) []interface{} {
 	var documents []interface{}
-	var superClasses []string
+	var superClasses []Identified
 	if t.Implements(valueStep) {
-		superClasses = append(superClasses, "linkedql:ValueStep")
+		superClasses = append(superClasses, Identified{ID: "linkedql:ValueStep"})
 	} else {
-		superClasses = append(superClasses, "linkedql:Step")
+		superClasses = append(superClasses, Identified{ID: "linkedql:Step"})
 	}
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		property := "linkedql:" + f.Tag.Get("json")
 		if f.Type.Kind() != reflect.Slice {
 			restriction := quad.RandomBlankNode().String()
-			superClasses = append(superClasses, restriction)
-			documents = append(documents, map[string]interface{}{
-				"@id":             restriction,
-				"@type":           "owl:Restriction",
-				"owl:cardinality": 1,
-				"owl:onProperty":  map[string]interface{}{"@id": property},
+			superClasses = append(superClasses, Identified{ID: restriction})
+			documents = append(documents, CardinalityRestriction{
+				ID:          restriction,
+				Type:        "owl:Restriction",
+				Cardinality: 1,
+				Property:    Identified{ID: property},
 			})
 		}
-		documents = append(documents, map[string]interface{}{
-			// TODO(iddan): use json tag instead
-			"@id":         property,
-			"@type":       "rdf:Property",
-			"rdfs:domain": map[string]interface{}{"@id": name},
-			"rdfs:range":  typeToRange(f.Type),
+		documents = append(documents, Property{
+			ID:     property,
+			Type:   "rdf:Property",
+			Domain: Identified{ID: name},
+			Range:  typeToRange(f.Type),
 		})
 	}
-	documents = append(documents, map[string]interface{}{
-		"@id":             name,
-		"@type":           "rdfs:Class",
-		"rdfs:subClassOf": superClasses,
+	documents = append(documents, Class{
+		ID:         name,
+		Type:       "rdfs:Class",
+		SubClasses: superClasses,
 	})
 	return documents
 }
