@@ -1,11 +1,7 @@
 package linkedql
 
 import (
-	"encoding/json"
-	"fmt"
 	"reflect"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/cayleygraph/quad"
 )
@@ -38,13 +34,7 @@ func typeToRange(t reflect.Type) interface{} {
 	if t.Implements(reflect.TypeOf((*quad.Value)(nil)).Elem()) {
 		return map[string]interface{}{"@id": "rdfs:Resource"}
 	}
-	fmt.Printf("%v", t)
-	panic("Unexpected type")
-}
-
-func lcFirst(str string) string {
-	rune, size := utf8.DecodeRuneInString(str)
-	return string(unicode.ToLower(rune)) + str[size:]
+	panic("Unexpected type " + t.String())
 }
 
 func typeToDocuments(name string, t reflect.Type) []interface{} {
@@ -57,7 +47,7 @@ func typeToDocuments(name string, t reflect.Type) []interface{} {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		property := "linkedql:" + lcFirst(f.Name)
+		property := "linkedql:" + f.Tag.Get("json")
 		if f.Type.Kind() != reflect.Slice {
 			restriction := quad.RandomBlankNode().String()
 			superClasses = append(superClasses, restriction)
@@ -84,7 +74,9 @@ func typeToDocuments(name string, t reflect.Type) []interface{} {
 	return documents
 }
 
-func generateSchema() []interface{} {
+// GenerateSchema for registered types. The schema is a collection of JSON-LD documents
+// of the LinkedQL types and properties.
+func GenerateSchema() []interface{} {
 	var documents []interface{}
 	for name, _type := range typeByName {
 		for _, document := range typeToDocuments(name, _type) {
@@ -92,12 +84,4 @@ func generateSchema() []interface{} {
 		}
 	}
 	return documents
-}
-
-func serializeSchema() []byte {
-	bytes, err := json.MarshalIndent(generateSchema(), "", "    ")
-	if err != nil {
-		panic(err)
-	}
-	return bytes
 }
