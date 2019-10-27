@@ -86,9 +86,15 @@ func typeToDocuments(name string, t reflect.Type) []interface{} {
 				Property:    Identified{ID: property},
 			})
 		}
+		var propertyType string
+		if kind := f.Type.Kind(); kind == reflect.String || kind == reflect.Bool || kind == reflect.Int64 || kind == reflect.Int {
+			propertyType = "owl:DatatypeProperty"
+		} else {
+			propertyType = "owl:ObjectProperty"
+		}
 		documents = append(documents, Property{
 			ID:     property,
-			Type:   "rdf:Property",
+			Type:   propertyType,
 			Domain: Identified{ID: name},
 			Range:  typeToRange(f.Type),
 		})
