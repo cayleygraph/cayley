@@ -55,11 +55,6 @@ func typeToDocuments(name string, t reflect.Type) []interface{} {
 	} else {
 		superClasses = append(superClasses, "linkedql:Step")
 	}
-	documents = append(documents, map[string]interface{}{
-		"@id":             name,
-		"@type":           "rdfs:Class",
-		"rdfs:subClassOf": superClasses,
-	})
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		property := "linkedql:" + lcFirst(f.Name)
@@ -81,6 +76,11 @@ func typeToDocuments(name string, t reflect.Type) []interface{} {
 			"rdfs:range":  typeToRange(f.Type),
 		})
 	}
+	documents = append(documents, map[string]interface{}{
+		"@id":             name,
+		"@type":           "rdfs:Class",
+		"rdfs:subClassOf": superClasses,
+	})
 	return documents
 }
 
