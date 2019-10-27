@@ -37,10 +37,12 @@ func typeToRange(t reflect.Type) Identified {
 	panic("Unexpected type " + t.String())
 }
 
+// Identified is used for referencing a type
 type Identified struct {
-	ID string `@id`
+	ID string `json:"@id"`
 }
 
+// CardinalityRestriction is used to indicate a how many values can a property get
 type CardinalityRestriction struct {
 	ID          string     `json:"@id"`
 	Type        string     `json:"@type"`
@@ -48,6 +50,7 @@ type CardinalityRestriction struct {
 	Property    Identified `json:"owl:onProperty"`
 }
 
+// Property is used to declare a property
 type Property struct {
 	ID     string     `json:"@id"`
 	Type   string     `json:"@type"`
@@ -55,6 +58,7 @@ type Property struct {
 	Range  Identified `json:"rdfs:range"`
 }
 
+// Class is used to declare a class
 type Class struct {
 	ID         string       `json:"@id"`
 	Type       string       `json:"@type"`
