@@ -60,9 +60,9 @@ type Property struct {
 
 // Class is used to declare a class
 type Class struct {
-	ID         string       `json:"@id"`
-	Type       string       `json:"@type"`
-	SubClasses []Identified `json:"rdfs:subClassOf"`
+	ID           string       `json:"@id"`
+	Type         string       `json:"@type"`
+	SuperClasses []Identified `json:"rdfs:subClassOf"`
 }
 
 func typeToDocuments(name string, t reflect.Type) []interface{} {
@@ -100,9 +100,9 @@ func typeToDocuments(name string, t reflect.Type) []interface{} {
 		})
 	}
 	documents = append(documents, Class{
-		ID:         name,
-		Type:       "rdfs:Class",
-		SubClasses: superClasses,
+		ID:           name,
+		Type:         "rdfs:Class",
+		SuperClasses: superClasses,
 	})
 	return documents
 }
