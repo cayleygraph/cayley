@@ -49,22 +49,33 @@ func lcFirst(str string) string {
 
 func typeToDocuments(name string, t reflect.Type) []interface{} {
 	var documents []interface{}
-	var superClass string
+	var superClasses []string
 	if t.Implements(valueStep) {
-		superClass = "linkedql:ValueStep"
+		superClasses = append(superClasses, "linkedql:ValueStep")
 	} else {
-		superClass = "linkedql:Step"
+		superClasses = append(superClasses, "linkedql:Step")
 	}
 	documents = append(documents, map[string]interface{}{
 		"@id":             name,
 		"@type":           "rdfs:Class",
-		"rdfs:subClassOf": superClass,
+		"rdfs:subClassOf": superClasses,
 	})
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
+		property := "linkedql:" + lcFirst(f.Name)
+		if f.Type.Kind() != reflect.Slice {
+			restriction := quad.RandomBlankNode().String()
+			superClasses = append(superClasses, restriction)
+			documents = append(documents, map[string]interface{}{
+				"@id":             restriction,
+				"@type":           "owl:Restriction",
+				"owl:cardinality": 1,
+				"owl:onProperty":  map[string]interface{}{"@id": property},
+			})
+		}
 		documents = append(documents, map[string]interface{}{
 			// TODO(iddan): use json tag instead
-			"@id":         "linkedql:" + lcFirst(f.Name),
+			"@id":         property,
 			"@type":       "rdf:Property",
 			"rdfs:domain": map[string]interface{}{"@id": name},
 			"rdfs:range":  typeToRange(f.Type),
