@@ -17,7 +17,7 @@ func typeToRange(t reflect.Type) Identified {
 		return Identified{ID: "xsd:string"}
 	}
 	if t.Kind() == reflect.Bool {
-		return Identified{ID: "xsd:bool"}
+		return Identified{ID: "xsd:boolean"}
 	}
 	if kind := t.Kind(); kind == reflect.Int64 || kind == reflect.Int {
 		return Identified{ID: "xsd:int"}
