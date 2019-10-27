@@ -63,6 +63,7 @@ func typeToDocuments(name string, t reflect.Type) []interface{} {
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		documents = append(documents, map[string]interface{}{
+			// TODO(iddan): use json tag instead
 			"@id":         "linkedql:" + lcFirst(f.Name),
 			"@type":       "rdf:Property",
 			"rdfs:domain": map[string]interface{}{"@id": name},
