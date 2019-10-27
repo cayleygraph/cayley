@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/cayleygraph/quad"
 )
@@ -40,29 +42,41 @@ func typeToRange(t reflect.Type) interface{} {
 	panic("Unexpected type")
 }
 
+func lcFirst(str string) string {
+	rune, size := utf8.DecodeRuneInString(str)
+	return string(unicode.ToLower(rune)) + str[size:]
+}
+
+func typeToDocuments(name string, t reflect.Type) []interface{} {
+	var documents []interface{}
+	var superClass string
+	if t.Implements(valueStep) {
+		superClass = "linkedql:ValueStep"
+	} else {
+		superClass = "linkedql:Step"
+	}
+	documents = append(documents, map[string]interface{}{
+		"@id":             name,
+		"@type":           "rdfs:Class",
+		"rdfs:subClassOf": superClass,
+	})
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		documents = append(documents, map[string]interface{}{
+			"@id":         "linkedql:" + lcFirst(f.Name),
+			"@type":       "rdf:Property",
+			"rdfs:domain": map[string]interface{}{"@id": name},
+			"rdfs:range":  typeToRange(f.Type),
+		})
+	}
+	return documents
+}
+
 func generateSchema() []interface{} {
 	var documents []interface{}
 	for name, _type := range typeByName {
-		var superClass string
-		if _type.Implements(valueStep) {
-			superClass = "linkedql:ValueStep"
-		} else {
-			superClass = "linkedql:Step"
-		}
-		documents = append(documents, map[string]interface{}{
-			"@id":             name,
-			"@type":           "rdfs:Class",
-			"rdfs:subClassOf": superClass,
-		})
-		for i := 0; i < _type.NumField(); i++ {
-			f := _type.Field(i)
-
-			documents = append(documents, map[string]interface{}{
-				"@id":         f.Name,
-				"@type":       "rdf:Property",
-				"rdfs:domain": map[string]interface{}{"@id": name},
-				"rdfs:range":  typeToRange(f.Type),
-			})
+		for _, document := range typeToDocuments(name, _type) {
+			documents = append(documents, document)
 		}
 	}
 	return documents
