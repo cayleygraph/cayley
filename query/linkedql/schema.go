@@ -88,13 +88,13 @@ type Property struct {
 
 // Class is used to declare a class
 type Class struct {
-	ID           string       `json:"@id"`
-	Type         string       `json:"@type"`
-	SuperClasses []Identified `json:"rdfs:subClassOf"`
+	ID           string        `json:"@id"`
+	Type         string        `json:"@type"`
+	SuperClasses []interface{} `json:"rdfs:subClassOf"`
 }
 
 // NewClass creates a new Class struct
-func NewClass(id string, superClasses []Identified) Class {
+func NewClass(id string, superClasses []interface{}) Class {
 	return Class{
 		ID:           id,
 		Type:         "rdfs:Class",
@@ -149,7 +149,7 @@ func GenerateSchema() []interface{} {
 	propertyToDomains := map[string]map[string]struct{}{}
 	propertyToRanges := map[string]map[string]struct{}{}
 	for name, t := range typeByName {
-		superClasses := []Identified{
+		superClasses := []interface{}{
 			NewIdentified(GetStepTypeClass(valueStep)),
 		}
 		for i := 0; i < t.NumField(); i++ {
@@ -157,8 +157,7 @@ func GenerateSchema() []interface{} {
 			property := "linkedql:" + f.Tag.Get("json")
 			if f.Type.Kind() != reflect.Slice {
 				restriction := NewSingleCardinalityRestriction(property)
-				superClasses = append(superClasses, NewIdentified(restriction.ID))
-				documents = append(documents, restriction)
+				superClasses = append(superClasses, restriction)
 			}
 			_type := GetOWLPropertyType(f.Type.Kind())
 			if propertyToTypes[property] == nil {
