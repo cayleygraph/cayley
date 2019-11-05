@@ -286,7 +286,7 @@ var testCases = []struct {
 					Values: []quad.Value{quad.IRI("likes")},
 				},
 			},
-			Intersected: []ValueStep{
+			Steps: []ValueStep{
 				&Out{
 					From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
 					Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
@@ -480,7 +480,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice")},
 			},
-			Unionized: []ValueStep{
+			Steps: []ValueStep{
 				&Vertex{
 					Values: []quad.Value{quad.IRI("bob")},
 				},
