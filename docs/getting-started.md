@@ -4,7 +4,7 @@ This guide will take you through starting a graph based on provided data.
 
 ## Prerequisites
 
-This tutorial requires you to be connected to **local Cayley installation**. For more information on installing Cayley locally, see [Install Cayley](https://github.com/cayleygraph/cayley/tree/06f7114d4ad1725d58f16fc5fdc9394f293c3539/docs/installation.md).
+This tutorial requires you to be connected to **local Cayley installation**. For more information on installing Cayley locally, see [Install Cayley](installation.md).
 
 ## Start Cayley
 
