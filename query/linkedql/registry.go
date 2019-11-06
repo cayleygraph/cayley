@@ -135,21 +135,16 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 	return item.Addr().Interface().(RegistryItem), nil
 }
 
-const xsd = "http://www.w3.org/2001/XMLSchema#"
-const xsdInt = xsd + "integer"
-const xsdFloat = xsd + "float"
-const xsdBool = xsd + "boolean"
-
 func parseValue(a interface{}) (quad.Value, error) {
 	switch a := a.(type) {
 	case string:
 		return quad.String(a), nil
 	case int64:
-		return quad.TypedString{Value: quad.String(a), Type: quad.IRI(xsdInt)}, nil
+		return quad.Int(a), nil
 	case float64:
-		return quad.TypedString{Value: quad.String(fmt.Sprintf("%f", a)), Type: quad.IRI(xsdFloat)}, nil
+		return quad.Float(a), nil
 	case bool:
-		return quad.TypedString{Value: quad.String(fmt.Sprintf("%t", a)), Type: quad.IRI(xsdBool)}, nil
+		return quad.Bool(a), nil
 	case map[string]interface{}:
 		id, ok := a["@id"].(string)
 		if ok {
