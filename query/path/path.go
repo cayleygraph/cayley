@@ -316,6 +316,13 @@ func (p *Path) And(path *Path) *Path {
 	return np
 }
 
+// Optional adds an optional path to evaluate. This path will only contribute to tags and won't change iteration results.
+func (p *Path) Optional(path *Path) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, andOptMorphism(path.Reverse()))
+	return np
+}
+
 // Or updates the current Path to represent the nodes that match either the
 // current Path so far, or the given Path.
 func (p *Path) Or(path *Path) *Path {
