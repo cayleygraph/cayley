@@ -275,6 +275,11 @@ func testSet(qs graph.QuadStore) []test {
 			expect: []quad.Value{vBob, vDani, vEmily, vFred},
 		},
 		{
+			message: "has path",
+			path:    StartPath(qs).HasPath(StartMorphism().Out(vStatus).Is(vCool)),
+			expect:  []quad.Value{vGreg, vDani, vBob},
+		},
+		{
 			message: "string prefix",
 			path: StartPath(qs).Filters(shape.Wildcard{
 				Pattern: `bo%`,

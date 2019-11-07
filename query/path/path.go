@@ -428,6 +428,13 @@ func (p *Path) SaveOptionalReverse(via interface{}, tag string) *Path {
 	return np
 }
 
+// HasPath limits the paths to be ones where the current nodes have a given subpath.
+func (p *Path) HasPath(p2 *Path) *Path {
+	np := p.clone()
+	np.stack = append(np.stack, hasPathMorphism(p2.Reverse()))
+	return np
+}
+
 // Has limits the paths to be ones where the current nodes have some linkage
 // to some known node.
 func (p *Path) Has(via interface{}, nodes ...quad.Value) *Path {

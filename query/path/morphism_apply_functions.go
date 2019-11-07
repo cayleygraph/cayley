@@ -88,6 +88,16 @@ func filterMorphism(filt []shape.ValueFilter) morphism {
 	}
 }
 
+// hasPathMorphism is a generic form of Has morphism - it accepts a subtree that will be checked on the current path.
+func hasPathMorphism(p *Path) morphism {
+	return morphism{
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return hasPathMorphism(p), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			return shape.IntersectShapes(in, p.Shape()), ctx
+		},
+	}
+}
+
 // hasMorphism is the set of nodes that is reachable via either a *Path, a
 // single node.(string) or a list of nodes.([]string).
 func hasMorphism(via interface{}, rev bool, nodes ...quad.Value) morphism {
