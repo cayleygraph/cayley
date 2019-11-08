@@ -72,7 +72,7 @@ func runTopLevel(qs graph.QuadStore, path *Path, opt bool) ([]quad.Value, error)
 	return pb.Paths(false).AllValues(qs)
 }
 
-func runTag(qs graph.QuadStore, path *Path, tag string, opt bool) ([]quad.Value, error) {
+func runTag(qs graph.QuadStore, path *Path, tag string, opt, keepEmpty bool) ([]quad.Value, error) {
 	var out []quad.Value
 	pb := path.Iterate(context.TODO())
 	if !opt {
@@ -81,6 +81,8 @@ func runTag(qs graph.QuadStore, path *Path, tag string, opt bool) ([]quad.Value,
 	err := pb.Paths(true).TagEach(func(tags map[string]graph.Ref) {
 		if t, ok := tags[tag]; ok {
 			out = append(out, qs.NameOf(t))
+		} else if keepEmpty {
+			out = append(out, vEmpty)
 		}
 	})
 	return out, err
@@ -106,11 +108,14 @@ type test struct {
 	expectAlt [][]quad.Value
 	tag       string
 	unsorted  bool
+	empty     bool // do not skip empty tags
 }
 
 // Define morphisms without a QuadStore
 
 const (
+	vEmpty = quad.String("")
+
 	vFollows   = quad.IRI("follows")
 	vAre       = quad.IRI("are")
 	vStatus    = quad.IRI("status")
@@ -506,6 +511,13 @@ func testSet(qs graph.QuadStore) []test {
 			unsorted: true,
 			skip:     true, // TODO(dennwc): optimize Order in And properly
 		},
+		{
+			message: "optional path",
+			path:    StartPath(qs, vBob, vDani, vFred).Optional(StartMorphism().Save(vStatus, "status")),
+			tag:     "status",
+			empty:   true,
+			expect:  []quad.Value{vEmpty, vCool, vCool},
+		},
 	}
 }
 
@@ -537,7 +549,7 @@ func RunTestMorphisms(t *testing.T, fnc testutil.DatabaseFunc) {
 				if test.tag == "" {
 					got, err = runTopLevel(qs, test.path, opt)
 				} else {
-					got, err = runTag(qs, test.path, test.tag, opt)
+					got, err = runTag(qs, test.path, test.tag, opt, test.empty)
 				}
 				dt := time.Since(start)
 				if err != nil {

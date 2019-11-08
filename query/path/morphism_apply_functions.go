@@ -36,6 +36,10 @@ func join(its ...shape.Shape) shape.Shape {
 	return shape.Intersect(its)
 }
 
+func joinOpt(main, opt shape.Shape) shape.Shape {
+	return shape.IntersectOptional(main, opt)
+}
+
 // isMorphism represents all nodes passed in-- if there are none, this function
 // acts as a passthrough for the previous iterator.
 func isMorphism(nodes ...quad.Value) morphism {
@@ -271,6 +275,16 @@ func andMorphism(p *Path) morphism {
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return andMorphism(p), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
 			return join(in, p.Shape()), ctx
+		},
+	}
+}
+
+// andOptMorphism sticks a path onto the current iterator chain and makes it optional.
+func andOptMorphism(p *Path) morphism {
+	return morphism{
+		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return andOptMorphism(p), ctx },
+		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
+			return joinOpt(in, p.Shape()), ctx
 		},
 	}
 }
