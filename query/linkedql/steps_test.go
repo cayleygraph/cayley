@@ -495,21 +495,28 @@ var testCases = []struct {
 			quad.MakeIRI("alice", "name", "Alice", ""),
 			quad.MakeIRI("bob", "name", "Bob", ""),
 		},
-		query: &Optional{
-			From: &Save{
-				From: &Vertex{Values: []quad.Value{}},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
-				Tag:  "name",
-			},
-			Path: &Save{
-				From: &Morphism{},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
-				Tag:  "likes",
+		query: &Select{
+			From: &Optional{
+				From: &Save{
+					From: &Vertex{Values: []quad.Value{}},
+					Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
+					Tag:  "name",
+				},
+				Path: &Save{
+					From: &Morphism{},
+					Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Tag:  "likes",
+				},
 			},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
-			quad.IRI("bob"),
+			map[string]quad.Value{
+				"likes": quad.IRI("bob"),
+				"name":  quad.IRI("Alice"),
+			},
+			map[string]quad.Value{
+				"name": quad.IRI("Bob"),
+			},
 		},
 	},
 }
