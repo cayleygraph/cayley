@@ -27,7 +27,7 @@ func init() {
 	Register(&Labels{})
 	Register(&Limit{})
 	Register(&OutPredicates{})
-	Register(&Save{})
+	Register(&Properties{})
 	Register(&SaveInPredicates{})
 	Register(&SaveOutPredicates{})
 	Register(&SaveReverse{})
@@ -741,27 +741,26 @@ func (s *OutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, 
 	return NewValueIterator(fromPath.OutPredicates(), qs), nil
 }
 
-// Save corresponds to .save().
-type Save struct {
-	From PathStep  `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tag  string    `json:"tag"`
+// Properties corresponds to .properties().
+type Properties struct {
+	From  PathStep   `json:"from"`
+	Names []PathStep `json:"names"`
 }
 
 // Type implements Step.
-func (s *Save) Type() quad.IRI {
+func (s *Properties) Type() quad.IRI {
 	return prefix + "Save"
 }
 
 // BuildIterator implements Step.
 // TODO(iddan): Default tag to Via.
-func (s *Save) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *Properties) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return s.BuildValueIterator(qs)
 }
 
-// BuildIterator implements Step.
+// BuildPath implements Step.
 // TODO(iddan): Default BuildPath implements PathStep.
-func (s *Save) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *Properties) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	it, err := s.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
@@ -770,16 +769,20 @@ func (s *Save) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 }
 
 // BuildValueIterator implements ValueStep.
-func (s *Save) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+func (s *Properties) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
+	p := fromPath
+	for _, name := range s.Names {
+		namePath, err := name.BuildPath(qs)
+		if err != nil {
+			return nil, err
+		}
+		p = p.Save(namePath, "")
 	}
-	return NewValueIterator(fromPath.Save(viaIt.path, s.Tag), qs), nil
+	return NewValueIterator(p, qs), nil
 }
 
 // SaveInPredicates corresponds to .saveInPredicates().
