@@ -380,56 +380,6 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Save with Optional",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-			quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
-			quad.MakeIRI("bob", "likes", "alice", ""),
-		},
-		query: &Select{
-			From: &Save{
-				Optional: true,
-				From:     &Vertex{Values: []quad.Value{}},
-				Via:      &Vertex{Values: []quad.Value{quad.IRI("name")}},
-				Tag:      "name",
-			},
-		},
-		results: []interface{}{
-			map[string]quad.Value{
-				"name": quad.String("Alice"),
-			},
-			map[string]quad.Value{},
-			map[string]quad.Value{},
-			map[string]quad.Value{},
-			map[string]quad.Value{},
-		},
-	},
-	{
-		name: "SaveReverse with Optional",
-		data: []quad.Quad{
-			quad.MakeIRI("alice", "likes", "bob", ""),
-			quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
-			quad.MakeIRI("bob", "likes", "alice", ""),
-		},
-		query: &Select{
-			From: &SaveReverse{
-				Optional: true,
-				From:     &Vertex{Values: []quad.Value{}},
-				Via:      &Vertex{Values: []quad.Value{quad.IRI("name")}},
-				Tag:      "name",
-			},
-		},
-		results: []interface{}{
-			map[string]quad.Value{},
-			map[string]quad.Value{},
-			map[string]quad.Value{},
-			map[string]quad.Value{},
-			map[string]quad.Value{
-				"name": quad.IRI("alice"),
-			},
-		},
-	},
-	{
 		name: "SaveOutPredicates",
 		data: singleQuadData,
 		query: &Select{
@@ -536,6 +486,30 @@ var testCases = []struct {
 			quad.IRI("alice"),
 			quad.IRI("bob"),
 			quad.IRI("likes"),
+		},
+	},
+	{
+		name: "Optional",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+			quad.MakeIRI("alice", "name", "Alice", ""),
+			quad.MakeIRI("bob", "name", "Bob", ""),
+		},
+		query: &Optional{
+			From: &Save{
+				From: &Vertex{Values: []quad.Value{}},
+				Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
+				Tag:  "name",
+			},
+			Path: &Save{
+				From: &Morphism{},
+				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+				Tag:  "likes",
+			},
+		},
+		results: []interface{}{
+			quad.IRI("alice"),
+			quad.IRI("bob"),
 		},
 	},
 }
