@@ -131,8 +131,6 @@ func SetupRoutes(handle *graph.Handle, cfg *Config) error {
 	const gephiPath = "/gephi/gs"
 	r.GET(gephiPath, CORS(gs.ServeHTTP))
 
-	r.GET("/docs/:docpage", serveDocPage)
-
 	setupUI()
 
 	r.GET("/", serveUI)
