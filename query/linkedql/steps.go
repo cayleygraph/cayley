@@ -744,7 +744,7 @@ func (s *OutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, 
 // Properties corresponds to .properties().
 type Properties struct {
 	From  PathStep   `json:"from"`
-	Names []PathStep `json:"names"`
+	Names []quad.IRI `json:"names"`
 }
 
 // Type implements Step.
@@ -776,11 +776,8 @@ func (s *Properties) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, err
 	}
 	p := fromPath
 	for _, name := range s.Names {
-		namePath, err := name.BuildPath(qs)
-		if err != nil {
-			return nil, err
-		}
-		p = p.Save(namePath, "")
+		tag := string(name)
+		p = p.Save(name, tag)
 	}
 	return NewValueIterator(p, qs), nil
 }

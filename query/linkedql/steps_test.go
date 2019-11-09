@@ -349,13 +349,12 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Save",
+		name: "Properties",
 		data: singleQuadData,
 		query: &Select{
-			From: &Save{
-				From: &Vertex{Values: []quad.Value{}},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
-				Tag:  "likes",
+			From: &Properties{
+				From:  &Vertex{Values: []quad.Value{}},
+				Names: []quad.IRI{quad.IRI("likes")},
 			},
 		},
 		results: []interface{}{
@@ -497,15 +496,13 @@ var testCases = []struct {
 		},
 		query: &Select{
 			From: &Optional{
-				From: &Save{
-					From: &Vertex{Values: []quad.Value{}},
-					Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
-					Tag:  "name",
+				From: &Properties{
+					From:  &Vertex{Values: []quad.Value{}},
+					Names: []quad.IRI{quad.IRI("name")},
 				},
-				Path: &Save{
-					From: &Morphism{},
-					Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
-					Tag:  "likes",
+				Path: &Properties{
+					From:  &Morphism{},
+					Names: []quad.IRI{quad.IRI("likes")},
 				},
 			},
 		},
