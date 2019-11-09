@@ -23,10 +23,10 @@ func init() {
 	Register(&Has{})
 	Register(&HasReverse{})
 	Register(&In{})
-	Register(&InPredicates{})
+	Register(&ReversePropertyNames{})
 	Register(&Labels{})
 	Register(&Limit{})
-	Register(&OutPredicates{})
+	Register(&PropertyNames{})
 	Register(&Properties{})
 	Register(&ReversePropertyNamesAs{})
 	Register(&PropertyNamesAs{})
@@ -608,23 +608,23 @@ func (s *In) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	return NewValueIterator(fromPath.InWithTags(s.Tags, viaPath), qs), nil
 }
 
-// InPredicates corresponds to .inPredicates().
-type InPredicates struct {
+// ReversePropertyNames corresponds to .reversePropertyNames().
+type ReversePropertyNames struct {
 	From PathStep `json:"from"`
 }
 
 // Type implements Step.
-func (s *InPredicates) Type() quad.IRI {
-	return prefix + "InPredicates"
+func (s *ReversePropertyNames) Type() quad.IRI {
+	return prefix + "ReversePropertyNames"
 }
 
 // BuildIterator implements Step.
-func (s *InPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *ReversePropertyNames) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return s.BuildValueIterator(qs)
 }
 
 // BuildPath implements PathStep.
-func (s *InPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *ReversePropertyNames) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	it, err := s.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
@@ -633,7 +633,7 @@ func (s *InPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 }
 
 // BuildValueIterator implements ValueStep.
-func (s *InPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+func (s *ReversePropertyNames) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
@@ -708,23 +708,23 @@ func (s *Limit) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	return NewValueIterator(fromPath.Limit(s.Limit), qs), nil
 }
 
-// OutPredicates corresponds to .outPredicates().
-type OutPredicates struct {
+// PropertyNames corresponds to .propertyNames().
+type PropertyNames struct {
 	From PathStep `json:"from"`
 }
 
 // Type implements Step.
-func (s *OutPredicates) Type() quad.IRI {
-	return prefix + "OutPredicates"
+func (s *PropertyNames) Type() quad.IRI {
+	return prefix + "PropertyNames"
 }
 
 // BuildIterator implements Step.
-func (s *OutPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *PropertyNames) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return s.BuildValueIterator(qs)
 }
 
 // BuildPath implements PathStep.
-func (s *OutPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *PropertyNames) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	it, err := s.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
@@ -733,7 +733,7 @@ func (s *OutPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 }
 
 // BuildValueIterator implements ValueStep.
-func (s *OutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+func (s *PropertyNames) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
