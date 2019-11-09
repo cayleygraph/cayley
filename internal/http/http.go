@@ -79,6 +79,9 @@ func SetupRoutes(handle *graph.Handle, cfg *Config) error {
 	// Handle CORS preflight request
 	r.HandlerFunc("OPTIONS", "/*path", HandlePreflight)
 
+	// Health check
+	r.HandlerFunc("GET", "/health", HandleHealth)
+
 	http.Handle("/", CORS(LogRequest(r)))
 
 	return nil
