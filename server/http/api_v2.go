@@ -36,20 +36,18 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-func NewAPIv2(h *graph.Handle, wrappers ...HandlerWrapper) *APIv2 {
-	return NewAPIv2Writer(h, "single", nil, wrappers...)
+const prefix = "/api/v2"
+
+func NewAPIv2(h *graph.Handle) *APIv2 {
+	return NewAPIv2Writer(h, "single", nil)
 }
 
-func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, wrappers ...HandlerWrapper) *APIv2 {
-	api := &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: 100}
-	api.r = httprouter.New()
-	api.RegisterOn(api.r, wrappers...)
-	return api
+func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options) *APIv2 {
+	return &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: 100}
 }
 
 type APIv2 struct {
 	h     *graph.Handle
-	r     *httprouter.Router
 	ro    bool
 	batch int
 
@@ -74,38 +72,26 @@ func (api *APIv2) SetQueryTimeout(dt time.Duration) {
 func (api *APIv2) SetQueryLimit(n int) {
 	api.limit = n
 }
-func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	api.r.ServeHTTP(w, r)
-}
 
-type HandlerWrapper func(httprouter.Handle) httprouter.Handle
-
-func wrap(h http.HandlerFunc, arr []HandlerWrapper) httprouter.Handle {
-	wh := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		h(w, r)
-	}
-	for _, w := range arr {
-		wh = w(wh)
-	}
-	return wh
-}
-func (api *APIv2) RegisterDataOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
+func (api *APIv2) RegisterDataOn(r *httprouter.Router) {
 	if !api.ro {
-		r.POST("/api/v2/write", wrap(api.ServeWrite, wrappers))
-		r.POST("/api/v2/delete", wrap(api.ServeDelete, wrappers))
-		r.POST("/api/v2/node/delete", wrap(api.ServeNodeDelete, wrappers))
+		r.POST(prefix+"/write", api.ServeWrite)
+		r.POST(prefix+"/delete", api.ServeDelete)
+		r.POST(prefix+"/node/delete", api.ServeNodeDelete)
 	}
-	r.POST("/api/v2/read", wrap(api.ServeRead, wrappers))
-	r.GET("/api/v2/read", wrap(api.ServeRead, wrappers))
-	r.GET("/api/v2/formats", wrap(api.ServeFormats, wrappers))
+	r.POST(prefix+"/read", api.ServeRead)
+	r.GET(prefix+"/read", api.ServeRead)
+	r.GET(prefix+"/formats", api.ServeFormats)
 }
-func (api *APIv2) RegisterQueryOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
-	r.POST("/api/v2/query", wrap(api.ServeQuery, wrappers))
-	r.GET("/api/v2/query", wrap(api.ServeQuery, wrappers))
+
+func (api *APIv2) RegisterQueryOn(r *httprouter.Router) {
+	r.POST(prefix+"/query", api.ServeQuery)
+	r.GET(prefix+"/query", api.ServeQuery)
 }
-func (api *APIv2) RegisterOn(r *httprouter.Router, wrappers ...HandlerWrapper) {
-	api.RegisterDataOn(r, wrappers...)
-	api.RegisterQueryOn(r, wrappers...)
+
+func (api *APIv2) RegisterOn(r *httprouter.Router) {
+	api.RegisterDataOn(r)
+	api.RegisterQueryOn(r)
 }
 
 const (
@@ -172,7 +158,7 @@ func (api *APIv2) handleForRequest(r *http.Request) (*graph.Handle, error) {
 	return HandleForRequest(api.h, api.wtyp, api.wopt, r)
 }
 
-func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
+func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	defer r.Body.Close()
 	if api.ro {
 		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
@@ -212,7 +198,7 @@ func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"result": "Successfully wrote %d quads.", "count": %d}`+"\n", n, n)
 }
 
-func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
+func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	defer r.Body.Close()
 	if api.ro {
 		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
@@ -247,7 +233,7 @@ func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"result": "Successfully deleted %d quads.", "count": %d}`+"\n", n, n)
 }
 
-func (api *APIv2) ServeNodeDelete(w http.ResponseWriter, r *http.Request) {
+func (api *APIv2) ServeNodeDelete(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	defer r.Body.Close()
 	if api.ro {
 		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
@@ -313,7 +299,7 @@ func valuesFromString(s string) []quad.Value {
 	return out
 }
 
-func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
+func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	format := getFormat(r, "format", hdrAccept)
 	if format == nil || format.Writer == nil {
 		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
@@ -372,7 +358,7 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
+func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	type Format struct {
 		Id     string   `json:"id"`
 		Read   bool     `json:"read,omitempty"`
@@ -433,7 +419,7 @@ func readLimit(r io.Reader) ([]byte, error) {
 	return data, err
 }
 
-func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
+func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx, cancel := api.queryContext(r)
 	defer cancel()
 	vals := r.URL.Query()
