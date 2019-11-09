@@ -11,6 +11,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
+	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +26,9 @@ func makeServerV2(t testing.TB, quads ...quad.Quad) (string, func()) {
 	h := makeHandle(t, quads...)
 
 	api2 := NewAPIv2(h)
-	srv := httptest.NewServer(api2)
+	router := httprouter.New()
+	api2.RegisterOn(router)
+	srv := httptest.NewServer(router)
 	addr := srv.Listener.Addr()
 	return "http://" + addr.String(), func() {
 		srv.Close()

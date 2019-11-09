@@ -19,8 +19,12 @@ Follow the instructions for running Cayley locally:
 git clone https://github.com/cayleygraph/cayley
 cd cayley
 
-# download dependencies
+# Download dependencies
 go mod download
+
+# Download web files
+
+go run cmd/download_ui/download_ui.go
 
 # Install packr 2
 

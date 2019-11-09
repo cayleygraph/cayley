@@ -19,6 +19,10 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Copy UI download script and execute
+COPY cmd/download_ui ./cmd/
+RUN go run cmd/download_ui/download_ui.go
+
 # Add all the other files
 ADD . .
 

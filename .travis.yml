@@ -16,6 +16,7 @@ matrix:
 install:
   - sudo snap install snapcraft --classic
   - go mod download
+  - go run cmd/download_ui/download_ui.go
 
 cache:
   directories:
