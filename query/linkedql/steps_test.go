@@ -264,9 +264,9 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "InPredicates",
+		name: "PropertyNames",
 		data: singleQuadData,
-		query: &InPredicates{
+		query: &PropertyNames{
 			From: &Vertex{Values: []quad.Value{}},
 		},
 		results: []interface{}{
@@ -339,9 +339,9 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "OutPredicates",
+		name: "PropertyNames",
 		data: singleQuadData,
-		query: &OutPredicates{
+		query: &PropertyNames{
 			From: &Vertex{Values: []quad.Value{}},
 		},
 		results: []interface{}{
