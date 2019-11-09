@@ -417,8 +417,8 @@ func (s *Filter) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 
 // Follow corresponds to .follow().
 type Follow struct {
-	From     PathStep  `json:"from"`
-	Followed ValueStep `json:"followed"`
+	From     PathStep `json:"from"`
+	Followed PathStep `json:"followed"`
 }
 
 // Type implements Step.
@@ -446,17 +446,17 @@ func (s *Follow) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 	if err != nil {
 		return nil, err
 	}
-	followedIt, err := s.Followed.BuildValueIterator(qs)
+	p, err := s.Followed.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(fromPath.Follow(followedIt.path), qs), nil
+	return NewValueIterator(fromPath.Follow(p), qs), nil
 }
 
 // FollowReverse corresponds to .followR().
 type FollowReverse struct {
-	From     PathStep  `json:"from"`
-	Followed ValueStep `json:"followed"`
+	From     PathStep `json:"from"`
+	Followed PathStep `json:"followed"`
 }
 
 // Type implements Step.
@@ -484,11 +484,11 @@ func (s *FollowReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, 
 	if err != nil {
 		return nil, err
 	}
-	followedIt, err := s.Followed.BuildValueIterator(qs)
+	p, err := s.Followed.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(fromPath.FollowReverse(followedIt.path), qs), nil
+	return NewValueIterator(fromPath.FollowReverse(p), qs), nil
 }
 
 // Has corresponds to .has().
