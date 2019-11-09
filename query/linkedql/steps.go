@@ -28,9 +28,9 @@ func init() {
 	Register(&Limit{})
 	Register(&OutPredicates{})
 	Register(&Properties{})
-	Register(&SaveInPredicates{})
-	Register(&SaveOutPredicates{})
-	Register(&SaveReverse{})
+	Register(&ReversePropertyNamesAs{})
+	Register(&PropertyNamesAs{})
+	Register(&ReverseProperties{})
 	Register(&Skip{})
 	Register(&Union{})
 	Register(&Unique{})
@@ -782,24 +782,24 @@ func (s *Properties) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, err
 	return NewValueIterator(p, qs), nil
 }
 
-// SaveInPredicates corresponds to .saveInPredicates().
-type SaveInPredicates struct {
+// ReversePropertyNamesAs corresponds to .reversePropertyNamesAs().
+type ReversePropertyNamesAs struct {
 	From PathStep `json:"from"`
 	Tag  string   `json:"tag"`
 }
 
 // Type implements Step.
-func (s *SaveInPredicates) Type() quad.IRI {
-	return prefix + "SaveInPredicates"
+func (s *ReversePropertyNamesAs) Type() quad.IRI {
+	return prefix + "ReversePropertyNamesAs"
 }
 
 // BuildIterator implements Step.
-func (s *SaveInPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *ReversePropertyNamesAs) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return s.BuildValueIterator(qs)
 }
 
 // BuildPath implements PathStep.
-func (s *SaveInPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *ReversePropertyNamesAs) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	it, err := s.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
@@ -808,7 +808,7 @@ func (s *SaveInPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 }
 
 // BuildValueIterator implements ValueStep.
-func (s *SaveInPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+func (s *ReversePropertyNamesAs) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
@@ -816,24 +816,24 @@ func (s *SaveInPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterato
 	return NewValueIterator(fromPath.SavePredicates(true, s.Tag), qs), nil
 }
 
-// SaveOutPredicates corresponds to .saveOutPredicates().
-type SaveOutPredicates struct {
+// PropertyNamesAs corresponds to .propertyNamesAs().
+type PropertyNamesAs struct {
 	From PathStep `json:"from"`
 	Tag  string   `json:"tag"`
 }
 
 // Type implements Step.
-func (s *SaveOutPredicates) Type() quad.IRI {
-	return prefix + "SaveOutPredicates"
+func (s *PropertyNamesAs) Type() quad.IRI {
+	return prefix + "PropertyNamesAs"
 }
 
 // BuildIterator implements Step.
-func (s *SaveOutPredicates) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *PropertyNamesAs) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return s.BuildValueIterator(qs)
 }
 
 // BuildPath implements PathStep.
-func (s *SaveOutPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *PropertyNamesAs) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	it, err := s.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
@@ -842,7 +842,7 @@ func (s *SaveOutPredicates) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 }
 
 // BuildValueIterator implements ValueStep.
-func (s *SaveOutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+func (s *PropertyNamesAs) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
@@ -850,25 +850,24 @@ func (s *SaveOutPredicates) BuildValueIterator(qs graph.QuadStore) (*ValueIterat
 	return NewValueIterator(fromPath.SavePredicates(false, s.Tag), qs), nil
 }
 
-// SaveReverse corresponds to .saveR().
-type SaveReverse struct {
-	From PathStep  `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tag  string    `json:"tag"`
+// ReverseProperties corresponds to .reverseProperties().
+type ReverseProperties struct {
+	From  PathStep   `json:"from"`
+	Names []quad.IRI `json:"names"`
 }
 
 // Type implements Step.
-func (s *SaveReverse) Type() quad.IRI {
-	return prefix + "SaveReverse"
+func (s *ReverseProperties) Type() quad.IRI {
+	return prefix + "ReverseProperties"
 }
 
 // BuildIterator implements Step.
-func (s *SaveReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *ReverseProperties) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return s.BuildValueIterator(qs)
 }
 
 // BuildPath implements PathStep.
-func (s *SaveReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *ReverseProperties) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	it, err := s.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
@@ -877,16 +876,16 @@ func (s *SaveReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 }
 
 // BuildValueIterator implements ValueStep.
-func (s *SaveReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
+func (s *ReverseProperties) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
-	if err != nil {
-		return nil, err
+	p := fromPath
+	for _, name := range s.Names {
+		p = fromPath.SaveReverse(name, string(name))
 	}
-	return NewValueIterator(fromPath.SaveReverse(viaIt.path, s.Tag), qs), nil
+	return NewValueIterator(p, qs), nil
 }
 
 // Skip corresponds to .skip().
