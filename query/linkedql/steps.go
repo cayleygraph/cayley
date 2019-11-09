@@ -749,7 +749,7 @@ type Properties struct {
 
 // Type implements Step.
 func (s *Properties) Type() quad.IRI {
-	return prefix + "Save"
+	return prefix + "Properties"
 }
 
 // BuildIterator implements Step.
