@@ -286,7 +286,7 @@ var testCases = []struct {
 					Values: []quad.Value{quad.IRI("likes")},
 				},
 			},
-			Steps: []ValueStep{
+			Steps: []PathStep{
 				&Out{
 					From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
 					Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
@@ -428,7 +428,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice")},
 			},
-			Steps: []ValueStep{
+			Steps: []PathStep{
 				&Vertex{
 					Values: []quad.Value{quad.IRI("bob")},
 				},

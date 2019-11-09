@@ -88,9 +88,9 @@ func (s *Vertex) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 
 // Out corresponds to .out().
 type Out struct {
-	From PathStep  `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tags []string  `json:"tags"`
+	From PathStep `json:"from"`
+	Via  PathStep `json:"via"`
+	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
@@ -118,11 +118,11 @@ func (s *Out) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
+	viaPath, err := s.Via.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	path := fromPath.OutWithTags(s.Tags, viaIt.path)
+	path := fromPath.OutWithTags(s.Tags, viaPath)
 	return NewValueIterator(path, qs), nil
 }
 
@@ -163,8 +163,8 @@ func (s *As) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 
 // Intersect represents .intersect() and .and().
 type Intersect struct {
-	From  PathStep    `json:"from"`
-	Steps []ValueStep `json:"steps"`
+	From  PathStep   `json:"from"`
+	Steps []PathStep `json:"steps"`
 }
 
 // Type implements Step.
@@ -194,11 +194,11 @@ func (s *Intersect) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, erro
 	}
 	path := fromPath
 	for _, step := range s.Steps {
-		stepIt, err := step.BuildValueIterator(qs)
+		stepPath, err := step.BuildPath(qs)
 		if err != nil {
 			return nil, err
 		}
-		path = path.And(stepIt.path)
+		path = path.And(stepPath)
 	}
 	return NewValueIterator(path, qs), nil
 }
@@ -273,9 +273,9 @@ func (s *Back) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 
 // Both corresponds to .both().
 type Both struct {
-	From PathStep  `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tags []string  `json:"tags"`
+	From PathStep `json:"from"`
+	Via  PathStep `json:"via"`
+	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
@@ -303,11 +303,11 @@ func (s *Both) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
+	viaPath, err := s.Via.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(fromPath.BothWithTags(s.Tags, viaIt.path), qs), nil
+	return NewValueIterator(fromPath.BothWithTags(s.Tags, viaPath), qs), nil
 }
 
 // Count corresponds to .count().
@@ -345,8 +345,8 @@ func (s *Count) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 
 // Except corresponds to .except() and .difference().
 type Except struct {
-	From     PathStep  `json:"from"`
-	Excepted ValueStep `json:"excepted"`
+	From     PathStep `json:"from"`
+	Excepted PathStep `json:"excepted"`
 }
 
 // Type implements Step.
@@ -374,11 +374,11 @@ func (s *Except) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) 
 	if err != nil {
 		return nil, err
 	}
-	exceptedIt, err := s.Excepted.BuildValueIterator(qs)
+	exceptedPath, err := s.Excepted.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(fromPath.Except(exceptedIt.path), qs), nil
+	return NewValueIterator(fromPath.Except(exceptedPath), qs), nil
 }
 
 // Filter corresponds to filter().
@@ -494,7 +494,7 @@ func (s *FollowReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, 
 // Has corresponds to .has().
 type Has struct {
 	From   PathStep     `json:"from"`
-	Via    ValueStep    `json:"via"`
+	Via    PathStep     `json:"via"`
 	Values []quad.Value `json:"values"`
 }
 
@@ -523,17 +523,17 @@ func (s *Has) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
+	viaPath, err := s.Via.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(fromPath.Has(viaIt.path, s.Values...), qs), nil
+	return NewValueIterator(fromPath.Has(viaPath, s.Values...), qs), nil
 }
 
 // HasReverse corresponds to .hasR().
 type HasReverse struct {
 	From   PathStep     `json:"from"`
-	Via    ValueStep    `json:"via"`
+	Via    PathStep     `json:"via"`
 	Values []quad.Value `json:"values"`
 }
 
@@ -562,18 +562,18 @@ func (s *HasReverse) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, err
 	if err != nil {
 		return nil, err
 	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
+	viaPath, err := s.Via.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(fromPath.HasReverse(viaIt.path, s.Values...), qs), nil
+	return NewValueIterator(fromPath.HasReverse(viaPath, s.Values...), qs), nil
 }
 
 // In corresponds to .in().
 type In struct {
-	From PathStep  `json:"from"`
-	Via  ValueStep `json:"via"`
-	Tags []string  `json:"tags"`
+	From PathStep `json:"from"`
+	Via  PathStep `json:"via"`
+	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
@@ -601,11 +601,11 @@ func (s *In) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaIt, err := s.Via.BuildValueIterator(qs)
+	viaPath, err := s.Via.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(fromPath.InWithTags(s.Tags, viaIt.path), qs), nil
+	return NewValueIterator(fromPath.InWithTags(s.Tags, viaPath), qs), nil
 }
 
 // InPredicates corresponds to .inPredicates().
@@ -924,8 +924,8 @@ func (s *Skip) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 
 // Union corresponds to .union() and .or().
 type Union struct {
-	From  PathStep    `json:"from"`
-	Steps []ValueStep `json:"steps"`
+	From  PathStep   `json:"from"`
+	Steps []PathStep `json:"steps"`
 }
 
 // Type implements Step.
@@ -955,11 +955,11 @@ func (s *Union) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, error) {
 	}
 	path := fromPath
 	for _, step := range s.Steps {
-		valueIt, err := step.BuildValueIterator(qs)
+		valuePath, err := step.BuildPath(qs)
 		if err != nil {
 			return nil, err
 		}
-		path = path.Or(valueIt.path)
+		path = path.Or(valuePath)
 	}
 	return NewValueIterator(path, qs), nil
 }
