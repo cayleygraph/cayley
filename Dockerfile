@@ -58,6 +58,8 @@ VOLUME [ "/data" ]
 
 EXPOSE 64210
 
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD [ "cayley", "health" ]
+
 # Adding everything to entrypoint allows us to init, load and serve only with
 # arguments passed to docker run. For example:
 # `docker run cayleygraph/cayley --init -i /data/my_data.nq`
