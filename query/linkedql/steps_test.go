@@ -364,10 +364,10 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "SaveInPredicates",
+		name: "ReversePropertyNamesAs",
 		data: singleQuadData,
 		query: &Select{
-			From: &SaveInPredicates{
+			From: &ReversePropertyNamesAs{
 				From: &Vertex{Values: []quad.Value{}},
 				Tag:  "predicate",
 			},
@@ -379,10 +379,10 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "SaveOutPredicates",
+		name: "PropertyNamesAs",
 		data: singleQuadData,
 		query: &Select{
-			From: &SaveOutPredicates{
+			From: &PropertyNamesAs{
 				From: &Vertex{Values: []quad.Value{}},
 				Tag:  "predicate",
 			},
@@ -394,13 +394,12 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "SaveReverse",
+		name: "ReverseProperties",
 		data: singleQuadData,
 		query: &Select{
-			From: &SaveReverse{
-				From: &Vertex{Values: []quad.Value{}},
-				Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
-				Tag:  "likes",
+			From: &ReverseProperties{
+				From:  &Vertex{Values: []quad.Value{}},
+				Names: []quad.IRI{quad.IRI("likes")},
 			},
 		},
 		results: []interface{}{
