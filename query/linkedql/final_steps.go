@@ -75,3 +75,22 @@ func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	}
 	return singleValueIterator(it), nil
 }
+
+// Documents corresponds to .documents().
+type Documents struct {
+	From DocumentStep `json:"from"`
+}
+
+// Type implements Step.
+func (s *Documents) Type() quad.IRI {
+	return prefix + "Documents"
+}
+
+// BuildIterator implements Step.
+func (s *Documents) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	it, err := s.From.BuildDocumentIterator(qs)
+	if err != nil {
+		return nil, err
+	}
+	return it, nil
+}
