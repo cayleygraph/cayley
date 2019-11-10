@@ -2,9 +2,7 @@ package linkedql
 
 import (
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 )
 
@@ -27,11 +25,11 @@ func (s *Select) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.From.BuildPath(qs)
+	valueIt, err := NewValueIteratorFromPathStep(s.From, qs)
 	if err != nil {
 		return nil, err
 	}
-	return &TagsIterator{valueIt: NewValueIterator(p, qs), selected: s.Tags}, nil
+	return &TagsIterator{valueIt: valueIt, selected: s.Tags}, nil
 }
 
 // SelectFirst corresponds to .selectFirst().
@@ -45,17 +43,21 @@ func (s *SelectFirst) Type() quad.IRI {
 	return prefix + "SelectFirst"
 }
 
-func singleValueIterator(p *path.Path, namer refs.Namer) *ValueIterator {
-	return NewValueIterator(p.Limit(1), namer)
+func singleValueIteratorFromPathStep(step PathStep, qs graph.QuadStore) (*ValueIterator, error) {
+	p, err := step.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	return NewValueIterator(p.Limit(1), qs), nil
 }
 
 // BuildIterator implements Step.
 func (s *SelectFirst) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.From.BuildPath(qs)
+	it, err := singleValueIteratorFromPathStep(s.From, qs)
 	if err != nil {
 		return nil, err
 	}
-	return &TagsIterator{singleValueIterator(p, qs), s.Tags}, nil
+	return &TagsIterator{it, s.Tags}, nil
 }
 
 // Value corresponds to .value().
@@ -70,11 +72,7 @@ func (s *Value) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.From.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return singleValueIterator(p, qs), nil
+	return singleValueIteratorFromPathStep(s.From, qs)
 }
 
 // Documents corresponds to .documents().
