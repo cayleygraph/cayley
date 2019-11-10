@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 )
@@ -12,7 +13,7 @@ import (
 // Operator represents an operator used in a query inside a step (e.g. greater than).
 type Operator interface {
 	RegistryItem
-	Apply(it *ValueIterator) (*ValueIterator, error)
+	Apply(p *path.Path) (*path.Path, error)
 }
 
 // LessThan corresponds to lt().
@@ -26,8 +27,8 @@ func (s *LessThan) Type() quad.IRI {
 }
 
 // Apply implements Operator.
-func (s *LessThan) Apply(it *ValueIterator) (*ValueIterator, error) {
-	return NewValueIterator(it.path.Filter(iterator.CompareLT, s.Value), it.namer), nil
+func (s *LessThan) Apply(p *path.Path) (*path.Path, error) {
+	return p.Filter(iterator.CompareLT, s.Value), nil
 }
 
 // LessThanEquals corresponds to lte().
@@ -41,8 +42,8 @@ func (s *LessThanEquals) Type() quad.IRI {
 }
 
 // Apply implements Operator.
-func (s *LessThanEquals) Apply(it *ValueIterator) (*ValueIterator, error) {
-	return NewValueIterator(it.path.Filter(iterator.CompareLTE, s.Value), it.namer), nil
+func (s *LessThanEquals) Apply(p *path.Path) (*path.Path, error) {
+	return p.Filter(iterator.CompareLTE, s.Value), nil
 }
 
 // GreaterThan corresponds to gt().
@@ -51,8 +52,8 @@ type GreaterThan struct {
 }
 
 // Apply implements Operator.
-func (s *GreaterThan) Apply(it *ValueIterator) (*ValueIterator, error) {
-	return NewValueIterator(it.path.Filter(iterator.CompareGT, s.Value), it.namer), nil
+func (s *GreaterThan) Apply(p *path.Path) (*path.Path, error) {
+	return p.Filter(iterator.CompareGT, s.Value), nil
 }
 
 // Type implements Operator.
@@ -71,8 +72,8 @@ func (s *GreaterThanEquals) Type() quad.IRI {
 }
 
 // Apply implements Operator.
-func (s *GreaterThanEquals) Apply(it *ValueIterator) (*ValueIterator, error) {
-	return NewValueIterator(it.path.Filter(iterator.CompareGTE, s.Value), it.namer), nil
+func (s *GreaterThanEquals) Apply(p *path.Path) (*path.Path, error) {
+	return p.Filter(iterator.CompareGTE, s.Value), nil
 }
 
 // RegExp corresponds to regex().
@@ -87,15 +88,15 @@ func (s *RegExp) Type() quad.IRI {
 }
 
 // Apply implements Operator.
-func (s *RegExp) Apply(it *ValueIterator) (*ValueIterator, error) {
+func (s *RegExp) Apply(p *path.Path) (*path.Path, error) {
 	pattern, err := regexp.Compile(string(s.Pattern))
 	if err != nil {
 		return nil, errors.New("Invalid RegExp")
 	}
 	if s.IncludeIRIs {
-		return NewValueIterator(it.path.RegexWithRefs(pattern), it.namer), nil
+		return p.RegexWithRefs(pattern), nil
 	}
-	return NewValueIterator(it.path.RegexWithRefs(pattern), it.namer), nil
+	return p.RegexWithRefs(pattern), nil
 }
 
 // Like corresponds to like().
@@ -109,6 +110,6 @@ func (s *Like) Type() quad.IRI {
 }
 
 // Apply implements Operator.
-func (s *Like) Apply(it *ValueIterator) (*ValueIterator, error) {
-	return NewValueIterator(it.path.Filters(shape.Wildcard{Pattern: s.Pattern}), it.namer), nil
+func (s *Like) Apply(p *path.Path) (*path.Path, error) {
+	return p.Filters(shape.Wildcard{Pattern: s.Pattern}), nil
 }
