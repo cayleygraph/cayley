@@ -68,11 +68,7 @@ func (s *Vertex) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Vertex) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -94,11 +90,7 @@ func (s *Out) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Out) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -127,11 +119,7 @@ func (s *As) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *As) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -156,11 +144,7 @@ func (s *Intersect) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Intersect) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -193,11 +177,7 @@ func (s *Is) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Is) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -222,11 +202,7 @@ func (s *Back) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Back) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -252,11 +228,7 @@ func (s *Both) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Both) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -284,11 +256,7 @@ func (s *Count) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Count) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -313,11 +281,7 @@ func (s *Except) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Except) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -346,11 +310,7 @@ func (s *Filter) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Filter) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -375,11 +335,7 @@ func (s *Follow) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Follow) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -408,11 +364,7 @@ func (s *FollowReverse) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *FollowReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -442,11 +394,7 @@ func (s *Has) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Has) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -476,11 +424,7 @@ func (s *HasReverse) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *HasReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -510,11 +454,7 @@ func (s *In) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *In) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -542,11 +482,7 @@ func (s *ReversePropertyNames) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *ReversePropertyNames) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -570,11 +506,7 @@ func (s *Labels) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Labels) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -599,11 +531,7 @@ func (s *Limit) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Limit) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -627,11 +555,7 @@ func (s *PropertyNames) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *PropertyNames) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -657,11 +581,7 @@ func (s *Properties) Type() quad.IRI {
 // BuildIterator implements Step.
 // TODO(iddan): Default tag to Via.
 func (s *Properties) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildDocumentIterator implements DocumentsStep
@@ -708,11 +628,7 @@ func (s *ReversePropertyNamesAs) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *ReversePropertyNamesAs) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -737,11 +653,7 @@ func (s *PropertyNamesAs) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *PropertyNamesAs) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -766,11 +678,7 @@ func (s *ReverseProperties) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *ReverseProperties) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -799,11 +707,7 @@ func (s *Skip) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Skip) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -828,11 +732,7 @@ func (s *Union) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Union) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -864,11 +764,7 @@ func (s *Unique) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Unique) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -892,11 +788,7 @@ func (s *Order) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Order) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
@@ -934,11 +826,7 @@ func (s *Optional) Type() quad.IRI {
 
 // BuildIterator implements Step.
 func (s *Optional) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return NewValueIterator(p, qs), nil
+	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
