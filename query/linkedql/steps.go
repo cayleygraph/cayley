@@ -56,6 +56,11 @@ type PathStep interface {
 	BuildPath(qs graph.QuadStore) (*path.Path, error)
 }
 
+// DocumentStep is a Step that can build a DocumentIterator
+type DocumentStep interface {
+	BuildDocumentIterator(qs graph.QuadStore) (*DocumentIterator, error)
+}
+
 // Vertex corresponds to g.Vertex() and g.V().
 type Vertex struct {
 	Values []quad.Value `json:"values"`
@@ -758,14 +763,22 @@ func (s *Properties) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return s.BuildValueIterator(qs)
 }
 
-// BuildPath implements Step.
-// TODO(iddan): Default BuildPath implements PathStep.
+// BuildPath implements PathStep.
 func (s *Properties) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	it, err := s.BuildValueIterator(qs)
 	if err != nil {
 		return nil, err
 	}
 	return it.path, nil
+}
+
+// BuildDocumentIterator implements DocumentsStep
+func (s *Properties) BuildDocumentIterator(qs graph.QuadStore) (*DocumentIterator, error) {
+	it, err := s.BuildValueIterator(qs)
+	if err != nil {
+		return nil, err
+	}
+	return NewDocumentIterator(qs, it.path), nil
 }
 
 // BuildValueIterator implements ValueStep.
@@ -775,9 +788,13 @@ func (s *Properties) BuildValueIterator(qs graph.QuadStore) (*ValueIterator, err
 		return nil, err
 	}
 	p := fromPath
-	for _, name := range s.Names {
-		tag := string(name)
-		p = p.Save(name, tag)
+	if s.Names != nil {
+		for _, name := range s.Names {
+			tag := string(name)
+			p = p.Save(name, tag)
+		}
+	} else {
+		panic("Not implemented: should tag all properties")
 	}
 	return NewValueIterator(p, qs), nil
 }
