@@ -32,7 +32,9 @@ func Register(typ RegistryItem) {
 }
 
 var quadValue = reflect.TypeOf((*quad.Value)(nil)).Elem()
-var quadSliceValue = reflect.TypeOf(([]quad.Value)(nil))
+var quadSliceValue = reflect.TypeOf([]quad.Value{})
+var quadIRI = reflect.TypeOf(quad.IRI(""))
+var quadSliceIRI = reflect.TypeOf([]quad.IRI{})
 
 // Unmarshal attempts to unmarshal an Item or returns error.
 func Unmarshal(data []byte) (RegistryItem, error) {
@@ -93,6 +95,34 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			}
 			fv.Set(reflect.ValueOf(values))
 			continue
+		case quadIRI:
+			var a interface{}
+			err := json.Unmarshal(v, &a)
+			if err != nil {
+				return nil, err
+			}
+			value, err := parseIRI(v)
+			if err != nil {
+				return nil, err
+			}
+			fv.Set(reflect.ValueOf(*value))
+			continue
+		case quadSliceIRI:
+			var a []interface{}
+			err := json.Unmarshal(v, &a)
+			if err != nil {
+				return nil, err
+			}
+			var values []quad.IRI
+			for _, item := range a {
+				value, err := parseIRI(item)
+				if err != nil {
+					return nil, err
+				}
+				values = append(values, *value)
+			}
+			fv.Set(reflect.ValueOf(values))
+			continue
 		}
 		switch f.Type.Kind() {
 		case reflect.Interface:
@@ -135,7 +165,42 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 	return item.Addr().Interface().(RegistryItem), nil
 }
 
-func parseValue(a interface{}) (quad.Value, error) {
+func parseBNode(a interface{}) (*quad.BNode, error) {
+	pointer, err := parseIdentifierString(a)
+	id := *pointer
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(id, "_:") {
+		return nil, fmt.Errorf("blank node ID must start with \"_:\"")
+	}
+	bnode := quad.BNode(id[2:])
+	return &bnode, nil
+}
+
+func parseIRI(a interface{}) (*quad.IRI, error) {
+	pointer, err := parseIdentifierString(a)
+	id := *pointer
+	if err != nil {
+		return nil, err
+	}
+	iri := quad.IRI(id)
+	return &iri, nil
+}
+
+func parseIdentifierString(a interface{}) (*string, error) {
+	m, ok := a.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Not a map")
+	}
+	id, ok := m["@id"].(string)
+	if !ok {
+		return nil, fmt.Errorf("No string @id key")
+	}
+	return &id, nil
+}
+
+func parseLiteral(a interface{}) (quad.Value, error) {
 	switch a := a.(type) {
 	case string:
 		return quad.String(a), nil
@@ -146,13 +211,6 @@ func parseValue(a interface{}) (quad.Value, error) {
 	case bool:
 		return quad.Bool(a), nil
 	case map[string]interface{}:
-		id, ok := a["@id"].(string)
-		if ok {
-			if strings.HasPrefix(id, "_:") {
-				return quad.BNode(id[2:]), nil
-			}
-			return quad.IRI(id), nil
-		}
 		value, ok := a["@value"].(string)
 		if ok {
 			if language, ok := a["@language"].(string); ok {
@@ -163,7 +221,23 @@ func parseValue(a interface{}) (quad.Value, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("cannot parse JSON-LD value: %#v", a)
+	return nil, fmt.Errorf("Can not parse %#v as literal", a)
+}
+
+func parseValue(a interface{}) (quad.Value, error) {
+	bnode, err := parseBNode(a)
+	if err == nil {
+		return bnode, nil
+	}
+	iri, err := parseIRI(a)
+	if err == nil {
+		return iri, nil
+	}
+	literal, err := parseLiteral(a)
+	if err == nil {
+		return literal, nil
+	}
+	return nil, fmt.Errorf("Can not parse JSON-LD value: %#v", a)
 }
 
 // RegistryItem in the registry.
