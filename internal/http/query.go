@@ -98,7 +98,7 @@ func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params http
 		return
 	}
 	if l.Session == nil {
-		errFunc(w, errors.New("HTTP interface is not supported for this query language."))
+		errFunc(w, errors.New("no support for HTTP interface for this query language"))
 		return
 	}
 
