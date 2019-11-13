@@ -7,7 +7,7 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-var valueStep = reflect.TypeOf((*ValueStep)(nil)).Elem()
+var pathStep = reflect.TypeOf((*PathStep)(nil)).Elem()
 var step = reflect.TypeOf((*Step)(nil)).Elem()
 
 func typeToRange(t reflect.Type) string {
@@ -23,8 +23,8 @@ func typeToRange(t reflect.Type) string {
 	if kind := t.Kind(); kind == reflect.Int64 || kind == reflect.Int {
 		return "xsd:int"
 	}
-	if t.Implements(valueStep) {
-		return "linkedql:ValueStep"
+	if t.Implements(pathStep) {
+		return "linkedql:PathStep"
 	}
 	if t.Implements(step) {
 		return "linkedql:Step"
@@ -104,8 +104,8 @@ func NewClass(id string, superClasses []interface{}) Class {
 
 // GetStepTypeClass for given step type returns the matching class identifier
 func GetStepTypeClass(t reflect.Type) string {
-	if t.Implements(valueStep) {
-		return "linkedql:ValueStep"
+	if t.Implements(pathStep) {
+		return "linkedql:PathStep"
 	}
 	return "linkedql:Step"
 }
@@ -150,7 +150,7 @@ func GenerateSchema() []interface{} {
 	propertyToRanges := map[string]map[string]struct{}{}
 	for name, t := range typeByName {
 		superClasses := []interface{}{
-			NewIdentified(GetStepTypeClass(valueStep)),
+			NewIdentified(GetStepTypeClass(pathStep)),
 		}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)

@@ -979,7 +979,7 @@ func (s *Morphism) Description() string {
 	return "Create a morphism path object. Unqueryable on it's own, defines one end of the path. Saving these to variables with"
 }
 
-// BuildPath implements ValueStep.
+// BuildPath implements PathStep.
 func (s *Morphism) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartMorphism(), nil
 }
