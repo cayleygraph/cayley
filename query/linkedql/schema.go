@@ -153,6 +153,9 @@ func GenerateSchema() []interface{} {
 		}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
+			if f.Anonymous {
+				continue
+			}
 			property := "linkedql:" + f.Tag.Get("json")
 			if f.Type.Kind() != reflect.Slice {
 				restriction := NewSingleCardinalityRestriction(property)
