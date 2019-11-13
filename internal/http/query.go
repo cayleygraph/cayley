@@ -67,6 +67,8 @@ func defaultErrorFunc(w query.ResponseWriter, err error) {
 }
 
 // TODO(barakmich): Turn this into proper middleware.
+
+// ServeV1Query is the HTTP handler for queries in API V1
 func (api *API) ServeV1Query(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx, cancel := api.contextForRequest(r)
 	defer cancel()

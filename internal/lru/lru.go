@@ -21,7 +21,7 @@ import (
 
 // TODO(kortschak) Reimplement without container/list.
 
-// cache implements an LRU cache.
+// Cache implements an LRU cache.
 type Cache struct {
 	mu       sync.Mutex
 	cache    map[string]*list.Element

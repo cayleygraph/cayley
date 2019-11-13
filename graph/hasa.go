@@ -52,7 +52,7 @@ type HasA struct {
 	dir     quad.Direction
 }
 
-// Construct a new HasA iterator, given the quad subiterator, and the quad
+// NewHasA construct a new HasA iterator, given the quad subiterator, and the quad
 // direction for which it stands.
 func NewHasA(qs QuadIndexer, subIt iterator.Shape, d quad.Direction) *HasA {
 	return &HasA{
@@ -70,7 +70,7 @@ func (it *HasA) Lookup() iterator.Index {
 	return newHasAContains(it.qs, it.primary.Lookup(), it.dir)
 }
 
-// Return our sole subiterator.
+// SubIterators returns our sole subiterator.
 func (it *HasA) SubIterators() []iterator.Shape {
 	return []iterator.Shape{it.primary}
 }
@@ -78,7 +78,7 @@ func (it *HasA) SubIterators() []iterator.Shape {
 // Direction accessor.
 func (it *HasA) Direction() quad.Direction { return it.dir }
 
-// Pass the Optimize() call along to the subiterator. If it becomes Null,
+// Optimize pass the Optimize() call along to the subiterator. If it becomes Null,
 // then the HasA becomes Null (there are no quads that have any directions).
 func (it *HasA) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	newPrimary, changed := it.primary.Optimize(ctx)
@@ -95,7 +95,7 @@ func (it *HasA) String() string {
 	return fmt.Sprintf("HasA(%v)", it.dir)
 }
 
-// GetStats() returns the statistics on the HasA iterator. This is curious. Next
+// Stats returns the statistics on the HasA iterator. This is curious. Next
 // cost is easy, it's an extra call or so on top of the subiterator Next cost.
 // ContainsCost involves going to the graph.QuadStore, iterating out values, and hoping
 // one sticks -- potentially expensive, depending on fanout. Size, however, is

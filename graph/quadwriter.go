@@ -297,7 +297,7 @@ func (w *removeWriter) Flush() error {
 }
 func (w *removeWriter) Close() error { return nil }
 
-// NewResultReader creates a quad reader for a given QuadStore.
+// NewQuadStoreReader creates a quad reader for a given QuadStore.
 func NewQuadStoreReader(qs QuadStore) quad.ReadSkipCloser {
 	return NewResultReader(qs, nil)
 }

@@ -297,7 +297,7 @@ func getStatsForSlice(ctx context.Context, its, opt []Shape) (Costs, []Costs, er
 	}, arr, last
 }
 
-// and.Stats() lives here in and-iterator-optimize.go because it may
+// Stats lives here in and-iterator-optimize.go because it may
 // in the future return different statistics based on how it is optimized.
 // For now, however, it's pretty static.
 //
