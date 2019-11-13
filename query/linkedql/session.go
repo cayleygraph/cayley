@@ -28,7 +28,7 @@ func (s *Session) Execute(ctx context.Context, query string, opt query.Options) 
 	if err != nil {
 		return nil, err
 	}
-	step, ok := item.(Step)
+	step, ok := item.(IteratorStep)
 	if !ok {
 		return nil, errors.New("Must execute a valid step")
 	}

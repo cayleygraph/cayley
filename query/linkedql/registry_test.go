@@ -6,6 +6,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/cayley/query/path"
 
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +78,7 @@ var unmarshalCases = []struct {
 }`,
 		exp: &TestStep{
 			Limit: 10,
-			Sub: []Step{
+			Sub: []PathStep{
 				&TestStep{
 					Limit: 15,
 				},
@@ -90,10 +91,10 @@ var unmarshalCases = []struct {
 }
 
 type TestStep struct {
-	Limit int      `json:"limit"`
-	Tags  []string `json:"tags"`
-	Main  Step     `json:"main"`
-	Sub   []Step   `json:"sub"`
+	Limit int        `json:"limit"`
+	Tags  []string   `json:"tags"`
+	Main  PathStep   `json:"main"`
+	Sub   []PathStep `json:"sub"`
 }
 
 func (s *TestStep) Type() quad.IRI {
@@ -106,6 +107,10 @@ func (s *TestStep) Description() string {
 
 func (s *TestStep) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	panic("Can't build iterator for TestStep")
+}
+
+func (s *TestStep) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	panic("Can't build path for TestStep")
 }
 
 func TestUnmarshalStep(t *testing.T) {

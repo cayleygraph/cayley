@@ -28,7 +28,7 @@ func (s *Select) Description() string {
 	return "Select returns flat records of tags matched in the query"
 }
 
-// BuildIterator implements Step.
+// BuildIterator implements IteratorStep
 func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	valueIt, err := NewValueIteratorFromPathStep(s.From, qs)
 	if err != nil {
@@ -61,7 +61,7 @@ func singleValueIteratorFromPathStep(step PathStep, qs graph.QuadStore) (*ValueI
 	return NewValueIterator(p.Limit(1), qs), nil
 }
 
-// BuildIterator implements Step.
+// BuildIterator implements IteratorStep
 func (s *SelectFirst) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	it, err := singleValueIteratorFromPathStep(s.From, qs)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *Value) Type() quad.IRI {
 	return prefix + "Value"
 }
 
-// BuildIterator implements Step.
+// BuildIterator implements IteratorStep
 func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return singleValueIteratorFromPathStep(s.From, qs)
 }
@@ -100,7 +100,7 @@ func (s *Documents) Description() string {
 	return "Documents return documents of the tags matched in the query associated with their entity"
 }
 
-// BuildIterator implements Step.
+// BuildIterator implements IteratorStep
 func (s *Documents) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	it, err := s.From.BuildDocumentIterator(qs)
 	if err != nil {

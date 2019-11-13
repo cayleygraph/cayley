@@ -9,6 +9,8 @@ import (
 
 var pathStep = reflect.TypeOf((*PathStep)(nil)).Elem()
 var step = reflect.TypeOf((*Step)(nil)).Elem()
+var value = reflect.TypeOf((*quad.Value)(nil)).Elem()
+var operator = reflect.TypeOf((*Operator)(nil)).Elem()
 
 func typeToRange(t reflect.Type) string {
 	if t.Kind() == reflect.Slice {
@@ -26,13 +28,10 @@ func typeToRange(t reflect.Type) string {
 	if t.Implements(pathStep) {
 		return "linkedql:PathStep"
 	}
-	if t.Implements(step) {
-		return "linkedql:Step"
-	}
-	if t.Implements(reflect.TypeOf((*Operator)(nil)).Elem()) {
+	if t.Implements(operator) {
 		return "linkedql:Operator"
 	}
-	if t.Implements(reflect.TypeOf((*quad.Value)(nil)).Elem()) {
+	if t.Implements(value) {
 		return "rdfs:Resource"
 	}
 	panic("Unexpected type " + t.String())
