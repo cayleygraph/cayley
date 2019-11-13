@@ -435,10 +435,10 @@ func testSet(qs graph.QuadStore) []test {
 		{
 			message: "composite paths (clone paths)",
 			path: func() *Path {
-				alice_path := StartPath(qs, vAlice)
-				_ = alice_path.Out(vFollows)
+				alicePath := StartPath(qs, vAlice)
+				_ = alicePath.Out(vFollows)
 
-				return alice_path
+				return alicePath
 			}(),
 			expect: []quad.Value{vAlice},
 		},

@@ -394,7 +394,7 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 
 func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 	type Format struct {
-		Id     string   `json:"id"`
+		ID     string   `json:"id"`
 		Read   bool     `json:"read,omitempty"`
 		Write  bool     `json:"write,omitempty"`
 		Nodes  bool     `json:"nodes,omitempty"`
@@ -406,7 +406,7 @@ func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 	out := make([]Format, 0, len(formats))
 	for _, f := range formats {
 		out = append(out, Format{
-			Id:  f.Name,
+			ID:  f.Name,
 			Ext: f.Ext, Mime: f.Mime,
 			Read: f.Reader != nil, Write: f.Writer != nil,
 			Nodes:  f.UnmarshalValue != nil,

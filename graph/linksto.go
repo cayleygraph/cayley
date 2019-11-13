@@ -48,7 +48,7 @@ type LinksTo struct {
 	size    refs.Size
 }
 
-// Construct a new LinksTo iterator around a direction and a subiterator of
+// NewLinksTo construct a new LinksTo iterator around a direction and a subiterator of
 // nodes.
 func NewLinksTo(qs QuadIndexer, it iterator.Shape, d quad.Direction) *LinksTo {
 	return &LinksTo{
@@ -58,7 +58,7 @@ func NewLinksTo(qs QuadIndexer, it iterator.Shape, d quad.Direction) *LinksTo {
 	}
 }
 
-// Return the direction under consideration.
+// Direction returns the direction under consideration.
 func (it *LinksTo) Direction() quad.Direction { return it.dir }
 
 func (it *LinksTo) Iterate() iterator.Scanner {
@@ -73,7 +73,7 @@ func (it *LinksTo) String() string {
 	return fmt.Sprintf("LinksTo(%v)", it.dir)
 }
 
-// Return a list containing only our subiterator.
+// SubIterators returns a list containing only our subiterator.
 func (it *LinksTo) SubIterators() []iterator.Shape {
 	return []iterator.Shape{it.primary}
 }
@@ -90,7 +90,7 @@ func (it *LinksTo) Optimize(ctx context.Context) (iterator.Shape, bool) {
 	return it, false
 }
 
-// Return a guess as to how big or costly it is to next the iterator.
+// Stats returns a guess as to how big or costly it is to next the iterator.
 func (it *LinksTo) Stats(ctx context.Context) (iterator.Costs, error) {
 	subitStats, err := it.primary.Stats(ctx)
 	// TODO(barakmich): These should really come from the quadstore itself

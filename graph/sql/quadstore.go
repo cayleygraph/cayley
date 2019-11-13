@@ -12,7 +12,7 @@ import (
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/graph/log"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/quad"
@@ -208,18 +208,18 @@ func Init(typ string, addr string, options graph.Options) error {
 	}
 	defer conn.Close()
 
-	nodesSql := fl.nodesTable()
-	quadsSql := fl.quadsTable()
+	nodesSQL := fl.nodesTable()
+	quadsSQL := fl.quadsTable()
 	indexes := fl.quadIndexes(options)
 
 	if fl.NoSchemaChangesInTx {
-		_, err = conn.Exec(nodesSql)
+		_, err = conn.Exec(nodesSQL)
 		if err != nil {
 			err = fl.Error(err)
 			clog.Errorf("Cannot create nodes table: %v", err)
 			return err
 		}
-		_, err = conn.Exec(quadsSql)
+		_, err = conn.Exec(quadsSQL)
 		if err != nil {
 			err = fl.Error(err)
 			clog.Errorf("Cannot create quad table: %v", err)
@@ -238,14 +238,14 @@ func Init(typ string, addr string, options graph.Options) error {
 			return err
 		}
 
-		_, err = tx.Exec(nodesSql)
+		_, err = tx.Exec(nodesSQL)
 		if err != nil {
 			tx.Rollback()
 			err = fl.Error(err)
 			clog.Errorf("Cannot create nodes table: %v", err)
 			return err
 		}
-		_, err = tx.Exec(quadsSql)
+		_, err = tx.Exec(quadsSQL)
 		if err != nil {
 			tx.Rollback()
 			err = fl.Error(err)

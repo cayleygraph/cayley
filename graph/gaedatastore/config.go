@@ -120,7 +120,7 @@ func (d *duration) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("%q", *d)), nil
 }
 
-// Load reads a JSON-encoded config contained in the given file. A zero value
+// LoadConf reads a JSON-encoded config contained in the given file. A zero value
 // config is returned if the filename is empty.
 func LoadConf(file string) (*Config, error) {
 	config := &Config{}

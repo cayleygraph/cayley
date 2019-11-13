@@ -299,7 +299,7 @@ var casesExecute = []struct {
 	},
 }
 
-func toJson(o interface{}) string {
+func toJSON(o interface{}) string {
 	buf := bytes.NewBuffer(nil)
 	json.NewEncoder(buf).Encode(o)
 	buf2 := bytes.NewBuffer(nil)
@@ -320,7 +320,7 @@ func TestExecute(t *testing.T) {
 			require.NoError(t, err)
 			out, err := q.Execute(context.Background(), qs)
 			require.NoError(t, err)
-			require.Equal(t, c.result, out, "results:\n%v\n\nvs\n\n%v", toJson(c.result), toJson(out))
+			require.Equal(t, c.result, out, "results:\n%v\n\nvs\n\n%v", toJSON(c.result), toJSON(out))
 		})
 	}
 }
