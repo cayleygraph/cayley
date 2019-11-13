@@ -97,7 +97,7 @@ type Index interface {
 	Contains(ctx context.Context, v refs.Ref) bool
 }
 
-// Tagger is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
+// TaggerShape is an interface for iterators that can tag values. Tags are returned as a part of TagResults call.
 type TaggerShape interface {
 	Shape
 	TaggerBase
@@ -172,20 +172,23 @@ func Height(it Shape, filter func(Shape) bool) int {
 	return maxDepth + 1
 }
 
-// Here we define the simplest iterator -- the Null iterator. It contains nothing.
+// Null is the simplest iterator -- the Null iterator. It contains nothing.
 // It is the empty set. Often times, queries that contain one of these match nothing,
 // so it's important to give it a special iterator.
 type Null struct{}
 
+// NewNull creates a new Null iterator
 // Fairly useless New function.
 func NewNull() *Null {
 	return &Null{}
 }
 
+// Iterate implements Iterator
 func (it *Null) Iterate() Scanner {
 	return it
 }
 
+// Lookup implements Iterator
 func (it *Null) Lookup() Index {
 	return it
 }

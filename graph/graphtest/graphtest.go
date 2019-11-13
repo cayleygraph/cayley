@@ -98,7 +98,7 @@ func BenchmarkAll(b *testing.B, gen testutil.DatabaseFunc, conf *Config) {
 	})
 }
 
-// This is a simple test graph.
+// MakeQuadSet makes a simple test graph.
 //
 //    +---+                        +---+
 //    | A |-------               ->| F |<--
@@ -842,6 +842,7 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	require.Equal(t, exp, st, "Unexpected quadstore size")
 }
 
+// TestAddRemove tests add and remove
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
 // returns ErrQuadExists, ErrQuadNotExists is doing rollback.
 func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {

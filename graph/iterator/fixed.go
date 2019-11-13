@@ -35,7 +35,7 @@ type Fixed struct {
 	values []refs.Ref
 }
 
-// Creates a new Fixed iterator with a custom comparator.
+// NewFixed creates a new Fixed iterator with a custom comparator.
 func NewFixed(vals ...refs.Ref) *Fixed {
 	return &Fixed{
 		values: append([]refs.Ref{}, vals...),

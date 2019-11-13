@@ -29,7 +29,7 @@ type Resolver struct {
 	order []quad.Value
 }
 
-// Creates a new Resolver iterator.
+// NewResolver creates a new Resolver iterator.
 func NewResolver(qs refs.Namer, nodes ...quad.Value) *Resolver {
 	it := &Resolver{
 		qs:    qs,
