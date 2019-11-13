@@ -89,15 +89,17 @@ type Property struct {
 type Class struct {
 	ID           string        `json:"@id"`
 	Type         string        `json:"@type"`
+	Comment      string        `json:"rdfs:comment"`
 	SuperClasses []interface{} `json:"rdfs:subClassOf"`
 }
 
 // NewClass creates a new Class struct
-func NewClass(id string, superClasses []interface{}) Class {
+func NewClass(id string, superClasses []interface{}, comment string) Class {
 	return Class{
 		ID:           id,
 		Type:         "rdfs:Class",
 		SuperClasses: superClasses,
+		Comment:      comment,
 	}
 }
 
@@ -148,6 +150,13 @@ func GenerateSchema() []interface{} {
 	propertyToDomains := map[string]map[string]struct{}{}
 	propertyToRanges := map[string]map[string]struct{}{}
 	for name, t := range typeByName {
+		fmt.Printf("%v %v %v\n", t, step, t.Implements(step))
+		if !t.Implements(step) {
+			continue
+		}
+		value := reflect.Zero(t)
+		description := value.MethodByName("Description")
+		fmt.Printf("%v", description)
 		superClasses := []interface{}{
 			NewIdentified(GetStepTypeClass(pathStep)),
 		}
@@ -175,7 +184,7 @@ func GenerateSchema() []interface{} {
 			}
 			propertyToRanges[property][typeToRange(f.Type)] = struct{}{}
 		}
-		documents = append(documents, NewClass(name, superClasses))
+		documents = append(documents, NewClass(name, superClasses, description.String()))
 	}
 	for property, typeSet := range propertyToTypes {
 		var types []string
