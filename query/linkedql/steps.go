@@ -76,25 +76,25 @@ func (s *Vertex) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartPath(qs, s.Values...), nil
 }
 
-// Out corresponds to .out().
-type Out struct {
+// View corresponds to .view().
+type View struct {
 	From PathStep `json:"from"`
 	Via  PathStep `json:"via"`
 	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
-func (s *Out) Type() quad.IRI {
+func (s *View) Type() quad.IRI {
 	return prefix + "Out"
 }
 
 // BuildIterator implements Step.
-func (s *Out) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *View) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
-func (s *Out) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *View) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
@@ -440,25 +440,25 @@ func (s *HasReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.HasReverse(viaPath, s.Values...), nil
 }
 
-// In corresponds to .in().
-type In struct {
+// ViewReverse corresponds to .viewReverse().
+type ViewReverse struct {
 	From PathStep `json:"from"`
 	Via  PathStep `json:"via"`
 	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
-func (s *In) Type() quad.IRI {
-	return prefix + "In"
+func (s *ViewReverse) Type() quad.IRI {
+	return prefix + "ViewReverse"
 }
 
 // BuildIterator implements Step.
-func (s *In) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *ViewReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
-func (s *In) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *ViewReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
