@@ -85,7 +85,7 @@ func Unzip(src string, dest string) error {
 
 		if f.FileInfo().IsDir() {
 			// Make Folder
-			os.MkdirAll(fpath, os.ModePerm)
+			os.MkdirAll(fpath, 0755)
 			continue
 		}
 
