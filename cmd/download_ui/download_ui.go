@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	fileURL = "https://github.com/cayleygraph/web/releases/download/v0.8.0/web.zip"
-	fileName = "web.zip"
+	fileURL       = "https://github.com/cayleygraph/web/releases/download/v0.8.0/web.zip"
+	fileName      = "web.zip"
 	directoryName = "ui"
 )
 
@@ -47,6 +47,10 @@ func DownloadFile(filepath string, url string) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Received %v status code instead of 200 for %v", resp.Status, url)
+	}
 
 	// Create the file
 	out, err := os.Create(filepath)
