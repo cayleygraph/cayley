@@ -22,8 +22,12 @@ func NewHealthCmd() *cobra.Command {
 			if len(args) == 1 {
 				address = args[0]
 			}
-			_, err := http.Get(address + "/health")
-			return err
+			resp, err := http.Get(address + "/health")
+			if err != nil {
+				// handle error
+			}
+			defer resp.Body.Close()
+			return nil
 		},
 	}
 }
