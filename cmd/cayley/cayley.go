@@ -143,6 +143,7 @@ func init() {
 		command.NewConvertCmd(),
 		command.NewDedupCommand(),
 		command.NewHealthCmd(),
+		command.NewLinkedQLSchemaCommand(),
 	)
 	rootCmd.PersistentFlags().StringP("config", "c", "", "path to an explicit configuration file")
 
