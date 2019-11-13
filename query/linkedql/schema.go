@@ -166,7 +166,31 @@ func GenerateSchema() []interface{} {
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			if f.Anonymous {
-				continue
+				t = f.Type
+				if t.Kind() == reflect.Struct {
+					for j := 0; j < t.NumField(); j++ {
+						f = t.Field(j)
+						property := "linkedql:" + f.Tag.Get("json")
+						if f.Type.Kind() != reflect.Slice {
+							restriction := NewSingleCardinalityRestriction(property)
+							superClasses = append(superClasses, restriction)
+						}
+						_type := GetOWLPropertyType(f.Type.Kind())
+						if propertyToTypes[property] == nil {
+							propertyToTypes[property] = map[string]struct{}{}
+						}
+						propertyToTypes[property][_type] = struct{}{}
+						if propertyToDomains[property] == nil {
+							propertyToDomains[property] = map[string]struct{}{}
+						}
+						propertyToDomains[property][name] = struct{}{}
+						if propertyToRanges[property] == nil {
+							propertyToRanges[property] = map[string]struct{}{}
+						}
+						propertyToRanges[property][typeToRange(f.Type)] = struct{}{}
+					}
+					continue
+				}
 			}
 			property := "linkedql:" + f.Tag.Get("json")
 			if f.Type.Kind() != reflect.Slice {
