@@ -22,7 +22,7 @@ cd cayley
 # Download dependencies
 go mod download
 
-# Download web files
+# Download web files (optional)
 
 go run cmd/download_ui/download_ui.go
 
