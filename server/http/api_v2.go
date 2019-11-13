@@ -78,20 +78,26 @@ func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	router.ServeHTTP(w, r)
 }
 
+func toHandle(handler http.HandlerFunc) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		handler(w, r)
+	}
+}
+
 func (api *APIv2) RegisterDataOn(r *httprouter.Router) {
 	if !api.ro {
-		r.POST(prefix+"/write", api.ServeWrite)
-		r.POST(prefix+"/delete", api.ServeDelete)
-		r.POST(prefix+"/node/delete", api.ServeNodeDelete)
+		r.POST(prefix+"/write", toHandle(api.ServeWrite))
+		r.POST(prefix+"/delete", toHandle(api.ServeDelete))
+		r.POST(prefix+"/node/delete", toHandle(api.ServeNodeDelete))
 	}
-	r.POST(prefix+"/read", api.ServeRead)
-	r.GET(prefix+"/read", api.ServeRead)
-	r.GET(prefix+"/formats", api.ServeFormats)
+	r.POST(prefix+"/read", toHandle(api.ServeRead))
+	r.GET(prefix+"/read", toHandle(api.ServeRead))
+	r.GET(prefix+"/formats", toHandle(api.ServeFormats))
 }
 
 func (api *APIv2) RegisterQueryOn(r *httprouter.Router) {
-	r.POST(prefix+"/query", api.ServeQuery)
-	r.GET(prefix+"/query", api.ServeQuery)
+	r.POST(prefix+"/query", toHandle(api.ServeQuery))
+	r.GET(prefix+"/query", toHandle(api.ServeQuery))
 }
 
 func (api *APIv2) RegisterOn(r *httprouter.Router) {
@@ -163,7 +169,7 @@ func (api *APIv2) handleForRequest(r *http.Request) (*graph.Handle, error) {
 	return HandleForRequest(api.h, api.wtyp, api.wopt, r)
 }
 
-func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if api.ro {
 		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
@@ -203,7 +209,7 @@ func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request, params http
 	fmt.Fprintf(w, `{"result": "Successfully wrote %d quads.", "count": %d}`+"\n", n, n)
 }
 
-func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if api.ro {
 		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
@@ -238,7 +244,7 @@ func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request, params htt
 	fmt.Fprintf(w, `{"result": "Successfully deleted %d quads.", "count": %d}`+"\n", n, n)
 }
 
-func (api *APIv2) ServeNodeDelete(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (api *APIv2) ServeNodeDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if api.ro {
 		jsonResponse(w, http.StatusForbidden, errors.New("database is read-only"))
@@ -304,7 +310,7 @@ func valuesFromString(s string) []quad.Value {
 	return out
 }
 
-func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 	format := getFormat(r, "format", hdrAccept)
 	if format == nil || format.Writer == nil {
 		jsonResponse(w, http.StatusBadRequest, fmt.Errorf("format is not supported for reading data"))
@@ -363,7 +369,7 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request, params httpr
 	}
 }
 
-func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 	type Format struct {
 		Id     string   `json:"id"`
 		Read   bool     `json:"read,omitempty"`
@@ -424,7 +430,7 @@ func readLimit(r io.Reader) ([]byte, error) {
 	return data, err
 }
 
-func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := api.queryContext(r)
 	defer cancel()
 	vals := r.URL.Query()
