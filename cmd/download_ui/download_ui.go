@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	fileURL       = "https://github.com/cayleygraph/web/releases/download/v0.8.0/web.zip"
+	version       = "v0.8.0"
+	fileURL       = "https://github.com/cayleygraph/web/releases/download/" + version + "/web.zip"
 	fileName      = "web.zip"
 	directoryName = "ui"
 )
