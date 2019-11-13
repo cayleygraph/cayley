@@ -131,23 +131,23 @@ func (s *View) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Out(viaPath), nil
 }
 
-// var _ Step = (*Out)(nil)
-// var _ PathStep = (*Out)(nil)
+var _ Step = (*Out)(nil)
+var _ PathStep = (*Out)(nil)
 
-// // Out is an alias for View
-// type Out struct {
-// 	View
-// }
+// Out is an alias for View
+type Out struct {
+	View
+}
 
-// // Type implements Step
-// func (s *Out) Type() quad.IRI {
-// 	return prefix + "Out"
-// }
+// Type implements Step
+func (s *Out) Type() quad.IRI {
+	return prefix + "Out"
+}
 
-// // Description implements Step
-// func (s *Out) Description() string {
-// 	return "Alias for View"
-// }
+// Description implements Step
+func (s *Out) Description() string {
+	return "Alias for View"
+}
 
 var _ Step = (*As)(nil)
 var _ PathStep = (*As)(nil)
@@ -616,23 +616,23 @@ func (s *ViewReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.In(viaPath), nil
 }
 
-// var _ Step = (*In)(nil)
-// var _ PathStep = (*In)(nil)
+var _ Step = (*In)(nil)
+var _ PathStep = (*In)(nil)
 
 // In is an alias for ViewReverse
-// type In struct {
-// 	ViewReverse
-// }
+type In struct {
+	ViewReverse
+}
 
-// // Type implements Step
-// func (s *In) Type() quad.IRI {
-// 	return prefix + "In"
-// }
+// Type implements Step
+func (s *In) Type() quad.IRI {
+	return prefix + "In"
+}
 
-// // Description implements Step
-// func (s *In) Description() string {
-// 	return "Alias for ViewReverse"
-// }
+// Description implements Step
+func (s *In) Description() string {
+	return "Alias for ViewReverse"
+}
 
 var _ Step = (*ReversePropertyNames)(nil)
 var _ PathStep = (*ReversePropertyNames)(nil)
