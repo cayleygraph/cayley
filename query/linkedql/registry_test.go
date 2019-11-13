@@ -100,6 +100,10 @@ func (s *TestStep) Type() quad.IRI {
 	return "cayley:TestStep"
 }
 
+func (s *TestStep) Description() string {
+	return "A TestStep for checking the registry"
+}
+
 func (s *TestStep) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	panic("Can't build iterator for TestStep")
 }
