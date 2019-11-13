@@ -46,6 +46,7 @@ func init() {
 type Step interface {
 	RegistryItem
 	BuildIterator(qs graph.QuadStore) (query.Iterator, error)
+	Description() string
 }
 
 // PathStep is a Step that cna build a Path.
@@ -68,6 +69,11 @@ func (s *Vertex) Type() quad.IRI {
 	return prefix + "Vertex"
 }
 
+// Description implements Step.
+func (s *Vertex) Description() string {
+	return "Start a query path at the given vertex/vertices. No ids means \"all vertices\""
+}
+
 // BuildIterator implements Step.
 func (s *Vertex) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -87,6 +93,11 @@ type View struct {
 // Type implements Step.
 func (s *View) Type() quad.IRI {
 	return prefix + "View"
+}
+
+// Description implements Step.
+func (s *View) Description() string {
+	return "Starting with the nodes in `path` on the subject, follow the quads with predicates defined by `predicatePath` to their objects."
 }
 
 // BuildIterator implements Step.
@@ -117,6 +128,11 @@ func (s *Out) Type() quad.IRI {
 	return prefix + "Out"
 }
 
+// Description implements Step
+func (s *Out) Description() string {
+	return "Alias for View"
+}
+
 // As corresponds to .tag().
 type As struct {
 	From PathStep `json:"from"`
@@ -126,6 +142,11 @@ type As struct {
 // Type implements Step.
 func (s *As) Type() quad.IRI {
 	return prefix + "As"
+}
+
+// Description implements Step.
+func (s *As) Description() string {
+	return "Save a list of nodes to a given tag. In order to save your work or learn more about how a path got to the end, we have tags. The simplest thing to do is to add a tag anywhere you'd like to put each node in the result set."
 }
 
 // BuildIterator implements Step.
@@ -151,6 +172,11 @@ type Intersect struct {
 // Type implements Step.
 func (s *Intersect) Type() quad.IRI {
 	return prefix + "Intersect"
+}
+
+// Description implements Step.
+func (s *Intersect) Description() string {
+	return "Filter all paths by the result of another query path. This is essentially a join where, at the stage of each path, a node is shared"
 }
 
 // BuildIterator implements Step.
@@ -186,6 +212,11 @@ func (s *Is) Type() quad.IRI {
 	return prefix + "Is"
 }
 
+// Description implements Step.
+func (s *Is) Description() string {
+	return "Filter all paths to ones which, at this point, are on the given node."
+}
+
 // BuildIterator implements Step.
 func (s *Is) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -209,6 +240,11 @@ type Back struct {
 // Type implements Step.
 func (s *Back) Type() quad.IRI {
 	return prefix + "Back"
+}
+
+// Description implements Step.
+func (s *Back) Description() string {
+	return "Return current path to a set of nodes on a given tag, preserving all constraints. If still valid, a path will now consider their vertex to be the same one as the previously tagged one, with the added constraint that it was valid all the way here. Useful for traversing back in queries and taking another route for things that have matched so far."
 }
 
 // BuildIterator implements Step.
@@ -235,6 +271,11 @@ type Both struct {
 // Type implements Step.
 func (s *Both) Type() quad.IRI {
 	return prefix + "Both"
+}
+
+// Description implements Step.
+func (s *Both) Description() string {
+	return "Follow the predicate in either direction. Same as the union of View and ViewReverse."
 }
 
 // BuildIterator implements Step.
@@ -265,6 +306,11 @@ func (s *Count) Type() quad.IRI {
 	return prefix + "Count"
 }
 
+// Description implements Step.
+func (s *Count) Description() string {
+	return "Return a number of results and returns it as a value."
+}
+
 // BuildIterator implements Step.
 func (s *Count) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -288,6 +334,11 @@ type Except struct {
 // Type implements Step.
 func (s *Except) Type() quad.IRI {
 	return prefix + "Except"
+}
+
+// Description implements Step.
+func (s *Except) Description() string {
+	return "Removes all paths which match query from current path. In a set-theoretic sense, this is (A - B). While `g.V().Except(path)` to achieve `U - B = !B` is supported, it's often very slow."
 }
 
 // BuildIterator implements Step.
@@ -319,6 +370,11 @@ func (s *Filter) Type() quad.IRI {
 	return prefix + "Filter"
 }
 
+// Description implements Step.
+func (s *Filter) Description() string {
+	return "Apply constraints to a set of nodes. Can be used to filter values by range or match strings."
+}
+
 // BuildIterator implements Step.
 func (s *Filter) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -342,6 +398,11 @@ type Follow struct {
 // Type implements Step.
 func (s *Follow) Type() quad.IRI {
 	return prefix + "Follow"
+}
+
+// Description implements Step.
+func (s *Follow) Description() string {
+	return "The way to use a path prepared with Morphism. Applies the path chain on the morphism object to the current path. Starts as if at the g.M() and follows through the morphism path."
 }
 
 // BuildIterator implements Step.
@@ -371,6 +432,11 @@ type FollowReverse struct {
 // Type implements Step.
 func (s *FollowReverse) Type() quad.IRI {
 	return prefix + "FollowReverse"
+}
+
+// Description implements Step.
+func (s *FollowReverse) Description() string {
+	return "The same as follow but follows the chain in the reverse direction. Flips View and ViewReverse where appropriate, the net result being a virtual predicate followed in the reverse direction. Starts at the end of the morphism and follows it backwards (with appropriate flipped directions) to the g.M() location."
 }
 
 // BuildIterator implements Step.
@@ -403,6 +469,11 @@ func (s *Has) Type() quad.IRI {
 	return prefix + "Has"
 }
 
+// Description implements Step.
+func (s *Has) Description() string {
+	return "Filter all paths which are, at this point, on the subject for the given predicate and object, but do not follow the path, merely filter the possible paths. Usually useful for starting with all nodes, or limiting to a subset depending on some predicate/value pair."
+}
+
 // BuildIterator implements Step.
 func (s *Has) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -431,6 +502,11 @@ type HasReverse struct {
 // Type implements Step.
 func (s *HasReverse) Type() quad.IRI {
 	return prefix + "HasReverse"
+}
+
+// Description implements Step.
+func (s *HasReverse) Description() string {
+	return "The same as Has, but sets constraint in reverse direction."
 }
 
 // BuildIterator implements Step.
@@ -462,6 +538,11 @@ func (s *ViewReverse) Type() quad.IRI {
 	return prefix + "ViewReverse"
 }
 
+// Description implements Step.
+func (s *ViewReverse) Description() string {
+	return "The inverse of View. Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects."
+}
+
 // BuildIterator implements Step.
 func (s *ViewReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -490,6 +571,11 @@ func (s *In) Type() quad.IRI {
 	return prefix + "In"
 }
 
+// Description implements Step
+func (s *In) Description() string {
+	return "Alias for ViewReverse"
+}
+
 // ReversePropertyNames corresponds to .reversePropertyNames().
 type ReversePropertyNames struct {
 	From PathStep `json:"from"`
@@ -498,6 +584,11 @@ type ReversePropertyNames struct {
 // Type implements Step.
 func (s *ReversePropertyNames) Type() quad.IRI {
 	return prefix + "ReversePropertyNames"
+}
+
+// Description implements Step.
+func (s *ReversePropertyNames) Description() string {
+	return "Get the list of predicates that are pointing in to a node."
 }
 
 // BuildIterator implements Step.
@@ -522,6 +613,11 @@ type Labels struct {
 // Type implements Step.
 func (s *Labels) Type() quad.IRI {
 	return prefix + "Labels"
+}
+
+// Description implements Step.
+func (s *Labels) Description() string {
+	return "Get the list of inbound and outbound quad labels"
 }
 
 // BuildIterator implements Step.
@@ -549,6 +645,11 @@ func (s *Limit) Type() quad.IRI {
 	return prefix + "Limit"
 }
 
+// Description implements Step.
+func (s *Limit) Description() string {
+	return "Limit a number of nodes for current path."
+}
+
 // BuildIterator implements Step.
 func (s *Limit) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -571,6 +672,11 @@ type PropertyNames struct {
 // Type implements Step.
 func (s *PropertyNames) Type() quad.IRI {
 	return prefix + "PropertyNames"
+}
+
+// Description implements Step.
+func (s *PropertyNames) Description() string {
+	return "Get the list of predicates that are pointing out from a node."
 }
 
 // BuildIterator implements Step.
@@ -596,6 +702,11 @@ type Properties struct {
 // Type implements Step.
 func (s *Properties) Type() quad.IRI {
 	return prefix + "Properties"
+}
+
+// Description implements Step.
+func (s *Properties) Description() string {
+	return "Adds tags for all properties of the current entity"
 }
 
 // BuildIterator implements Step.
@@ -646,6 +757,11 @@ func (s *ReversePropertyNamesAs) Type() quad.IRI {
 	return prefix + "ReversePropertyNamesAs"
 }
 
+// Description implements Step.
+func (s *ReversePropertyNamesAs) Description() string {
+	return "Tag the list of predicates that are pointing in to a node."
+}
+
 // BuildIterator implements Step.
 func (s *ReversePropertyNamesAs) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -671,6 +787,11 @@ func (s *PropertyNamesAs) Type() quad.IRI {
 	return prefix + "PropertyNamesAs"
 }
 
+// Description implements Step.
+func (s *PropertyNamesAs) Description() string {
+	return "Tag the list of predicates that are pointing out from a node."
+}
+
 // BuildIterator implements Step.
 func (s *PropertyNamesAs) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -694,6 +815,11 @@ type ReverseProperties struct {
 // Type implements Step.
 func (s *ReverseProperties) Type() quad.IRI {
 	return prefix + "ReverseProperties"
+}
+
+// Description implements Step.
+func (s *ReverseProperties) Description() string {
+	return "Gets all the properties the current entity / value is referenced at"
 }
 
 // BuildIterator implements Step.
@@ -725,6 +851,11 @@ func (s *Skip) Type() quad.IRI {
 	return prefix + "Skip"
 }
 
+// Description implements Step.
+func (s *Skip) Description() string {
+	return "Skip a number of nodes for current path."
+}
+
 // BuildIterator implements Step.
 func (s *Skip) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -748,6 +879,11 @@ type Union struct {
 // Type implements Step.
 func (s *Union) Type() quad.IRI {
 	return prefix + "Union"
+}
+
+// Description implements Step.
+func (s *Union) Description() string {
+	return "Return the combined paths of the two queries. Notice that it's per-path, not per-node. Once again, if multiple paths reach the same destination, they might have had different ways of getting there (and different tags)."
 }
 
 // BuildIterator implements Step.
@@ -782,6 +918,11 @@ func (s *Unique) Type() quad.IRI {
 	return prefix + "Unique"
 }
 
+// Description implements Step.
+func (s *Unique) Description() string {
+	return "Remove duplicate values from the path."
+}
+
 // BuildIterator implements Step.
 func (s *Unique) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -806,6 +947,11 @@ func (s *Order) Type() quad.IRI {
 	return prefix + "Order"
 }
 
+// Description implements Step.
+func (s *Order) Description() string {
+	return "Order sorts the results in ascending order according to the current entity / value"
+}
+
 // BuildIterator implements Step.
 func (s *Order) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
@@ -828,6 +974,11 @@ func (s *Morphism) Type() quad.IRI {
 	return "Morphism"
 }
 
+// Description implements Step.
+func (s *Morphism) Description() string {
+	return "Create a morphism path object. Unqueryable on it's own, defines one end of the path. Saving these to variables with"
+}
+
 // BuildPath implements ValueStep.
 func (s *Morphism) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartMorphism(), nil
@@ -842,6 +993,11 @@ type Optional struct {
 // Type implements Step.
 func (s *Optional) Type() quad.IRI {
 	return "Optional"
+}
+
+// Description implements Step.
+func (s *Optional) Description() string {
+	return "Attempts to follow the given path from the current entity / value, if fails the entity / value will still be kept in the results"
 }
 
 // BuildIterator implements Step.
