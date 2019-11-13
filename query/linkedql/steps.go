@@ -9,7 +9,7 @@ import (
 
 func init() {
 	Register(&Vertex{})
-	Register(&Out{})
+	Register(&View{})
 	Register(&As{})
 	Register(&Intersect{})
 	Register(&Is{})
@@ -22,7 +22,7 @@ func init() {
 	Register(&FollowReverse{})
 	Register(&Has{})
 	Register(&HasReverse{})
-	Register(&In{})
+	Register(&ViewReverse{})
 	Register(&ReversePropertyNames{})
 	Register(&Labels{})
 	Register(&Limit{})
