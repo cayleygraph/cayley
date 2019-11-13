@@ -16,7 +16,7 @@ var singleQuadData = []quad.Quad{
 var testCases = []struct {
 	name    string
 	data    []quad.Quad
-	query   Step
+	query   IteratorStep
 	results []interface{}
 }{
 	{
