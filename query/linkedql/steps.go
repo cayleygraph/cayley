@@ -82,7 +82,6 @@ func (s *Vertex) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 type View struct {
 	From PathStep `json:"from"`
 	Via  PathStep `json:"via"`
-	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
@@ -105,7 +104,7 @@ func (s *View) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.OutWithTags(s.Tags, viaPath), nil
+	return fromPath.Out(viaPath), nil
 }
 
 // Out is an alias for View
@@ -456,7 +455,6 @@ func (s *HasReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 type ViewReverse struct {
 	From PathStep `json:"from"`
 	Via  PathStep `json:"via"`
-	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
@@ -479,7 +477,7 @@ func (s *ViewReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.InWithTags(s.Tags, viaPath), nil
+	return fromPath.In(viaPath), nil
 }
 
 // In is an alias for ViewReverse
