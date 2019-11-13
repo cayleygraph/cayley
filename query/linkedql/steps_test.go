@@ -35,7 +35,7 @@ var testCases = []struct {
 		query: &Select{
 			From: &As{
 				Tags: []string{"liked"},
-				From: &Out{
+				From: &View{
 					From: &As{
 						Tags: []string{"liker"},
 						From: &Vertex{},
@@ -58,7 +58,7 @@ var testCases = []struct {
 			Tags: []string{"liker"},
 			From: &As{
 				Tags: []string{"liked"},
-				From: &Out{
+				From: &View{
 					From: &As{
 						Tags: []string{"liker"},
 						From: &Vertex{},
@@ -77,7 +77,7 @@ var testCases = []struct {
 		name: "Back",
 		data: singleQuadData,
 		query: &Back{
-			From: &Out{
+			From: &View{
 				From: &Vertex{
 					Values: []quad.Value{quad.IRI("alice")},
 				},
@@ -253,9 +253,9 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "In",
+		name: "ViewReverse",
 		data: singleQuadData,
-		query: &In{
+		query: &ViewReverse{
 			From: &Vertex{Values: []quad.Value{}},
 			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
@@ -280,14 +280,14 @@ var testCases = []struct {
 			quad.MakeIRI("dani", "likes", "alice", ""),
 		},
 		query: &Intersect{
-			From: &Out{
+			From: &View{
 				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
 				Via: &Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
 				},
 			},
 			Steps: []PathStep{
-				&Out{
+				&View{
 					From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
 					Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
@@ -302,7 +302,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &Is{
 			Values: []quad.Value{quad.IRI("bob")},
-			From: &Out{
+			From: &View{
 				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
 				Via: &Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
@@ -328,9 +328,9 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Out",
+		name: "View",
 		data: singleQuadData,
-		query: &Out{
+		query: &View{
 			From: &Vertex{Values: []quad.Value{}},
 			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
@@ -445,7 +445,7 @@ var testCases = []struct {
 		query: &SelectFirst{
 			From: &As{
 				Tags: []string{"liked"},
-				From: &Out{
+				From: &View{
 					From: &As{
 						Tags: []string{"liker"},
 						From: &Vertex{},
