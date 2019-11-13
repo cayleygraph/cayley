@@ -66,7 +66,7 @@ type DocumentStep interface {
 	BuildDocumentIterator(qs graph.QuadStore) (*DocumentIterator, error)
 }
 
-var _ Step = (*Vertex)(nil)
+var _ IteratorStep = (*Vertex)(nil)
 var _ PathStep = (*Vertex)(nil)
 
 // Vertex corresponds to g.Vertex() and g.V().
@@ -94,7 +94,7 @@ func (s *Vertex) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartPath(qs, s.Values...), nil
 }
 
-var _ Step = (*View)(nil)
+var _ IteratorStep = (*View)(nil)
 var _ PathStep = (*View)(nil)
 
 // View corresponds to .view().
@@ -131,7 +131,7 @@ func (s *View) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Out(viaPath), nil
 }
 
-var _ Step = (*Out)(nil)
+var _ IteratorStep = (*Out)(nil)
 var _ PathStep = (*Out)(nil)
 
 // Out is an alias for View
@@ -149,7 +149,7 @@ func (s *Out) Description() string {
 	return "Alias for View"
 }
 
-var _ Step = (*As)(nil)
+var _ IteratorStep = (*As)(nil)
 var _ PathStep = (*As)(nil)
 
 // As corresponds to .tag().
@@ -182,7 +182,7 @@ func (s *As) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Tag(s.Tags...), nil
 }
 
-var _ Step = (*Intersect)(nil)
+var _ IteratorStep = (*Intersect)(nil)
 var _ PathStep = (*Intersect)(nil)
 
 // Intersect represents .intersect() and .and().
@@ -223,7 +223,7 @@ func (s *Intersect) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return p, nil
 }
 
-var _ Step = (*Is)(nil)
+var _ IteratorStep = (*Is)(nil)
 var _ PathStep = (*Is)(nil)
 
 // Is corresponds to .back().
@@ -256,7 +256,7 @@ func (s *Is) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Is(s.Values...), nil
 }
 
-var _ Step = (*Back)(nil)
+var _ IteratorStep = (*Back)(nil)
 var _ PathStep = (*Back)(nil)
 
 // Back corresponds to .back().
@@ -289,7 +289,7 @@ func (s *Back) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Back(s.Tag), nil
 }
 
-var _ Step = (*Both)(nil)
+var _ IteratorStep = (*Both)(nil)
 var _ PathStep = (*Both)(nil)
 
 // Both corresponds to .both().
@@ -327,7 +327,7 @@ func (s *Both) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.BothWithTags(s.Tags, viaPath), nil
 }
 
-var _ Step = (*Count)(nil)
+var _ IteratorStep = (*Count)(nil)
 var _ PathStep = (*Count)(nil)
 
 // Count corresponds to .count().
@@ -359,7 +359,7 @@ func (s *Count) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Count(), nil
 }
 
-var _ Step = (*Except)(nil)
+var _ IteratorStep = (*Except)(nil)
 var _ PathStep = (*Except)(nil)
 
 // Except corresponds to .except() and .difference().
@@ -396,7 +396,7 @@ func (s *Except) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Except(exceptedPath), nil
 }
 
-var _ Step = (*Filter)(nil)
+var _ IteratorStep = (*Filter)(nil)
 var _ PathStep = (*Filter)(nil)
 
 // Filter corresponds to filter().
@@ -429,7 +429,7 @@ func (s *Filter) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return s.Filter.Apply(fromIt)
 }
 
-var _ Step = (*Follow)(nil)
+var _ IteratorStep = (*Follow)(nil)
 var _ PathStep = (*Follow)(nil)
 
 // Follow corresponds to .follow().
@@ -466,7 +466,7 @@ func (s *Follow) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Follow(p), nil
 }
 
-var _ Step = (*FollowReverse)(nil)
+var _ IteratorStep = (*FollowReverse)(nil)
 var _ PathStep = (*FollowReverse)(nil)
 
 // FollowReverse corresponds to .followR().
@@ -503,7 +503,7 @@ func (s *FollowReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.FollowReverse(p), nil
 }
 
-var _ Step = (*Has)(nil)
+var _ IteratorStep = (*Has)(nil)
 var _ PathStep = (*Has)(nil)
 
 // Has corresponds to .has().
@@ -541,7 +541,7 @@ func (s *Has) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Has(viaPath, s.Values...), nil
 }
 
-var _ Step = (*HasReverse)(nil)
+var _ IteratorStep = (*HasReverse)(nil)
 var _ PathStep = (*HasReverse)(nil)
 
 // HasReverse corresponds to .hasR().
@@ -579,7 +579,7 @@ func (s *HasReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.HasReverse(viaPath, s.Values...), nil
 }
 
-var _ Step = (*ViewReverse)(nil)
+var _ IteratorStep = (*ViewReverse)(nil)
 var _ PathStep = (*ViewReverse)(nil)
 
 // ViewReverse corresponds to .viewReverse().
@@ -616,7 +616,7 @@ func (s *ViewReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.In(viaPath), nil
 }
 
-var _ Step = (*In)(nil)
+var _ IteratorStep = (*In)(nil)
 var _ PathStep = (*In)(nil)
 
 // In is an alias for ViewReverse
@@ -634,7 +634,7 @@ func (s *In) Description() string {
 	return "Alias for ViewReverse"
 }
 
-var _ Step = (*ReversePropertyNames)(nil)
+var _ IteratorStep = (*ReversePropertyNames)(nil)
 var _ PathStep = (*ReversePropertyNames)(nil)
 
 // ReversePropertyNames corresponds to .reversePropertyNames().
@@ -666,7 +666,7 @@ func (s *ReversePropertyNames) BuildPath(qs graph.QuadStore) (*path.Path, error)
 	return fromPath.InPredicates(), nil
 }
 
-var _ Step = (*Labels)(nil)
+var _ IteratorStep = (*Labels)(nil)
 var _ PathStep = (*Labels)(nil)
 
 // Labels corresponds to .labels().
@@ -698,7 +698,7 @@ func (s *Labels) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Labels(), nil
 }
 
-var _ Step = (*Limit)(nil)
+var _ IteratorStep = (*Limit)(nil)
 var _ PathStep = (*Limit)(nil)
 
 // Limit corresponds to .limit().
@@ -731,7 +731,7 @@ func (s *Limit) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Limit(s.Limit), nil
 }
 
-var _ Step = (*PropertyNames)(nil)
+var _ IteratorStep = (*PropertyNames)(nil)
 var _ PathStep = (*PropertyNames)(nil)
 
 // PropertyNames corresponds to .propertyNames().
@@ -763,7 +763,7 @@ func (s *PropertyNames) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.OutPredicates(), nil
 }
 
-var _ Step = (*Properties)(nil)
+var _ IteratorStep = (*Properties)(nil)
 var _ PathStep = (*Properties)(nil)
 
 // Properties corresponds to .properties().
@@ -819,7 +819,7 @@ func (s *Properties) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return p, nil
 }
 
-var _ Step = (*ReversePropertyNamesAs)(nil)
+var _ IteratorStep = (*ReversePropertyNamesAs)(nil)
 var _ PathStep = (*ReversePropertyNamesAs)(nil)
 
 // ReversePropertyNamesAs corresponds to .reversePropertyNamesAs().
@@ -852,7 +852,7 @@ func (s *ReversePropertyNamesAs) BuildPath(qs graph.QuadStore) (*path.Path, erro
 	return fromPath.SavePredicates(true, s.Tag), nil
 }
 
-var _ Step = (*PropertyNamesAs)(nil)
+var _ IteratorStep = (*PropertyNamesAs)(nil)
 var _ PathStep = (*PropertyNamesAs)(nil)
 
 // PropertyNamesAs corresponds to .propertyNamesAs().
@@ -885,7 +885,7 @@ func (s *PropertyNamesAs) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.SavePredicates(false, s.Tag), nil
 }
 
-var _ Step = (*ReverseProperties)(nil)
+var _ IteratorStep = (*ReverseProperties)(nil)
 var _ PathStep = (*ReverseProperties)(nil)
 
 // ReverseProperties corresponds to .reverseProperties().
@@ -922,7 +922,7 @@ func (s *ReverseProperties) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return p, nil
 }
 
-var _ Step = (*Skip)(nil)
+var _ IteratorStep = (*Skip)(nil)
 var _ PathStep = (*Skip)(nil)
 
 // Skip corresponds to .skip().
@@ -955,7 +955,7 @@ func (s *Skip) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Skip(s.Offset), nil
 }
 
-var _ Step = (*Union)(nil)
+var _ IteratorStep = (*Union)(nil)
 var _ PathStep = (*Union)(nil)
 
 // Union corresponds to .union() and .or().
@@ -996,7 +996,7 @@ func (s *Union) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return p, nil
 }
 
-var _ Step = (*Unique)(nil)
+var _ IteratorStep = (*Unique)(nil)
 var _ PathStep = (*Unique)(nil)
 
 // Unique corresponds to .unique().
@@ -1028,7 +1028,7 @@ func (s *Unique) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Unique(), nil
 }
 
-var _ Step = (*Order)(nil)
+var _ IteratorStep = (*Order)(nil)
 var _ PathStep = (*Order)(nil)
 
 // Order corresponds to .order().
@@ -1060,6 +1060,8 @@ func (s *Order) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Order(), nil
 }
 
+var _ PathStep = (*Morphism)(nil)
+
 // Morphism corresponds to .Morphism().
 type Morphism struct{}
 
@@ -1078,7 +1080,7 @@ func (s *Morphism) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartMorphism(), nil
 }
 
-var _ Step = (*Optional)(nil)
+var _ IteratorStep = (*Optional)(nil)
 var _ PathStep = (*Optional)(nil)
 
 // Optional corresponds to .optional().
