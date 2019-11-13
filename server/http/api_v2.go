@@ -72,6 +72,11 @@ func (api *APIv2) SetQueryTimeout(dt time.Duration) {
 func (api *APIv2) SetQueryLimit(n int) {
 	api.limit = n
 }
+func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	router := httprouter.New()
+	api.RegisterOn(router)
+	router.ServeHTTP(w, r)
+}
 
 func (api *APIv2) RegisterDataOn(r *httprouter.Router) {
 	if !api.ro {
