@@ -23,6 +23,11 @@ func (s *Select) Type() quad.IRI {
 	return prefix + "Select"
 }
 
+// Description implements Step.
+func (s *Select) Description() string {
+	return "Select returns flat records of tags matched in the query"
+}
+
 // BuildIterator implements Step.
 func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	valueIt, err := NewValueIteratorFromPathStep(s.From, qs)
@@ -41,6 +46,11 @@ type SelectFirst struct {
 // Type implements Step.
 func (s *SelectFirst) Type() quad.IRI {
 	return prefix + "SelectFirst"
+}
+
+// Description implements Step.
+func (s *SelectFirst) Description() string {
+	return "Like Select but only returns the first result"
 }
 
 func singleValueIteratorFromPathStep(step PathStep, qs graph.QuadStore) (*ValueIterator, error) {
@@ -83,6 +93,11 @@ type Documents struct {
 // Type implements Step.
 func (s *Documents) Type() quad.IRI {
 	return prefix + "Documents"
+}
+
+// Description implements Step.
+func (s *Documents) Description() string {
+	return "Documents return documents of the tags matched in the query associated with their entity"
 }
 
 // BuildIterator implements Step.
