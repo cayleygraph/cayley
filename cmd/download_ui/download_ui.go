@@ -106,9 +106,18 @@ func Unzip(src string, dest string) error {
 
 		_, err = io.Copy(outFile, rc)
 
+		if err != nil {
+			return err
+		}
+
 		// Close the file without defer to close before next iteration of loop
-		outFile.Close()
-		rc.Close()
+		err = outFile.Close()
+
+		if err != nil {
+			return err
+		}
+
+		err = rc.Close()
 
 		if err != nil {
 			return err
