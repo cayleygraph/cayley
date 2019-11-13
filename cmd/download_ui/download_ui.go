@@ -11,9 +11,11 @@ import (
 	"strings"
 )
 
-const fileURL = "https://github.com/cayleygraph/web/releases/download/v0.8.0/web.zip"
-const fileName = "web.zip"
-const directoryName = "ui"
+const (
+	fileURL = "https://github.com/cayleygraph/web/releases/download/v0.8.0/web.zip"
+	fileName = "web.zip"
+	directoryName = "ui"
+)
 
 func main() {
 	log.Printf("Downloading %s to %s...", fileURL, fileName)
