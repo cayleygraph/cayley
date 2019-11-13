@@ -10,6 +10,7 @@ import (
 func init() {
 	Register(&Vertex{})
 	Register(&View{})
+	Register(&Out{})
 	Register(&As{})
 	Register(&Intersect{})
 	Register(&Is{})
@@ -23,6 +24,7 @@ func init() {
 	Register(&Has{})
 	Register(&HasReverse{})
 	Register(&ViewReverse{})
+	Register(&In{})
 	Register(&ReversePropertyNames{})
 	Register(&Labels{})
 	Register(&Limit{})
@@ -85,7 +87,7 @@ type View struct {
 
 // Type implements Step.
 func (s *View) Type() quad.IRI {
-	return prefix + "Out"
+	return prefix + "View"
 }
 
 // BuildIterator implements Step.
@@ -104,6 +106,16 @@ func (s *View) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 		return nil, err
 	}
 	return fromPath.OutWithTags(s.Tags, viaPath), nil
+}
+
+// Out is an alias for View
+type Out struct {
+	View
+}
+
+// Type implements Step
+func (s *Out) Type() quad.IRI {
+	return prefix + "Out"
 }
 
 // As corresponds to .tag().
@@ -468,6 +480,16 @@ func (s *ViewReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 		return nil, err
 	}
 	return fromPath.InWithTags(s.Tags, viaPath), nil
+}
+
+// In is an alias for ViewReverse
+type In struct {
+	ViewReverse
+}
+
+// Type implements Step
+func (s *In) Type() quad.IRI {
+	return prefix + "In"
 }
 
 // ReversePropertyNames corresponds to .reversePropertyNames().
