@@ -150,13 +150,6 @@ func GenerateSchema() []interface{} {
 	propertyToDomains := map[string]map[string]struct{}{}
 	propertyToRanges := map[string]map[string]struct{}{}
 	for name, t := range typeByName {
-		fmt.Printf("%v %v %v\n", t, step, t.Implements(step))
-		if !t.Implements(step) {
-			continue
-		}
-		value := reflect.Zero(t)
-		description := value.MethodByName("Description")
-		fmt.Printf("%v", description)
 		superClasses := []interface{}{
 			NewIdentified(GetStepTypeClass(pathStep)),
 		}
@@ -184,7 +177,7 @@ func GenerateSchema() []interface{} {
 			}
 			propertyToRanges[property][typeToRange(f.Type)] = struct{}{}
 		}
-		documents = append(documents, NewClass(name, superClasses, description.String()))
+		documents = append(documents, NewClass(name, superClasses, "No Description"))
 	}
 	for property, typeSet := range propertyToTypes {
 		var types []string
