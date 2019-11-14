@@ -34,14 +34,14 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &Select{
 			From: &As{
-				Tags: []string{"liked"},
 				From: &View{
 					From: &As{
-						Tags: []string{"liker"},
 						From: &Vertex{},
+						Name: "liker",
 					},
 					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
+				Name: "liked",
 			},
 		},
 		results: []interface{}{
@@ -57,14 +57,14 @@ var testCases = []struct {
 		query: &Select{
 			Tags: []string{"liker"},
 			From: &As{
-				Tags: []string{"liked"},
 				From: &View{
 					From: &As{
-						Tags: []string{"liker"},
 						From: &Vertex{},
+						Name: "liker",
 					},
 					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
+				Name: "liked",
 			},
 		},
 		results: []interface{}{
@@ -444,14 +444,14 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &SelectFirst{
 			From: &As{
-				Tags: []string{"liked"},
 				From: &View{
 					From: &As{
-						Tags: []string{"liker"},
+						Name: "liker",
 						From: &Vertex{},
 					},
 					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
+				Name: "liked",
 			},
 		},
 		results: []interface{}{

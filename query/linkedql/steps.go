@@ -176,7 +176,7 @@ var _ PathStep = (*As)(nil)
 // As corresponds to .tag().
 type As struct {
 	From PathStep `json:"from"`
-	Tags []string `json:"tags"`
+	Name string   `json:"name"`
 }
 
 // Type implements Step.
@@ -186,7 +186,7 @@ func (s *As) Type() quad.IRI {
 
 // Description implements Step.
 func (s *As) Description() string {
-	return "Save a list of nodes to a given tag. In order to save your work or learn more about how a path got to the end, we have tags. The simplest thing to do is to add a tag anywhere you'd like to put each node in the result set."
+	return "Assigns the values from step to given name. The name can be used with the Select and Documents steps to retreive the values or to return to the values in further steps with the Back step"
 }
 
 // BuildIterator implements IteratorStep
@@ -200,7 +200,7 @@ func (s *As) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.Tag(s.Tags...), nil
+	return fromPath.Tag(s.Tag), nil
 }
 
 var _ IteratorStep = (*Intersect)(nil)
