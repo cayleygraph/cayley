@@ -1,5 +1,0 @@
-argparse==1.2.1
-ipython==2.0.0
-pyparsing==2.0.2
-svgwrite==1.1.5
-wsgiref==0.1.2
