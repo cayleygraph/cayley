@@ -200,7 +200,7 @@ func (s *As) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.Tag(s.Tag), nil
+	return fromPath.Tag(s.Name), nil
 }
 
 var _ IteratorStep = (*Intersect)(nil)
