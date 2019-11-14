@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/cayleygraph/cayley">
-    <img width="200" src="static/branding/cayley_bottom.png?raw=true" alt="Cayley">
+    <img width="200" src="https://github.com/cayleygraph/branding/raw/master/cayley_bottom.png" alt="Cayley">
   </a>
 </div>
 
