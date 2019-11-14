@@ -219,7 +219,7 @@ func (s *Intersect) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Intersect) Description() string {
-	return "Filter all paths by the result of another query path. This is essentially a join where, at the stage of each path, a node is shared"
+	return "Intersect resolves to all the same values resolved by the from step and the provided steps."
 }
 
 // BuildIterator implements IteratorStep
