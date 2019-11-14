@@ -500,7 +500,7 @@ var testCases = []struct {
 					Names: []quad.IRI{quad.IRI("name")},
 				},
 				Path: &Properties{
-					From:  &Morphism{},
+					From:  &Placeholder{},
 					Names: []quad.IRI{quad.IRI("likes")},
 				},
 			},
