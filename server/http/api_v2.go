@@ -36,30 +36,41 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-const prefix = "/api/v2"
+const (
+	prefix       = "/api/v2"
+	defaultLimit = 100
+)
 
-// NewAPIv2 creates a new instance of APIv2
-func NewAPIv2(h *graph.Handle) *APIv2 {
-	r := httprouter.New()
-	return NewBoundAPIv2(h, r)
+// NewAPIv2 creates a new instance of APIv2 with default options
+func NewAPIv2(h *graph.Handle, wrappers ...HandlerWrapper) *APIv2 {
+	return NewAPIv2Writer(h, "single", nil, wrappers...)
 }
 
 // NewBoundAPIv2 creates a new instance of APIv2 bound to a given httprouter.Router
 func NewBoundAPIv2(h *graph.Handle, r *httprouter.Router) *APIv2 {
-	return NewAPIv2Writer(h, "single", nil, r)
-}
-
-func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, r *httprouter.Router) *APIv2 {
-	api := &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: 100, r: r}
+	api := &APIv2{h: h, wtyp: "single", wopt: nil, limit: defaultLimit, handler: r}
 	api.registerOn(r)
 	return api
 }
 
+// NewAPIv2Writer creates a new instance of APIv2
+func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, wrappers ...HandlerWrapper) *APIv2 {
+	r := httprouter.New()
+	api := &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: defaultLimit}
+	api.registerOn(r)
+	var handler http.Handler = r
+	for _, wrapper := range wrappers {
+		handler = wrapper(handler)
+	}
+	api.handler = handler
+	return api
+}
+
 type APIv2 struct {
-	h     *graph.Handle
-	ro    bool
-	batch int
-	r     *httprouter.Router
+	h       *graph.Handle
+	ro      bool
+	batch   int
+	handler http.Handler
 
 	// replication
 	wtyp string
@@ -84,8 +95,10 @@ func (api *APIv2) SetQueryLimit(n int) {
 }
 
 func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	api.r.ServeHTTP(w, r)
+	api.handler.ServeHTTP(w, r)
 }
+
+type HandlerWrapper func(http.Handler) http.Handler
 
 func toHandle(handler http.HandlerFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
