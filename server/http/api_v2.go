@@ -40,13 +40,13 @@ const prefix = "/api/v2"
 
 // NewAPIv2 creates a new instance of APIv2
 func NewAPIv2(h *graph.Handle) *APIv2 {
-	return NewAPIv2Writer(h, "single", nil, nil)
+	r := httprouter.New()
+	return NewAPIv2Writer(h, "single", nil, r)
 }
 
 // NewBoundAPIv2 creates a new instance of APIv2 bound to a given httprouter.Router
 func NewBoundAPIv2(h *graph.Handle, r *httprouter.Router) *APIv2 {
-	router := httprouter.New()
-	return NewAPIv2Writer(h, "single", nil, router)
+	return NewAPIv2Writer(h, "single", nil, r)
 }
 
 func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, r *httprouter.Router) *APIv2 {
