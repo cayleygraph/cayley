@@ -9,6 +9,7 @@ import (
 
 func init() {
 	Register(&Vertex{})
+	Register(&Placeholder{})
 	Register(&View{})
 	Register(&Out{})
 	Register(&As{})
@@ -81,7 +82,7 @@ func (s *Vertex) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Vertex) Description() string {
-	return "Vertex returns a list of all the existing objects and primitive values in the graph. If provided with values returns a sublist of all the existing values in the graph"
+	return "Vertex resolves to all the existing objects and primitive values in the graph. If provided with values resolves to a sublist of all the existing values in the graph"
 }
 
 // BuildIterator implements IteratorStep
@@ -92,6 +93,26 @@ func (s *Vertex) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 // BuildPath implements PathStep.
 func (s *Vertex) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartPath(qs, s.Values...), nil
+}
+
+var _ PathStep = (*Placeholder)(nil)
+
+// Placeholder corresponds to .Placeholder().
+type Placeholder struct{}
+
+// Type implements Step.
+func (s *Placeholder) Type() quad.IRI {
+	return "Placeholder"
+}
+
+// Description implements Step.
+func (s *Placeholder) Description() string {
+	return "Placeholder is like Vertex but resolves to the values in the context it is placed in. It should only be used where a PathStep is expected and can't be resolved on its own"
+}
+
+// BuildPath implements PathStep.
+func (s *Placeholder) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	return path.StartMorphism(), nil
 }
 
 var _ IteratorStep = (*View)(nil)
@@ -1058,26 +1079,6 @@ func (s *Order) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 		return nil, err
 	}
 	return fromPath.Order(), nil
-}
-
-var _ PathStep = (*Morphism)(nil)
-
-// Morphism corresponds to .Morphism().
-type Morphism struct{}
-
-// Type implements Step.
-func (s *Morphism) Type() quad.IRI {
-	return "Morphism"
-}
-
-// Description implements Step.
-func (s *Morphism) Description() string {
-	return "Create a morphism path object. Unqueryable on it's own, defines one end of the path. Saving these to variables with"
-}
-
-// BuildPath implements PathStep.
-func (s *Morphism) BuildPath(qs graph.QuadStore) (*path.Path, error) {
-	return path.StartMorphism(), nil
 }
 
 var _ IteratorStep = (*Optional)(nil)
