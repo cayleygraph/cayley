@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -22,10 +23,15 @@ func NewHealthCmd() *cobra.Command {
 			if len(args) == 1 {
 				address = args[0]
 			}
-			resp, err := http.Get(address + "/health")
+			healthAddress := address + "health"
+			resp, err := http.Get(healthAddress)
 			if err != nil {
-				// handle error
+				return err
 			}
+			if resp.StatusCode != 204 {
+				return fmt.Errorf("/health responded with status code %d, expected 204", resp.StatusCode)
+			}
+			log.Printf("%s ok", healthAddress)
 			defer resp.Body.Close()
 			return nil
 		},
