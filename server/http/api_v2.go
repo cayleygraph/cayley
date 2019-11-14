@@ -37,18 +37,19 @@ import (
 )
 
 const (
-	prefix       = "/api/v2"
-	defaultLimit = 100
+	prefix             = "/api/v2"
+	defaultLimit       = 100
+	defaultReplication = "single"
 )
 
 // NewAPIv2 creates a new instance of APIv2 with default options
 func NewAPIv2(h *graph.Handle, wrappers ...HandlerWrapper) *APIv2 {
-	return NewAPIv2Writer(h, "single", nil, wrappers...)
+	return NewAPIv2Writer(h, defaultReplication, nil, wrappers...)
 }
 
 // NewBoundAPIv2 creates a new instance of APIv2 bound to a given httprouter.Router
 func NewBoundAPIv2(h *graph.Handle, r *httprouter.Router) *APIv2 {
-	api := &APIv2{h: h, wtyp: "single", wopt: nil, limit: defaultLimit, handler: r}
+	api := &APIv2{h: h, wtyp: defaultReplication, wopt: nil, limit: defaultLimit, handler: r}
 	api.registerOn(r)
 	return api
 }
