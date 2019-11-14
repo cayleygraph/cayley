@@ -64,11 +64,10 @@ func SetupRoutes(handle *graph.Handle, cfg *Config) error {
 	r.GET("/gephi/gs", gs.ServeHTTP)
 
 	// Register API V2
-	api2 := cayleyhttp.NewAPIv2(handle)
+	api2 := cayleyhttp.NewBoundAPIv2(handle, r)
 	api2.SetReadOnly(cfg.ReadOnly)
 	api2.SetBatchSize(cfg.Batch)
 	api2.SetQueryTimeout(cfg.Timeout)
-	api2.RegisterOn(r)
 
 	// For non API requests serve the UI
 	r.NotFound = http.FileServer(ui)
