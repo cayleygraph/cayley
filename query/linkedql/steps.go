@@ -81,7 +81,7 @@ func (s *Vertex) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Vertex) Description() string {
-	return "Start a query path at the given vertex/vertices. No ids means \"all vertices\""
+	return "Vertex returns a list of all the existing objects and primitive values in the graph. If provided with values returns a sublist of all the existing values in the graph"
 }
 
 // BuildIterator implements IteratorStep
