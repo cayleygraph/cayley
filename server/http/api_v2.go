@@ -38,18 +38,28 @@ import (
 
 const prefix = "/api/v2"
 
+// NewAPIv2 creates a new instance of APIv2
 func NewAPIv2(h *graph.Handle) *APIv2 {
-	return NewAPIv2Writer(h, "single", nil)
+	return NewAPIv2Writer(h, "single", nil, nil)
 }
 
-func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options) *APIv2 {
-	return &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: 100}
+// NewBoundAPIv2 creates a new instance of APIv2 bound to a given httprouter.Router
+func NewBoundAPIv2(h *graph.Handle, r *httprouter.Router) *APIv2 {
+	router := httprouter.New()
+	return NewAPIv2Writer(h, "single", nil, router)
+}
+
+func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, r *httprouter.Router) *APIv2 {
+	api := &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: 100, r: r}
+	api.registerOn(r)
+	return api
 }
 
 type APIv2 struct {
 	h     *graph.Handle
 	ro    bool
 	batch int
+	r     *httprouter.Router
 
 	// replication
 	wtyp string
@@ -72,10 +82,9 @@ func (api *APIv2) SetQueryTimeout(dt time.Duration) {
 func (api *APIv2) SetQueryLimit(n int) {
 	api.limit = n
 }
+
 func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	router := httprouter.New()
-	api.RegisterOn(router)
-	router.ServeHTTP(w, r)
+	api.r.ServeHTTP(w, r)
 }
 
 func toHandle(handler http.HandlerFunc) httprouter.Handle {
@@ -84,7 +93,7 @@ func toHandle(handler http.HandlerFunc) httprouter.Handle {
 	}
 }
 
-func (api *APIv2) RegisterDataOn(r *httprouter.Router) {
+func (api *APIv2) registerDataOn(r *httprouter.Router) {
 	if !api.ro {
 		r.POST(prefix+"/write", toHandle(api.ServeWrite))
 		r.POST(prefix+"/delete", toHandle(api.ServeDelete))
@@ -95,14 +104,14 @@ func (api *APIv2) RegisterDataOn(r *httprouter.Router) {
 	r.GET(prefix+"/formats", toHandle(api.ServeFormats))
 }
 
-func (api *APIv2) RegisterQueryOn(r *httprouter.Router) {
+func (api *APIv2) registerQueryOn(r *httprouter.Router) {
 	r.POST(prefix+"/query", toHandle(api.ServeQuery))
 	r.GET(prefix+"/query", toHandle(api.ServeQuery))
 }
 
-func (api *APIv2) RegisterOn(r *httprouter.Router) {
-	api.RegisterDataOn(r)
-	api.RegisterQueryOn(r)
+func (api *APIv2) registerOn(r *httprouter.Router) {
+	api.registerDataOn(r)
+	api.registerQueryOn(r)
 }
 
 const (
