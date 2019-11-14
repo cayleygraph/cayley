@@ -41,7 +41,7 @@ const prefix = "/api/v2"
 // NewAPIv2 creates a new instance of APIv2
 func NewAPIv2(h *graph.Handle) *APIv2 {
 	r := httprouter.New()
-	return NewAPIv2Writer(h, "single", nil, r)
+	return NewBoundAPIv2(h, r)
 }
 
 // NewBoundAPIv2 creates a new instance of APIv2 bound to a given httprouter.Router
