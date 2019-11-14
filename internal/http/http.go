@@ -30,15 +30,6 @@ import (
 
 var ui = packr.New("UI", "../../ui")
 
-type statusWriter struct {
-	http.ResponseWriter
-	code *int
-}
-
-func (w *statusWriter) WriteHeader(code int) {
-	*(w.code) = code
-}
-
 func jsonResponse(w http.ResponseWriter, code int, err interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -58,6 +49,12 @@ type Config struct {
 func SetupRoutes(handle *graph.Handle, cfg *Config) error {
 	r := httprouter.New()
 
+	// Health check
+	r.HandlerFunc("GET", "/health", HandleHealth)
+
+	// Handle CORS preflight request
+	r.HandlerFunc("OPTIONS", "/*path", HandlePreflight)
+
 	// Register API V1
 	api := &API{config: cfg, handle: handle}
 	api.APIv1(r)
@@ -75,12 +72,6 @@ func SetupRoutes(handle *graph.Handle, cfg *Config) error {
 
 	// For non API requests serve the UI
 	r.NotFound = http.FileServer(ui)
-
-	// Handle CORS preflight request
-	r.HandlerFunc("OPTIONS", "/*path", HandlePreflight)
-
-	// Health check
-	r.HandlerFunc("GET", "/health", HandleHealth)
 
 	http.Handle("/", CORS(LogRequest(r)))
 
