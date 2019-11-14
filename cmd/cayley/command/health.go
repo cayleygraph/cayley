@@ -28,11 +28,11 @@ func NewHealthCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			defer resp.Body.Close()
 			if resp.StatusCode != 204 {
 				return fmt.Errorf("/health responded with status code %d, expected 204", resp.StatusCode)
 			}
 			log.Printf("%s ok", healthAddress)
-			defer resp.Body.Close()
 			return nil
 		},
 	}
