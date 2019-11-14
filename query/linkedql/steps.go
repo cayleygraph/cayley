@@ -131,7 +131,7 @@ func (s *View) Type() quad.IRI {
 
 // Description implements Step.
 func (s *View) Description() string {
-	return "Starting with the nodes in `path` on the subject, follow the quads with predicates defined by `predicatePath` to their objects."
+	return "View resolves to the value of the property in via of the current objects. If via is a path resolves the path to a property to be used."
 }
 
 // BuildIterator implements IteratorStep
