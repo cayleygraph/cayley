@@ -120,14 +120,16 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Except",
+		name: "Difference",
 		data: singleQuadData,
-		query: &Except{
+		query: &Difference{
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice"), quad.IRI("likes")},
 			},
-			Excepted: &Vertex{
-				Values: []quad.Value{quad.IRI("likes")},
+			Steps: []PathStep{
+				&Vertex{
+					Values: []quad.Value{quad.IRI("likes")},
+				},
 			},
 		},
 		results: []interface{}{
