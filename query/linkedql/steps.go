@@ -18,7 +18,7 @@ func init() {
 	Register(&Back{})
 	Register(&ViewBoth{})
 	Register(&Count{})
-	Register(&Except{})
+	Register(&Difference{})
 	Register(&Filter{})
 	Register(&Follow{})
 	Register(&FollowReverse{})
@@ -321,7 +321,7 @@ type ViewBoth struct {
 
 // Type implements Step.
 func (s *ViewBoth) Type() quad.IRI {
-	return prefix + "Both"
+	return prefix + "ViewBoth"
 }
 
 // Description implements Step.
@@ -362,7 +362,7 @@ func (s *Count) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Count) Description() string {
-	return "Return a number of results and returns it as a value."
+	return "Count resolves to the number of the resolved values of the from step"
 }
 
 // BuildIterator implements IteratorStep
@@ -379,41 +379,45 @@ func (s *Count) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Count(), nil
 }
 
-var _ IteratorStep = (*Except)(nil)
-var _ PathStep = (*Except)(nil)
+var _ IteratorStep = (*Difference)(nil)
+var _ PathStep = (*Difference)(nil)
 
-// Except corresponds to .except() and .difference().
-type Except struct {
-	From     PathStep `json:"from"`
-	Excepted PathStep `json:"excepted"`
+// Difference corresponds to .difference()
+type Difference struct {
+	From  PathStep   `json:"from"`
+	Steps []PathStep `json:"steps"`
 }
 
 // Type implements Step.
-func (s *Except) Type() quad.IRI {
-	return prefix + "Except"
+func (s *Difference) Type() quad.IRI {
+	return prefix + "Difference"
 }
 
 // Description implements Step.
-func (s *Except) Description() string {
-	return "Removes all paths which match query from current path. In a set-theoretic sense, this is (A - B). While `g.V().Except(path)` to achieve `U - B = !B` is supported, it's often very slow."
+func (s *Difference) Description() string {
+	return "Difference resolves to all the values resolved by the from step different then the values resolved by the provided steps. Caution: it might be slow to execute."
 }
 
 // BuildIterator implements IteratorStep
-func (s *Except) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *Difference) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
-func (s *Except) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *Difference) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	exceptedPath, err := s.Excepted.BuildPath(qs)
-	if err != nil {
-		return nil, err
+	path := fromPath
+	for _, step := range s.Steps {
+		p, err := step.BuildPath(qs)
+		if err != nil {
+			return nil, err
+		}
+		path = path.Except(p)
 	}
-	return fromPath.Except(exceptedPath), nil
+	return path, nil
 }
 
 var _ IteratorStep = (*Filter)(nil)
