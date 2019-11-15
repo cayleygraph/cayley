@@ -16,7 +16,7 @@ func init() {
 	Register(&Intersect{})
 	Register(&Is{})
 	Register(&Back{})
-	Register(&Both{})
+	Register(&ViewBoth{})
 	Register(&Count{})
 	Register(&Except{})
 	Register(&Filter{})
@@ -131,7 +131,7 @@ func (s *View) Type() quad.IRI {
 
 // Description implements Step.
 func (s *View) Description() string {
-	return "View resolves to the value of the property in via of the current objects. If via is a path resolves the path to a property to be used."
+	return "View resolves to the values of the given property or properties in via of the current objects. If via is a path it's resolved values will be used as properties."
 }
 
 // BuildIterator implements IteratorStep
@@ -310,33 +310,32 @@ func (s *Back) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Back(s.Name), nil
 }
 
-var _ IteratorStep = (*Both)(nil)
-var _ PathStep = (*Both)(nil)
+var _ IteratorStep = (*ViewBoth)(nil)
+var _ PathStep = (*ViewBoth)(nil)
 
-// Both corresponds to .both().
-type Both struct {
+// ViewBoth corresponds to .viewBoth().
+type ViewBoth struct {
 	From PathStep `json:"from"`
 	Via  PathStep `json:"via"`
-	Tags []string `json:"tags"`
 }
 
 // Type implements Step.
-func (s *Both) Type() quad.IRI {
+func (s *ViewBoth) Type() quad.IRI {
 	return prefix + "Both"
 }
 
 // Description implements Step.
-func (s *Both) Description() string {
-	return "Follow the predicate in either direction. Same as the union of View and ViewReverse."
+func (s *ViewBoth) Description() string {
+	return "ViewBoth is like View but resolves to both the object values and references to the values of the given properties in via. It is the equivalent for the Union of View and ViewReverse of the same property."
 }
 
 // BuildIterator implements IteratorStep
-func (s *Both) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *ViewBoth) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
-func (s *Both) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *ViewBoth) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
@@ -345,7 +344,7 @@ func (s *Both) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.BothWithTags(s.Tags, viaPath), nil
+	return fromPath.Both(viaPath), nil
 }
 
 var _ IteratorStep = (*Count)(nil)
