@@ -283,7 +283,7 @@ var _ PathStep = (*Back)(nil)
 // Back corresponds to .back().
 type Back struct {
 	From PathStep `json:"from"`
-	Tag  string   `json:"tag"`
+	Name string   `json:"name"`
 }
 
 // Type implements Step.
@@ -293,7 +293,7 @@ func (s *Back) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Back) Description() string {
-	return "Return current path to a set of nodes on a given tag, preserving all constraints. If still valid, a path will now consider their vertex to be the same one as the previously tagged one, with the added constraint that it was valid all the way here. Useful for traversing back in queries and taking another route for things that have matched so far."
+	return "Back resolves to the values of the previous the step or the values assigned to name in a former step."
 }
 
 // BuildIterator implements IteratorStep
@@ -307,7 +307,7 @@ func (s *Back) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.Back(s.Tag), nil
+	return fromPath.Back(s.Name), nil
 }
 
 var _ IteratorStep = (*Both)(nil)
