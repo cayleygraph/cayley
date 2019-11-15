@@ -82,7 +82,7 @@ func (s *Vertex) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Vertex) Description() string {
-	return "Vertex resolves to all the existing objects and primitive values in the graph. If provided with values resolves to a sublist of all the existing values in the graph"
+	return "Vertex resolves to all the existing objects and primitive values in the graph. If provided with values resolves to a sublist of all the existing values in the graph."
 }
 
 // BuildIterator implements IteratorStep
@@ -107,7 +107,7 @@ func (s *Placeholder) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Placeholder) Description() string {
-	return "Placeholder is like Vertex but resolves to the values in the context it is placed in. It should only be used where a PathStep is expected and can't be resolved on its own"
+	return "Placeholder is like Vertex but resolves to the values in the context it is placed in. It should only be used where a PathStep is expected and can't be resolved on its own."
 }
 
 // BuildPath implements PathStep.
@@ -186,7 +186,7 @@ func (s *As) Type() quad.IRI {
 
 // Description implements Step.
 func (s *As) Description() string {
-	return "Assigns the values from step to given name. The name can be used with the Select and Documents steps to retreive the values or to return to the values in further steps with the Back step"
+	return "As assigns the resolved values of the from step to a given name. The name can be used with the Select and Documents steps to retreive the values or to return to the values in further steps with the Back step. It resolves to the values of the from step."
 }
 
 // BuildIterator implements IteratorStep
@@ -260,7 +260,7 @@ func (s *Is) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Is) Description() string {
-	return "Filter all paths to ones which, at this point, are on the given node."
+	return "Is resolves to all the values resolved by the from step which are included in provided values."
 }
 
 // BuildIterator implements IteratorStep
