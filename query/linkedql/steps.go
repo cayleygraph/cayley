@@ -347,6 +347,24 @@ func (s *ViewBoth) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Both(viaPath), nil
 }
 
+var _ IteratorStep = (*Both)(nil)
+var _ PathStep = (*Both)(nil)
+
+// Both corresponds to .both()
+type Both struct {
+	ViewBoth
+}
+
+// Type implements Step
+func (s *Both) Type() quad.IRI {
+	return prefix + "Both"
+}
+
+// Description implements Step
+func (s *Both) Description() string {
+	return prefix + "Alias for ViewBoth"
+}
+
 var _ IteratorStep = (*Count)(nil)
 var _ PathStep = (*Count)(nil)
 
