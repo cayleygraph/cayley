@@ -93,12 +93,12 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Both",
+		name: "ViewBoth",
 		data: []quad.Quad{
 			quad.MakeIRI("alice", "likes", "bob", ""),
 			quad.MakeIRI("bob", "likes", "dan", ""),
 		},
-		query: &Both{
+		query: &ViewBoth{
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("bob")},
 			},
