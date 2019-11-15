@@ -2,14 +2,14 @@ package linkedql
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 )
 
 func TestGenerateSchema(t *testing.T) {
-	bytes, err := json.MarshalIndent(GenerateSchema(), "", "    ")
+	schema := GenerateSchema()
+	_, err := json.Marshal(schema)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	fmt.Println(string(bytes))
+
 }
