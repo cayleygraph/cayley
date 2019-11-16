@@ -1108,12 +1108,12 @@ var _ PathStep = (*Optional)(nil)
 // Optional corresponds to .optional().
 type Optional struct {
 	From PathStep `json:"from"`
-	Path PathStep `json:"path"`
+	Step PathStep `json:"step"`
 }
 
 // Type implements Step.
 func (s *Optional) Type() quad.IRI {
-	return "Optional"
+	return prefix + "Optional"
 }
 
 // Description implements Step.
@@ -1132,9 +1132,47 @@ func (s *Optional) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	p, err := s.Path.BuildPath(qs)
+	p, err := s.Step.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
 	return fromPath.Optional(p), nil
+}
+
+// Where corresponds to .where()
+type Where struct {
+	From  PathStep   `json:"from"`
+	Steps []PathStep `json:"steps"`
+}
+
+// Type implements Step.
+func (s *Where) Type() quad.IRI {
+	return prefix + "Where"
+}
+
+// Description implements Step.
+func (s *Where) Description() string {
+	return "Where applies each provided step in steps in isolation on from"
+}
+
+// BuildIterator implements IteratorStep
+func (s *Where) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements PathStep.
+func (s *Where) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	fromPath, err := s.From.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	p := fromPath
+	for _, step := range s.Steps {
+		stepPath, err := step.BuildPath(qs)
+		if err != nil {
+			return nil, err
+		}
+		p = p.And(stepPath.Reverse())
+	}
+	return p, nil
 }
