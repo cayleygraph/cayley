@@ -20,7 +20,7 @@ type Select struct {
 
 // Type implements Step.
 func (s *Select) Type() quad.IRI {
-	return prefix + "Select"
+	return Prefix + "Select"
 }
 
 // Description implements Step.
@@ -45,7 +45,7 @@ type SelectFirst struct {
 
 // Type implements Step.
 func (s *SelectFirst) Type() quad.IRI {
-	return prefix + "SelectFirst"
+	return Prefix + "SelectFirst"
 }
 
 // Description implements Step.
@@ -77,7 +77,7 @@ type Value struct {
 
 // Type implements Step.
 func (s *Value) Type() quad.IRI {
-	return prefix + "Value"
+	return Prefix + "Value"
 }
 
 // BuildIterator implements IteratorStep
@@ -92,7 +92,7 @@ type Documents struct {
 
 // Type implements Step.
 func (s *Documents) Type() quad.IRI {
-	return prefix + "Documents"
+	return Prefix + "Documents"
 }
 
 // Description implements Step.
