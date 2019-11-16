@@ -32,6 +32,7 @@ func RegisteredTypes() []string {
 // RegistryItem in the registry.
 type RegistryItem interface {
 	Type() quad.IRI
+	Description() string
 }
 
 // Register adds an Item type to the registry.

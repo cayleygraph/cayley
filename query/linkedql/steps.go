@@ -52,7 +52,6 @@ func init() {
 // 		&Out{ Properties: []quad.Value{quad.IRI("likes")}, From: &Vertex{} }
 type Step interface {
 	RegistryItem
-	Description() string
 }
 
 // IteratorStep is a step that can build an Iterator.
@@ -74,9 +73,7 @@ type DocumentStep interface {
 }
 
 // PropertyPath is an interface to be used where a path of properties is expected.
-type PropertyPath interface {
-	BuildPath(qs graph.QuadStore) (*path.Path, error)
-}
+type PropertyPath = PathStep
 
 // PropertyIRIs is a slice of property IRIs.
 type PropertyIRIs []quad.IRI
