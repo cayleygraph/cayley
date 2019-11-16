@@ -3,7 +3,7 @@ package linkedql
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/quad"
 )
@@ -24,7 +24,7 @@ func (it *TagsIterator) Next(ctx context.Context) bool {
 
 // Result implements query.Iterator.
 func (it *TagsIterator) Result() interface{} {
-	refTags := make(map[string]graph.Ref)
+	refTags := make(map[string]refs.Ref)
 	it.valueIt.scanner.TagResults(refTags)
 
 	tags := make(map[string]quad.Value)
