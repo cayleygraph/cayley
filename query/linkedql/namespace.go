@@ -3,10 +3,10 @@ package linkedql
 import "github.com/cayleygraph/quad/voc"
 
 const (
-	namespace = "http://cayley.io/linkedql#"
-	prefix    = "linkedql:"
+	Namespace = "http://cayley.io/linkedql#"
+	Prefix    = "linkedql:"
 )
 
 func init() {
-	voc.Register(voc.Namespace{Full: namespace, Prefix: prefix})
+	voc.Register(voc.Namespace{Full: Namespace, Prefix: Prefix})
 }
