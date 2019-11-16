@@ -3,8 +3,8 @@ package linkedql
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
@@ -16,7 +16,7 @@ type document = map[string]interface{}
 
 // DocumentIterator is an iterator of documents from the graph
 type DocumentIterator struct {
-	qs         graph.QuadStore
+	qs         refs.Namer
 	path       *path.Path
 	ids        []quad.Value
 	scanner    iterator.Scanner
@@ -25,7 +25,7 @@ type DocumentIterator struct {
 }
 
 // NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
-func NewDocumentIterator(qs graph.QuadStore, p *path.Path) *DocumentIterator {
+func NewDocumentIterator(qs refs.Namer, p *path.Path) *DocumentIterator {
 	return &DocumentIterator{qs: qs, path: p, current: -1}
 }
 
@@ -38,7 +38,7 @@ func (it *DocumentIterator) Next(ctx context.Context) bool {
 			id := it.qs.NameOf(it.scanner.Result())
 			it.ids = append(it.ids, id)
 
-			tags := make(map[string]graph.Ref)
+			tags := make(map[string]refs.Ref)
 			it.scanner.TagResults(tags)
 
 			for k, ref := range tags {
