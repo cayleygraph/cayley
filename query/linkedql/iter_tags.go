@@ -4,8 +4,11 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/quad"
 )
+
+var _ query.Iterator = (*TagsIterator)(nil)
 
 // TagsIterator is a result iterator for records consisting of selected tags
 // or all the tags in the query.
@@ -23,6 +26,7 @@ func (it *TagsIterator) Next(ctx context.Context) bool {
 func (it *TagsIterator) Result() interface{} {
 	refTags := make(map[string]graph.Ref)
 	it.valueIt.scanner.TagResults(refTags)
+
 	tags := make(map[string]quad.Value)
 	if it.selected != nil {
 		for _, tag := range it.selected {
