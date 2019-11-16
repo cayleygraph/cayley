@@ -10,9 +10,24 @@ import (
 )
 
 var (
-	TypeByName = make(map[string]reflect.Type)
+	typeByName = make(map[string]reflect.Type)
 	nameByType = make(map[reflect.Type]string)
 )
+
+// TypeByName returns a type by its registration name. See Register.
+func TypeByName(name string) (reflect.Type, bool) {
+	t, ok := typeByName[name]
+	return t, ok
+}
+
+// Registered types returns type names of all registered types.
+func RegisteredTypes() []string {
+	out := make([]string, 0, len(typeByName))
+	for k := range typeByName {
+		out = append(out, k)
+	}
+	return out
+}
 
 // RegistryItem in the registry.
 type RegistryItem interface {
@@ -29,10 +44,10 @@ func Register(typ RegistryItem) {
 		panic("only structs are allowed")
 	}
 	name := string(typ.Type())
-	if _, ok := TypeByName[name]; ok {
+	if _, ok := typeByName[name]; ok {
 		panic("this name was already registered")
 	}
-	TypeByName[name] = tp
+	typeByName[name] = tp
 	nameByType[tp] = name
 }
 
@@ -54,7 +69,7 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 		return nil, err
 	}
 	delete(m, "@type")
-	tp, ok := TypeByName[typ]
+	tp, ok := TypeByName(typ)
 	if !ok {
 		return nil, fmt.Errorf("unsupported item: %q", typ)
 	}
