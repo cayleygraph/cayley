@@ -1,12 +1,12 @@
-package linkedql
+package schema
 
 import (
 	"encoding/json"
 	"testing"
 )
 
-func TestGenerateSchema(t *testing.T) {
-	schema := GenerateSchema()
+func TestGenerate(t *testing.T) {
+	schema := Generate()
 	_, err := json.Marshal(schema)
 	if err != nil {
 		t.Fatal(err)
