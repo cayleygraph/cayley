@@ -145,75 +145,71 @@ func newUnionOf(classes []string) unionOf {
 	}
 }
 
-// Generate a schema in JSON-LD format that contains all registered LinkedQL types and properties.
-func Generate() []byte {
-	var out []interface{}
-	propToTypes := make(map[string]map[string]struct{})
-	propToDomains := make(map[string]map[string]struct{})
-	propToRanges := make(map[string]map[string]struct{})
-	for name, t := range linkedql.TypeByName {
-		step, ok := reflect.New(t).Interface().(linkedql.Step)
-		if !ok {
+func newGenerator() *generator {
+	return &generator{
+		propToTypes:   make(map[string]map[string]struct{}),
+		propToDomains: make(map[string]map[string]struct{}),
+		propToRanges:  make(map[string]map[string]struct{}),
+	}
+}
+
+type generator struct {
+	out           []interface{}
+	propToTypes   map[string]map[string]struct{}
+	propToDomains map[string]map[string]struct{}
+	propToRanges  map[string]map[string]struct{}
+}
+
+// returns super types
+func (g *generator) addTypeFields(name string, t reflect.Type, indirect bool) []interface{} {
+	var super []interface{}
+	for j := 0; j < t.NumField(); j++ {
+		f := t.Field(j)
+		if f.Anonymous {
+			if f.Type.Kind() != reflect.Struct || !indirect {
+				continue
+			}
+			super = append(super, g.addTypeFields(name, f.Type, false)...)
 			continue
 		}
-		super := []interface{}{
-			newIdentified(getStepTypeClass(pathStep)),
+		prop := linkedql.Prefix + f.Tag.Get("json")
+		if f.Type.Kind() != reflect.Slice {
+			super = append(super, newSingleCardinalityRestriction(prop))
 		}
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
-			if f.Anonymous {
-				t = f.Type
-				if t.Kind() == reflect.Struct {
-					for j := 0; j < t.NumField(); j++ {
-						f = t.Field(j)
-						prop := linkedql.Prefix + f.Tag.Get("json")
-						if f.Type.Kind() != reflect.Slice {
-							super = append(super, newSingleCardinalityRestriction(prop))
-						}
-						typ := getOWLPropertyType(f.Type.Kind())
+		typ := getOWLPropertyType(f.Type.Kind())
 
-						if propToTypes[prop] == nil {
-							propToTypes[prop] = make(map[string]struct{})
-						}
-						propToTypes[prop][typ] = struct{}{}
-
-						if propToDomains[prop] == nil {
-							propToDomains[prop] = make(map[string]struct{})
-						}
-						propToDomains[prop][name] = struct{}{}
-
-						if propToRanges[prop] == nil {
-							propToRanges[prop] = make(map[string]struct{})
-						}
-						propToRanges[prop][typeToRange(f.Type)] = struct{}{}
-					}
-					continue
-				}
-			}
-			prop := linkedql.Prefix + f.Tag.Get("json")
-			if f.Type.Kind() != reflect.Slice {
-				super = append(super, newSingleCardinalityRestriction(prop))
-			}
-			typ := getOWLPropertyType(f.Type.Kind())
-
-			if propToTypes[prop] == nil {
-				propToTypes[prop] = make(map[string]struct{})
-			}
-			propToTypes[prop][typ] = struct{}{}
-
-			if propToDomains[prop] == nil {
-				propToDomains[prop] = make(map[string]struct{})
-			}
-			propToDomains[prop][name] = struct{}{}
-
-			if propToRanges[prop] == nil {
-				propToRanges[prop] = make(map[string]struct{})
-			}
-			propToRanges[prop][typeToRange(f.Type)] = struct{}{}
+		if g.propToTypes[prop] == nil {
+			g.propToTypes[prop] = make(map[string]struct{})
 		}
-		out = append(out, newClass(name, super, step.Description()))
+		g.propToTypes[prop][typ] = struct{}{}
+
+		if g.propToDomains[prop] == nil {
+			g.propToDomains[prop] = make(map[string]struct{})
+		}
+		g.propToDomains[prop][name] = struct{}{}
+
+		if g.propToRanges[prop] == nil {
+			g.propToRanges[prop] = make(map[string]struct{})
+		}
+		g.propToRanges[prop][typeToRange(f.Type)] = struct{}{}
 	}
-	for prop, types := range propToTypes {
+	return super
+}
+
+func (g *generator) AddType(name string, t reflect.Type) {
+	step, ok := reflect.New(t).Interface().(linkedql.Step)
+	if !ok {
+		return
+	}
+	super := []interface{}{
+		newIdentified(getStepTypeClass(pathStep)),
+	}
+	super = append(super, g.addTypeFields(name, t, true)...)
+	g.out = append(g.out, newClass(name, super, step.Description()))
+}
+
+func (g *generator) Generate() []byte {
+	for prop, types := range g.propToTypes {
 		if len(types) != 1 {
 			panic("Properties must be either object properties or datatype properties. " + prop + " has both.")
 		}
@@ -223,11 +219,11 @@ func Generate() []byte {
 			break
 		}
 		var domains []string
-		for d := range propToDomains[prop] {
+		for d := range g.propToDomains[prop] {
 			domains = append(domains, d)
 		}
 		var ranges []string
-		for r := range propToRanges[prop] {
+		for r := range g.propToRanges[prop] {
 			ranges = append(ranges, r)
 		}
 		var dom interface{}
@@ -242,16 +238,29 @@ func Generate() []byte {
 		} else {
 			rng = newUnionOf(ranges)
 		}
-		out = append(out, property{
+		g.out = append(g.out, property{
 			ID:     prop,
 			Type:   typ,
 			Domain: dom,
 			Range:  rng,
 		})
 	}
-	data, err := json.Marshal(out)
+	data, err := json.Marshal(g.out)
 	if err != nil {
 		panic(err)
 	}
 	return data
+}
+
+// Generate a schema in JSON-LD format that contains all registered LinkedQL types and properties.
+func Generate() []byte {
+	g := newGenerator()
+	for _, name := range linkedql.RegisteredTypes() {
+		t, ok := linkedql.TypeByName(name)
+		if !ok {
+			panic("type is registered, but the lookup fails")
+		}
+		g.AddType(name, t)
+	}
+	return g.Generate()
 }
