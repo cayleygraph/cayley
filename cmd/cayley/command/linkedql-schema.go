@@ -3,7 +3,7 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cayleygraph/cayley/query/linkedql"
+	"github.com/cayleygraph/cayley/query/linkedql/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -16,8 +16,8 @@ func NewLinkedQLSchemaCommand() *cobra.Command {
 			if len(args) > 0 {
 				return fmt.Errorf("Too many arguments provided, expected 0")
 			}
-			schema := linkedql.GenerateSchema()
-			bytes, err := json.MarshalIndent(schema, "", "    ")
+			s := schema.Generate()
+			bytes, err := json.MarshalIndent(s, "", "    ")
 			if err != nil {
 				panic(err)
 			}

@@ -1,16 +1,17 @@
-package linkedql
+package schema
 
 import (
 	"fmt"
 	"reflect"
 
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/quad"
 )
 
-var pathStep = reflect.TypeOf((*PathStep)(nil)).Elem()
-var step = reflect.TypeOf((*Step)(nil)).Elem()
+var pathStep = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
+var step = reflect.TypeOf((*linkedql.Step)(nil)).Elem()
 var value = reflect.TypeOf((*quad.Value)(nil)).Elem()
-var operator = reflect.TypeOf((*Operator)(nil)).Elem()
+var operator = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
 
 func typeToRange(t reflect.Type) string {
 	if t.Kind() == reflect.Slice {
@@ -142,14 +143,14 @@ func NewUnionOf(classes []string) UnionOf {
 	}
 }
 
-// GenerateSchema for registered types. The schema is a collection of JSON-LD documents
+// Generate for registered types. The schema is a collection of JSON-LD documents
 // of the LinkedQL types and properties.
-func GenerateSchema() []interface{} {
+func Generate() []interface{} {
 	var documents []interface{}
 	propertyToTypes := map[string]map[string]struct{}{}
 	propertyToDomains := map[string]map[string]struct{}{}
 	propertyToRanges := map[string]map[string]struct{}{}
-	for name, t := range typeByName {
+	for name, t := range linkedql.TypeByName {
 		ptr := reflect.PtrTo(t)
 		if !ptr.Implements(step) {
 			continue

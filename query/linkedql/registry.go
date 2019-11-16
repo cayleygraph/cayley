@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	typeByName = make(map[string]reflect.Type)
+	TypeByName = make(map[string]reflect.Type)
 	nameByType = make(map[reflect.Type]string)
 )
 
@@ -24,10 +24,10 @@ func Register(typ RegistryItem) {
 		panic("only structs are allowed")
 	}
 	name := string(typ.Type())
-	if _, ok := typeByName[name]; ok {
+	if _, ok := TypeByName[name]; ok {
 		panic("this name was already registered")
 	}
-	typeByName[name] = tp
+	TypeByName[name] = tp
 	nameByType[tp] = name
 }
 
@@ -47,7 +47,7 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 		return nil, err
 	}
 	delete(m, "@type")
-	tp, ok := typeByName[typ]
+	tp, ok := TypeByName[typ]
 	if !ok {
 		return nil, fmt.Errorf("unsupported item: %q", typ)
 	}
