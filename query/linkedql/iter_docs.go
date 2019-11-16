@@ -5,9 +5,12 @@ import (
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 )
+
+var _ query.Iterator = (*DocumentIterator)(nil)
 
 type document = map[string]interface{}
 
