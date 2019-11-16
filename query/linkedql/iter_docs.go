@@ -13,12 +13,12 @@ type document = map[string]interface{}
 
 // DocumentIterator is an iterator of documents from the graph
 type DocumentIterator struct {
-	qs                 graph.QuadStore
-	path               *path.Path
-	entities           []quad.Value
-	scanner            iterator.Scanner
-	entityToProperties map[quad.Value]map[string][]quad.Value
-	current            int
+	qs         graph.QuadStore
+	path       *path.Path
+	ids        []quad.Value
+	scanner    iterator.Scanner
+	properties map[quad.Value]map[string][]quad.Value
+	current    int
 }
 
 // NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
@@ -28,26 +28,28 @@ func NewDocumentIterator(qs graph.QuadStore, p *path.Path) *DocumentIterator {
 
 // Next implements query.Iterator.
 func (it *DocumentIterator) Next(ctx context.Context) bool {
-	if it.entityToProperties == nil {
-		it.entityToProperties = make(map[quad.Value]map[string][]quad.Value)
+	if it.properties == nil {
+		it.properties = make(map[quad.Value]map[string][]quad.Value)
 		it.scanner = it.path.BuildIterator(ctx).Iterate()
 		for it.scanner.Next(ctx) {
-			result := it.scanner.Result()
-			entity := it.qs.NameOf(result)
-			it.entities = append(it.entities, entity)
-			refTags := make(map[string]graph.Ref)
-			it.scanner.TagResults(refTags)
-			for tag, ref := range refTags {
+			id := it.qs.NameOf(it.scanner.Result())
+			it.ids = append(it.ids, id)
+
+			tags := make(map[string]graph.Ref)
+			it.scanner.TagResults(tags)
+
+			for k, ref := range tags {
 				value := it.qs.NameOf(ref)
-				if properties, ok := it.entityToProperties[entity]; ok {
-					properties[tag] = append(properties[tag], value)
-				} else {
-					it.entityToProperties[entity] = map[string][]quad.Value{tag: {value}}
+				m, ok := it.properties[id]
+				if !ok {
+					m = make(map[string][]quad.Value)
+					it.properties[id] = m
 				}
+				m[k] = append(m[k], value)
 			}
 		}
 	}
-	if it.current < len(it.entities)-1 {
+	if it.current < len(it.ids)-1 {
 		it.current++
 		return true
 	}
@@ -56,22 +58,22 @@ func (it *DocumentIterator) Next(ctx context.Context) bool {
 
 // Result implements query.Iterator.
 func (it *DocumentIterator) Result() interface{} {
-	if it.current == len(it.entities) {
+	if it.current >= len(it.ids) {
 		return nil
 	}
-	entity := it.entities[it.current]
-	var id string
-	if iri, ok := entity.(quad.IRI); ok {
-		id = string(iri)
-	}
-	if bnode, ok := entity.(quad.BNode); ok {
-		id = bnode.String()
+	id := it.ids[it.current]
+	var sid string
+	switch val := id.(type) {
+	case quad.IRI:
+		sid = string(val)
+	case quad.BNode:
+		sid = val.String()
 	}
 	d := document{
-		"@id": id,
+		"@id": sid,
 	}
-	for property, values := range it.entityToProperties[entity] {
-		d[property] = values
+	for k, v := range it.properties[id] {
+		d[k] = v
 	}
 	return d
 }
