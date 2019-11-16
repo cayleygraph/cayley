@@ -80,6 +80,11 @@ func (s *Value) Type() quad.IRI {
 	return Prefix + "Value"
 }
 
+// Description implements Step.
+func (s *Value) Description() string {
+	return "FIXME(iddan): add description" // FIXME(iddan)
+}
+
 // BuildIterator implements IteratorStep
 func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return singleValueIteratorFromPathStep(s.From, qs)
