@@ -85,8 +85,10 @@ func (p PropertyIRIs) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return vertex.BuildPath(qs)
 }
 
+// PropertyIRIStrings is a slice of property IRI strings
 type PropertyIRIStrings []string
 
+// BuildPath implements PropertyPath
 func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	var iris PropertyIRIs
 	for _, iri := range p {
