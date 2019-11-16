@@ -501,7 +501,7 @@ var testCases = []struct {
 					From:  &Vertex{Values: []quad.Value{}},
 					Names: []quad.IRI{quad.IRI("name")},
 				},
-				Path: &Properties{
+				Step: &Properties{
 					From:  &Placeholder{},
 					Names: []quad.IRI{quad.IRI("likes")},
 				},
@@ -514,6 +514,48 @@ var testCases = []struct {
 			},
 			map[string]quad.Value{
 				"name": quad.IRI("Bob"),
+			},
+		},
+	},
+	{
+		name: "Where",
+		data: []quad.Quad{
+			quad.MakeIRI("alice", "likes", "bob", ""),
+			quad.MakeIRI("alice", "name", "Alice", ""),
+			quad.MakeIRI("bob", "name", "Bob", ""),
+		},
+		query: &Select{
+			From: &As{
+				From: &Where{
+					From: &Vertex{},
+					Steps: []PathStep{
+						&As{
+							From: &View{
+								From: &View{
+									From: &Placeholder{},
+									Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+								},
+								Via: &Vertex{Values: []quad.Value{quad.IRI("name")}},
+							},
+							Name: "likesName",
+						},
+						&As{
+							From: &View{
+								From: &Placeholder{},
+								Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
+							},
+							Name: "name",
+						},
+					},
+				},
+				Name: "person",
+			},
+		},
+		results: []interface{}{
+			map[string]quad.Value{
+				"person":    quad.IRI("alice"),
+				"name":      quad.IRI("Alice"),
+				"likesName": quad.IRI("Bob"),
 			},
 		},
 	},
