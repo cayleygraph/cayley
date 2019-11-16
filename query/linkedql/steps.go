@@ -107,7 +107,7 @@ type Vertex struct {
 
 // Type implements Step.
 func (s *Vertex) Type() quad.IRI {
-	return prefix + "Vertex"
+	return Prefix + "Vertex"
 }
 
 // Description implements Step.
@@ -156,7 +156,7 @@ type View struct {
 
 // Type implements Step.
 func (s *View) Type() quad.IRI {
-	return prefix + "View"
+	return Prefix + "View"
 }
 
 // Description implements Step.
@@ -192,7 +192,7 @@ type Out struct {
 
 // Type implements Step
 func (s *Out) Type() quad.IRI {
-	return prefix + "Out"
+	return Prefix + "Out"
 }
 
 // Description implements Step
@@ -211,7 +211,7 @@ type As struct {
 
 // Type implements Step.
 func (s *As) Type() quad.IRI {
-	return prefix + "As"
+	return Prefix + "As"
 }
 
 // Description implements Step.
@@ -244,7 +244,7 @@ type Intersect struct {
 
 // Type implements Step.
 func (s *Intersect) Type() quad.IRI {
-	return prefix + "Intersect"
+	return Prefix + "Intersect"
 }
 
 // Description implements Step.
@@ -285,7 +285,7 @@ type Is struct {
 
 // Type implements Step.
 func (s *Is) Type() quad.IRI {
-	return prefix + "Is"
+	return Prefix + "Is"
 }
 
 // Description implements Step.
@@ -318,7 +318,7 @@ type Back struct {
 
 // Type implements Step.
 func (s *Back) Type() quad.IRI {
-	return prefix + "Back"
+	return Prefix + "Back"
 }
 
 // Description implements Step.
@@ -351,7 +351,7 @@ type ViewBoth struct {
 
 // Type implements Step.
 func (s *ViewBoth) Type() quad.IRI {
-	return prefix + "ViewBoth"
+	return Prefix + "ViewBoth"
 }
 
 // Description implements Step.
@@ -387,12 +387,12 @@ type Both struct {
 
 // Type implements Step
 func (s *Both) Type() quad.IRI {
-	return prefix + "Both"
+	return Prefix + "Both"
 }
 
 // Description implements Step
 func (s *Both) Description() string {
-	return prefix + "Alias for ViewBoth"
+	return Prefix + "Alias for ViewBoth"
 }
 
 var _ IteratorStep = (*Count)(nil)
@@ -405,7 +405,7 @@ type Count struct {
 
 // Type implements Step.
 func (s *Count) Type() quad.IRI {
-	return prefix + "Count"
+	return Prefix + "Count"
 }
 
 // Description implements Step.
@@ -438,7 +438,7 @@ type Difference struct {
 
 // Type implements Step.
 func (s *Difference) Type() quad.IRI {
-	return prefix + "Difference"
+	return Prefix + "Difference"
 }
 
 // Description implements Step.
@@ -479,7 +479,7 @@ type Filter struct {
 
 // Type implements Step.
 func (s *Filter) Type() quad.IRI {
-	return prefix + "Filter"
+	return Prefix + "Filter"
 }
 
 // Description implements Step.
@@ -512,7 +512,7 @@ type Follow struct {
 
 // Type implements Step.
 func (s *Follow) Type() quad.IRI {
-	return prefix + "Follow"
+	return Prefix + "Follow"
 }
 
 // Description implements Step.
@@ -549,7 +549,7 @@ type FollowReverse struct {
 
 // Type implements Step.
 func (s *FollowReverse) Type() quad.IRI {
-	return prefix + "FollowReverse"
+	return Prefix + "FollowReverse"
 }
 
 // Description implements Step.
@@ -587,7 +587,7 @@ type Has struct {
 
 // Type implements Step.
 func (s *Has) Type() quad.IRI {
-	return prefix + "Has"
+	return Prefix + "Has"
 }
 
 // Description implements Step.
@@ -625,7 +625,7 @@ type HasReverse struct {
 
 // Type implements Step.
 func (s *HasReverse) Type() quad.IRI {
-	return prefix + "HasReverse"
+	return Prefix + "HasReverse"
 }
 
 // Description implements Step.
@@ -662,7 +662,7 @@ type ViewReverse struct {
 
 // Type implements Step.
 func (s *ViewReverse) Type() quad.IRI {
-	return prefix + "ViewReverse"
+	return Prefix + "ViewReverse"
 }
 
 // Description implements Step.
@@ -698,7 +698,7 @@ type In struct {
 
 // Type implements Step
 func (s *In) Type() quad.IRI {
-	return prefix + "In"
+	return Prefix + "In"
 }
 
 // Description implements Step
@@ -716,7 +716,7 @@ type ReversePropertyNames struct {
 
 // Type implements Step.
 func (s *ReversePropertyNames) Type() quad.IRI {
-	return prefix + "ReversePropertyNames"
+	return Prefix + "ReversePropertyNames"
 }
 
 // Description implements Step.
@@ -748,7 +748,7 @@ type Labels struct {
 
 // Type implements Step.
 func (s *Labels) Type() quad.IRI {
-	return prefix + "Labels"
+	return Prefix + "Labels"
 }
 
 // Description implements Step.
@@ -781,7 +781,7 @@ type Limit struct {
 
 // Type implements Step.
 func (s *Limit) Type() quad.IRI {
-	return prefix + "Limit"
+	return Prefix + "Limit"
 }
 
 // Description implements Step.
@@ -813,7 +813,7 @@ type PropertyNames struct {
 
 // Type implements Step.
 func (s *PropertyNames) Type() quad.IRI {
-	return prefix + "PropertyNames"
+	return Prefix + "PropertyNames"
 }
 
 // Description implements Step.
@@ -847,7 +847,7 @@ type Properties struct {
 
 // Type implements Step.
 func (s *Properties) Type() quad.IRI {
-	return prefix + "Properties"
+	return Prefix + "Properties"
 }
 
 // Description implements Step.
@@ -903,7 +903,7 @@ type ReversePropertyNamesAs struct {
 
 // Type implements Step.
 func (s *ReversePropertyNamesAs) Type() quad.IRI {
-	return prefix + "ReversePropertyNamesAs"
+	return Prefix + "ReversePropertyNamesAs"
 }
 
 // Description implements Step.
@@ -936,7 +936,7 @@ type PropertyNamesAs struct {
 
 // Type implements Step.
 func (s *PropertyNamesAs) Type() quad.IRI {
-	return prefix + "PropertyNamesAs"
+	return Prefix + "PropertyNamesAs"
 }
 
 // Description implements Step.
@@ -970,7 +970,7 @@ type ReverseProperties struct {
 
 // Type implements Step.
 func (s *ReverseProperties) Type() quad.IRI {
-	return prefix + "ReverseProperties"
+	return Prefix + "ReverseProperties"
 }
 
 // Description implements Step.
@@ -1007,7 +1007,7 @@ type Skip struct {
 
 // Type implements Step.
 func (s *Skip) Type() quad.IRI {
-	return prefix + "Skip"
+	return Prefix + "Skip"
 }
 
 // Description implements Step.
@@ -1040,7 +1040,7 @@ type Union struct {
 
 // Type implements Step.
 func (s *Union) Type() quad.IRI {
-	return prefix + "Union"
+	return Prefix + "Union"
 }
 
 // Description implements Step.
@@ -1080,7 +1080,7 @@ type Unique struct {
 
 // Type implements Step.
 func (s *Unique) Type() quad.IRI {
-	return prefix + "Unique"
+	return Prefix + "Unique"
 }
 
 // Description implements Step.
@@ -1112,7 +1112,7 @@ type Order struct {
 
 // Type implements Step.
 func (s *Order) Type() quad.IRI {
-	return prefix + "Order"
+	return Prefix + "Order"
 }
 
 // Description implements Step.
@@ -1145,7 +1145,7 @@ type Optional struct {
 
 // Type implements Step.
 func (s *Optional) Type() quad.IRI {
-	return prefix + "Optional"
+	return Prefix + "Optional"
 }
 
 // Description implements Step.
@@ -1179,7 +1179,7 @@ type Where struct {
 
 // Type implements Step.
 func (s *Where) Type() quad.IRI {
-	return prefix + "Where"
+	return Prefix + "Where"
 }
 
 // Description implements Step.

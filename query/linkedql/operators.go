@@ -23,7 +23,7 @@ type LessThan struct {
 
 // Type implements Operator.
 func (s *LessThan) Type() quad.IRI {
-	return prefix + "LessThan"
+	return Prefix + "LessThan"
 }
 
 // Apply implements Operator.
@@ -38,7 +38,7 @@ type LessThanEquals struct {
 
 // Type implements Operator.
 func (s *LessThanEquals) Type() quad.IRI {
-	return prefix + "LessThanEquals"
+	return Prefix + "LessThanEquals"
 }
 
 // Apply implements Operator.
@@ -58,7 +58,7 @@ func (s *GreaterThan) Apply(p *path.Path) (*path.Path, error) {
 
 // Type implements Operator.
 func (s *GreaterThan) Type() quad.IRI {
-	return prefix + "GreaterThan"
+	return Prefix + "GreaterThan"
 }
 
 // GreaterThanEquals corresponds to gte().
@@ -68,7 +68,7 @@ type GreaterThanEquals struct {
 
 // Type implements Operator.
 func (s *GreaterThanEquals) Type() quad.IRI {
-	return prefix + "GreaterThanEquals"
+	return Prefix + "GreaterThanEquals"
 }
 
 // Apply implements Operator.
@@ -84,7 +84,7 @@ type RegExp struct {
 
 // Type implements Operator.
 func (s *RegExp) Type() quad.IRI {
-	return prefix + "RegExp"
+	return Prefix + "RegExp"
 }
 
 // Apply implements Operator.
@@ -106,7 +106,7 @@ type Like struct {
 
 // Type implements Operator.
 func (s *Like) Type() quad.IRI {
-	return prefix + "Like"
+	return Prefix + "Like"
 }
 
 // Apply implements Operator.

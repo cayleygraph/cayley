@@ -1,22 +1,25 @@
 package schema
 
 import (
-	"fmt"
+	"encoding/json"
 	"reflect"
 
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc/rdfs"
 )
 
-var pathStep = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
-var step = reflect.TypeOf((*linkedql.Step)(nil)).Elem()
-var value = reflect.TypeOf((*quad.Value)(nil)).Elem()
-var operator = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
+var (
+	pathStep = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
+	value    = reflect.TypeOf((*quad.Value)(nil)).Elem()
+	operator = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
+)
 
 func typeToRange(t reflect.Type) string {
 	if t.Kind() == reflect.Slice {
 		return typeToRange(t.Elem())
 	}
+	// TODO: add XSD types to voc package
 	if t.Kind() == reflect.String {
 		return "xsd:string"
 	}
@@ -27,142 +30,134 @@ func typeToRange(t reflect.Type) string {
 		return "xsd:int"
 	}
 	if t.Implements(pathStep) {
-		return "linkedql:PathStep"
+		return linkedql.Prefix + "PathStep"
 	}
 	if t.Implements(operator) {
-		return "linkedql:Operator"
+		return linkedql.Prefix + "Operator"
 	}
 	if t.Implements(value) {
-		return "rdfs:Resource"
+		return rdfs.Resource
 	}
 	panic("Unexpected type " + t.String())
 }
 
-// Identified is used for referencing a type
-type Identified struct {
+// identified is used for referencing a type
+type identified struct {
 	ID string `json:"@id"`
 }
 
-// NewIdentified creates new identified struct
-func NewIdentified(id string) Identified {
-	return Identified{ID: id}
+// newIdentified creates new identified struct
+func newIdentified(id string) identified {
+	return identified{ID: id}
 }
 
-// CardinalityRestriction is used to indicate a how many values can a property get
-type CardinalityRestriction struct {
+// cardinalityRestriction is used to indicate a how many values can a property get
+type cardinalityRestriction struct {
 	ID          string     `json:"@id"`
 	Type        string     `json:"@type"`
 	Cardinality int        `json:"owl:cardinality"`
-	Property    Identified `json:"owl:onProperty"`
+	Property    identified `json:"owl:onProperty"`
 }
 
-func NewBlankNodeID() string {
+func newBlankNodeID() string {
 	return quad.RandomBlankNode().String()
 }
 
-// NewSingleCardinalityRestriction creates a cardinality of 1 restriction for given property
-func NewSingleCardinalityRestriction(property string) CardinalityRestriction {
-	return CardinalityRestriction{
-		ID:          NewBlankNodeID(),
+// newSingleCardinalityRestriction creates a cardinality of 1 restriction for given property
+func newSingleCardinalityRestriction(prop string) cardinalityRestriction {
+	return cardinalityRestriction{
+		ID:          newBlankNodeID(),
 		Type:        "owl:Restriction",
 		Cardinality: 1,
-		Property:    Identified{ID: property},
+		Property:    identified{ID: prop},
 	}
 }
 
-// GetOWLPropertyType for given kind of value type returns property OWL type
-func GetOWLPropertyType(kind reflect.Kind) string {
+// getOWLPropertyType for given kind of value type returns property OWL type
+func getOWLPropertyType(kind reflect.Kind) string {
 	if kind == reflect.String || kind == reflect.Bool || kind == reflect.Int64 || kind == reflect.Int {
 		return "owl:DatatypeProperty"
 	}
 	return "owl:ObjectProperty"
 }
 
-// Property is used to declare a property
-type Property struct {
+// property is used to declare a property
+type property struct {
 	ID     string      `json:"@id"`
 	Type   string      `json:"@type"`
 	Domain interface{} `json:"rdfs:domain"`
 	Range  interface{} `json:"rdfs:range"`
 }
 
-// Class is used to declare a class
-type Class struct {
+// class is used to declare a class
+type class struct {
 	ID           string        `json:"@id"`
 	Type         string        `json:"@type"`
 	Comment      string        `json:"rdfs:comment"`
 	SuperClasses []interface{} `json:"rdfs:subClassOf"`
 }
 
-// NewClass creates a new Class struct
-func NewClass(id string, superClasses []interface{}, comment string) Class {
-	return Class{
+// newClass creates a new class struct
+func newClass(id string, superClasses []interface{}, comment string) class {
+	return class{
 		ID:           id,
-		Type:         "rdfs:Class",
+		Type:         rdfs.Class,
 		SuperClasses: superClasses,
 		Comment:      comment,
 	}
 }
 
-// GetStepTypeClass for given step type returns the matching class identifier
-func GetStepTypeClass(t reflect.Type) string {
+// getStepTypeClass for given step type returns the matching class identifier
+func getStepTypeClass(t reflect.Type) string {
 	if t.Implements(pathStep) {
-		return "linkedql:PathStep"
+		return linkedql.Prefix + "PathStep"
 	}
-	return "linkedql:Step"
+	return linkedql.Prefix + "Step"
 }
 
-type List struct {
+type list struct {
 	ID      string        `json:"@id"`
 	Members []interface{} `json:"@list"`
 }
 
-func NewList(members []interface{}) List {
-	return List{
-		ID:      NewBlankNodeID(),
+func newList(members []interface{}) list {
+	return list{
+		ID:      newBlankNodeID(),
 		Members: members,
 	}
 }
 
-type UnionOf struct {
+type unionOf struct {
 	ID   string `json:"@id"`
 	Type string `json:"@type"`
-	List List   `json:"owl:unionOf"`
+	List list   `json:"owl:unionOf"`
 }
 
-func NewUnionOf(classes []string) UnionOf {
+func newUnionOf(classes []string) unionOf {
 	var members []interface{}
 	for _, class := range classes {
-		members = append(members, NewIdentified(class))
+		members = append(members, newIdentified(class))
 	}
-	list := NewList(members)
-	return UnionOf{
-		ID:   NewBlankNodeID(),
+	return unionOf{
+		ID:   newBlankNodeID(),
 		Type: "owl:Class",
-		List: list,
+		List: newList(members),
 	}
 }
 
-// Generate for registered types. The schema is a collection of JSON-LD documents
-// of the LinkedQL types and properties.
-func Generate() []interface{} {
-	var documents []interface{}
-	propertyToTypes := map[string]map[string]struct{}{}
-	propertyToDomains := map[string]map[string]struct{}{}
-	propertyToRanges := map[string]map[string]struct{}{}
+// Generate a schema in JSON-LD format that contains all registered LinkedQL types and properties.
+func Generate() []byte {
+	var out []interface{}
+	propToTypes := make(map[string]map[string]struct{})
+	propToDomains := make(map[string]map[string]struct{})
+	propToRanges := make(map[string]map[string]struct{})
 	for name, t := range linkedql.TypeByName {
-		ptr := reflect.PtrTo(t)
-		if !ptr.Implements(step) {
+		step, ok := reflect.New(t).Interface().(linkedql.Step)
+		if !ok {
 			continue
 		}
-		descriptionMethod, ok := ptr.MethodByName("Description")
-		if !ok {
-			panic("Step must have description")
-		}
-		descriptionResults := descriptionMethod.Func.Call([]reflect.Value{reflect.New(t)})
-		description := descriptionResults[0].Interface().(string)
-		superClasses := []interface{}{
-			NewIdentified(GetStepTypeClass(pathStep)),
+		super := []interface{}{
+			newIdentified(getStepTypeClass(pathStep)),
 		}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
@@ -171,85 +166,92 @@ func Generate() []interface{} {
 				if t.Kind() == reflect.Struct {
 					for j := 0; j < t.NumField(); j++ {
 						f = t.Field(j)
-						property := "linkedql:" + f.Tag.Get("json")
+						prop := linkedql.Prefix + f.Tag.Get("json")
 						if f.Type.Kind() != reflect.Slice {
-							restriction := NewSingleCardinalityRestriction(property)
-							superClasses = append(superClasses, restriction)
+							super = append(super, newSingleCardinalityRestriction(prop))
 						}
-						_type := GetOWLPropertyType(f.Type.Kind())
-						if propertyToTypes[property] == nil {
-							propertyToTypes[property] = map[string]struct{}{}
+						typ := getOWLPropertyType(f.Type.Kind())
+
+						if propToTypes[prop] == nil {
+							propToTypes[prop] = make(map[string]struct{})
 						}
-						propertyToTypes[property][_type] = struct{}{}
-						if propertyToDomains[property] == nil {
-							propertyToDomains[property] = map[string]struct{}{}
+						propToTypes[prop][typ] = struct{}{}
+
+						if propToDomains[prop] == nil {
+							propToDomains[prop] = make(map[string]struct{})
 						}
-						propertyToDomains[property][name] = struct{}{}
-						if propertyToRanges[property] == nil {
-							propertyToRanges[property] = map[string]struct{}{}
+						propToDomains[prop][name] = struct{}{}
+
+						if propToRanges[prop] == nil {
+							propToRanges[prop] = make(map[string]struct{})
 						}
-						propertyToRanges[property][typeToRange(f.Type)] = struct{}{}
+						propToRanges[prop][typeToRange(f.Type)] = struct{}{}
 					}
 					continue
 				}
 			}
-			property := "linkedql:" + f.Tag.Get("json")
+			prop := linkedql.Prefix + f.Tag.Get("json")
 			if f.Type.Kind() != reflect.Slice {
-				restriction := NewSingleCardinalityRestriction(property)
-				superClasses = append(superClasses, restriction)
+				super = append(super, newSingleCardinalityRestriction(prop))
 			}
-			_type := GetOWLPropertyType(f.Type.Kind())
-			if propertyToTypes[property] == nil {
-				propertyToTypes[property] = map[string]struct{}{}
+			typ := getOWLPropertyType(f.Type.Kind())
+
+			if propToTypes[prop] == nil {
+				propToTypes[prop] = make(map[string]struct{})
 			}
-			propertyToTypes[property][_type] = struct{}{}
-			if propertyToDomains[property] == nil {
-				propertyToDomains[property] = map[string]struct{}{}
+			propToTypes[prop][typ] = struct{}{}
+
+			if propToDomains[prop] == nil {
+				propToDomains[prop] = make(map[string]struct{})
 			}
-			propertyToDomains[property][name] = struct{}{}
-			if propertyToRanges[property] == nil {
-				propertyToRanges[property] = map[string]struct{}{}
+			propToDomains[prop][name] = struct{}{}
+
+			if propToRanges[prop] == nil {
+				propToRanges[prop] = make(map[string]struct{})
 			}
-			propertyToRanges[property][typeToRange(f.Type)] = struct{}{}
+			propToRanges[prop][typeToRange(f.Type)] = struct{}{}
 		}
-		documents = append(documents, NewClass(name, superClasses, description))
+		out = append(out, newClass(name, super, step.Description()))
 	}
-	for property, typeSet := range propertyToTypes {
-		var types []string
-		for _type := range typeSet {
-			types = append(types, _type)
-		}
+	for prop, types := range propToTypes {
 		if len(types) != 1 {
-			fmt.Printf("%v\n", propertyToRanges[property])
-			panic("Properties must be either object properties or datatype properties. " + property + " has both.")
+			panic("Properties must be either object properties or datatype properties. " + prop + " has both.")
 		}
-		_type := types[0]
+		var typ string
+		for t := range types {
+			typ = t
+			break
+		}
 		var domains []string
-		for domain := range propertyToDomains[property] {
-			domains = append(domains, domain)
+		for d := range propToDomains[prop] {
+			domains = append(domains, d)
 		}
 		var ranges []string
-		for _range := range propertyToRanges[property] {
-			ranges = append(ranges, _range)
+		for r := range propToRanges[prop] {
+			ranges = append(ranges, r)
 		}
-		var domain interface{}
-		var _range interface{}
+		var dom interface{}
 		if len(domains) == 1 {
-			domain = domains[0]
+			dom = domains[0]
 		} else {
-			domain = NewUnionOf(domains)
+			dom = newUnionOf(domains)
 		}
+		var rng interface{}
 		if len(ranges) == 1 {
-			_range = ranges[0]
+			rng = ranges[0]
 		} else {
-			_range = NewUnionOf(ranges)
+			rng = newUnionOf(ranges)
 		}
-		documents = append(documents, Property{
-			ID:     property,
-			Type:   _type,
-			Domain: domain,
-			Range:  _range,
+		out = append(out, property{
+			ID:     prop,
+			Type:   typ,
+			Domain: dom,
+			Range:  rng,
 		})
 	}
-	return documents
+	data, err := json.Marshal(out)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
