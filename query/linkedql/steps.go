@@ -43,7 +43,7 @@ func init() {
 // Step is the tree representation of a call in a Path context.
 // For example:
 // g.V(g.IRI("alice")) is represented as &V{ values: quad.Value[]{quad.IRI("alice")} }
-// g.V().out(g.IRI("likes")) is represented as &Out{ Via: quad.Value[]{quad.IRI("likes")}, From: &V{} }
+// g.V().out(g.IRI("likes")) is represented as &Out{ Properties: quad.Value[]{quad.IRI("likes")}, From: &V{} }
 type Step interface {
 	RegistryItem
 	Description() string
@@ -65,6 +65,34 @@ type PathStep interface {
 type DocumentStep interface {
 	Step
 	BuildDocumentIterator(qs graph.QuadStore) (*DocumentIterator, error)
+}
+
+// PropertyPath is an interface to be used where a path of properties is expected
+type PropertyPath interface {
+	BuildPath(qs graph.QuadStore) (*path.Path, error)
+}
+
+// PropertyIRIs is a slice of property IRIs
+type PropertyIRIs []quad.IRI
+
+// BuildPath implements PropertyPath
+func (p PropertyIRIs) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	var values []quad.Value
+	for _, iri := range p {
+		values = append(values, iri)
+	}
+	vertex := &Vertex{Values: values}
+	return vertex.BuildPath(qs)
+}
+
+type PropertyIRIStrings []string
+
+func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	var iris PropertyIRIs
+	for _, iri := range p {
+		iris = append(iris, quad.IRI(iri))
+	}
+	return iris.BuildPath(qs)
 }
 
 var _ IteratorStep = (*Vertex)(nil)
@@ -120,8 +148,8 @@ var _ PathStep = (*View)(nil)
 
 // View corresponds to .view().
 type View struct {
-	From PathStep `json:"from"`
-	Via  PathStep `json:"via"`
+	From       PathStep     `json:"from"`
+	Properties PropertyPath `json:"properties"`
 }
 
 // Type implements Step.
@@ -145,7 +173,7 @@ func (s *View) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaPath, err := s.Via.BuildPath(qs)
+	viaPath, err := s.Properties.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
@@ -315,8 +343,8 @@ var _ PathStep = (*ViewBoth)(nil)
 
 // ViewBoth corresponds to .viewBoth().
 type ViewBoth struct {
-	From PathStep `json:"from"`
-	Via  PathStep `json:"via"`
+	From       PathStep     `json:"from"`
+	Properties PropertyPath `json:"properties"`
 }
 
 // Type implements Step.
@@ -340,7 +368,7 @@ func (s *ViewBoth) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaPath, err := s.Via.BuildPath(qs)
+	viaPath, err := s.Properties.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
@@ -550,9 +578,9 @@ var _ PathStep = (*Has)(nil)
 
 // Has corresponds to .has().
 type Has struct {
-	From   PathStep     `json:"from"`
-	Via    PathStep     `json:"via"`
-	Values []quad.Value `json:"values"`
+	From     PathStep     `json:"from"`
+	Property PropertyPath `json:"property"`
+	Values   []quad.Value `json:"values"`
 }
 
 // Type implements Step.
@@ -576,7 +604,7 @@ func (s *Has) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaPath, err := s.Via.BuildPath(qs)
+	viaPath, err := s.Property.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
@@ -588,9 +616,9 @@ var _ PathStep = (*HasReverse)(nil)
 
 // HasReverse corresponds to .hasR().
 type HasReverse struct {
-	From   PathStep     `json:"from"`
-	Via    PathStep     `json:"via"`
-	Values []quad.Value `json:"values"`
+	From     PathStep     `json:"from"`
+	Property PropertyPath `json:"property"`
+	Values   []quad.Value `json:"values"`
 }
 
 // Type implements Step.
@@ -614,7 +642,7 @@ func (s *HasReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaPath, err := s.Via.BuildPath(qs)
+	viaPath, err := s.Property.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
@@ -626,8 +654,8 @@ var _ PathStep = (*ViewReverse)(nil)
 
 // ViewReverse corresponds to .viewReverse().
 type ViewReverse struct {
-	From PathStep `json:"from"`
-	Via  PathStep `json:"via"`
+	From       PathStep     `json:"from"`
+	Properties PropertyPath `json:"properties"`
 }
 
 // Type implements Step.
@@ -651,7 +679,7 @@ func (s *ViewReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	if err != nil {
 		return nil, err
 	}
-	viaPath, err := s.Via.BuildPath(qs)
+	viaPath, err := s.Properties.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}

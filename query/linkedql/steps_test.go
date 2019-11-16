@@ -39,7 +39,7 @@ var testCases = []struct {
 						From: &Vertex{},
 						Name: "liker",
 					},
-					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
 				Name: "liked",
 			},
@@ -62,7 +62,7 @@ var testCases = []struct {
 						From: &Vertex{},
 						Name: "liker",
 					},
-					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
 				Name: "liked",
 			},
@@ -81,7 +81,7 @@ var testCases = []struct {
 				From: &Vertex{
 					Values: []quad.Value{quad.IRI("alice")},
 				},
-				Via: &Vertex{
+				Properties: &Vertex{
 					Values: []quad.Value{
 						quad.IRI("likes"),
 					},
@@ -102,7 +102,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("bob")},
 			},
-			Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
 		results: []interface{}{
 			quad.IRI("alice"),
@@ -229,7 +229,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Via: &Vertex{
+			Property: &Vertex{
 				Values: []quad.Value{quad.IRI("likes")},
 			},
 			Values: []quad.Value{quad.IRI("bob")},
@@ -245,7 +245,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Via: &Vertex{
+			Property: &Vertex{
 				Values: []quad.Value{quad.IRI("likes")},
 			},
 			Values: []quad.Value{quad.IRI("alice")},
@@ -258,8 +258,8 @@ var testCases = []struct {
 		name: "ViewReverse",
 		data: singleQuadData,
 		query: &ViewReverse{
-			From: &Vertex{Values: []quad.Value{}},
-			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			From:       &Vertex{Values: []quad.Value{}},
+			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
 		results: []interface{}{
 			quad.IRI("alice"),
@@ -284,14 +284,14 @@ var testCases = []struct {
 		query: &Intersect{
 			From: &View{
 				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-				Via: &Vertex{
+				Properties: &Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
 				},
 			},
 			Steps: []PathStep{
 				&View{
-					From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-					Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					From:       &Vertex{Values: []quad.Value{quad.IRI("bob")}},
+					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
 			},
 		},
@@ -306,7 +306,7 @@ var testCases = []struct {
 			Values: []quad.Value{quad.IRI("bob")},
 			From: &View{
 				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
-				Via: &Vertex{
+				Properties: &Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
 				},
 			},
@@ -333,8 +333,8 @@ var testCases = []struct {
 		name: "View",
 		data: singleQuadData,
 		query: &View{
-			From: &Vertex{Values: []quad.Value{}},
-			Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			From:       &Vertex{Values: []quad.Value{}},
+			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
 		results: []interface{}{
 			quad.IRI("bob"),
@@ -451,7 +451,7 @@ var testCases = []struct {
 						Name: "liker",
 						From: &Vertex{},
 					},
-					Via: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
 				Name: "liked",
 			},
@@ -532,17 +532,17 @@ var testCases = []struct {
 						&As{
 							From: &View{
 								From: &View{
-									From: &Placeholder{},
-									Via:  &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+									From:       &Placeholder{},
+									Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 								},
-								Via: &Vertex{Values: []quad.Value{quad.IRI("name")}},
+								Properties: &Vertex{Values: []quad.Value{quad.IRI("name")}},
 							},
 							Name: "likesName",
 						},
 						&As{
 							From: &View{
-								From: &Placeholder{},
-								Via:  &Vertex{Values: []quad.Value{quad.IRI("name")}},
+								From:       &Placeholder{},
+								Properties: &Vertex{Values: []quad.Value{quad.IRI("name")}},
 							},
 							Name: "name",
 						},
