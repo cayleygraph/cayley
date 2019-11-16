@@ -840,7 +840,8 @@ var _ PathStep = (*Properties)(nil)
 
 // Properties corresponds to .properties().
 type Properties struct {
-	From  PathStep   `json:"from"`
+	From PathStep `json:"from"`
+	// TODO(iddan): Use PropertyPath
 	Names []quad.IRI `json:"names"`
 }
 
@@ -962,7 +963,8 @@ var _ PathStep = (*ReverseProperties)(nil)
 
 // ReverseProperties corresponds to .reverseProperties().
 type ReverseProperties struct {
-	From  PathStep   `json:"from"`
+	From PathStep `json:"from"`
+	// TODO(iddan): Use property path
 	Names []quad.IRI `json:"names"`
 }
 
