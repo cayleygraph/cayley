@@ -1,7 +1,6 @@
 package linkedql
 
 import (
-	"errors"
 	"regexp"
 
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -26,6 +25,11 @@ func (s *LessThan) Type() quad.IRI {
 	return Prefix + "LessThan"
 }
 
+// Description implements Operator.
+func (s *LessThan) Description() string {
+	return "FIXME(iddan): add description" // FIXME(iddan)
+}
+
 // Apply implements Operator.
 func (s *LessThan) Apply(p *path.Path) (*path.Path, error) {
 	return p.Filter(iterator.CompareLT, s.Value), nil
@@ -41,6 +45,11 @@ func (s *LessThanEquals) Type() quad.IRI {
 	return Prefix + "LessThanEquals"
 }
 
+// Description implements Operator.
+func (s *LessThanEquals) Description() string {
+	return "FIXME(iddan): add description" // FIXME(iddan)
+}
+
 // Apply implements Operator.
 func (s *LessThanEquals) Apply(p *path.Path) (*path.Path, error) {
 	return p.Filter(iterator.CompareLTE, s.Value), nil
@@ -51,14 +60,19 @@ type GreaterThan struct {
 	Value quad.Value `json:"value"`
 }
 
-// Apply implements Operator.
-func (s *GreaterThan) Apply(p *path.Path) (*path.Path, error) {
-	return p.Filter(iterator.CompareGT, s.Value), nil
-}
-
 // Type implements Operator.
 func (s *GreaterThan) Type() quad.IRI {
 	return Prefix + "GreaterThan"
+}
+
+// Description implements Operator.
+func (s *GreaterThan) Description() string {
+	return "FIXME(iddan): add description" // FIXME(iddan)
+}
+
+// Apply implements Operator.
+func (s *GreaterThan) Apply(p *path.Path) (*path.Path, error) {
+	return p.Filter(iterator.CompareGT, s.Value), nil
 }
 
 // GreaterThanEquals corresponds to gte().
@@ -71,6 +85,11 @@ func (s *GreaterThanEquals) Type() quad.IRI {
 	return Prefix + "GreaterThanEquals"
 }
 
+// Description implements Operator.
+func (s *GreaterThanEquals) Description() string {
+	return "FIXME(iddan): add description" // FIXME(iddan)
+}
+
 // Apply implements Operator.
 func (s *GreaterThanEquals) Apply(p *path.Path) (*path.Path, error) {
 	return p.Filter(iterator.CompareGTE, s.Value), nil
@@ -79,7 +98,7 @@ func (s *GreaterThanEquals) Apply(p *path.Path) (*path.Path, error) {
 // RegExp corresponds to regex().
 type RegExp struct {
 	Pattern     string `json:"pattern"`
-	IncludeIRIs bool   `json:"includeIRIs"`
+	IncludeIRIs bool   `json:"includeIRIs,omitempty"`
 }
 
 // Type implements Operator.
@@ -87,11 +106,16 @@ func (s *RegExp) Type() quad.IRI {
 	return Prefix + "RegExp"
 }
 
+// Description implements Operator.
+func (s *RegExp) Description() string {
+	return "FIXME(iddan): add description" // FIXME(iddan)
+}
+
 // Apply implements Operator.
 func (s *RegExp) Apply(p *path.Path) (*path.Path, error) {
-	pattern, err := regexp.Compile(string(s.Pattern))
+	pattern, err := regexp.Compile(s.Pattern)
 	if err != nil {
-		return nil, errors.New("Invalid RegExp")
+		return nil, err
 	}
 	if s.IncludeIRIs {
 		return p.RegexWithRefs(pattern), nil
@@ -107,6 +131,11 @@ type Like struct {
 // Type implements Operator.
 func (s *Like) Type() quad.IRI {
 	return Prefix + "Like"
+}
+
+// Description implements Operator.
+func (s *Like) Description() string {
+	return "FIXME(iddan): add description" // FIXME(iddan)
 }
 
 // Apply implements Operator.
