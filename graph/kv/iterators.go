@@ -10,6 +10,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/shape"
+	"github.com/cayleygraph/cayley/search"
 	"github.com/cayleygraph/quad"
 )
 
@@ -121,6 +122,25 @@ func (qs *QuadStore) optimizeQuadsAction(s shape.QuadsAction) (shape.Shape, bool
 		quads.Values = append(quads.Values, uint64(v))
 	}
 	return s.SimplifyFrom(quads), true
+}
+
+// SearchTextValues implements TextSearcher
+func (qs *QuadStore) SearchTextValues(ctx context.Context, query string) (iterator.Shape, error) {
+	// TODO: iterate
+	iris, err := search.Search(qs.search.index, query)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: store value IDs in Bleve instead
+	var values []quad.Value
+	for _, iri := range iris {
+		values = append(values, iri)
+	}
+	refs, err := qs.RefsOf(ctx, values)
+	if err != nil {
+		return nil, err
+	}
+	return iterator.NewFixed(refs...), nil
 }
 
 type IndexScan struct {

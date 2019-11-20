@@ -20,9 +20,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blevesearch/bleve"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
+	"github.com/cayleygraph/cayley/search"
 	"github.com/cayleygraph/quad"
 )
 
@@ -31,10 +33,24 @@ const QuadStoreType = "memstore"
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
 		NewFunc: func(string, graph.Options) (graph.QuadStore, error) {
-			return newQuadStore(), nil
+			qs := newQuadStore()
+			if qs.search.config != nil {
+				// TODO(iddan): get search configuration from opt
+				var configs search.Configuration
+				mapping := search.NewIndexMapping(configs)
+				searchIndex, err := bleve.NewMemOnly(mapping)
+				search.InitIndex(context.TODO(), searchIndex, qs, configs)
+
+				if err != nil {
+					return nil, err
+				}
+
+				qs.search.index = searchIndex
+			}
+			return qs, nil
 		},
-		UpgradeFunc:  nil,
 		InitFunc:     nil,
+		UpgradeFunc:  nil,
 		IsPersistent: false,
 	})
 }
@@ -142,6 +158,10 @@ type QuadStore struct {
 	reading bool         // someone else might be reading "all" slice - next insert/delete should clone it
 	index   QuadDirectionIndex
 	horizon int64 // used only to assign ids to tx
+	search  struct {
+		config search.Configuration
+		index  search.Index
+	}
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
 }
 
@@ -525,6 +545,14 @@ func (qs *QuadStore) ValueOf(name quad.Value) graph.Ref {
 	return bnode(id)
 }
 
+func (qs *QuadStore) RefsOf(nodes []quad.Value) []graph.Ref {
+	var refs []graph.Ref
+	for _, value := range nodes {
+		refs = append(refs, qs.ValueOf(value))
+	}
+	return refs
+}
+
 func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	if v == nil {
 		return nil
@@ -562,3 +590,22 @@ func (qs *QuadStore) NodesAllIterator() iterator.Shape {
 }
 
 func (qs *QuadStore) Close() error { return nil }
+
+// SearchTextValues implements TextSearcher
+func (qs *QuadStore) SearchTextValues(query string) (iterator.Shape, error) {
+	// TODO: iterate
+	iris, err := search.Search(qs.search.index, query)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: store value IDs in Bleve instead
+	var values []quad.Value
+	for _, iri := range iris {
+		values = append(values, iri)
+	}
+	refs := qs.RefsOf(values)
+	if err != nil {
+		return nil, err
+	}
+	return iterator.NewFixed(refs...), nil
+}
