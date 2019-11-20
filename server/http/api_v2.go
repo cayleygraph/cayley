@@ -123,9 +123,14 @@ func (api *APIv2) registerQueryOn(r *httprouter.Router) {
 	r.GET(prefix+"/query", toHandle(api.ServeQuery))
 }
 
+func (api *APIv2) registerSearchOn(r *httprouter.Router) {
+	r.GET(prefix+"/search", toHandle(api.ServeSearch))
+}
+
 func (api *APIv2) registerOn(r *httprouter.Router) {
 	api.registerDataOn(r)
 	api.registerQueryOn(r)
+	api.registerSearchOn(r)
 }
 
 const (
@@ -544,5 +549,15 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Set(hdrContentType, contentTypeJSON)
 	}
+	writeResults(w, out)
+}
+
+func (api *APIv2) ServeSearch(w http.ResponseWriter, r *http.Request) {
+	_, cancel := api.queryContext(r)
+	defer cancel()
+	vals := r.URL.Query()
+	q := vals.Get("q")
+	fmt.Printf("%v\n", q)
+	out := make(map[string]interface{})
 	writeResults(w, out)
 }
