@@ -114,7 +114,7 @@ type QuadStore interface {
 type TextSearcher interface {
 	// SearchTextValues returns an iterator that lists values that match a given text search query.
 	// The query is implementation-dependent.
-	SearchTextValues(query string) (iterator.Shape, error)
+	SearchTextValues(ctx context.Context, query string) (iterator.Shape, error)
 }
 
 type Options map[string]interface{}
