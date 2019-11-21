@@ -18,10 +18,24 @@ func TestGetDocuments(t *testing.T) {
 			Label:     quad.IRI(""),
 		},
 	}
+	config := IndexConfig{
+		Name: "people",
+		Properties: []quad.IRI{
+			quad.IRI("name"),
+		},
+	}
 	qs := memstore.New(data...)
-	documents, err := getDocuments(context.TODO(), qs, []quad.IRI{})
+	documents, err := getDocuments(context.TODO(), qs, config)
 	require.NoError(t, err)
-	require.NotEmpty(t, documents)
+	require.Equal(t, []Document{
+		{
+			ID: quad.IRI("alice"),
+			Fields: Fields{
+				"_type": "people",
+				"name":  interface{}([]interface{}{"Alice"}),
+			},
+		},
+	}, documents)
 }
 
 func TestSearch(t *testing.T) {
@@ -33,11 +47,19 @@ func TestSearch(t *testing.T) {
 			Label:     quad.IRI(""),
 		},
 	}
+	configs := []IndexConfig{
+		{
+			Name: "people",
+			Properties: []quad.IRI{
+				quad.IRI("name"),
+			},
+		},
+	}
 	qs := memstore.New(data...)
 	ClearIndex()
-	index, err := NewIndex(context.TODO(), qs)
+	index, err := NewIndex(context.TODO(), qs, configs)
 	require.NoError(t, err)
-	results, err := Search(index, "al")
+	results, err := Search(index, "alice")
 	require.NoError(t, err)
 	require.NotEmpty(t, results)
 }

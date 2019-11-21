@@ -31,18 +31,26 @@ type Document = struct {
 
 type properties map[string][]quad.Value
 
+// IndexConfig specifies a single index type.
+// Each Cayley instance can have multiple index configs defined
+type IndexConfig struct {
+	// TODO(iddan): customize matching
+	Name       string
+	Properties []quad.IRI
+}
+
 // newPath for given quad store and IDs returns path to get the data required for the search
-func newPath(qs graph.QuadStore, ids []quad.IRI) *path.Path {
-	var values []quad.Value
-	for _, iri := range ids {
-		values = append(values, iri)
+func newPath(qs graph.QuadStore, config IndexConfig) *path.Path {
+	p := path.StartPath(qs)
+	for _, property := range config.Properties {
+		p = p.Save(property, string(property))
 	}
-	return path.StartPath(qs, values...).OutWithTags([]string{"key"}, path.StartPath(qs)).Tag("value").Back("")
+	return p
 }
 
 // getDocuments for given IDs reterives documents from the graph
-func getDocuments(ctx context.Context, qs graph.QuadStore, ids []quad.IRI) ([]Document, error) {
-	p := newPath(qs, ids)
+func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) ([]Document, error) {
+	p := newPath(qs, config)
 	scanner := p.BuildIterator(ctx).Iterate()
 	idToFields := make(map[quad.IRI]properties)
 	for scanner.Next(ctx) {
@@ -63,13 +71,11 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, ids []quad.IRI) ([]Do
 			fields = make(properties)
 			idToFields[iri] = fields
 		}
-		keyIRI, ok := qs.NameOf(tags["key"]).(quad.IRI)
-		if !ok {
-			continue
+		for key, ref := range tags {
+			value := qs.NameOf(ref)
+			fields[key] = append(fields[key], value)
 		}
-		key := string(keyIRI)
-		value := qs.NameOf(tags["value"])
-		fields[key] = append(fields[key], value)
+
 	}
 	err := scanner.Close()
 	if err != nil {
@@ -77,7 +83,9 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, ids []quad.IRI) ([]Do
 	}
 	var documents []Document
 	for iri, properties := range idToFields {
-		f := make(Fields)
+		f := Fields{
+			"_type": config.Name,
+		}
 		for property, values := range properties {
 			var nativeValues []interface{}
 			for _, value := range values {
@@ -99,39 +107,48 @@ func OpenIndex() (bleve.Index, error) {
 	return bleve.Open(IndexPath)
 }
 
-func newIndexMapping() mapping.IndexMapping {
-	mapping := bleve.NewIndexMapping()
+// addDocumentMapping to given indexMapping according to given config
+func addDocumentMapping(indexMapping *mapping.IndexMappingImpl, config IndexConfig) {
 	documentMapping := bleve.NewDocumentMapping()
-	mapping.AddDocumentMapping("document", documentMapping)
-	nameFieldMapping := bleve.NewTextFieldMapping()
-	nameFieldMapping.Analyzer = simple.Name
-	documentMapping.AddFieldMappingsAt("name", nameFieldMapping)
-	return mapping
+	indexMapping.AddDocumentMapping(config.Name, documentMapping)
+	for _, property := range config.Properties {
+		nameFieldMapping := bleve.NewTextFieldMapping()
+		nameFieldMapping.Analyzer = simple.Name
+		documentMapping.AddFieldMappingsAt(string(property), nameFieldMapping)
+	}
 }
 
 // NewIndex builds a new search index
-func NewIndex(ctx context.Context, qs graph.QuadStore) (bleve.Index, error) {
-	mapping := newIndexMapping()
+func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (bleve.Index, error) {
 	clog.Infof("Building search index...")
+	mapping := bleve.NewIndexMapping()
+	for _, config := range configs {
+		addDocumentMapping(mapping, config)
+	}
 	index, err := bleve.New(IndexPath, mapping)
 	if err != nil {
 		return nil, err
 	}
-	clog.Infof("Retreiving documents...")
-	documents, err := getDocuments(ctx, qs, []quad.IRI{})
-	for _, document := range documents {
-		index.Index(string(document.ID), document.Fields)
+	for _, config := range configs {
+		clog.Infof("Retreiving for %s documents...", config.Name)
+		documents, err := getDocuments(ctx, qs, config)
+		if err != nil {
+			return nil, err
+		}
+		for _, document := range documents {
+			index.Index(string(document.ID), document.Fields)
+		}
+		clog.Infof("Retrieved %v documents for %s...", len(documents), config.Name)
 	}
-	clog.Infof("Retrieved %v documents...", len(documents))
 	clog.Infof("Built search index")
 	return index, nil
 }
 
 // GetIndex attempts to open an existing index, if it doesn't exist it creates a new one
-func GetIndex(ctx context.Context, qs graph.QuadStore) (bleve.Index, error) {
+func GetIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (bleve.Index, error) {
 	index, err := OpenIndex()
 	if err == bleve.ErrorIndexPathDoesNotExist {
-		return NewIndex(ctx, qs)
+		return NewIndex(ctx, qs, configs)
 	}
 	return index, err
 }
