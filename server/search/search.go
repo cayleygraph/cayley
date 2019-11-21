@@ -23,13 +23,30 @@ type ID = quad.IRI
 // Fields are the data indexed by the search
 type Fields = map[string]interface{}
 
+type properties map[string][]quad.Value
+
 // Document is a container around ID and it's associated Properties
 type Document = struct {
 	ID
 	Fields
 }
 
-type properties map[string][]quad.Value
+func NewDocumentFromProperties(id ID, t string, props properties) Document {
+	f := Fields{
+		"_type": t,
+	}
+	for property, values := range props {
+		var nativeValues []interface{}
+		for _, value := range values {
+			nativeValues = append(nativeValues, value.Native())
+		}
+		f[property] = interface{}(nativeValues)
+	}
+	return Document{
+		ID:     id,
+		Fields: f,
+	}
+}
 
 // IndexConfig specifies a single index type.
 // Each Cayley instance can have multiple index configs defined
@@ -83,21 +100,7 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) (
 	}
 	var documents []Document
 	for iri, properties := range idToFields {
-		f := Fields{
-			"_type": config.Name,
-		}
-		for property, values := range properties {
-			var nativeValues []interface{}
-			for _, value := range values {
-				nativeValues = append(nativeValues, value.Native())
-			}
-			f[property] = interface{}(nativeValues)
-		}
-		document := Document{
-			ID:     iri,
-			Fields: f,
-		}
-		documents = append(documents, document)
+		documents = append(documents, NewDocumentFromProperties(iri, config.Name, properties))
 	}
 	return documents, nil
 }
