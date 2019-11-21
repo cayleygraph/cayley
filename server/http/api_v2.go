@@ -570,12 +570,10 @@ func (api *APIv2) ServeSearch(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	vals := r.URL.Query()
 	q := vals.Get("q")
-	query := bleve.NewMatchQuery(q)
-	search := bleve.NewSearchRequest(query)
-	searchResults, err := api.searchIndex.Search(search)
+	documents, err := search.Search(api.searchIndex, q)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%v\n", q)
-	writeResults(w, searchResults)
+	writeResults(w, documents)
 }

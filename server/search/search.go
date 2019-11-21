@@ -2,8 +2,11 @@ package search
 
 import (
 	"context"
+	"os"
 
 	"github.com/blevesearch/bleve"
+	"github.com/blevesearch/bleve/analysis/analyzer/simple"
+	"github.com/blevesearch/bleve/mapping"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/refs"
@@ -17,24 +20,31 @@ const IndexPath = "searchIndex.bleve"
 // ID is the identifier for the data indexed by the search
 type ID = quad.IRI
 
-// Properties are the data indexed by the search
-type Properties = map[quad.Value][]quad.Value
+// Fields are the data indexed by the search
+type Fields = map[string]interface{}
 
 // Document is a container around ID and it's associated Properties
 type Document = struct {
 	ID
-	Properties
+	Fields
 }
 
-// getDocuments for given IDs reterives documents from the graph
-func getDocuments(ctx context.Context, qs graph.QuadStore, ids []quad.IRI) ([]Document, error) {
+type properties map[string][]quad.Value
+
+// newPath for given quad store and IDs returns path to get the data required for the search
+func newPath(qs graph.QuadStore, ids []quad.IRI) *path.Path {
 	var values []quad.Value
 	for _, iri := range ids {
 		values = append(values, iri)
 	}
-	p := path.StartPath(qs, values...).OutWithTags([]string{"key"}, path.StartPath(qs)).Tag("value").Back("")
+	return path.StartPath(qs, values...).OutWithTags([]string{"key"}, path.StartPath(qs)).Tag("value").Back("")
+}
+
+// getDocuments for given IDs reterives documents from the graph
+func getDocuments(ctx context.Context, qs graph.QuadStore, ids []quad.IRI) ([]Document, error) {
+	p := newPath(qs, ids)
 	scanner := p.BuildIterator(ctx).Iterate()
-	idToProperties := make(map[quad.IRI]Properties)
+	idToFields := make(map[quad.IRI]properties)
 	for scanner.Next(ctx) {
 		err := scanner.Err()
 		if err != nil {
@@ -48,20 +58,36 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, ids []quad.IRI) ([]Do
 		if !ok {
 			continue
 		}
-		properties, ok := idToProperties[iri]
+		fields, ok := idToFields[iri]
 		if !ok {
-			properties = make(Properties)
-			idToProperties[iri] = properties
+			fields = make(properties)
+			idToFields[iri] = fields
 		}
-		key := qs.NameOf(tags["key"])
+		keyIRI, ok := qs.NameOf(tags["key"]).(quad.IRI)
+		if !ok {
+			continue
+		}
+		key := string(keyIRI)
 		value := qs.NameOf(tags["value"])
-		properties[key] = append(properties[key], value)
+		fields[key] = append(fields[key], value)
+	}
+	err := scanner.Close()
+	if err != nil {
+		return nil, err
 	}
 	var documents []Document
-	for iri, properties := range idToProperties {
+	for iri, properties := range idToFields {
+		f := make(Fields)
+		for property, values := range properties {
+			var nativeValues []interface{}
+			for _, value := range values {
+				nativeValues = append(nativeValues, value.Native())
+			}
+			f[property] = interface{}(nativeValues)
+		}
 		document := Document{
-			ID:         iri,
-			Properties: properties,
+			ID:     iri,
+			Fields: f,
 		}
 		documents = append(documents, document)
 	}
@@ -73,9 +99,19 @@ func OpenIndex() (bleve.Index, error) {
 	return bleve.Open(IndexPath)
 }
 
+func newIndexMapping() mapping.IndexMapping {
+	mapping := bleve.NewIndexMapping()
+	documentMapping := bleve.NewDocumentMapping()
+	mapping.AddDocumentMapping("document", documentMapping)
+	nameFieldMapping := bleve.NewTextFieldMapping()
+	nameFieldMapping.Analyzer = simple.Name
+	documentMapping.AddFieldMappingsAt("name", nameFieldMapping)
+	return mapping
+}
+
 // NewIndex builds a new search index
 func NewIndex(ctx context.Context, qs graph.QuadStore) (bleve.Index, error) {
-	mapping := bleve.NewIndexMapping()
+	mapping := newIndexMapping()
 	clog.Infof("Building search index...")
 	index, err := bleve.New(IndexPath, mapping)
 	if err != nil {
@@ -84,7 +120,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore) (bleve.Index, error) {
 	clog.Infof("Retreiving documents...")
 	documents, err := getDocuments(ctx, qs, []quad.IRI{})
 	for _, document := range documents {
-		index.Index(string(document.ID), document.Properties)
+		index.Index(string(document.ID), document.Fields)
 	}
 	clog.Infof("Retrieved %v documents...", len(documents))
 	clog.Infof("Built search index")
@@ -98,4 +134,31 @@ func GetIndex(ctx context.Context, qs graph.QuadStore) (bleve.Index, error) {
 		return NewIndex(ctx, qs)
 	}
 	return index, err
+}
+
+// ClearIndex removes the existing index
+func ClearIndex() error {
+	err := os.RemoveAll(IndexPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+// Search for given index and query creates a search request and translates the results to Documents
+func Search(index bleve.Index, query string) ([]Document, error) {
+	matchQuery := bleve.NewMatchQuery(query)
+	search := bleve.NewSearchRequest(matchQuery)
+	searchResults, err := index.Search(search)
+	if err != nil {
+		return nil, err
+	}
+	var documents []Document
+	for _, hit := range searchResults.Hits {
+		documents = append(documents, Document{
+			ID:     quad.IRI(hit.ID),
+			Fields: hit.Fields,
+		})
+	}
+	return documents, nil
 }
