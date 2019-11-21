@@ -26,12 +26,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blevesearch/bleve"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/shape"
+	"github.com/cayleygraph/cayley/server/search"
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
 )
@@ -50,6 +52,7 @@ func NewAPIv2(h *graph.Handle, wrappers ...HandlerWrapper) *APIv2 {
 // NewBoundAPIv2 creates a new instance of APIv2 bound to a given httprouter.Router
 func NewBoundAPIv2(h *graph.Handle, r *httprouter.Router) *APIv2 {
 	api := &APIv2{h: h, wtyp: defaultReplication, wopt: nil, limit: defaultLimit, handler: r}
+	api.BuildSearchIndex()
 	api.registerOn(r)
 	return api
 }
@@ -58,6 +61,7 @@ func NewBoundAPIv2(h *graph.Handle, r *httprouter.Router) *APIv2 {
 func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, wrappers ...HandlerWrapper) *APIv2 {
 	r := httprouter.New()
 	api := &APIv2{h: h, wtyp: wtype, wopt: wopts, limit: defaultLimit}
+	api.BuildSearchIndex()
 	api.registerOn(r)
 	var handler http.Handler = r
 	for _, wrapper := range wrappers {
@@ -68,10 +72,11 @@ func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, wrappers
 }
 
 type APIv2 struct {
-	h       *graph.Handle
-	ro      bool
-	batch   int
-	handler http.Handler
+	h           *graph.Handle
+	ro          bool
+	batch       int
+	handler     http.Handler
+	searchIndex bleve.Index
 
 	// replication
 	wtyp string
@@ -93,6 +98,14 @@ func (api *APIv2) SetQueryTimeout(dt time.Duration) {
 }
 func (api *APIv2) SetQueryLimit(n int) {
 	api.limit = n
+}
+
+func (api *APIv2) BuildSearchIndex() {
+	index, err := search.GetIndex(context.TODO(), api.h)
+	if err != nil {
+		panic(err)
+	}
+	api.searchIndex = index
 }
 
 func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -557,7 +570,12 @@ func (api *APIv2) ServeSearch(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	vals := r.URL.Query()
 	q := vals.Get("q")
+	query := bleve.NewMatchQuery(q)
+	search := bleve.NewSearchRequest(query)
+	searchResults, err := api.searchIndex.Search(search)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Printf("%v\n", q)
-	out := make(map[string]interface{})
-	writeResults(w, out)
+	writeResults(w, searchResults)
 }
