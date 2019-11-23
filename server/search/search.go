@@ -24,17 +24,20 @@ type PropertyConfig struct {
 	Analyzer string
 }
 
-// IndexConfig specifies a single index type.
+// documentConfig specifies a single index type.
 // Each Cayley instance can have multiple index configs defined
-type IndexConfig struct {
+type documentConfig struct {
 	// TODO(iddan): customize matching
 	Name       string
 	Match      map[quad.IRI][]quad.Value
 	Properties []PropertyConfig
 }
 
+// Configuration specifies the search indexes of a database
+type Configuration []documentConfig
+
 // newPath for given quad store and IDs returns path to get the data required for the search
-func newPath(qs graph.QuadStore, config IndexConfig, entities []quad.Value) *path.Path {
+func newPath(qs graph.QuadStore, config documentConfig, entities []quad.Value) *path.Path {
 	p := path.StartPath(qs, entities...)
 	for predicate, object := range config.Match {
 		p = p.Has(predicate, object...)
@@ -74,7 +77,7 @@ func identifierToString(identifier quad.Value) (string, error) {
 
 // getDocuments for config reterives documents from the graph
 // If provided with entities reterives documents only of given entities
-func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig, entities []quad.Value) ([]document, error) {
+func getDocuments(ctx context.Context, qs graph.QuadStore, config documentConfig, entities []quad.Value) ([]document, error) {
 	p := newPath(qs, config, entities)
 	scanner := p.BuildIterator(ctx).Iterate()
 	idToData := make(map[string]data)
@@ -152,7 +155,7 @@ func resolveFieldConstructor(t string) (func() *mapping.FieldMapping, error) {
 	}
 }
 
-func newDocumentMapping(config IndexConfig) *mapping.DocumentMapping {
+func newDocumentMapping(config documentConfig) *mapping.DocumentMapping {
 	documentMapping := bleve.NewDocumentMapping()
 	for _, property := range config.Properties {
 		constructor, err := resolveFieldConstructor(property.Type)
@@ -168,7 +171,7 @@ func newDocumentMapping(config IndexConfig) *mapping.DocumentMapping {
 	return documentMapping
 }
 
-func newIndexMapping(configs []IndexConfig) mapping.IndexMapping {
+func newIndexMapping(configs []documentConfig) mapping.IndexMapping {
 	indexMapping := bleve.NewIndexMapping()
 	for _, config := range configs {
 		indexMapping.AddDocumentMapping(config.Name, newDocumentMapping(config))
@@ -184,7 +187,7 @@ func newIndexMapping(configs []IndexConfig) mapping.IndexMapping {
 // Index documents from given quad store by given configuration to given index
 // If entities is empty index all the matching documents in the quad store
 // Otherwise only load documents of the provided entities
-func Index(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index bleve.Index, entities []quad.Value) error {
+func Index(ctx context.Context, qs graph.QuadStore, configs []documentConfig, index bleve.Index, entities []quad.Value) error {
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
@@ -206,7 +209,7 @@ func Index(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index
 // Delete documents from given quad store by given configuration for given index
 // If entities is empty delete all matching documents in the quad store
 // Otherwise only delete documents of the provided entities
-func Delete(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index bleve.Index, entities []quad.Value) error {
+func Delete(ctx context.Context, qs graph.QuadStore, configs []documentConfig, index bleve.Index, entities []quad.Value) error {
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
@@ -226,7 +229,7 @@ func Delete(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, inde
 }
 
 // NewIndex builds a new search index
-func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (bleve.Index, error) {
+func NewIndex(ctx context.Context, qs graph.QuadStore, configs []documentConfig) (bleve.Index, error) {
 	clog.Infof("Building search index...")
 	indexMapping := newIndexMapping(configs)
 	index, err := bleve.New(IndexPath, indexMapping)
@@ -242,7 +245,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 }
 
 // GetIndex attempts to open an existing index, if it doesn't exist it creates a new one
-func GetIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (bleve.Index, error) {
+func GetIndex(ctx context.Context, qs graph.QuadStore, configs []documentConfig) (bleve.Index, error) {
 	index, err := OpenIndex()
 	if err == bleve.ErrorIndexPathDoesNotExist {
 		return NewIndex(ctx, qs, configs)

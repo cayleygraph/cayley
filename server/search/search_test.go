@@ -12,7 +12,7 @@ import (
 type testCase struct {
 	Name     string
 	Data     []quad.Quad
-	Config   IndexConfig
+	Config   documentConfig
 	Expected []document
 	Entities []quad.Value
 }
@@ -28,7 +28,7 @@ var testCases = []testCase{
 				Label:     quad.IRI(""),
 			},
 		},
-		Config: IndexConfig{
+		Config: documentConfig{
 			Name: "people",
 			Properties: []PropertyConfig{
 				{
@@ -68,7 +68,7 @@ var testCases = []testCase{
 				Label:     quad.IRI(""),
 			},
 		},
-		Config: IndexConfig{
+		Config: documentConfig{
 			Name: "people",
 			Match: map[quad.IRI][]quad.Value{
 				quad.IRI("rdf:type"): {
@@ -113,7 +113,7 @@ var testCases = []testCase{
 				Label:     quad.IRI(""),
 			},
 		},
-		Config: IndexConfig{
+		Config: documentConfig{
 			Name: "people",
 			Properties: []PropertyConfig{
 				{
@@ -156,7 +156,7 @@ func TestSearch(t *testing.T) {
 			Label:     quad.IRI(""),
 		},
 	}
-	configs := []IndexConfig{
+	configs := []documentConfig{
 		{
 			Name: "people",
 			Properties: []PropertyConfig{

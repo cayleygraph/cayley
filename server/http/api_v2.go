@@ -72,11 +72,12 @@ func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, wrappers
 }
 
 type APIv2 struct {
-	h           *graph.Handle
-	ro          bool
-	batch       int
-	handler     http.Handler
-	searchIndex bleve.Index
+	SearchConfig search.Configuration
+	h            *graph.Handle
+	ro           bool
+	batch        int
+	handler      http.Handler
+	searchIndex  bleve.Index
 
 	// replication
 	wtyp string
@@ -101,11 +102,13 @@ func (api *APIv2) SetQueryLimit(n int) {
 }
 
 func (api *APIv2) BuildSearchIndex() {
-	index, err := search.GetIndex(context.TODO(), api.h)
-	if err != nil {
-		panic(err)
+	if api.SearchConfig != nil {
+		index, err := search.GetIndex(context.TODO(), api.h, api.SearchConfig)
+		if err != nil {
+			panic(err)
+		}
+		api.searchIndex = index
 	}
-	api.searchIndex = index
 }
 
 func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -445,12 +448,16 @@ func (api *APIv2) queryContext(r *http.Request) (ctx context.Context, cancel fun
 	return ctx, cancel
 }
 
-func defaultErrorFunc(w query.ResponseWriter, err error) {
+func writeError(w query.ResponseWriter, err error) {
 	data, _ := json.Marshal(err.Error())
-	w.WriteHeader(http.StatusBadRequest)
 	w.Write([]byte(`{"error": `))
 	w.Write(data)
 	w.Write([]byte("}\n"))
+}
+
+func defaultErrorFunc(w query.ResponseWriter, err error) {
+	w.WriteHeader(http.StatusBadRequest)
+	writeError(w, err)
 }
 
 func writeResults(w io.Writer, r interface{}) {
@@ -566,6 +573,11 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *APIv2) ServeSearch(w http.ResponseWriter, r *http.Request) {
+	if api.SearchConfig == nil {
+		w.WriteHeader(http.StatusPreconditionRequired)
+		writeError(w, fmt.Errorf("Search index configuration is undefined. To use search it must be configured"))
+		return
+	}
 	_, cancel := api.queryContext(r)
 	defer cancel()
 	vals := r.URL.Query()
