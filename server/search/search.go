@@ -115,7 +115,7 @@ func newIndexMapping(configs []IndexConfig) *mapping.IndexMappingImpl {
 		for _, property := range config.Properties {
 			documentMapping.AddFieldMappingsAt(string(property), bleve.NewTextFieldMapping())
 		}
-		indexMapping.AddDocumentMapping("people", documentMapping)
+		indexMapping.AddDocumentMapping(config.Name, documentMapping)
 	}
 	// Disable default mapping as mapping is done manually.
 	indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
