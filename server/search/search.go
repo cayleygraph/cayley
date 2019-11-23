@@ -181,6 +181,27 @@ func newIndexMapping(configs []IndexConfig) mapping.IndexMapping {
 	return indexMapping
 }
 
+// Load documents for given quad store and configuration to given index
+// If entities is empty load all the matching documents in the quad store
+// Otherwise only load documents of the provided entities
+func Load(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index bleve.Index, entities []quad.Value) error {
+	batch := index.NewBatch()
+	for _, config := range configs {
+		clog.Infof("Retreiving for \"%s\" documents...", config.Name)
+		documents, err := getDocuments(ctx, qs, config, nil)
+		if err != nil {
+			return err
+		}
+		for _, document := range documents {
+			id := document.id
+			batch.Index(id, document.data)
+		}
+		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
+	}
+	index.Batch(batch)
+	return nil
+}
+
 // NewIndex builds a new search index
 func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (bleve.Index, error) {
 	clog.Infof("Building search index...")
@@ -189,22 +210,10 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 	if err != nil {
 		return nil, err
 	}
-	batch := index.NewBatch()
-	for _, config := range configs {
-		clog.Infof("Retreiving for \"%s\" documents...", config.Name)
-		documents, err := getDocuments(ctx, qs, config, nil)
-		if err != nil {
-			return nil, err
-		}
-		for _, document := range documents {
-			id := document.id
-			batch.Index(id, document.data)
-			// batch.Index(document.ID, document)
-			// batch.IndexAdvanced(document)
-		}
-		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
+	err = Load(ctx, qs, configs, index, nil)
+	if err != nil {
+		return nil, err
 	}
-	index.Batch(batch)
 	clog.Infof("Built search index")
 	return index, nil
 }
