@@ -31,16 +31,20 @@ type Document = struct {
 	Fields
 }
 
-func NewDocumentFromProperties(id ID, t string, props properties) Document {
+func newDocumentFromProperties(id ID, t string, props properties) Document {
 	f := Fields{
 		"_type": t,
 	}
 	for property, values := range props {
-		var nativeValues []interface{}
-		for _, value := range values {
-			nativeValues = append(nativeValues, value.Native())
+		if len(values) == 1 {
+			f[property] = values[0].Native()
+		} else {
+			var nativeValues []interface{}
+			for _, value := range values {
+				nativeValues = append(nativeValues, value.Native())
+			}
+			f[property] = interface{}(nativeValues)
 		}
-		f[property] = interface{}(nativeValues)
 	}
 	return Document{
 		ID:     id,
@@ -100,7 +104,7 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) (
 	}
 	var documents []Document
 	for iri, properties := range idToFields {
-		documents = append(documents, NewDocumentFromProperties(iri, config.Name, properties))
+		documents = append(documents, newDocumentFromProperties(iri, config.Name, properties))
 	}
 	return documents, nil
 }
@@ -121,19 +125,25 @@ func addDocumentMapping(indexMapping *mapping.IndexMappingImpl, config IndexConf
 	}
 }
 
+func newIndexMapping(configs []IndexConfig) *mapping.IndexMappingImpl {
+	indexMapping := bleve.NewIndexMapping()
+	indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
+	for _, config := range configs {
+		addDocumentMapping(indexMapping, config)
+	}
+	return indexMapping
+}
+
 // NewIndex builds a new search index
 func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (bleve.Index, error) {
 	clog.Infof("Building search index...")
-	mapping := bleve.NewIndexMapping()
-	for _, config := range configs {
-		addDocumentMapping(mapping, config)
-	}
-	index, err := bleve.New(IndexPath, mapping)
+	indexMapping := newIndexMapping(configs)
+	index, err := bleve.New(IndexPath, indexMapping)
 	if err != nil {
 		return nil, err
 	}
 	for _, config := range configs {
-		clog.Infof("Retreiving for %s documents...", config.Name)
+		clog.Infof("Retreiving for \"%s\" documents...", config.Name)
 		documents, err := getDocuments(ctx, qs, config)
 		if err != nil {
 			return nil, err
@@ -141,7 +151,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 		for _, document := range documents {
 			index.Index(string(document.ID), document.Fields)
 		}
-		clog.Infof("Retrieved %v documents for %s...", len(documents), config.Name)
+		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
 	}
 	clog.Infof("Built search index")
 	return index, nil
@@ -165,6 +175,17 @@ func ClearIndex() error {
 	return err
 }
 
+func searchResultsToDocuments(searchResults *bleve.SearchResult) []Document {
+	var documents []Document
+	for _, hit := range searchResults.Hits {
+		documents = append(documents, Document{
+			ID:     quad.IRI(hit.ID),
+			Fields: hit.Fields,
+		})
+	}
+	return documents
+}
+
 // Search for given index and query creates a search request and translates the results to Documents
 func Search(index bleve.Index, query string) ([]Document, error) {
 	matchQuery := bleve.NewMatchQuery(query)
@@ -173,12 +194,5 @@ func Search(index bleve.Index, query string) ([]Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	var documents []Document
-	for _, hit := range searchResults.Hits {
-		documents = append(documents, Document{
-			ID:     quad.IRI(hit.ID),
-			Fields: hit.Fields,
-		})
-	}
-	return documents, nil
+	return searchResultsToDocuments(searchResults), nil
 }

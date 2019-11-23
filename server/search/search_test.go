@@ -32,7 +32,7 @@ func TestGetDocuments(t *testing.T) {
 			ID: quad.IRI("alice"),
 			Fields: Fields{
 				"_type": "people",
-				"name":  interface{}([]interface{}{"Alice"}),
+				"name":  "Alice",
 			},
 		},
 	}, documents)
@@ -62,4 +62,5 @@ func TestSearch(t *testing.T) {
 	results, err := Search(index, "alice")
 	require.NoError(t, err)
 	require.NotEmpty(t, results)
+	require.Len(t, results, 1)
 }
