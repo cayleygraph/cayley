@@ -114,22 +114,24 @@ func OpenIndex() (bleve.Index, error) {
 	return bleve.Open(IndexPath)
 }
 
-// addDocumentMapping to given indexMapping according to given config
-func addDocumentMapping(indexMapping *mapping.IndexMappingImpl, config IndexConfig) {
-	documentMapping := bleve.NewDocumentMapping()
-	indexMapping.AddDocumentMapping(config.Name, documentMapping)
-	for _, property := range config.Properties {
-		nameFieldMapping := bleve.NewTextFieldMapping()
-		nameFieldMapping.Analyzer = simple.Name
-		documentMapping.AddFieldMappingsAt(string(property), nameFieldMapping)
-	}
-}
-
 func newIndexMapping(configs []IndexConfig) *mapping.IndexMappingImpl {
 	indexMapping := bleve.NewIndexMapping()
+	// Disable default mapping as all search types are strictly defined
 	indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
+	// Use simple analyzer by default
+	// TODO(iddan): make this configurable
+	indexMapping.DefaultAnalyzer = simple.Name
+	indexMapping.StoreDynamic = false
+	indexMapping.IndexDynamic = false
+	indexMapping.DocValuesDynamic = false
 	for _, config := range configs {
-		addDocumentMapping(indexMapping, config)
+		// Use static document mapping as fields of the document are predefined
+		documentMapping := bleve.NewDocumentStaticMapping()
+		indexMapping.AddDocumentMapping(config.Name, documentMapping)
+		for _, property := range config.Properties {
+			fieldMapping := bleve.NewTextFieldMapping()
+			documentMapping.AddFieldMappingsAt(string(property), fieldMapping)
+		}
 	}
 	return indexMapping
 }
