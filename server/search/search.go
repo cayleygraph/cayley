@@ -108,7 +108,7 @@ func OpenIndex() (bleve.Index, error) {
 	return bleve.Open(IndexPath)
 }
 
-func newIndexMapping(configs []IndexConfig) *mapping.IndexMappingImpl {
+func newIndexMapping(configs []IndexConfig) mapping.IndexMapping {
 	indexMapping := bleve.NewIndexMapping()
 	for _, config := range configs {
 		documentMapping := bleve.NewDocumentMapping()
