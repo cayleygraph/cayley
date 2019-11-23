@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/blevesearch/bleve/document"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/quad"
 	"github.com/stretchr/testify/require"
@@ -14,7 +15,7 @@ func TestGetDocuments(t *testing.T) {
 		quad.Quad{
 			Subject:   quad.IRI("alice"),
 			Predicate: quad.IRI("name"),
-			Object:    quad.String("Alice"),
+			Object:    quad.String("Alice Liddell"),
 			Label:     quad.IRI(""),
 		},
 	}
@@ -26,16 +27,10 @@ func TestGetDocuments(t *testing.T) {
 	}
 	qs := memstore.New(data...)
 	documents, err := getDocuments(context.TODO(), qs, config)
+	expectedDocument := document.NewDocument("alice")
+	expectedDocument.AddField(document.NewTextField("name", nil, []byte("Alice Liddell")))
 	require.NoError(t, err)
-	require.Equal(t, []Document{
-		{
-			ID: quad.IRI("alice"),
-			Fields: Fields{
-				"_type": "people",
-				"name":  "Alice",
-			},
-		},
-	}, documents)
+	require.Equal(t, []*document.Document{expectedDocument}, documents)
 }
 
 func TestSearch(t *testing.T) {
@@ -43,7 +38,7 @@ func TestSearch(t *testing.T) {
 		quad.Quad{
 			Subject:   quad.IRI("alice"),
 			Predicate: quad.IRI("name"),
-			Object:    quad.String("Alice"),
+			Object:    quad.String("Alice Liddell"),
 			Label:     quad.IRI(""),
 		},
 	}
@@ -59,8 +54,15 @@ func TestSearch(t *testing.T) {
 	ClearIndex()
 	index, err := NewIndex(context.TODO(), qs, configs)
 	require.NoError(t, err)
+	fields, err := index.Fields()
+	require.Equal(t, fields, []string{"name"})
+	expectedDocuments, err := getDocuments(context.TODO(), qs, configs[0])
+	for _, expectedDocument := range expectedDocuments {
+		d, err := index.Document(expectedDocument.ID)
+		require.NoError(t, err)
+		require.Equal(t, expectedDocument, d)
+	}
 	results, err := Search(index, "alice")
 	require.NoError(t, err)
-	require.NotEmpty(t, results)
 	require.Len(t, results, 1)
 }

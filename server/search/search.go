@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/analysis/analyzer/simple"
+	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -17,39 +17,23 @@ import (
 // IndexPath is the path to the directory the search index will be stored at
 const IndexPath = "searchIndex.bleve"
 
-// ID is the identifier for the data indexed by the search
-type ID = quad.IRI
-
-// Fields are the data indexed by the search
-type Fields = map[string]interface{}
-
 type properties map[string][]quad.Value
 
-// Document is a container around ID and it's associated Properties
-type Document = struct {
-	ID
-	Fields
-}
-
-func newDocumentFromProperties(id ID, t string, props properties) Document {
-	f := Fields{
-		"_type": t,
-	}
+// TODO(iddan): make analyzer configurable
+func newDocumentFromProperties(id quad.IRI, props properties) *document.Document {
+	d := document.NewDocument(string(id))
 	for property, values := range props {
-		if len(values) == 1 {
-			f[property] = values[0].Native()
-		} else {
-			var nativeValues []interface{}
-			for _, value := range values {
-				nativeValues = append(nativeValues, value.Native())
+		for _, value := range values {
+			// TODO(iddan): support more types
+			stringValue, ok := value.Native().(string)
+			if !ok {
+				continue
 			}
-			f[property] = interface{}(nativeValues)
+			field := document.NewTextField(property, nil, []byte(stringValue))
+			d.AddField(field)
 		}
 	}
-	return Document{
-		ID:     id,
-		Fields: f,
-	}
+	return d
 }
 
 // IndexConfig specifies a single index type.
@@ -70,7 +54,7 @@ func newPath(qs graph.QuadStore, config IndexConfig) *path.Path {
 }
 
 // getDocuments for given IDs reterives documents from the graph
-func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) ([]Document, error) {
+func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) ([]*document.Document, error) {
 	p := newPath(qs, config)
 	scanner := p.BuildIterator(ctx).Iterate()
 	idToFields := make(map[quad.IRI]properties)
@@ -102,9 +86,9 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) (
 	if err != nil {
 		return nil, err
 	}
-	var documents []Document
+	var documents []*document.Document
 	for iri, properties := range idToFields {
-		documents = append(documents, newDocumentFromProperties(iri, config.Name, properties))
+		documents = append(documents, newDocumentFromProperties(iri, properties))
 	}
 	return documents, nil
 }
@@ -116,23 +100,11 @@ func OpenIndex() (bleve.Index, error) {
 
 func newIndexMapping(configs []IndexConfig) *mapping.IndexMappingImpl {
 	indexMapping := bleve.NewIndexMapping()
-	// Disable default mapping as all search types are strictly defined
-	indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
-	// Use simple analyzer by default
-	// TODO(iddan): make this configurable
-	indexMapping.DefaultAnalyzer = simple.Name
-	indexMapping.StoreDynamic = false
-	indexMapping.IndexDynamic = false
-	indexMapping.DocValuesDynamic = false
-	for _, config := range configs {
-		// Use static document mapping as fields of the document are predefined
-		documentMapping := bleve.NewDocumentStaticMapping()
-		indexMapping.AddDocumentMapping(config.Name, documentMapping)
-		for _, property := range config.Properties {
-			fieldMapping := bleve.NewTextFieldMapping()
-			documentMapping.AddFieldMappingsAt(string(property), fieldMapping)
-		}
-	}
+	// Disable default mapping as mapping is done manually.
+	// indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
+	// indexMapping.StoreDynamic = false
+	// indexMapping.IndexDynamic = false
+	// indexMapping.DocValuesDynamic = false
 	return indexMapping
 }
 
@@ -152,7 +124,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 			return nil, err
 		}
 		for _, document := range documents {
-			batch.Index(string(document.ID), document.Fields)
+			batch.IndexAdvanced(document)
 		}
 		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
 	}
@@ -179,24 +151,21 @@ func ClearIndex() error {
 	return err
 }
 
-func searchResultsToDocuments(searchResults *bleve.SearchResult) []Document {
-	var documents []Document
+func toIRIs(searchResults *bleve.SearchResult) []quad.IRI {
+	var results []quad.IRI
 	for _, hit := range searchResults.Hits {
-		documents = append(documents, Document{
-			ID:     quad.IRI(hit.ID),
-			Fields: hit.Fields,
-		})
+		results = append(results, quad.IRI(hit.ID))
 	}
-	return documents
+	return results
 }
 
 // Search for given index and query creates a search request and translates the results to Documents
-func Search(index bleve.Index, query string) ([]Document, error) {
+func Search(index bleve.Index, query string) ([]quad.IRI, error) {
 	matchQuery := bleve.NewMatchQuery(query)
 	search := bleve.NewSearchRequest(matchQuery)
 	searchResults, err := index.Search(search)
 	if err != nil {
 		return nil, err
 	}
-	return searchResultsToDocuments(searchResults), nil
+	return toIRIs(searchResults), nil
 }
