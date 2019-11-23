@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
@@ -16,25 +15,6 @@ import (
 
 // IndexPath is the path to the directory the search index will be stored at
 const IndexPath = "searchIndex.bleve"
-
-type properties map[string][]quad.Value
-
-// TODO(iddan): make analyzer configurable
-func newDocumentFromProperties(id quad.IRI, props properties) *document.Document {
-	d := document.NewDocument(string(id))
-	for property, values := range props {
-		for _, value := range values {
-			// TODO(iddan): support more types
-			stringValue, ok := value.Native().(string)
-			if !ok {
-				continue
-			}
-			field := document.NewTextField(property, nil, []byte(stringValue))
-			d.AddField(field)
-		}
-	}
-	return d
-}
 
 // IndexConfig specifies a single index type.
 // Each Cayley instance can have multiple index configs defined
@@ -53,11 +33,27 @@ func newPath(qs graph.QuadStore, config IndexConfig) *path.Path {
 	return p
 }
 
+type data map[string]interface{}
+
+type document struct {
+	id   string
+	data data
+}
+
+// TODO(iddan): support more types
+func parseValue(value quad.Value) interface{} {
+	stringValue, ok := value.Native().(string)
+	if !ok {
+		return nil
+	}
+	return stringValue
+}
+
 // getDocuments for given IDs reterives documents from the graph
-func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) ([]*document.Document, error) {
+func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) ([]document, error) {
 	p := newPath(qs, config)
 	scanner := p.BuildIterator(ctx).Iterate()
-	idToFields := make(map[quad.IRI]properties)
+	idToData := make(map[string]data)
 	for scanner.Next(ctx) {
 		err := scanner.Err()
 		if err != nil {
@@ -71,14 +67,28 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) (
 		if !ok {
 			continue
 		}
-		fields, ok := idToFields[iri]
+		id := string(iri)
+		fields, ok := idToData[id]
 		if !ok {
-			fields = make(properties)
-			idToFields[iri] = fields
+			fields = data{
+				"_type": config.Name,
+			}
+			idToData[id] = fields
 		}
 		for key, ref := range tags {
 			value := qs.NameOf(ref)
-			fields[key] = append(fields[key], value)
+			current := fields[key]
+			var values []interface{}
+			if current == nil {
+				fields[key] = values
+			} else {
+				values = current.([]interface{})
+			}
+			parsed := parseValue(value)
+			if parsed == nil {
+				continue
+			}
+			fields[key] = append(values, parsed)
 		}
 
 	}
@@ -86,9 +96,9 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) (
 	if err != nil {
 		return nil, err
 	}
-	var documents []*document.Document
-	for iri, properties := range idToFields {
-		documents = append(documents, newDocumentFromProperties(iri, properties))
+	var documents []document
+	for id, d := range idToData {
+		documents = append(documents, document{id: id, data: d})
 	}
 	return documents, nil
 }
@@ -100,11 +110,18 @@ func OpenIndex() (bleve.Index, error) {
 
 func newIndexMapping(configs []IndexConfig) *mapping.IndexMappingImpl {
 	indexMapping := bleve.NewIndexMapping()
+	for _, config := range configs {
+		documentMapping := bleve.NewDocumentMapping()
+		for _, property := range config.Properties {
+			documentMapping.AddFieldMappingsAt(string(property), bleve.NewTextFieldMapping())
+		}
+		indexMapping.AddDocumentMapping("people", documentMapping)
+	}
 	// Disable default mapping as mapping is done manually.
-	// indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
-	// indexMapping.StoreDynamic = false
-	// indexMapping.IndexDynamic = false
-	// indexMapping.DocValuesDynamic = false
+	indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
+	indexMapping.StoreDynamic = false
+	indexMapping.DocValuesDynamic = false
+	indexMapping.IndexDynamic = false
 	return indexMapping
 }
 
@@ -124,7 +141,10 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 			return nil, err
 		}
 		for _, document := range documents {
-			batch.IndexAdvanced(document)
+			id := document.id
+			batch.Index(id, document.data)
+			// batch.Index(document.ID, document)
+			// batch.IndexAdvanced(document)
 		}
 		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
 	}

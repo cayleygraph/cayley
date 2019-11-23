@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/blevesearch/bleve/document"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/quad"
 	"github.com/stretchr/testify/require"
@@ -27,10 +26,17 @@ func TestGetDocuments(t *testing.T) {
 	}
 	qs := memstore.New(data...)
 	documents, err := getDocuments(context.TODO(), qs, config)
-	expectedDocument := document.NewDocument("alice")
-	expectedDocument.AddField(document.NewTextField("name", nil, []byte("Alice Liddell")))
+	expectedDocuments := []document{
+		{
+			id: "alice",
+			data: map[string]interface{}{
+				"_type": "people",
+				"name":  []interface{}{"Alice Liddell"},
+			},
+		},
+	}
 	require.NoError(t, err)
-	require.Equal(t, []*document.Document{expectedDocument}, documents)
+	require.Equal(t, expectedDocuments, documents)
 }
 
 func TestSearch(t *testing.T) {
@@ -54,15 +60,19 @@ func TestSearch(t *testing.T) {
 	ClearIndex()
 	index, err := NewIndex(context.TODO(), qs, configs)
 	require.NoError(t, err)
-	fields, err := index.Fields()
-	require.Equal(t, fields, []string{"name"})
-	expectedDocuments, err := getDocuments(context.TODO(), qs, configs[0])
-	for _, expectedDocument := range expectedDocuments {
-		d, err := index.Document(expectedDocument.ID)
-		require.NoError(t, err)
-		require.Equal(t, expectedDocument, d)
-	}
-	results, err := Search(index, "alice")
+
+	results, err := Search(index, "Alice Liddell")
 	require.NoError(t, err)
 	require.Len(t, results, 1)
+	require.Equal(t, quad.IRI("alice"), results[0])
+
+	results, err = Search(index, "Liddell")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, quad.IRI("alice"), results[0])
+
+	results, err = Search(index, "Alice")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, quad.IRI("alice"), results[0])
 }
