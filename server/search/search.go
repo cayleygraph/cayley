@@ -34,8 +34,8 @@ type IndexConfig struct {
 }
 
 // newPath for given quad store and IDs returns path to get the data required for the search
-func newPath(qs graph.QuadStore, config IndexConfig) *path.Path {
-	p := path.StartPath(qs)
+func newPath(qs graph.QuadStore, config IndexConfig, entities []quad.Value) *path.Path {
+	p := path.StartPath(qs, entities...)
 	for predicate, object := range config.Match {
 		p = p.Has(predicate, object...)
 	}
@@ -61,9 +61,21 @@ func parseValue(value quad.Value) interface{} {
 	return stringValue
 }
 
-// getDocuments for given IDs reterives documents from the graph
-func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) ([]document, error) {
-	p := newPath(qs, config)
+func identifierToString(identifier quad.Value) (string, error) {
+	switch v := identifier.(type) {
+	case quad.IRI:
+		return string(v), nil
+	case quad.BNode:
+		return string(v), nil
+	default:
+		return "", fmt.Errorf("Given quad.Value is not an identifier")
+	}
+}
+
+// getDocuments for config reterives documents from the graph
+// If provided with entities reterives documents only of given entities
+func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig, entities []quad.Value) ([]document, error) {
+	p := newPath(qs, config, entities)
 	scanner := p.BuildIterator(ctx).Iterate()
 	idToData := make(map[string]data)
 	for scanner.Next(ctx) {
@@ -74,12 +86,10 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config IndexConfig) (
 		tags := make(map[string]refs.Ref)
 		scanner.TagResults(tags)
 		name := qs.NameOf(scanner.Result())
-		// Should this be BNode as well?
-		iri, ok := name.(quad.IRI)
-		if !ok {
+		id, err := identifierToString(name)
+		if err != nil {
 			continue
 		}
-		id := string(iri)
 		fields, ok := idToData[id]
 		if !ok {
 			fields = data{
@@ -182,7 +192,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving for \"%s\" documents...", config.Name)
-		documents, err := getDocuments(ctx, qs, config)
+		documents, err := getDocuments(ctx, qs, config, nil)
 		if err != nil {
 			return nil, err
 		}
