@@ -9,34 +9,98 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetDocuments(t *testing.T) {
-	data := []quad.Quad{
-		quad.Quad{
-			Subject:   quad.IRI("alice"),
-			Predicate: quad.IRI("name"),
-			Object:    quad.String("Alice Liddell"),
-			Label:     quad.IRI(""),
-		},
-	}
-	config := IndexConfig{
-		Name: "people",
-		Properties: []quad.IRI{
-			quad.IRI("name"),
-		},
-	}
-	qs := memstore.New(data...)
-	documents, err := getDocuments(context.TODO(), qs, config)
-	expectedDocuments := []document{
-		{
-			id: "alice",
-			data: map[string]interface{}{
-				"_type": "people",
-				"name":  []interface{}{"Alice Liddell"},
+type testCase struct {
+	Name     string
+	Data     []quad.Quad
+	Config   IndexConfig
+	Expected []document
+}
+
+var testCases = []testCase{
+	{
+		Name: "Simple",
+		Data: []quad.Quad{
+			quad.Quad{
+				Subject:   quad.IRI("alice"),
+				Predicate: quad.IRI("name"),
+				Object:    quad.String("Alice Liddell"),
+				Label:     quad.IRI(""),
 			},
 		},
+		Config: IndexConfig{
+			Name: "people",
+			Properties: []PropertyConfig{
+				{
+					Name: quad.IRI("name"),
+				},
+			},
+		},
+		Expected: []document{
+			{
+				id: "alice",
+				data: map[string]interface{}{
+					"_type": "people",
+					"name":  []interface{}{"Alice Liddell"},
+				},
+			},
+		},
+	},
+	{
+		Name: "With Match",
+		Data: []quad.Quad{
+			quad.Quad{
+				Subject:   quad.IRI("alice"),
+				Predicate: quad.IRI("name"),
+				Object:    quad.String("Alice Liddell"),
+				Label:     quad.IRI(""),
+			},
+			quad.Quad{
+				Subject:   quad.IRI("alice"),
+				Predicate: quad.IRI("rdf:type"),
+				Object:    quad.IRI("Person"),
+				Label:     quad.IRI(""),
+			},
+			quad.Quad{
+				Subject:   quad.IRI("bob"),
+				Predicate: quad.IRI("name"),
+				Object:    quad.String("Bob Cool"),
+				Label:     quad.IRI(""),
+			},
+		},
+		Config: IndexConfig{
+			Name: "people",
+			Match: map[quad.IRI][]quad.Value{
+				quad.IRI("rdf:type"): {
+					quad.IRI("Person"),
+				},
+			},
+			Properties: []PropertyConfig{
+				{
+					Name: quad.IRI("name"),
+				},
+			},
+		},
+		Expected: []document{
+			{
+				id: "alice",
+				data: map[string]interface{}{
+					"_type": "people",
+					"name":  []interface{}{"Alice Liddell"},
+				},
+			},
+		},
+	},
+}
+
+func TestGetDocuments(t *testing.T) {
+	for _, c := range testCases {
+		t.Run(c.Name, func(t *testing.T) {
+			qs := memstore.New(c.Data...)
+			documents, err := getDocuments(context.TODO(), qs, c.Config)
+			require.NoError(t, err)
+			require.Equal(t, c.Expected, documents)
+		})
 	}
-	require.NoError(t, err)
-	require.Equal(t, expectedDocuments, documents)
 }
 
 func TestSearch(t *testing.T) {
@@ -51,8 +115,10 @@ func TestSearch(t *testing.T) {
 	configs := []IndexConfig{
 		{
 			Name: "people",
-			Properties: []quad.IRI{
-				quad.IRI("name"),
+			Properties: []PropertyConfig{
+				{
+					Name: quad.IRI("name"),
+				},
 			},
 		},
 	}

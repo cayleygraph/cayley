@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/blevesearch/bleve"
@@ -16,19 +17,30 @@ import (
 // IndexPath is the path to the directory the search index will be stored at
 const IndexPath = "searchIndex.bleve"
 
+// PropertyConfig how to index a property of a matched entity
+type PropertyConfig struct {
+	Name     quad.IRI
+	Type     string
+	Analyzer string
+}
+
 // IndexConfig specifies a single index type.
 // Each Cayley instance can have multiple index configs defined
 type IndexConfig struct {
 	// TODO(iddan): customize matching
 	Name       string
-	Properties []quad.IRI
+	Match      map[quad.IRI][]quad.Value
+	Properties []PropertyConfig
 }
 
 // newPath for given quad store and IDs returns path to get the data required for the search
 func newPath(qs graph.QuadStore, config IndexConfig) *path.Path {
 	p := path.StartPath(qs)
+	for predicate, object := range config.Match {
+		p = p.Has(predicate, object...)
+	}
 	for _, property := range config.Properties {
-		p = p.Save(property, string(property))
+		p = p.Save(property.Name, string(property.Name))
 	}
 	return p
 }
@@ -108,14 +120,48 @@ func OpenIndex() (bleve.Index, error) {
 	return bleve.Open(IndexPath)
 }
 
+const defaultFieldType = "string"
+
+func resolveFieldConstructor(t string) (func() *mapping.FieldMapping, error) {
+	if t == "" {
+		t = defaultFieldType
+	}
+	switch t {
+	case "string":
+		return bleve.NewTextFieldMapping, nil
+	case "boolean":
+		return bleve.NewBooleanFieldMapping, nil
+	case "number":
+		return bleve.NewNumericFieldMapping, nil
+	case "datatime":
+		return bleve.NewDateTimeFieldMapping, nil
+	case "geopoint":
+		return bleve.NewGeoPointFieldMapping, nil
+	default:
+		return nil, fmt.Errorf("Unknown search document field type \"%v\"", t)
+	}
+}
+
+func newDocumentMapping(config IndexConfig) *mapping.DocumentMapping {
+	documentMapping := bleve.NewDocumentMapping()
+	for _, property := range config.Properties {
+		constructor, err := resolveFieldConstructor(property.Type)
+		if err != nil {
+			panic(err)
+		}
+		fieldMapping := constructor()
+		if property.Analyzer != "" {
+			fieldMapping.Analyzer = property.Analyzer
+		}
+		documentMapping.AddFieldMappingsAt(string(property.Name), fieldMapping)
+	}
+	return documentMapping
+}
+
 func newIndexMapping(configs []IndexConfig) mapping.IndexMapping {
 	indexMapping := bleve.NewIndexMapping()
 	for _, config := range configs {
-		documentMapping := bleve.NewDocumentMapping()
-		for _, property := range config.Properties {
-			documentMapping.AddFieldMappingsAt(string(property), bleve.NewTextFieldMapping())
-		}
-		indexMapping.AddDocumentMapping(config.Name, documentMapping)
+		indexMapping.AddDocumentMapping(config.Name, newDocumentMapping(config))
 	}
 	// Disable default mapping as mapping is done manually.
 	indexMapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
