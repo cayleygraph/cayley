@@ -144,6 +144,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 	if err != nil {
 		return nil, err
 	}
+	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving for \"%s\" documents...", config.Name)
 		documents, err := getDocuments(ctx, qs, config)
@@ -151,10 +152,11 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 			return nil, err
 		}
 		for _, document := range documents {
-			index.Index(string(document.ID), document.Fields)
+			batch.Index(string(document.ID), document.Fields)
 		}
 		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
 	}
+	index.Batch(batch)
 	clog.Infof("Built search index")
 	return index, nil
 }
