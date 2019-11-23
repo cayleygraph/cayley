@@ -181,13 +181,13 @@ func newIndexMapping(configs []IndexConfig) mapping.IndexMapping {
 	return indexMapping
 }
 
-// Load documents for given quad store and configuration to given index
-// If entities is empty load all the matching documents in the quad store
+// Index documents from given quad store by given configuration to given index
+// If entities is empty index all the matching documents in the quad store
 // Otherwise only load documents of the provided entities
-func Load(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index bleve.Index, entities []quad.Value) error {
+func Index(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index bleve.Index, entities []quad.Value) error {
 	batch := index.NewBatch()
 	for _, config := range configs {
-		clog.Infof("Retreiving for \"%s\" documents...", config.Name)
+		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
 		documents, err := getDocuments(ctx, qs, config, nil)
 		if err != nil {
 			return err
@@ -198,6 +198,29 @@ func Load(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index 
 		}
 		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
 	}
+	clog.Infof("Indexing %v documents", batch.Size())
+	index.Batch(batch)
+	return nil
+}
+
+// Delete documents from given quad store by given configuration for given index
+// If entities is empty delete all matching documents in the quad store
+// Otherwise only delete documents of the provided entities
+func Delete(ctx context.Context, qs graph.QuadStore, configs []IndexConfig, index bleve.Index, entities []quad.Value) error {
+	batch := index.NewBatch()
+	for _, config := range configs {
+		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
+		documents, err := getDocuments(ctx, qs, config, nil)
+		if err != nil {
+			return err
+		}
+		for _, document := range documents {
+			id := document.id
+			batch.Delete(id)
+		}
+		clog.Infof("Retrieved %v documents for \"%s\"", len(documents), config.Name)
+	}
+	clog.Infof("Deleting %v documents", batch.Size())
 	index.Batch(batch)
 	return nil
 }
@@ -210,7 +233,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []IndexConfig) (b
 	if err != nil {
 		return nil, err
 	}
-	err = Load(ctx, qs, configs, index, nil)
+	err = Index(ctx, qs, configs, index, nil)
 	if err != nil {
 		return nil, err
 	}
