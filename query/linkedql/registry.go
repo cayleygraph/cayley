@@ -124,7 +124,11 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			if err != nil {
 				return nil, err
 			}
-			val, err := parseIRI(v)
+			s, ok := a.(string)
+			if !ok {
+				return nil, fmt.Errorf("Expected a string but received %v instead", a)
+			}
+			val, err := parseIRI(s)
 			if err != nil {
 				return nil, err
 			}
@@ -138,7 +142,11 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			}
 			var values []quad.IRI
 			for _, item := range a {
-				val, err := parseIRI(item)
+				s, ok := item.(string)
+				if !ok {
+					return nil, fmt.Errorf("Expected a string but received %v instead", item)
+				}
+				val, err := parseIRI(s)
 				if err != nil {
 					return nil, err
 				}
@@ -188,20 +196,27 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 	return item.Addr().Interface().(RegistryItem), nil
 }
 
-func parseBNode(a interface{}) (quad.BNode, error) {
-	s, err := parseIdentifierString(a)
-	if err != nil {
-		return "", err
-	}
+func parseBNode(s string) (quad.BNode, error) {
 	if !strings.HasPrefix(s, "_:") {
 		return "", fmt.Errorf("blank node ID must start with \"_:\"")
 	}
 	return quad.BNode(s[2:]), nil
 }
 
-func parseIRI(a interface{}) (quad.IRI, error) {
-	s, err := parseIdentifierString(a)
-	return quad.IRI(s), err
+func parseIRI(s string) (quad.IRI, error) {
+	return quad.IRI(s), nil
+}
+
+func parseIdentifier(s string) (quad.Value, error) {
+	bnode, err := parseBNode(s)
+	if err == nil {
+		return bnode, nil
+	}
+	iri, err := parseIRI(s)
+	if err == nil {
+		return iri, nil
+	}
+	return nil, fmt.Errorf("can not parse JSON-LD identifier: %#v", s)
 }
 
 func parseIdentifierString(a interface{}) (string, error) {
@@ -240,13 +255,12 @@ func parseLiteral(a interface{}) (quad.Value, error) {
 }
 
 func parseValue(a interface{}) (quad.Value, error) {
-	bnode, err := parseBNode(a)
+	identifierString, err := parseIdentifierString(a)
 	if err == nil {
-		return bnode, nil
-	}
-	iri, err := parseIRI(a)
-	if err == nil {
-		return iri, nil
+		identifier, err := parseIdentifier(identifierString)
+		if err == nil {
+			return identifier, nil
+		}
 	}
 	lit, err := parseLiteral(a)
 	if err == nil {

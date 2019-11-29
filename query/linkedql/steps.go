@@ -100,6 +100,104 @@ func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return iris.BuildPath(qs)
 }
 
+// EntityIdentifier is an interface to be used where a single entity identifier is expected.
+type EntityIdentifier interface {
+	BuildIdentifier() (quad.Value, error)
+}
+
+// EntityIRI is an entity IRI.
+type EntityIRI quad.IRI
+
+// BuildIdentifier implements EntityIdentifier
+func (i EntityIRI) BuildIdentifier() (quad.Value, error) {
+	return quad.IRI(i), nil
+}
+
+// EntityBNode is an entity BNode.
+type EntityBNode quad.BNode
+
+// BuildIdentifier implements EntityIdentifier
+func (i EntityBNode) BuildIdentifier() (quad.Value, error) {
+	return quad.BNode(i), nil
+}
+
+// EntityIdentifierString is an entity IRI or BNode strings.
+type EntityIdentifierString string
+
+// BuildIdentifier implements EntityIdentifier
+func (i EntityIdentifierString) BuildIdentifier() (quad.Value, error) {
+	return parseIdentifier(string(i))
+}
+
+var _ IteratorStep = (*Vertex)(nil)
+var _ PathStep = (*Vertex)(nil)
+
+// Entity corresponds to g.Entity().
+type Entity struct {
+	Identifier EntityIdentifier `json:"identifier"`
+}
+
+// Type implements Step.
+func (s *Entity) Type() quad.IRI {
+	return Prefix + "Entity"
+}
+
+// Description implements Step.
+func (s *Entity) Description() string {
+	return "Entity resolves to the object matching given identifier in the graph."
+}
+
+// BuildIterator implements IteratorStep.
+func (s *Entity) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements PathStep.
+func (s *Entity) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	identifier, err := s.Identifier.BuildIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	return path.StartPath(qs, identifier), nil
+}
+
+var _ IteratorStep = (*Vertex)(nil)
+var _ PathStep = (*Vertex)(nil)
+
+// Entities corresponds to g.Entities().
+type Entities struct {
+	Identifiers []EntityIdentifier `json:"identifiers"`
+}
+
+// Type implements Step.
+func (s *Entities) Type() quad.IRI {
+	return Prefix + "Entities"
+}
+
+// Description implements Step.
+func (s *Entities) Description() string {
+	return "Entities resolves to all the existing objects in the graph. If provided with identifiers resolves to a sublist of all the existing identifiers in the graph."
+}
+
+// BuildIterator implements IteratorStep.
+func (s *Entities) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements PathStep.
+func (s *Entities) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	var values []quad.Value
+	for _, identifier := range s.Identifiers {
+		value, err := identifier.BuildIdentifier()
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	// TODO(iddan): Construct a path that only match entities
+	return path.StartPath(qs, values...), nil
+}
+
 var _ IteratorStep = (*Vertex)(nil)
 var _ PathStep = (*Vertex)(nil)
 

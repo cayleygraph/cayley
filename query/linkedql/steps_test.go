@@ -20,9 +20,17 @@ var testCases = []struct {
 	results []interface{}
 }{
 	{
+		name:  "All Entities",
+		data:  singleQuadData,
+		query: &Entities{Identifiers: []EntityIdentifier{EntityIdentifierString("alice")}},
+		results: []interface{}{
+			quad.IRI("alice"),
+		},
+	},
+	{
 		name:  "All Vertices",
 		data:  singleQuadData,
-		query: &Vertex{Values: []quad.Value{}},
+		query: &Vertex{Values: nil},
 		results: []interface{}{
 			quad.IRI("alice"),
 			quad.IRI("likes"),
