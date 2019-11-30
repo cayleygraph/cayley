@@ -234,7 +234,7 @@ func (g *generator) Generate() []byte {
 		}
 		var rng interface{}
 		if len(ranges) == 1 {
-			rng = ranges[0]
+			rng = newIdentified(ranges[0])
 		} else {
 			rng = newUnionOf(ranges)
 		}
