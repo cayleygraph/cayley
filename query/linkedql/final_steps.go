@@ -82,7 +82,7 @@ func (s *Value) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Value) Description() string {
-	return "FIXME(iddan): add description" // FIXME(iddan)
+	return "Value returns a single value matched in the query"
 }
 
 // BuildIterator implements IteratorStep
