@@ -116,13 +116,11 @@ func getStepTypeClass(t reflect.Type) string {
 }
 
 type list struct {
-	ID      string        `json:"@id"`
 	Members []interface{} `json:"@list"`
 }
 
 func newList(members []interface{}) list {
 	return list{
-		ID:      newBlankNodeID(),
 		Members: members,
 	}
 }
