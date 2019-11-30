@@ -233,7 +233,7 @@ type Placeholder struct{}
 
 // Type implements Step.
 func (s *Placeholder) Type() quad.IRI {
-	return "Placeholder"
+	return Prefix + "Placeholder"
 }
 
 // Description implements Step.
