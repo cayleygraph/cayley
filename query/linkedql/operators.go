@@ -27,7 +27,7 @@ func (s *LessThan) Type() quad.IRI {
 
 // Description implements Operator.
 func (s *LessThan) Description() string {
-	return "FIXME(iddan): add description" // FIXME(iddan)
+	return "Less than filters out values that are not less than given value"
 }
 
 // Apply implements Operator.
@@ -47,7 +47,7 @@ func (s *LessThanEquals) Type() quad.IRI {
 
 // Description implements Operator.
 func (s *LessThanEquals) Description() string {
-	return "FIXME(iddan): add description" // FIXME(iddan)
+	return "Less than equals filters out values that are not less than or equal given value"
 }
 
 // Apply implements Operator.
@@ -67,7 +67,7 @@ func (s *GreaterThan) Type() quad.IRI {
 
 // Description implements Operator.
 func (s *GreaterThan) Description() string {
-	return "FIXME(iddan): add description" // FIXME(iddan)
+	return "Greater than equals filters out values that are not greater than given value"
 }
 
 // Apply implements Operator.
@@ -87,7 +87,7 @@ func (s *GreaterThanEquals) Type() quad.IRI {
 
 // Description implements Operator.
 func (s *GreaterThanEquals) Description() string {
-	return "FIXME(iddan): add description" // FIXME(iddan)
+	return "Greater than equals filters out values that are not greater than or equal given value"
 }
 
 // Apply implements Operator.
@@ -108,7 +108,7 @@ func (s *RegExp) Type() quad.IRI {
 
 // Description implements Operator.
 func (s *RegExp) Description() string {
-	return "FIXME(iddan): add description" // FIXME(iddan)
+	return "RegExp filters out values that do not match given pattern. If includeIRIs is set to true it matches IRIs in addition to literals."
 }
 
 // Apply implements Operator.
@@ -135,7 +135,7 @@ func (s *Like) Type() quad.IRI {
 
 // Description implements Operator.
 func (s *Like) Description() string {
-	return "FIXME(iddan): add description" // FIXME(iddan)
+	return "Like filters out values that do not match given pattern."
 }
 
 // Apply implements Operator.
