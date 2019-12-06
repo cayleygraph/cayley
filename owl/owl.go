@@ -46,7 +46,7 @@ func (c *Class) Properties() []*Property {
 	ctx := context.TODO()
 	p := c.
 		path().
-		Or(c.unionsPath().In(quad.IRI("http://www.w3.org/2002/07/owl#unionOf").Full())).
+		Or(c.unionsPath().In(quad.IRI("owl:unionOf").Full())).
 		In(domain)
 	it := p.BuildIterator(ctx).Iterate()
 	var properties []*Property
@@ -62,7 +62,7 @@ func (c *Class) Properties() []*Property {
 }
 
 func (c *Class) ParentClasses() []*Class {
-	it := c.path().Out(rdfs.SubClassOf).BuildIterator(c.ctx).Iterate()
+	it := parentClassesPath(c).BuildIterator(c.ctx).Iterate()
 	var classes []*Class
 	for it.Next(c.ctx) {
 		class := classFromRef(c.ctx, c.qs, it.Result())
@@ -71,23 +71,42 @@ func (c *Class) ParentClasses() []*Class {
 	return classes
 }
 
-func propertyRestrictionsPath(c *Class, property Property, restrictionProperty quad.IRI) *path.Path {
-	subClassesPath := c.path().Out(quad.IRI(rdfs.SubClassOf).Full())
-	restrictionsPath := subClassesPath.Has(quad.IRI(rdf.Type).Full(), quad.IRI("owl:Restriction").Full())
-	propertyRestrictionsPath := restrictionsPath.Has(quad.IRI("owl:onProperty").Full(), property.Identifier)
-	return propertyRestrictionsPath.Out(restrictionProperty)
+func parentClassesPath(c *Class) *path.Path {
+	return c.path().Out(quad.IRI(rdfs.SubClassOf).Full())
 }
 
-func intFromScanner(ctx context.Context, it iterator.Scanner, qs graph.QuadStore) (int, error) {
+func restrictionsPath(c *Class) *path.Path {
+	return parentClassesPath(c).
+		Has(quad.IRI(rdf.Type).Full(), quad.IRI(Restriction))
+}
+
+func allPropertyRestrictionsPath(c *Class, property *Property) *path.Path {
+	return restrictionsPath(c).
+		Has(quad.IRI(OnProperty), property.Identifier)
+}
+
+func propertyRestrictionPath(c *Class, property *Property, restrictionProperty quad.IRI) *path.Path {
+	return allPropertyRestrictionsPath(c, property).
+		Out(restrictionProperty)
+}
+
+func intFromScanner(ctx context.Context, it iterator.Scanner, qs graph.QuadStore) (int64, error) {
 	for it.Next(ctx) {
 		ref := it.Result()
 		value := qs.NameOf(ref)
+		intValue, ok := value.(quad.Int)
+		var native interface{}
+		if ok {
+			native = intValue.Native()
+		}
 		typedString, ok := value.(quad.TypedString)
-		if !ok {
+		if ok {
+			native = typedString.Native()
+		}
+		if native == nil {
 			return -1, fmt.Errorf("Unexpected value %v of type %t", value, value)
 		}
-		native := typedString.Native()
-		i, ok := native.(int)
+		i, ok := native.(int64)
 		if !ok {
 			return -1, fmt.Errorf("Unexpected value %v of type %t", native, native)
 		}
@@ -98,24 +117,24 @@ func intFromScanner(ctx context.Context, it iterator.Scanner, qs graph.QuadStore
 
 // CardinalityOf returns the defined exact cardinality for the property for the class
 // If exact cardinality is not defined for the class returns an error
-func (c *Class) CardinalityOf(property Property) (int, error) {
-	p := propertyRestrictionsPath(c, property, quad.IRI("owl:cardinality").Full())
+func (c *Class) CardinalityOf(property *Property) (int64, error) {
+	p := propertyRestrictionPath(c, property, quad.IRI(Cardinality))
 	it := p.BuildIterator(c.ctx).Iterate()
 	cardinality, err := intFromScanner(c.ctx, it, c.qs)
 	if err != nil {
-		return -1, fmt.Errorf("No cardinality is defined for property %v for class %v", property, c)
+		return -1, fmt.Errorf("No cardinality is defined for property %v for class %v", property.Identifier, c.Identifier)
 	}
 	return cardinality, nil
 }
 
 // MaxCardinalityOf returns the defined max cardinality for the property for the class
 // If max cardinality is not defined for the class returns an error
-func (c *Class) MaxCardinalityOf(property Property) (int, error) {
-	p := propertyRestrictionsPath(c, property, quad.IRI("owl:maxCardinality").Full())
+func (c *Class) MaxCardinalityOf(property *Property) (int64, error) {
+	p := propertyRestrictionPath(c, property, quad.IRI(MaxCardinality))
 	it := p.BuildIterator(c.ctx).Iterate()
 	cardinality, err := intFromScanner(c.ctx, it, c.qs)
 	if err != nil {
-		return -1, fmt.Errorf("No maxCardinality is defined for property %v for class %v", property, c)
+		return -1, fmt.Errorf("No maxCardinality is defined for property %v for class %v", property.Identifier, c.Identifier)
 	}
 	return cardinality, nil
 }
