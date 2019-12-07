@@ -241,7 +241,7 @@ type Path map[string]interface{}
 
 	file.Decls = append(file.Decls, decls...)
 
-	f, err := os.Create("query/linkedql/client/path.go")
+	f, err := os.Create("query/linkedql/client/client.go")
 
 	if err != nil {
 		panic(err)
