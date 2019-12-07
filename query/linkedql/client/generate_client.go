@@ -46,6 +46,11 @@ func iriToIdent(iri quad.IRI) *ast.Ident {
 	return ast.NewIdent(string(iri)[26:])
 }
 
+var quadValueType = &ast.SelectorExpr{
+	Sel: ast.NewIdent("Value"),
+	X:   ast.NewIdent("quad"),
+}
+
 func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, error) {
 	_range, err := property.Range()
 	if err != nil {
@@ -69,7 +74,7 @@ func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, er
 	} else if _range == quad.IRI("http://cayley.io/linkedql#PathStep") {
 		t = pathTypeIdent
 	} else if _range == quad.IRI("http://www.w3.org/2000/01/rdf-schema#Resource") {
-		t = ast.NewIdent("Value")
+		t = quadValueType
 	} else {
 		return nil, fmt.Errorf("Unexpected range %v", _range)
 	}
@@ -86,8 +91,6 @@ func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, er
 	return t, nil
 }
 
-var stepTypeIdent = ast.NewIdent("step")
-var stepIdent = ast.NewIdent("s")
 var pathTypeIdent = ast.NewIdent("Path")
 var pathIdent = ast.NewIdent("p")
 
@@ -119,85 +122,57 @@ func main() {
 				panic(err)
 			}
 			propertyToType[property.Identifier] = _type
+			ident := iriToIdent(property.Identifier)
+			if ident.Name == "from" {
+				continue
+			}
 			paramsList = append(paramsList, &ast.Field{
-				Names: []*ast.Ident{iriToIdent(property.Identifier)},
+				Names: []*ast.Ident{ident},
 				Type:  _type,
 			})
 		}
-
-		stmtList := []ast.Stmt{
-			&ast.AssignStmt{
-				Lhs: []ast.Expr{
-					stepIdent,
+		elts := []ast.Expr{
+			&ast.KeyValueExpr{
+				Key: &ast.BasicLit{
+					Kind:  token.STRING,
+					Value: "\"@type\"",
 				},
-				Rhs: []ast.Expr{
-					&ast.CompositeLit{
-						Type: stepTypeIdent,
-						Elts: []ast.Expr{
-							&ast.KeyValueExpr{
-								Key: &ast.BasicLit{
-									Kind:  token.STRING,
-									Value: "\"@type\"",
-								},
-								Value: &ast.BasicLit{
-									Kind:  token.STRING,
-									Value: "\"" + string(iri) + "\"",
-								},
-							},
-						},
-					},
+				Value: &ast.BasicLit{
+					Kind:  token.STRING,
+					Value: "\"" + string(iri) + "\"",
 				},
-				Tok: token.DEFINE,
+			},
+			&ast.KeyValueExpr{
+				Key: &ast.BasicLit{
+					Kind:  token.STRING,
+					Value: "\"from\"",
+				},
+				Value: pathIdent,
 			},
 		}
+
 		for _, property := range properties {
-			var rhs ast.Expr
-			rhs = iriToIdent(property.Identifier)
+			ident := iriToIdent(property.Identifier)
+			if ident.Name == "from" {
+				continue
+			}
+			var value ast.Expr
+			value = iriToIdent(property.Identifier)
 			t := propertyToType[property.Identifier]
 			if t == pathTypeIdent {
-				rhs = &ast.SelectorExpr{
+				value = &ast.SelectorExpr{
 					Sel: ast.NewIdent("steps"),
-					X:   rhs,
+					X:   value,
 				}
 			}
-			stmtList = append(stmtList, &ast.AssignStmt{
-				Lhs: []ast.Expr{
-					&ast.IndexExpr{
-						Index: &ast.BasicLit{
-							Kind:  token.STRING,
-							Value: "\"" + string(property.Identifier) + "\"",
-						},
-						X: stepIdent,
-					},
+			elts = append(elts, &ast.KeyValueExpr{
+				Key: &ast.BasicLit{
+					Kind:  token.STRING,
+					Value: "\"" + string(property.Identifier) + "\"",
 				},
-				Rhs: []ast.Expr{
-					rhs,
-				},
-				Tok: token.ASSIGN,
+				Value: value,
 			})
 		}
-		stmtList = append(stmtList, &ast.ReturnStmt{
-			Results: []ast.Expr{
-				&ast.CompositeLit{
-					Type: pathTypeIdent,
-					Elts: []ast.Expr{
-						&ast.KeyValueExpr{
-							Key: ast.NewIdent("steps"),
-							Value: &ast.CallExpr{
-								Fun: ast.NewIdent("append"),
-								Args: []ast.Expr{
-									&ast.SelectorExpr{
-										Sel: ast.NewIdent("steps"),
-										X:   pathIdent,
-									},
-									stepIdent,
-								},
-							},
-						},
-					},
-				},
-			},
-		})
 
 		decls = append(decls, &ast.FuncDecl{
 			Name: iriToIdent(iri),
@@ -221,7 +196,16 @@ func main() {
 				},
 			},
 			Body: &ast.BlockStmt{
-				List: stmtList,
+				List: []ast.Stmt{
+					&ast.ReturnStmt{
+						Results: []ast.Expr{
+							&ast.CompositeLit{
+								Type: pathTypeIdent,
+								Elts: elts,
+							},
+						},
+					},
+				},
 			},
 		})
 	}
@@ -236,11 +220,11 @@ func main() {
 	src := `
 package client
 
-type step map[string]interface{}
+import (
+	"github.com/cayleygraph/quad"
+)
 
-type Path struct {
-	steps []step
-}
+type Path map[string]interface{}
 	`
 	file, err := parser.ParseFile(fset, "", src, 0)
 
