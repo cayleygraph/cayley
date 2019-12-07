@@ -46,6 +46,11 @@ func iriToIdent(iri quad.IRI) *ast.Ident {
 	return ast.NewIdent(string(iri)[26:])
 }
 
+var stepTypeIdent = ast.NewIdent("step")
+var stepIdent = ast.NewIdent("s")
+var pathTypeIdent = ast.NewIdent("Path")
+var pathIdent = ast.NewIdent("p")
+
 func main() {
 	qs, err := loadSchema()
 
@@ -77,11 +82,11 @@ func main() {
 		stmtList := []ast.Stmt{
 			&ast.AssignStmt{
 				Lhs: []ast.Expr{
-					ast.NewIdent("s"),
+					stepIdent,
 				},
 				Rhs: []ast.Expr{
 					&ast.CompositeLit{
-						Type: ast.NewIdent("step"),
+						Type: stepTypeIdent,
 						Elts: []ast.Expr{
 							&ast.KeyValueExpr{
 								Key: &ast.BasicLit{
@@ -107,7 +112,7 @@ func main() {
 							Kind:  token.STRING,
 							Value: "\"" + string(property.Identifier) + "\"",
 						},
-						X: ast.NewIdent("s"),
+						X: stepIdent,
 					},
 				},
 				Rhs: []ast.Expr{
@@ -121,7 +126,7 @@ func main() {
 				&ast.UnaryExpr{
 					Op: token.AND,
 					X: &ast.CompositeLit{
-						Type: ast.NewIdent("Path"),
+						Type: pathTypeIdent,
 						Elts: []ast.Expr{
 							&ast.KeyValueExpr{
 								Key: ast.NewIdent("steps"),
@@ -130,9 +135,9 @@ func main() {
 									Args: []ast.Expr{
 										&ast.SelectorExpr{
 											Sel: ast.NewIdent("steps"),
-											X:   ast.NewIdent("p"),
+											X:   pathIdent,
 										},
-										ast.NewIdent("s"),
+										stepIdent,
 									},
 								},
 							},
@@ -151,7 +156,7 @@ func main() {
 						&ast.Field{
 							Names: nil,
 							Type: &ast.StarExpr{
-								X: ast.NewIdent("Path"),
+								X: pathTypeIdent,
 							},
 						},
 					},
@@ -160,9 +165,9 @@ func main() {
 			Recv: &ast.FieldList{
 				List: []*ast.Field{
 					&ast.Field{
-						Names: []*ast.Ident{ast.NewIdent("p")},
+						Names: []*ast.Ident{pathIdent},
 						Type: &ast.StarExpr{
-							X: ast.NewIdent("Path"),
+							X: pathTypeIdent,
 						},
 					},
 				},
