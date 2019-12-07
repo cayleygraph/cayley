@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -241,11 +241,21 @@ type Path map[string]interface{}
 
 	file.Decls = append(file.Decls, decls...)
 
-	var buf bytes.Buffer
-	err = format.Node(&buf, fset, file)
+	f, err := os.Create("query/linkedql/client/path.go")
+
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(buf.String())
+	w := bufio.NewWriter(f)
+
+	err = format.Node(w, fset, file)
+
+	if err != nil {
+		panic(err)
+	}
+
+	w.Flush()
+
+	f.Close()
 }
