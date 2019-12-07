@@ -15,23 +15,42 @@ import (
 
 var fooID = quad.IRI("ex:Foo").Full()
 var barID = quad.IRI("ex:Bar").Full()
+var garID = quad.IRI("ex:Gar").Full()
 var bazID = quad.IRI("ex:baz").Full()
+var fooBarGarUnion = quad.RandomBlankNode()
 var fooBazCardinalityRestriction = quad.RandomBlankNode()
 var barBazMaxCardinalityRestriction = quad.RandomBlankNode()
 var exampleGraph = quad.IRI("ex:graph")
-var testSet = []quad.Quad{
+var fooClassQuads = []quad.Quad{
 	quad.Quad{
 		Subject:   fooID,
 		Predicate: quad.IRI(rdf.Type).Full(),
 		Object:    quad.IRI(rdfs.Class).Full(),
 		Label:     exampleGraph,
 	},
+}
+var bazPropertyQuads = []quad.Quad{
 	quad.Quad{
-		Subject:   fooID,
+		Subject:   barID,
 		Predicate: quad.IRI(rdfs.SubClassOf).Full(),
-		Object:    fooBazCardinalityRestriction,
+		Object:    fooID,
 		Label:     exampleGraph,
 	},
+
+	quad.Quad{
+		Subject:   bazID,
+		Predicate: quad.IRI(rdfs.Domain).Full(),
+		Object:    fooID,
+		Label:     exampleGraph,
+	},
+	quad.Quad{
+		Subject:   bazID,
+		Predicate: quad.IRI(rdfs.Range).Full(),
+		Object:    barID,
+		Label:     exampleGraph,
+	},
+}
+var fooBazCardinalityRestrictionQuads = []quad.Quad{
 	quad.Quad{
 		Subject:   fooBazCardinalityRestriction,
 		Predicate: quad.IRI(rdf.Type).Full(),
@@ -50,6 +69,14 @@ var testSet = []quad.Quad{
 		Object:    quad.Int(1),
 		Label:     exampleGraph,
 	},
+	quad.Quad{
+		Subject:   fooID,
+		Predicate: quad.IRI(rdfs.SubClassOf).Full(),
+		Object:    fooBazCardinalityRestriction,
+		Label:     exampleGraph,
+	},
+}
+var barBazCardinalityRestrictionQuad = []quad.Quad{
 	quad.Quad{
 		Subject:   barBazMaxCardinalityRestriction,
 		Predicate: quad.IRI(rdf.Type).Full(),
@@ -71,32 +98,93 @@ var testSet = []quad.Quad{
 	quad.Quad{
 		Subject:   barID,
 		Predicate: quad.IRI(rdfs.SubClassOf).Full(),
-		Object:    fooID,
-		Label:     exampleGraph,
-	},
-	quad.Quad{
-		Subject:   barID,
-		Predicate: quad.IRI(rdfs.SubClassOf).Full(),
 		Object:    barBazMaxCardinalityRestriction,
-		Label:     exampleGraph,
-	},
-	quad.Quad{
-		Subject:   bazID,
-		Predicate: quad.IRI(rdfs.Domain).Full(),
-		Object:    fooID,
-		Label:     exampleGraph,
-	},
-	quad.Quad{
-		Subject:   bazID,
-		Predicate: quad.IRI(rdfs.Range).Full(),
-		Object:    barID,
 		Label:     exampleGraph,
 	},
 }
 
+func listQuads(items []quad.Value, label quad.Value) (quad.Value, []quad.Quad) {
+	var quads []quad.Quad
+	list := quad.RandomBlankNode()
+	cursor := list
+	for i, item := range items {
+		first := quad.Quad{
+			Subject:   cursor,
+			Predicate: quad.IRI(rdf.First).Full(),
+			Object:    item,
+			Label:     label,
+		}
+		var rest quad.Quad
+		if i < len(items)-1 {
+			rest = quad.Quad{
+				Subject:   cursor,
+				Predicate: quad.IRI(rdf.Rest).Full(),
+				Object:    quad.IRI(rdf.Nil).Full(),
+				Label:     label,
+			}
+		} else {
+			nextCursor := quad.RandomBlankNode()
+			rest = quad.Quad{
+				Subject:   cursor,
+				Predicate: quad.IRI(rdf.Rest).Full(),
+				Object:    nextCursor,
+				Label:     label,
+			}
+			cursor = nextCursor
+		}
+		quads = append(quads, first, rest)
+	}
+	return list, quads
+}
+
+func getUnionQuads() []quad.Quad {
+	var unionQuads []quad.Quad
+	membersList, membersQuads := listQuads(
+		[]quad.Value{fooID, barID, garID},
+		exampleGraph,
+	)
+	unionQuads = append(unionQuads, membersQuads...)
+	unionQuads = append(unionQuads, quad.Quad{
+		Subject:   fooBarGarUnion,
+		Predicate: quad.IRI(UnionOf),
+		Object:    membersList,
+		Label:     exampleGraph,
+	})
+	return unionQuads
+}
+
+func getTestSet() []quad.Quad {
+	var testSet []quad.Quad
+	testSet = append(testSet, fooBazCardinalityRestrictionQuads...)
+	testSet = append(testSet, barBazCardinalityRestrictionQuad...)
+	testSet = append(testSet, bazPropertyQuads...)
+	testSet = append(testSet, getUnionQuads()...)
+	return testSet
+}
+
+func TestListContainingPath(t *testing.T) {
+	ctx := context.TODO()
+	qs := memstore.New(getTestSet()...)
+	p := listContainignPath(qs, fooID).In(quad.IRI(UnionOf))
+	values := collectPath(ctx, qs, p)
+	require.Equal(t, []quad.Value{
+		fooBarGarUnion,
+	}, values)
+	p = listContainignPath(qs, barID).In(quad.IRI(UnionOf))
+	values = collectPath(ctx, qs, p)
+	require.Equal(t, []quad.Value{
+		fooBarGarUnion,
+	}, values)
+	p = listContainignPath(qs, garID).In(quad.IRI(UnionOf))
+	values = collectPath(ctx, qs, p)
+	require.Equal(t, []quad.Value{
+		fooBarGarUnion,
+	}, values)
+}
+
 func TestGetClass(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	class, err := GetClass(ctx, qs, fooID)
 	require.NoError(t, err)
 	require.Equal(t, class.Identifier, fooID)
@@ -104,7 +192,7 @@ func TestGetClass(t *testing.T) {
 
 func TestSubClasses(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	fooClass, err := GetClass(ctx, qs, fooID)
 	require.NoError(t, err)
 	barClass, err := GetClass(ctx, qs, barID)
@@ -116,7 +204,7 @@ func TestSubClasses(t *testing.T) {
 
 func TestProperties(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	fooClass, err := GetClass(ctx, qs, fooID)
 	require.NoError(t, err)
 	bazProperty, err := GetProperty(ctx, qs, bazID)
@@ -128,7 +216,7 @@ func TestProperties(t *testing.T) {
 
 func TestParentClasses(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	fooClass, err := GetClass(ctx, qs, fooID)
 	require.NoError(t, err)
 	bazProperty, err := GetProperty(ctx, qs, bazID)
@@ -140,7 +228,7 @@ func TestParentClasses(t *testing.T) {
 
 func TestCardinalityOf(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	fooClass, err := GetClass(ctx, qs, fooID)
 	require.NoError(t, err)
 	bazProperty, err := GetProperty(ctx, qs, bazID)
@@ -152,7 +240,7 @@ func TestCardinalityOf(t *testing.T) {
 
 func TestMaxCardinalityOf(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	fooClass, err := GetClass(ctx, qs, barID)
 	require.NoError(t, err)
 	bazProperty, err := GetProperty(ctx, qs, bazID)
@@ -164,7 +252,7 @@ func TestMaxCardinalityOf(t *testing.T) {
 
 func TestRange(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	bazProperty, err := GetProperty(ctx, qs, bazID)
 	require.NoError(t, err)
 	_range, err := bazProperty.Range()
@@ -185,7 +273,7 @@ func collectPath(ctx context.Context, qs graph.QuadStore, p *path.Path) []quad.V
 
 func TestParentClassesPath(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	fooClass, err := GetClass(ctx, qs, fooID)
 	require.NoError(t, err)
 	p := parentClassesPath(fooClass)
@@ -197,7 +285,7 @@ func TestParentClassesPath(t *testing.T) {
 
 func TestRestrictionsPath(t *testing.T) {
 	ctx := context.TODO()
-	qs := memstore.New(testSet...)
+	qs := memstore.New(getTestSet()...)
 	fooClass, err := GetClass(ctx, qs, fooID)
 	require.NoError(t, err)
 	p := restrictionsPath(fooClass)

@@ -24,9 +24,22 @@ func (c *Class) path() *path.Path {
 	return path.StartPath(c.qs, c.Identifier)
 }
 
-func (c *Class) unionsPath() *path.Path {
-	reverseListPath := path.NewPath(c.qs).In(quad.IRI(rdf.First).Full())
-	return c.path().FollowRecursive(reverseListPath, 10, []string{})
+// listContainingPath returns a path of lists containing given value
+func listContainignPath(qs graph.QuadStore, value quad.Value) *path.Path {
+	return path.StartPath(qs, value).
+		In(quad.IRI(rdf.First)).
+		Follow(
+			path.StartMorphism().
+				Or(
+					path.StartMorphism().
+						FollowRecursive(
+							path.StartMorphism().
+								In(quad.IRI(rdf.Rest).Full()),
+							0,
+							nil,
+						),
+				),
+		)
 }
 
 func classFromRef(ctx context.Context, qs graph.QuadStore, ref graph.Ref) *Class {
@@ -43,15 +56,12 @@ var domain = quad.IRI(rdfs.Domain).Full()
 
 // Properties return all the properties a class instance may have
 func (c *Class) Properties() []*Property {
-	ctx := context.TODO()
-	p := c.
-		path().
-		Or(c.unionsPath().In(quad.IRI("owl:unionOf").Full())).
+	p := c.path().Or(listContainignPath(c.qs, c.Identifier).In(quad.IRI(UnionOf))).
 		In(domain)
-	it := p.BuildIterator(ctx).Iterate()
+	it := p.BuildIterator(c.ctx).Iterate()
 	var properties []*Property
-	for it.Next(ctx) {
-		property, err := propertyFromRef(ctx, c.qs, it.Result())
+	for it.Next(c.ctx) {
+		property, err := propertyFromRef(c.ctx, c.qs, it.Result())
 		if err != nil {
 			clog.Warningf(err.Error())
 			continue

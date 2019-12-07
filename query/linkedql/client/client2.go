@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"go/ast"
@@ -43,10 +44,21 @@ func loadSchema() (graph.QuadStore, error) {
 func main() {
 	qs, err := loadSchema()
 
-	stepClass := owl.GetClass(qs, quad.IRI("linkedql:Step"))
+	ctx := context.TODO()
+	stepClass, err := owl.GetClass(ctx, qs, quad.IRI("http://cayley.io/linkedql#PathStep"))
+
+	if err != nil {
+		panic(err)
+	}
+
 	stepSubClasses := stepClass.SubClasses()
 
-	fmt.Printf("%v\n", stepSubClasses)
+	for _, stepSubClass := range stepSubClasses {
+		properties := stepSubClass.Properties()
+		if properties == nil {
+			fmt.Printf("%v has no properties\n", stepSubClass)
+		}
+	}
 
 	if err != nil {
 		panic(err)
