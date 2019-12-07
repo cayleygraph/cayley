@@ -67,10 +67,7 @@ func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, er
 	if _range == quad.IRI("http://www.w3.org/2001/XMLSchema#string") {
 		t = ast.NewIdent("string")
 	} else if _range == quad.IRI("http://cayley.io/linkedql#PathStep") {
-		// TOOD star expr
-		t = &ast.StarExpr{
-			X: ast.NewIdent("Path"),
-		}
+		t = ast.NewIdent("Path")
 	} else if _range == quad.IRI("http://www.w3.org/2000/01/rdf-schema#Resource") {
 		t = ast.NewIdent("Value")
 	} else {
@@ -113,6 +110,7 @@ func main() {
 			panic(fmt.Errorf("Unexpected class identifier %v of type %T", stepSubClass.Identifier, stepSubClass.Identifier))
 		}
 		properties := stepSubClass.Properties()
+		propertyToType := make(map[quad.IRI]ast.Expr)
 
 		var paramsList []*ast.Field
 		for _, property := range properties {
@@ -120,6 +118,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+			propertyToType[property.Identifier] = _type
 			paramsList = append(paramsList, &ast.Field{
 				Names: []*ast.Ident{iriToIdent(property.Identifier)},
 				Type:  _type,
@@ -152,6 +151,8 @@ func main() {
 			},
 		}
 		for _, property := range properties {
+			rhs := iriToIdent(property.Identifier)
+			// t := propertyToType[property.Identifier]
 			stmtList = append(stmtList, &ast.AssignStmt{
 				Lhs: []ast.Expr{
 					&ast.IndexExpr{
@@ -163,29 +164,26 @@ func main() {
 					},
 				},
 				Rhs: []ast.Expr{
-					iriToIdent(property.Identifier),
+					rhs,
 				},
 				Tok: token.ASSIGN,
 			})
 		}
 		stmtList = append(stmtList, &ast.ReturnStmt{
 			Results: []ast.Expr{
-				&ast.UnaryExpr{
-					Op: token.AND,
-					X: &ast.CompositeLit{
-						Type: pathTypeIdent,
-						Elts: []ast.Expr{
-							&ast.KeyValueExpr{
-								Key: ast.NewIdent("steps"),
-								Value: &ast.CallExpr{
-									Fun: ast.NewIdent("append"),
-									Args: []ast.Expr{
-										&ast.SelectorExpr{
-											Sel: ast.NewIdent("steps"),
-											X:   pathIdent,
-										},
-										stepIdent,
+				&ast.CompositeLit{
+					Type: pathTypeIdent,
+					Elts: []ast.Expr{
+						&ast.KeyValueExpr{
+							Key: ast.NewIdent("steps"),
+							Value: &ast.CallExpr{
+								Fun: ast.NewIdent("append"),
+								Args: []ast.Expr{
+									&ast.SelectorExpr{
+										Sel: ast.NewIdent("steps"),
+										X:   pathIdent,
 									},
+									stepIdent,
 								},
 							},
 						},
@@ -202,9 +200,7 @@ func main() {
 					List: []*ast.Field{
 						&ast.Field{
 							Names: nil,
-							Type: &ast.StarExpr{
-								X: pathTypeIdent,
-							},
+							Type:  pathTypeIdent,
 						},
 					},
 				},
@@ -213,9 +209,7 @@ func main() {
 				List: []*ast.Field{
 					&ast.Field{
 						Names: []*ast.Ident{pathIdent},
-						Type: &ast.StarExpr{
-							X: pathTypeIdent,
-						},
+						Type:  pathTypeIdent,
 					},
 				},
 			},
