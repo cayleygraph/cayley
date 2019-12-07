@@ -110,6 +110,7 @@ func main() {
 		panic(err)
 	}
 
+	hasFrom := false
 	stepSubClasses := stepClass.SubClasses()
 	var decls []ast.Decl
 
@@ -128,6 +129,7 @@ func main() {
 			}
 			ident := iriToIdent(property.Identifier)
 			if ident.Name == "from" {
+				hasFrom = true
 				continue
 			}
 			paramsList = append(paramsList, &ast.Field{
@@ -146,13 +148,15 @@ func main() {
 					Value: "\"" + string(iri) + "\"",
 				},
 			},
-			&ast.KeyValueExpr{
+		}
+		if hasFrom {
+			elts = append(elts, &ast.KeyValueExpr{
 				Key: &ast.BasicLit{
 					Kind:  token.STRING,
 					Value: "\"from\"",
 				},
 				Value: pathIdent,
-			},
+			})
 		}
 
 		for _, property := range properties {
@@ -171,6 +175,19 @@ func main() {
 			})
 		}
 
+		var recv *ast.FieldList
+
+		if hasFrom {
+			recv = &ast.FieldList{
+				List: []*ast.Field{
+					&ast.Field{
+						Names: []*ast.Ident{pathIdent},
+						Type:  pathTypeIdent,
+					},
+				},
+			}
+		}
+
 		decls = append(decls, &ast.FuncDecl{
 			Name: iriToIdent(iri),
 			Type: &ast.FuncType{
@@ -184,14 +201,7 @@ func main() {
 					},
 				},
 			},
-			Recv: &ast.FieldList{
-				List: []*ast.Field{
-					&ast.Field{
-						Names: []*ast.Ident{pathIdent},
-						Type:  pathTypeIdent,
-					},
-				},
-			},
+			Recv: recv,
 			Body: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.ReturnStmt{
