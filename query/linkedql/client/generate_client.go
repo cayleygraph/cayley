@@ -51,15 +51,15 @@ func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, er
 	if err != nil {
 		return nil, err
 	}
-	isPTR := false
 	isSlice := true
+	isPTR := false
 	cardinality, err := class.CardinalityOf(property)
-	if err != nil && cardinality == 1 {
+	if cardinality == int64(1) {
 		isSlice = false
 		isPTR = false
 	}
 	maxCardinality, err := class.MaxCardinalityOf(property)
-	if err != nil && maxCardinality == 1 {
+	if maxCardinality == int64(1) {
 		isSlice = false
 		isPTR = true
 	}
