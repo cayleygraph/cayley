@@ -46,6 +46,49 @@ func iriToIdent(iri quad.IRI) *ast.Ident {
 	return ast.NewIdent(string(iri)[26:])
 }
 
+func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, error) {
+	_range, err := property.Range()
+	if err != nil {
+		return nil, err
+	}
+	isPTR := false
+	isSlice := true
+	cardinality, err := class.CardinalityOf(property)
+	if err != nil && cardinality == 1 {
+		isSlice = false
+		isPTR = false
+	}
+	maxCardinality, err := class.MaxCardinalityOf(property)
+	if err != nil && maxCardinality == 1 {
+		isSlice = false
+		isPTR = true
+	}
+	var t ast.Expr
+	if _range == quad.IRI("http://www.w3.org/2001/XMLSchema#string") {
+		t = ast.NewIdent("string")
+	} else if _range == quad.IRI("http://cayley.io/linkedql#PathStep") {
+		// TOOD star expr
+		t = &ast.StarExpr{
+			X: ast.NewIdent("Path"),
+		}
+	} else if _range == quad.IRI("http://www.w3.org/2000/01/rdf-schema#Resource") {
+		t = ast.NewIdent("Value")
+	} else {
+		return nil, fmt.Errorf("Unexpected range %v", _range)
+	}
+	if isPTR {
+		t = &ast.StarExpr{
+			X: t,
+		}
+	}
+	if isSlice {
+		t = &ast.ArrayType{
+			Elt: t,
+		}
+	}
+	return t, nil
+}
+
 var stepTypeIdent = ast.NewIdent("step")
 var stepIdent = ast.NewIdent("s")
 var pathTypeIdent = ast.NewIdent("Path")
@@ -73,9 +116,13 @@ func main() {
 
 		var paramsList []*ast.Field
 		for _, property := range properties {
+			_type, err := propertyToValueType(stepSubClass, property)
+			if err != nil {
+				panic(err)
+			}
 			paramsList = append(paramsList, &ast.Field{
 				Names: []*ast.Ident{iriToIdent(property.Identifier)},
-				Type:  ast.NewIdent("string"),
+				Type:  _type,
 			})
 		}
 
