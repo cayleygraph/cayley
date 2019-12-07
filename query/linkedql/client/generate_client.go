@@ -17,6 +17,7 @@ import (
 	"github.com/cayleygraph/cayley/owl"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/jsonld"
+	"github.com/cayleygraph/quad/voc/rdfs"
 )
 
 const schemaFile = "linkedql.json"
@@ -51,6 +52,11 @@ var quadValueType = &ast.SelectorExpr{
 	X:   ast.NewIdent("quad"),
 }
 
+var pathStepIRI = quad.IRI("http://cayley.io/linkedql#PathStep")
+var xsdString = quad.IRI("http://www.w3.org/2001/XMLSchema#string")
+var rdfsResource = quad.IRI(rdfs.Resource).Full()
+var stringIdent = ast.NewIdent("string")
+
 func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, error) {
 	_range, err := property.Range()
 	if err != nil {
@@ -69,11 +75,11 @@ func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, er
 		isPTR = true
 	}
 	var t ast.Expr
-	if _range == quad.IRI("http://www.w3.org/2001/XMLSchema#string") {
-		t = ast.NewIdent("string")
-	} else if _range == quad.IRI("http://cayley.io/linkedql#PathStep") {
+	if _range == xsdString {
+		t = stringIdent
+	} else if _range == pathStepIRI {
 		t = pathTypeIdent
-	} else if _range == quad.IRI("http://www.w3.org/2000/01/rdf-schema#Resource") {
+	} else if _range == rdfsResource {
 		t = quadValueType
 	} else {
 		return nil, fmt.Errorf("Unexpected range %v", _range)
@@ -98,7 +104,7 @@ func main() {
 	qs, err := loadSchema()
 
 	ctx := context.TODO()
-	stepClass, err := owl.GetClass(ctx, qs, quad.IRI("http://cayley.io/linkedql#PathStep"))
+	stepClass, err := owl.GetClass(ctx, qs, pathStepIRI)
 
 	if err != nil {
 		panic(err)
@@ -113,7 +119,6 @@ func main() {
 			panic(fmt.Errorf("Unexpected class identifier %v of type %T", stepSubClass.Identifier, stepSubClass.Identifier))
 		}
 		properties := stepSubClass.Properties()
-		propertyToType := make(map[quad.IRI]ast.Expr)
 
 		var paramsList []*ast.Field
 		for _, property := range properties {
@@ -121,7 +126,6 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			propertyToType[property.Identifier] = _type
 			ident := iriToIdent(property.Identifier)
 			if ident.Name == "from" {
 				continue
@@ -158,13 +162,6 @@ func main() {
 			}
 			var value ast.Expr
 			value = iriToIdent(property.Identifier)
-			t := propertyToType[property.Identifier]
-			if t == pathTypeIdent {
-				value = &ast.SelectorExpr{
-					Sel: ast.NewIdent("steps"),
-					X:   value,
-				}
-			}
 			elts = append(elts, &ast.KeyValueExpr{
 				Key: &ast.BasicLit{
 					Kind:  token.STRING,
