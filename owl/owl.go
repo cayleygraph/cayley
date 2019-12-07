@@ -46,6 +46,7 @@ var domain = quad.IRI(rdfs.Domain).Full()
 
 // Properties return all the properties a class instance may have
 func (c *Class) Properties() []*Property {
+	// TODO(@iddan): check for super classes properties
 	p := c.path().Or(listContainignPath(c.qs, c.Identifier).In(quad.IRI(UnionOf))).
 		In(domain)
 	it := p.BuildIterator(c.ctx).Iterate()
@@ -104,11 +105,11 @@ func intFromScanner(ctx context.Context, it iterator.Scanner, qs graph.QuadStore
 			native = typedString.Native()
 		}
 		if native == nil {
-			return -1, fmt.Errorf("Unexpected value %v of type %t", value, value)
+			return -1, fmt.Errorf("Unexpected value %v of type %T", value, value)
 		}
 		i, ok := native.(int64)
 		if !ok {
-			return -1, fmt.Errorf("Unexpected value %v of type %t", native, native)
+			return -1, fmt.Errorf("Unexpected value %v of type %T", native, native)
 		}
 		return i, nil
 	}
@@ -189,7 +190,7 @@ func propertyFromRef(ctx context.Context, qs graph.QuadStore, ref graph.Ref) (*P
 	val := qs.NameOf(ref)
 	iri, ok := val.(quad.IRI)
 	if !ok {
-		return nil, fmt.Errorf("Predicate of unexpected type %t. Predicates should be IRIs", val)
+		return nil, fmt.Errorf("Predicate of unexpected type %T. Predicates should be IRIs", val)
 	}
 	return &Property{
 		ctx:        ctx,
