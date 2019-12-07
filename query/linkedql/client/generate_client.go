@@ -67,7 +67,7 @@ func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, er
 	if _range == quad.IRI("http://www.w3.org/2001/XMLSchema#string") {
 		t = ast.NewIdent("string")
 	} else if _range == quad.IRI("http://cayley.io/linkedql#PathStep") {
-		t = ast.NewIdent("Path")
+		t = pathTypeIdent
 	} else if _range == quad.IRI("http://www.w3.org/2000/01/rdf-schema#Resource") {
 		t = ast.NewIdent("Value")
 	} else {
@@ -151,8 +151,15 @@ func main() {
 			},
 		}
 		for _, property := range properties {
-			rhs := iriToIdent(property.Identifier)
-			// t := propertyToType[property.Identifier]
+			var rhs ast.Expr
+			rhs = iriToIdent(property.Identifier)
+			t := propertyToType[property.Identifier]
+			if t == pathTypeIdent {
+				rhs = &ast.SelectorExpr{
+					Sel: ast.NewIdent("steps"),
+					X:   rhs,
+				}
+			}
 			stmtList = append(stmtList, &ast.AssignStmt{
 				Lhs: []ast.Expr{
 					&ast.IndexExpr{
