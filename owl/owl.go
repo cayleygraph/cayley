@@ -26,20 +26,10 @@ func (c *Class) path() *path.Path {
 
 // listContainingPath returns a path of lists containing given value
 func listContainignPath(qs graph.QuadStore, value quad.Value) *path.Path {
-	return path.StartPath(qs, value).
-		In(quad.IRI(rdf.First)).
-		Follow(
-			path.StartMorphism().
-				Or(
-					path.StartMorphism().
-						FollowRecursive(
-							path.StartMorphism().
-								In(quad.IRI(rdf.Rest).Full()),
-							0,
-							nil,
-						),
-				),
-		)
+	firstPath := path.StartPath(qs, value).In(quad.IRI(rdf.First).Full())
+	return firstPath.Or(
+		firstPath.FollowRecursive(path.StartMorphism().In(quad.IRI(rdf.Rest).Full()), 0, nil),
+	)
 }
 
 func classFromRef(ctx context.Context, qs graph.QuadStore, ref graph.Ref) *Class {

@@ -180,6 +180,9 @@ func TestListContainingPath(t *testing.T) {
 	require.Equal(t, []quad.Value{
 		fooBarGarUnion,
 	}, values)
+	p = listContainignPath(qs, bazID).In(quad.IRI(UnionOf))
+	values = collectPath(ctx, qs, p)
+	require.Equal(t, []quad.Value(nil), values)
 }
 
 func TestGetClass(t *testing.T) {

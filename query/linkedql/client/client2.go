@@ -54,9 +54,10 @@ func main() {
 	stepSubClasses := stepClass.SubClasses()
 
 	for _, stepSubClass := range stepSubClasses {
+		fmt.Printf("%v\n", stepSubClass.Identifier)
 		properties := stepSubClass.Properties()
-		if properties == nil {
-			fmt.Printf("%v has no properties\n", stepSubClass)
+		for _, property := range properties {
+			fmt.Printf("\t%v\n", property.Identifier)
 		}
 	}
 
