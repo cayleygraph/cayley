@@ -110,11 +110,11 @@ func main() {
 		panic(err)
 	}
 
-	hasFrom := false
 	stepSubClasses := stepClass.SubClasses()
 	var decls []ast.Decl
 
 	for _, stepSubClass := range stepSubClasses {
+		hasFrom := false
 		iri, ok := stepSubClass.Identifier.(quad.IRI)
 		if !ok {
 			panic(fmt.Errorf("Unexpected class identifier %v of type %T", stepSubClass.Identifier, stepSubClass.Identifier))
