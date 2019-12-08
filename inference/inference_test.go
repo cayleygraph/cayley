@@ -6,22 +6,19 @@ import (
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc/rdf"
 	"github.com/cayleygraph/quad/voc/rdfs"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClassName(t *testing.T) {
 	iri := quad.IRI("alice")
 	c := Class{name: iri}
-	if c.Name() != iri {
-		t.Error("Name was not set correctly for the class")
-	}
+	require.Equal(t, c.Name(), iri, "Name was not set correctly for the class")
 }
 
 func TestPropertyName(t *testing.T) {
 	iri := quad.IRI("likes")
 	p := Property{name: iri}
-	if p.Name() != iri {
-		t.Error("Name was not set correctly for the class")
-	}
+	require.Equal(t, p.Name(), iri, "Name was not set correctly for the property")
 }
 
 func TestReferencedType(t *testing.T) {
@@ -29,9 +26,7 @@ func TestReferencedType(t *testing.T) {
 	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
 	store.ProcessQuad(q)
 	createdClass := store.GetClass(quad.IRI("Person"))
-	if createdClass == nil {
-		t.Error("Class was not created")
-	}
+	require.NotNil(t, createdClass, "Class was not created")
 }
 
 func TestReferencedBNodeType(t *testing.T) {

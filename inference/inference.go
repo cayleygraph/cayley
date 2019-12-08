@@ -1,20 +1,22 @@
 // Package inference implements an in-memory store for inference
+//
 // RDFS Rules:
-// 1. (x p y) -> (p rdf:type rdf:Property)
-// 2. (p rdfs:domain c), (x p y) -> (x rdf:type c)
-// 3. (p rdfs:range c), (x p y) -> (y rdf:type c)
-// 4a. (x p y) -> (x rdf:type rdfs:Resource)
-// 4b. (x p y) -> (y rdf:type rdfs:Resource)
-// 5. (p rdfs:subPropertyOf q), (q rdfs:subPropertyOf r) -> (p rdfs:subPropertyOf r)
-// 6. (p rdf:type Property) -> (p rdfs:subPropertyOf p)
-// 7. (p rdf:subPropertyOf q), (x p y) -> (x q y)
-// 8. (c rdf:type rdfs:Class) -> (c rdfs:subClassOf rdfs:Resource)
-// 9. (c rdfs:subClassOf d), (x rdf:type c) -> (x rdf:type d)
-// 10. (c rdf:type rdfs:Class) -> (c rdfs:subClassOf c)
-// 11. (c rdfs:subClassOf d), (d rdfs:subClassOf e) -> (c rdfs:subClassOf e)
-// 12. (p rdf:type rdfs:ContainerMembershipProperty) -> (p rdfs:subPropertyOf rdfs:member)
-// 13. (x rdf:type rdfs:Datatype) -> (x rdfs:subClassOf rdfs:Literal)
-// Exported from: https://www.researchgate.net/figure/RDF-RDFS-entailment-rules_tbl1_268419911
+//
+//		1. (x p y) -> (p rdf:type rdf:Property)
+//		2. (p rdfs:domain c), (x p y) -> (x rdf:type c)
+//		3. (p rdfs:range c), (x p y) -> (y rdf:type c)
+//		4a. (x p y) -> (x rdf:type rdfs:Resource)
+//		4b. (x p y) -> (y rdf:type rdfs:Resource)
+//		5. (p rdfs:subPropertyOf q), (q rdfs:subPropertyOf r) -> (p rdfs:subPropertyOf r)
+//		6. (p rdf:type Property) -> (p rdfs:subPropertyOf p)
+//		7. (p rdf:subPropertyOf q), (x p y) -> (x q y)
+//		8. (c rdf:type rdfs:Class) -> (c rdfs:subClassOf rdfs:Resource)
+//		9. (c rdfs:subClassOf d), (x rdf:type c) -> (x rdf:type d)
+//		10. (c rdf:type rdfs:Class) -> (c rdfs:subClassOf c)
+//		11. (c rdfs:subClassOf d), (d rdfs:subClassOf e) -> (c rdfs:subClassOf e)
+//		12. (p rdf:type rdfs:ContainerMembershipProperty) -> (p rdfs:subPropertyOf rdfs:member)
+//		13. (x rdf:type rdfs:Datatype) -> (x rdfs:subClassOf rdfs:Literal)
+//		Exported from: https://www.researchgate.net/figure/RDF-RDFS-entailment-rules_tbl1_268419911
 // Implemented here:
 // 1 5 6 8 10 11
 package inference
@@ -25,28 +27,33 @@ import (
 	"github.com/cayleygraph/quad/voc/rdfs"
 )
 
+// ClassSet is a set of RDF Classes
+type ClassSet map[*Class]struct{}
+
+// PropertySet is a set of RDF Properties
+type PropertySet map[*Property]struct{}
+
 // Class represents a RDF Class with the links to classes and other properties
 type Class struct {
-	name               quad.Value
-	explicit           bool
-	instanceReferences int
-	super              map[*Class]struct{}
-	sub                map[*Class]struct{}
-	ownProperties      map[*Property]struct{}
-	inProperties       map[*Property]struct{}
-	store              *Store
+	name          quad.Value
+	explicit      bool
+	references    int
+	super         ClassSet
+	sub           ClassSet
+	ownProperties PropertySet
+	inProperties  PropertySet
+	store         *Store
 }
 
 func newClass(name quad.Value, explicit bool, store *Store) *Class {
 	return &Class{
-		name:               name,
-		explicit:           explicit,
-		instanceReferences: 0,
-		super:              map[*Class]struct{}{},
-		sub:                map[*Class]struct{}{},
-		ownProperties:      map[*Property]struct{}{},
-		inProperties:       map[*Property]struct{}{},
-		store:              store,
+		name:          name,
+		explicit:      explicit,
+		super:         make(ClassSet),
+		sub:           make(ClassSet),
+		ownProperties: make(PropertySet),
+		inProperties:  make(PropertySet),
+		store:         store,
 	}
 }
 
@@ -79,35 +86,34 @@ func (class *Class) isReferenced() bool {
 		len(class.sub) > 0 ||
 		len(class.ownProperties) > 0 ||
 		len(class.inProperties) > 0 ||
-		class.instanceReferences > 0
+		class.references > 0
 }
 
 func (class *Class) deleteIfUnreferenced() {
-	if !class.isReferenced() {
+	if class != nil && !class.isReferenced() {
 		class.store.deleteClass(class.name)
 	}
 }
 
 // Property represents a RDF Property with the links to classes and other properties
 type Property struct {
-	name               quad.Value
-	explicit           bool
-	instanceReferences int
-	domain             *Class
-	_range             *Class
-	super              map[*Property]struct{}
-	sub                map[*Property]struct{}
-	store              *Store
+	name       quad.Value
+	explicit   bool
+	references int
+	domain     *Class
+	_range     *Class
+	super      PropertySet
+	sub        PropertySet
+	store      *Store
 }
 
 func newProperty(name quad.Value, explicit bool, store *Store) *Property {
 	return &Property{
-		name:               name,
-		explicit:           explicit,
-		instanceReferences: 0,
-		super:              map[*Property]struct{}{},
-		sub:                map[*Property]struct{}{},
-		store:              store,
+		name:     name,
+		explicit: explicit,
+		super:    make(PropertySet),
+		sub:      make(PropertySet),
+		store:    store,
 	}
 }
 
@@ -143,13 +149,13 @@ func (property *Property) IsSubPropertyOf(superProperty *Property) bool {
 }
 
 func (property *Property) isReferenced() bool {
-	return property.explicit || property.instanceReferences > 0 ||
+	return property.explicit || property.references > 0 ||
 		len(property.super) > 0 ||
 		len(property.sub) > 0
 }
 
 func (property *Property) deleteIfUnreferenced() {
-	if !property.isReferenced() {
+	if property != nil && !property.isReferenced() {
 		property.store.deleteProperty(property.name)
 	}
 }
@@ -182,19 +188,20 @@ func (store *Store) GetProperty(name quad.Value) *Property {
 }
 
 func (store *Store) createClass(name quad.Value) {
-	if class, ok := store.classes[name]; ok {
+	class, ok := store.classes[name]
+	if !ok {
+		store.classes[name] = newClass(name, true, store)
+	} else {
 		class.explicit = true
-		return
 	}
-	store.classes[name] = newClass(name, true, store)
 }
 
 func (store *Store) getOrCreateImplicitClass(name quad.Value) *Class {
-	if class, ok := store.classes[name]; ok {
-		return class
+	class, ok := store.classes[name]
+	if !ok {
+		class = newClass(name, false, store)
+		store.classes[name] = class
 	}
-	class := newClass(name, false, store)
-	store.classes[name] = class
 	return class
 }
 
@@ -254,7 +261,7 @@ func (store *Store) addClassInstance(name quad.Value) {
 	if class == nil {
 		class = store.getOrCreateImplicitClass(name)
 	}
-	class.instanceReferences++
+	class.references++
 }
 
 func (store *Store) addPropertyInstance(name quad.Value) {
@@ -262,7 +269,7 @@ func (store *Store) addPropertyInstance(name quad.Value) {
 	if property == nil {
 		property = store.getOrCreateImplicitProperty(name)
 	}
-	property.instanceReferences++
+	property.references++
 }
 
 // ProcessQuad is used to update the store with a new quad
@@ -378,7 +385,7 @@ func (store *Store) unsetPropertyRange(property quad.Value, _range quad.Value) {
 func (store *Store) deleteClassInstance(name quad.Value) {
 	class := store.GetClass(name)
 	if class != nil {
-		class.instanceReferences--
+		class.references--
 	}
 	class.deleteIfUnreferenced()
 }
@@ -386,7 +393,7 @@ func (store *Store) deleteClassInstance(name quad.Value) {
 func (store *Store) deletePropertyInstance(name quad.Value) {
 	property := store.GetProperty(name)
 	if property != nil {
-		property.instanceReferences--
+		property.references--
 	}
 	property.deleteIfUnreferenced()
 }
