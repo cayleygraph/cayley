@@ -9,112 +9,141 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Triple(subject quad.Value, predicate quad.IRI, object quad.Value) quad.Quad {
+	return quad.Quad{Subject: subject, Predicate: predicate, Object: object}
+}
+
+var (
+	domain           = quad.IRI(rdfs.Domain)
+	_range           = quad.IRI(rdfs.Range)
+	_type            = quad.IRI(rdf.Type)
+	class            = quad.IRI(rdfs.Class)
+	literal          = quad.IRI(rdfs.Literal)
+	property         = quad.IRI(rdf.Property)
+	subClassOf       = quad.IRI(rdfs.SubClassOf)
+	subPropertyOf    = quad.IRI(rdfs.SubPropertyOf)
+	alice            = quad.IRI("alice")
+	bob              = quad.IRI("bob")
+	engineer         = quad.IRI("Engineer")
+	information      = quad.IRI("information")
+	likes            = quad.IRI("likes")
+	name             = quad.IRI("name")
+	person           = quad.IRI("Person")
+	personal         = quad.IRI("personal")
+	softwareEngineer = quad.IRI("SoftwareEngineer")
+)
+var (
+	aliceIsPerson                    = Triple(alice, _type, person)
+	aliceLikesBob                    = Triple(alice, likes, bob)
+	engineerClass                    = Triple(engineer, _type, class)
+	engineerSubClass                 = Triple(engineer, subClassOf, person)
+	nameDomainPerson                 = Triple(name, domain, person)
+	nameProperty                     = Triple(name, _type, property)
+	nameSubPropertyOfPersonal        = Triple(name, subPropertyOf, personal)
+	personalProperty                 = Triple(personal, _type, property)
+	personalSubPropertyOfInformation = Triple(personal, subPropertyOf, information)
+	personClass                      = Triple(person, _type, class)
+	softwareEngineerClass            = Triple(softwareEngineer, _type, class)
+)
+var (
+	engineerAndSoftwareEngineerSubClasses = []quad.Quad{
+		engineerSubClass,
+		Triple(softwareEngineer, subClassOf, engineer),
+	}
+	engineerAndPersonClasses = []quad.Quad{
+		engineerClass,
+		personClass,
+	}
+)
+
 func TestClassName(t *testing.T) {
-	iri := quad.IRI("alice")
+	iri := alice
 	c := Class{name: iri}
 	require.Equal(t, c.Name(), iri, "Name was not set correctly for the class")
 }
 
 func TestPropertyName(t *testing.T) {
-	iri := quad.IRI("likes")
+	iri := likes
 	p := Property{name: iri}
 	require.Equal(t, p.Name(), iri, "Name was not set correctly for the property")
 }
 
 func TestReferencedType(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
+	q := aliceIsPerson
 	store.ProcessQuad(q)
-	createdClass := store.GetClass(quad.IRI("Person"))
+	createdClass := store.GetClass(person)
 	require.NotNil(t, createdClass, "Class was not created")
 }
 
 func TestReferencedBNodeType(t *testing.T) {
 	store := NewStore()
 	name := quad.BNode("123")
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: name, Label: nil}
+	q := Triple(alice, _type, name)
 	store.ProcessQuad(q)
 	createdClass := store.GetClass(name)
-	if createdClass == nil {
-		t.Error("Class was not created")
-	}
+	require.NotNil(t, createdClass, "Class was not created")
 }
 
 func TestReferencedProperty(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
+	q := aliceLikesBob
 	store.ProcessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("likes"))
-	if createdProperty == nil {
-		t.Error("Property was not created")
-	}
+	createdProperty := store.GetProperty(likes)
+	require.NotNil(t, createdProperty, "Property was not created")
 }
 
 func TestNewClass(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	q := personClass
 	store.ProcessQuad(q)
-	createdClass := store.GetClass(quad.IRI("Person"))
-	if createdClass == nil {
-		t.Error("Class was not created")
-	}
+	createdClass := store.GetClass(person)
+	require.NotNil(t, createdClass, "Class was not created")
 }
 
 func TestNewBNodeClass(t *testing.T) {
 	store := NewStore()
 	name := quad.BNode("123")
-	q := quad.Quad{Subject: name, Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	q := Triple(name, _type, class)
 	store.ProcessQuad(q)
 	createdClass := store.GetClass(name)
-	if createdClass == nil {
-		t.Error("Class was not created")
-	}
+	require.NotNil(t, createdClass, "Class was not created")
 }
 
 func TestInvalidNewClass(t *testing.T) {
 	store := NewStore()
 	name := quad.String("Foo")
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: name, Label: nil}
+	q := Triple(alice, _type, name)
 	store.ProcessQuad(q)
 	createdClass := store.GetClass(name)
-	if createdClass != nil {
-		t.Error("Invalid class was created")
-	}
+	require.Nil(t, createdClass, "Invalid class was created")
 }
 
 func TestNewProperty(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
+	q := nameProperty
 	store.ProcessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	if createdProperty == nil {
-		t.Error("Property was not created")
-	}
+	createdProperty := store.GetProperty(name)
+	require.NotNil(t, createdProperty, "Property was not created")
 }
 
 func TestInvalidNewProperty(t *testing.T) {
 	store := NewStore()
 	name := quad.String("Foo")
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: name, Object: quad.IRI("bob"), Label: nil}
+	q := quad.Quad{Subject: alice, Predicate: name, Object: bob}
 	store.ProcessQuad(q)
 	createdProperty := store.GetProperty(name)
-	if createdProperty != nil {
-		t.Error("Invalid property was created")
-	}
+	require.Nil(t, createdProperty, "Invalid property was created")
 }
 
 func TestSubClass(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person"), Label: nil}
+	q := engineerSubClass
 	store.ProcessQuad(q)
-	createdClass := store.GetClass(quad.IRI("Engineer"))
-	createdSuperClass := store.GetClass(quad.IRI("Person"))
-	if createdClass == nil {
-		t.Error("Class was not created")
-	}
-	if createdSuperClass == nil {
-		t.Error("Super class was not created")
-	}
+	createdClass := store.GetClass(engineer)
+	createdSuperClass := store.GetClass(person)
+	require.NotNil(t, createdClass, "Class was not created")
+	require.NotNil(t, createdSuperClass, "Super class was not created")
 	if _, ok := createdClass.super[createdSuperClass]; !ok {
 		t.Error("Super class was not registered for class")
 	}
@@ -125,16 +154,12 @@ func TestSubClass(t *testing.T) {
 
 func TestSubProperty(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
+	q := nameSubPropertyOfPersonal
 	store.ProcessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	createdSuperProperty := store.GetProperty(quad.IRI("personal"))
-	if createdProperty == nil {
-		t.Error("Property was not created")
-	}
-	if createdSuperProperty == nil {
-		t.Error("Super property was not created")
-	}
+	createdProperty := store.GetProperty(name)
+	createdSuperProperty := store.GetProperty(personal)
+	require.NotNil(t, createdProperty, "Property was not created")
+	require.NotNil(t, createdSuperProperty, "Super property was not created")
 	if _, ok := createdProperty.super[createdSuperProperty]; !ok {
 		t.Error("Super property was not registered for property")
 	}
@@ -145,16 +170,12 @@ func TestSubProperty(t *testing.T) {
 
 func TestPropertyDomain(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Domain), Object: quad.IRI("Person"), Label: nil}
+	q := nameDomainPerson
 	store.ProcessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	createdClass := store.GetClass(quad.IRI("Person"))
-	if createdProperty == nil {
-		t.Error("Property was not created")
-	}
-	if createdClass == nil {
-		t.Error("Domain class was not created")
-	}
+	createdProperty := store.GetProperty(name)
+	createdClass := store.GetClass(person)
+	require.NotNil(t, createdProperty, "Property was not created")
+	require.NotNil(t, createdClass, "Domain class was not created")
 	if createdProperty.Domain() != createdClass {
 		t.Error("Domain class was not registered for property")
 	}
@@ -165,16 +186,12 @@ func TestPropertyDomain(t *testing.T) {
 
 func TestPropertyRange(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Range), Object: quad.IRI("Person"), Label: nil}
+	q := Triple(name, _range, person)
 	store.ProcessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	createdClass := store.GetClass(quad.IRI("Person"))
-	if createdProperty == nil {
-		t.Error("Property was not created")
-	}
-	if createdClass == nil {
-		t.Error("Range class was not created")
-	}
+	createdProperty := store.GetProperty(name)
+	createdClass := store.GetClass(person)
+	require.NotNil(t, createdProperty, "Property was not created")
+	require.NotNil(t, createdClass, "Range class was not created")
 	if createdProperty.Range() != createdClass {
 		t.Error("Range class was not registered for property")
 	}
@@ -185,48 +202,45 @@ func TestPropertyRange(t *testing.T) {
 
 func TestIsSubClassOf(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")}
+	q := engineerSubClass
 	store.ProcessQuad(q)
-	if !store.GetClass(quad.IRI("Engineer")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+	if !store.GetClass(engineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not registered as subclass of super class")
 	}
 }
 
 func TestIsSubClassOfRecursive(t *testing.T) {
 	store := NewStore()
-	quads := []quad.Quad{
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")},
-		quad.Quad{Subject: quad.IRI("SoftwareEngineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Engineer")},
-	}
+	quads := engineerAndSoftwareEngineerSubClasses
 	store.ProcessQuads(quads)
-	if !store.GetClass(quad.IRI("SoftwareEngineer")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+	if !store.GetClass(softwareEngineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not registered as subclass of super class")
 	}
 }
 
 func TestIsSubClassOfItself(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	q := personClass
 	store.ProcessQuad(q)
-	if !store.GetClass(quad.IRI("Person")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+	if !store.GetClass(person).IsSubClassOf(store.GetClass(person)) {
 		t.Error("IsSubClassOf itself doesn't work")
 	}
 }
 
 func TestIsSubClassOfResource(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	q := personClass
 	store.ProcessQuad(q)
-	if !store.GetClass(quad.IRI("Person")).IsSubClassOf(store.GetClass(quad.IRI(rdfs.Resource))) {
+	if !store.GetClass(person).IsSubClassOf(store.GetClass(quad.IRI(rdfs.Resource))) {
 		t.Error("ItSubClassOf rdfs:Resource doesn't work")
 	}
 }
 
 func TestIsSubPropertyOf(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
+	q := nameSubPropertyOfPersonal
 	store.ProcessQuad(q)
-	if !store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("personal"))) {
+	if !store.GetProperty(name).IsSubPropertyOf(store.GetProperty(personal)) {
 		t.Error("Property was not registered as subproperty of super property")
 	}
 }
@@ -234,55 +248,53 @@ func TestIsSubPropertyOf(t *testing.T) {
 func TestIsSubPropertyOfRecursive(t *testing.T) {
 	store := NewStore()
 	quads := []quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil},
-		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("information"), Label: nil},
+		nameSubPropertyOfPersonal,
+		personalSubPropertyOfInformation,
 	}
 	store.ProcessQuads(quads)
-	if !store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("information"))) {
+	if !store.GetProperty(name).IsSubPropertyOf(store.GetProperty(information)) {
 		t.Error("Property was not registered as subproperty of super property")
 	}
 }
 
 func TestIsSubPropertyOfItself(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
+	q := nameProperty
 	store.ProcessQuad(q)
-	if !store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("name"))) {
+	if !store.GetProperty(name).IsSubPropertyOf(store.GetProperty(name)) {
 		t.Error("IsSubPropertyOf itself doesn't work")
 	}
 }
 
 func TestUnprocessInvalidQuad(t *testing.T) {
 	store := NewStore()
-	store.UnprocessQuad(quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.String("Foo"), Object: quad.IRI("Person"), Label: nil})
+	store.UnprocessQuad(quad.Quad{Subject: alice, Predicate: quad.String("Foo"), Object: person, Label: nil})
 }
 
 func TestUnprocessInvalidTypeQuad(t *testing.T) {
 	store := NewStore()
-	store.UnprocessQuad(quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.String("Foo"), Label: nil})
+	store.UnprocessQuad(quad.Quad{Subject: alice, Predicate: _type, Object: quad.String("Foo"), Label: nil})
 }
 
 func TestDeleteReferencedType(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
+	q := aliceIsPerson
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	createdClass := store.GetClass(quad.IRI("Person"))
-	if createdClass != nil {
-		t.Error("Class was not deleted")
-	}
+	createdClass := store.GetClass(person)
+	require.Nil(t, createdClass, "Class was not deleted")
 }
 
 func TestDeleteClassWithSubClass(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person"), Label: nil},
+		engineerClass,
+		engineerSubClass,
 	})
-	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	q := personClass
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	subClass := store.GetClass(quad.IRI("Engineer"))
+	subClass := store.GetClass(engineer)
 	if len(subClass.super) != 0 {
 		t.Error("Class was not unreferenced")
 	}
@@ -291,13 +303,13 @@ func TestDeleteClassWithSubClass(t *testing.T) {
 func TestDeleteClassWithSuperClass(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person"), Label: nil},
+		personClass,
+		engineerSubClass,
 	})
-	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	q := engineerClass
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	superClass := store.GetClass(quad.IRI("Person"))
+	superClass := store.GetClass(person)
 	if len(superClass.sub) != 0 {
 		t.Error("Class was not unreferenced")
 	}
@@ -305,36 +317,32 @@ func TestDeleteClassWithSuperClass(t *testing.T) {
 
 func TestDeleteNewClass(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil}
+	q := personClass
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	createdClass := store.GetClass(quad.IRI("Person"))
-	if createdClass != nil {
-		t.Error("Class was not deleted")
-	}
+	createdClass := store.GetClass(person)
+	require.Nil(t, createdClass, "Class was not deleted")
 }
 
 func TestDeleteNewProperty(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
+	q := nameProperty
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	if createdProperty != nil {
-		t.Error("Property was not deleted")
-	}
+	createdProperty := store.GetProperty(name)
+	require.Nil(t, createdProperty, "Property was not deleted")
 }
 
 func TestDeletePropertyWithSubProperty(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil},
+		nameProperty,
+		nameSubPropertyOfPersonal,
 	})
-	q := quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
+	q := personalProperty
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	subProperty := store.GetProperty(quad.IRI("name"))
+	subProperty := store.GetProperty(name)
 	if len(subProperty.super) != 0 {
 		t.Error("Property was not unreferenced")
 	}
@@ -343,13 +351,13 @@ func TestDeletePropertyWithSubProperty(t *testing.T) {
 func TestDeletePropertyWithSuperProperty(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil},
+		personalProperty,
+		nameSubPropertyOfPersonal,
 	})
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil}
+	q := nameProperty
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	superProperty := store.GetProperty(quad.IRI("personal"))
+	superProperty := store.GetProperty(personal)
 	if len(superProperty.sub) != 0 {
 		t.Error("Property was not unreferenced")
 	}
@@ -357,15 +365,12 @@ func TestDeletePropertyWithSuperProperty(t *testing.T) {
 
 func TestDeleteSubClass(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-	})
-	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person"), Label: nil}
+	store.ProcessQuads(engineerAndPersonClasses)
+	q := engineerSubClass
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	createdClass := store.GetClass(quad.IRI("Engineer"))
-	createdSuperClass := store.GetClass(quad.IRI("Person"))
+	createdClass := store.GetClass(engineer)
+	createdSuperClass := store.GetClass(person)
 	// TODO(iddan): what about garbage collection?
 	if _, ok := createdClass.super[createdSuperClass]; ok {
 		t.Error("Super class was not unregistered for class")
@@ -378,14 +383,14 @@ func TestDeleteSubClass(t *testing.T) {
 func TestDeleteSubProperty(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		nameProperty,
+		personalProperty,
 	})
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
+	q := nameSubPropertyOfPersonal
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	createdSuperProperty := store.GetProperty(quad.IRI("personal"))
+	createdProperty := store.GetProperty(name)
+	createdSuperProperty := store.GetProperty(personal)
 	// TODO(iddan): what about garbage collection?
 	if _, ok := createdProperty.super[createdSuperProperty]; ok {
 		t.Error("Super property was not unregistered for property")
@@ -398,14 +403,14 @@ func TestDeleteSubProperty(t *testing.T) {
 func TestDeletePropertyDomain(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		nameProperty,
+		personClass,
 	})
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Domain), Object: quad.IRI("Person"), Label: nil}
+	q := nameDomainPerson
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	createdClass := store.GetClass(quad.IRI("Person"))
+	createdProperty := store.GetProperty(name)
+	createdClass := store.GetClass(person)
 	// TODO(iddan): what about garbage collection?
 	if createdProperty.Domain() == createdClass {
 		t.Error("Domain class was not unregistered for property")
@@ -418,14 +423,14 @@ func TestDeletePropertyDomain(t *testing.T) {
 func TestDeletePropertyRange(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI(rdfs.Literal), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		nameProperty,
+		quad.Quad{Subject: literal, Predicate: _type, Object: class, Label: nil},
 	})
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.Range), Object: quad.IRI(rdfs.Literal), Label: nil}
+	q := quad.Quad{Subject: name, Predicate: _range, Object: literal, Label: nil}
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	createdProperty := store.GetProperty(quad.IRI("name"))
-	createdClass := store.GetClass(quad.IRI(rdfs.Literal))
+	createdProperty := store.GetProperty(name)
+	createdClass := store.GetClass(literal)
 	// TODO(iddan): what about garbage collection?
 	if createdProperty.Range() == createdClass {
 		t.Error("Range class was not unregistered for property")
@@ -437,14 +442,11 @@ func TestDeletePropertyRange(t *testing.T) {
 
 func TestDeleteIsSubClassOf(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-	})
-	q := quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")}
+	store.ProcessQuads(engineerAndPersonClasses)
+	q := engineerSubClass
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	if store.GetClass(quad.IRI("Engineer")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+	if store.GetClass(engineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not unregistered as subclass of super class")
 	}
 }
@@ -452,17 +454,14 @@ func TestDeleteIsSubClassOf(t *testing.T) {
 func TestDeleteIsSubClassOfRecursive(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-		quad.Quad{Subject: quad.IRI("Person"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
-		quad.Quad{Subject: quad.IRI("SoftwareEngineer"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Class), Label: nil},
+		engineerClass,
+		personClass,
+		softwareEngineerClass,
 	})
-	quads := []quad.Quad{
-		quad.Quad{Subject: quad.IRI("Engineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Person")},
-		quad.Quad{Subject: quad.IRI("SoftwareEngineer"), Predicate: quad.IRI(rdfs.SubClassOf), Object: quad.IRI("Engineer")},
-	}
+	quads := engineerAndSoftwareEngineerSubClasses
 	store.ProcessQuads(quads)
 	store.UnprocessQuads(quads)
-	if store.GetClass(quad.IRI("SoftwareEngineer")).IsSubClassOf(store.GetClass(quad.IRI("Person"))) {
+	if store.GetClass(softwareEngineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not unregistered as subclass of super class")
 	}
 }
@@ -470,13 +469,13 @@ func TestDeleteIsSubClassOfRecursive(t *testing.T) {
 func TestDeleteIsSubPropertyOf(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		nameProperty,
+		personalProperty,
 	})
-	q := quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil}
+	q := nameSubPropertyOfPersonal
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	if store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("personal"))) {
+	if store.GetProperty(name).IsSubPropertyOf(store.GetProperty(personal)) {
 		t.Error("Property was not unregistered as subproperty of super property")
 	}
 }
@@ -484,26 +483,26 @@ func TestDeleteIsSubPropertyOf(t *testing.T) {
 func TestDeleteIsSubPropertyOfRecursive(t *testing.T) {
 	store := NewStore()
 	store.ProcessQuads([]quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
-		quad.Quad{Subject: quad.IRI("information"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdf.Property), Label: nil},
+		nameProperty,
+		personalProperty,
+		quad.Quad{Subject: information, Predicate: _type, Object: property, Label: nil},
 	})
 	quads := []quad.Quad{
-		quad.Quad{Subject: quad.IRI("name"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("personal"), Label: nil},
-		quad.Quad{Subject: quad.IRI("personal"), Predicate: quad.IRI(rdfs.SubPropertyOf), Object: quad.IRI("information"), Label: nil},
+		nameSubPropertyOfPersonal,
+		personalSubPropertyOfInformation,
 	}
 	store.ProcessQuads(quads)
 	store.UnprocessQuads(quads)
-	if store.GetProperty(quad.IRI("name")).IsSubPropertyOf(store.GetProperty(quad.IRI("information"))) {
+	if store.GetProperty(name).IsSubPropertyOf(store.GetProperty(information)) {
 		t.Error("Property was not unregistered as subproperty of super property")
 	}
 }
 
 func TestClassIsReference(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
+	q := aliceIsPerson
 	store.ProcessQuad(q)
-	class := store.GetClass(quad.IRI("Person"))
+	class := store.GetClass(person)
 	if !class.isReferenced() {
 		t.Error("Class should be referenced")
 	}
@@ -511,9 +510,9 @@ func TestClassIsReference(t *testing.T) {
 
 func TestPropertyIsReference(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
+	q := aliceLikesBob
 	store.ProcessQuad(q)
-	property := store.GetProperty(quad.IRI("likes"))
+	property := store.GetProperty(likes)
 	if !property.isReferenced() {
 		t.Error("Property should be referenced")
 	}
@@ -521,20 +520,16 @@ func TestPropertyIsReference(t *testing.T) {
 
 func TestClassUnreference(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI(rdf.Type), Object: quad.IRI("Person"), Label: nil}
+	q := aliceIsPerson
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	if store.GetClass(quad.IRI("Person")) != nil {
-		t.Error("class was not garbage collected")
-	}
+	require.Nil(t, store.GetClass(person), "class was not garbage collected")
 }
 
 func TestPropertyUnreference(t *testing.T) {
 	store := NewStore()
-	q := quad.Quad{Subject: quad.IRI("alice"), Predicate: quad.IRI("likes"), Object: quad.IRI("bob"), Label: nil}
+	q := aliceLikesBob
 	store.ProcessQuad(q)
 	store.UnprocessQuad(q)
-	if store.GetProperty(quad.IRI("likes")) != nil {
-		t.Error("property was not garbage collected")
-	}
+	require.Nil(t, store.GetProperty(likes), "property was not garbage collected")
 }
