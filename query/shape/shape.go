@@ -2,6 +2,7 @@ package shape
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"reflect"
 	"regexp"
@@ -400,6 +401,37 @@ func (f Wildcard) BuildIterator(qs graph.QuadStore, it iterator.Shape) iterator.
 		return iterator.NewError(err)
 	}
 	return iterator.NewRegexWithRefs(it, re, qs)
+}
+
+var _ Shape = TextSearch{}
+
+// TextSearch finds values by using a full text search.
+type TextSearch struct {
+	// Query is implementation-dependent.
+	Query string
+}
+
+func (s TextSearch) BuildIterator(qs graph.QuadStore) iterator.Shape {
+	fts, ok := qs.(graph.TextSearcher)
+	if !ok {
+		return iterator.NewError(fmt.Errorf("full text search is not implemented for %T", qs))
+	}
+	it, err := fts.SearchTextValues(s.Query)
+	if err != nil {
+		return iterator.NewError(err)
+	}
+	return it
+}
+
+func (s TextSearch) Optimize(ctx context.Context, r Optimizer) (Shape, bool) {
+	if r == nil {
+		return s, false
+	}
+	s2, opt := r.OptimizeShape(ctx, s)
+	if !opt {
+		return s, false
+	}
+	return s2, true
 }
 
 // Count returns a count of objects in source as a single value. It always returns exactly one value.
