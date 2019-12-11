@@ -302,6 +302,9 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 			if err := tx.Del(k); err != nil {
 				return del, err
 			}
+			if err := qs.removeValue(d.ID, d.Val); err != nil {
+				return del, err
+			}
 			mNodesDel.Inc()
 			del = append(del, i)
 			continue
@@ -318,6 +321,9 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 		n := binary.PutUvarint(buf[:], uint64(d.RefInc))
 		val := append([]byte{}, buf[:n]...)
 		if err := tx.Put(bucketKeyForHashRefs(d.Hash), val); err != nil {
+			return nil, err
+		}
+		if err := qs.indexValue(d.ID, d.Val); err != nil {
 			return nil, err
 		}
 		mNodesNew.Inc()
@@ -1234,6 +1240,20 @@ func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
 	defer qs.exists.Unlock()
 	writePrimToBuf(p, qs.exists.buf)
 	qs.exists.Add(qs.exists.buf)
+}
+
+// indexValue is a hook that is called when a new value is added to a quad store.
+// It is used as an integration point to add custom indexing for values of different types.
+func (qs *QuadStore) indexValue(id uint64, val quad.Value) error {
+	// TODO(iddan): add FTS-related code
+	return nil
+}
+
+// removeValue is a hook that is called when a value is removed from a quad store.
+// It is used as an integration point to add custom indexing for values of different types.
+func (qs *QuadStore) removeValue(id uint64, val quad.Value) error {
+	// TODO(iddan): add FTS-related code
+	return nil
 }
 
 func writePrimToBuf(p *proto.Primitive, buf []byte) {
