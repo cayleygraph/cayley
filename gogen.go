@@ -1,3 +1,3 @@
 package cayley
 
-//go:generate go run ./query/linkedql/client/generate_client.go
+//go:generate go run ./cmd/generate_linkedql_client/generate_linkedql_client.go
