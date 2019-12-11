@@ -331,6 +331,8 @@ paths:
               schema:
                 oneOf:
                   - type: "array"
+                    items:
+                      type: "object"
                   - type: "object"
         default:
           description: "Unexpected error"
@@ -378,6 +380,8 @@ paths:
               schema:
                 oneOf:
                 - type: "array"
+                  items:
+                    type: "object"
                 - type: "object"
         default:
           description: "Unexpected error"

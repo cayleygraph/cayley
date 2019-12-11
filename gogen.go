@@ -1,3 +1,3 @@
 package cayley
 
-//go:generate go run ./cmd/docgen/docgen.go -i ./docs/GizmoAPI.md.in -o ./docs/GizmoAPI.md
+// go:generate docker run --rm -v ${PWD}:/local openapitools/openapi-generator-cli generate -i /local/docs/api/swagger.yml -g go -o /local/client
