@@ -3,6 +3,7 @@ module github.com/cayleygraph/cayley
 go 1.12
 
 require (
+	github.com/antihax/optional v1.0.0
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
 	github.com/cayleygraph/quad v1.1.0
 	github.com/cockroachdb/apd v1.1.0 // indirect
@@ -52,6 +53,7 @@ require (
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
+	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sys v0.0.0-20191009170203-06d7bd2c5f4f // indirect
 	golang.org/x/tools v0.0.0-20191010075000-0337d82405ff // indirect
 	google.golang.org/appengine v1.6.1

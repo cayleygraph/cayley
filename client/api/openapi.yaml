@@ -295,11 +295,7 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                - items:
-                    type: object
-                  type: array
-                - type: object
+                $ref: '#/components/schemas/QueryResult'
           description: query succesful
         default:
           content:
@@ -350,11 +346,7 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                - items:
-                    type: object
-                  type: array
-                - type: object
+                $ref: '#/components/schemas/QueryResult'
           description: query succesful
         default:
           content:
@@ -441,6 +433,18 @@ paths:
       - queries
 components:
   schemas:
+    QueryResult:
+      example:
+        result:
+        - '{}'
+        - '{}'
+      properties:
+        result:
+          items:
+            type: object
+          nullable: true
+          type: array
+      type: object
     NQuads:
       format: binary
       type: string

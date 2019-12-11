@@ -58,7 +58,7 @@ No authorization required
 
 ## Query
 
-> OneOfarrayobject Query(ctx, lang, body)
+> QueryResult Query(ctx, lang, body)
 
 Query the graph
 
@@ -73,7 +73,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**OneOfarrayobject**](oneOf&lt;array,object&gt;.md)
+[**QueryResult**](QueryResult.md)
 
 ### Authorization
 
@@ -91,7 +91,7 @@ No authorization required
 
 ## QueryGet
 
-> OneOfarrayobject QueryGet(ctx, lang, qu)
+> QueryResult QueryGet(ctx, lang, qu)
 
 Query the graph
 
@@ -106,7 +106,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**OneOfarrayobject**](oneOf&lt;array,object&gt;.md)
+[**QueryResult**](QueryResult.md)
 
 ### Authorization
 

@@ -49,6 +49,7 @@ Class | Method | HTTP request | Description
  - [InlineResponse2001](docs/InlineResponse2001.md)
  - [InlineResponse2002](docs/InlineResponse2002.md)
  - [JsonQuad](docs/JsonQuad.md)
+ - [QueryResult](docs/QueryResult.md)
 
 
 ## Documentation For Authorization

@@ -157,16 +157,16 @@ Query Query the graph
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  * @param lang Query language to use
  * @param body Query text
-@return OneOfarrayobject
+@return QueryResult
 */
-func (a *QueriesApiService) Query(ctx _context.Context, lang string, body string) (OneOfarrayobject, *_nethttp.Response, error) {
+func (a *QueriesApiService) Query(ctx _context.Context, lang string, body string) (QueryResult, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  OneOfarrayobject
+		localVarReturnValue  QueryResult
 	)
 
 	// create path and map variables
@@ -217,7 +217,7 @@ func (a *QueriesApiService) Query(ctx _context.Context, lang string, body string
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 200 {
-			var v OneOfarrayobject
+			var v QueryResult
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -253,16 +253,16 @@ QueryGet Query the graph
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  * @param lang Query language to use
  * @param qu Query text
-@return OneOfarrayobject
+@return QueryResult
 */
-func (a *QueriesApiService) QueryGet(ctx _context.Context, lang string, qu string) (OneOfarrayobject, *_nethttp.Response, error) {
+func (a *QueriesApiService) QueryGet(ctx _context.Context, lang string, qu string) (QueryResult, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  OneOfarrayobject
+		localVarReturnValue  QueryResult
 	)
 
 	// create path and map variables
@@ -312,7 +312,7 @@ func (a *QueriesApiService) QueryGet(ctx _context.Context, lang string, qu strin
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 200 {
-			var v OneOfarrayobject
+			var v QueryResult
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

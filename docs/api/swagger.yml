@@ -329,11 +329,7 @@ paths:
           content:
             'application/json':
               schema:
-                oneOf:
-                  - type: "array"
-                    items:
-                      type: "object"
-                  - type: "object"
+                $ref: '#/components/schemas/QueryResult'
         default:
           description: "Unexpected error"
           content:
@@ -378,11 +374,7 @@ paths:
           content:
             'application/json':
               schema:
-                oneOf:
-                - type: "array"
-                  items:
-                    type: "object"
-                - type: "object"
+                $ref: '#/components/schemas/QueryResult'
         default:
           description: "Unexpected error"
           content:
@@ -454,6 +446,14 @@ paths:
                 $ref: '#/components/schemas/Error'
 components:
   schemas:
+    QueryResult:
+      type: object
+      properties:
+        result:
+          type: array
+          nullable: true
+          items:
+            type: object
     NQuads:
       type: "string"
       format: "binary"
