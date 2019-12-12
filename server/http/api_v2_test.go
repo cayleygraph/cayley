@@ -29,7 +29,7 @@ func makeServerV2(t testing.TB, quads ...quad.Quad) *APIv2 {
 	return NewAPIv2(h)
 }
 
-func writeQuadsAsJSONLD(q []quad.Quad, w io.Writer) error {
+func writeQuads(q []quad.Quad, w io.Writer) error {
 	writer := jsonld.NewWriter(w)
 	reader := quad.NewReader(quads)
 	_, err := quad.Copy(writer, reader)
@@ -37,7 +37,7 @@ func writeQuadsAsJSONLD(q []quad.Quad, w io.Writer) error {
 	return err
 }
 
-var jsonLdMime = quad.FormatByName("jsonld").Mime[0]
+var mime = quad.FormatByName("jsonld").Mime[0]
 
 var quads = []quad.Quad{
 	quad.MakeIRI("http://example.com/bob", "http://example.com/likes", "http://example.com/alice", ""),
@@ -48,12 +48,12 @@ func TestV2Write(t *testing.T) {
 	api := makeServerV2(t)
 	buf := bytes.NewBuffer(nil)
 
-	err := writeQuadsAsJSONLD(quads, buf)
+	err := writeQuads(quads, buf)
 	require.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodGet, prefix+"/write", buf)
 	require.NoError(t, err)
-	req.Header.Set(hdrContentType, jsonLdMime)
+	req.Header.Set(hdrContentType, mime)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(api.ServeWrite)
@@ -75,7 +75,7 @@ func TestV2Read(t *testing.T) {
 
 	req, err := http.NewRequest(http.MethodGet, prefix+"/read", buf)
 	require.NoError(t, err)
-	req.Header.Set(hdrAccept, jsonLdMime)
+	req.Header.Set(hdrAccept, mime)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(api.ServeRead)
