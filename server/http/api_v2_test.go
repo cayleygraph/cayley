@@ -3,6 +3,7 @@ package cayleyhttp
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -28,6 +29,14 @@ func makeServerV2(t testing.TB, quads ...quad.Quad) *APIv2 {
 	return NewAPIv2(h)
 }
 
+func writeQuadsAsJSONLD(q []quad.Quad, w io.Writer) error {
+	writer := jsonld.NewWriter(w)
+	reader := quad.NewReader(quads)
+	_, err := quad.Copy(writer, reader)
+	writer.Close()
+	return err
+}
+
 var jsonLdMime = quad.FormatByName("jsonld").Mime[0]
 
 var quads = []quad.Quad{
@@ -39,13 +48,10 @@ func TestV2Write(t *testing.T) {
 	api := makeServerV2(t)
 	buf := bytes.NewBuffer(nil)
 
-	writer := jsonld.NewWriter(buf)
-	reader := quad.NewReader(quads)
-	_, err := quad.Copy(writer, reader)
-	writer.Close()
+	err := writeQuadsAsJSONLD(quads, buf)
 	require.NoError(t, err)
 
-	req, err := http.NewRequest("GET", "/api/v2/write", buf)
+	req, err := http.NewRequest(http.MethodGet, prefix+"/write", buf)
 	require.NoError(t, err)
 	req.Header.Set(hdrContentType, jsonLdMime)
 
@@ -67,7 +73,7 @@ func TestV2Read(t *testing.T) {
 	api := makeServerV2(t, quads...)
 	buf := bytes.NewBuffer(nil)
 
-	req, err := http.NewRequest("GET", "/api/v2/read", buf)
+	req, err := http.NewRequest(http.MethodGet, prefix+"/read", buf)
 	require.NoError(t, err)
 	req.Header.Set(hdrAccept, jsonLdMime)
 
