@@ -144,7 +144,7 @@ func (s *Entity) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Entity) Description() string {
-	return "Entity resolves to the object matching given identifier in the graph."
+	return "resolves to the object matching given identifier in the graph."
 }
 
 // BuildIterator implements IteratorStep.
@@ -176,7 +176,7 @@ func (s *Entities) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Entities) Description() string {
-	return "Entities resolves to all the existing objects in the graph. If provided with identifiers resolves to a sublist of all the existing identifiers in the graph."
+	return "resolves to all the existing objects in the graph. If provided with identifiers resolves to a sublist of all the existing identifiers in the graph."
 }
 
 // BuildIterator implements IteratorStep.
@@ -213,7 +213,7 @@ func (s *Vertex) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Vertex) Description() string {
-	return "Vertex resolves to all the existing objects and primitive values in the graph. If provided with values resolves to a sublist of all the existing values in the graph."
+	return "resolves to all the existing objects and primitive values in the graph. If provided with values resolves to a sublist of all the existing values in the graph."
 }
 
 // BuildIterator implements IteratorStep.
@@ -238,7 +238,7 @@ func (s *Placeholder) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Placeholder) Description() string {
-	return "Placeholder is like Vertex but resolves to the values in the context it is placed in. It should only be used where a PathStep is expected and can't be resolved on its own."
+	return "is like Vertex but resolves to the values in the context it is placed in. It should only be used where a PathStep is expected and can't be resolved on its own."
 }
 
 // BuildPath implements PathStep.
@@ -262,7 +262,7 @@ func (s *View) Type() quad.IRI {
 
 // Description implements Step.
 func (s *View) Description() string {
-	return "View resolves to the values of the given property or properties in via of the current objects. If via is a path it's resolved values will be used as properties."
+	return "resolves to the values of the given property or properties in via of the current objects. If via is a path it's resolved values will be used as properties."
 }
 
 // BuildIterator implements IteratorStep.
@@ -298,7 +298,7 @@ func (s *Out) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Out) Description() string {
-	return "Alias for View"
+	return "aliases for View"
 }
 
 var _ IteratorStep = (*As)(nil)
@@ -317,7 +317,7 @@ func (s *As) Type() quad.IRI {
 
 // Description implements Step.
 func (s *As) Description() string {
-	return "As assigns the resolved values of the from step to a given name. The name can be used with the Select and Documents steps to retreive the values or to return to the values in further steps with the Back step. It resolves to the values of the from step."
+	return "assigns the resolved values of the from step to a given name. The name can be used with the Select and Documents steps to retreive the values or to return to the values in further steps with the Back step. It resolves to the values of the from step."
 }
 
 // BuildIterator implements IteratorStep.
@@ -350,7 +350,7 @@ func (s *Intersect) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Intersect) Description() string {
-	return "Intersect resolves to all the same values resolved by the from step and the provided steps."
+	return "resolves to all the same values resolved by the from step and the provided steps."
 }
 
 // BuildIterator implements IteratorStep.
@@ -391,7 +391,7 @@ func (s *Is) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Is) Description() string {
-	return "Is resolves to all the values resolved by the from step which are included in provided values."
+	return "resolves to all the values resolved by the from step which are included in provided values."
 }
 
 // BuildIterator implements IteratorStep.
@@ -424,7 +424,7 @@ func (s *Back) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Back) Description() string {
-	return "Back resolves to the values of the previous the step or the values assigned to name in a former step."
+	return "resolves to the values of the previous the step or the values assigned to name in a former step."
 }
 
 // BuildIterator implements IteratorStep.
@@ -457,7 +457,7 @@ func (s *ViewBoth) Type() quad.IRI {
 
 // Description implements Step.
 func (s *ViewBoth) Description() string {
-	return "ViewBoth is like View but resolves to both the object values and references to the values of the given properties in via. It is the equivalent for the Union of View and ViewReverse of the same property."
+	return "is like View but resolves to both the object values and references to the values of the given properties in via. It is the equivalent for the Union of View and ViewReverse of the same property."
 }
 
 // BuildIterator implements IteratorStep.
@@ -493,7 +493,7 @@ func (s *Both) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Both) Description() string {
-	return Prefix + "Alias for ViewBoth"
+	return "aliases for ViewBoth"
 }
 
 var _ IteratorStep = (*Count)(nil)
@@ -511,7 +511,7 @@ func (s *Count) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Count) Description() string {
-	return "Count resolves to the number of the resolved values of the from step"
+	return "resolves to the number of the resolved values of the from step"
 }
 
 // BuildIterator implements IteratorStep.
@@ -544,7 +544,7 @@ func (s *Difference) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Difference) Description() string {
-	return "Difference resolves to all the values resolved by the from step different then the values resolved by the provided steps. Caution: it might be slow to execute."
+	return "resolves to all the values resolved by the from step different then the values resolved by the provided steps. Caution: it might be slow to execute."
 }
 
 // BuildIterator implements IteratorStep.
@@ -585,7 +585,7 @@ func (s *Filter) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Filter) Description() string {
-	return "Apply constraints to a set of nodes. Can be used to filter values by range or match strings."
+	return "applies constraints to a set of nodes. Can be used to filter values by range or match strings."
 }
 
 // BuildIterator implements IteratorStep.
@@ -618,7 +618,7 @@ func (s *Follow) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Follow) Description() string {
-	return "The way to use a path prepared with Morphism. Applies the path chain on the morphism object to the current path. Starts as if at the g.M() and follows through the morphism path."
+	return "is the way to use a path prepared with Morphism. Applies the path chain on the morphism object to the current path. Starts as if at the g.M() and follows through the morphism path."
 }
 
 // BuildIterator implements IteratorStep.
@@ -655,7 +655,7 @@ func (s *FollowReverse) Type() quad.IRI {
 
 // Description implements Step.
 func (s *FollowReverse) Description() string {
-	return "The same as follow but follows the chain in the reverse direction. Flips View and ViewReverse where appropriate, the net result being a virtual predicate followed in the reverse direction. Starts at the end of the morphism and follows it backwards (with appropriate flipped directions) to the g.M() location."
+	return "is the same as follow but follows the chain in the reverse direction. Flips View and ViewReverse where appropriate, the net result being a virtual predicate followed in the reverse direction. Starts at the end of the morphism and follows it backwards (with appropriate flipped directions) to the g.M() location."
 }
 
 // BuildIterator implements IteratorStep.
@@ -693,7 +693,7 @@ func (s *Has) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Has) Description() string {
-	return "Filter all paths which are, at this point, on the subject for the given predicate and object, but do not follow the path, merely filter the possible paths. Usually useful for starting with all nodes, or limiting to a subset depending on some predicate/value pair."
+	return "filters all paths which are, at this point, on the subject for the given predicate and object, but do not follow the path, merely filter the possible paths. Usually useful for starting with all nodes, or limiting to a subset depending on some predicate/value pair."
 }
 
 // BuildIterator implements IteratorStep.
@@ -731,7 +731,7 @@ func (s *HasReverse) Type() quad.IRI {
 
 // Description implements Step.
 func (s *HasReverse) Description() string {
-	return "The same as Has, but sets constraint in reverse direction."
+	return "is the same as Has, but sets constraint in reverse direction."
 }
 
 // BuildIterator implements IteratorStep.
@@ -768,7 +768,7 @@ func (s *ViewReverse) Type() quad.IRI {
 
 // Description implements Step.
 func (s *ViewReverse) Description() string {
-	return "The inverse of View. Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects."
+	return "is the inverse of View. Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects."
 }
 
 // BuildIterator implements IteratorStep.
@@ -804,7 +804,7 @@ func (s *In) Type() quad.IRI {
 
 // Description implements Step.
 func (s *In) Description() string {
-	return "Alias for ViewReverse"
+	return "aliases for ViewReverse"
 }
 
 var _ IteratorStep = (*ReversePropertyNames)(nil)
@@ -822,7 +822,7 @@ func (s *ReversePropertyNames) Type() quad.IRI {
 
 // Description implements Step.
 func (s *ReversePropertyNames) Description() string {
-	return "Get the list of predicates that are pointing in to a node."
+	return "gets the list of predicates that are pointing in to a node."
 }
 
 // BuildIterator implements IteratorStep.
@@ -854,7 +854,7 @@ func (s *Labels) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Labels) Description() string {
-	return "Get the list of inbound and outbound quad labels"
+	return "gets the list of inbound and outbound quad labels"
 }
 
 // BuildIterator implements IteratorStep.
@@ -887,7 +887,7 @@ func (s *Limit) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Limit) Description() string {
-	return "Limit a number of nodes for current path."
+	return "limits a number of nodes for current path."
 }
 
 // BuildIterator implements IteratorStep.
@@ -919,7 +919,7 @@ func (s *PropertyNames) Type() quad.IRI {
 
 // Description implements Step.
 func (s *PropertyNames) Description() string {
-	return "Get the list of predicates that are pointing out from a node."
+	return "gets the list of predicates that are pointing out from a node."
 }
 
 // BuildIterator implements IteratorStep.
@@ -953,7 +953,7 @@ func (s *Properties) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Properties) Description() string {
-	return "Adds tags for all properties of the current entity"
+	return "adds tags for all properties of the current entity"
 }
 
 // BuildIterator implements IteratorStep.
@@ -1009,7 +1009,7 @@ func (s *ReversePropertyNamesAs) Type() quad.IRI {
 
 // Description implements Step.
 func (s *ReversePropertyNamesAs) Description() string {
-	return "Tag the list of predicates that are pointing in to a node."
+	return "tags the list of predicates that are pointing in to a node."
 }
 
 // BuildIterator implements IteratorStep.
@@ -1042,7 +1042,7 @@ func (s *PropertyNamesAs) Type() quad.IRI {
 
 // Description implements Step.
 func (s *PropertyNamesAs) Description() string {
-	return "Tag the list of predicates that are pointing out from a node."
+	return "tags the list of predicates that are pointing out from a node."
 }
 
 // BuildIterator implements IteratorStep.
@@ -1076,7 +1076,7 @@ func (s *ReverseProperties) Type() quad.IRI {
 
 // Description implements Step.
 func (s *ReverseProperties) Description() string {
-	return "Gets all the properties the current entity / value is referenced at"
+	return "gets all the properties the current entity / value is referenced at"
 }
 
 // BuildIterator implements IteratorStep.
@@ -1113,7 +1113,7 @@ func (s *Skip) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Skip) Description() string {
-	return "Skip a number of nodes for current path."
+	return "skips a number of nodes for current path."
 }
 
 // BuildIterator implements IteratorStep.
@@ -1146,7 +1146,7 @@ func (s *Union) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Union) Description() string {
-	return "Return the combined paths of the two queries. Notice that it's per-path, not per-node. Once again, if multiple paths reach the same destination, they might have had different ways of getting there (and different tags)."
+	return "returns the combined paths of the two queries. Notice that it's per-path, not per-node. Once again, if multiple paths reach the same destination, they might have had different ways of getting there (and different tags)."
 }
 
 // BuildIterator implements IteratorStep.
@@ -1186,7 +1186,7 @@ func (s *Unique) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Unique) Description() string {
-	return "Remove duplicate values from the path."
+	return "removes duplicate values from the path."
 }
 
 // BuildIterator implements IteratorStep.
@@ -1218,7 +1218,7 @@ func (s *Order) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Order) Description() string {
-	return "Order sorts the results in ascending order according to the current entity / value"
+	return "sorts the results in ascending order according to the current entity / value"
 }
 
 // BuildIterator implements IteratorStep.
@@ -1251,7 +1251,7 @@ func (s *Optional) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Optional) Description() string {
-	return "Attempts to follow the given path from the current entity / value, if fails the entity / value will still be kept in the results"
+	return "attempts to follow the given path from the current entity / value, if fails the entity / value will still be kept in the results"
 }
 
 // BuildIterator implements IteratorStep.
@@ -1285,7 +1285,7 @@ func (s *Where) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Where) Description() string {
-	return "Where applies each provided step in steps in isolation on from"
+	return "applies each provided step in steps in isolation on from"
 }
 
 // BuildIterator implements IteratorStep.
