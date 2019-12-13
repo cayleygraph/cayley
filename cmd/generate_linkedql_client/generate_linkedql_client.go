@@ -23,7 +23,9 @@ import (
 const schemaFile = "linkedql.json"
 const outputFilePath = "query/linkedql/client/client.go"
 
+var stepIRI = quad.IRI("http://cayley.io/linkedql#Step")
 var pathStepIRI = quad.IRI("http://cayley.io/linkedql#PathStep")
+var iteratorStepIRI = quad.IRI("http://cayley.io/linkedql#IteratorStep")
 
 func main() {
 	ctx := context.TODO()
@@ -33,7 +35,7 @@ func main() {
 		panic(err)
 	}
 
-	stepClass, err := owl.GetClass(ctx, qs, pathStepIRI)
+	stepClass, err := owl.GetClass(ctx, qs, stepIRI)
 
 	if err != nil {
 		panic(err)
@@ -43,6 +45,9 @@ func main() {
 	var decls []ast.Decl
 
 	for _, stepSubClass := range stepSubClasses {
+		if stepSubClass.Identifier == pathStepIRI || stepSubClass.Identifier == iteratorStepIRI {
+			continue
+		}
 		stepSubClassDecls, err := stepSubClassToDecls(stepSubClass)
 		if err != nil {
 			panic(err)

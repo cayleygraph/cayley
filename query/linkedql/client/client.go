@@ -6,7 +6,7 @@ import (
 
 type Path map[string]interface{}
 
-// As assigns the resolved values of the from step to a given name. The name can be used with the Select and Documents steps to retreive the values or to return to the values in further steps with the Back step. It resolves to the values of the from step.
+// As assigns the resolved values of the from step to a given name. The name can be used with the Select and Documents steps to retrieve the values or to return to the values in further steps with the Back step. It resolves to the values of the from step.
 func (p Path) As(name string) Path {
 	return Path{"@type": "http://cayley.io/linkedql#As", "from": p, "http://cayley.io/linkedql#name": name}
 }
@@ -84,11 +84,6 @@ func (p Path) Order() Path {
 // Out aliases for View
 func (p Path) Out(properties Path) Path {
 	return Path{"@type": "http://cayley.io/linkedql#Out", "from": p, "http://cayley.io/linkedql#properties": properties}
-}
-
-// Placeholder is like Vertex but resolves to the values in the context it is placed in. It should only be used where a PathStep is expected and can't be resolved on its own.
-func Placeholder() Path {
-	return Path{"@type": "http://cayley.io/linkedql#Placeholder"}
 }
 
 // Properties adds tags for all properties of the current entity
@@ -169,4 +164,9 @@ func (p Path) ViewBoth(properties Path) Path {
 // ViewReverse is the inverse of View. Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects.
 func (p Path) ViewReverse(properties Path) Path {
 	return Path{"@type": "http://cayley.io/linkedql#ViewReverse", "from": p, "http://cayley.io/linkedql#properties": properties}
+}
+
+// Placeholder is like Vertex but resolves to the values in the context it is placed in. It should only be used where a PathStep is expected and can't be resolved on its own.
+func Placeholder() Path {
+	return Path{"@type": "http://cayley.io/linkedql#Placeholder"}
 }

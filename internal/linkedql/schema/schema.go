@@ -250,6 +250,23 @@ func (g *generator) Generate() []byte {
 			Range:  rng,
 		})
 	}
+	graph := []interface{}{
+		map[string]string{
+			"@id":   "linkedql:Step",
+			"@type": "owl:Class",
+		},
+		map[string]interface{}{
+			"@id":             "linkedql:PathStep",
+			"@type":           "owl:Class",
+			"rdfs:subClassOf": map[string]string{"@id": "linkedql:Step"},
+		},
+		map[string]interface{}{
+			"@id":             "linkedql:IteratorStep",
+			"@type":           "owl:Class",
+			"rdfs:subClassOf": map[string]string{"@id": "linkedql:Step"},
+		},
+	}
+	graph = append(graph, g.out...)
 	data, err := json.Marshal(map[string]interface{}{
 		"@context": map[string]interface{}{
 			"rdf":      map[string]string{"@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"},
@@ -258,7 +275,7 @@ func (g *generator) Generate() []byte {
 			"xsd":      map[string]string{"@id": "http://www.w3.org/2001/XMLSchema#"},
 			"linkedql": map[string]string{"@id": "http://cayley.io/linkedql#"},
 		},
-		"@graph": g.out,
+		"@graph": graph,
 	})
 	if err != nil {
 		panic(err)
