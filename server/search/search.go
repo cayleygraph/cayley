@@ -14,6 +14,9 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
+// Index is the search index
+type Index = bleve.Index
+
 // IndexPath is the path to the directory the search index will be stored at
 const IndexPath = "searchIndex.bleve"
 
@@ -129,7 +132,7 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config documentConfig
 }
 
 // OpenIndex opens an existing index
-func OpenIndex() (bleve.Index, error) {
+func OpenIndex() (Index, error) {
 	return bleve.Open(IndexPath)
 }
 
@@ -171,7 +174,7 @@ func newDocumentMapping(config documentConfig) *mapping.DocumentMapping {
 	return documentMapping
 }
 
-func newIndexMapping(configs []documentConfig) mapping.IndexMapping {
+func newIndexMapping(configs Configuration) mapping.IndexMapping {
 	indexMapping := bleve.NewIndexMapping()
 	for _, config := range configs {
 		indexMapping.AddDocumentMapping(config.Name, newDocumentMapping(config))
@@ -184,10 +187,10 @@ func newIndexMapping(configs []documentConfig) mapping.IndexMapping {
 	return indexMapping
 }
 
-// Index documents from given quad store by given configuration to given index
+// IndexEntities documents from given quad store by given configuration to given index
 // If entities is empty index all the matching documents in the quad store
 // Otherwise only load documents of the provided entities
-func Index(ctx context.Context, qs graph.QuadStore, configs []documentConfig, index bleve.Index, entities []quad.Value) error {
+func IndexEntities(ctx context.Context, qs graph.QuadStore, configs Configuration, index Index, entities []quad.Value) error {
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
@@ -209,7 +212,7 @@ func Index(ctx context.Context, qs graph.QuadStore, configs []documentConfig, in
 // Delete documents from given quad store by given configuration for given index
 // If entities is empty delete all matching documents in the quad store
 // Otherwise only delete documents of the provided entities
-func Delete(ctx context.Context, qs graph.QuadStore, configs []documentConfig, index bleve.Index, entities []quad.Value) error {
+func Delete(ctx context.Context, qs graph.QuadStore, configs Configuration, index Index, entities []quad.Value) error {
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
@@ -229,14 +232,14 @@ func Delete(ctx context.Context, qs graph.QuadStore, configs []documentConfig, i
 }
 
 // NewIndex builds a new search index
-func NewIndex(ctx context.Context, qs graph.QuadStore, configs []documentConfig) (bleve.Index, error) {
+func NewIndex(ctx context.Context, qs graph.QuadStore, configs Configuration) (Index, error) {
 	clog.Infof("Building search index...")
 	indexMapping := newIndexMapping(configs)
 	index, err := bleve.New(IndexPath, indexMapping)
 	if err != nil {
 		return nil, err
 	}
-	err = Index(ctx, qs, configs, index, nil)
+	err = IndexEntities(ctx, qs, configs, index, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +248,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs []documentConfig)
 }
 
 // GetIndex attempts to open an existing index, if it doesn't exist it creates a new one
-func GetIndex(ctx context.Context, qs graph.QuadStore, configs []documentConfig) (bleve.Index, error) {
+func GetIndex(ctx context.Context, qs graph.QuadStore, configs Configuration) (Index, error) {
 	index, err := OpenIndex()
 	if err == bleve.ErrorIndexPathDoesNotExist {
 		return NewIndex(ctx, qs, configs)
@@ -271,7 +274,7 @@ func toIRIs(searchResults *bleve.SearchResult) []quad.IRI {
 }
 
 // Search for given index and query creates a search request and translates the results to Documents
-func Search(index bleve.Index, query string) ([]quad.IRI, error) {
+func Search(index Index, query string) ([]quad.IRI, error) {
 	matchQuery := bleve.NewMatchQuery(query)
 	search := bleve.NewSearchRequest(matchQuery)
 	searchResults, err := index.Search(search)

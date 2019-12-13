@@ -31,6 +31,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/query/shape"
+	"github.com/cayleygraph/cayley/server/search"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
 	boom "github.com/tylertreat/BoomFilters"
@@ -99,6 +100,9 @@ type QuadStore struct {
 		// indexes used to detect duplicate quads
 		exists []QuadIndex
 	}
+
+	searchIndex  search.Index
+	searchConfig search.Configuration
 
 	valueLRU *lru.Cache
 

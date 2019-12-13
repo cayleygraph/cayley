@@ -26,9 +26,10 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/log"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
+	"github.com/cayleygraph/cayley/server/search"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
 
@@ -302,7 +303,7 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 			if err := tx.Del(k); err != nil {
 				return del, err
 			}
-			if err := qs.removeValue(d.ID, d.Val); err != nil {
+			if err := qs.removeValue(ctx, d.ID, d.Val); err != nil {
 				return del, err
 			}
 			mNodesDel.Inc()
@@ -323,7 +324,7 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 		if err := tx.Put(bucketKeyForHashRefs(d.Hash), val); err != nil {
 			return nil, err
 		}
-		if err := qs.indexValue(d.ID, d.Val); err != nil {
+		if err := qs.indexValue(ctx, d.ID, d.Val); err != nil {
 			return nil, err
 		}
 		mNodesNew.Inc()
@@ -1244,15 +1245,15 @@ func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
 
 // indexValue is a hook that is called when a new value is added to a quad store.
 // It is used as an integration point to add custom indexing for values of different types.
-func (qs *QuadStore) indexValue(id uint64, val quad.Value) error {
-	// TODO(iddan): add FTS-related code
+func (qs *QuadStore) indexValue(ctx context.Context, id uint64, val quad.Value) error {
+	search.IndexEntities(ctx, qs, qs.searchConfig, qs.index, val)
 	return nil
 }
 
 // removeValue is a hook that is called when a value is removed from a quad store.
 // It is used as an integration point to add custom indexing for values of different types.
-func (qs *QuadStore) removeValue(id uint64, val quad.Value) error {
-	// TODO(iddan): add FTS-related code
+func (qs *QuadStore) removeValue(ctx context.Context, id uint64, val quad.Value) error {
+	search.Delete(ctx, qs, qs.searchConfig, qs.index, val)
 	return nil
 }
 
