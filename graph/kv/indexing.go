@@ -1258,7 +1258,7 @@ func (qs *QuadStore) indexValue(ctx context.Context, id uint64, val quad.Value) 
 // removeValue is a hook that is called when a value is removed from a quad store.
 // It is used as an integration point to add custom indexing for values of different types.
 func (qs *QuadStore) removeValue(ctx context.Context, id uint64, val quad.Value) error {
-	if qs.searchConfig == nil {
+	if qs.searchConfig != nil {
 		if qs.searchIndex == nil {
 			return fmt.Errorf("searchIndex should be initialized if qs.searchConfig is not nil")
 		}
