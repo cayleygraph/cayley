@@ -72,6 +72,27 @@ func (c *Class) ParentClasses() []*Class {
 	return classes
 }
 
+var rdfsComment = quad.IRI("rdfs:comment").Full()
+
+// Comment returns classs's comment
+func (c *Class) Comment() (string, error) {
+	it := c.path().Out(rdfsComment).BuildIterator(c.ctx).Iterate()
+	for it.Next(c.ctx) {
+		ref := it.Result()
+		value := c.qs.NameOf(ref)
+		stringValue, ok := value.(quad.String)
+		if ok {
+			return string(stringValue), nil
+		}
+		typedStringValue, ok := value.(quad.TypedString)
+		if ok {
+			return string(typedStringValue.Value), nil
+		}
+
+	}
+	return "", fmt.Errorf("No comment exist for %v", c.Identifier)
+}
+
 func parentClassesPath(c *Class) *path.Path {
 	return c.path().Out(quad.IRI(rdfs.SubClassOf).Full())
 }
