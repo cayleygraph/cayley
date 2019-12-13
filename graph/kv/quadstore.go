@@ -153,6 +153,16 @@ func Init(kv kv.KV, opt graph.Options) error {
 	if err := qs.writeIndexesMeta(ctx); err != nil {
 		return err
 	}
+	if qs.searchConfig != nil {
+		// TODO(iddan): get search configuration from opt
+		searchIndex, err := search.NewIndex(context.TODO(), qs, nil)
+
+		if err != nil {
+			return err
+		}
+
+		qs.searchIndex = searchIndex
+	}
 	return nil
 }
 
