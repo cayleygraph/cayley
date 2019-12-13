@@ -12,6 +12,8 @@ func init() {
 	Register(&Value{})
 }
 
+var _ IteratorStep = (*Select)(nil)
+
 // Select corresponds to .select().
 type Select struct {
 	Tags []string `json:"tags"`
@@ -36,6 +38,8 @@ func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	}
 	return &TagsIterator{valueIt: valueIt, selected: s.Tags}, nil
 }
+
+var _ IteratorStep = (*SelectFirst)(nil)
 
 // SelectFirst corresponds to .selectFirst().
 type SelectFirst struct {
@@ -70,6 +74,8 @@ func (s *SelectFirst) BuildIterator(qs graph.QuadStore) (query.Iterator, error) 
 	return &TagsIterator{it, s.Tags}, nil
 }
 
+var _ IteratorStep = (*Value)(nil)
+
 // Value corresponds to .value().
 type Value struct {
 	From PathStep `json:"from"`
@@ -89,6 +95,8 @@ func (s *Value) Description() string {
 func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return singleValueIteratorFromPathStep(s.From, qs)
 }
+
+var _ IteratorStep = (*Documents)(nil)
 
 // Documents corresponds to .documents().
 type Documents struct {
