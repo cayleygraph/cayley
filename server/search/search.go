@@ -190,7 +190,7 @@ func newIndexMapping(configs Configuration) mapping.IndexMapping {
 // IndexEntities documents from given quad store by given configuration to given index
 // If entities is empty index all the matching documents in the quad store
 // Otherwise only load documents of the provided entities
-func IndexEntities(ctx context.Context, qs graph.QuadStore, configs Configuration, index Index, entities []quad.Value) error {
+func IndexEntities(ctx context.Context, qs graph.QuadStore, configs Configuration, index Index, entities ...quad.Value) error {
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
@@ -212,7 +212,7 @@ func IndexEntities(ctx context.Context, qs graph.QuadStore, configs Configuratio
 // Delete documents from given quad store by given configuration for given index
 // If entities is empty delete all matching documents in the quad store
 // Otherwise only delete documents of the provided entities
-func Delete(ctx context.Context, qs graph.QuadStore, configs Configuration, index Index, entities []quad.Value) error {
+func Delete(ctx context.Context, qs graph.QuadStore, configs Configuration, index Index, entities ...quad.Value) error {
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
@@ -239,7 +239,7 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs Configuration) (I
 	if err != nil {
 		return nil, err
 	}
-	err = IndexEntities(ctx, qs, configs, index, nil)
+	err = IndexEntities(ctx, qs, configs, index)
 	if err != nil {
 		return nil, err
 	}

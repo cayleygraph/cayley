@@ -1246,14 +1246,24 @@ func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
 // indexValue is a hook that is called when a new value is added to a quad store.
 // It is used as an integration point to add custom indexing for values of different types.
 func (qs *QuadStore) indexValue(ctx context.Context, id uint64, val quad.Value) error {
-	search.IndexEntities(ctx, qs, qs.searchConfig, qs.index, val)
+	if qs.searchConfig != nil {
+		if qs.searchIndex == nil {
+			return fmt.Errorf("searchIndex should be initialized if qs.searchConfig is not nil")
+		}
+		search.IndexEntities(ctx, qs, qs.searchConfig, qs.searchIndex, val)
+	}
 	return nil
 }
 
 // removeValue is a hook that is called when a value is removed from a quad store.
 // It is used as an integration point to add custom indexing for values of different types.
 func (qs *QuadStore) removeValue(ctx context.Context, id uint64, val quad.Value) error {
-	search.Delete(ctx, qs, qs.searchConfig, qs.index, val)
+	if qs.searchConfig == nil {
+		if qs.searchIndex == nil {
+			return fmt.Errorf("searchIndex should be initialized if qs.searchConfig is not nil")
+		}
+		search.Delete(ctx, qs, qs.searchConfig, qs.searchIndex, []quad.Value{val})
+	}
 	return nil
 }
 

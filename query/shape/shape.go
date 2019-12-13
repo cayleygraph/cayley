@@ -412,11 +412,12 @@ type TextSearch struct {
 }
 
 func (s TextSearch) BuildIterator(qs graph.QuadStore) iterator.Shape {
+	ctx := context.TODO()
 	fts, ok := qs.(graph.TextSearcher)
 	if !ok {
 		return iterator.NewError(fmt.Errorf("full text search is not implemented for %T", qs))
 	}
-	it, err := fts.SearchTextValues(s.Query)
+	it, err := fts.SearchTextValues(ctx, s.Query)
 	if err != nil {
 		return iterator.NewError(err)
 	}
