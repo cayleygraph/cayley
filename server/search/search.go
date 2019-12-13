@@ -191,7 +191,7 @@ func Index(ctx context.Context, qs graph.QuadStore, configs []documentConfig, in
 	batch := index.NewBatch()
 	for _, config := range configs {
 		clog.Infof("Retreiving documents for \"%s\"...", config.Name)
-		documents, err := getDocuments(ctx, qs, config, nil)
+		documents, err := getDocuments(ctx, qs, config, entities)
 		if err != nil {
 			return err
 		}
