@@ -21,7 +21,54 @@ import (
 )
 
 const schemaFile = "linkedql.json"
+const outputFilePath = "query/linkedql/client/client.go"
 
+var pathStepIRI = quad.IRI("http://cayley.io/linkedql#PathStep")
+
+func main() {
+	ctx := context.TODO()
+	qs, err := loadSchema()
+
+	if err != nil {
+		panic(err)
+	}
+
+	stepClass, err := owl.GetClass(ctx, qs, pathStepIRI)
+
+	if err != nil {
+		panic(err)
+	}
+
+	stepSubClasses := stepClass.SubClasses()
+	var decls []ast.Decl
+
+	for _, stepSubClass := range stepSubClasses {
+		stepSubClassDecls, err := stepSubClassToDecls(stepSubClass)
+		if err != nil {
+			panic(err)
+		}
+		decls = append(decls, stepSubClassDecls...)
+	}
+
+	// Create a FileSet for node. Since the node does not come
+	// from a real source file, fset will be empty.
+	fset := token.NewFileSet()
+	file, err := getFile(fset)
+
+	if err != nil {
+		panic(err)
+	}
+
+	file.Decls = append(file.Decls, decls...)
+
+	err = writeFile(fset, file, outputFilePath)
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+// loadSchema loads the schema file into an in-memory store
 func loadSchema() (graph.QuadStore, error) {
 	jsonFile, err := os.Open(schemaFile)
 	if err != nil {
@@ -43,19 +90,123 @@ func loadSchema() (graph.QuadStore, error) {
 	return qs, nil
 }
 
-func iriToIdent(iri quad.IRI) *ast.Ident {
-	return ast.NewIdent(string(iri)[26:])
+var xsdString = quad.IRI("http://www.w3.org/2001/XMLSchema#string")
+var rdfsResource = quad.IRI(rdfs.Resource).Full()
+var stringIdent = ast.NewIdent("string")
+
+var pathTypeIdent = ast.NewIdent("Path")
+var pathIdent = ast.NewIdent("p")
+
+func stepSubClassToDecls(stepSubClass *owl.Class) ([]ast.Decl, error) {
+	var decls []ast.Decl
+	hasFrom := false
+	iri, ok := stepSubClass.Identifier.(quad.IRI)
+	if !ok {
+		return nil, fmt.Errorf("Unexpected class identifier %v of type %T", stepSubClass.Identifier, stepSubClass.Identifier)
+	}
+	properties := stepSubClass.Properties()
+
+	var paramsList []*ast.Field
+	for _, property := range properties {
+		_type, err := propertyToValueType(stepSubClass, property)
+		if err != nil {
+			return nil, err
+		}
+		ident := iriToIdent(property.Identifier)
+		if ident.Name == "from" {
+			hasFrom = true
+			continue
+		}
+		paramsList = append(paramsList, &ast.Field{
+			Names: []*ast.Ident{ident},
+			Type:  _type,
+		})
+	}
+	elts := []ast.Expr{
+		&ast.KeyValueExpr{
+			Key: &ast.BasicLit{
+				Kind:  token.STRING,
+				Value: "\"@type\"",
+			},
+			Value: &ast.BasicLit{
+				Kind:  token.STRING,
+				Value: "\"" + string(iri) + "\"",
+			},
+		},
+	}
+	if hasFrom {
+		elts = append(elts, &ast.KeyValueExpr{
+			Key: &ast.BasicLit{
+				Kind:  token.STRING,
+				Value: "\"from\"",
+			},
+			Value: pathIdent,
+		})
+	}
+
+	for _, property := range properties {
+		ident := iriToIdent(property.Identifier)
+		if ident.Name == "from" {
+			continue
+		}
+		var value ast.Expr
+		value = iriToIdent(property.Identifier)
+		elts = append(elts, &ast.KeyValueExpr{
+			Key: &ast.BasicLit{
+				Kind:  token.STRING,
+				Value: "\"" + string(property.Identifier) + "\"",
+			},
+			Value: value,
+		})
+	}
+
+	var recv *ast.FieldList
+
+	if hasFrom {
+		recv = &ast.FieldList{
+			List: []*ast.Field{
+				&ast.Field{
+					Names: []*ast.Ident{pathIdent},
+					Type:  pathTypeIdent,
+				},
+			},
+		}
+	}
+
+	decls = append(decls, &ast.FuncDecl{
+		Name: iriToIdent(iri),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: paramsList},
+			Results: &ast.FieldList{
+				List: []*ast.Field{
+					&ast.Field{
+						Names: nil,
+						Type:  pathTypeIdent,
+					},
+				},
+			},
+		},
+		Recv: recv,
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{
+						&ast.CompositeLit{
+							Type: pathTypeIdent,
+							Elts: elts,
+						},
+					},
+				},
+			},
+		},
+	})
+	return decls, nil
 }
 
 var quadValueType = &ast.SelectorExpr{
 	Sel: ast.NewIdent("Value"),
 	X:   ast.NewIdent("quad"),
 }
-
-var pathStepIRI = quad.IRI("http://cayley.io/linkedql#PathStep")
-var xsdString = quad.IRI("http://www.w3.org/2001/XMLSchema#string")
-var rdfsResource = quad.IRI(rdfs.Resource).Full()
-var stringIdent = ast.NewIdent("string")
 
 func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, error) {
 	_range, err := property.Range()
@@ -97,133 +248,7 @@ func propertyToValueType(class *owl.Class, property *owl.Property) (ast.Expr, er
 	return t, nil
 }
 
-var pathTypeIdent = ast.NewIdent("Path")
-var pathIdent = ast.NewIdent("p")
-
-func main() {
-	qs, err := loadSchema()
-
-	ctx := context.TODO()
-	stepClass, err := owl.GetClass(ctx, qs, pathStepIRI)
-
-	if err != nil {
-		panic(err)
-	}
-
-	stepSubClasses := stepClass.SubClasses()
-	var decls []ast.Decl
-
-	for _, stepSubClass := range stepSubClasses {
-		hasFrom := false
-		iri, ok := stepSubClass.Identifier.(quad.IRI)
-		if !ok {
-			panic(fmt.Errorf("Unexpected class identifier %v of type %T", stepSubClass.Identifier, stepSubClass.Identifier))
-		}
-		properties := stepSubClass.Properties()
-
-		var paramsList []*ast.Field
-		for _, property := range properties {
-			_type, err := propertyToValueType(stepSubClass, property)
-			if err != nil {
-				panic(err)
-			}
-			ident := iriToIdent(property.Identifier)
-			if ident.Name == "from" {
-				hasFrom = true
-				continue
-			}
-			paramsList = append(paramsList, &ast.Field{
-				Names: []*ast.Ident{ident},
-				Type:  _type,
-			})
-		}
-		elts := []ast.Expr{
-			&ast.KeyValueExpr{
-				Key: &ast.BasicLit{
-					Kind:  token.STRING,
-					Value: "\"@type\"",
-				},
-				Value: &ast.BasicLit{
-					Kind:  token.STRING,
-					Value: "\"" + string(iri) + "\"",
-				},
-			},
-		}
-		if hasFrom {
-			elts = append(elts, &ast.KeyValueExpr{
-				Key: &ast.BasicLit{
-					Kind:  token.STRING,
-					Value: "\"from\"",
-				},
-				Value: pathIdent,
-			})
-		}
-
-		for _, property := range properties {
-			ident := iriToIdent(property.Identifier)
-			if ident.Name == "from" {
-				continue
-			}
-			var value ast.Expr
-			value = iriToIdent(property.Identifier)
-			elts = append(elts, &ast.KeyValueExpr{
-				Key: &ast.BasicLit{
-					Kind:  token.STRING,
-					Value: "\"" + string(property.Identifier) + "\"",
-				},
-				Value: value,
-			})
-		}
-
-		var recv *ast.FieldList
-
-		if hasFrom {
-			recv = &ast.FieldList{
-				List: []*ast.Field{
-					&ast.Field{
-						Names: []*ast.Ident{pathIdent},
-						Type:  pathTypeIdent,
-					},
-				},
-			}
-		}
-
-		decls = append(decls, &ast.FuncDecl{
-			Name: iriToIdent(iri),
-			Type: &ast.FuncType{
-				Params: &ast.FieldList{List: paramsList},
-				Results: &ast.FieldList{
-					List: []*ast.Field{
-						&ast.Field{
-							Names: nil,
-							Type:  pathTypeIdent,
-						},
-					},
-				},
-			},
-			Recv: recv,
-			Body: &ast.BlockStmt{
-				List: []ast.Stmt{
-					&ast.ReturnStmt{
-						Results: []ast.Expr{
-							&ast.CompositeLit{
-								Type: pathTypeIdent,
-								Elts: elts,
-							},
-						},
-					},
-				},
-			},
-		})
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	// Create a FileSet for node. Since the node does not come
-	// from a real source file, fset will be empty.
-	fset := token.NewFileSet()
+func getFile(fset *token.FileSet) (*ast.File, error) {
 	src := `
 package client
 
@@ -236,15 +261,18 @@ type Path map[string]interface{}
 	file, err := parser.ParseFile(fset, "", src, 0)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	file.Decls = append(file.Decls, decls...)
+	return file, nil
+}
 
-	f, err := os.Create("query/linkedql/client/client.go")
+// writeFile writes given file of given fset to given path
+func writeFile(fset *token.FileSet, file *ast.File, path string) error {
+	f, err := os.Create(path)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	w := bufio.NewWriter(f)
@@ -252,10 +280,15 @@ type Path map[string]interface{}
 	err = format.Node(w, fset, file)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	w.Flush()
-
 	f.Close()
+
+	return nil
+}
+
+func iriToIdent(iri quad.IRI) *ast.Ident {
+	return ast.NewIdent(string(iri)[26:])
 }
