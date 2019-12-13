@@ -173,8 +173,23 @@ func stepSubClassToDecls(stepSubClass *owl.Class) ([]ast.Decl, error) {
 		}
 	}
 
+	comment, err := stepSubClass.Comment()
+
+	var doc *ast.CommentGroup
+
+	if err == nil {
+		doc = &ast.CommentGroup{
+			List: []*ast.Comment{
+				{
+					Text: "// " + iriToStringIdent(iri) + " " + comment,
+				},
+			},
+		}
+	}
+
 	decls = append(decls, &ast.FuncDecl{
 		Name: iriToIdent(iri),
+		Doc:  doc,
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{List: paramsList},
 			Results: &ast.FieldList{
@@ -289,6 +304,10 @@ func writeFile(fset *token.FileSet, file *ast.File, path string) error {
 	return nil
 }
 
+func iriToStringIdent(iri quad.IRI) string {
+	return string(iri)[26:]
+}
+
 func iriToIdent(iri quad.IRI) *ast.Ident {
-	return ast.NewIdent(string(iri)[26:])
+	return ast.NewIdent(iriToStringIdent(iri))
 }
