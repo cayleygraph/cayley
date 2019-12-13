@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	pathStep = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
-	value    = reflect.TypeOf((*quad.Value)(nil)).Elem()
-	operator = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
+	pathStep     = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
+	iteratorStep = reflect.TypeOf((*linkedql.IteratorStep)(nil)).Elem()
+	value        = reflect.TypeOf((*quad.Value)(nil)).Elem()
+	operator     = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
 )
 
 func typeToRange(t reflect.Type) string {
@@ -107,12 +108,16 @@ func newClass(id string, superClasses []interface{}, comment string) class {
 	}
 }
 
-// getStepTypeClass for given step type returns the matching class identifier
-func getStepTypeClass(t reflect.Type) string {
+// getStepTypeClasses for given step type returns the matching class identifiers
+func getStepTypeClasses(t reflect.Type) []string {
+	var typeClasses []string
 	if t.Implements(pathStep) {
-		return linkedql.Prefix + "PathStep"
+		typeClasses = append(typeClasses, linkedql.Prefix+"PathStep")
 	}
-	return linkedql.Prefix + "Step"
+	if t.Implements(iteratorStep) {
+		typeClasses = append(typeClasses, linkedql.Prefix+"IteratorStep")
+	}
+	return typeClasses
 }
 
 type list struct {
@@ -199,8 +204,10 @@ func (g *generator) AddType(name string, t reflect.Type) {
 	if !ok {
 		return
 	}
-	super := []interface{}{
-		newIdentified(getStepTypeClass(pathStep)),
+	var super []interface{}
+	stepTypeClasses := getStepTypeClasses(reflect.PtrTo(t))
+	for _, typeClass := range stepTypeClasses {
+		super = append(super, newIdentified(typeClass))
 	}
 	super = append(super, g.addTypeFields(name, t, true)...)
 	g.out = append(g.out, newClass(name, super, step.Description()))

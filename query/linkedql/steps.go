@@ -317,7 +317,7 @@ func (s *As) Type() quad.IRI {
 
 // Description implements Step.
 func (s *As) Description() string {
-	return "assigns the resolved values of the from step to a given name. The name can be used with the Select and Documents steps to retreive the values or to return to the values in further steps with the Back step. It resolves to the values of the from step."
+	return "assigns the resolved values of the from step to a given name. The name can be used with the Select and Documents steps to retrieve the values or to return to the values in further steps with the Back step. It resolves to the values of the from step."
 }
 
 // BuildIterator implements IteratorStep.
