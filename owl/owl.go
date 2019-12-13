@@ -165,7 +165,7 @@ var subClassOf = quad.IRI(rdfs.SubClassOf).Full()
 
 // SubClasses returns all the classes defined as sub classes of the class
 func (c *Class) SubClasses() []*Class {
-	p := c.path().In(subClassOf)
+	p := c.path().FollowRecursive(path.StartMorphism().In(subClassOf), 0, nil)
 	it := p.BuildIterator(c.ctx).Iterate()
 	var subClasses []*Class
 	for it.Next(c.ctx) {
