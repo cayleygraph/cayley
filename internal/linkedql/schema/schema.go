@@ -250,7 +250,16 @@ func (g *generator) Generate() []byte {
 			Range:  rng,
 		})
 	}
-	data, err := json.Marshal(g.out)
+	data, err := json.Marshal(map[string]interface{}{
+		"@context": map[string]interface{}{
+			"rdf":      map[string]string{"@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"},
+			"rdfs":     map[string]string{"@id": "http://www.w3.org/2000/01/rdf-schema#"},
+			"owl":      map[string]string{"@id": "http://www.w3.org/2002/07/owl#"},
+			"xsd":      map[string]string{"@id": "http://www.w3.org/2001/XMLSchema#"},
+			"linkedql": map[string]string{"@id": "http://cayley.io/linkedql#"},
+		},
+		"@graph": g.out,
+	})
 	if err != nil {
 		panic(err)
 	}
