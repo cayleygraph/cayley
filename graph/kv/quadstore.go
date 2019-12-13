@@ -155,7 +155,9 @@ func Init(kv kv.KV, opt graph.Options) error {
 	}
 	if qs.searchConfig != nil {
 		// TODO(iddan): get search configuration from opt
-		searchIndex, err := search.NewIndex(context.TODO(), qs, nil)
+		var configs search.Configuration
+		searchIndex, err := search.NewIndex(configs)
+		search.InitIndex(context.TODO(), searchIndex, qs, configs)
 
 		if err != nil {
 			return err

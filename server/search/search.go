@@ -231,19 +231,24 @@ func Delete(ctx context.Context, qs graph.QuadStore, configs Configuration, inde
 	return nil
 }
 
-// NewIndex builds a new search index
-func NewIndex(ctx context.Context, qs graph.QuadStore, configs Configuration) (Index, error) {
+// InitIndex indexes all existing data
+func InitIndex(ctx context.Context, index Index, qs graph.QuadStore, configs Configuration) error {
 	clog.Infof("Building search index...")
+	err := IndexEntities(ctx, qs, configs, index)
+	if err != nil {
+		return err
+	}
+	clog.Infof("Built search index")
+	return nil
+}
+
+// NewIndex creates a new index for given configuration
+func NewIndex(configs Configuration) (Index, error) {
 	indexMapping := newIndexMapping(configs)
 	index, err := bleve.New(IndexPath, indexMapping)
 	if err != nil {
 		return nil, err
 	}
-	err = IndexEntities(ctx, qs, configs, index)
-	if err != nil {
-		return nil, err
-	}
-	clog.Infof("Built search index")
 	return index, nil
 }
 
@@ -251,7 +256,13 @@ func NewIndex(ctx context.Context, qs graph.QuadStore, configs Configuration) (I
 func GetIndex(ctx context.Context, qs graph.QuadStore, configs Configuration) (Index, error) {
 	index, err := OpenIndex()
 	if err == bleve.ErrorIndexPathDoesNotExist {
-		return NewIndex(ctx, qs, configs)
+		index, err := NewIndex(configs)
+		if err != nil {
+			return nil, err
+		}
+		if err = InitIndex(ctx, index, qs, configs); err != nil {
+			return nil, err
+		}
 	}
 	return index, err
 }

@@ -168,7 +168,9 @@ func TestSearch(t *testing.T) {
 	}
 	qs := memstore.New(data...)
 	ClearIndex()
-	index, err := NewIndex(context.TODO(), qs, configs)
+	index, err := NewIndex(configs)
+	require.NoError(t, err)
+	err = InitIndex(context.TODO(), index, qs, configs)
 	require.NoError(t, err)
 
 	results, err := Search(index, "Alice Liddell")
