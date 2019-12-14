@@ -1264,7 +1264,9 @@ func (qs *QuadStore) removeValue(ctx context.Context, id uint64, val quad.Value)
 		if qs.search.index == nil {
 			return fmt.Errorf("searchIndex should be initialized if qs.searchConfig is not nil")
 		}
-		search.Delete(ctx, qs, qs.search.config, qs.search.index, val)
+		if err := search.Delete(ctx, qs, qs.search.config, qs.search.index, val); err != nil {
+			return err
+		}
 	}
 	return nil
 }
