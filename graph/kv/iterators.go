@@ -10,7 +10,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/shape"
-	"github.com/cayleygraph/cayley/server/search"
+	"github.com/cayleygraph/cayley/search"
 	"github.com/cayleygraph/quad"
 )
 

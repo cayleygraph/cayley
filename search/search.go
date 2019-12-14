@@ -3,7 +3,6 @@ package search
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/mapping"
@@ -131,11 +130,6 @@ func getDocuments(ctx context.Context, qs graph.QuadStore, config documentConfig
 	return documents, nil
 }
 
-// OpenIndex opens an existing index
-func OpenIndex() (Index, error) {
-	return bleve.Open(IndexPath)
-}
-
 const defaultFieldType = "string"
 
 func resolveFieldConstructor(t string) (func() *mapping.FieldMapping, error) {
@@ -174,7 +168,8 @@ func newDocumentMapping(config documentConfig) *mapping.DocumentMapping {
 	return documentMapping
 }
 
-func newIndexMapping(configs Configuration) mapping.IndexMapping {
+// NewIndexMapping creates an IndexMapping out of given configuration
+func NewIndexMapping(configs Configuration) mapping.IndexMapping {
 	indexMapping := bleve.NewIndexMapping()
 	for _, config := range configs {
 		indexMapping.AddDocumentMapping(config.Name, newDocumentMapping(config))
@@ -240,40 +235,6 @@ func InitIndex(ctx context.Context, index Index, qs graph.QuadStore, configs Con
 	}
 	clog.Infof("Built search index")
 	return nil
-}
-
-// NewIndex creates a new index for given configuration
-func NewIndex(configs Configuration) (Index, error) {
-	indexMapping := newIndexMapping(configs)
-	index, err := bleve.New(IndexPath, indexMapping)
-	if err != nil {
-		return nil, err
-	}
-	return index, nil
-}
-
-// GetIndex attempts to open an existing index, if it doesn't exist it creates a new one
-func GetIndex(ctx context.Context, qs graph.QuadStore, configs Configuration) (Index, error) {
-	index, err := OpenIndex()
-	if err == bleve.ErrorIndexPathDoesNotExist {
-		index, err := NewIndex(configs)
-		if err != nil {
-			return nil, err
-		}
-		if err = InitIndex(ctx, index, qs, configs); err != nil {
-			return nil, err
-		}
-	}
-	return index, err
-}
-
-// ClearIndex removes the existing index
-func ClearIndex() error {
-	err := os.RemoveAll(IndexPath)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	return err
 }
 
 func toIRIs(searchResults *bleve.SearchResult) []quad.IRI {

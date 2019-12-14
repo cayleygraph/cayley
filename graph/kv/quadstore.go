@@ -23,6 +23,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/blevesearch/bleve"
 	"github.com/hidal-go/hidalgo/kv"
 
 	"github.com/cayleygraph/cayley/clog"
@@ -31,7 +32,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/cayley/query/shape"
-	"github.com/cayleygraph/cayley/server/search"
+	"github.com/cayleygraph/cayley/search"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
 	boom "github.com/tylertreat/BoomFilters"
@@ -158,7 +159,8 @@ func Init(kv kv.KV, opt graph.Options) error {
 	if qs.search.config != nil {
 		// TODO(iddan): get search configuration from opt
 		var configs search.Configuration
-		searchIndex, err := search.NewIndex(configs)
+		mapping := search.NewIndexMapping(configs)
+		searchIndex, err := bleve.New("temp.bleve", mapping)
 		search.InitIndex(context.TODO(), searchIndex, qs, configs)
 
 		if err != nil {

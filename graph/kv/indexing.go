@@ -29,7 +29,7 @@ import (
 	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
-	"github.com/cayleygraph/cayley/server/search"
+	"github.com/cayleygraph/cayley/search"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
 
