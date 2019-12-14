@@ -101,8 +101,10 @@ type QuadStore struct {
 		exists []QuadIndex
 	}
 
-	searchIndex  search.Index
-	searchConfig search.Configuration
+	search struct {
+		config search.Configuration
+		index  search.Index
+	}
 
 	valueLRU *lru.Cache
 
@@ -153,7 +155,7 @@ func Init(kv kv.KV, opt graph.Options) error {
 	if err := qs.writeIndexesMeta(ctx); err != nil {
 		return err
 	}
-	if qs.searchConfig != nil {
+	if qs.search.config != nil {
 		// TODO(iddan): get search configuration from opt
 		var configs search.Configuration
 		searchIndex, err := search.NewIndex(configs)
@@ -163,7 +165,7 @@ func Init(kv kv.KV, opt graph.Options) error {
 			return err
 		}
 
-		qs.searchIndex = searchIndex
+		qs.search.index = searchIndex
 	}
 	return nil
 }

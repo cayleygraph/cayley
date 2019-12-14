@@ -124,11 +124,14 @@ func (qs *QuadStore) optimizeQuadsAction(s shape.QuadsAction) (shape.Shape, bool
 	return s.SimplifyFrom(quads), true
 }
 
+// SearchTextValues implements TextSearcher
 func (qs *QuadStore) SearchTextValues(ctx context.Context, query string) (iterator.Shape, error) {
-	iris, err := search.Search(qs.searchIndex, query)
+	// TODO: iterate
+	iris, err := search.Search(qs.search.index, query)
 	if err != nil {
 		return nil, err
 	}
+	// TODO: store value IDs in Bleve instead
 	var values []quad.Value
 	for _, iri := range iris {
 		values = append(values, iri)
