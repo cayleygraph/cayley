@@ -32,9 +32,13 @@ const QuadStoreType = "memstore"
 
 func init() {
 	graph.RegisterQuadStore(QuadStoreType, graph.QuadStoreRegistration{
-		NewFunc: func(string, graph.Options) (graph.QuadStore, error) {
+		NewFunc: func(addr string, opt graph.Options) (graph.QuadStore, error) {
 			qs := newQuadStore()
-			if qs.search.config != nil {
+			searchConfig, err := search.GetConfiguration(opt)
+			if err != nil {
+				return nil, err
+			}
+			if searchConfig != nil {
 				// TODO(iddan): get search configuration from opt
 				var configs search.Configuration
 				mapping := search.NewIndexMapping(configs)
