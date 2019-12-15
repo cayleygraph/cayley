@@ -9,14 +9,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Triple(subject quad.Value, predicate quad.IRI, object quad.Value) quad.Quad {
+func triple(subject quad.Value, predicate quad.IRI, object quad.Value) quad.Quad {
 	return quad.Quad{Subject: subject, Predicate: predicate, Object: object}
 }
 
 var (
 	domain           = quad.IRI(rdfs.Domain)
-	_range           = quad.IRI(rdfs.Range)
-	_type            = quad.IRI(rdf.Type)
+	prange           = quad.IRI(rdfs.Range)
+	ptype            = quad.IRI(rdf.Type)
 	class            = quad.IRI(rdfs.Class)
 	literal          = quad.IRI(rdfs.Literal)
 	property         = quad.IRI(rdf.Property)
@@ -33,22 +33,22 @@ var (
 	softwareEngineer = quad.IRI("SoftwareEngineer")
 )
 var (
-	aliceIsPerson                    = Triple(alice, _type, person)
-	aliceLikesBob                    = Triple(alice, likes, bob)
-	engineerClass                    = Triple(engineer, _type, class)
-	engineerSubClass                 = Triple(engineer, subClassOf, person)
-	nameDomainPerson                 = Triple(name, domain, person)
-	nameProperty                     = Triple(name, _type, property)
-	nameSubPropertyOfPersonal        = Triple(name, subPropertyOf, personal)
-	personalProperty                 = Triple(personal, _type, property)
-	personalSubPropertyOfInformation = Triple(personal, subPropertyOf, information)
-	personClass                      = Triple(person, _type, class)
-	softwareEngineerClass            = Triple(softwareEngineer, _type, class)
+	aliceIsPerson                    = triple(alice, ptype, person)
+	aliceLikesBob                    = triple(alice, likes, bob)
+	engineerClass                    = triple(engineer, ptype, class)
+	engineerSubClass                 = triple(engineer, subClassOf, person)
+	nameDomainPerson                 = triple(name, domain, person)
+	nameProperty                     = triple(name, ptype, property)
+	nameSubPropertyOfPersonal        = triple(name, subPropertyOf, personal)
+	personalProperty                 = triple(personal, ptype, property)
+	personalSubPropertyOfInformation = triple(personal, subPropertyOf, information)
+	personClass                      = triple(person, ptype, class)
+	softwareEngineerClass            = triple(softwareEngineer, ptype, class)
 )
 var (
 	engineerAndSoftwareEngineerSubClasses = []quad.Quad{
 		engineerSubClass,
-		Triple(softwareEngineer, subClassOf, engineer),
+		triple(softwareEngineer, subClassOf, engineer),
 	}
 	engineerAndPersonClasses = []quad.Quad{
 		engineerClass,
@@ -71,7 +71,7 @@ func TestPropertyName(t *testing.T) {
 func TestReferencedType(t *testing.T) {
 	store := NewStore()
 	q := aliceIsPerson
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdClass := store.GetClass(person)
 	require.NotNil(t, createdClass, "Class was not created")
 }
@@ -79,8 +79,8 @@ func TestReferencedType(t *testing.T) {
 func TestReferencedBNodeType(t *testing.T) {
 	store := NewStore()
 	name := quad.BNode("123")
-	q := Triple(alice, _type, name)
-	store.ProcessQuad(q)
+	q := triple(alice, ptype, name)
+	store.ProcessQuads(q)
 	createdClass := store.GetClass(name)
 	require.NotNil(t, createdClass, "Class was not created")
 }
@@ -88,7 +88,7 @@ func TestReferencedBNodeType(t *testing.T) {
 func TestReferencedProperty(t *testing.T) {
 	store := NewStore()
 	q := aliceLikesBob
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdProperty := store.GetProperty(likes)
 	require.NotNil(t, createdProperty, "Property was not created")
 }
@@ -96,7 +96,7 @@ func TestReferencedProperty(t *testing.T) {
 func TestNewClass(t *testing.T) {
 	store := NewStore()
 	q := personClass
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdClass := store.GetClass(person)
 	require.NotNil(t, createdClass, "Class was not created")
 }
@@ -104,8 +104,8 @@ func TestNewClass(t *testing.T) {
 func TestNewBNodeClass(t *testing.T) {
 	store := NewStore()
 	name := quad.BNode("123")
-	q := Triple(name, _type, class)
-	store.ProcessQuad(q)
+	q := triple(name, ptype, class)
+	store.ProcessQuads(q)
 	createdClass := store.GetClass(name)
 	require.NotNil(t, createdClass, "Class was not created")
 }
@@ -113,8 +113,8 @@ func TestNewBNodeClass(t *testing.T) {
 func TestInvalidNewClass(t *testing.T) {
 	store := NewStore()
 	name := quad.String("Foo")
-	q := Triple(alice, _type, name)
-	store.ProcessQuad(q)
+	q := triple(alice, ptype, name)
+	store.ProcessQuads(q)
 	createdClass := store.GetClass(name)
 	require.Nil(t, createdClass, "Invalid class was created")
 }
@@ -122,7 +122,7 @@ func TestInvalidNewClass(t *testing.T) {
 func TestNewProperty(t *testing.T) {
 	store := NewStore()
 	q := nameProperty
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdProperty := store.GetProperty(name)
 	require.NotNil(t, createdProperty, "Property was not created")
 }
@@ -131,7 +131,7 @@ func TestInvalidNewProperty(t *testing.T) {
 	store := NewStore()
 	name := quad.String("Foo")
 	q := quad.Quad{Subject: alice, Predicate: name, Object: bob}
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdProperty := store.GetProperty(name)
 	require.Nil(t, createdProperty, "Invalid property was created")
 }
@@ -139,7 +139,7 @@ func TestInvalidNewProperty(t *testing.T) {
 func TestSubClass(t *testing.T) {
 	store := NewStore()
 	q := engineerSubClass
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdClass := store.GetClass(engineer)
 	createdSuperClass := store.GetClass(person)
 	require.NotNil(t, createdClass, "Class was not created")
@@ -155,7 +155,7 @@ func TestSubClass(t *testing.T) {
 func TestSubProperty(t *testing.T) {
 	store := NewStore()
 	q := nameSubPropertyOfPersonal
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdProperty := store.GetProperty(name)
 	createdSuperProperty := store.GetProperty(personal)
 	require.NotNil(t, createdProperty, "Property was not created")
@@ -171,7 +171,7 @@ func TestSubProperty(t *testing.T) {
 func TestPropertyDomain(t *testing.T) {
 	store := NewStore()
 	q := nameDomainPerson
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	createdProperty := store.GetProperty(name)
 	createdClass := store.GetClass(person)
 	require.NotNil(t, createdProperty, "Property was not created")
@@ -179,15 +179,15 @@ func TestPropertyDomain(t *testing.T) {
 	if createdProperty.Domain() != createdClass {
 		t.Error("Domain class was not registered for property")
 	}
-	if _, ok := createdClass.ownProperties[createdProperty]; !ok {
+	if _, ok := createdClass.ownProp[createdProperty]; !ok {
 		t.Error("Property was not registered for class")
 	}
 }
 
 func TestPropertyRange(t *testing.T) {
 	store := NewStore()
-	q := Triple(name, _range, person)
-	store.ProcessQuad(q)
+	q := triple(name, prange, person)
+	store.ProcessQuads(q)
 	createdProperty := store.GetProperty(name)
 	createdClass := store.GetClass(person)
 	require.NotNil(t, createdProperty, "Property was not created")
@@ -195,7 +195,7 @@ func TestPropertyRange(t *testing.T) {
 	if createdProperty.Range() != createdClass {
 		t.Error("Range class was not registered for property")
 	}
-	if _, ok := createdClass.inProperties[createdProperty]; !ok {
+	if _, ok := createdClass.inProp[createdProperty]; !ok {
 		t.Error("Property was not registered for class")
 	}
 }
@@ -203,7 +203,7 @@ func TestPropertyRange(t *testing.T) {
 func TestIsSubClassOf(t *testing.T) {
 	store := NewStore()
 	q := engineerSubClass
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	if !store.GetClass(engineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not registered as subclass of super class")
 	}
@@ -212,7 +212,7 @@ func TestIsSubClassOf(t *testing.T) {
 func TestIsSubClassOfRecursive(t *testing.T) {
 	store := NewStore()
 	quads := engineerAndSoftwareEngineerSubClasses
-	store.ProcessQuads(quads)
+	store.ProcessQuads(quads...)
 	if !store.GetClass(softwareEngineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not registered as subclass of super class")
 	}
@@ -221,7 +221,7 @@ func TestIsSubClassOfRecursive(t *testing.T) {
 func TestIsSubClassOfItself(t *testing.T) {
 	store := NewStore()
 	q := personClass
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	if !store.GetClass(person).IsSubClassOf(store.GetClass(person)) {
 		t.Error("IsSubClassOf itself doesn't work")
 	}
@@ -230,7 +230,7 @@ func TestIsSubClassOfItself(t *testing.T) {
 func TestIsSubClassOfResource(t *testing.T) {
 	store := NewStore()
 	q := personClass
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	if !store.GetClass(person).IsSubClassOf(store.GetClass(quad.IRI(rdfs.Resource))) {
 		t.Error("ItSubClassOf rdfs:Resource doesn't work")
 	}
@@ -239,7 +239,7 @@ func TestIsSubClassOfResource(t *testing.T) {
 func TestIsSubPropertyOf(t *testing.T) {
 	store := NewStore()
 	q := nameSubPropertyOfPersonal
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	if !store.GetProperty(name).IsSubPropertyOf(store.GetProperty(personal)) {
 		t.Error("Property was not registered as subproperty of super property")
 	}
@@ -251,7 +251,7 @@ func TestIsSubPropertyOfRecursive(t *testing.T) {
 		nameSubPropertyOfPersonal,
 		personalSubPropertyOfInformation,
 	}
-	store.ProcessQuads(quads)
+	store.ProcessQuads(quads...)
 	if !store.GetProperty(name).IsSubPropertyOf(store.GetProperty(information)) {
 		t.Error("Property was not registered as subproperty of super property")
 	}
@@ -260,7 +260,7 @@ func TestIsSubPropertyOfRecursive(t *testing.T) {
 func TestIsSubPropertyOfItself(t *testing.T) {
 	store := NewStore()
 	q := nameProperty
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	if !store.GetProperty(name).IsSubPropertyOf(store.GetProperty(name)) {
 		t.Error("IsSubPropertyOf itself doesn't work")
 	}
@@ -268,32 +268,32 @@ func TestIsSubPropertyOfItself(t *testing.T) {
 
 func TestUnprocessInvalidQuad(t *testing.T) {
 	store := NewStore()
-	store.UnprocessQuad(quad.Quad{Subject: alice, Predicate: quad.String("Foo"), Object: person, Label: nil})
+	store.UnprocessQuads(quad.Quad{Subject: alice, Predicate: quad.String("Foo"), Object: person})
 }
 
 func TestUnprocessInvalidTypeQuad(t *testing.T) {
 	store := NewStore()
-	store.UnprocessQuad(quad.Quad{Subject: alice, Predicate: _type, Object: quad.String("Foo"), Label: nil})
+	store.UnprocessQuads(quad.Quad{Subject: alice, Predicate: ptype, Object: quad.String("Foo")})
 }
 
 func TestDeleteReferencedType(t *testing.T) {
 	store := NewStore()
 	q := aliceIsPerson
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	createdClass := store.GetClass(person)
 	require.Nil(t, createdClass, "Class was not deleted")
 }
 
 func TestDeleteClassWithSubClass(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		engineerClass,
 		engineerSubClass,
-	})
+	)
 	q := personClass
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	subClass := store.GetClass(engineer)
 	if len(subClass.super) != 0 {
 		t.Error("Class was not unreferenced")
@@ -302,13 +302,13 @@ func TestDeleteClassWithSubClass(t *testing.T) {
 
 func TestDeleteClassWithSuperClass(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		personClass,
 		engineerSubClass,
-	})
+	)
 	q := engineerClass
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	superClass := store.GetClass(person)
 	if len(superClass.sub) != 0 {
 		t.Error("Class was not unreferenced")
@@ -318,8 +318,8 @@ func TestDeleteClassWithSuperClass(t *testing.T) {
 func TestDeleteNewClass(t *testing.T) {
 	store := NewStore()
 	q := personClass
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	createdClass := store.GetClass(person)
 	require.Nil(t, createdClass, "Class was not deleted")
 }
@@ -327,21 +327,21 @@ func TestDeleteNewClass(t *testing.T) {
 func TestDeleteNewProperty(t *testing.T) {
 	store := NewStore()
 	q := nameProperty
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	createdProperty := store.GetProperty(name)
 	require.Nil(t, createdProperty, "Property was not deleted")
 }
 
 func TestDeletePropertyWithSubProperty(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		nameProperty,
 		nameSubPropertyOfPersonal,
-	})
+	)
 	q := personalProperty
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	subProperty := store.GetProperty(name)
 	if len(subProperty.super) != 0 {
 		t.Error("Property was not unreferenced")
@@ -350,13 +350,13 @@ func TestDeletePropertyWithSubProperty(t *testing.T) {
 
 func TestDeletePropertyWithSuperProperty(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		personalProperty,
 		nameSubPropertyOfPersonal,
-	})
+	)
 	q := nameProperty
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	superProperty := store.GetProperty(personal)
 	if len(superProperty.sub) != 0 {
 		t.Error("Property was not unreferenced")
@@ -365,10 +365,10 @@ func TestDeletePropertyWithSuperProperty(t *testing.T) {
 
 func TestDeleteSubClass(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads(engineerAndPersonClasses)
+	store.ProcessQuads(engineerAndPersonClasses...)
 	q := engineerSubClass
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	createdClass := store.GetClass(engineer)
 	createdSuperClass := store.GetClass(person)
 	// TODO(iddan): what about garbage collection?
@@ -382,13 +382,13 @@ func TestDeleteSubClass(t *testing.T) {
 
 func TestDeleteSubProperty(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		nameProperty,
 		personalProperty,
-	})
+	)
 	q := nameSubPropertyOfPersonal
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	createdProperty := store.GetProperty(name)
 	createdSuperProperty := store.GetProperty(personal)
 	// TODO(iddan): what about garbage collection?
@@ -402,50 +402,50 @@ func TestDeleteSubProperty(t *testing.T) {
 
 func TestDeletePropertyDomain(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		nameProperty,
 		personClass,
-	})
+	)
 	q := nameDomainPerson
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	createdProperty := store.GetProperty(name)
 	createdClass := store.GetClass(person)
 	// TODO(iddan): what about garbage collection?
 	if createdProperty.Domain() == createdClass {
 		t.Error("Domain class was not unregistered for property")
 	}
-	if _, ok := createdClass.ownProperties[createdProperty]; ok {
+	if _, ok := createdClass.ownProp[createdProperty]; ok {
 		t.Error("Property was not unregistered for class")
 	}
 }
 
 func TestDeletePropertyRange(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		nameProperty,
-		quad.Quad{Subject: literal, Predicate: _type, Object: class, Label: nil},
-	})
-	q := quad.Quad{Subject: name, Predicate: _range, Object: literal, Label: nil}
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+		quad.Quad{Subject: literal, Predicate: ptype, Object: class},
+	)
+	q := quad.Quad{Subject: name, Predicate: prange, Object: literal}
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	createdProperty := store.GetProperty(name)
 	createdClass := store.GetClass(literal)
 	// TODO(iddan): what about garbage collection?
 	if createdProperty.Range() == createdClass {
 		t.Error("Range class was not unregistered for property")
 	}
-	if _, ok := createdClass.inProperties[createdProperty]; ok {
+	if _, ok := createdClass.inProp[createdProperty]; ok {
 		t.Error("Property was not unregistered for class")
 	}
 }
 
 func TestDeleteIsSubClassOf(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads(engineerAndPersonClasses)
+	store.ProcessQuads(engineerAndPersonClasses...)
 	q := engineerSubClass
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	if store.GetClass(engineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not unregistered as subclass of super class")
 	}
@@ -453,14 +453,14 @@ func TestDeleteIsSubClassOf(t *testing.T) {
 
 func TestDeleteIsSubClassOfRecursive(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		engineerClass,
 		personClass,
 		softwareEngineerClass,
-	})
+	)
 	quads := engineerAndSoftwareEngineerSubClasses
-	store.ProcessQuads(quads)
-	store.UnprocessQuads(quads)
+	store.ProcessQuads(quads...)
+	store.UnprocessQuads(quads...)
 	if store.GetClass(softwareEngineer).IsSubClassOf(store.GetClass(person)) {
 		t.Error("Class was not unregistered as subclass of super class")
 	}
@@ -468,13 +468,13 @@ func TestDeleteIsSubClassOfRecursive(t *testing.T) {
 
 func TestDeleteIsSubPropertyOf(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		nameProperty,
 		personalProperty,
-	})
+	)
 	q := nameSubPropertyOfPersonal
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	if store.GetProperty(name).IsSubPropertyOf(store.GetProperty(personal)) {
 		t.Error("Property was not unregistered as subproperty of super property")
 	}
@@ -482,17 +482,17 @@ func TestDeleteIsSubPropertyOf(t *testing.T) {
 
 func TestDeleteIsSubPropertyOfRecursive(t *testing.T) {
 	store := NewStore()
-	store.ProcessQuads([]quad.Quad{
+	store.ProcessQuads(
 		nameProperty,
 		personalProperty,
-		quad.Quad{Subject: information, Predicate: _type, Object: property, Label: nil},
-	})
+		quad.Quad{Subject: information, Predicate: ptype, Object: property},
+	)
 	quads := []quad.Quad{
 		nameSubPropertyOfPersonal,
 		personalSubPropertyOfInformation,
 	}
-	store.ProcessQuads(quads)
-	store.UnprocessQuads(quads)
+	store.ProcessQuads(quads...)
+	store.UnprocessQuads(quads...)
 	if store.GetProperty(name).IsSubPropertyOf(store.GetProperty(information)) {
 		t.Error("Property was not unregistered as subproperty of super property")
 	}
@@ -501,7 +501,7 @@ func TestDeleteIsSubPropertyOfRecursive(t *testing.T) {
 func TestClassIsReference(t *testing.T) {
 	store := NewStore()
 	q := aliceIsPerson
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	class := store.GetClass(person)
 	if !class.isReferenced() {
 		t.Error("Class should be referenced")
@@ -511,7 +511,7 @@ func TestClassIsReference(t *testing.T) {
 func TestPropertyIsReference(t *testing.T) {
 	store := NewStore()
 	q := aliceLikesBob
-	store.ProcessQuad(q)
+	store.ProcessQuads(q)
 	property := store.GetProperty(likes)
 	if !property.isReferenced() {
 		t.Error("Property should be referenced")
@@ -521,15 +521,15 @@ func TestPropertyIsReference(t *testing.T) {
 func TestClassUnreference(t *testing.T) {
 	store := NewStore()
 	q := aliceIsPerson
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	require.Nil(t, store.GetClass(person), "class was not garbage collected")
 }
 
 func TestPropertyUnreference(t *testing.T) {
 	store := NewStore()
 	q := aliceLikesBob
-	store.ProcessQuad(q)
-	store.UnprocessQuad(q)
+	store.ProcessQuads(q)
+	store.UnprocessQuads(q)
 	require.Nil(t, store.GetProperty(likes), "property was not garbage collected")
 }
