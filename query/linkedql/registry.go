@@ -61,6 +61,7 @@ var (
 
 // Unmarshal attempts to unmarshal an Item or returns error.
 func Unmarshal(data []byte) (RegistryItem, error) {
+	// TODO: make it a part of quad/jsonld package.
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(data, &m); err != nil {
 		return nil, err
