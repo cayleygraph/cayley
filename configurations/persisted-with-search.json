@@ -1,0 +1,19 @@
+{
+  "store": {
+    "address": "bolt.db",
+    "backend": "bolt",
+    "options": {
+      "search": [
+        {
+          "name": "people",
+          "match": {},
+          "properties": [
+            {
+              "name": "schema:firstName"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
