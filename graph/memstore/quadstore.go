@@ -39,16 +39,15 @@ func init() {
 				return nil, err
 			}
 			if searchConfig != nil {
-				// TODO(iddan): get search configuration from opt
-				var configs search.Configuration
-				mapping := search.NewIndexMapping(configs)
+				mapping := search.NewIndexMapping(searchConfig)
 				searchIndex, err := bleve.NewMemOnly(mapping)
-				search.InitIndex(context.TODO(), searchIndex, qs, configs)
+				search.InitIndex(context.TODO(), searchIndex, qs, searchConfig)
 
 				if err != nil {
 					return nil, err
 				}
 
+				qs.search.config = searchConfig
 				qs.search.index = searchIndex
 			}
 			return qs, nil
