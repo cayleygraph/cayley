@@ -15,7 +15,7 @@ import (
 type testCase struct {
 	Name     string
 	Data     []quad.Quad
-	Config   DocumentConfig
+	Config   PropertyConfig
 	Expected []document
 	Entities []quad.Value
 }
@@ -31,19 +31,15 @@ var testCases = []testCase{
 				Label:     quad.IRI(""),
 			},
 		},
-		Config: DocumentConfig{
-			Name: "people",
-			Properties: []PropertyConfig{
-				{
-					Name: quad.IRI("name"),
-				},
-			},
+		Config: PropertyConfig{
+			Name:     "name",
+			Property: PropertyID("name"),
 		},
 		Expected: []document{
 			{
 				id: "alice",
 				data: map[string]interface{}{
-					"_type": "people",
+					"_type": "name",
 					"name":  []interface{}{"Alice Liddell"},
 				},
 			},
@@ -71,24 +67,20 @@ var testCases = []testCase{
 				Label:     quad.IRI(""),
 			},
 		},
-		Config: DocumentConfig{
-			Name: "people",
+		Config: PropertyConfig{
+			Name: "name",
 			Match: map[quad.IRI][]quad.Value{
 				quad.IRI("rdf:type"): {
 					quad.IRI("Person"),
 				},
 			},
-			Properties: []PropertyConfig{
-				{
-					Name: quad.IRI("name"),
-				},
-			},
+			Property: PropertyID("name"),
 		},
 		Expected: []document{
 			{
 				id: "alice",
 				data: map[string]interface{}{
-					"_type": "people",
+					"_type": "name",
 					"name":  []interface{}{"Alice Liddell"},
 				},
 			},
@@ -116,19 +108,15 @@ var testCases = []testCase{
 				Label:     quad.IRI(""),
 			},
 		},
-		Config: DocumentConfig{
-			Name: "people",
-			Properties: []PropertyConfig{
-				{
-					Name: quad.IRI("name"),
-				},
-			},
+		Config: PropertyConfig{
+			Name:     "name",
+			Property: PropertyID("name"),
 		},
 		Expected: []document{
 			{
 				id: "alice",
 				data: map[string]interface{}{
-					"_type": "people",
+					"_type": "name",
 					"name":  []interface{}{"Alice Liddell"},
 				},
 			},
@@ -159,14 +147,10 @@ func TestSearch(t *testing.T) {
 			Label:     quad.IRI(""),
 		},
 	}
-	configs := []DocumentConfig{
+	configs := []PropertyConfig{
 		{
-			Name: "people",
-			Properties: []PropertyConfig{
-				{
-					Name: quad.IRI("name"),
-				},
-			},
+			Name:     "name",
+			Property: PropertyID("name"),
 		},
 	}
 	qs := NewTestQuadStore(data...)

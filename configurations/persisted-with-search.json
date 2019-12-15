@@ -5,13 +5,9 @@
     "options": {
       "search": [
         {
-          "name": "people",
+          "name": "first-name",
           "match": {},
-          "properties": [
-            {
-              "name": "schema:firstName"
-            }
-          ]
+          "property": { "@id": "schema:firstName" }
         }
       ]
     }

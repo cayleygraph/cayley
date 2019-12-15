@@ -17,10 +17,25 @@ import (
 // Index is the search index
 type Index = bleve.Index
 
+type PropertyID quad.IRI
+
+func (p *PropertyID) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		ID string `json:"@id"`
+	}
+	err := json.Unmarshal(data, &raw)
+	*p += PropertyID(raw.ID)
+	return err
+}
+
 // PropertyConfig how to index a property of a matched entity
 type PropertyConfig struct {
+	// Name for the search configuration
+	Name string `json:"name"`
+	// A map of properties to values that objects need to have to be included for the search document
+	Match map[quad.IRI][]quad.Value `json:"match"`
 	// Name of the property
-	Name quad.IRI `json:"name"`
+	Property PropertyID `json:"property"`
 	// Type of the values the property holds. string by default.
 	// Valid values: "string", "boolean", "number", "datatime", "geopoint"
 	Type string `json:"type"`
@@ -28,29 +43,16 @@ type PropertyConfig struct {
 	Analyzer string `json:"analyzer"`
 }
 
-// DocumentConfig specifies a single index type.
-// Each Cayley instance can have multiple index configs defined
-type DocumentConfig struct {
-	// Name for the search document type
-	Name string `json:"name"`
-	// A map of properties to values that objects need to have to be included for the search document
-	Match map[quad.IRI][]quad.Value `json:"match"`
-	// Configuration for how to index the properties of the search document type
-	Properties []PropertyConfig `json:"properties"`
-}
-
 // Configuration specifies the search indexes of a database
-type Configuration []DocumentConfig
+type Configuration []PropertyConfig
 
 // newPath for given quad store and IDs returns path to get the data required for the search
-func newPath(qs graph.QuadStore, config DocumentConfig, entities []quad.Value) *path.Path {
+func newPath(qs graph.QuadStore, config PropertyConfig, entities []quad.Value) *path.Path {
 	p := path.StartPath(qs, entities...)
 	for predicate, object := range config.Match {
-		p = p.Has(predicate, object...)
+		p = p.Has(quad.IRI(predicate), object...)
 	}
-	for _, property := range config.Properties {
-		p = p.Save(property.Name, string(property.Name))
-	}
+	p = p.Save(quad.IRI(config.Property), string(config.Property))
 	return p
 }
 
@@ -83,7 +85,7 @@ func identifierToString(identifier quad.Value) (string, error) {
 
 // getDocuments for config reterives documents from the graph
 // If provided with entities reterives documents only of given entities
-func getDocuments(ctx context.Context, qs graph.QuadStore, config DocumentConfig, entities []quad.Value) ([]document, error) {
+func getDocuments(ctx context.Context, qs graph.QuadStore, config PropertyConfig, entities []quad.Value) ([]document, error) {
 	p := newPath(qs, config, entities)
 	scanner := p.BuildIterator(ctx).Iterate()
 	idToData := make(map[string]data)
@@ -156,19 +158,17 @@ func resolveFieldConstructor(t string) (func() *mapping.FieldMapping, error) {
 	}
 }
 
-func newDocumentMapping(config DocumentConfig) *mapping.DocumentMapping {
+func newDocumentMapping(config PropertyConfig) *mapping.DocumentMapping {
 	documentMapping := bleve.NewDocumentMapping()
-	for _, property := range config.Properties {
-		constructor, err := resolveFieldConstructor(property.Type)
-		if err != nil {
-			panic(err)
-		}
-		fieldMapping := constructor()
-		if property.Analyzer != "" {
-			fieldMapping.Analyzer = property.Analyzer
-		}
-		documentMapping.AddFieldMappingsAt(string(property.Name), fieldMapping)
+	constructor, err := resolveFieldConstructor(config.Type)
+	if err != nil {
+		panic(err)
 	}
+	fieldMapping := constructor()
+	if config.Analyzer != "" {
+		fieldMapping.Analyzer = config.Analyzer
+	}
+	documentMapping.AddFieldMappingsAt(string(config.Name), fieldMapping)
 	return documentMapping
 }
 
