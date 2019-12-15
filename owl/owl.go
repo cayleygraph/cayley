@@ -9,6 +9,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc/owl"
 	"github.com/cayleygraph/quad/voc/rdf"
 	"github.com/cayleygraph/quad/voc/rdfs"
 )
@@ -47,7 +48,7 @@ var domain = quad.IRI(rdfs.Domain).Full()
 // Properties return all the properties a class instance may have
 func (c *Class) Properties() []*Property {
 	// TODO(@iddan): check for super classes properties
-	p := c.path().Or(listContainignPath(c.qs, c.Identifier).In(quad.IRI(UnionOf))).
+	p := c.path().Or(listContainignPath(c.qs, c.Identifier).In(quad.IRI(owl.UnionOf))).
 		In(domain)
 	it := p.BuildIterator(c.ctx).Iterate()
 	var properties []*Property
@@ -99,12 +100,12 @@ func parentClassesPath(c *Class) *path.Path {
 
 func restrictionsPath(c *Class) *path.Path {
 	return parentClassesPath(c).
-		Has(quad.IRI(rdf.Type).Full(), quad.IRI(Restriction))
+		Has(quad.IRI(rdf.Type).Full(), quad.IRI(owl.Restriction))
 }
 
 func allPropertyRestrictionsPath(c *Class, property *Property) *path.Path {
 	return restrictionsPath(c).
-		Has(quad.IRI(OnProperty), property.Identifier)
+		Has(quad.IRI(owl.OnProperty), property.Identifier)
 }
 
 func propertyRestrictionPath(c *Class, property *Property, restrictionProperty quad.IRI) *path.Path {
@@ -140,7 +141,7 @@ func intFromScanner(ctx context.Context, it iterator.Scanner, qs graph.QuadStore
 // CardinalityOf returns the defined exact cardinality for the property for the class
 // If exact cardinality is not defined for the class returns an error
 func (c *Class) CardinalityOf(property *Property) (int64, error) {
-	p := propertyRestrictionPath(c, property, quad.IRI(Cardinality))
+	p := propertyRestrictionPath(c, property, quad.IRI(owl.Cardinality))
 	it := p.BuildIterator(c.ctx).Iterate()
 	cardinality, err := intFromScanner(c.ctx, it, c.qs)
 	if err != nil {
@@ -152,7 +153,7 @@ func (c *Class) CardinalityOf(property *Property) (int64, error) {
 // MaxCardinalityOf returns the defined max cardinality for the property for the class
 // If max cardinality is not defined for the class returns an error
 func (c *Class) MaxCardinalityOf(property *Property) (int64, error) {
-	p := propertyRestrictionPath(c, property, quad.IRI(MaxCardinality))
+	p := propertyRestrictionPath(c, property, quad.IRI(owl.MaxCardinality))
 	it := p.BuildIterator(c.ctx).Iterate()
 	cardinality, err := intFromScanner(c.ctx, it, c.qs)
 	if err != nil {

@@ -8,21 +8,24 @@ import (
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc/owl"
 	"github.com/cayleygraph/quad/voc/rdf"
 	"github.com/cayleygraph/quad/voc/rdfs"
 	"github.com/stretchr/testify/require"
 )
 
-var fooID = quad.IRI("ex:Foo").Full()
-var barID = quad.IRI("ex:Bar").Full()
-var garID = quad.IRI("ex:Gar").Full()
-var bazID = quad.IRI("ex:baz").Full()
-var fooBarGarUnion = quad.RandomBlankNode()
-var fooBazCardinalityRestriction = quad.RandomBlankNode()
-var barBazMaxCardinalityRestriction = quad.RandomBlankNode()
-var exampleGraph = quad.IRI("ex:graph")
+var (
+	fooID                           = quad.IRI("ex:Foo").Full()
+	barID                           = quad.IRI("ex:Bar").Full()
+	garID                           = quad.IRI("ex:Gar").Full()
+	bazID                           = quad.IRI("ex:baz").Full()
+	fooBarGarUnion                  = quad.RandomBlankNode()
+	fooBazCardinalityRestriction    = quad.RandomBlankNode()
+	barBazMaxCardinalityRestriction = quad.RandomBlankNode()
+	exampleGraph                    = quad.IRI("ex:graph")
+)
 var fooClassQuads = []quad.Quad{
-	quad.Quad{
+	{
 		Subject:   fooID,
 		Predicate: quad.IRI(rdf.Type).Full(),
 		Object:    quad.IRI(rdfs.Class).Full(),
@@ -30,20 +33,20 @@ var fooClassQuads = []quad.Quad{
 	},
 }
 var bazPropertyQuads = []quad.Quad{
-	quad.Quad{
+	{
 		Subject:   barID,
 		Predicate: quad.IRI(rdfs.SubClassOf).Full(),
 		Object:    fooID,
 		Label:     exampleGraph,
 	},
 
-	quad.Quad{
+	{
 		Subject:   bazID,
 		Predicate: quad.IRI(rdfs.Domain).Full(),
 		Object:    fooID,
 		Label:     exampleGraph,
 	},
-	quad.Quad{
+	{
 		Subject:   bazID,
 		Predicate: quad.IRI(rdfs.Range).Full(),
 		Object:    barID,
@@ -51,25 +54,25 @@ var bazPropertyQuads = []quad.Quad{
 	},
 }
 var fooBazCardinalityRestrictionQuads = []quad.Quad{
-	quad.Quad{
+	{
 		Subject:   fooBazCardinalityRestriction,
 		Predicate: quad.IRI(rdf.Type).Full(),
-		Object:    quad.IRI(Restriction),
+		Object:    quad.IRI(owl.Restriction),
 		Label:     exampleGraph,
 	},
-	quad.Quad{
+	{
 		Subject:   fooBazCardinalityRestriction,
-		Predicate: quad.IRI(OnProperty),
+		Predicate: quad.IRI(owl.OnProperty),
 		Object:    bazID,
 		Label:     exampleGraph,
 	},
-	quad.Quad{
+	{
 		Subject:   fooBazCardinalityRestriction,
-		Predicate: quad.IRI(Cardinality),
+		Predicate: quad.IRI(owl.Cardinality),
 		Object:    quad.Int(1),
 		Label:     exampleGraph,
 	},
-	quad.Quad{
+	{
 		Subject:   fooID,
 		Predicate: quad.IRI(rdfs.SubClassOf).Full(),
 		Object:    fooBazCardinalityRestriction,
@@ -77,25 +80,25 @@ var fooBazCardinalityRestrictionQuads = []quad.Quad{
 	},
 }
 var barBazCardinalityRestrictionQuad = []quad.Quad{
-	quad.Quad{
+	{
 		Subject:   barBazMaxCardinalityRestriction,
 		Predicate: quad.IRI(rdf.Type).Full(),
-		Object:    quad.IRI(Restriction),
+		Object:    quad.IRI(owl.Restriction),
 		Label:     exampleGraph,
 	},
-	quad.Quad{
+	{
 		Subject:   barBazMaxCardinalityRestriction,
-		Predicate: quad.IRI(OnProperty),
+		Predicate: quad.IRI(owl.OnProperty),
 		Object:    bazID,
 		Label:     exampleGraph,
 	},
-	quad.Quad{
+	{
 		Subject:   barBazMaxCardinalityRestriction,
-		Predicate: quad.IRI(MaxCardinality),
+		Predicate: quad.IRI(owl.MaxCardinality),
 		Object:    quad.Int(1),
 		Label:     exampleGraph,
 	},
-	quad.Quad{
+	{
 		Subject:   barID,
 		Predicate: quad.IRI(rdfs.SubClassOf).Full(),
 		Object:    barBazMaxCardinalityRestriction,
@@ -146,7 +149,7 @@ func getUnionQuads() []quad.Quad {
 	unionQuads = append(unionQuads, membersQuads...)
 	unionQuads = append(unionQuads, quad.Quad{
 		Subject:   fooBarGarUnion,
-		Predicate: quad.IRI(UnionOf),
+		Predicate: quad.IRI(owl.UnionOf),
 		Object:    membersList,
 		Label:     exampleGraph,
 	})
@@ -165,22 +168,22 @@ func getTestSet() []quad.Quad {
 func TestListContainingPath(t *testing.T) {
 	ctx := context.TODO()
 	qs := memstore.New(getTestSet()...)
-	p := listContainignPath(qs, fooID).In(quad.IRI(UnionOf))
+	p := listContainignPath(qs, fooID).In(quad.IRI(owl.UnionOf))
 	values := collectPath(ctx, qs, p)
 	require.Equal(t, []quad.Value{
 		fooBarGarUnion,
 	}, values)
-	p = listContainignPath(qs, barID).In(quad.IRI(UnionOf))
+	p = listContainignPath(qs, barID).In(quad.IRI(owl.UnionOf))
 	values = collectPath(ctx, qs, p)
 	require.Equal(t, []quad.Value{
 		fooBarGarUnion,
 	}, values)
-	p = listContainignPath(qs, garID).In(quad.IRI(UnionOf))
+	p = listContainignPath(qs, garID).In(quad.IRI(owl.UnionOf))
 	values = collectPath(ctx, qs, p)
 	require.Equal(t, []quad.Value{
 		fooBarGarUnion,
 	}, values)
-	p = listContainignPath(qs, bazID).In(quad.IRI(UnionOf))
+	p = listContainignPath(qs, bazID).In(quad.IRI(owl.UnionOf))
 	values = collectPath(ctx, qs, p)
 	require.Equal(t, []quad.Value(nil), values)
 }
