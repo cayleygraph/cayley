@@ -156,12 +156,15 @@ func Init(kv kv.KV, opt graph.Options) error {
 	if err := qs.writeIndexesMeta(ctx); err != nil {
 		return err
 	}
-	if qs.search.config != nil {
+	searchConfig, err := search.GetConfiguration(opt)
+	if err != nil {
+		return err
+	}
+	if searchConfig != nil {
 		// TODO(iddan): get search configuration from opt
-		var configs search.Configuration
-		mapping := search.NewIndexMapping(configs)
+		mapping := search.NewIndexMapping(searchConfig)
 		searchIndex, err := bleve.New("temp.bleve", mapping)
-		search.InitIndex(context.TODO(), searchIndex, qs, configs)
+		search.InitIndex(context.TODO(), searchIndex, qs, searchConfig)
 
 		if err != nil {
 			return err
