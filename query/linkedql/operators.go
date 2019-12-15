@@ -15,6 +15,8 @@ type Operator interface {
 	Apply(p *path.Path) (*path.Path, error)
 }
 
+var _ Operator = (*LessThan)(nil)
+
 // LessThan corresponds to lt().
 type LessThan struct {
 	Value quad.Value `json:"value"`
@@ -34,6 +36,8 @@ func (s *LessThan) Description() string {
 func (s *LessThan) Apply(p *path.Path) (*path.Path, error) {
 	return p.Filter(iterator.CompareLT, s.Value), nil
 }
+
+var _ Operator = (*LessThanEquals)(nil)
 
 // LessThanEquals corresponds to lte().
 type LessThanEquals struct {
@@ -55,6 +59,8 @@ func (s *LessThanEquals) Apply(p *path.Path) (*path.Path, error) {
 	return p.Filter(iterator.CompareLTE, s.Value), nil
 }
 
+var _ Operator = (*GreaterThan)(nil)
+
 // GreaterThan corresponds to gt().
 type GreaterThan struct {
 	Value quad.Value `json:"value"`
@@ -75,6 +81,8 @@ func (s *GreaterThan) Apply(p *path.Path) (*path.Path, error) {
 	return p.Filter(iterator.CompareGT, s.Value), nil
 }
 
+var _ Operator = (*GreaterThanEquals)(nil)
+
 // GreaterThanEquals corresponds to gte().
 type GreaterThanEquals struct {
 	Value quad.Value `json:"value"`
@@ -94,6 +102,8 @@ func (s *GreaterThanEquals) Description() string {
 func (s *GreaterThanEquals) Apply(p *path.Path) (*path.Path, error) {
 	return p.Filter(iterator.CompareGTE, s.Value), nil
 }
+
+var _ Operator = (*RegExp)(nil)
 
 // RegExp corresponds to regex().
 type RegExp struct {
@@ -122,6 +132,8 @@ func (s *RegExp) Apply(p *path.Path) (*path.Path, error) {
 	}
 	return p.RegexWithRefs(pattern), nil
 }
+
+var _ Operator = (*Like)(nil)
 
 // Like corresponds to like().
 type Like struct {
