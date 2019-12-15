@@ -1,0 +1,14 @@
+{
+  "store": {
+    "backend": "memstore",
+    "options": {
+      "search": [
+        {
+          "name": "first-name",
+          "match": {},
+          "property": { "@id": "schema:firstName" }
+        }
+      ]
+    }
+  }
+}

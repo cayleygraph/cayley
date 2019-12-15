@@ -163,7 +163,10 @@ func Init(kv kv.KV, opt graph.Options) error {
 	if searchConfig != nil {
 		// TODO(iddan): get search configuration from opt
 		mapping := search.NewIndexMapping(searchConfig)
-		searchIndex, err := bleve.New("temp.bleve", mapping)
+		options := map[string]interface{}{
+			"kv": kv,
+		}
+		searchIndex, err := bleve.NewUsing("", mapping, "cayley", bleve.Config.DefaultIndexType, options)
 		search.InitIndex(context.TODO(), searchIndex, qs, searchConfig)
 
 		if err != nil {
