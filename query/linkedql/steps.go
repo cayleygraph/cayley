@@ -10,13 +10,13 @@ import (
 func init() {
 	Register(&Vertex{})
 	Register(&Placeholder{})
-	Register(&View{})
+	Register(&Visit{})
 	Register(&Out{})
 	Register(&As{})
 	Register(&Intersect{})
 	Register(&Is{})
 	Register(&Back{})
-	Register(&ViewBoth{})
+	Register(&Both{})
 	Register(&Count{})
 	Register(&Difference{})
 	Register(&Filter{})
@@ -24,7 +24,7 @@ func init() {
 	Register(&FollowReverse{})
 	Register(&Has{})
 	Register(&HasReverse{})
-	Register(&ViewReverse{})
+	Register(&VisitReverse{})
 	Register(&In{})
 	Register(&ReversePropertyNames{})
 	Register(&Labels{})
@@ -246,32 +246,32 @@ func (s *Placeholder) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartMorphism(), nil
 }
 
-var _ IteratorStep = (*View)(nil)
-var _ PathStep = (*View)(nil)
+var _ IteratorStep = (*Visit)(nil)
+var _ PathStep = (*Visit)(nil)
 
-// View corresponds to .view().
-type View struct {
+// Visit corresponds to .view().
+type Visit struct {
 	From       PathStep     `json:"from"`
 	Properties PropertyPath `json:"properties"`
 }
 
 // Type implements Step.
-func (s *View) Type() quad.IRI {
-	return Prefix + "View"
+func (s *Visit) Type() quad.IRI {
+	return Prefix + "Visit"
 }
 
 // Description implements Step.
-func (s *View) Description() string {
+func (s *Visit) Description() string {
 	return "resolves to the values of the given property or properties in via of the current objects. If via is a path it's resolved values will be used as properties."
 }
 
 // BuildIterator implements IteratorStep.
-func (s *View) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *Visit) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
-func (s *View) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *Visit) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
@@ -288,7 +288,7 @@ var _ PathStep = (*Out)(nil)
 
 // Out is an alias for View.
 type Out struct {
-	View
+	Visit
 }
 
 // Type implements Step.
@@ -441,49 +441,13 @@ func (s *Back) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Back(s.Name), nil
 }
 
-var _ IteratorStep = (*ViewBoth)(nil)
-var _ PathStep = (*ViewBoth)(nil)
-
-// ViewBoth corresponds to .viewBoth().
-type ViewBoth struct {
-	From       PathStep     `json:"from"`
-	Properties PropertyPath `json:"properties"`
-}
-
-// Type implements Step.
-func (s *ViewBoth) Type() quad.IRI {
-	return Prefix + "ViewBoth"
-}
-
-// Description implements Step.
-func (s *ViewBoth) Description() string {
-	return "is like View but resolves to both the object values and references to the values of the given properties in via. It is the equivalent for the Union of View and ViewReverse of the same property."
-}
-
-// BuildIterator implements IteratorStep.
-func (s *ViewBoth) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return NewValueIteratorFromPathStep(s, qs)
-}
-
-// BuildPath implements PathStep.
-func (s *ViewBoth) BuildPath(qs graph.QuadStore) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	viaPath, err := s.Properties.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	return fromPath.Both(viaPath), nil
-}
-
 var _ IteratorStep = (*Both)(nil)
 var _ PathStep = (*Both)(nil)
 
 // Both corresponds to .both().
 type Both struct {
-	ViewBoth
+	From       PathStep     `json:"from"`
+	Properties PropertyPath `json:"properties"`
 }
 
 // Type implements Step.
@@ -493,7 +457,25 @@ func (s *Both) Type() quad.IRI {
 
 // Description implements Step.
 func (s *Both) Description() string {
-	return "aliases for ViewBoth"
+	return "is like View but resolves to both the object values and references to the values of the given properties in via. It is the equivalent for the Union of View and ViewReverse of the same property."
+}
+
+// BuildIterator implements IteratorStep.
+func (s *Both) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements PathStep.
+func (s *Both) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	fromPath, err := s.From.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	viaPath, err := s.Properties.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	return fromPath.Both(viaPath), nil
 }
 
 var _ IteratorStep = (*Count)(nil)
@@ -752,32 +734,32 @@ func (s *HasReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.HasReverse(viaPath, s.Values...), nil
 }
 
-var _ IteratorStep = (*ViewReverse)(nil)
-var _ PathStep = (*ViewReverse)(nil)
+var _ IteratorStep = (*VisitReverse)(nil)
+var _ PathStep = (*VisitReverse)(nil)
 
-// ViewReverse corresponds to .viewReverse().
-type ViewReverse struct {
+// VisitReverse corresponds to .viewReverse().
+type VisitReverse struct {
 	From       PathStep     `json:"from"`
 	Properties PropertyPath `json:"properties"`
 }
 
 // Type implements Step.
-func (s *ViewReverse) Type() quad.IRI {
-	return Prefix + "ViewReverse"
+func (s *VisitReverse) Type() quad.IRI {
+	return Prefix + "VisitReverse"
 }
 
 // Description implements Step.
-func (s *ViewReverse) Description() string {
+func (s *VisitReverse) Description() string {
 	return "is the inverse of View. Starting with the nodes in `path` on the object, follow the quads with predicates defined by `predicatePath` to their subjects."
 }
 
 // BuildIterator implements IteratorStep.
-func (s *ViewReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *VisitReverse) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
 }
 
 // BuildPath implements PathStep.
-func (s *ViewReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *VisitReverse) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	fromPath, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
@@ -794,7 +776,7 @@ var _ PathStep = (*In)(nil)
 
 // In is an alias for ViewReverse.
 type In struct {
-	ViewReverse
+	VisitReverse
 }
 
 // Type implements Step.
