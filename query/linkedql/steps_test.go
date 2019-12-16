@@ -42,7 +42,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &Select{
 			From: &As{
-				From: &View{
+				From: &Visit{
 					From: &As{
 						From: &Vertex{},
 						Name: "liker",
@@ -65,7 +65,7 @@ var testCases = []struct {
 		query: &Select{
 			Tags: []string{"liker"},
 			From: &As{
-				From: &View{
+				From: &Visit{
 					From: &As{
 						From: &Vertex{},
 						Name: "liker",
@@ -85,7 +85,7 @@ var testCases = []struct {
 		name: "Back",
 		data: singleQuadData,
 		query: &Back{
-			From: &View{
+			From: &Visit{
 				From: &Vertex{
 					Values: []quad.Value{quad.IRI("alice")},
 				},
@@ -101,12 +101,12 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "ViewBoth",
+		name: "Both",
 		data: []quad.Quad{
 			quad.MakeIRI("alice", "likes", "bob", ""),
 			quad.MakeIRI("bob", "likes", "dan", ""),
 		},
-		query: &ViewBoth{
+		query: &Both{
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("bob")},
 			},
@@ -265,7 +265,7 @@ var testCases = []struct {
 	{
 		name: "ViewReverse",
 		data: singleQuadData,
-		query: &ViewReverse{
+		query: &VisitReverse{
 			From:       &Vertex{Values: []quad.Value{}},
 			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
@@ -290,14 +290,14 @@ var testCases = []struct {
 			quad.MakeIRI("dani", "likes", "alice", ""),
 		},
 		query: &Intersect{
-			From: &View{
+			From: &Visit{
 				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
 				Properties: &Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
 				},
 			},
 			Steps: []PathStep{
-				&View{
+				&Visit{
 					From:       &Vertex{Values: []quad.Value{quad.IRI("bob")}},
 					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 				},
@@ -312,7 +312,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &Is{
 			Values: []quad.Value{quad.IRI("bob")},
-			From: &View{
+			From: &Visit{
 				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
 				Properties: &Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
@@ -340,7 +340,7 @@ var testCases = []struct {
 	{
 		name: "View",
 		data: singleQuadData,
-		query: &View{
+		query: &Visit{
 			From:       &Vertex{Values: []quad.Value{}},
 			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
@@ -454,7 +454,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &SelectFirst{
 			From: &As{
-				From: &View{
+				From: &Visit{
 					From: &As{
 						Name: "liker",
 						From: &Vertex{},
@@ -538,8 +538,8 @@ var testCases = []struct {
 					From: &Vertex{},
 					Steps: []PathStep{
 						&As{
-							From: &View{
-								From: &View{
+							From: &Visit{
+								From: &Visit{
 									From:       &Placeholder{},
 									Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 								},
@@ -548,7 +548,7 @@ var testCases = []struct {
 							Name: "likesName",
 						},
 						&As{
-							From: &View{
+							From: &Visit{
 								From:       &Placeholder{},
 								Properties: &Vertex{Values: []quad.Value{quad.IRI("name")}},
 							},
