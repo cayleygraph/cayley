@@ -318,9 +318,9 @@ func (s *Store) processQuad(q quad.Quad) {
 		if domain != nil {
 			domain.references++
 		}
-		_range := p.Range()
-		if _range != nil {
-			_range.references++
+		prange := p.Range()
+		if prange != nil {
+			prange.references++
 		}
 	}
 }
@@ -456,8 +456,8 @@ func (s *Store) unprocessQuad(q quad.Quad) {
 			if domain := p.Domain(); domain != nil {
 				s.deleteClassInstance(domain.Name())
 			}
-			if _range := p.Range(); _range != nil {
-				s.deleteClassInstance(_range.Name())
+			if prange := p.Range(); prange != nil {
+				s.deleteClassInstance(prange.Name())
 			}
 		}
 	}
