@@ -2,6 +2,7 @@ package linkedql
 
 import (
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
@@ -1254,6 +1255,9 @@ func (s *Optional) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return fromPath.Optional(p), nil
 }
 
+var _ IteratorStep = (*Where)(nil)
+var _ PathStep = (*Where)(nil)
+
 // Where corresponds to .where().
 type Where struct {
 	From  PathStep   `json:"from"`
@@ -1290,4 +1294,136 @@ func (s *Where) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 		p = p.And(stepPath.Reverse())
 	}
 	return p, nil
+}
+
+var _ IteratorStep = (*LessThan)(nil)
+var _ PathStep = (*LessThan)(nil)
+
+// LessThan corresponds to lt().
+type LessThan struct {
+	From  PathStep   `json:"from"`
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step.
+func (s *LessThan) Type() quad.IRI {
+	return Prefix + "LessThan"
+}
+
+// Description implements Step.
+func (s *LessThan) Description() string {
+	return "Less than filters out values that are not less than given value"
+}
+
+// BuildIterator implements IteratorStep.
+func (s *LessThan) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements Step.
+func (s *LessThan) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	fromPath, err := s.From.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	return fromPath.Filter(iterator.CompareLT, s.Value), nil
+}
+
+var _ IteratorStep = (*LessThanEquals)(nil)
+var _ PathStep = (*LessThanEquals)(nil)
+
+// LessThanEquals corresponds to lte().
+type LessThanEquals struct {
+	From  PathStep   `json:"from"`
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step.
+func (s *LessThanEquals) Type() quad.IRI {
+	return Prefix + "LessThanEquals"
+}
+
+// Description implements Step.
+func (s *LessThanEquals) Description() string {
+	return "Less than equals filters out values that are not less than or equal given value"
+}
+
+// BuildIterator implements Step.
+func (s *LessThanEquals) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements Step.
+func (s *LessThanEquals) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	fromPath, err := s.From.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	return fromPath.Filter(iterator.CompareLTE, s.Value), nil
+}
+
+var _ IteratorStep = (*GreaterThan)(nil)
+var _ PathStep = (*GreaterThan)(nil)
+
+// GreaterThan corresponds to gt().
+type GreaterThan struct {
+	From  PathStep   `json:"from"`
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step.
+func (s *GreaterThan) Type() quad.IRI {
+	return Prefix + "GreaterThan"
+}
+
+// Description implements Step.
+func (s *GreaterThan) Description() string {
+	return "Greater than equals filters out values that are not greater than given value"
+}
+
+// BuildIterator implements Step.
+func (s *GreaterThan) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements Step.
+func (s *GreaterThan) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	fromPath, err := s.From.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	return fromPath.Filter(iterator.CompareGT, s.Value), nil
+}
+
+var _ IteratorStep = (*GreaterThanEquals)(nil)
+var _ PathStep = (*GreaterThanEquals)(nil)
+
+// GreaterThanEquals corresponds to gte().
+type GreaterThanEquals struct {
+	From  PathStep   `json:"from"`
+	Value quad.Value `json:"value"`
+}
+
+// Type implements Step.
+func (s *GreaterThanEquals) Type() quad.IRI {
+	return Prefix + "GreaterThanEquals"
+}
+
+// Description implements Step.
+func (s *GreaterThanEquals) Description() string {
+	return "Greater than equals filters out values that are not greater than or equal given value"
+}
+
+// BuildIterator implements Step.
+func (s *GreaterThanEquals) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+	return NewValueIteratorFromPathStep(s, qs)
+}
+
+// BuildPath implements Step.
+func (s *GreaterThanEquals) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	fromPath, err := s.From.BuildPath(qs)
+	if err != nil {
+		return nil, err
+	}
+	return fromPath.Filter(iterator.CompareGTE, s.Value), nil
 }
