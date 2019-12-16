@@ -23,6 +23,7 @@ var (
 	subClassOf       = quad.IRI(rdfs.SubClassOf)
 	subPropertyOf    = quad.IRI(rdfs.SubPropertyOf)
 	alice            = quad.IRI("alice")
+	aliceName        = quad.String("Alice")
 	bob              = quad.IRI("bob")
 	engineer         = quad.IRI("Engineer")
 	information      = quad.IRI("information")
@@ -35,6 +36,7 @@ var (
 var (
 	aliceIsPerson                    = triple(alice, ptype, person)
 	aliceLikesBob                    = triple(alice, likes, bob)
+	likesRangePerson                 = triple(likes, prange, person)
 	engineerClass                    = triple(engineer, ptype, class)
 	engineerSubClass                 = triple(engineer, subClassOf, person)
 	nameDomainPerson                 = triple(name, domain, person)
@@ -44,6 +46,7 @@ var (
 	personalSubPropertyOfInformation = triple(personal, subPropertyOf, information)
 	personClass                      = triple(person, ptype, class)
 	softwareEngineerClass            = triple(softwareEngineer, ptype, class)
+	aliceNameAlice                   = triple(alice, name, aliceName)
 )
 var (
 	engineerAndSoftwareEngineerSubClasses = []quad.Quad{
@@ -186,9 +189,9 @@ func TestPropertyDomain(t *testing.T) {
 
 func TestPropertyRange(t *testing.T) {
 	store := NewStore()
-	q := triple(name, prange, person)
+	q := likesRangePerson
 	store.ProcessQuads(q)
-	createdProperty := store.GetProperty(name)
+	createdProperty := store.GetProperty(likes)
 	createdClass := store.GetClass(person)
 	require.NotNil(t, createdProperty, "Property was not created")
 	require.NotNil(t, createdClass, "Range class was not created")
@@ -532,4 +535,62 @@ func TestPropertyUnreference(t *testing.T) {
 	store.ProcessQuads(q)
 	store.UnprocessQuads(q)
 	require.Nil(t, store.GetProperty(likes), "property was not garbage collected")
+}
+
+func TestDomainClassInstance(t *testing.T) {
+	store := NewStore()
+	quads := []quad.Quad{
+		nameDomainPerson,
+		aliceNameAlice,
+	}
+	store.ProcessQuads(quads...)
+	class := store.GetClass(person)
+	require.NotNil(t, class)
+	require.True(t, class.isReferenced())
+	require.Equal(t, 1, class.references)
+	store.UnprocessQuads(aliceNameAlice)
+	require.True(t, class.isReferenced())
+	require.Equal(t, 0, class.references)
+	store.UnprocessQuads(nameDomainPerson)
+	require.False(t, class.isReferenced())
+	require.Equal(t, 0, class.references)
+}
+
+func TestRangeClassInstance(t *testing.T) {
+	store := NewStore()
+	quads := []quad.Quad{
+		likesRangePerson,
+		aliceLikesBob,
+	}
+	store.ProcessQuads(quads...)
+	class := store.GetClass(person)
+	require.NotNil(t, class)
+	require.Equal(t, 1, class.references)
+	require.True(t, class.isReferenced())
+	store.UnprocessQuads(aliceLikesBob)
+	require.Equal(t, 0, class.references)
+	require.True(t, class.isReferenced())
+	store.UnprocessQuads(likesRangePerson)
+	require.Equal(t, 0, class.references)
+	require.False(t, class.isReferenced())
+}
+
+func TestDeleteNonExistingClass(t *testing.T) {
+	store := NewStore()
+	store.UnprocessQuads(personClass)
+}
+
+func TestDeleteNonExistingProperty(t *testing.T) {
+	store := NewStore()
+	store.UnprocessQuads(personalProperty)
+}
+
+func TestDeleteNonExistingClassInstance(t *testing.T) {
+	store := NewStore()
+	store.UnprocessQuads(aliceIsPerson)
+}
+
+func TestDeleteNonExistingUsedProperty(t *testing.T) {
+	store := NewStore()
+	store.UnprocessQuads(aliceNameAlice)
 }
