@@ -19,7 +19,7 @@
 //
 // Exported from: https://www.researchgate.net/figure/RDF-RDFS-entailment-rules_tbl1_268419911
 //
-// Implemented here: 1 5 6 8 10 11
+// Implemented here: 1 2 3 5 6 8 10 11
 package inference
 
 import (
@@ -154,7 +154,9 @@ func (p *Property) IsSubPropertyOf(super *Property) bool {
 func (p *Property) isReferenced() bool {
 	return p.explicit || p.references > 0 ||
 		len(p.super) > 0 ||
-		len(p.sub) > 0
+		len(p.sub) > 0 ||
+		p.domain != nil ||
+		p.prange != nil
 }
 
 func (p *Property) deleteIfUnreferenced() {
@@ -264,12 +266,13 @@ func (s *Store) addClassInstance(name quad.Value) {
 	c.references++
 }
 
-func (s *Store) addPropertyInstance(name quad.Value) {
+func (s *Store) addPropertyInstance(name quad.Value) *Property {
 	p := s.GetProperty(name)
 	if p == nil {
 		p = s.getOrCreateImplicitProperty(name)
 	}
 	p.references++
+	return p
 }
 
 // ProcessQuads is used to update the store with multiple quads
@@ -310,7 +313,15 @@ func (s *Store) processQuad(q quad.Quad) {
 	case rdfs.Range:
 		s.setPropertyRange(sub, obj)
 	default:
-		s.addPropertyInstance(pred)
+		p := s.addPropertyInstance(pred)
+		domain := p.Domain()
+		if domain != nil {
+			domain.references++
+		}
+		_range := p.Range()
+		if _range != nil {
+			_range.references++
+		}
 	}
 }
 
@@ -393,13 +404,14 @@ func (s *Store) deleteClassInstance(name quad.Value) {
 	c.deleteIfUnreferenced()
 }
 
-func (s *Store) deletePropertyInstance(name quad.Value) {
+func (s *Store) deletePropertyInstance(name quad.Value) *Property {
 	p := s.GetProperty(name)
 	if p == nil {
-		return
+		return nil
 	}
 	p.references--
 	p.deleteIfUnreferenced()
+	return p
 }
 
 // UnprocessQuads is used to delete multiple quads from the store
@@ -439,6 +451,14 @@ func (s *Store) unprocessQuad(q quad.Quad) {
 	case rdfs.Range:
 		s.unsetPropertyRange(sub, obj)
 	default:
-		s.deletePropertyInstance(pred)
+		p := s.deletePropertyInstance(pred)
+		if p != nil {
+			if domain := p.Domain(); domain != nil {
+				s.deleteClassInstance(domain.Name())
+			}
+			if _range := p.Range(); _range != nil {
+				s.deleteClassInstance(_range.Name())
+			}
+		}
 	}
 }
