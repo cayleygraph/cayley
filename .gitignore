@@ -16,3 +16,5 @@ packrd/packed-*
 /cayley
 # search indexes
 *.bleve
+# Bolt DBs
+*.db
