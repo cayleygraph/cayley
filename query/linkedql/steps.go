@@ -257,7 +257,7 @@ type Visit struct {
 
 // Type implements Step.
 func (s *Visit) Type() quad.IRI {
-	return Prefix + "View"
+	return Prefix + "Visit"
 }
 
 // Description implements Step.
@@ -745,7 +745,7 @@ type VisitReverse struct {
 
 // Type implements Step.
 func (s *VisitReverse) Type() quad.IRI {
-	return Prefix + "ViewReverse"
+	return Prefix + "VisitReverse"
 }
 
 // Description implements Step.
