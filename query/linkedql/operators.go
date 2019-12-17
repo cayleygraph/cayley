@@ -3,7 +3,6 @@ package linkedql
 import (
 	"regexp"
 
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
@@ -13,94 +12,6 @@ import (
 type Operator interface {
 	RegistryItem
 	Apply(p *path.Path) (*path.Path, error)
-}
-
-var _ Operator = (*LessThan)(nil)
-
-// LessThan corresponds to lt().
-type LessThan struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Operator.
-func (s *LessThan) Type() quad.IRI {
-	return Prefix + "LessThan"
-}
-
-// Description implements Operator.
-func (s *LessThan) Description() string {
-	return "Less than filters out values that are not less than given value"
-}
-
-// Apply implements Operator.
-func (s *LessThan) Apply(p *path.Path) (*path.Path, error) {
-	return p.Filter(iterator.CompareLT, s.Value), nil
-}
-
-var _ Operator = (*LessThanEquals)(nil)
-
-// LessThanEquals corresponds to lte().
-type LessThanEquals struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Operator.
-func (s *LessThanEquals) Type() quad.IRI {
-	return Prefix + "LessThanEquals"
-}
-
-// Description implements Operator.
-func (s *LessThanEquals) Description() string {
-	return "Less than equals filters out values that are not less than or equal given value"
-}
-
-// Apply implements Operator.
-func (s *LessThanEquals) Apply(p *path.Path) (*path.Path, error) {
-	return p.Filter(iterator.CompareLTE, s.Value), nil
-}
-
-var _ Operator = (*GreaterThan)(nil)
-
-// GreaterThan corresponds to gt().
-type GreaterThan struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Operator.
-func (s *GreaterThan) Type() quad.IRI {
-	return Prefix + "GreaterThan"
-}
-
-// Description implements Operator.
-func (s *GreaterThan) Description() string {
-	return "Greater than equals filters out values that are not greater than given value"
-}
-
-// Apply implements Operator.
-func (s *GreaterThan) Apply(p *path.Path) (*path.Path, error) {
-	return p.Filter(iterator.CompareGT, s.Value), nil
-}
-
-var _ Operator = (*GreaterThanEquals)(nil)
-
-// GreaterThanEquals corresponds to gte().
-type GreaterThanEquals struct {
-	Value quad.Value `json:"value"`
-}
-
-// Type implements Operator.
-func (s *GreaterThanEquals) Type() quad.IRI {
-	return Prefix + "GreaterThanEquals"
-}
-
-// Description implements Operator.
-func (s *GreaterThanEquals) Description() string {
-	return "Greater than equals filters out values that are not greater than or equal given value"
-}
-
-// Apply implements Operator.
-func (s *GreaterThanEquals) Apply(p *path.Path) (*path.Path, error) {
-	return p.Filter(iterator.CompareGTE, s.Value), nil
 }
 
 var _ Operator = (*RegExp)(nil)

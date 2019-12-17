@@ -176,9 +176,9 @@ var testCases = []struct {
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(0), Label: nil},
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(1), Label: nil},
 		},
-		query: &Filter{
-			From:   &Vertex{Values: []quad.Value{}},
-			Filter: &LessThan{Value: quad.Int(1)},
+		query: &LessThan{
+			From:  &Vertex{Values: []quad.Value{}},
+			Value: quad.Int(1),
 		},
 		results: []interface{}{
 			quad.Int(0),
@@ -190,9 +190,9 @@ var testCases = []struct {
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(0), Label: nil},
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(1), Label: nil},
 		},
-		query: &Filter{
-			From:   &Vertex{Values: []quad.Value{}},
-			Filter: &GreaterThan{Value: quad.Int(0)},
+		query: &GreaterThan{
+			From:  &Vertex{Values: []quad.Value{}},
+			Value: quad.Int(0),
 		},
 		results: []interface{}{
 			quad.Int(1),
@@ -205,9 +205,9 @@ var testCases = []struct {
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(0), Label: nil},
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(1), Label: nil},
 		},
-		query: &Filter{
-			From:   &Vertex{Values: []quad.Value{}},
-			Filter: &LessThanEquals{Value: quad.Int(0)},
+		query: &LessThanEquals{
+			From:  &Vertex{Values: []quad.Value{}},
+			Value: quad.Int(0),
 		},
 		results: []interface{}{
 			quad.Int(-1),
@@ -221,9 +221,9 @@ var testCases = []struct {
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(1), Label: nil},
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.Int(2), Label: nil},
 		},
-		query: &Filter{
-			From:   &Vertex{Values: []quad.Value{}},
-			Filter: &GreaterThanEquals{Value: quad.Int(1)},
+		query: &GreaterThanEquals{
+			From:  &Vertex{Values: []quad.Value{}},
+			Value: quad.Int(1),
 		},
 		results: []interface{}{
 			quad.Int(1),
