@@ -233,7 +233,7 @@ func (g *generator) Generate() []byte {
 		}
 		var dom interface{}
 		if len(domains) == 1 {
-			dom = domains[0]
+			dom = identified{domains[0]}
 		} else {
 			dom = newUnionOf(domains)
 		}
@@ -258,22 +258,22 @@ func (g *generator) Generate() []byte {
 		map[string]interface{}{
 			"@id":             "linkedql:PathStep",
 			"@type":           "owl:Class",
-			"rdfs:subClassOf": map[string]string{"@id": "linkedql:Step"},
+			"rdfs:subClassOf": identified{ID: "linkedql:Step"},
 		},
 		map[string]interface{}{
 			"@id":             "linkedql:IteratorStep",
 			"@type":           "owl:Class",
-			"rdfs:subClassOf": map[string]string{"@id": "linkedql:Step"},
+			"rdfs:subClassOf": identified{ID: "linkedql:Step"},
 		},
 	}
 	graph = append(graph, g.out...)
 	data, err := json.Marshal(map[string]interface{}{
 		"@context": map[string]interface{}{
-			"rdf":      map[string]string{"@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"},
-			"rdfs":     map[string]string{"@id": "http://www.w3.org/2000/01/rdf-schema#"},
-			"owl":      map[string]string{"@id": "http://www.w3.org/2002/07/owl#"},
-			"xsd":      map[string]string{"@id": "http://www.w3.org/2001/XMLSchema#"},
-			"linkedql": map[string]string{"@id": "http://cayley.io/linkedql#"},
+			"rdf":      identified{ID: "http://www.w3.org/1999/02/22-rdf-syntax-ns#"},
+			"rdfs":     identified{ID: "http://www.w3.org/2000/01/rdf-schema#"},
+			"owl":      identified{ID: "http://www.w3.org/2002/07/owl#"},
+			"xsd":      identified{ID: "http://www.w3.org/2001/XMLSchema#"},
+			"linkedql": identified{ID: "http://cayley.io/linkedql#"},
 		},
 		"@graph": graph,
 	})
