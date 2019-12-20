@@ -9,6 +9,8 @@ import (
 )
 
 func init() {
+	Register(&Entity{})
+	Register(&Entities{})
 	Register(&Vertex{})
 	Register(&Placeholder{})
 	Register(&Visit{})
@@ -39,6 +41,12 @@ func init() {
 	Register(&Union{})
 	Register(&Unique{})
 	Register(&Order{})
+	Register(&Optional{})
+	Register(&Where{})
+	Register(&LessThan{})
+	Register(&LessThanEquals{})
+	Register(&GreaterThan{})
+	Register(&GreaterThanEquals{})
 }
 
 // Step is the tree representation of a call in a Path context.
@@ -130,8 +138,8 @@ func (i EntityIdentifierString) BuildIdentifier() (quad.Value, error) {
 	return parseIdentifier(string(i))
 }
 
-var _ IteratorStep = (*Vertex)(nil)
-var _ PathStep = (*Vertex)(nil)
+var _ IteratorStep = (*Entity)(nil)
+var _ PathStep = (*Entity)(nil)
 
 // Entity corresponds to g.Entity().
 type Entity struct {
@@ -162,8 +170,8 @@ func (s *Entity) BuildPath(qs graph.QuadStore) (*path.Path, error) {
 	return path.StartPath(qs, identifier), nil
 }
 
-var _ IteratorStep = (*Vertex)(nil)
-var _ PathStep = (*Vertex)(nil)
+var _ IteratorStep = (*Entities)(nil)
+var _ PathStep = (*Entities)(nil)
 
 // Entities corresponds to g.Entities().
 type Entities struct {
