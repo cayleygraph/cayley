@@ -83,7 +83,7 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 		if tag == "-" {
 			continue
 		} else if tag != "" {
-			name = tag
+			name = Prefix + tag
 		}
 		v, ok := m[name]
 		if !ok {
