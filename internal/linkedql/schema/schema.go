@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	pathStep     = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
-	iteratorStep = reflect.TypeOf((*linkedql.IteratorStep)(nil)).Elem()
-	value        = reflect.TypeOf((*quad.Value)(nil)).Elem()
-	operator     = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
+	pathStep         = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
+	iteratorStep     = reflect.TypeOf((*linkedql.IteratorStep)(nil)).Elem()
+	entityIdentifier = reflect.TypeOf((*linkedql.EntityIdentifier)(nil)).Elem()
+	value            = reflect.TypeOf((*quad.Value)(nil)).Elem()
+	operator         = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
 )
 
 func typeToRange(t reflect.Type) string {
@@ -38,6 +39,9 @@ func typeToRange(t reflect.Type) string {
 	}
 	if t.Implements(value) {
 		return rdfs.Resource
+	}
+	if t.Implements(entityIdentifier) {
+		return "owl:Thing"
 	}
 	panic("Unexpected type " + t.String())
 }

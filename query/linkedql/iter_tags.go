@@ -22,11 +22,6 @@ func (it *TagsIterator) Next(ctx context.Context) bool {
 	return it.valueIt.Next(ctx)
 }
 
-func (it *TagsIterator) getName(ref refs.Ref) interface{} {
-	name := it.valueIt.namer.NameOf(ref)
-	return jsonld.FromValue(name)
-}
-
 func (it *TagsIterator) getTags() map[string]interface{} {
 	refTags := make(map[string]refs.Ref)
 	it.valueIt.scanner.TagResults(refTags)
@@ -34,11 +29,11 @@ func (it *TagsIterator) getTags() map[string]interface{} {
 	tags := make(map[string]interface{})
 	if it.selected != nil {
 		for _, tag := range it.selected {
-			tags[tag] = it.getName(refTags[tag])
+			tags[tag] = jsonld.FromValue(it.valueIt.getName(refTags[tag]))
 		}
 	} else {
 		for tag, ref := range refTags {
-			tags[tag] = it.getName(ref)
+			tags[tag] = jsonld.FromValue(it.valueIt.getName(ref))
 		}
 	}
 

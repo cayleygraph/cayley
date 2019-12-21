@@ -24,7 +24,7 @@ var testCases = []struct {
 		data:  singleQuadData,
 		query: &Entities{Identifiers: []EntityIdentifier{EntityIdentifierString("alice")}},
 		results: []interface{}{
-			quad.IRI("alice"),
+			map[string]string{"@id": "alice"},
 		},
 	},
 	{
@@ -32,9 +32,9 @@ var testCases = []struct {
 		data:  singleQuadData,
 		query: &Vertex{Values: nil},
 		results: []interface{}{
-			quad.IRI("alice"),
-			quad.IRI("likes"),
-			quad.IRI("bob"),
+			map[string]string{"@id": "alice"},
+			map[string]string{"@id": "likes"},
+			map[string]string{"@id": "bob"},
 		},
 	},
 	{
@@ -53,9 +53,9 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			map[string]quad.Value{
-				"liker": quad.IRI("alice"),
-				"liked": quad.IRI("bob"),
+			map[string]interface{}{
+				"liker": map[string]string{"@id": "alice"},
+				"liked": map[string]string{"@id": "bob"},
 			},
 		},
 	},
@@ -76,8 +76,8 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			map[string]quad.Value{
-				"liker": quad.IRI("alice"),
+			map[string]interface{}{
+				"liker": map[string]string{"@id": "alice"},
 			},
 		},
 	},
@@ -97,7 +97,7 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
+			map[string]string{"@id": "alice"},
 		},
 	},
 	{
@@ -113,8 +113,8 @@ var testCases = []struct {
 			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
-			quad.IRI("dan"),
+			map[string]string{"@id": "alice"},
+			map[string]string{"@id": "dan"},
 		},
 	},
 	{
@@ -124,7 +124,7 @@ var testCases = []struct {
 			From: &Vertex{Values: []quad.Value{}},
 		},
 		results: []interface{}{
-			quad.Int(4),
+			map[string]string{"@value": "4", "@type": "schema:Integer"},
 		},
 	},
 	{
@@ -141,7 +141,7 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
+			map[string]string{"@id": "alice"},
 		},
 	},
 	{
@@ -154,7 +154,7 @@ var testCases = []struct {
 			Filter: &RegExp{Pattern: "A"},
 		},
 		results: []interface{}{
-			quad.String("Alice"),
+			"Alice",
 		},
 	},
 	{
@@ -167,7 +167,7 @@ var testCases = []struct {
 			Filter: &Like{Pattern: "a%"},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
+			map[string]string{"@id": "alice"},
 		},
 	},
 	{
@@ -181,7 +181,7 @@ var testCases = []struct {
 			Value: quad.Int(1),
 		},
 		results: []interface{}{
-			quad.Int(0),
+			map[string]string{"@value": "0", "@type": "schema:Integer"},
 		},
 	},
 	{
@@ -195,7 +195,7 @@ var testCases = []struct {
 			Value: quad.Int(0),
 		},
 		results: []interface{}{
-			quad.Int(1),
+			map[string]string{"@value": "1", "@type": "schema:Integer"},
 		},
 	},
 	{
@@ -210,8 +210,8 @@ var testCases = []struct {
 			Value: quad.Int(0),
 		},
 		results: []interface{}{
-			quad.Int(-1),
-			quad.Int(0),
+			map[string]string{"@value": "-1", "@type": "schema:Integer"},
+			map[string]string{"@value": "0", "@type": "schema:Integer"},
 		},
 	},
 	{
@@ -226,8 +226,8 @@ var testCases = []struct {
 			Value: quad.Int(1),
 		},
 		results: []interface{}{
-			quad.Int(1),
-			quad.Int(2),
+			map[string]string{"@value": "1", "@type": "schema:Integer"},
+			map[string]string{"@value": "2", "@type": "schema:Integer"},
 		},
 	},
 	{
@@ -243,7 +243,7 @@ var testCases = []struct {
 			Values: []quad.Value{quad.IRI("bob")},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
+			map[string]string{"@id": "alice"},
 		},
 	},
 	{
@@ -259,7 +259,7 @@ var testCases = []struct {
 			Values: []quad.Value{quad.IRI("alice")},
 		},
 		results: []interface{}{
-			quad.IRI("bob"),
+			map[string]string{"@id": "bob"},
 		},
 	},
 	{
@@ -270,7 +270,7 @@ var testCases = []struct {
 			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
+			map[string]string{"@id": "alice"},
 		},
 	},
 	{
@@ -280,7 +280,7 @@ var testCases = []struct {
 			From: &Vertex{Values: []quad.Value{}},
 		},
 		results: []interface{}{
-			quad.IRI("likes"),
+			map[string]string{"@id": "likes"},
 		},
 	},
 	{
@@ -304,7 +304,7 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
+			map[string]string{"@id": "alice"},
 		},
 	},
 	{
@@ -320,7 +320,7 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("bob"),
+			map[string]string{"@id": "bob"},
 		},
 	},
 	{
@@ -333,8 +333,8 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
-			quad.IRI("likes"),
+			map[string]string{"@id": "alice"},
+			map[string]string{"@id": "likes"},
 		},
 	},
 	{
@@ -345,7 +345,7 @@ var testCases = []struct {
 			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
 		},
 		results: []interface{}{
-			quad.IRI("bob"),
+			map[string]string{"@id": "bob"},
 		},
 	},
 	{
@@ -355,7 +355,7 @@ var testCases = []struct {
 			From: &Vertex{Values: []quad.Value{}},
 		},
 		results: []interface{}{
-			quad.IRI("likes"),
+			map[string]string{"@id": "likes"},
 		},
 	},
 	{
@@ -367,11 +367,7 @@ var testCases = []struct {
 				Names: []quad.IRI{quad.IRI("likes")},
 			},
 		},
-		results: []interface{}{
-			map[string]quad.Value{
-				"likes": quad.IRI("bob"),
-			},
-		},
+		results: []interface{}{map[string]interface{}{"likes": map[string]string{"@id": "bob"}}},
 	},
 	{
 		name: "ReversePropertyNamesAs",
@@ -382,11 +378,7 @@ var testCases = []struct {
 				Tag:  "predicate",
 			},
 		},
-		results: []interface{}{
-			map[string]quad.Value{
-				"predicate": quad.IRI("likes"),
-			},
-		},
+		results: []interface{}{map[string]interface{}{"predicate": map[string]string{"@id": "likes"}}},
 	},
 	{
 		name: "PropertyNamesAs",
@@ -397,11 +389,7 @@ var testCases = []struct {
 				Tag:  "predicate",
 			},
 		},
-		results: []interface{}{
-			map[string]quad.Value{
-				"predicate": quad.IRI("likes"),
-			},
-		},
+		results: []interface{}{map[string]interface{}{"predicate": map[string]string{"@id": "likes"}}},
 	},
 	{
 		name: "ReverseProperties",
@@ -412,11 +400,7 @@ var testCases = []struct {
 				Names: []quad.IRI{quad.IRI("likes")},
 			},
 		},
-		results: []interface{}{
-			map[string]quad.Value{
-				"likes": quad.IRI("alice"),
-			},
-		},
+		results: []interface{}{map[string]interface{}{"likes": map[string]string{"@id": "alice"}}},
 	},
 	{
 		name: "Skip",
@@ -428,7 +412,7 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("bob"),
+			map[string]string{"@id": "bob"},
 		},
 	},
 	{
@@ -445,8 +429,8 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
-			quad.IRI("bob"),
+			map[string]string{"@id": "alice"},
+			map[string]string{"@id": "bob"},
 		},
 	},
 	{
@@ -464,12 +448,7 @@ var testCases = []struct {
 				Name: "liked",
 			},
 		},
-		results: []interface{}{
-			map[string]quad.Value{
-				"liker": quad.IRI("alice"),
-				"liked": quad.IRI("bob"),
-			},
-		},
+		results: []interface{}{map[string]interface{}{"liked": map[string]string{"@id": "bob"}, "liker": map[string]string{"@id": "alice"}}},
 	},
 	{
 		name: "Unique",
@@ -480,8 +459,8 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
-			quad.IRI("bob"),
+			map[string]string{"@id": "alice"},
+			map[string]string{"@id": "bob"},
 		},
 	},
 	{
@@ -491,9 +470,9 @@ var testCases = []struct {
 			From: &Vertex{},
 		},
 		results: []interface{}{
-			quad.IRI("alice"),
-			quad.IRI("bob"),
-			quad.IRI("likes"),
+			map[string]string{"@id": "alice"},
+			map[string]string{"@id": "bob"},
+			map[string]string{"@id": "likes"},
 		},
 	},
 	{
@@ -516,12 +495,12 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			map[string]quad.Value{
-				"likes": quad.IRI("bob"),
-				"name":  quad.IRI("Alice"),
+			map[string]interface{}{
+				"likes": map[string]string{"@id": "bob"},
+				"name":  map[string]string{"@id": "Alice"},
 			},
-			map[string]quad.Value{
-				"name": quad.IRI("Bob"),
+			map[string]interface{}{
+				"name": map[string]string{"@id": "Bob"},
 			},
 		},
 	},
@@ -560,10 +539,10 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{
-			map[string]quad.Value{
-				"person":    quad.IRI("alice"),
-				"name":      quad.IRI("Alice"),
-				"likesName": quad.IRI("Bob"),
+			map[string]interface{}{
+				"person":    map[string]string{"@id": "alice"},
+				"name":      map[string]string{"@id": "Alice"},
+				"likesName": map[string]string{"@id": "Bob"},
 			},
 		},
 	},
@@ -584,13 +563,13 @@ var testCases = []struct {
 		results: []interface{}{
 			map[string]interface{}{
 				"@id":   "alice",
-				"name":  []quad.Value{quad.IRI("Alice")},
-				"likes": []quad.Value{quad.IRI("bob")},
+				"name":  []interface{}{map[string]string{"@id": "Alice"}},
+				"likes": []interface{}{map[string]string{"@id": "bob"}},
 			},
 			map[string]interface{}{
 				"@id":   "bob",
-				"name":  []quad.Value{quad.IRI("Bob")},
-				"likes": []quad.Value{quad.IRI("alice")},
+				"name":  []interface{}{map[string]string{"@id": "Bob"}},
+				"likes": []interface{}{map[string]string{"@id": "alice"}},
 			},
 		},
 	},
