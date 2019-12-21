@@ -5,7 +5,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/jsonld"
 )
 
 var _ query.Iterator = (*TagsIterator)(nil)
@@ -22,22 +22,32 @@ func (it *TagsIterator) Next(ctx context.Context) bool {
 	return it.valueIt.Next(ctx)
 }
 
-// Result implements query.Iterator.
-func (it *TagsIterator) Result() interface{} {
+func (it *TagsIterator) getName(ref refs.Ref) interface{} {
+	name := it.valueIt.namer.NameOf(ref)
+	return jsonld.FromValue(name)
+}
+
+func (it *TagsIterator) getTags() map[string]interface{} {
 	refTags := make(map[string]refs.Ref)
 	it.valueIt.scanner.TagResults(refTags)
 
-	tags := make(map[string]quad.Value)
+	tags := make(map[string]interface{})
 	if it.selected != nil {
 		for _, tag := range it.selected {
-			tags[tag] = it.valueIt.namer.NameOf(refTags[tag])
+			tags[tag] = it.getName(refTags[tag])
 		}
 	} else {
 		for tag, ref := range refTags {
-			tags[tag] = it.valueIt.namer.NameOf(ref)
+			tags[tag] = it.getName(ref)
 		}
 	}
+
 	return tags
+}
+
+// Result implements query.Iterator.
+func (it *TagsIterator) Result() interface{} {
+	return it.getTags()
 }
 
 // Err implements query.Iterator.

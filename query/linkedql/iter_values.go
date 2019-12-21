@@ -8,6 +8,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/quad"
 )
 
 var _ query.Iterator = (*ValueIterator)(nil)
@@ -42,12 +43,17 @@ func (it *ValueIterator) Next(ctx context.Context) bool {
 	return it.scanner.Next(ctx)
 }
 
-// Result implements query.Iterator.
-func (it *ValueIterator) Result() interface{} {
+// Value returns the current value
+func (it *ValueIterator) Value() quad.Value {
 	if it.scanner == nil {
 		return nil
 	}
 	return it.namer.NameOf(it.scanner.Result())
+}
+
+// Result implements query.Iterator.
+func (it *ValueIterator) Result() interface{} {
+	return it.Value()
 }
 
 // Err implements query.Iterator.

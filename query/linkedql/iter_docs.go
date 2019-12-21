@@ -3,7 +3,6 @@ package linkedql
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
@@ -13,42 +12,38 @@ import (
 var _ query.Iterator = (*DocumentIterator)(nil)
 
 type document = map[string]interface{}
+type properties = map[string][]interface{}
+type idToProperties = map[quad.Value]properties
 
 // DocumentIterator is an iterator of documents from the graph
 type DocumentIterator struct {
-	qs         refs.Namer
-	path       *path.Path
+	tagsIt     *TagsIterator
 	ids        []quad.Value
-	scanner    iterator.Scanner
-	properties map[quad.Value]map[string][]quad.Value
+	properties idToProperties
 	current    int
 }
 
 // NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
 func NewDocumentIterator(qs refs.Namer, p *path.Path) *DocumentIterator {
-	return &DocumentIterator{qs: qs, path: p, current: -1}
+	tagsIt := &TagsIterator{valueIt: NewValueIterator(p, qs), selected: nil}
+	return &DocumentIterator{tagsIt: tagsIt, current: -1}
 }
 
 // Next implements query.Iterator.
 func (it *DocumentIterator) Next(ctx context.Context) bool {
 	if it.properties == nil {
-		it.properties = make(map[quad.Value]map[string][]quad.Value)
-		it.scanner = it.path.BuildIterator(ctx).Iterate()
-		for it.scanner.Next(ctx) {
-			id := it.qs.NameOf(it.scanner.Result())
+		it.properties = make(idToProperties)
+		for it.Next(ctx) {
+			id := it.tagsIt.valueIt.Value()
+			tags := it.tagsIt.getTags()
 			it.ids = append(it.ids, id)
-
-			tags := make(map[string]refs.Ref)
-			it.scanner.TagResults(tags)
-
-			for k, ref := range tags {
-				value := it.qs.NameOf(ref)
+			for k, v := range tags {
 				m, ok := it.properties[id]
 				if !ok {
-					m = make(map[string][]quad.Value)
+					m = make(properties)
 					it.properties[id] = m
 				}
-				m[k] = append(m[k], value)
+				m[k] = append(m[k], v)
 			}
 		}
 	}
@@ -83,16 +78,16 @@ func (it *DocumentIterator) Result() interface{} {
 
 // Err implements query.Iterator.
 func (it *DocumentIterator) Err() error {
-	if it.scanner == nil {
+	if it.tagsIt == nil {
 		return nil
 	}
-	return it.scanner.Err()
+	return it.tagsIt.Err()
 }
 
 // Close implements query.Iterator.
 func (it *DocumentIterator) Close() error {
-	if it.scanner == nil {
+	if it.tagsIt == nil {
 		return nil
 	}
-	return it.scanner.Close()
+	return it.tagsIt.Close()
 }
