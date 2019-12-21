@@ -33,7 +33,7 @@ func NewDocumentIterator(qs refs.Namer, p *path.Path) *DocumentIterator {
 func (it *DocumentIterator) Next(ctx context.Context) bool {
 	if it.properties == nil {
 		it.properties = make(idToProperties)
-		for it.Next(ctx) {
+		for it.tagsIt.Next(ctx) {
 			id := it.tagsIt.valueIt.Value()
 			tags := it.tagsIt.getTags()
 			it.ids = append(it.ids, id)
