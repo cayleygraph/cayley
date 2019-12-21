@@ -75,12 +75,6 @@ type PathStep interface {
 	BuildPath(qs graph.QuadStore) (*path.Path, error)
 }
 
-// DocumentStep is a Step that can build a DocumentIterator.
-type DocumentStep interface {
-	Step
-	BuildDocumentIterator(qs graph.QuadStore) (*DocumentIterator, error)
-}
-
 // PropertyPath is an interface to be used where a path of properties is expected.
 type PropertyPath = PathStep
 
@@ -951,19 +945,6 @@ func (s *Properties) Description() string {
 // TODO(iddan): Default tag to Via.
 func (s *Properties) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
 	return NewValueIteratorFromPathStep(s, qs)
-}
-
-// BuildDocumentIterator implements DocumentsStep.
-func (s *Properties) BuildDocumentIterator(qs graph.QuadStore) (*DocumentIterator, error) {
-	p, err := s.BuildPath(qs)
-	if err != nil {
-		return nil, err
-	}
-	it, err := NewValueIterator(p, qs), nil
-	if err != nil {
-		return nil, err
-	}
-	return NewDocumentIterator(qs, it.path), nil
 }
 
 // BuildPath implements PathStep.

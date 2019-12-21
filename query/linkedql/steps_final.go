@@ -100,7 +100,7 @@ var _ IteratorStep = (*Documents)(nil)
 
 // Documents corresponds to .documents().
 type Documents struct {
-	From DocumentStep `json:"from"`
+	From PathStep `json:"from"`
 }
 
 // Type implements Step.
@@ -115,9 +115,13 @@ func (s *Documents) Description() string {
 
 // BuildIterator implements IteratorStep
 func (s *Documents) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	it, err := s.From.BuildDocumentIterator(qs)
+	p, err := s.From.BuildPath(qs)
 	if err != nil {
 		return nil, err
 	}
-	return it, nil
+	it, err := NewValueIterator(p, qs), nil
+	if err != nil {
+		return nil, err
+	}
+	return NewDocumentIterator(it), nil
 }
