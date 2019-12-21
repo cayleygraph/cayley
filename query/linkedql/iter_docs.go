@@ -3,9 +3,7 @@ package linkedql
 import (
 	"context"
 
-	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 )
 
@@ -24,8 +22,8 @@ type DocumentIterator struct {
 }
 
 // NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
-func NewDocumentIterator(qs refs.Namer, p *path.Path) *DocumentIterator {
-	tagsIt := &TagsIterator{valueIt: NewValueIterator(p, qs), selected: nil}
+func NewDocumentIterator(valueIt *ValueIterator) *DocumentIterator {
+	tagsIt := &TagsIterator{valueIt: valueIt, selected: nil}
 	return &DocumentIterator{tagsIt: tagsIt, current: -1}
 }
 
