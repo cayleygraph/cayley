@@ -10,6 +10,7 @@ func init() {
 	Register(&Select{})
 	Register(&SelectFirst{})
 	Register(&Value{})
+	Register(&Documents{})
 }
 
 var _ IteratorStep = (*Select)(nil)
