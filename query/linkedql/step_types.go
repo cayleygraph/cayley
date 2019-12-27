@@ -7,16 +7,7 @@ import (
 	"github.com/cayleygraph/quad/voc"
 )
 
-// Step is the tree representation of a call in a Path context.
-//
-// Example:
-// 		g.V(g.IRI("alice"))
-// 		is represented as
-// 		&Vertex{ Values: []quad.Value{quad.IRI("alice")} }
-//
-// 		g.V().out(g.IRI("likes"))
-// 		is represented as
-// 		&Out{ Properties: []quad.Value{quad.IRI("likes")}, From: &Vertex{} }
+// Step is a logical part in the query
 type Step interface {
 	RegistryItem
 }

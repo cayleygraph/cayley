@@ -3,10 +3,10 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/cayleygraph/cayley/query/linkedql"
 )
 
 func init() {
@@ -20,11 +20,8 @@ var _ linkedql.PathStep = (*HasReverse)(nil)
 type HasReverse struct {
 	From     linkedql.PathStep     `json:"from"`
 	Property linkedql.PropertyPath `json:"property"`
-	Values   []quad.Value `json:"values"`
+	Values   []quad.Value          `json:"values"`
 }
-
-
-
 
 // Description implements Step.
 func (s *HasReverse) Description() string {
@@ -46,6 +43,5 @@ func (s *HasReverse) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Pa
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.HasReverse(viaPath, s.Values...), nil
+	return fromPath.HasReverse(viaPath, linkedql.AbsoluteValues(s.Values, ns)...), nil
 }
-

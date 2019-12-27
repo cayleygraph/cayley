@@ -3,10 +3,10 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/cayleygraph/cayley/query/linkedql"
 )
 
 func init() {
@@ -22,9 +22,6 @@ type ReverseProperties struct {
 	// TODO(iddan): Use property path
 	Names []quad.IRI `json:"names"`
 }
-
-
-
 
 // Description implements Step.
 func (s *ReverseProperties) Description() string {
@@ -48,4 +45,3 @@ func (s *ReverseProperties) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*
 	}
 	return p, nil
 }
-

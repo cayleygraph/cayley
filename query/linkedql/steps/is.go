@@ -3,10 +3,10 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/cayleygraph/cayley/query/linkedql"
 )
 
 func init() {
@@ -18,12 +18,9 @@ var _ linkedql.PathStep = (*Is)(nil)
 
 // Is corresponds to .back().
 type Is struct {
-	From   linkedql.PathStep     `json:"from"`
-	Values []quad.Value `json:"values"`
+	From   linkedql.PathStep `json:"from"`
+	Values []quad.Value      `json:"values"`
 }
-
-
-
 
 // Description implements Step.
 func (s *Is) Description() string {
@@ -41,6 +38,5 @@ func (s *Is) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, erro
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.Is(s.Values...), nil
+	return fromPath.Is(linkedql.AbsoluteValues(s.Values, ns)...), nil
 }
-
