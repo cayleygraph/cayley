@@ -18,9 +18,6 @@ type PropertyPath struct {
 	PropertyPathI
 }
 
-// Type implements Step
-
-
 // Description implements Step.
 func (*PropertyPath) Description() string {
 	return "PropertyPath is a string, multiple strins or path describing a set of properties"
