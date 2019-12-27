@@ -63,13 +63,13 @@ func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 }
 
 // PropertyIRIs is a slice of property IRIs.
-type PropertyIRIs []quad.IRI
+type PropertyIRIs []PropertyIRI
 
 // BuildPath implements PropertyPath.
 func (p PropertyIRIs) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	var values []quad.Value
 	for _, iri := range p {
-		values = append(values, iri)
+		values = append(values, iri.full(ns))
 	}
 	return path.StartPath(qs, values...), nil
 }
@@ -81,7 +81,7 @@ type PropertyIRIStrings []string
 func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	var iris PropertyIRIs
 	for _, iri := range p {
-		iris = append(iris, quad.IRI(iri))
+		iris = append(iris, PropertyIRI(iri))
 	}
 	return iris.BuildPath(qs, ns)
 }
@@ -89,9 +89,13 @@ func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*
 // PropertyIRI is an IRI of a Property
 type PropertyIRI quad.IRI
 
+func (p PropertyIRI) full(ns *voc.Namespaces) quad.IRI {
+	return quad.IRI(ns.FullIRI(string(p)))
+}
+
 // BuildPath implements PropertyPath
 func (p PropertyIRI) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	return path.StartPath(qs, quad.IRI(p)), nil
+	return path.StartPath(qs, p.full(ns)), nil
 }
 
 // PropertyIRIString is a string of IRI of a Property
