@@ -6,6 +6,7 @@ import (
 
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -579,8 +580,9 @@ func TestLinkedQL(t *testing.T) {
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
 			store := memstore.New(c.data...)
+			voc := voc.Namespaces{}
 			ctx := context.TODO()
-			iterator, err := c.query.BuildIterator(store)
+			iterator, err := c.query.BuildIterator(store, &voc)
 			require.NoError(t, err)
 			var results []interface{}
 			for iterator.Next(ctx) {

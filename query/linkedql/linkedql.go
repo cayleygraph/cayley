@@ -54,5 +54,6 @@ func (s *Session) Execute(ctx context.Context, query string, opt query.Options) 
 	if !ok {
 		return nil, errors.New("must execute a valid step")
 	}
-	return step.BuildIterator(s.qs)
+	ns := voc.Namespaces{}
+	return step.BuildIterator(s.qs, &ns)
 }
