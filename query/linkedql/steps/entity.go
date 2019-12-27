@@ -32,7 +32,7 @@ func (s *Entity) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.It
 
 // BuildPath implements linkedql.PathStep.
 func (s *Entity) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	identifier, err := s.Identifier.BuildIdentifier()
+	identifier, err := s.Identifier.BuildIdentifier(ns)
 	if err != nil {
 		return nil, err
 	}

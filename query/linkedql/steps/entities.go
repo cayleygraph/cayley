@@ -21,9 +21,6 @@ type Entities struct {
 	Identifiers []linkedql.EntityIdentifier `json:"identifiers"`
 }
 
-
-
-
 // Description implements Step.
 func (s *Entities) Description() string {
 	return "resolves to all the existing objects in the graph. If provided with identifiers resolves to a sublist of all the existing identifiers in the graph."
@@ -38,7 +35,7 @@ func (s *Entities) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.
 func (s *Entities) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	var values []quad.Value
 	for _, identifier := range s.Identifiers {
-		value, err := identifier.BuildIdentifier()
+		value, err := identifier.BuildIdentifier(ns)
 		if err != nil {
 			return nil, err
 		}
