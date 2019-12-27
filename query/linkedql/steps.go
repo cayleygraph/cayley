@@ -75,34 +75,6 @@ type PathStep interface {
 	BuildPath(qs graph.QuadStore) (*path.Path, error)
 }
 
-// PropertyPath is an interface to be used where a path of properties is expected.
-type PropertyPath = PathStep
-
-// PropertyIRIs is a slice of property IRIs.
-type PropertyIRIs []quad.IRI
-
-// BuildPath implements PropertyPath.
-func (p PropertyIRIs) BuildPath(qs graph.QuadStore) (*path.Path, error) {
-	var values []quad.Value
-	for _, iri := range p {
-		values = append(values, iri)
-	}
-	vertex := &Vertex{Values: values}
-	return vertex.BuildPath(qs)
-}
-
-// PropertyIRIStrings is a slice of property IRI strings.
-type PropertyIRIStrings []string
-
-// BuildPath implements PropertyPath.
-func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore) (*path.Path, error) {
-	var iris PropertyIRIs
-	for _, iri := range p {
-		iris = append(iris, quad.IRI(iri))
-	}
-	return iris.BuildPath(qs)
-}
-
 // EntityIdentifier is an interface to be used where a single entity identifier is expected.
 type EntityIdentifier interface {
 	BuildIdentifier() (quad.Value, error)
@@ -206,7 +178,7 @@ var _ PathStep = (*Vertex)(nil)
 
 // Vertex corresponds to g.Vertex() and g.V().
 type Vertex struct {
-	Values []quad.Value `json:"values"`
+	Values Values `json:"values"`
 }
 
 // Type implements Step.
@@ -383,8 +355,8 @@ var _ PathStep = (*Is)(nil)
 
 // Is corresponds to .back().
 type Is struct {
-	From   PathStep     `json:"from"`
-	Values []quad.Value `json:"values"`
+	From   PathStep `json:"from"`
+	Values Values   `json:"values"`
 }
 
 // Type implements Step.
@@ -668,7 +640,7 @@ var _ PathStep = (*Has)(nil)
 type Has struct {
 	From     PathStep     `json:"from"`
 	Property PropertyPath `json:"property"`
-	Values   []quad.Value `json:"values"`
+	Values   Values       `json:"values"`
 }
 
 // Type implements Step.
@@ -706,7 +678,7 @@ var _ PathStep = (*HasReverse)(nil)
 type HasReverse struct {
 	From     PathStep     `json:"from"`
 	Property PropertyPath `json:"property"`
-	Values   []quad.Value `json:"values"`
+	Values   Values       `json:"values"`
 }
 
 // Type implements Step.

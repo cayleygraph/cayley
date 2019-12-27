@@ -15,6 +15,8 @@ var (
 	entityIdentifier = reflect.TypeOf((*linkedql.EntityIdentifier)(nil)).Elem()
 	value            = reflect.TypeOf((*quad.Value)(nil)).Elem()
 	operator         = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
+	values           = reflect.TypeOf((*linkedql.Values)(nil)).Elem()
+	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil)).Elem()
 )
 
 func typeToRange(t reflect.Type) string {
@@ -42,6 +44,12 @@ func typeToRange(t reflect.Type) string {
 	}
 	if t.Implements(entityIdentifier) {
 		return "owl:Thing"
+	}
+	if t == propertyPath {
+		return linkedql.Prefix + "PropertyPath"
+	}
+	if t == values {
+		return linkedql.Prefix + "Values"
 	}
 	panic("Unexpected type " + t.String())
 }
