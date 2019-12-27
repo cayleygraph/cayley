@@ -1,30 +1,31 @@
-package linkedql
+package steps
 
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
 func init() {
-	Register(&Select{})
-	Register(&SelectFirst{})
-	Register(&Value{})
-	Register(&Documents{})
+	linkedql.Register(&Select{})
+	linkedql.Register(&SelectFirst{})
+	linkedql.Register(&Value{})
+	linkedql.Register(&Documents{})
 }
 
-var _ IteratorStep = (*Select)(nil)
+var _ linkedql.IteratorStep = (*Select)(nil)
 
 // Select corresponds to .select().
 type Select struct {
-	Tags []string `json:"tags"`
-	From PathStep `json:"from"`
+	Tags []string          `json:"tags"`
+	From linkedql.PathStep `json:"from"`
 }
 
 // Type implements Step.
 func (s *Select) Type() quad.IRI {
-	return Prefix + "Select"
+	return linkedql.Prefix + "Select"
 }
 
 // Description implements Step.
@@ -34,24 +35,24 @@ func (s *Select) Description() string {
 
 // BuildIterator implements IteratorStep
 func (s *Select) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
-	valueIt, err := NewValueIteratorFromPathStep(s.From, qs, ns)
+	valueIt, err := linkedql.NewValueIteratorFromPathStep(s.From, qs, ns)
 	if err != nil {
 		return nil, err
 	}
-	return &TagsIterator{valueIt: valueIt, selected: s.Tags}, nil
+	return &linkedql.TagsIterator{ValueIt: valueIt, Selected: s.Tags}, nil
 }
 
-var _ IteratorStep = (*SelectFirst)(nil)
+var _ linkedql.IteratorStep = (*SelectFirst)(nil)
 
 // SelectFirst corresponds to .selectFirst().
 type SelectFirst struct {
-	Tags []string `json:"tags"`
-	From PathStep `json:"from"`
+	Tags []string          `json:"tags"`
+	From linkedql.PathStep `json:"from"`
 }
 
 // Type implements Step.
 func (s *SelectFirst) Type() quad.IRI {
-	return Prefix + "SelectFirst"
+	return linkedql.Prefix + "SelectFirst"
 }
 
 // Description implements Step.
@@ -59,12 +60,12 @@ func (s *SelectFirst) Description() string {
 	return "Like Select but only returns the first result"
 }
 
-func singleValueIteratorFromPathStep(step PathStep, qs graph.QuadStore, ns *voc.Namespaces) (*ValueIterator, error) {
+func singleValueIteratorFromPathStep(step linkedql.PathStep, qs graph.QuadStore, ns *voc.Namespaces) (*linkedql.ValueIterator, error) {
 	p, err := step.BuildPath(qs, ns)
 	if err != nil {
 		return nil, err
 	}
-	return NewValueIterator(p.Limit(1), qs), nil
+	return linkedql.NewValueIterator(p.Limit(1), qs), nil
 }
 
 // BuildIterator implements IteratorStep
@@ -73,19 +74,19 @@ func (s *SelectFirst) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (que
 	if err != nil {
 		return nil, err
 	}
-	return &TagsIterator{it, s.Tags}, nil
+	return &linkedql.TagsIterator{it, s.Tags}, nil
 }
 
-var _ IteratorStep = (*Value)(nil)
+var _ linkedql.IteratorStep = (*Value)(nil)
 
 // Value corresponds to .value().
 type Value struct {
-	From PathStep `json:"from"`
+	From linkedql.PathStep `json:"from"`
 }
 
 // Type implements Step.
 func (s *Value) Type() quad.IRI {
-	return Prefix + "Value"
+	return linkedql.Prefix + "Value"
 }
 
 // Description implements Step.
@@ -98,16 +99,16 @@ func (s *Value) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Ite
 	return singleValueIteratorFromPathStep(s.From, qs, ns)
 }
 
-var _ IteratorStep = (*Documents)(nil)
+var _ linkedql.IteratorStep = (*Documents)(nil)
 
 // Documents corresponds to .documents().
 type Documents struct {
-	From PathStep `json:"from"`
+	From linkedql.PathStep `json:"from"`
 }
 
 // Type implements Step.
 func (s *Documents) Type() quad.IRI {
-	return Prefix + "Documents"
+	return linkedql.Prefix + "Documents"
 }
 
 // Description implements Step.
@@ -121,9 +122,9 @@ func (s *Documents) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query
 	if err != nil {
 		return nil, err
 	}
-	it, err := NewValueIterator(p, qs), nil
+	it, err := linkedql.NewValueIterator(p, qs), nil
 	if err != nil {
 		return nil, err
 	}
-	return NewDocumentIterator(it), nil
+	return linkedql.NewDocumentIterator(it), nil
 }

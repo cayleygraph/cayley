@@ -9,13 +9,13 @@ import (
 	"github.com/cayleygraph/quad/voc"
 )
 
-type propertyPathI interface {
+type PropertyPathI interface {
 	BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error)
 }
 
 // PropertyPath is an interface to be used where a path of properties is expected.
 type PropertyPath struct {
-	p propertyPathI
+	PropertyPathI
 }
 
 // Type implements Step
@@ -28,10 +28,6 @@ func (*PropertyPath) Description() string {
 	return "PropertyPath is a string, multiple strins or path describing a set of properties"
 }
 
-func (p *PropertyPath) BuildPath(qs graph.QuadStore) (*path.Path, error) {
-	return p.p.BuildPath(qs)
-}
-
 // UnmarshalJSON implements RawMessage
 func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 	var errors []error
@@ -39,7 +35,7 @@ func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 	var propertyIRIs PropertyIRIs
 	err := json.Unmarshal(data, &propertyIRIs)
 	if err == nil {
-		p.p = propertyIRIs
+		p.PropertyPathI = propertyIRIs
 		return nil
 	}
 	errors = append(errors, err)
@@ -47,7 +43,7 @@ func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 	var propertyIRIStrings PropertyIRIStrings
 	err = json.Unmarshal(data, &propertyIRIStrings)
 	if err == nil {
-		p.p = propertyIRIStrings
+		p.PropertyPathI = propertyIRIStrings
 		return nil
 	}
 	errors = append(errors, err)
@@ -55,7 +51,7 @@ func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 	var propertyIRI PropertyIRI
 	err = json.Unmarshal(data, &propertyIRI)
 	if err == nil {
-		p.p = propertyIRI
+		p.PropertyPathI = propertyIRI
 		return nil
 	}
 	errors = append(errors, err)
@@ -63,7 +59,7 @@ func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 	var propertyIRIString PropertyIRIString
 	err = json.Unmarshal(data, &propertyIRIString)
 	if err == nil {
-		p.p = propertyIRIString
+		p.PropertyPathI = propertyIRIString
 		return nil
 	}
 	errors = append(errors, err)
@@ -80,8 +76,7 @@ func (p PropertyIRIs) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.P
 	for _, iri := range p {
 		values = append(values, iri)
 	}
-	vertex := &Vertex{Values: values}
-	return vertex.BuildPath(qs, ns)
+	return path.StartPath(qs, values...), nil
 }
 
 // PropertyIRIStrings is a slice of property IRI strings.
@@ -101,8 +96,7 @@ type PropertyIRI quad.IRI
 
 // BuildPath implements PropertyPath
 func (p PropertyIRI) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	vertex := &Vertex{Values: []quad.Value{quad.IRI(p)}}
-	return vertex.BuildPath(qs, ns)
+	return path.StartPath(qs, quad.IRI(p)), nil
 }
 
 // PropertyIRIString is a string of IRI of a Property

@@ -1,20 +1,13 @@
-package linkedql
+package steps
 
 import (
 	"regexp"
 
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 )
-
-// Operator represents an operator used in a query inside a step (e.g. greater than).
-type Operator interface {
-	RegistryItem
-	Apply(p *path.Path) (*path.Path, error)
-}
-
-var _ Operator = (*RegExp)(nil)
 
 // RegExp corresponds to regex().
 type RegExp struct {
@@ -24,7 +17,7 @@ type RegExp struct {
 
 // Type implements Operator.
 func (s *RegExp) Type() quad.IRI {
-	return Prefix + "RegExp"
+	return linkedql.Prefix + "RegExp"
 }
 
 // Description implements Operator.
@@ -44,7 +37,7 @@ func (s *RegExp) Apply(p *path.Path) (*path.Path, error) {
 	return p.RegexWithRefs(pattern), nil
 }
 
-var _ Operator = (*Like)(nil)
+var _ linkedql.Operator = (*Like)(nil)
 
 // Like corresponds to like().
 type Like struct {
@@ -53,7 +46,7 @@ type Like struct {
 
 // Type implements Operator.
 func (s *Like) Type() quad.IRI {
-	return Prefix + "Like"
+	return linkedql.Prefix + "Like"
 }
 
 // Description implements Operator.

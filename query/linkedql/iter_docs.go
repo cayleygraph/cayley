@@ -23,7 +23,7 @@ type DocumentIterator struct {
 
 // NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
 func NewDocumentIterator(valueIt *ValueIterator) *DocumentIterator {
-	tagsIt := &TagsIterator{valueIt: valueIt, selected: nil}
+	tagsIt := &TagsIterator{ValueIt: valueIt, Selected: nil}
 	return &DocumentIterator{tagsIt: tagsIt, current: -1}
 }
 
@@ -32,7 +32,7 @@ func (it *DocumentIterator) Next(ctx context.Context) bool {
 	if it.properties == nil {
 		it.properties = make(idToProperties)
 		for it.tagsIt.Next(ctx) {
-			id := it.tagsIt.valueIt.Value()
+			id := it.tagsIt.ValueIt.Value()
 			tags := it.tagsIt.getTags()
 			it.ids = append(it.ids, id)
 			for k, v := range tags {
