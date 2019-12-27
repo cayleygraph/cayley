@@ -3,10 +3,9 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/voc"
 	"github.com/cayleygraph/cayley/query/linkedql"
+	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/quad/voc"
 )
 
 func init() {
@@ -20,11 +19,6 @@ var _ linkedql.PathStep = (*Follow)(nil)
 type Follow struct {
 	From     linkedql.PathStep `json:"from"`
 	Followed linkedql.PathStep `json:"followed"`
-}
-
-// Type implements Step.
-func (s *Follow) Type() quad.IRI {
-	return linkedql.Prefix + "Follow"
 }
 
 // Description implements Step.

@@ -24,10 +24,8 @@ type LessThanEquals struct {
 	Value quad.Value `json:"value"`
 }
 
-// Type implements Step.
-func (s *LessThanEquals) Type() quad.IRI {
-	return linkedql.Prefix + "LessThanEquals"
-}
+
+
 
 // Description implements Step.
 func (s *LessThanEquals) Description() string {

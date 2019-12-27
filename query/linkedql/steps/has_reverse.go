@@ -23,10 +23,8 @@ type HasReverse struct {
 	Values   []quad.Value `json:"values"`
 }
 
-// Type implements Step.
-func (s *HasReverse) Type() quad.IRI {
-	return linkedql.Prefix + "HasReverse"
-}
+
+
 
 // Description implements Step.
 func (s *HasReverse) Description() string {

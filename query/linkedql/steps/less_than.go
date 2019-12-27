@@ -24,10 +24,8 @@ type LessThan struct {
 	Value quad.Value `json:"value"`
 }
 
-// Type implements Step.
-func (s *LessThan) Type() quad.IRI {
-	return linkedql.Prefix + "LessThan"
-}
+
+
 
 // Description implements Step.
 func (s *LessThan) Description() string {

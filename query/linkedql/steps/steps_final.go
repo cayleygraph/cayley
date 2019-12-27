@@ -4,7 +4,6 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -21,11 +20,6 @@ var _ linkedql.IteratorStep = (*Select)(nil)
 type Select struct {
 	Tags []string          `json:"tags"`
 	From linkedql.PathStep `json:"from"`
-}
-
-// Type implements Step.
-func (s *Select) Type() quad.IRI {
-	return linkedql.Prefix + "Select"
 }
 
 // Description implements Step.
@@ -48,11 +42,6 @@ var _ linkedql.IteratorStep = (*SelectFirst)(nil)
 type SelectFirst struct {
 	Tags []string          `json:"tags"`
 	From linkedql.PathStep `json:"from"`
-}
-
-// Type implements Step.
-func (s *SelectFirst) Type() quad.IRI {
-	return linkedql.Prefix + "SelectFirst"
 }
 
 // Description implements Step.
@@ -84,11 +73,6 @@ type Value struct {
 	From linkedql.PathStep `json:"from"`
 }
 
-// Type implements Step.
-func (s *Value) Type() quad.IRI {
-	return linkedql.Prefix + "Value"
-}
-
 // Description implements Step.
 func (s *Value) Description() string {
 	return "Value returns a single value matched in the query"
@@ -104,11 +88,6 @@ var _ linkedql.IteratorStep = (*Documents)(nil)
 // Documents corresponds to .documents().
 type Documents struct {
 	From linkedql.PathStep `json:"from"`
-}
-
-// Type implements Step.
-func (s *Documents) Type() quad.IRI {
-	return linkedql.Prefix + "Documents"
 }
 
 // Description implements Step.

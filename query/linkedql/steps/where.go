@@ -3,10 +3,9 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/voc"
 	"github.com/cayleygraph/cayley/query/linkedql"
+	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/quad/voc"
 )
 
 func init() {
@@ -20,11 +19,6 @@ var _ linkedql.PathStep = (*Where)(nil)
 type Where struct {
 	From  linkedql.PathStep   `json:"from"`
 	Steps []linkedql.PathStep `json:"steps"`
-}
-
-// Type implements Step.
-func (s *Where) Type() quad.IRI {
-	return linkedql.Prefix + "Where"
 }
 
 // Description implements Step.
@@ -53,4 +47,3 @@ func (s *Where) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 	}
 	return p, nil
 }
-

@@ -19,9 +19,7 @@ type PropertyPath struct {
 }
 
 // Type implements Step
-func (*PropertyPath) Type() string {
-	return Prefix + "PropertyPath"
-}
+
 
 // Description implements Step.
 func (*PropertyPath) Description() string {

@@ -21,10 +21,8 @@ type Entities struct {
 	Identifiers []linkedql.EntityIdentifier `json:"identifiers"`
 }
 
-// Type implements Step.
-func (s *Entities) Type() quad.IRI {
-	return linkedql.Prefix + "Entities"
-}
+
+
 
 // Description implements Step.
 func (s *Entities) Description() string {

@@ -24,10 +24,8 @@ type GreaterThanEquals struct {
 	Value quad.Value `json:"value"`
 }
 
-// Type implements Step.
-func (s *GreaterThanEquals) Type() quad.IRI {
-	return linkedql.Prefix + "GreaterThanEquals"
-}
+
+
 
 // Description implements Step.
 func (s *GreaterThanEquals) Description() string {

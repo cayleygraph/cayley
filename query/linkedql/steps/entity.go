@@ -5,7 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -19,11 +18,6 @@ var _ linkedql.PathStep = (*Entity)(nil)
 // Entity corresponds to g.Entity().
 type Entity struct {
 	Identifier linkedql.EntityIdentifier `json:"identifier"`
-}
-
-// Type implements Step.
-func (s *Entity) Type() quad.IRI {
-	return linkedql.Prefix + "Entity"
 }
 
 // Description implements Step.

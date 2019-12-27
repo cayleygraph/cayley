@@ -5,7 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -20,11 +19,6 @@ var _ linkedql.PathStep = (*Intersect)(nil)
 type Intersect struct {
 	From  linkedql.PathStep   `json:"from"`
 	Steps []linkedql.PathStep `json:"steps"`
-}
-
-// Type implements Step.
-func (s *Intersect) Type() quad.IRI {
-	return linkedql.Prefix + "Intersect"
 }
 
 // Description implements Step.

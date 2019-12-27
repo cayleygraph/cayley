@@ -23,10 +23,8 @@ type Has struct {
 	Values   []quad.Value `json:"values"`
 }
 
-// Type implements Step.
-func (s *Has) Type() quad.IRI {
-	return linkedql.Prefix + "Has"
-}
+
+
 
 // Description implements Step.
 func (s *Has) Description() string {

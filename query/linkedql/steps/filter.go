@@ -5,7 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -20,11 +19,6 @@ var _ linkedql.PathStep = (*Filter)(nil)
 type Filter struct {
 	From   linkedql.PathStep `json:"from"`
 	Filter linkedql.Operator `json:"filter"`
-}
-
-// Type implements Step.
-func (s *Filter) Type() quad.IRI {
-	return linkedql.Prefix + "Filter"
 }
 
 // Description implements Step.

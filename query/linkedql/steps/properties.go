@@ -23,10 +23,8 @@ type Properties struct {
 	Names []quad.IRI `json:"names"`
 }
 
-// Type implements Step.
-func (s *Properties) Type() quad.IRI {
-	return linkedql.Prefix + "Properties"
-}
+
+
 
 // Description implements Step.
 func (s *Properties) Description() string {

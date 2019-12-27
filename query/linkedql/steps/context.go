@@ -5,7 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -20,11 +19,6 @@ var _ linkedql.PathStep = (*Context)(nil)
 type Context struct {
 	From  linkedql.PathStep `json:"from"`
 	Rules map[string]string `json:"rules"`
-}
-
-// Type implements Step.
-func (s *Context) Type() quad.IRI {
-	return linkedql.Prefix + "Context"
 }
 
 // Description implements Step.
