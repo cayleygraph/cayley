@@ -47,7 +47,7 @@ var testCases = []struct {
 						From: &Vertex{},
 						Name: "liker",
 					},
-					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 				Name: "liked",
 			},
@@ -70,7 +70,7 @@ var testCases = []struct {
 						From: &Vertex{},
 						Name: "liker",
 					},
-					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 				Name: "liked",
 			},
@@ -89,11 +89,11 @@ var testCases = []struct {
 				From: &Vertex{
 					Values: []quad.Value{quad.IRI("alice")},
 				},
-				Properties: &Vertex{
+				Properties: PropertyPath{&Vertex{
 					Values: []quad.Value{
 						quad.IRI("likes"),
 					},
-				},
+				}},
 			},
 		},
 		results: []interface{}{
@@ -110,7 +110,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("bob")},
 			},
-			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 		},
 		results: []interface{}{
 			map[string]string{"@id": "alice"},
@@ -237,9 +237,9 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Property: &Vertex{
+			Property: PropertyPath{&Vertex{
 				Values: []quad.Value{quad.IRI("likes")},
-			},
+			}},
 			Values: []quad.Value{quad.IRI("bob")},
 		},
 		results: []interface{}{
@@ -253,9 +253,9 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Property: &Vertex{
+			Property: PropertyPath{&Vertex{
 				Values: []quad.Value{quad.IRI("likes")},
-			},
+			}},
 			Values: []quad.Value{quad.IRI("alice")},
 		},
 		results: []interface{}{
@@ -267,7 +267,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &VisitReverse{
 			From:       &Vertex{Values: []quad.Value{}},
-			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 		},
 		results: []interface{}{
 			map[string]string{"@id": "alice"},
@@ -292,14 +292,14 @@ var testCases = []struct {
 		query: &Intersect{
 			From: &Visit{
 				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-				Properties: &Vertex{
+				Properties: PropertyPath{&Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
-				},
+				}},
 			},
 			Steps: []PathStep{
 				&Visit{
 					From:       &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 			},
 		},
@@ -314,9 +314,9 @@ var testCases = []struct {
 			Values: []quad.Value{quad.IRI("bob")},
 			From: &Visit{
 				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
-				Properties: &Vertex{
+				Properties: PropertyPath{&Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
-				},
+				}},
 			},
 		},
 		results: []interface{}{
@@ -342,7 +342,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &Visit{
 			From:       &Vertex{Values: []quad.Value{}},
-			Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+			Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 		},
 		results: []interface{}{
 			map[string]string{"@id": "bob"},
@@ -443,7 +443,7 @@ var testCases = []struct {
 						Name: "liker",
 						From: &Vertex{},
 					},
-					Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 				Name: "liked",
 			},
@@ -520,16 +520,16 @@ var testCases = []struct {
 							From: &Visit{
 								From: &Visit{
 									From:       &Placeholder{},
-									Properties: &Vertex{Values: []quad.Value{quad.IRI("likes")}},
+									Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 								},
-								Properties: &Vertex{Values: []quad.Value{quad.IRI("name")}},
+								Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("name")}}},
 							},
 							Name: "likesName",
 						},
 						&As{
 							From: &Visit{
 								From:       &Placeholder{},
-								Properties: &Vertex{Values: []quad.Value{quad.IRI("name")}},
+								Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("name")}}},
 							},
 							Name: "name",
 						},
