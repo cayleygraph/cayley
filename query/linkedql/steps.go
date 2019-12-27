@@ -178,7 +178,7 @@ var _ PathStep = (*Vertex)(nil)
 
 // Vertex corresponds to g.Vertex() and g.V().
 type Vertex struct {
-	Values Values `json:"values"`
+	Values []quad.Value `json:"values"`
 }
 
 // Type implements Step.
@@ -355,8 +355,8 @@ var _ PathStep = (*Is)(nil)
 
 // Is corresponds to .back().
 type Is struct {
-	From   PathStep `json:"from"`
-	Values Values   `json:"values"`
+	From   PathStep     `json:"from"`
+	Values []quad.Value `json:"values"`
 }
 
 // Type implements Step.
@@ -640,7 +640,7 @@ var _ PathStep = (*Has)(nil)
 type Has struct {
 	From     PathStep     `json:"from"`
 	Property PropertyPath `json:"property"`
-	Values   Values       `json:"values"`
+	Values   []quad.Value `json:"values"`
 }
 
 // Type implements Step.
@@ -678,7 +678,7 @@ var _ PathStep = (*HasReverse)(nil)
 type HasReverse struct {
 	From     PathStep     `json:"from"`
 	Property PropertyPath `json:"property"`
-	Values   Values       `json:"values"`
+	Values   []quad.Value `json:"values"`
 }
 
 // Type implements Step.
