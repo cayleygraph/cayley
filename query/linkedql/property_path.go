@@ -90,7 +90,7 @@ func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*
 type PropertyIRI quad.IRI
 
 func (p PropertyIRI) full(ns *voc.Namespaces) quad.IRI {
-	return quad.IRI(ns.FullIRI(string(p)))
+	return AbsoluteIRI(quad.IRI(p), ns)
 }
 
 // BuildPath implements PropertyPath

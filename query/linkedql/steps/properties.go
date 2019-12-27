@@ -3,10 +3,10 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/cayleygraph/cayley/query/linkedql"
 )
 
 func init() {
@@ -22,9 +22,6 @@ type Properties struct {
 	// TODO(iddan): Use linkedql.PropertyPath
 	Names []quad.IRI `json:"names"`
 }
-
-
-
 
 // Description implements Step.
 func (s *Properties) Description() string {
@@ -54,4 +51,3 @@ func (s *Properties) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Pa
 	}
 	return p, nil
 }
-
