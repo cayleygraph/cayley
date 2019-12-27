@@ -10,6 +10,7 @@ import (
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/jsonld"
+	"github.com/cayleygraph/quad/voc"
 )
 
 var _ query.Iterator = (*ValueIterator)(nil)
@@ -28,8 +29,8 @@ func NewValueIterator(p *path.Path, namer refs.Namer) *ValueIterator {
 
 // NewValueIteratorFromPathStep attempts to build a path from PathStep and return a new ValueIterator of it.
 // If BuildPath fails returns error.
-func NewValueIteratorFromPathStep(step PathStep, qs graph.QuadStore) (*ValueIterator, error) {
-	p, err := step.BuildPath(qs)
+func NewValueIteratorFromPathStep(step PathStep, qs graph.QuadStore, ns *voc.Namespaces) (*ValueIterator, error) {
+	p, err := step.BuildPath(qs, ns)
 	if err != nil {
 		return nil, err
 	}

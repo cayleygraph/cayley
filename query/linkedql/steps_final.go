@@ -4,6 +4,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 )
 
 func init() {
@@ -32,8 +33,8 @@ func (s *Select) Description() string {
 }
 
 // BuildIterator implements IteratorStep
-func (s *Select) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	valueIt, err := NewValueIteratorFromPathStep(s.From, qs)
+func (s *Select) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
+	valueIt, err := NewValueIteratorFromPathStep(s.From, qs, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +59,8 @@ func (s *SelectFirst) Description() string {
 	return "Like Select but only returns the first result"
 }
 
-func singleValueIteratorFromPathStep(step PathStep, qs graph.QuadStore) (*ValueIterator, error) {
-	p, err := step.BuildPath(qs)
+func singleValueIteratorFromPathStep(step PathStep, qs graph.QuadStore, ns *voc.Namespaces) (*ValueIterator, error) {
+	p, err := step.BuildPath(qs, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -67,8 +68,8 @@ func singleValueIteratorFromPathStep(step PathStep, qs graph.QuadStore) (*ValueI
 }
 
 // BuildIterator implements IteratorStep
-func (s *SelectFirst) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	it, err := singleValueIteratorFromPathStep(s.From, qs)
+func (s *SelectFirst) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
+	it, err := singleValueIteratorFromPathStep(s.From, qs, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +94,8 @@ func (s *Value) Description() string {
 }
 
 // BuildIterator implements IteratorStep
-func (s *Value) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	return singleValueIteratorFromPathStep(s.From, qs)
+func (s *Value) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
+	return singleValueIteratorFromPathStep(s.From, qs, ns)
 }
 
 var _ IteratorStep = (*Documents)(nil)
@@ -115,8 +116,8 @@ func (s *Documents) Description() string {
 }
 
 // BuildIterator implements IteratorStep
-func (s *Documents) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
-	p, err := s.From.BuildPath(qs)
+func (s *Documents) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
+	p, err := s.From.BuildPath(qs, ns)
 	if err != nil {
 		return nil, err
 	}

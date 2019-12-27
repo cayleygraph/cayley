@@ -6,10 +6,11 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 )
 
 type propertyPathI interface {
-	BuildPath(qs graph.QuadStore) (*path.Path, error)
+	BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error)
 }
 
 // PropertyPath is an interface to be used where a path of properties is expected.
@@ -74,41 +75,41 @@ func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 type PropertyIRIs []quad.IRI
 
 // BuildPath implements PropertyPath.
-func (p PropertyIRIs) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (p PropertyIRIs) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	var values []quad.Value
 	for _, iri := range p {
 		values = append(values, iri)
 	}
 	vertex := &Vertex{Values: values}
-	return vertex.BuildPath(qs)
+	return vertex.BuildPath(qs, ns)
 }
 
 // PropertyIRIStrings is a slice of property IRI strings.
 type PropertyIRIStrings []string
 
 // BuildPath implements PropertyPath.
-func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	var iris PropertyIRIs
 	for _, iri := range p {
 		iris = append(iris, quad.IRI(iri))
 	}
-	return iris.BuildPath(qs)
+	return iris.BuildPath(qs, ns)
 }
 
 // PropertyIRI is an IRI of a Property
 type PropertyIRI quad.IRI
 
 // BuildPath implements PropertyPath
-func (p PropertyIRI) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (p PropertyIRI) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	vertex := &Vertex{Values: []quad.Value{quad.IRI(p)}}
-	return vertex.BuildPath(qs)
+	return vertex.BuildPath(qs, ns)
 }
 
 // PropertyIRIString is a string of IRI of a Property
 type PropertyIRIString string
 
 // BuildPath implements PropertyPath
-func (p PropertyIRIString) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (p PropertyIRIString) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	iri := PropertyIRI(p)
-	return iri.BuildPath(qs)
+	return iri.BuildPath(qs, ns)
 }

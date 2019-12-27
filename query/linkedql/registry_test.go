@@ -7,6 +7,7 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 
 	"github.com/stretchr/testify/require"
 )
@@ -105,11 +106,11 @@ func (s *TestStep) Description() string {
 	return "A TestStep for checking the registry"
 }
 
-func (s *TestStep) BuildIterator(qs graph.QuadStore) (query.Iterator, error) {
+func (s *TestStep) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
 	panic("Can't build iterator for TestStep")
 }
 
-func (s *TestStep) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+func (s *TestStep) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	panic("Can't build path for TestStep")
 }
 
