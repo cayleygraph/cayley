@@ -1,10 +1,11 @@
-package linkedql
+package steps
 
 import (
 	"context"
 	"testing"
 
 	"github.com/cayleygraph/cayley/graph/memstore"
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 	"github.com/stretchr/testify/require"
@@ -17,13 +18,13 @@ var singleQuadData = []quad.Quad{
 var testCases = []struct {
 	name    string
 	data    []quad.Quad
-	query   IteratorStep
+	query   linkedql.IteratorStep
 	results []interface{}
 }{
 	{
 		name:  "All Entities",
 		data:  singleQuadData,
-		query: &Entities{Identifiers: []EntityIdentifier{EntityIdentifierString("alice")}},
+		query: &Entities{Identifiers: []linkedql.EntityIdentifier{linkedql.EntityIdentifierString("alice")}},
 		results: []interface{}{
 			map[string]string{"@id": "alice"},
 		},
@@ -48,7 +49,7 @@ var testCases = []struct {
 						From: &Vertex{},
 						Name: "liker",
 					},
-					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+					Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 				Name: "liked",
 			},
@@ -71,7 +72,7 @@ var testCases = []struct {
 						From: &Vertex{},
 						Name: "liker",
 					},
-					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+					Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 				Name: "liked",
 			},
@@ -90,7 +91,7 @@ var testCases = []struct {
 				From: &Vertex{
 					Values: []quad.Value{quad.IRI("alice")},
 				},
-				Properties: PropertyPath{&Vertex{
+				Properties: linkedql.PropertyPath{&Vertex{
 					Values: []quad.Value{
 						quad.IRI("likes"),
 					},
@@ -111,7 +112,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("bob")},
 			},
-			Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+			Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 		},
 		results: []interface{}{
 			map[string]string{"@id": "alice"},
@@ -135,7 +136,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice"), quad.IRI("likes")},
 			},
-			Steps: []PathStep{
+			Steps: []linkedql.PathStep{
 				&Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
 				},
@@ -238,7 +239,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Property: PropertyPath{&Vertex{
+			Property: linkedql.PropertyPath{&Vertex{
 				Values: []quad.Value{quad.IRI("likes")},
 			}},
 			Values: []quad.Value{quad.IRI("bob")},
@@ -254,7 +255,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Property: PropertyPath{&Vertex{
+			Property: linkedql.PropertyPath{&Vertex{
 				Values: []quad.Value{quad.IRI("likes")},
 			}},
 			Values: []quad.Value{quad.IRI("alice")},
@@ -268,7 +269,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &VisitReverse{
 			From:       &Vertex{Values: []quad.Value{}},
-			Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+			Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 		},
 		results: []interface{}{
 			map[string]string{"@id": "alice"},
@@ -293,14 +294,14 @@ var testCases = []struct {
 		query: &Intersect{
 			From: &Visit{
 				From: &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-				Properties: PropertyPath{&Vertex{
+				Properties: linkedql.PropertyPath{&Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
 				}},
 			},
-			Steps: []PathStep{
+			Steps: []linkedql.PathStep{
 				&Visit{
 					From:       &Vertex{Values: []quad.Value{quad.IRI("bob")}},
-					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+					Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 			},
 		},
@@ -315,7 +316,7 @@ var testCases = []struct {
 			Values: []quad.Value{quad.IRI("bob")},
 			From: &Visit{
 				From: &Vertex{Values: []quad.Value{quad.IRI("alice")}},
-				Properties: PropertyPath{&Vertex{
+				Properties: linkedql.PropertyPath{&Vertex{
 					Values: []quad.Value{quad.IRI("likes")},
 				}},
 			},
@@ -343,7 +344,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &Visit{
 			From:       &Vertex{Values: []quad.Value{}},
-			Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+			Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 		},
 		results: []interface{}{
 			map[string]string{"@id": "bob"},
@@ -423,7 +424,7 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{quad.IRI("alice")},
 			},
-			Steps: []PathStep{
+			Steps: []linkedql.PathStep{
 				&Vertex{
 					Values: []quad.Value{quad.IRI("bob")},
 				},
@@ -444,7 +445,7 @@ var testCases = []struct {
 						Name: "liker",
 						From: &Vertex{},
 					},
-					Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+					Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 				},
 				Name: "liked",
 			},
@@ -516,21 +517,21 @@ var testCases = []struct {
 			From: &As{
 				From: &Where{
 					From: &Vertex{},
-					Steps: []PathStep{
+					Steps: []linkedql.PathStep{
 						&As{
 							From: &Visit{
 								From: &Visit{
 									From:       &Placeholder{},
-									Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
+									Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("likes")}}},
 								},
-								Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("name")}}},
+								Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("name")}}},
 							},
 							Name: "likesName",
 						},
 						&As{
 							From: &Visit{
 								From:       &Placeholder{},
-								Properties: PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("name")}}},
+								Properties: linkedql.PropertyPath{&Vertex{Values: []quad.Value{quad.IRI("name")}}},
 							},
 							Name: "name",
 						},
