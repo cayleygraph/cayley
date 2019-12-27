@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/cayleygraph/cayley/query/linkedql"
+	_ "github.com/cayleygraph/cayley/query/linkedql/steps"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc/owl"
 	"github.com/cayleygraph/quad/voc/rdf"
@@ -19,9 +20,13 @@ var (
 	value            = reflect.TypeOf((*quad.Value)(nil)).Elem()
 	operator         = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
 	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil)).Elem()
+	stringMap        = reflect.TypeOf(map[string]string{})
 )
 
 func typeToRange(t reflect.Type) string {
+	if t == stringMap {
+		return "rdf:JSON"
+	}
 	if t.Kind() == reflect.Slice {
 		return typeToRange(t.Elem())
 	}
