@@ -6,7 +6,6 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 
 	"github.com/stretchr/testify/require"
@@ -24,7 +23,7 @@ var unmarshalCases = []struct {
 	{
 		name: "simple",
 		data: `{
-	"@type": "cayley:TestStep",
+	"@type": "linkedql:TestStep",
 	"linkedql:limit": 10
 }`,
 		exp: &TestStep{Limit: 10},
@@ -32,7 +31,7 @@ var unmarshalCases = []struct {
 	{
 		name: "simple",
 		data: `{
-	"@type": "cayley:TestStep",
+	"@type": "linkedql:TestStep",
 	"linkedql:tags": ["a", "b"]
 }`,
 		exp: &TestStep{Tags: []string{"a", "b"}},
@@ -40,13 +39,13 @@ var unmarshalCases = []struct {
 	{
 		name: "nested",
 		data: `{
-	"@type": "cayley:TestStep",
+	"@type": "linkedql:TestStep",
 	"linkedql:limit": 10,
 	"linkedql:from": {
-		"@type": "cayley:TestStep",
+		"@type": "linkedql:TestStep",
 		"linkedql:limit": 15,
 		"linkedql:from": {
-			"@type": "cayley:TestStep",
+			"@type": "linkedql:TestStep",
 			"linkedql:limit": 20
 		}
 	}
@@ -64,15 +63,15 @@ var unmarshalCases = []struct {
 	{
 		name: "nested slice",
 		data: `{
-	"@type": "cayley:TestStep",
+	"@type": "linkedql:TestStep",
 	"linkedql:limit": 10,
 	"linkedql:sub": [
 		{
-			"@type": "cayley:TestStep",
+			"@type": "linkedql:TestStep",
 			"linkedql:limit": 15
 		},
 		{
-			"@type": "cayley:TestStep",
+			"@type": "linkedql:TestStep",
 			"linkedql:limit": 20
 		}
 	]
@@ -96,10 +95,6 @@ type TestStep struct {
 	Tags  []string   `json:"tags"`
 	From  PathStep   `json:"from"`
 	Sub   []PathStep `json:"sub"`
-}
-
-func (s *TestStep) Type() quad.IRI {
-	return "cayley:TestStep"
 }
 
 func (s *TestStep) Description() string {

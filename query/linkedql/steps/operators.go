@@ -6,18 +6,12 @@ import (
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
-	"github.com/cayleygraph/quad"
 )
 
 // RegExp corresponds to regex().
 type RegExp struct {
 	Pattern     string `json:"pattern"`
 	IncludeIRIs bool   `json:"includeIRIs,omitempty"`
-}
-
-// Type implements Operator.
-func (s *RegExp) Type() quad.IRI {
-	return linkedql.Prefix + "RegExp"
 }
 
 // Description implements Operator.
@@ -42,11 +36,6 @@ var _ linkedql.Operator = (*Like)(nil)
 // Like corresponds to like().
 type Like struct {
 	Pattern string `json:"pattern"`
-}
-
-// Type implements Operator.
-func (s *Like) Type() quad.IRI {
-	return linkedql.Prefix + "Like"
 }
 
 // Description implements Operator.

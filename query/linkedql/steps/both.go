@@ -5,7 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -18,13 +17,8 @@ var _ linkedql.PathStep = (*Both)(nil)
 
 // Both corresponds to .both().
 type Both struct {
-	From       linkedql.PathStep `json:"from"`
-	Properties linkedql.PropertyPath      `json:"properties"`
-}
-
-// Type implements Step.
-func (s *Both) Type() quad.IRI {
-	return linkedql.Prefix + "Both"
+	From       linkedql.PathStep     `json:"from"`
+	Properties linkedql.PropertyPath `json:"properties"`
 }
 
 // Description implements Step.

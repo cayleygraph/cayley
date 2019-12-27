@@ -3,10 +3,9 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/voc"
 	"github.com/cayleygraph/cayley/query/linkedql"
+	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/quad/voc"
 )
 
 func init() {
@@ -19,12 +18,7 @@ var _ linkedql.PathStep = (*ReversePropertyNamesAs)(nil)
 // ReversePropertyNamesAs corresponds to .reversePropertyNamesAs().
 type ReversePropertyNamesAs struct {
 	From linkedql.PathStep `json:"from"`
-	Tag  string   `json:"tag"`
-}
-
-// Type implements Step.
-func (s *ReversePropertyNamesAs) Type() quad.IRI {
-	return linkedql.Prefix + "ReversePropertyNamesAs"
+	Tag  string            `json:"tag"`
 }
 
 // Description implements Step.
@@ -45,4 +39,3 @@ func (s *ReversePropertyNamesAs) BuildPath(qs graph.QuadStore, ns *voc.Namespace
 	}
 	return fromPath.SavePredicates(true, s.Tag), nil
 }
-

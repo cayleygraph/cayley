@@ -3,10 +3,9 @@ package steps
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/voc"
 	"github.com/cayleygraph/cayley/query/linkedql"
+	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/quad/voc"
 )
 
 func init() {
@@ -19,12 +18,7 @@ var _ linkedql.PathStep = (*Limit)(nil)
 // Limit corresponds to .limit().
 type Limit struct {
 	From  linkedql.PathStep `json:"from"`
-	Limit int64    `json:"limit"`
-}
-
-// Type implements Step.
-func (s *Limit) Type() quad.IRI {
-	return linkedql.Prefix + "Limit"
+	Limit int64             `json:"limit"`
 }
 
 // Description implements Step.
@@ -45,4 +39,3 @@ func (s *Limit) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 	}
 	return fromPath.Limit(s.Limit), nil
 }
-

@@ -21,10 +21,8 @@ type Vertex struct {
 	Values []quad.Value `json:"values"`
 }
 
-// Type implements Step.
-func (s *Vertex) Type() quad.IRI {
-	return linkedql.Prefix + "Vertex"
-}
+
+
 
 // Description implements Step.
 func (s *Vertex) Description() string {
@@ -46,10 +44,8 @@ var _ linkedql.PathStep = (*Placeholder)(nil)
 // Placeholder corresponds to .Placeholder().
 type Placeholder struct{}
 
-// Type implements Step.
-func (s *Placeholder) Type() quad.IRI {
-	return linkedql.Prefix + "Placeholder"
-}
+
+
 
 // Description implements Step.
 func (s *Placeholder) Description() string {

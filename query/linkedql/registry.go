@@ -31,7 +31,6 @@ func RegisteredTypes() []string {
 
 // RegistryItem in the registry.
 type RegistryItem interface {
-	Type() quad.IRI
 	Description() string
 }
 
@@ -44,7 +43,7 @@ func Register(typ RegistryItem) {
 	if tp.Kind() != reflect.Struct {
 		panic("only structs are allowed")
 	}
-	name := string(typ.Type())
+	name := Prefix + tp.Name()
 	if _, ok := typeByName[name]; ok {
 		panic("this name was already registered")
 	}

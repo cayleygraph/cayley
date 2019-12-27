@@ -5,7 +5,6 @@ import (
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
 )
 
@@ -20,11 +19,6 @@ var _ linkedql.PathStep = (*Difference)(nil)
 type Difference struct {
 	From  linkedql.PathStep   `json:"from"`
 	Steps []linkedql.PathStep `json:"steps"`
-}
-
-// Type implements Step.
-func (s *Difference) Type() quad.IRI {
-	return linkedql.Prefix + "Difference"
 }
 
 // Description implements Step.

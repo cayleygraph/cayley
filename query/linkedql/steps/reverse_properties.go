@@ -23,10 +23,8 @@ type ReverseProperties struct {
 	Names []quad.IRI `json:"names"`
 }
 
-// Type implements Step.
-func (s *ReverseProperties) Type() quad.IRI {
-	return linkedql.Prefix + "ReverseProperties"
-}
+
+
 
 // Description implements Step.
 func (s *ReverseProperties) Description() string {
