@@ -2,24 +2,26 @@ package linkedql
 
 import "github.com/cayleygraph/quad"
 
+import "github.com/cayleygraph/quad/voc"
+
 // EntityIdentifier is an interface to be used where a single entity identifier is expected.
 type EntityIdentifier interface {
-	BuildIdentifier() (quad.Value, error)
+	BuildIdentifier(ns *voc.Namespaces) (quad.Value, error)
 }
 
 // EntityIRI is an entity IRI.
 type EntityIRI quad.IRI
 
 // BuildIdentifier implements EntityIdentifier
-func (i EntityIRI) BuildIdentifier() (quad.Value, error) {
-	return quad.IRI(i), nil
+func (i EntityIRI) BuildIdentifier(ns *voc.Namespaces) (quad.Value, error) {
+	return quad.IRI(ns.FullIRI(string(i))), nil
 }
 
 // EntityBNode is an entity BNode.
 type EntityBNode quad.BNode
 
 // BuildIdentifier implements EntityIdentifier
-func (i EntityBNode) BuildIdentifier() (quad.Value, error) {
+func (i EntityBNode) BuildIdentifier(ns *voc.Namespaces) (quad.Value, error) {
 	return quad.BNode(i), nil
 }
 
@@ -27,6 +29,14 @@ func (i EntityBNode) BuildIdentifier() (quad.Value, error) {
 type EntityIdentifierString string
 
 // BuildIdentifier implements EntityIdentifier
-func (i EntityIdentifierString) BuildIdentifier() (quad.Value, error) {
-	return parseIdentifier(string(i))
+func (i EntityIdentifierString) BuildIdentifier(ns *voc.Namespaces) (quad.Value, error) {
+	identifier, err := parseIdentifier(string(i))
+	if err != nil {
+		return nil, err
+	}
+	iri, ok := identifier.(quad.IRI)
+	if ok {
+		return EntityIRI(iri).BuildIdentifier(ns)
+	}
+	return identifier, nil
 }
