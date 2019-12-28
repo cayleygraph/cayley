@@ -2,6 +2,7 @@ package steps
 
 import (
 	"fmt"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
@@ -45,7 +46,11 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 	path := fromPath
 
 	// Get quads
-	quads, err := parsePattern(s.Pattern)
+	quads, err := parsePattern(s.Pattern, ns)
+
+	if err != nil {
+		return nil, err
+	}
 
 	// Group quads to subtrees
 	entities := make(map[quad.Value]map[quad.Value][]quad.Value)
@@ -78,13 +83,26 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 	return path, nil
 }
 
-func parsePattern(pattern linkedql.GraphPattern) ([]quad.Quad, error) {
-	reader := jsonld.NewReaderFromMap(pattern)
+func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Quad, error) {
+	context := make(map[string]interface{})
+	for _, namespace := range ns.List() {
+		context[namespace.Prefix] = namespace.Full
+	}
+	patternClone := linkedql.GraphPattern{
+		"@context": context,
+	}
+	for key, value := range pattern {
+		patternClone[key] = value
+	}
+	reader := jsonld.NewReaderFromMap(patternClone)
 	quads, err := quad.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
-	if id, ok := pattern["@id"]; ok && len(quads) == 0 {
+	if len(quads) == 0 && len(pattern) != 0 {
+		return nil, fmt.Errorf("Pattern does not parse to any quad. `{}` is the only pattern allowed to not parse to any quad")
+	}
+	if id, ok := patternClone["@id"]; ok && len(quads) == 0 {
 		idString, ok := id.(string)
 		if !ok {
 			return nil, fmt.Errorf("Unexpected type for @id %T", idString)

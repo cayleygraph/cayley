@@ -97,6 +97,7 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			if err != nil {
 				return nil, err
 			}
+			fv.Set(reflect.ValueOf(a))
 			continue
 		case quadValue:
 			var a interface{}
