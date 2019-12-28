@@ -39,11 +39,16 @@ func (s *Match) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Ite
 
 // BuildPath implements linkedql.PathStep.
 func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
-	if err != nil {
-		return nil, err
+	var p *path.Path
+	if s.From != nil {
+		fromPath, err := s.From.BuildPath(qs, ns)
+		if err != nil {
+			return nil, err
+		}
+		p = fromPath
+	} else {
+		p = path.StartPath(qs)
 	}
-	path := fromPath
 
 	// Get quads
 	quads, err := parsePattern(s.Pattern, ns)
@@ -73,14 +78,14 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 
 	for entity, properties := range entities {
 		if iri, ok := entity.(quad.IRI); ok {
-			path = path.Is(iri)
+			p = p.Is(iri)
 		}
 		for property, values := range properties {
-			path = path.Has(property, values...)
+			p = p.Has(property, values...)
 		}
 	}
 
-	return path, nil
+	return p, nil
 }
 
 func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Quad, error) {
