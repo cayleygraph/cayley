@@ -99,15 +99,15 @@ func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Qua
 	if err != nil {
 		return nil, err
 	}
-	if len(quads) == 0 && len(pattern) != 0 {
-		return nil, fmt.Errorf("Pattern does not parse to any quad. `{}` is the only pattern allowed to not parse to any quad")
-	}
 	if id, ok := patternClone["@id"]; ok && len(quads) == 0 {
 		idString, ok := id.(string)
 		if !ok {
 			return nil, fmt.Errorf("Unexpected type for @id %T", idString)
 		}
 		quads = append(quads, makeSingleEntityQuad(quad.IRI(idString)))
+	}
+	if len(quads) == 0 && len(pattern) != 0 {
+		return nil, fmt.Errorf("Pattern does not parse to any quad. `{}` is the only pattern allowed to not parse to any quad")
 	}
 	return quads, nil
 }
