@@ -23,7 +23,7 @@ var _ linkedql.PathStep = (*Match)(nil)
 
 // Match corresponds to .has().
 type Match struct {
-	From    linkedql.PathStep     `json:"from"`
+	From    linkedql.PathStep     `json:"from" minCardinality:"0"`
 	Pattern linkedql.GraphPattern `json:"pattern"`
 }
 

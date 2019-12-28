@@ -2,7 +2,9 @@ package schema
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/cayleygraph/cayley/query/linkedql"
 	_ "github.com/cayleygraph/cayley/query/linkedql/steps"
@@ -95,6 +97,40 @@ func newSingleCardinalityRestriction(prop string) cardinalityRestriction {
 		Type:        owl.Restriction,
 		Cardinality: 1,
 		Property:    identified{ID: prop},
+	}
+}
+
+// minCardinalityRestriction is used to indicate a how many values can a property get at the very least
+type minCardinalityRestriction struct {
+	ID             string     `json:"@id"`
+	Type           string     `json:"@type"`
+	MinCardinality int        `json:"owl:minCardinality"`
+	Property       identified `json:"owl:onProperty"`
+}
+
+func newMinCardinalityRestriction(prop string, minCardinality int) minCardinalityRestriction {
+	return minCardinalityRestriction{
+		ID:             newBlankNodeID(),
+		Type:           "owl:Restriction",
+		MinCardinality: minCardinality,
+		Property:       identified{ID: prop},
+	}
+}
+
+// maxCardinalityRestriction is used to indicate a how many values can a property get at most
+type maxCardinalityRestriction struct {
+	ID             string     `json:"@id"`
+	Type           string     `json:"@type"`
+	MaxCardinality int        `json:"owl:maxCardinality"`
+	Property       identified `json:"owl:onProperty"`
+}
+
+func newSingleMaxCardinalityRestriction(prop string) maxCardinalityRestriction {
+	return maxCardinalityRestriction{
+		ID:             newBlankNodeID(),
+		Type:           "owl:Restriction",
+		MaxCardinality: 1,
+		Property:       identified{ID: prop},
 	}
 }
 
@@ -200,8 +236,20 @@ func (g *generator) addTypeFields(name string, t reflect.Type, indirect bool) []
 			continue
 		}
 		prop := linkedql.Prefix + f.Tag.Get("json")
+		rawMinCardinality, hasMinCardinality := f.Tag.Lookup("minCardinality")
+		if hasMinCardinality {
+			minCardinality, err := strconv.Atoi(rawMinCardinality)
+			if err != nil {
+				panic(fmt.Errorf("Invalid min cardinality %v", minCardinality))
+			}
+			super = append(super, newMinCardinalityRestriction(prop, minCardinality))
+		}
 		if f.Type.Kind() != reflect.Slice {
-			super = append(super, newSingleCardinalityRestriction(prop))
+			if hasMinCardinality {
+				super = append(super, newSingleMaxCardinalityRestriction(prop))
+			} else {
+				super = append(super, newSingleCardinalityRestriction(prop))
+			}
 		}
 		typ := getOWLPropertyType(f.Type.Kind())
 
