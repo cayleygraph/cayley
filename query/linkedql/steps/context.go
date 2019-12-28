@@ -28,13 +28,13 @@ func (s *Context) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Context) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
-	if err != nil {
-		return nil, err
-	}
 	for name, iri := range s.Rules {
 		namespace := voc.Namespace{Prefix: name, Full: iri}
 		ns.Register(namespace)
+	}
+	fromPath, err := s.From.BuildPath(qs, ns)
+	if err != nil {
+		return nil, err
 	}
 	return fromPath, nil
 }

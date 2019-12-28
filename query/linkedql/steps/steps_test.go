@@ -575,6 +575,27 @@ var testCases = []struct {
 			},
 		},
 	},
+	{
+		name: "Context",
+		data: []quad.Quad{
+			quad.MakeIRI("http://example.org/alice", "http://example.org/likes", "http://example.org/bob", ""),
+			quad.MakeIRI("http://example.org/bob", "http://example.org/likes", "http://example.org/alice", ""),
+		},
+		query: &Context{
+			From: &Has{
+				From:     &Vertex{},
+				Property: linkedql.PropertyPath{linkedql.PropertyIRI("likes")},
+				Values:   []quad.Value{quad.IRI("bob")},
+			},
+			Rules: map[string]string{
+				"bob":   "http://example.org/bob",
+				"likes": "http://example.org/likes",
+			},
+		},
+		results: []interface{}{
+			map[string]string{"@id": "http://example.org/alice"},
+		},
+	},
 }
 
 func TestLinkedQL(t *testing.T) {
