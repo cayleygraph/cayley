@@ -43,6 +43,7 @@ func (s *Properties) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Pa
 	p := fromPath
 	if s.Names != nil {
 		for _, name := range s.Names {
+			name = linkedql.AbsoluteIRI(name, ns)
 			tag := string(name)
 			p = p.Save(name, tag)
 		}
