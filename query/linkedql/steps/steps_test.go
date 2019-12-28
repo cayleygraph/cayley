@@ -8,6 +8,8 @@ import (
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
+	"github.com/cayleygraph/quad/voc/rdf"
+	"github.com/cayleygraph/quad/voc/rdfs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -594,6 +596,38 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]string{"@id": "http://example.org/alice"},
+		},
+	},
+	{
+		name: "Match @id",
+		data: []quad.Quad{
+			quad.MakeIRI("http://example.org/alice", "http://example.org/likes", "http://example.org/bob", ""),
+			quad.MakeIRI("http://example.org/bob", "http://example.org/likes", "http://example.org/alice", ""),
+		},
+		query: &Match{
+			From: &Vertex{},
+			Pattern: []quad.Quad{
+				quad.MakeIRI("http://example.org/alice", rdf.Type, rdfs.Resource, ""),
+			},
+		},
+		results: []interface{}{
+			map[string]string{"@id": "http://example.org/alice"},
+		},
+	},
+	{
+		name: "Match property",
+		data: []quad.Quad{
+			quad.MakeIRI("http://example.org/alice", "http://example.org/likes", "http://example.org/bob", ""),
+			quad.MakeIRI("http://example.org/bob", "http://example.org/likes", "http://example.org/alice", ""),
+		},
+		query: &Match{
+			From: &Vertex{},
+			Pattern: []quad.Quad{
+				quad.MakeIRI("http://example.org/bob", "http://example.org/likes", "http://example.org/alice", ""),
+			},
+		},
+		results: []interface{}{
+			map[string]string{"@id": "http://example.org/bob"},
 		},
 	},
 }

@@ -13,6 +13,9 @@ import (
 	"github.com/cayleygraph/quad/voc/xsd"
 )
 
+// rdfgGraph is the W3C type for named graphs
+const rdfgGraph = "http://www.w3.org/2004/03/trix/rdfg-1/Graph"
+
 var (
 	pathStep         = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
 	iteratorStep     = reflect.TypeOf((*linkedql.IteratorStep)(nil)).Elem()
@@ -21,11 +24,15 @@ var (
 	operator         = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
 	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil)).Elem()
 	stringMap        = reflect.TypeOf(map[string]string{})
+	quads            = reflect.TypeOf([]quad.Quad(nil))
 )
 
 func typeToRange(t reflect.Type) string {
 	if t == stringMap {
 		return "rdf:JSON"
+	}
+	if t == quads {
+		return rdfgGraph
 	}
 	if t.Kind() == reflect.Slice {
 		return typeToRange(t.Elem())
