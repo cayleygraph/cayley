@@ -26,14 +26,14 @@ var (
 	operator         = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
 	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil)).Elem()
 	stringMap        = reflect.TypeOf(map[string]string{})
-	quads            = reflect.TypeOf([]quad.Quad(nil))
+	graphPattern     = reflect.TypeOf(linkedql.GraphPattern(nil))
 )
 
 func typeToRange(t reflect.Type) string {
 	if t == stringMap {
 		return "rdf:JSON"
 	}
-	if t == quads {
+	if t == graphPattern {
 		return rdfgGraph
 	}
 	if t.Kind() == reflect.Slice {

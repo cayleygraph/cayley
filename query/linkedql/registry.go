@@ -52,6 +52,7 @@ func Register(typ RegistryItem) {
 }
 
 var (
+	graphPattern   = reflect.TypeOf(GraphPattern(nil))
 	quadValue      = reflect.TypeOf((*quad.Value)(nil)).Elem()
 	quadSliceValue = reflect.TypeOf([]quad.Value{})
 	quadIRI        = reflect.TypeOf(quad.IRI(""))
@@ -90,6 +91,13 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 		}
 		fv := item.Field(i)
 		switch f.Type {
+		case graphPattern:
+			var a interface{}
+			err := json.Unmarshal(v, &a)
+			if err != nil {
+				return nil, err
+			}
+			continue
 		case quadValue:
 			var a interface{}
 			err := json.Unmarshal(v, &a)
