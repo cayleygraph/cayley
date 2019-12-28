@@ -14,7 +14,9 @@ import (
 )
 
 // rdfgGraph is the W3C type for named graphs
-const rdfgGraph = "http://www.w3.org/2004/03/trix/rdfg-1/Graph"
+const rdfgNamespace = "http://www.w3.org/2004/03/trix/rdfg-1/"
+const rdfgPrefix = "rdfg:"
+const rdfgGraph = rdfgPrefix + "Graph"
 
 var (
 	pathStep         = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
@@ -296,6 +298,7 @@ func (g *generator) Generate() []byte {
 			"owl":      owl.NS,
 			"xsd":      xsd.NS,
 			"linkedql": linkedql.Namespace,
+			"rdfg":     rdfgNamespace,
 		},
 		"@graph": graph,
 	})
