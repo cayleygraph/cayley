@@ -14,7 +14,7 @@ type propertyPathI interface {
 
 // PropertyPath is an interface to be used where a path of properties is expected.
 type PropertyPath struct {
-	propertyPathI
+	p propertyPathI
 }
 
 // Type implements Step
@@ -27,39 +27,43 @@ func (*PropertyPath) Description() string {
 	return "PropertyPath is a string, multiple strins or path describing a set of properties"
 }
 
+func (p *PropertyPath) BuildPath(qs graph.QuadStore) (*path.Path, error) {
+	return p.p.BuildPath(qs)
+}
+
 // UnmarshalJSON implements RawMessage
-func (p *PropertyPath) UnmarshalJSON(data []byte) (err error) {
+func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 	var errors []error
 
 	var propertyIRIs PropertyIRIs
-	err = json.Unmarshal(data, &propertyIRIs)
+	err := json.Unmarshal(data, &propertyIRIs)
 	if err == nil {
-		p.propertyPathI = propertyIRIs
-		return
+		p.p = propertyIRIs
+		return nil
 	}
 	errors = append(errors, err)
 
 	var propertyIRIStrings PropertyIRIStrings
 	err = json.Unmarshal(data, &propertyIRIStrings)
 	if err == nil {
-		p.propertyPathI = propertyIRIStrings
-		return
+		p.p = propertyIRIStrings
+		return nil
 	}
 	errors = append(errors, err)
 
 	var propertyIRI PropertyIRI
 	err = json.Unmarshal(data, &propertyIRI)
 	if err == nil {
-		p.propertyPathI = propertyIRI
-		return
+		p.p = propertyIRI
+		return nil
 	}
 	errors = append(errors, err)
 
 	var propertyIRIString PropertyIRIString
 	err = json.Unmarshal(data, &propertyIRIString)
 	if err == nil {
-		p.propertyPathI = propertyIRIString
-		return
+		p.p = propertyIRIString
+		return nil
 	}
 	errors = append(errors, err)
 
