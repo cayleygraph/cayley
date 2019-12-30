@@ -59,6 +59,7 @@ func (it *ValueIterator) Value() quad.Value {
 
 // Result implements query.Iterator.
 func (it *ValueIterator) Result() interface{} {
+	// FIXME(iddan): only convert when collation is JSON/JSON-LD, leave as Ref otherwise
 	return jsonld.FromValue(it.Value())
 }
 

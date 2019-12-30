@@ -58,6 +58,7 @@ func (it *DocumentIterator) Result() interface{} {
 		return nil
 	}
 	id := it.ids[it.current]
+	// FIXME(iddan): don't cast to string when collation is Raw
 	var sid string
 	switch val := id.(type) {
 	case quad.IRI:
