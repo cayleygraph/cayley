@@ -6,7 +6,10 @@ import (
 
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc/owl"
+	"github.com/cayleygraph/quad/voc/rdf"
 	"github.com/cayleygraph/quad/voc/rdfs"
+	"github.com/cayleygraph/quad/voc/xsd"
 )
 
 var (
@@ -22,15 +25,14 @@ func typeToRange(t reflect.Type) string {
 	if t.Kind() == reflect.Slice {
 		return typeToRange(t.Elem())
 	}
-	// TODO: add XSD types to voc package
 	if t.Kind() == reflect.String {
-		return "xsd:string"
+		return xsd.String
 	}
 	if t.Kind() == reflect.Bool {
-		return "xsd:boolean"
+		return xsd.Boolean
 	}
 	if kind := t.Kind(); kind == reflect.Int64 || kind == reflect.Int {
-		return "xsd:int"
+		return xsd.Int
 	}
 	if t.Implements(pathStep) {
 		return linkedql.Prefix + "PathStep"
@@ -42,7 +44,7 @@ func typeToRange(t reflect.Type) string {
 		return rdfs.Resource
 	}
 	if t.Implements(entityIdentifier) {
-		return "owl:Thing"
+		return owl.Thing
 	}
 	if t == propertyPath {
 		return linkedql.Prefix + "PropertyPath"
@@ -76,7 +78,7 @@ func newBlankNodeID() string {
 func newSingleCardinalityRestriction(prop string) cardinalityRestriction {
 	return cardinalityRestriction{
 		ID:          newBlankNodeID(),
-		Type:        "owl:Restriction",
+		Type:        owl.Restriction,
 		Cardinality: 1,
 		Property:    identified{ID: prop},
 	}
@@ -85,9 +87,9 @@ func newSingleCardinalityRestriction(prop string) cardinalityRestriction {
 // getOWLPropertyType for given kind of value type returns property OWL type
 func getOWLPropertyType(kind reflect.Kind) string {
 	if kind == reflect.String || kind == reflect.Bool || kind == reflect.Int64 || kind == reflect.Int {
-		return "owl:DatatypeProperty"
+		return owl.DatatypeProperty
 	}
-	return "owl:ObjectProperty"
+	return owl.ObjectProperty
 }
 
 // property is used to declare a property
@@ -151,7 +153,7 @@ func newUnionOf(classes []string) unionOf {
 	}
 	return unionOf{
 		ID:   newBlankNodeID(),
-		Type: "owl:Class",
+		Type: owl.Class,
 		List: newList(members),
 	}
 }
@@ -260,28 +262,28 @@ func (g *generator) Generate() []byte {
 	}
 	graph := []interface{}{
 		map[string]string{
-			"@id":   "linkedql:Step",
-			"@type": "owl:Class",
+			"@id":   linkedql.Prefix + "Step",
+			"@type": owl.Class,
 		},
 		map[string]interface{}{
-			"@id":             "linkedql:PathStep",
-			"@type":           "owl:Class",
-			"rdfs:subClassOf": identified{ID: "linkedql:Step"},
+			"@id":           linkedql.Prefix + "PathStep",
+			"@type":         owl.Class,
+			rdfs.SubClassOf: identified{ID: linkedql.Prefix + "Step"},
 		},
 		map[string]interface{}{
-			"@id":             "linkedql:IteratorStep",
-			"@type":           "owl:Class",
-			"rdfs:subClassOf": identified{ID: "linkedql:Step"},
+			"@id":           linkedql.Prefix + "IteratorStep",
+			"@type":         owl.Class,
+			rdfs.SubClassOf: identified{ID: linkedql.Prefix + "Step"},
 		},
 	}
 	graph = append(graph, g.out...)
 	data, err := json.Marshal(map[string]interface{}{
 		"@context": map[string]interface{}{
-			"rdf":      "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-			"rdfs":     "http://www.w3.org/2000/01/rdf-schema#",
-			"owl":      "http://www.w3.org/2002/07/owl#",
-			"xsd":      "http://www.w3.org/2001/XMLSchema#",
-			"linkedql": "http://cayley.io/linkedql#",
+			"rdf":      rdf.NS,
+			"rdfs":     rdfs.NS,
+			"owl":      owl.NS,
+			"xsd":      xsd.NS,
+			"linkedql": linkedql.Namespace,
 		},
 		"@graph": graph,
 	})
