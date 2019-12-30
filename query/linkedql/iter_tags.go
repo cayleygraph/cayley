@@ -27,6 +27,7 @@ func (it *TagsIterator) getTags() map[string]interface{} {
 	it.valueIt.scanner.TagResults(refTags)
 
 	tags := make(map[string]interface{})
+	// FIXME(iddan): only convert when collation is JSON/JSON-LD, leave as Ref otherwise
 	if it.selected != nil {
 		for _, tag := range it.selected {
 			tags[tag] = jsonld.FromValue(it.valueIt.getName(refTags[tag]))
