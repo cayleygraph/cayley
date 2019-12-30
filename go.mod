@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
-	github.com/cayleygraph/quad v1.1.0
+	github.com/cayleygraph/quad v1.2.1
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect

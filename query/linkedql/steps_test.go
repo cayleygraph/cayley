@@ -124,7 +124,7 @@ var testCases = []struct {
 			From: &Vertex{Values: []quad.Value{}},
 		},
 		results: []interface{}{
-			map[string]string{"@value": "4", "@type": "schema:Integer"},
+			map[string]string{"@value": "4", "@type": "xsd:integer"},
 		},
 	},
 	{
@@ -181,7 +181,7 @@ var testCases = []struct {
 			Value: quad.Int(1),
 		},
 		results: []interface{}{
-			map[string]string{"@value": "0", "@type": "schema:Integer"},
+			map[string]string{"@value": "0", "@type": "xsd:integer"},
 		},
 	},
 	{
@@ -195,7 +195,7 @@ var testCases = []struct {
 			Value: quad.Int(0),
 		},
 		results: []interface{}{
-			map[string]string{"@value": "1", "@type": "schema:Integer"},
+			map[string]string{"@value": "1", "@type": "xsd:integer"},
 		},
 	},
 	{
@@ -210,8 +210,8 @@ var testCases = []struct {
 			Value: quad.Int(0),
 		},
 		results: []interface{}{
-			map[string]string{"@value": "-1", "@type": "schema:Integer"},
-			map[string]string{"@value": "0", "@type": "schema:Integer"},
+			map[string]string{"@value": "-1", "@type": "xsd:integer"},
+			map[string]string{"@value": "0", "@type": "xsd:integer"},
 		},
 	},
 	{
@@ -226,8 +226,8 @@ var testCases = []struct {
 			Value: quad.Int(1),
 		},
 		results: []interface{}{
-			map[string]string{"@value": "1", "@type": "schema:Integer"},
-			map[string]string{"@value": "2", "@type": "schema:Integer"},
+			map[string]string{"@value": "1", "@type": "xsd:integer"},
+			map[string]string{"@value": "2", "@type": "xsd:integer"},
 		},
 	},
 	{
