@@ -147,26 +147,26 @@ var testCases = []struct {
 		},
 	},
 	{
-		name: "Filter RegExp",
+		name: "RegExp",
 		data: []quad.Quad{
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
 		},
-		query: &Filter{
-			From:   &Vertex{Values: []quad.Value{}},
-			Filter: &RegExp{Pattern: "A"},
+		query: &RegExp{
+			From:    &Vertex{Values: []quad.Value{}},
+			Pattern: "A",
 		},
 		results: []interface{}{
 			"Alice",
 		},
 	},
 	{
-		name: "Filter Like",
+		name: "Like",
 		data: []quad.Quad{
 			{Subject: quad.IRI("alice"), Predicate: quad.IRI("name"), Object: quad.String("Alice"), Label: nil},
 		},
-		query: &Filter{
-			From:   &Vertex{Values: []quad.Value{}},
-			Filter: &Like{Pattern: "a%"},
+		query: &Like{
+			From:    &Vertex{Values: []quad.Value{}},
+			Pattern: "a%",
 		},
 		results: []interface{}{
 			map[string]string{"@id": "alice"},
