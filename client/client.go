@@ -14,6 +14,9 @@ func New(addr string) *Client {
 	return &Client{addr: addr, cli: http.DefaultClient}
 }
 
+// Client is a struct used for communicating with a Cayley server through HTTP
+// Deprecated: Client exists for backwards compatability. New code should use
+// the updated client github.com/cayleygraph/go-client
 type Client struct {
 	addr string
 	cli  *http.Client

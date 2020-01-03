@@ -192,6 +192,20 @@ func (api *APIv2) handleForRequest(r *http.Request) (*graph.Handle, error) {
 	return HandleForRequest(api.h, api.wtyp, api.wopt, r)
 }
 
+// writeResponse represents the response received for a successful write
+type writeResponse struct {
+	Result string `json:"result"`
+	Count  int    `json:"count"`
+}
+
+// newWriteResponse creates a new WriteResponse for given count of quads written
+func newWriteResponse(count int) writeResponse {
+	return writeResponse{
+		Result: fmt.Sprintf("Successfully wrote %d quads.", count),
+		Count:  count,
+	}
+}
+
 func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if api.ro {
@@ -229,7 +243,9 @@ func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set(hdrContentType, contentTypeJSON)
-	fmt.Fprintf(w, `{"result": "Successfully wrote %d quads.", "count": %d}`+"\n", n, n)
+	response := newWriteResponse(n)
+	encoder := json.NewEncoder(w)
+	encoder.Encode(response)
 }
 
 func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
