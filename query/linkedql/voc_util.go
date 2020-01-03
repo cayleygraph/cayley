@@ -5,18 +5,13 @@ import (
 	"github.com/cayleygraph/quad/voc"
 )
 
-// AbsoluteIRI uses given ns to resolve short IRIs to their full form
-func AbsoluteIRI(iri quad.IRI, ns *voc.Namespaces) quad.IRI {
-	return quad.IRI(ns.FullIRI(string(iri)))
-}
-
 // AbsoluteValue uses given ns to resolve short IRIs and types in typed strings to their full form
 func AbsoluteValue(value quad.Value, ns *voc.Namespaces) quad.Value {
 	switch v := value.(type) {
 	case quad.IRI:
-		return AbsoluteIRI(v, ns)
+		return v.FullWith(ns)
 	case quad.TypedString:
-		return quad.TypedString{Value: v.Value, Type: AbsoluteIRI(v.Type, ns)}
+		return quad.TypedString{Value: v.Value, Type: v.Type.FullWith(ns)}
 	default:
 		return v
 	}

@@ -41,7 +41,7 @@ func (s *ReverseProperties) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*
 	}
 	p := fromPath
 	for _, name := range s.Names {
-		name = linkedql.AbsoluteIRI(name, ns)
+		name = name.FullWith(ns)
 		tag := string(name)
 		p = fromPath.SaveReverse(name, tag)
 	}
