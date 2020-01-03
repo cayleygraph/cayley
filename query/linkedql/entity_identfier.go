@@ -14,7 +14,7 @@ type EntityIRI quad.IRI
 
 // BuildIdentifier implements EntityIdentifier
 func (i EntityIRI) BuildIdentifier(ns *voc.Namespaces) (quad.Value, error) {
-	return AbsoluteIRI(quad.IRI(i), ns), nil
+	return quad.IRI(i).FullWith(ns), nil
 }
 
 // EntityBNode is an entity BNode.
