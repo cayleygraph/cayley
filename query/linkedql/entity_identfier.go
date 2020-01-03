@@ -13,8 +13,8 @@ type EntityIdentifier interface {
 type EntityIRI quad.IRI
 
 // BuildIdentifier implements EntityIdentifier
-func (i EntityIRI) BuildIdentifier(ns *voc.Namespaces) (quad.Value, error) {
-	return quad.IRI(i).FullWith(ns), nil
+func (iri EntityIRI) BuildIdentifier(ns *voc.Namespaces) (quad.Value, error) {
+	return quad.IRI(iri).FullWith(ns), nil
 }
 
 // EntityBNode is an entity BNode.
