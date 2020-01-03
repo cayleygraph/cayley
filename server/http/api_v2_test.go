@@ -61,9 +61,9 @@ func TestV2Write(t *testing.T) {
 
 	require.Equal(t, rr.Code, http.StatusOK, rr.Body.String())
 
-	expectedResponse := NewWriteResponse(len(quads))
+	expectedResponse := newWriteResponse(len(quads))
 
-	var response WriteResponse
+	var response writeResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	require.Equal(t, expectedResponse, response)
