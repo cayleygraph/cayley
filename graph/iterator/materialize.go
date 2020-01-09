@@ -220,7 +220,7 @@ func (it *materializeNext) materializeSet(ctx context.Context) {
 		tags := make(map[string]refs.Ref, mn)
 		it.next.TagResults(tags)
 		if n := len(tags); n > mn {
-			n = mn
+			mn = n
 		}
 		it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		for it.next.NextPath(ctx) {
@@ -232,7 +232,7 @@ func (it *materializeNext) materializeSet(ctx context.Context) {
 			tags := make(map[string]refs.Ref, mn)
 			it.next.TagResults(tags)
 			if n := len(tags); n > mn {
-				n = mn
+				mn = n
 			}
 			it.values[index] = append(it.values[index], result{id: id, tags: tags})
 		}
