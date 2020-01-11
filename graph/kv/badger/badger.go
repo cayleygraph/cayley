@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/kv"
 	hkv "github.com/hidal-go/hidalgo/kv"
 	"github.com/hidal-go/hidalgo/kv/flat"
 	"github.com/hidal-go/hidalgo/kv/flat/badger"
@@ -28,6 +29,9 @@ const (
 )
 
 func Create(path string, m graph.Options) (hkv.KV, error) {
+	if path == "" {
+		return nil, kv.ErrEmptyPath
+	}
 	err := os.MkdirAll(path, 0700)
 	if err != nil {
 		return nil, err

@@ -36,7 +36,10 @@ import (
 	boom "github.com/tylertreat/BoomFilters"
 )
 
-var ErrNoBucket = errors.New("kv: no bucket")
+var (
+	ErrNoBucket  = errors.New("kv: no bucket")
+	ErrEmptyPath = errors.New("kv: path to the database must be specified")
+)
 
 type Registration struct {
 	NewFunc      NewFunc
