@@ -71,8 +71,7 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 		if isSingleEntityQuad(q) {
 			continue
 		}
-		values, _ := properties[property]
-		properties[property] = append(values, value)
+		properties[property] = append(properties[property], value)
 	}
 
 	for entity, properties := range entities {
