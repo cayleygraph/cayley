@@ -113,7 +113,7 @@ type minCardinalityRestriction struct {
 func newMinCardinalityRestriction(prop string, minCardinality int) minCardinalityRestriction {
 	return minCardinalityRestriction{
 		ID:             newBlankNodeID(),
-		Type:           "owl:Restriction",
+		Type:           owl.Restriction,
 		MinCardinality: minCardinality,
 		Property:       identified{ID: prop},
 	}
@@ -130,7 +130,7 @@ type maxCardinalityRestriction struct {
 func newSingleMaxCardinalityRestriction(prop string) maxCardinalityRestriction {
 	return maxCardinalityRestriction{
 		ID:             newBlankNodeID(),
-		Type:           "owl:Restriction",
+		Type:           owl.Restriction,
 		MaxCardinality: 1,
 		Property:       identified{ID: prop},
 	}
@@ -238,9 +238,10 @@ func (g *generator) addTypeFields(name string, t reflect.Type, indirect bool) []
 			continue
 		}
 		prop := linkedql.Prefix + f.Tag.Get("json")
-		rawMinCardinality, hasMinCardinality := f.Tag.Lookup("minCardinality")
-		if hasMinCardinality {
-			minCardinality, err := strconv.Atoi(rawMinCardinality)
+		v, ok := f.Tag.Lookup("minCardinality")
+		hasMinCardinality := ok
+		if ok {
+			minCardinality, err := strconv.Atoi(v)
 			if err != nil {
 				panic(fmt.Errorf("Invalid min cardinality %v", minCardinality))
 			}
