@@ -16,9 +16,11 @@ import (
 )
 
 // rdfgGraph is the W3C type for named graphs
-const rdfgNamespace = "http://www.w3.org/2004/03/trix/rdfg-1/"
-const rdfgPrefix = "rdfg:"
-const rdfgGraph = rdfgPrefix + "Graph"
+const (
+	rdfgNamespace = "http://www.w3.org/2004/03/trix/rdfg-1/"
+	rdfgPrefix    = "rdfg:"
+	rdfgGraph     = rdfgPrefix + "Graph"
+)
 
 var (
 	pathStep         = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
