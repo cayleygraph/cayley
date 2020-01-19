@@ -63,7 +63,6 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 		entity := linkedql.AbsoluteValue(q.Subject, ns)
 		property := linkedql.AbsoluteValue(q.Predicate, ns)
 		value := linkedql.AbsoluteValue(q.Object, ns)
-		var properties map[quad.Value][]quad.Value
 		properties, ok := entities[entity]
 		if !ok {
 			properties = make(map[quad.Value][]quad.Value)

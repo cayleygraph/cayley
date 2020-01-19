@@ -2,7 +2,6 @@ package schema
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strconv"
 
@@ -243,7 +242,7 @@ func (g *generator) addTypeFields(name string, t reflect.Type, indirect bool) []
 		if ok {
 			minCardinality, err := strconv.Atoi(v)
 			if err != nil {
-				panic(fmt.Errorf("Invalid min cardinality %v", minCardinality))
+				panic(err)
 			}
 			super = append(super, newMinCardinalityRestriction(prop, minCardinality))
 		}
