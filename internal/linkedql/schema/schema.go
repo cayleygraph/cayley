@@ -237,13 +237,14 @@ func (g *generator) addTypeFields(name string, t reflect.Type, indirect bool) []
 			continue
 		}
 		prop := linkedql.Prefix + f.Tag.Get("json")
+		var hasMinCardinality bool
 		v, ok := f.Tag.Lookup("minCardinality")
-		hasMinCardinality := ok
 		if ok {
 			minCardinality, err := strconv.Atoi(v)
 			if err != nil {
 				panic(err)
 			}
+			hasMinCardinality = true
 			super = append(super, newMinCardinalityRestriction(prop, minCardinality))
 		}
 		if f.Type.Kind() != reflect.Slice {
