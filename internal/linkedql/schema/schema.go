@@ -101,43 +101,43 @@ func newSingleCardinalityRestriction(prop string) cardinalityRestriction {
 	}
 }
 
-type owlRestriction struct {
+type owlPropertyRestriction struct {
 	ID       string     `json:"@id"`
 	Type     string     `json:"@type"`
 	Property identified `json:"owl:onProperty"`
 }
 
+func newOWLPropertyRestriction(prop string) owlPropertyRestriction {
+	return owlPropertyRestriction{
+		ID:       newBlankNodeID(),
+		Type:     owl.Restriction,
+		Property: identified{ID: prop},
+	}
+}
+
 // minCardinalityRestriction is used to indicate a how many values can a property get at the very least
 type minCardinalityRestriction struct {
-	owlRestriction
+	owlPropertyRestriction
 	MinCardinality int `json:"owl:minCardinality"`
 }
 
 // maxCardinalityRestriction is used to indicate a how many values can a property get at most
 type maxCardinalityRestriction struct {
-	owlRestriction
+	owlPropertyRestriction
 	MaxCardinality int `json:"owl:maxCardinality"`
 }
 
 func newMinCardinalityRestriction(prop string, minCardinality int) minCardinalityRestriction {
 	return minCardinalityRestriction{
-		owlRestriction: owlRestriction{
-			ID:       newBlankNodeID(),
-			Type:     owl.Restriction,
-			Property: identified{ID: prop},
-		},
-		MinCardinality: minCardinality,
+		owlPropertyRestriction: newOWLPropertyRestriction(prop),
+		MinCardinality:         minCardinality,
 	}
 }
 
 func newSingleMaxCardinalityRestriction(prop string) maxCardinalityRestriction {
 	return maxCardinalityRestriction{
-		owlRestriction: owlRestriction{
-			ID:       newBlankNodeID(),
-			Type:     owl.Restriction,
-			Property: identified{ID: prop},
-		},
-		MaxCardinality: 1,
+		owlPropertyRestriction: newOWLPropertyRestriction(prop),
+		MaxCardinality:         1,
 	}
 }
 
