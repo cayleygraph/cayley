@@ -101,37 +101,43 @@ func newSingleCardinalityRestriction(prop string) cardinalityRestriction {
 	}
 }
 
-// minCardinalityRestriction is used to indicate a how many values can a property get at the very least
-type minCardinalityRestriction struct {
-	ID             string     `json:"@id"`
-	Type           string     `json:"@type"`
-	MinCardinality int        `json:"owl:minCardinality"`
-	Property       identified `json:"owl:onProperty"`
+type owlRestriction struct {
+	ID       string     `json:"@id"`
+	Type     string     `json:"@type"`
+	Property identified `json:"owl:onProperty"`
 }
 
-func newMinCardinalityRestriction(prop string, minCardinality int) minCardinalityRestriction {
-	return minCardinalityRestriction{
-		ID:             newBlankNodeID(),
-		Type:           owl.Restriction,
-		MinCardinality: minCardinality,
-		Property:       identified{ID: prop},
-	}
+// minCardinalityRestriction is used to indicate a how many values can a property get at the very least
+type minCardinalityRestriction struct {
+	owlRestriction
+	MinCardinality int `json:"owl:minCardinality"`
 }
 
 // maxCardinalityRestriction is used to indicate a how many values can a property get at most
 type maxCardinalityRestriction struct {
-	ID             string     `json:"@id"`
-	Type           string     `json:"@type"`
-	MaxCardinality int        `json:"owl:maxCardinality"`
-	Property       identified `json:"owl:onProperty"`
+	owlRestriction
+	MaxCardinality int `json:"owl:maxCardinality"`
+}
+
+func newMinCardinalityRestriction(prop string, minCardinality int) minCardinalityRestriction {
+	return minCardinalityRestriction{
+		owlRestriction: owlRestriction{
+			ID:       newBlankNodeID(),
+			Type:     owl.Restriction,
+			Property: identified{ID: prop},
+		},
+		MinCardinality: minCardinality,
+	}
 }
 
 func newSingleMaxCardinalityRestriction(prop string) maxCardinalityRestriction {
 	return maxCardinalityRestriction{
-		ID:             newBlankNodeID(),
-		Type:           owl.Restriction,
+		owlRestriction: owlRestriction{
+			ID:       newBlankNodeID(),
+			Type:     owl.Restriction,
+			Property: identified{ID: prop},
+		},
 		MaxCardinality: 1,
-		Property:       identified{ID: prop},
 	}
 }
 
