@@ -71,7 +71,8 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]interface{}{
-				string(liker): map[string]string{"@id": string(alice)},
+				"@id":         string(bob),
+				string(liker): map[string]interface{}{"@id": string(alice)},
 			},
 		},
 	},
@@ -93,7 +94,7 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]interface{}{
-				string(liker): map[string]string{"@id": string(alice)},
+				string(liker): map[string]interface{}{"@id": string(alice)},
 			},
 		},
 	},
@@ -379,7 +380,8 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]interface{}{
-				string(likes): map[string]string{"@id": string(bob)},
+				"@id":         string(alice),
+				string(likes): map[string]interface{}{"@id": string(bob)},
 			},
 		},
 	},
@@ -394,7 +396,8 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]interface{}{
-				"property": map[string]string{"@id": string(likes)},
+				"@id":      string(bob),
+				"property": map[string]interface{}{"@id": string(likes)},
 			},
 		},
 	},
@@ -408,7 +411,8 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{map[string]interface{}{
-			"property": map[string]string{"@id": string(likes)},
+			"@id":      string(alice),
+			"property": map[string]interface{}{"@id": string(likes)},
 		}},
 	},
 	{
@@ -421,7 +425,8 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{map[string]interface{}{
-			string(likes): map[string]string{"@id": string(alice)},
+			"@id":         string(bob),
+			string(likes): map[string]interface{}{"@id": string(alice)},
 		}},
 	},
 	{
@@ -468,7 +473,8 @@ var testCases = []struct {
 			},
 		},
 		results: []interface{}{map[string]interface{}{
-			string(liker): map[string]string{"@id": string(alice)},
+			"@id":         string(bob),
+			string(liker): map[string]interface{}{"@id": string(alice)},
 		}},
 	},
 	{
@@ -517,10 +523,12 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]interface{}{
-				string(likes): map[string]string{"@id": string(bob)},
+				"@id":         string(alice),
+				string(likes): map[string]interface{}{"@id": string(bob)},
 				string(name):  "Alice",
 			},
 			map[string]interface{}{
+				"@id":        string(bob),
 				string(name): "Bob",
 			},
 		},
@@ -558,6 +566,7 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]interface{}{
+				"@id":             string(alice),
 				string(name):      "Alice",
 				string(likesName): "Bob",
 			},
@@ -579,14 +588,32 @@ var testCases = []struct {
 		},
 		results: []interface{}{
 			map[string]interface{}{
-				"@id":         string(alice),
-				string(name):  []interface{}{"Alice"},
-				string(likes): []interface{}{map[string]string{"@id": string(bob)}},
+				"@graph": []interface{}{
+					map[string]interface{}{
+						"@id":         string(alice),
+						string(likes): map[string]interface{}{"@id": string(bob)},
+						string(name):  "Alice",
+					},
+					map[string]interface{}{
+						"@id":         string(bob),
+						string(likes): map[string]interface{}{"@id": string(alice)},
+						string(name):  "Bob",
+					},
+				},
 			},
 			map[string]interface{}{
-				"@id":         string(bob),
-				string(name):  []interface{}{"Bob"},
-				string(likes): []interface{}{map[string]string{"@id": string(alice)}},
+				"@graph": []interface{}{
+					map[string]interface{}{
+						"@id":         string(alice),
+						string(likes): map[string]interface{}{"@id": string(bob)},
+						string(name):  "Alice",
+					},
+					map[string]interface{}{
+						"@id":         string(bob),
+						string(likes): map[string]interface{}{"@id": string(alice)},
+						string(name):  "Bob",
+					},
+				},
 			},
 		},
 	},
