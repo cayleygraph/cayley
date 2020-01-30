@@ -78,6 +78,7 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 		if iri, ok := entity.(quad.IRI); ok {
 			p = p.Is(iri)
 		}
+		// FIXME(iddan): this currently flattens all nested objects, which is totally incorrect; recurse or limit allowed json-ld
 		for property, values := range properties {
 			p = p.Has(property, values...)
 		}
