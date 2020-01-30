@@ -624,6 +624,7 @@ var testCases = []struct {
 			map[string]string{"@id": "http://example.org/bob"},
 		},
 	},
+	// FIXME(iddan): add test for match nested objects.
 }
 
 func TestLinkedQL(t *testing.T) {
