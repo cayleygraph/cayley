@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Limit)(nil)
 
 // Limit corresponds to .limit().
 type Limit struct {
-	From  linkedql.PathStep `json:"from"`
+	From  linkedql.PathStep `json:"from" minCardinality:"0"`
 	Limit int64             `json:"limit"`
 }
 

@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Skip)(nil)
 
 // Skip corresponds to .skip().
 type Skip struct {
-	From   linkedql.PathStep `json:"from"`
+	From   linkedql.PathStep `json:"from" minCardinality:"0"`
 	Offset int64             `json:"offset"`
 }
 

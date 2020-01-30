@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Context)(nil)
 
 // Context corresponds to context().
 type Context struct {
-	From  linkedql.PathStep `json:"from"`
+	From  linkedql.PathStep `json:"from" minCardinality:"0"`
 	Rules map[string]string `json:"rules"`
 }
 

@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Filter)(nil)
 
 // Filter corresponds to filter().
 type Filter struct {
-	From   linkedql.PathStep `json:"from"`
+	From   linkedql.PathStep `json:"from" minCardinality:"0"`
 	Filter linkedql.Operator `json:"filter"`
 }
 

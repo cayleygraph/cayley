@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*VisitReverse)(nil)
 
 // VisitReverse corresponds to .viewReverse().
 type VisitReverse struct {
-	From       linkedql.PathStep     `json:"from"`
+	From       linkedql.PathStep     `json:"from" minCardinality:"0"`
 	Properties linkedql.PropertyPath `json:"properties"`
 }
 

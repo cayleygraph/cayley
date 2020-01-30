@@ -18,7 +18,7 @@ var _ linkedql.PathStep = (*HasReverse)(nil)
 
 // HasReverse corresponds to .hasR().
 type HasReverse struct {
-	From     linkedql.PathStep     `json:"from"`
+	From     linkedql.PathStep     `json:"from" minCardinality:"0"`
 	Property linkedql.PropertyPath `json:"property"`
 	Values   []quad.Value          `json:"values"`
 }

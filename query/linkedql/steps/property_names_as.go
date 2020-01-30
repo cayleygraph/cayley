@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*PropertyNamesAs)(nil)
 
 // PropertyNamesAs corresponds to .propertyNamesAs().
 type PropertyNamesAs struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 	Tag  string            `json:"tag"`
 }
 

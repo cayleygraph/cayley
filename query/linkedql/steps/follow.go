@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Follow)(nil)
 
 // Follow corresponds to .follow().
 type Follow struct {
-	From     linkedql.PathStep `json:"from"`
+	From     linkedql.PathStep `json:"from" minCardinality:"0"`
 	Followed linkedql.PathStep `json:"followed"`
 }
 

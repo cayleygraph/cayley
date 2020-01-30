@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Back)(nil)
 
 // Back corresponds to .back().
 type Back struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 	Name string            `json:"name"`
 }
 

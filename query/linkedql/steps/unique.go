@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Unique)(nil)
 
 // Unique corresponds to .unique().
 type Unique struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.

@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*FollowReverse)(nil)
 
 // FollowReverse corresponds to .followR().
 type FollowReverse struct {
-	From     linkedql.PathStep `json:"from"`
+	From     linkedql.PathStep `json:"from" minCardinality:"0"`
 	Followed linkedql.PathStep `json:"followed"`
 }
 

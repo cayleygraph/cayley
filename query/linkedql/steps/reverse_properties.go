@@ -18,7 +18,7 @@ var _ linkedql.PathStep = (*ReverseProperties)(nil)
 
 // ReverseProperties corresponds to .reverseProperties().
 type ReverseProperties struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 	// TODO(iddan): Use property path
 	Names []quad.IRI `json:"names"`
 }

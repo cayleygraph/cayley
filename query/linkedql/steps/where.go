@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Where)(nil)
 
 // Where corresponds to .where().
 type Where struct {
-	From  linkedql.PathStep   `json:"from"`
+	From  linkedql.PathStep   `json:"from" minCardinality:"0"`
 	Steps []linkedql.PathStep `json:"steps"`
 }
 

@@ -19,7 +19,7 @@ var _ linkedql.IteratorStep = (*Select)(nil)
 // Select corresponds to .select().
 type Select struct {
 	Tags []string          `json:"tags"`
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.
@@ -41,7 +41,7 @@ var _ linkedql.IteratorStep = (*SelectFirst)(nil)
 // SelectFirst corresponds to .selectFirst().
 type SelectFirst struct {
 	Tags []string          `json:"tags"`
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.
@@ -70,7 +70,7 @@ var _ linkedql.IteratorStep = (*Value)(nil)
 
 // Value corresponds to .value().
 type Value struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.
@@ -87,7 +87,7 @@ var _ linkedql.IteratorStep = (*Documents)(nil)
 
 // Documents corresponds to .documents().
 type Documents struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.

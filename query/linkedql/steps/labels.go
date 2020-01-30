@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Labels)(nil)
 
 // Labels corresponds to .labels().
 type Labels struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.

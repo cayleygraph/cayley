@@ -19,7 +19,7 @@ var _ linkedql.PathStep = (*GreaterThanEquals)(nil)
 
 // GreaterThanEquals corresponds to gte().
 type GreaterThanEquals struct {
-	From  linkedql.PathStep `json:"from"`
+	From  linkedql.PathStep `json:"from" minCardinality:"0"`
 	Value quad.Value        `json:"value"`
 }
 

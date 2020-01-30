@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Count)(nil)
 
 // Count corresponds to .count().
 type Count struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.

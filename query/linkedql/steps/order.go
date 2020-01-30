@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Order)(nil)
 
 // Order corresponds to .order().
 type Order struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.

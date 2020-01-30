@@ -1,14 +1,13 @@
-
 package steps
 
 import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/cayleygraph/cayley/query/linkedql"
 )
 
 func init() {
@@ -20,12 +19,9 @@ var _ linkedql.PathStep = (*LessThan)(nil)
 
 // LessThan corresponds to lt().
 type LessThan struct {
-	From  linkedql.PathStep   `json:"from"`
-	Value quad.Value `json:"value"`
+	From  linkedql.PathStep `json:"from" minCardinality:"0"`
+	Value quad.Value        `json:"value"`
 }
-
-
-
 
 // Description implements Step.
 func (s *LessThan) Description() string {
@@ -45,4 +41,3 @@ func (s *LessThan) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path
 	}
 	return fromPath.Filter(iterator.CompareLT, s.Value), nil
 }
-

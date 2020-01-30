@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Intersect)(nil)
 
 // Intersect represents .intersect() and .and().
 type Intersect struct {
-	From  linkedql.PathStep   `json:"from"`
+	From  linkedql.PathStep   `json:"from" minCardinality:"0"`
 	Steps []linkedql.PathStep `json:"steps"`
 }
 

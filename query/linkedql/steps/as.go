@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*As)(nil)
 
 // As corresponds to .tag().
 type As struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 	Name string            `json:"name"`
 }
 

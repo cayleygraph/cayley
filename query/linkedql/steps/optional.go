@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*Optional)(nil)
 
 // Optional corresponds to .optional().
 type Optional struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 	Step linkedql.PathStep `json:"step"`
 }
 
