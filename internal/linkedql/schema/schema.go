@@ -3,6 +3,7 @@ package schema
 import (
 	"encoding/json"
 	"reflect"
+	"strconv"
 
 	"github.com/cayleygraph/cayley/query/linkedql"
 	_ "github.com/cayleygraph/cayley/query/linkedql/steps"
@@ -13,6 +14,13 @@ import (
 	"github.com/cayleygraph/quad/voc/xsd"
 )
 
+// rdfgGraph is the W3C type for named graphs
+const (
+	rdfgNamespace = "http://www.w3.org/2004/03/trix/rdfg-1/"
+	rdfgPrefix    = "rdfg:"
+	rdfgGraph     = rdfgPrefix + "Graph"
+)
+
 var (
 	pathStep         = reflect.TypeOf((*linkedql.PathStep)(nil)).Elem()
 	iteratorStep     = reflect.TypeOf((*linkedql.IteratorStep)(nil)).Elem()
@@ -21,11 +29,15 @@ var (
 	operator         = reflect.TypeOf((*linkedql.Operator)(nil)).Elem()
 	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil)).Elem()
 	stringMap        = reflect.TypeOf(map[string]string{})
+	graphPattern     = reflect.TypeOf(linkedql.GraphPattern(nil))
 )
 
 func typeToRange(t reflect.Type) string {
 	if t == stringMap {
 		return "rdf:JSON"
+	}
+	if t == graphPattern {
+		return rdfgGraph
 	}
 	if t.Kind() == reflect.Slice {
 		return typeToRange(t.Elem())
@@ -86,6 +98,46 @@ func newSingleCardinalityRestriction(prop string) cardinalityRestriction {
 		Type:        owl.Restriction,
 		Cardinality: 1,
 		Property:    identified{ID: prop},
+	}
+}
+
+type owlPropertyRestriction struct {
+	ID       string     `json:"@id"`
+	Type     string     `json:"@type"`
+	Property identified `json:"owl:onProperty"`
+}
+
+func newOWLPropertyRestriction(prop string) owlPropertyRestriction {
+	return owlPropertyRestriction{
+		ID:       newBlankNodeID(),
+		Type:     owl.Restriction,
+		Property: identified{ID: prop},
+	}
+}
+
+// minCardinalityRestriction is used to indicate a how many values can a property get at the very least
+type minCardinalityRestriction struct {
+	owlPropertyRestriction
+	MinCardinality int `json:"owl:minCardinality"`
+}
+
+// maxCardinalityRestriction is used to indicate a how many values can a property get at most
+type maxCardinalityRestriction struct {
+	owlPropertyRestriction
+	MaxCardinality int `json:"owl:maxCardinality"`
+}
+
+func newMinCardinalityRestriction(prop string, minCardinality int) minCardinalityRestriction {
+	return minCardinalityRestriction{
+		owlPropertyRestriction: newOWLPropertyRestriction(prop),
+		MinCardinality:         minCardinality,
+	}
+}
+
+func newSingleMaxCardinalityRestriction(prop string) maxCardinalityRestriction {
+	return maxCardinalityRestriction{
+		owlPropertyRestriction: newOWLPropertyRestriction(prop),
+		MaxCardinality:         1,
 	}
 }
 
@@ -191,8 +243,22 @@ func (g *generator) addTypeFields(name string, t reflect.Type, indirect bool) []
 			continue
 		}
 		prop := linkedql.Prefix + f.Tag.Get("json")
+		var hasMinCardinality bool
+		v, ok := f.Tag.Lookup("minCardinality")
+		if ok {
+			minCardinality, err := strconv.Atoi(v)
+			if err != nil {
+				panic(err)
+			}
+			hasMinCardinality = true
+			super = append(super, newMinCardinalityRestriction(prop, minCardinality))
+		}
 		if f.Type.Kind() != reflect.Slice {
-			super = append(super, newSingleCardinalityRestriction(prop))
+			if hasMinCardinality {
+				super = append(super, newSingleMaxCardinalityRestriction(prop))
+			} else {
+				super = append(super, newSingleCardinalityRestriction(prop))
+			}
 		}
 		typ := getOWLPropertyType(f.Type.Kind())
 
@@ -289,6 +355,7 @@ func (g *generator) Generate() []byte {
 			"owl":      owl.NS,
 			"xsd":      xsd.NS,
 			"linkedql": linkedql.Namespace,
+			"rdfg":     rdfgNamespace,
 		},
 		"@graph": graph,
 	})
