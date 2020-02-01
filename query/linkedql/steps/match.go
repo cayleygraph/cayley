@@ -57,12 +57,44 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 		return nil, err
 	}
 
-	// Group quads to subtrees
-	entities := make(map[quad.Value]map[quad.Value][]quad.Value)
-	for _, q := range quads {
+	return p.Follow(buildPatternPath(quads, ns)), nil
+}
+
+type entityProperties = map[quad.Value]map[quad.Value][]quad.Value
+
+func entityPropertiesToPath(entity quad.Value, entities entityProperties) *path.Path {
+	p := path.StartMorphism()
+	if iri, ok := entity.(quad.IRI); ok {
+		p = p.Is(iri)
+	}
+	for property, values := range entities[entity] {
+		for _, value := range values {
+			if _, ok := value.(quad.BNode); ok {
+				p = p.Out(property).Follow(entityPropertiesToPath(value, entities)).Back("")
+			} else {
+				p = p.Has(property, value)
+			}
+		}
+	}
+	return p
+}
+
+// buildPath for given pattern constructs a Path object
+func buildPatternPath(pattern []quad.Quad, ns *voc.Namespaces) *path.Path {
+	// referenced holds entities used as values for properties of other entities
+	referenced := make(map[quad.Value]struct{})
+
+	entities := make(entityProperties)
+
+	for _, q := range pattern {
 		entity := linkedql.AbsoluteValue(q.Subject, ns)
 		property := linkedql.AbsoluteValue(q.Predicate, ns)
 		value := linkedql.AbsoluteValue(q.Object, ns)
+
+		if _, ok := value.(quad.BNode); ok {
+			referenced[value] = struct{}{}
+		}
+
 		properties, ok := entities[entity]
 		if !ok {
 			properties = make(map[quad.Value][]quad.Value)
@@ -74,17 +106,16 @@ func (s *Match) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, e
 		properties[property] = append(properties[property], value)
 	}
 
-	for entity, properties := range entities {
-		if iri, ok := entity.(quad.IRI); ok {
-			p = p.Is(iri)
-		}
-		// FIXME(iddan): this currently flattens all nested objects, which is totally incorrect; recurse or limit allowed json-ld
-		for property, values := range properties {
-			p = p.Has(property, values...)
+	p := path.StartMorphism()
+
+	for entity := range entities {
+		// Apply only on entities which are not referenced as values
+		if _, ok := referenced[entity]; !ok {
+			p = p.Follow(entityPropertiesToPath(entity, entities))
 		}
 	}
 
-	return p, nil
+	return p
 }
 
 func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Quad, error) {
@@ -116,6 +147,9 @@ func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Qua
 	return quads, nil
 }
 
+// makeSingleEntityQuad creates a quad representing a propertyless entity. The
+// quad declares the entity is of type Resource, the base type of all entities
+// in RDF.
 func makeSingleEntityQuad(id quad.IRI) quad.Quad {
 	return quad.Quad{Subject: id, Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Resource)}
 }
