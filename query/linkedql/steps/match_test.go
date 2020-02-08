@@ -10,15 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var ns = "http://example.com/"
-var alice = quad.IRI(ns + "alice")
-var likes = quad.IRI(ns + "likes")
-var name = quad.IRI(ns + "name")
-var bob = quad.IRI(ns + "bob")
-var address = quad.IRI(ns + "address")
-var city = quad.IRI(ns + "city")
-var street = quad.IRI(ns + "street")
-var country = quad.IRI(ns + "country")
+var (
+	ns      = "http://example.com/"
+	alice   = quad.IRI(ns + "alice")
+	likes   = quad.IRI(ns + "likes")
+	name    = quad.IRI(ns + "name")
+	bob     = quad.IRI(ns + "bob")
+	address = quad.IRI(ns + "address")
+	city    = quad.IRI(ns + "city")
+	street  = quad.IRI(ns + "street")
+	country = quad.IRI(ns + "country")
+)
 
 var patternTestCases = []struct {
 	name     string
