@@ -79,8 +79,7 @@ func entityPropertiesToPath(entity quad.Value, entities entityProperties) *path.
 	return p
 }
 
-// buildPath for given pattern constructs a Path object
-func buildPatternPath(pattern []quad.Quad, ns *voc.Namespaces) *path.Path {
+func groupEntities(pattern []quad.Quad, ns *voc.Namespaces) (entityProperties, map[quad.Value]struct{}) {
 	// referenced holds entities used as values for properties of other entities
 	referenced := make(map[quad.Value]struct{})
 
@@ -106,6 +105,12 @@ func buildPatternPath(pattern []quad.Quad, ns *voc.Namespaces) *path.Path {
 		properties[property] = append(properties[property], value)
 	}
 
+	return entities, referenced
+}
+
+// buildPath for given pattern constructs a Path object
+func buildPatternPath(pattern []quad.Quad, ns *voc.Namespaces) *path.Path {
+	entities, referenced := groupEntities(pattern, ns)
 	p := path.StartMorphism()
 
 	for entity := range entities {
@@ -118,7 +123,7 @@ func buildPatternPath(pattern []quad.Quad, ns *voc.Namespaces) *path.Path {
 	return p
 }
 
-func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Quad, error) {
+func contextualizePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) linkedql.GraphPattern {
 	context := make(map[string]interface{})
 	for _, namespace := range ns.List() {
 		context[namespace.Prefix] = namespace.Full
@@ -129,17 +134,34 @@ func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Qua
 	for key, value := range pattern {
 		patternClone[key] = value
 	}
-	reader := jsonld.NewReaderFromMap(patternClone)
-	quads, err := quad.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	if id, ok := patternClone["@id"]; ok && len(quads) == 0 {
+	return pattern
+}
+
+func quadsFromMap(o interface{}) ([]quad.Quad, error) {
+	reader := jsonld.NewReaderFromMap(o)
+	return quad.ReadAll(reader)
+}
+
+func normalizeQuads(quads []quad.Quad, pattern linkedql.GraphPattern) ([]quad.Quad, error) {
+	if id, ok := pattern["@id"]; ok && len(quads) == 0 {
 		idString, ok := id.(string)
 		if !ok {
 			return nil, fmt.Errorf("Unexpected type for @id %T", idString)
 		}
 		quads = append(quads, makeSingleEntityQuad(quad.IRI(idString)))
+	}
+	return quads, nil
+}
+
+func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Quad, error) {
+	contextualizedPattern := contextualizePattern(pattern, ns)
+	quads, err := quadsFromMap(contextualizedPattern)
+	if err != nil {
+		return nil, err
+	}
+	quads, err = normalizeQuads(quads, contextualizedPattern)
+	if err != nil {
+		return nil, err
 	}
 	if len(quads) == 0 && len(pattern) != 0 {
 		return nil, fmt.Errorf("Pattern does not parse to any quad. `{}` is the only pattern allowed to not parse to any quad")
