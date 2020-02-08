@@ -23,7 +23,7 @@ type Collect struct {
 
 // Description implements Step.
 func (s *Collect) Description() string {
-	return "resolves to the values of the given property or properties in via of the current objects. If via is a path it's resolved values will be used as properties."
+	return "Recursively resolves values of a list (also known as RDF collection)"
 }
 
 // BuildIterator implements linkedql.IteratorStep.
