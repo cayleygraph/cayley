@@ -22,11 +22,10 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/cayleygraph/cayley/query/path"
-
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
@@ -64,7 +63,7 @@ func makeTestStore(t testing.TB, fnc testutil.DatabaseFunc, quads ...quad.Quad) 
 	return qs, closer
 }
 
-func runTopLevel(qs graph.QuadStore, path *Path, opt bool) ([]quad.Value, error) {
+func runTopLevel(qs graph.QuadStore, path *path.Path, opt bool) ([]quad.Value, error) {
 	pb := path.Iterate(context.TODO())
 	if !opt {
 		pb = pb.UnOptimized()
@@ -72,7 +71,7 @@ func runTopLevel(qs graph.QuadStore, path *Path, opt bool) ([]quad.Value, error)
 	return pb.Paths(false).AllValues(qs)
 }
 
-func runTag(qs graph.QuadStore, path *Path, tag string, opt, keepEmpty bool) ([]quad.Value, error) {
+func runTag(qs graph.QuadStore, path *path.Path, tag string, opt, keepEmpty bool) ([]quad.Value, error) {
 	var out []quad.Value
 	pb := path.Iterate(context.TODO())
 	if !opt {
@@ -88,7 +87,7 @@ func runTag(qs graph.QuadStore, path *Path, tag string, opt, keepEmpty bool) ([]
 	return out, err
 }
 
-func runAllTags(qs graph.QuadStore, path *Path, opt bool) ([]map[string]quad.Value, error) {
+func runAllTags(qs graph.QuadStore, path *path.Path, opt bool) ([]map[string]quad.Value, error) {
 	var out []map[string]quad.Value
 	pb := path.Iterate(context.TODO())
 	if !opt {
@@ -103,7 +102,7 @@ func runAllTags(qs graph.QuadStore, path *Path, opt bool) ([]map[string]quad.Val
 type test struct {
 	skip      bool
 	message   string
-	path      *Path
+	path      *path.Path
 	expect    []quad.Value
 	expectAlt [][]quad.Value
 	tag       string
@@ -135,165 +134,165 @@ const (
 )
 
 var (
-	grandfollows = StartMorphism().Out(vFollows).Out(vFollows)
+	grandfollows = path.StartMorphism().Out(vFollows).Out(vFollows)
 )
 
 func testSet(qs graph.QuadStore) []test {
 	return []test{
 		{
 			message: "out",
-			path:    StartPath(qs, vAlice).Out(vFollows),
+			path:    path.StartPath(qs, vAlice).Out(vFollows),
 			expect:  []quad.Value{vBob},
 		},
 		{
 			message: "out (any)",
-			path:    StartPath(qs, vBob).Out(),
+			path:    path.StartPath(qs, vBob).Out(),
 			expect:  []quad.Value{vFred, vCool},
 		},
 		{
 			message: "out (raw)",
-			path:    StartPath(qs, quad.Raw(vAlice.String())).Out(quad.Raw(vFollows.String())),
+			path:    path.StartPath(qs, quad.Raw(vAlice.String())).Out(quad.Raw(vFollows.String())),
 			expect:  []quad.Value{vBob},
 		},
 		{
 			message: "in",
-			path:    StartPath(qs, vBob).In(vFollows),
+			path:    path.StartPath(qs, vBob).In(vFollows),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		{
 			message: "in (any)",
-			path:    StartPath(qs, vBob).In(),
+			path:    path.StartPath(qs, vBob).In(),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		{
 			message: "filter nodes",
-			path:    StartPath(qs).Filter(iterator.CompareGT, quad.IRI("p")),
+			path:    path.StartPath(qs).Filter(iterator.CompareGT, quad.IRI("p")),
 			expect:  []quad.Value{vPredicate, vSmartGraph, vStatus},
 		},
 		{
 			message: "in with filter",
-			path:    StartPath(qs, vBob).In(vFollows).Filter(iterator.CompareGT, quad.IRI("c")),
+			path:    path.StartPath(qs, vBob).In(vFollows).Filter(iterator.CompareGT, quad.IRI("c")),
 			expect:  []quad.Value{vCharlie, vDani},
 		},
 		{
 			message: "in with regex",
-			path:    StartPath(qs, vBob).In(vFollows).Regex(regexp.MustCompile("ar?li.*e")),
+			path:    path.StartPath(qs, vBob).In(vFollows).Regex(regexp.MustCompile("ar?li.*e")),
 			expect:  nil,
 		},
 		{
 			message: "in with regex (include IRIs)",
-			path:    StartPath(qs, vBob).In(vFollows).RegexWithRefs(regexp.MustCompile("ar?li.*e")),
+			path:    path.StartPath(qs, vBob).In(vFollows).RegexWithRefs(regexp.MustCompile("ar?li.*e")),
 			expect:  []quad.Value{vAlice, vCharlie},
 		},
 		{
 			message: "path Out",
-			path:    StartPath(qs, vBob).Out(StartPath(qs, vPredicate).Out(vAre)),
+			path:    path.StartPath(qs, vBob).Out(path.StartPath(qs, vPredicate).Out(vAre)),
 			expect:  []quad.Value{vFred, vCool},
 		},
 		{
 			message: "path Out (raw)",
-			path:    StartPath(qs, quad.Raw(vBob.String())).Out(StartPath(qs, quad.Raw(vPredicate.String())).Out(quad.Raw(vAre.String()))),
+			path:    path.StartPath(qs, quad.Raw(vBob.String())).Out(path.StartPath(qs, quad.Raw(vPredicate.String())).Out(quad.Raw(vAre.String()))),
 			expect:  []quad.Value{vFred, vCool},
 		},
 		{
 			message: "And",
-			path: StartPath(qs, vDani).Out(vFollows).And(
-				StartPath(qs, vCharlie).Out(vFollows)),
+			path: path.StartPath(qs, vDani).Out(vFollows).And(
+				path.StartPath(qs, vCharlie).Out(vFollows)),
 			expect: []quad.Value{vBob},
 		},
 		{
 			message: "Or",
-			path: StartPath(qs, vFred).Out(vFollows).Or(
-				StartPath(qs, vAlice).Out(vFollows)),
+			path: path.StartPath(qs, vFred).Out(vFollows).Or(
+				path.StartPath(qs, vAlice).Out(vFollows)),
 			expect: []quad.Value{vBob, vGreg},
 		},
 		{
 			message: "implicit All",
-			path:    StartPath(qs),
+			path:    path.StartPath(qs),
 			expect:  []quad.Value{vAlice, vBob, vCharlie, vDani, vEmily, vFred, vGreg, vFollows, vStatus, vCool, vPredicate, vAre, vSmartGraph, vSmart},
 		},
 		{
 			message: "follow",
-			path:    StartPath(qs, vCharlie).Follow(StartMorphism().Out(vFollows).Out(vFollows)),
+			path:    path.StartPath(qs, vCharlie).Follow(path.StartMorphism().Out(vFollows).Out(vFollows)),
 			expect:  []quad.Value{vBob, vFred, vGreg},
 		},
 		{
 			message: "followR",
-			path:    StartPath(qs, vFred).FollowReverse(StartMorphism().Out(vFollows).Out(vFollows)),
+			path:    path.StartPath(qs, vFred).FollowReverse(path.StartMorphism().Out(vFollows).Out(vFollows)),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		{
 			message: "is, tag, instead of FollowR",
-			path:    StartPath(qs).Tag("first").Follow(StartMorphism().Out(vFollows).Out(vFollows)).Is(vFred),
+			path:    path.StartPath(qs).Tag("first").Follow(path.StartMorphism().Out(vFollows).Out(vFollows)).Is(vFred),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 			tag:     "first",
 		},
 		{
 			message: "Except to filter out a single vertex",
-			path:    StartPath(qs, vAlice, vBob).Except(StartPath(qs, vAlice)),
+			path:    path.StartPath(qs, vAlice, vBob).Except(path.StartPath(qs, vAlice)),
 			expect:  []quad.Value{vBob},
 		},
 		{
 			message: "chained Except",
-			path:    StartPath(qs, vAlice, vBob, vCharlie).Except(StartPath(qs, vBob)).Except(StartPath(qs, vAlice)),
+			path:    path.StartPath(qs, vAlice, vBob, vCharlie).Except(path.StartPath(qs, vBob)).Except(path.StartPath(qs, vAlice)),
 			expect:  []quad.Value{vCharlie},
 		},
 		{
 			message: "Unique",
-			path:    StartPath(qs, vAlice, vBob, vCharlie).Out(vFollows).Unique(),
+			path:    path.StartPath(qs, vAlice, vBob, vCharlie).Out(vFollows).Unique(),
 			expect:  []quad.Value{vBob, vDani, vFred},
 		},
 		{
 			message: "simple save",
-			path:    StartPath(qs).Save(vStatus, "somecool"),
+			path:    path.StartPath(qs).Save(vStatus, "somecool"),
 			tag:     "somecool",
 			expect:  []quad.Value{vCool, vCool, vCool, vSmart, vSmart},
 		},
 		{
 			message: "simple saveR",
-			path:    StartPath(qs, vCool).SaveReverse(vStatus, "who"),
+			path:    path.StartPath(qs, vCool).SaveReverse(vStatus, "who"),
 			tag:     "who",
 			expect:  []quad.Value{vGreg, vDani, vBob},
 		},
 		{
 			message: "save with a next path",
-			path:    StartPath(qs, vDani, vBob).Save(vFollows, "target"),
+			path:    path.StartPath(qs, vDani, vBob).Save(vFollows, "target"),
 			tag:     "target",
 			expect:  []quad.Value{vBob, vFred, vGreg},
 		},
 		{
 			message: "save all with a next path",
-			path:    StartPath(qs).Save(vFollows, "target"),
+			path:    path.StartPath(qs).Save(vFollows, "target"),
 			tag:     "target",
 			expect:  []quad.Value{vBob, vBob, vBob, vDani, vFred, vFred, vGreg, vGreg},
 		},
 		{
 			message: "simple Has",
-			path:    StartPath(qs).Has(vStatus, vCool),
+			path:    path.StartPath(qs).Has(vStatus, vCool),
 			expect:  []quad.Value{vGreg, vDani, vBob},
 		},
 		{
 			message: "filter nodes with has",
-			path: StartPath(qs).HasFilter(vFollows, false, shape.Comparison{
+			path: path.StartPath(qs).HasFilter(vFollows, false, shape.Comparison{
 				Op: iterator.CompareGT, Val: quad.IRI("f"),
 			}),
 			expect: []quad.Value{vBob, vDani, vEmily, vFred},
 		},
 		{
 			message: "has path",
-			path:    StartPath(qs).HasPath(StartMorphism().Out(vStatus).Is(vCool)),
+			path:    path.StartPath(qs).HasPath(path.StartMorphism().Out(vStatus).Is(vCool)),
 			expect:  []quad.Value{vGreg, vDani, vBob},
 		},
 		{
 			message: "string prefix",
-			path: StartPath(qs).Filters(shape.Wildcard{
+			path: path.StartPath(qs).Filters(shape.Wildcard{
 				Pattern: `bo%`,
 			}),
 			expect: []quad.Value{vBob},
 		},
 		{
 			message: "three letters and range",
-			path: StartPath(qs).Filters(shape.Wildcard{
+			path: path.StartPath(qs).Filters(shape.Wildcard{
 				Pattern: `???`,
 			}, shape.Comparison{
 				Op: iterator.CompareGT, Val: quad.IRI("b"),
@@ -302,14 +301,14 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "part in string",
-			path: StartPath(qs).Filters(shape.Wildcard{
+			path: path.StartPath(qs).Filters(shape.Wildcard{
 				Pattern: `%ed%`,
 			}),
 			expect: []quad.Value{vFred, vPredicate},
 		},
 		{
 			message: "Limit",
-			path:    StartPath(qs).Has(vStatus, vCool).Limit(2),
+			path:    path.StartPath(qs).Has(vStatus, vCool).Limit(2),
 			// TODO(dennwc): resolve this ordering issue
 			expectAlt: [][]quad.Value{
 				{vBob, vGreg},
@@ -319,7 +318,7 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "Skip",
-			path:    StartPath(qs).Has(vStatus, vCool).Skip(2),
+			path:    path.StartPath(qs).Has(vStatus, vCool).Skip(2),
 			expectAlt: [][]quad.Value{
 				{vBob},
 				{vDani},
@@ -328,7 +327,7 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "Skip and Limit",
-			path:    StartPath(qs).Has(vStatus, vCool).Skip(1).Limit(1),
+			path:    path.StartPath(qs).Has(vStatus, vCool).Skip(1).Limit(1),
 			expectAlt: [][]quad.Value{
 				{vBob},
 				{vDani},
@@ -337,105 +336,105 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "Count",
-			path:    StartPath(qs).Has(vStatus).Count(),
+			path:    path.StartPath(qs).Has(vStatus).Count(),
 			expect:  []quad.Value{quad.Int(5)},
 		},
 		{
 			message: "double Has",
-			path:    StartPath(qs).Has(vStatus, vCool).Has(vFollows, vFred),
+			path:    path.StartPath(qs).Has(vStatus, vCool).Has(vFollows, vFred),
 			expect:  []quad.Value{vBob},
 		},
 		{
 			message: "simple HasReverse",
-			path:    StartPath(qs).HasReverse(vStatus, vBob),
+			path:    path.StartPath(qs).HasReverse(vStatus, vBob),
 			expect:  []quad.Value{vCool},
 		},
 		{
 			message: ".Tag()-.Is()-.Back()",
-			path:    StartPath(qs, vBob).In(vFollows).Tag("foo").Out(vStatus).Is(vCool).Back("foo"),
+			path:    path.StartPath(qs, vBob).In(vFollows).Tag("foo").Out(vStatus).Is(vCool).Back("foo"),
 			expect:  []quad.Value{vDani},
 		},
 		{
 			message: "do multiple .Back()s",
-			path:    StartPath(qs, vEmily).Out(vFollows).Tag("f").Out(vFollows).Out(vStatus).Is(vCool).Back("f").In(vFollows).In(vFollows).Tag("acd").Out(vStatus).Is(vCool).Back("f"),
+			path:    path.StartPath(qs, vEmily).Out(vFollows).Tag("f").Out(vFollows).Out(vStatus).Is(vCool).Back("f").In(vFollows).In(vFollows).Tag("acd").Out(vStatus).Is(vCool).Back("f"),
 			tag:     "acd",
 			expect:  []quad.Value{vDani},
 		},
 		{
 			message: "Labels()",
-			path:    StartPath(qs, vGreg).Labels(),
+			path:    path.StartPath(qs, vGreg).Labels(),
 			expect:  []quad.Value{vSmartGraph},
 		},
 		{
 			message: "InPredicates()",
-			path:    StartPath(qs, vBob).InPredicates(),
+			path:    path.StartPath(qs, vBob).InPredicates(),
 			expect:  []quad.Value{vFollows},
 		},
 		{
 			message: "OutPredicates()",
-			path:    StartPath(qs, vBob).OutPredicates(),
+			path:    path.StartPath(qs, vBob).OutPredicates(),
 			expect:  []quad.Value{vFollows, vStatus},
 		},
 		{
 			message: "SavePredicates(in)",
-			path:    StartPath(qs, vBob).SavePredicates(true, "pred"),
+			path:    path.StartPath(qs, vBob).SavePredicates(true, "pred"),
 			expect:  []quad.Value{vFollows, vFollows, vFollows},
 			tag:     "pred",
 		},
 		{
 			message: "SavePredicates(out)",
-			path:    StartPath(qs, vBob).SavePredicates(false, "pred"),
+			path:    path.StartPath(qs, vBob).SavePredicates(false, "pred"),
 			expect:  []quad.Value{vFollows, vStatus},
 			tag:     "pred",
 		},
 		// Morphism tests
 		{
 			message: "simple morphism",
-			path:    StartPath(qs, vCharlie).Follow(grandfollows),
+			path:    path.StartPath(qs, vCharlie).Follow(grandfollows),
 			expect:  []quad.Value{vGreg, vFred, vBob},
 		},
 		{
 			message: "reverse morphism",
-			path:    StartPath(qs, vFred).FollowReverse(grandfollows),
+			path:    path.StartPath(qs, vFred).FollowReverse(grandfollows),
 			expect:  []quad.Value{vAlice, vCharlie, vDani},
 		},
 		// Context tests
 		{
 			message: "query without label limitation",
-			path:    StartPath(qs, vGreg).Out(vStatus),
+			path:    path.StartPath(qs, vGreg).Out(vStatus),
 			expect:  []quad.Value{vSmart, vCool},
 		},
 		{
 			message: "query with label limitation",
-			path:    StartPath(qs, vGreg).LabelContext(vSmartGraph).Out(vStatus),
+			path:    path.StartPath(qs, vGreg).LabelContext(vSmartGraph).Out(vStatus),
 			expect:  []quad.Value{vSmart},
 		},
 		{
 			message: "reverse context",
-			path:    StartPath(qs, vGreg).Tag("base").LabelContext(vSmartGraph).Out(vStatus).Tag("status").Back("base"),
+			path:    path.StartPath(qs, vGreg).Tag("base").LabelContext(vSmartGraph).Out(vStatus).Tag("status").Back("base"),
 			expect:  []quad.Value{vGreg},
 		},
 		// Optional tests
 		{
 			message: "save limits top level",
-			path:    StartPath(qs, vBob, vCharlie).Out(vFollows).Save(vStatus, "statustag"),
+			path:    path.StartPath(qs, vBob, vCharlie).Out(vFollows).Save(vStatus, "statustag"),
 			expect:  []quad.Value{vBob, vDani},
 		},
 		{
 			message: "optional still returns top level",
-			path:    StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
+			path:    path.StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
 			expect:  []quad.Value{vBob, vFred, vDani},
 		},
 		{
 			message: "optional has the appropriate tags",
-			path:    StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
+			path:    path.StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
 			tag:     "statustag",
 			expect:  []quad.Value{vCool, vCool},
 		},
 		{
 			message: "composite paths (clone paths)",
-			path: func() *Path {
-				alicePath := StartPath(qs, vAlice)
+			path: func() *path.Path {
+				alicePath := path.StartPath(qs, vAlice)
 				_ = alicePath.Out(vFollows)
 
 				return alicePath
@@ -444,22 +443,22 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "follow recursive",
-			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, 0, nil),
+			path:    path.StartPath(qs, vCharlie).FollowRecursive(vFollows, 0, nil),
 			expect:  []quad.Value{vBob, vDani, vFred, vGreg},
 		},
 		{
 			message: "follow recursive (limit depth)",
-			path:    StartPath(qs, vCharlie).FollowRecursive(vFollows, 1, nil),
+			path:    path.StartPath(qs, vCharlie).FollowRecursive(vFollows, 1, nil),
 			expect:  []quad.Value{vBob, vDani},
 		},
 		{
 			message: "find non-existent",
-			path:    StartPath(qs, quad.IRI("<not-existing>")),
+			path:    path.StartPath(qs, quad.IRI("<not-existing>")),
 			expect:  nil,
 		},
 		{
 			message: "use order",
-			path:    StartPath(qs).Order(),
+			path:    path.StartPath(qs).Order(),
 			expect: []quad.Value{
 				vAlice,
 				vAre,
@@ -479,7 +478,7 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "use order tags",
-			path:    StartPath(qs).Tag("target").Order(),
+			path:    path.StartPath(qs).Tag("target").Order(),
 			tag:     "target",
 			expect: []quad.Value{
 				vAlice,
@@ -500,20 +499,20 @@ func testSet(qs graph.QuadStore) []test {
 		},
 		{
 			message: "order with a next path",
-			path:    StartPath(qs, vDani, vBob).Save(vFollows, "target").Order(),
+			path:    path.StartPath(qs, vDani, vBob).Save(vFollows, "target").Order(),
 			tag:     "target",
 			expect:  []quad.Value{vBob, vFred, vGreg},
 		},
 		{
 			message:  "order with a next path",
-			path:     StartPath(qs).Order().Has(vFollows, vBob),
+			path:     path.StartPath(qs).Order().Has(vFollows, vBob),
 			expect:   []quad.Value{vAlice, vCharlie, vDani},
 			unsorted: true,
 			skip:     true, // TODO(dennwc): optimize Order in And properly
 		},
 		{
 			message: "optional path",
-			path:    StartPath(qs, vBob, vDani, vFred).Optional(StartMorphism().Save(vStatus, "status")),
+			path:    path.StartPath(qs, vBob, vDani, vFred).Optional(path.StartMorphism().Save(vStatus, "status")),
 			tag:     "status",
 			empty:   true,
 			expect:  []quad.Value{vEmpty, vCool, vCool},
@@ -599,8 +598,8 @@ func testFollowRecursive(t *testing.T, fnc testutil.DatabaseFunc) {
 	}...)
 	defer closer()
 
-	qu := StartPath(qs, quad.IRI("a")).FollowRecursive(
-		StartMorphism().Out(quad.IRI("parent")), 0, nil,
+	qu := path.StartPath(qs, quad.IRI("a")).FollowRecursive(
+		path.StartMorphism().Out(quad.IRI("parent")), 0, nil,
 	).Has(quad.IRI("labels"), quad.IRI("tag"))
 
 	expect := []quad.Value{quad.IRI("c"), quad.IRI("d")}
@@ -665,8 +664,8 @@ func testFollowRecursiveHas(t *testing.T, fnc testutil.DatabaseFunc) {
 	}...)
 	defer closer()
 
-	qu := StartPath(qs, quad.IRI("1")).FollowRecursive(
-		StartMorphism().Tag("pid").Out(quad.IRI("knows")), 2, nil,
+	qu := path.StartPath(qs, quad.IRI("1")).FollowRecursive(
+		path.StartMorphism().Tag("pid").Out(quad.IRI("knows")), 2, nil,
 	).Has(quad.IRI("relatesTo")).Tag("id")
 
 	expect := []map[string]quad.Value{

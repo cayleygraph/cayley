@@ -1065,9 +1065,8 @@ func (s Intersect) Optimize(ctx context.Context, r Optimizer) (sout Shape, opt b
 						// we have the same direction set as a fixed constraint - do filtering
 						if refs.ToKey(v) != refs.ToKey(fv) {
 							return nil, true
-						} else {
-							return sf, true
 						}
+						return sf, true
 					}
 					sf = sf.Clone()
 					sf.SetFilter(sf.Result, fv) // LinksTo(HasA.Dir, fixed)

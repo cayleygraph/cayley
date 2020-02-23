@@ -26,7 +26,7 @@ var _ iterator.Shape = (*allIterator)(nil)
 
 type allIterator struct {
 	qs    *QuadStore
-	all   []*primitive
+	all   []*Primitive
 	maxid int64 // id of last observed insert (prim id)
 	nodes bool
 }
@@ -67,7 +67,7 @@ func (it *allIterator) Stats(ctx context.Context) (iterator.Costs, error) {
 	}, nil
 }
 
-func (p *primitive) filter(isNode bool, maxid int64) bool {
+func (p *Primitive) filter(isNode bool, maxid int64) bool {
 	if p.ID > maxid {
 		return false
 	} else if isNode && p.Value != nil {
@@ -80,23 +80,23 @@ func (p *primitive) filter(isNode bool, maxid int64) bool {
 
 type allIteratorNext struct {
 	qs    *QuadStore
-	all   []*primitive
+	all   []*Primitive
 	maxid int64 // id of last observed insert (prim id)
 	nodes bool
 
 	i    int // index into qs.all
-	cur  *primitive
+	cur  *Primitive
 	done bool
 }
 
-func (qs *QuadStore) newAllIteratorNext(nodes bool, maxid int64, all []*primitive) *allIteratorNext {
+func (qs *QuadStore) newAllIteratorNext(nodes bool, maxid int64, all []*Primitive) *allIteratorNext {
 	return &allIteratorNext{
 		qs: qs, all: all, nodes: nodes,
 		i: -1, maxid: maxid,
 	}
 }
 
-func (it *allIteratorNext) ok(p *primitive) bool {
+func (it *allIteratorNext) ok(p *Primitive) bool {
 	return p.filter(it.nodes, it.maxid)
 }
 
@@ -154,7 +154,7 @@ type allIteratorContains struct {
 	maxid int64 // id of last observed insert (prim id)
 	nodes bool
 
-	cur  *primitive
+	cur  *Primitive
 	done bool
 }
 
@@ -165,7 +165,7 @@ func (qs *QuadStore) newAllIteratorContains(nodes bool, maxid int64) *allIterato
 	}
 }
 
-func (it *allIteratorContains) ok(p *primitive) bool {
+func (it *allIteratorContains) ok(p *Primitive) bool {
 	return p.filter(it.nodes, it.maxid)
 }
 
