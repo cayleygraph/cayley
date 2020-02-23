@@ -26,6 +26,7 @@ script:
   - CGO_ENABLED=0 go build -o /tmp/cayley ./cmd/cayley
   - go run github.com/gobuffalo/packr/v2/packr2
   - git checkout -- ./packrd/dummy.go
+  - bash lint.sh
   - go test -v ./...
 
 after_success:
