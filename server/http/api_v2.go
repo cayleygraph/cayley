@@ -32,6 +32,8 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/shape"
+
+	// Writer is imported for writers to be registered
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
 )
@@ -67,6 +69,7 @@ func NewAPIv2Writer(h *graph.Handle, wtype string, wopts graph.Options, wrappers
 	return api
 }
 
+// APIv2 holds state and configuration of a request
 type APIv2 struct {
 	h       *graph.Handle
 	ro      bool
@@ -82,25 +85,36 @@ type APIv2 struct {
 	limit   int
 }
 
+// SetReadOnly sets read-only mode for the request
 func (api *APIv2) SetReadOnly(ro bool) {
 	api.ro = ro
 }
+
+// SetBatchSize sets batch-size mode for the request
 func (api *APIv2) SetBatchSize(n int) {
 	api.batch = n
 }
+
+// SetQueryTimeout sets query timeout for the request
 func (api *APIv2) SetQueryTimeout(dt time.Duration) {
 	api.timeout = dt
 }
+
+// SetQueryLimit sets query limit for the request
 func (api *APIv2) SetQueryLimit(n int) {
 	api.limit = n
 }
 
+// ServeHTTP implements http.Handler
 func (api *APIv2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	api.handler.ServeHTTP(w, r)
 }
 
+// HandlerWrapper accepts a handler, wraps it with additional functionality and
+// returns a new handler
 type HandlerWrapper func(http.Handler) http.Handler
 
+// toHandle wraps a http.HandlerFunc to comply with the signature of httprouter.Handle
 func toHandle(handler http.HandlerFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		handler(w, r)
@@ -206,6 +220,7 @@ func newWriteResponse(count int) writeResponse {
 	}
 }
 
+// ServeWrite writes data received in the request body to the database
 func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if api.ro {
@@ -248,6 +263,8 @@ func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 	encoder.Encode(response)
 }
 
+// ServeDelete deletes data received in the request body from the database if it exists.
+// Responds with how many quads were deleted.
 func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if api.ro {
@@ -283,6 +300,8 @@ func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"result": "Successfully deleted %d quads.", "count": %d}`+"\n", n, n)
 }
 
+// ServeNodeDelete deletes all data associated with a node (an entity).
+// Responds with how many quads were deleted.
 func (api *APIv2) ServeNodeDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if api.ro {
@@ -349,6 +368,7 @@ func valuesFromString(s string) []quad.Value {
 	return out
 }
 
+// ServeRead responds with quads read from the database
 func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 	format := getFormat(r, "format", hdrAccept)
 	if format == nil || format.Writer == nil {
@@ -408,6 +428,7 @@ func (api *APIv2) ServeRead(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ServeFormats responds with formats known for the database
 func (api *APIv2) ServeFormats(w http.ResponseWriter, r *http.Request) {
 	type Format struct {
 		ID     string   `json:"id"`
@@ -469,6 +490,7 @@ func readLimit(r io.Reader) ([]byte, error) {
 	return data, err
 }
 
+// ServeQuery executes a query received in the request and responds with the result
 func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := api.queryContext(r)
 	defer cancel()
