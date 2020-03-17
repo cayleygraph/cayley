@@ -37,6 +37,12 @@ func writeQuads(q []quad.Quad, w io.Writer) error {
 	return err
 }
 
+func newQuadsBuffer(quads []quad.Quad) (*bytes.Buffer, error) {
+	buf := bytes.NewBuffer(nil)
+	err := writeQuads(quads, buf)
+	return buf, err
+}
+
 var mime = quad.FormatByName("jsonld").Mime[0]
 
 var quads = []quad.Quad{
@@ -46,10 +52,7 @@ var quads = []quad.Quad{
 
 func TestV2Write(t *testing.T) {
 	api := makeServerV2(t)
-	buf := bytes.NewBuffer(nil)
-
-	err := writeQuads(quads, buf)
-	require.NoError(t, err)
+	buf, err := newQuadsBuffer(quads)
 
 	req, err := http.NewRequest(http.MethodGet, prefix+"/write", buf)
 	require.NoError(t, err)
@@ -90,4 +93,20 @@ func TestV2Read(t *testing.T) {
 	sort.Sort(quad.ByQuadString(quads))
 	require.Equal(t, quads, receivedQuads)
 
+}
+
+func TestV2Delete(t *testing.T) {
+	api := makeServerV2(t, quads...)
+	buf, err := newQuadsBuffer(quads)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, prefix+"/delete", buf)
+	require.NoError(t, err)
+	req.Header.Set(hdrContentType, mime)
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(api.ServeDelete)
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, rr.Code, http.StatusOK, rr.Body.String())
 }

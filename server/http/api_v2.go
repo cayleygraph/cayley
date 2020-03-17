@@ -263,7 +263,7 @@ func (api *APIv2) ServeWrite(w http.ResponseWriter, r *http.Request) {
 	encoder.Encode(response)
 }
 
-// ServeDelete deletes data received in the request body from the database if it exists.
+// ServeDelete deletes data received in the request body from the database.
 // Responds with how many quads were deleted.
 func (api *APIv2) ServeDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
