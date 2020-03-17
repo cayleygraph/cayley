@@ -83,7 +83,7 @@ type iteratorNext struct {
 	d     quad.Direction
 
 	iter *Enumerator
-	cur  *primitive
+	cur  *Primitive
 	err  error
 }
 
@@ -151,7 +151,7 @@ type iteratorContains struct {
 	qs    *QuadStore
 	tree  *Tree
 
-	cur *primitive
+	cur *Primitive
 
 	d     quad.Direction
 	value int64

@@ -44,7 +44,7 @@ type bnode int64
 func (n bnode) Key() interface{} { return n }
 
 type qprim struct {
-	p *primitive
+	p *Primitive
 }
 
 func (n qprim) Key() interface{} { return n.p.ID }
@@ -88,7 +88,7 @@ func (qdi QuadDirectionIndex) Get(d quad.Direction, id int64) (*Tree, bool) {
 	return tree, ok
 }
 
-type primitive struct {
+type Primitive struct {
 	ID    int64
 	Quad  internalQuad
 	Value quad.Value
@@ -137,8 +137,8 @@ type QuadStore struct {
 	// TODO: string -> quad.Value once Raw -> typed resolution is unnecessary
 	vals    map[string]int64
 	quads   map[internalQuad]int64
-	prim    map[int64]*primitive
-	all     []*primitive // might not be sorted by id
+	prim    map[int64]*Primitive
+	all     []*Primitive // might not be sorted by id
 	reading bool         // someone else might be reading "all" slice - next insert/delete should clone it
 	index   QuadDirectionIndex
 	horizon int64 // used only to assign ids to tx
@@ -158,17 +158,17 @@ func newQuadStore() *QuadStore {
 	return &QuadStore{
 		vals:  make(map[string]int64),
 		quads: make(map[internalQuad]int64),
-		prim:  make(map[int64]*primitive),
+		prim:  make(map[int64]*Primitive),
 		index: NewQuadDirectionIndex(),
 	}
 }
 
-func (qs *QuadStore) cloneAll() []*primitive {
+func (qs *QuadStore) cloneAll() []*Primitive {
 	qs.reading = true
 	return qs.all
 }
 
-func (qs *QuadStore) addPrimitive(p *primitive) int64 {
+func (qs *QuadStore) addPrimitive(p *Primitive) int64 {
 	qs.last++
 	id := qs.last
 	p.ID = id
@@ -177,7 +177,7 @@ func (qs *QuadStore) addPrimitive(p *primitive) int64 {
 	return id
 }
 
-func (qs *QuadStore) appendPrimitive(p *primitive) {
+func (qs *QuadStore) appendPrimitive(p *Primitive) {
 	qs.prim[p.ID] = p
 	if !qs.reading {
 		qs.all = append(qs.all, p)
@@ -204,7 +204,7 @@ func (qs *QuadStore) resolveVal(v quad.Value, add bool) (int64, bool) {
 				}
 				return id, ok
 			}
-			qs.appendPrimitive(&primitive{ID: id, refs: 1})
+			qs.appendPrimitive(&Primitive{ID: id, refs: 1})
 			return id, true
 		}
 	}
@@ -215,7 +215,7 @@ func (qs *QuadStore) resolveVal(v quad.Value, add bool) (int64, bool) {
 		}
 		return id, exists
 	}
-	id := qs.addPrimitive(&primitive{Value: v})
+	id := qs.addPrimitive(&Primitive{Value: v})
 	qs.vals[vs] = id
 	return id, true
 }
@@ -259,7 +259,7 @@ func (qs *QuadStore) lookupQuadDirs(p internalQuad) quad.Quad {
 
 // AddNode adds a blank node (with no value) to quad store. It returns an id of the node.
 func (qs *QuadStore) AddBNode() int64 {
-	return qs.addPrimitive(&primitive{})
+	return qs.addPrimitive(&Primitive{})
 }
 
 // AddNode adds a value to quad store. It returns an id of the value.
@@ -289,7 +289,7 @@ func (qs *QuadStore) AddQuad(q quad.Quad) (int64, bool) {
 		return id, false
 	}
 	p, _ = qs.resolveQuad(q, true)
-	pr := &primitive{Quad: p}
+	pr := &Primitive{Quad: p}
 	id := qs.addPrimitive(pr)
 	qs.quads[p] = id
 	for _, t := range qs.indexesForQuad(p) {
@@ -382,7 +382,7 @@ func (qs *QuadStore) Delete(id int64) bool {
 		if !qs.reading {
 			qs.all = append(qs.all[:di], qs.all[di+1:]...)
 		} else {
-			all := make([]*primitive, 0, len(qs.all)-1)
+			all := make([]*Primitive, 0, len(qs.all)-1)
 			all = append(all, qs.all[:di]...)
 			all = append(all, qs.all[di+1:]...)
 			qs.all = all

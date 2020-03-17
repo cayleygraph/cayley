@@ -127,7 +127,7 @@ type QuadHash [4]string
 func (QuadHash) IsNode() bool       { return false }
 func (v QuadHash) Key() interface{} { return v }
 
-func (h QuadHash) Get(d quad.Direction) string {
+func (v QuadHash) Get(d quad.Direction) string {
 	var ind int
 	switch d {
 	case quad.Subject:
@@ -139,7 +139,7 @@ func (h QuadHash) Get(d quad.Direction) string {
 	case quad.Label:
 		ind = 3
 	}
-	return h[ind]
+	return v[ind]
 }
 
 const (
