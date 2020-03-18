@@ -62,7 +62,7 @@ func TestV2Write(t *testing.T) {
 	handler := http.HandlerFunc(api.ServeWrite)
 	handler.ServeHTTP(rr, req)
 
-	require.Equal(t, rr.Code, http.StatusOK, rr.Body.String())
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 
 	expectedResponse := newWriteResponse(len(quads))
 
@@ -84,7 +84,7 @@ func TestV2Read(t *testing.T) {
 	handler := http.HandlerFunc(api.ServeRead)
 	handler.ServeHTTP(rr, req)
 
-	require.Equal(t, rr.Code, http.StatusOK, rr.Body.String())
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 
 	reader := jsonld.NewReader(rr.Body)
 	receivedQuads, err := quad.ReadAll(reader)
@@ -108,5 +108,53 @@ func TestV2Delete(t *testing.T) {
 	handler := http.HandlerFunc(api.ServeDelete)
 	handler.ServeHTTP(rr, req)
 
-	require.Equal(t, rr.Code, http.StatusOK, rr.Body.String())
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+}
+
+func TestV2GetNamespaceRules(t *testing.T) {
+	api := makeServerV2(t)
+	buf := bytes.NewBuffer(nil)
+	req, err := http.NewRequest(http.MethodGet, prefix+"/namespace-rules", buf)
+	require.NoError(t, err)
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(api.ServeNamespaceRules)
+	handler.ServeHTTP(rr, req)
+	var rules []NamespaceRule
+	err = json.Unmarshal(rr.Body.Bytes(), &rules)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.Equal(t, contentTypeJSON, rr.Header().Get(hdrContentType))
+	require.NotEmpty(t, rules)
+}
+
+func TestV2PostNamespaceRules(t *testing.T) {
+	api := makeServerV2(t)
+	rule := NamespaceRule{
+		Prefix:    "foaf",
+		Namespace: "http://xmlns.com/foaf/0.1/",
+	}
+	buf := bytes.NewBuffer(nil)
+	encoder := json.NewEncoder(buf)
+	encoder.Encode(rule)
+	req, err := http.NewRequest(http.MethodPost, prefix+"/namespace-rules", buf)
+	require.NoError(t, err)
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(api.ServeNamespaceRules)
+	handler.ServeHTTP(rr, req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, rr.Code)
+	require.Empty(t, rr.Body.Bytes())
+
+	// Check effect
+	req, err = http.NewRequest(http.MethodGet, prefix+"/namespace-rules", buf)
+	require.NoError(t, err)
+	rr = httptest.NewRecorder()
+	handler = http.HandlerFunc(api.ServeNamespaceRules)
+	handler.ServeHTTP(rr, req)
+	var rules []NamespaceRule
+	err = json.Unmarshal(rr.Body.Bytes(), &rules)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.Equal(t, contentTypeJSON, rr.Header().Get(hdrContentType))
+	require.Contains(t, rules, rule)
 }
