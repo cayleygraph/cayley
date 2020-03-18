@@ -21,7 +21,10 @@ func makeHandle(t testing.TB, quads ...quad.Quad) *graph.Handle {
 	qs := memstore.New(quads...)
 	wr, err := writer.NewSingleReplication(qs, nil)
 	require.NoError(t, err)
-	return &graph.Handle{qs, wr}
+	return &graph.Handle{
+		QuadStore:  qs,
+		QuadWriter: wr,
+	}
 }
 
 func makeServerV2(t testing.TB, quads ...quad.Quad) *APIv2 {

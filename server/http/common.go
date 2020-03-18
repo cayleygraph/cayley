@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/http"
+	httpgraph "github.com/cayleygraph/cayley/graph/http"
 )
 
 func jsonResponse(w http.ResponseWriter, code int, err interface{}) {
@@ -27,6 +27,7 @@ func jsonResponse(w http.ResponseWriter, code int, err interface{}) {
 	w.Write([]byte(`}`))
 }
 
+// HandleForRequest returns new graph.Handle for given writer name, options and request
 func HandleForRequest(h *graph.Handle, wtyp string, wopt graph.Options, r *http.Request) (*graph.Handle, error) {
 	g, ok := h.QuadStore.(httpgraph.QuadStore)
 	if !ok {
