@@ -12,15 +12,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var alice = quad.IRI("http://example.org/alice")
-var bob = quad.IRI("http://example.org/bob")
-var dan = quad.IRI("http://example.org/dan")
-var likes = quad.IRI("http://example.org/likes")
-var likesName = quad.IRI("http://example.org/likesName")
-var name = quad.IRI("http://example.org/name")
-var person = quad.IRI("http://example.org/person")
-var liker = quad.IRI("http://example.org/liker")
-var liked = quad.IRI("http://example.org/liked")
+var (
+	exNS      = "http://example.org/"
+	alice     = quad.IRI(exNS + "alice")
+	bob       = quad.IRI(exNS + "bob")
+	dan       = quad.IRI(exNS + "dan")
+	likes     = quad.IRI(exNS + "likes")
+	likesName = quad.IRI(exNS + "likesName")
+	name      = quad.IRI(exNS + "name")
+	person    = quad.IRI(exNS + "person")
+	liker     = quad.IRI(exNS + "liker")
+	liked     = quad.IRI(exNS + "liked")
+)
 
 var singleQuadData = []quad.Quad{
 	quad.Quad{alice, likes, bob, nil},
