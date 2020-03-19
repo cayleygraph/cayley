@@ -18,6 +18,11 @@ type PropertyPath struct {
 	PropertyPathI
 }
 
+// NewPropertyPath creates a PropertyPath from a value that can be casted to PropertyPath
+func NewPropertyPath(p PropertyPathI) PropertyPath {
+	return PropertyPath{PropertyPathI: p}
+}
+
 // Description implements Step.
 func (*PropertyPath) Description() string {
 	return "PropertyPath is a string, multiple strins or path describing a set of properties"

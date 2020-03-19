@@ -25,8 +25,12 @@ var (
 	liked     = quad.IRI(exNS + "liked")
 )
 
+func newQuad(subject quad.Value, predicate quad.Value, object quad.Value, label quad.Value) quad.Quad {
+	return quad.Quad{Subject: subject, Predicate: predicate, Object: object, Label: label}
+}
+
 var singleQuadData = []quad.Quad{
-	quad.Quad{alice, likes, bob, nil},
+	newQuad(alice, likes, bob, nil),
 }
 
 var testCases = []struct {
@@ -62,7 +66,7 @@ var testCases = []struct {
 					From: &Vertex{},
 					Name: string(liker),
 				},
-				Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+				Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 			},
 		},
 		results: []interface{}{
@@ -82,7 +86,7 @@ var testCases = []struct {
 						From: &Vertex{},
 						Name: string(liker),
 					},
-					Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+					Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 				},
 				Name: "liked",
 			},
@@ -101,11 +105,11 @@ var testCases = []struct {
 				From: &Vertex{
 					Values: []quad.Value{alice},
 				},
-				Properties: linkedql.PropertyPath{&Vertex{
+				Properties: linkedql.NewPropertyPath(&Vertex{
 					Values: []quad.Value{
 						likes,
 					},
-				}},
+				}),
 			},
 		},
 		results: []interface{}{
@@ -115,14 +119,14 @@ var testCases = []struct {
 	{
 		name: "Both",
 		data: []quad.Quad{
-			quad.Quad{dan, likes, bob, nil},
-			quad.Quad{bob, likes, alice, nil},
+			newQuad(dan, likes, bob, nil),
+			newQuad(bob, likes, alice, nil),
 		},
 		query: &Both{
 			From: &Vertex{
 				Values: []quad.Value{bob},
 			},
-			Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+			Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 		},
 		results: []interface{}{
 			map[string]string{"@id": string(dan)},
@@ -243,9 +247,9 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Property: linkedql.PropertyPath{&Vertex{
+			Property: linkedql.NewPropertyPath(&Vertex{
 				Values: []quad.Value{likes},
-			}},
+			}),
 			Values: []quad.Value{bob},
 		},
 		results: []interface{}{
@@ -259,9 +263,9 @@ var testCases = []struct {
 			From: &Vertex{
 				Values: []quad.Value{},
 			},
-			Property: linkedql.PropertyPath{&Vertex{
+			Property: linkedql.NewPropertyPath(&Vertex{
 				Values: []quad.Value{likes},
-			}},
+			}),
 			Values: []quad.Value{alice},
 		},
 		results: []interface{}{
@@ -273,7 +277,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &VisitReverse{
 			From:       &Vertex{Values: []quad.Value{}},
-			Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+			Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 		},
 		results: []interface{}{
 			map[string]string{"@id": string(alice)},
@@ -292,20 +296,20 @@ var testCases = []struct {
 	{
 		name: "Intersect",
 		data: []quad.Quad{
-			quad.Quad{bob, likes, alice, nil},
-			quad.Quad{dan, likes, alice, nil},
+			newQuad(bob, likes, alice, nil),
+			newQuad(dan, likes, alice, nil),
 		},
 		query: &Intersect{
 			From: &Visit{
 				From: &Vertex{Values: []quad.Value{bob}},
-				Properties: linkedql.PropertyPath{&Vertex{
+				Properties: linkedql.NewPropertyPath(&Vertex{
 					Values: []quad.Value{likes},
-				}},
+				}),
 			},
 			Steps: []linkedql.PathStep{
 				&Visit{
 					From:       &Vertex{Values: []quad.Value{bob}},
-					Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+					Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 				},
 			},
 		},
@@ -320,9 +324,9 @@ var testCases = []struct {
 			Values: []quad.Value{bob},
 			From: &Visit{
 				From: &Vertex{Values: []quad.Value{alice}},
-				Properties: linkedql.PropertyPath{&Vertex{
+				Properties: linkedql.NewPropertyPath(&Vertex{
 					Values: []quad.Value{likes},
-				}},
+				}),
 			},
 		},
 		results: []interface{}{
@@ -348,7 +352,7 @@ var testCases = []struct {
 		data: singleQuadData,
 		query: &Visit{
 			From:       &Vertex{Values: []quad.Value{}},
-			Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+			Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 		},
 		results: []interface{}{
 			map[string]string{"@id": string(bob)},
@@ -460,7 +464,7 @@ var testCases = []struct {
 					Name: string(liker),
 					From: &Vertex{},
 				},
-				Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+				Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 			},
 		},
 		results: []interface{}{map[string]interface{}{
@@ -495,9 +499,9 @@ var testCases = []struct {
 	{
 		name: "Optional",
 		data: []quad.Quad{
-			quad.Quad{alice, likes, bob, nil},
-			quad.Quad{alice, name, quad.String("Alice"), nil},
-			quad.Quad{bob, name, quad.String("Bob"), nil},
+			newQuad(alice, likes, bob, nil),
+			newQuad(alice, name, quad.String("Alice"), nil),
+			newQuad(bob, name, quad.String("Bob"), nil),
 		},
 		query: &Select{
 			From: &Optional{
@@ -524,9 +528,9 @@ var testCases = []struct {
 	{
 		name: "Where",
 		data: []quad.Quad{
-			quad.Quad{alice, likes, bob, nil},
-			quad.Quad{alice, name, quad.String("Alice"), nil},
-			quad.Quad{bob, name, quad.String("Bob"), nil},
+			newQuad(alice, likes, bob, nil),
+			newQuad(alice, name, quad.String("Alice"), nil),
+			newQuad(bob, name, quad.String("Bob"), nil),
 		},
 		query: &Select{
 			From: &Where{
@@ -536,16 +540,16 @@ var testCases = []struct {
 						From: &Visit{
 							From: &Visit{
 								From:       &Placeholder{},
-								Properties: linkedql.PropertyPath{linkedql.PropertyIRI(likes)},
+								Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 							},
-							Properties: linkedql.PropertyPath{linkedql.PropertyIRI(name)},
+							Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(name)),
 						},
 						Name: string(likesName),
 					},
 					&As{
 						From: &Visit{
 							From:       &Placeholder{},
-							Properties: linkedql.PropertyPath{linkedql.PropertyIRI(name)},
+							Properties: linkedql.NewPropertyPath(linkedql.PropertyIRI(name)),
 						},
 						Name: string(name),
 					},
@@ -562,10 +566,10 @@ var testCases = []struct {
 	{
 		name: "Documents",
 		data: []quad.Quad{
-			quad.Quad{alice, likes, bob, nil},
-			quad.Quad{alice, name, quad.String("Alice"), nil},
-			quad.Quad{bob, name, quad.String("Bob"), nil},
-			quad.Quad{bob, likes, alice, nil},
+			newQuad(alice, likes, bob, nil),
+			newQuad(alice, name, quad.String("Alice"), nil),
+			newQuad(bob, name, quad.String("Bob"), nil),
+			newQuad(bob, likes, alice, nil),
 		},
 		query: &Documents{
 			From: &Properties{
@@ -589,13 +593,13 @@ var testCases = []struct {
 	{
 		name: "Context",
 		data: []quad.Quad{
-			quad.Quad{alice, likes, bob, nil},
-			quad.Quad{bob, likes, alice, nil},
+			newQuad(alice, likes, bob, nil),
+			newQuad(bob, likes, alice, nil),
 		},
 		query: &Context{
 			From: &Has{
 				From:     &Vertex{},
-				Property: linkedql.PropertyPath{linkedql.PropertyIRI("likes")},
+				Property: linkedql.NewPropertyPath(linkedql.PropertyIRI("likes")),
 				Values:   []quad.Value{bob},
 			},
 			Rules: map[string]string{
