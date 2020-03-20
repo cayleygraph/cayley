@@ -80,7 +80,7 @@ var testCases = []struct {
 		name: "Select with tags",
 		data: singleQuadData,
 		query: &Select{
-			Tags: []string{string(liker)},
+			Properties: []string{string(liker)},
 			From: &As{
 				From: &Visit{
 					From: &As{
