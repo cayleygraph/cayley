@@ -63,7 +63,8 @@ func (s *SelectFirst) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (que
 	if err != nil {
 		return nil, err
 	}
-	return &linkedql.TagsIterator{it, s.Tags}, nil
+	tagsIt := linkedql.NewTagsIterator(it, s.Tags)
+	return &tagsIt, nil
 }
 
 var _ linkedql.IteratorStep = (*Value)(nil)

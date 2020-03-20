@@ -37,6 +37,7 @@ require (
 	github.com/opencontainers/selinux v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/peterh/liner v0.0.0-20170317030525-88609521dc4b
+	github.com/piprate/json-gold v0.3.0
 	github.com/prometheus/client_golang v0.9.3
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/russross/blackfriday v1.5.2

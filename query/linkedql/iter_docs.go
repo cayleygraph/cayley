@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/query"
-	"github.com/linkeddata/gojsonld"
+	"github.com/piprate/json-gold/ld"
 )
 
-var _ query.Iterator = (*DocumentIterator)(nil)
+var (
+	_ query.Iterator = (*DocumentIterator)(nil)
+)
 
 // DocumentIterator is an iterator of documents from the graph
 type DocumentIterator struct {
@@ -43,7 +45,9 @@ func (it *DocumentIterator) Result() interface{} {
 	}
 	input := interface{}(it.records)
 	context := make(map[string]interface{})
-	expanded, err := gojsonld.Compact(input, context, gojsonld.NewOptions(""))
+	proc := ld.NewJsonLdProcessor()
+	options := ld.NewJsonLdOptions("")
+	expanded, err := proc.Compact(input, context, options)
 	if err != nil {
 		panic(err)
 	}

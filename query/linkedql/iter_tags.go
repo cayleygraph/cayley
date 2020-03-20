@@ -2,22 +2,31 @@ package linkedql
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/jsonld"
+	"github.com/piprate/json-gold/ld"
 )
 
 var _ query.Iterator = (*TagsIterator)(nil)
-
-type tags = map[string]interface{}
 
 // TagsIterator is a result iterator for records consisting of selected tags
 // or all the tags in the query.
 type TagsIterator struct {
 	ValueIt  *ValueIterator
 	Selected []string
+	err      error
+}
+
+// NewTagsIterator creates a new TagsIterator
+func NewTagsIterator(valueIt *ValueIterator, selected []string) TagsIterator {
+	return TagsIterator{
+		ValueIt:  valueIt,
+		Selected: selected,
+		err:      nil,
+	}
 }
 
 // Next implements query.Iterator.
@@ -38,63 +47,89 @@ func stringifyID(id quad.Identifier) string {
 }
 
 // FIXME(iddan): only convert when collation is JSON/JSON-LD, leave as Ref otherwise
-func fromValue(value quad.Value) interface{} {
-	v := jsonld.FromValue(value)
-	if m, ok := v.(map[string]string); ok {
-		n := make(map[string]interface{})
-		for k, v := range m {
-			n[k] = v
-		}
-		return n
+func fromValue(value quad.Value) ld.Node {
+	switch v := value.(type) {
+	case quad.IRI:
+		return ld.NewIRI(string(v))
+	case quad.BNode:
+		return ld.NewBlankNode(string(v))
+	case quad.String:
+		return ld.NewLiteral(string(v), "", "")
+	case quad.TypedString:
+		return ld.NewLiteral(string(v.Value), string(v.Type), "")
+	case quad.LangString:
+		return ld.NewLiteral(string(v.Value), "", v.Lang)
 	}
-	return v
+	panic(fmt.Errorf("Can not convert %v to ld.Node", value))
 }
 
-func getID(it *TagsIterator) (string, bool) {
+func getSubject(it *TagsIterator) ld.Node {
 	scanner := it.ValueIt.scanner
-	identifier, ok := it.ValueIt.getName(scanner.Result()).(quad.Identifier)
-	if ok {
-		return stringifyID(identifier), true
-	}
-	return "", false
+	identifier := it.ValueIt.getName(scanner.Result()).(quad.Identifier)
+	return fromValue(identifier)
 }
 
-func (it *TagsIterator) getTags() tags {
+func fromRDF(dataset *ld.RDFDataset) (interface{}, error) {
+	api := ld.NewJsonLdApi()
+	opts := ld.NewJsonLdOptions("")
+	documents, err := api.FromRDF(dataset, opts)
+	if err != nil {
+		return nil, err
+	}
+	if len(documents) != 1 {
+		return nil, fmt.Errorf("Unexpected number of documents")
+	}
+	return documents[0], nil
+}
+
+func (it *TagsIterator) getTags() (interface{}, error) {
+	d := ld.NewRDFDataset()
+	s := getSubject(it)
 	scanner := it.ValueIt.scanner
 	refTags := make(map[string]refs.Ref)
+
 	scanner.TagResults(refTags)
-	t := make(tags)
+
 	if it.Selected != nil {
 		for _, tag := range it.Selected {
-			if tag == "@id" {
-				id, ok := getID(it)
-				if ok {
-					t[tag] = id
-				}
-				continue
-			}
-			t[tag] = fromValue(it.ValueIt.getName(refTags[tag]))
+			p := ld.NewIRI(tag)
+			o := fromValue(it.ValueIt.getName(refTags[tag]))
+			q := ld.NewQuad(s, p, o, "")
+			d.Graphs["@default"] = append(d.Graphs["@default"], q)
 		}
-	} else {
-		id, ok := getID(it)
-		if ok {
-			t["@id"] = id
+		r, err := fromRDF(d)
+		d := r.(map[string]interface{})
+		if err != nil {
+			return nil, err
 		}
-		for tag, ref := range refTags {
-			t[tag] = fromValue(it.ValueIt.getName(ref))
-		}
+		delete(d, "@id")
+		return d, nil
 	}
 
-	return t
+	for tag, ref := range refTags {
+		p := ld.NewIRI(tag)
+		o := fromValue(it.ValueIt.getName(ref))
+		q := ld.NewQuad(s, p, o, "")
+		d.Graphs["@default"] = append(d.Graphs["@default"], q)
+	}
+	return fromRDF(d)
 }
 
 // Result implements query.Iterator.
 func (it *TagsIterator) Result() interface{} {
-	return it.getTags()
+	tags, err := it.getTags()
+	if err != nil {
+		it.err = err
+		return nil
+	}
+	return tags
 }
 
 // Err implements query.Iterator.
 func (it *TagsIterator) Err() error {
+	if it.err != nil {
+		return it.err
+	}
 	return it.ValueIt.Err()
 }
 
