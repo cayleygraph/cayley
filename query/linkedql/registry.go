@@ -105,7 +105,7 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			if err != nil {
 				return nil, err
 			}
-			value, err := parseValue(v)
+			value, err := parseValue(a)
 			if err != nil {
 				return nil, err
 			}
