@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/bob",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/alice"
+        }
+      ]
+    },
+    {
+      "@id": "http://example.com/dan",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/alice"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:Intersect",
+    "linkedql:from": {
+      "@type": "linkedql:Visit",
+      "linkedql:from": {
+        "@type": "linkedql:Vertex",
+        "linkedql:values": ["http://example.com/bob"]
+      },
+      "linkedql:properties": {
+        "@type": "linkedql:Vertex",
+        "linkedql:values": ["http://example.com/likes"]
+      }
+    },
+    "linkedql:steps": [
+      {
+        "@type": "linkedql:Visit",
+        "linkedql:from": {
+          "@type": "linkedql:Vertex",
+          "linkedql:values": ["http://example.com/bob"]
+        },
+        "linkedql:properties": "http://example.com/likes"
+      }
+    ]
+  },
+  "results": [
+    {
+      "@id": "http://example.com/alice"
+    }
+  ]
+}
