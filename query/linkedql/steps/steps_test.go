@@ -165,7 +165,7 @@ var testCases = []struct {
 		data: []quad.Quad{
 			{Subject: alice, Predicate: name, Object: quad.String("Alice"), Label: nil},
 		},
-		query: &RegExp{Pattern: "A", From: &Vertex{Values: []quad.Value{}}},
+		query: &RegExp{Expression: "A", From: &Vertex{Values: []quad.Value{}}},
 		results: []interface{}{
 			"Alice",
 		},

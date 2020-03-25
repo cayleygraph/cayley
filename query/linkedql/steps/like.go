@@ -9,13 +9,17 @@ import (
 	"github.com/cayleygraph/quad/voc"
 )
 
+func init() {
+	linkedql.Register(&Like{})
+}
+
 var _ linkedql.IteratorStep = (*Like)(nil)
 var _ linkedql.PathStep = (*Like)(nil)
 
 // Like corresponds to like().
 type Like struct {
 	From    linkedql.PathStep `json:"from"`
-	Pattern string            `json:"pattern"`
+	Pattern string            `json:"likePattern"`
 }
 
 // Description implements Operator.
