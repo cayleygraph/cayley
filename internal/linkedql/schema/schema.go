@@ -50,14 +50,14 @@ func typeToRange(t reflect.Type) string {
 	if kind := t.Kind(); kind == reflect.Int64 || kind == reflect.Int {
 		return xsd.Int
 	}
-	if t.Implements(pathStep) {
-		return linkedql.Prefix + "PathStep"
-	}
 	if t.Implements(value) {
 		return rdfs.Resource
 	}
-	if t.Implements(entityIdentifier) {
+	if t == entityIdentifier {
 		return owl.Thing
+	}
+	if t == pathStep {
+		return linkedql.Prefix + "PathStep"
 	}
 	if t == propertyPath {
 		return linkedql.Prefix + "PropertyPath"

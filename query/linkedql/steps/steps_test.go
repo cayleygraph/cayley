@@ -40,9 +40,11 @@ var testCases = []struct {
 	results []interface{}
 }{
 	{
-		name:  "All Entities",
-		data:  singleQuadData,
-		query: &Entities{Identifiers: []linkedql.EntityIdentifier{linkedql.EntityIdentifierString(alice)}},
+		name: "All Entities",
+		data: singleQuadData,
+		query: &Entities{Identifiers: []linkedql.EntityIdentifier{
+			linkedql.NewEntityIdentifier(linkedql.EntityIdentifierString(alice)),
+		}},
 		results: []interface{}{
 			map[string]string{"@id": string(alice)},
 		},

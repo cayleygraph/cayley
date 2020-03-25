@@ -2,6 +2,7 @@ package linkedql
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/path"
@@ -9,16 +10,17 @@ import (
 	"github.com/cayleygraph/quad/voc"
 )
 
+// PropertyPathI is an interface to be used where a path of properties is expected.
 type PropertyPathI interface {
 	BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error)
 }
 
-// PropertyPath is an interface to be used where a path of properties is expected.
+// PropertyPath is a struct wrapping PropertyPathI
 type PropertyPath struct {
 	PropertyPathI
 }
 
-// NewPropertyPath creates a PropertyPath from a value that can be casted to PropertyPath
+// NewPropertyPath constructs a new PropertyPath
 func NewPropertyPath(p PropertyPathI) PropertyPath {
 	return PropertyPath{PropertyPathI: p}
 }
@@ -61,6 +63,17 @@ func (p *PropertyPath) UnmarshalJSON(data []byte) error {
 	if err == nil {
 		p.PropertyPathI = propertyIRIString
 		return nil
+	}
+	errors = append(errors, err)
+
+	step, err := Unmarshal(data)
+	if err == nil {
+		pathStep, ok := step.(PathStep)
+		if ok {
+			p.PropertyPathI = pathStep
+			return nil
+		}
+		errors = append(errors, fmt.Errorf("Step of type %T is not a PathStep. A PropertyPath step must be a PathStep", step))
 	}
 	errors = append(errors, err)
 
@@ -110,4 +123,14 @@ type PropertyIRIString string
 func (p PropertyIRIString) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
 	iri := PropertyIRI(p)
 	return iri.BuildPath(qs, ns)
+}
+
+// PropertyStep is a step that should resolve to a path of properties
+type PropertyStep struct {
+	PathStep
+}
+
+// BuildPath implements PropertyPath
+func (p PropertyStep) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
+	return p.BuildPath(qs, ns)
 }
