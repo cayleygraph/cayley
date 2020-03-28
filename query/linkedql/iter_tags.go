@@ -28,13 +28,13 @@ func (it *TagsIterator) getTags() map[string]interface{} {
 
 	tags := make(map[string]interface{})
 	// FIXME(iddan): only convert when collation is JSON/JSON-LD, leave as Ref otherwise
-	if it.Selected != nil {
-		for _, tag := range it.Selected {
-			tags[tag] = jsonld.FromValue(it.ValueIt.getName(refTags[tag]))
-		}
-	} else {
+	if len(it.Selected) == 0 {
 		for tag, ref := range refTags {
 			tags[tag] = jsonld.FromValue(it.ValueIt.getName(ref))
+		}
+	} else {
+		for _, tag := range it.Selected {
+			tags[tag] = jsonld.FromValue(it.ValueIt.getName(refTags[tag]))
 		}
 	}
 
