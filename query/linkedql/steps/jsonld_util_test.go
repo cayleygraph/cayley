@@ -56,6 +56,12 @@ var testCases = []struct {
 		expected: fmt.Errorf("No matching values for the item \"Bob\" in []interface {}{\"Dan\", \"Alice\"}"),
 	},
 	{
+		name:     "Single non matching property with multiple values non matching length",
+		source:   map[string]interface{}{"http://example.com/name": []interface{}{"Alice", "Bob"}},
+		target:   map[string]interface{}{"http://example.com/name": []interface{}{"Alice"}},
+		expected: fmt.Errorf("Expected []interface {}{\"Alice\", \"Bob\"} and []interface {}{\"Alice\"} to have the same length"),
+	},
+	{
 		name: "Single matching nested",
 		source: map[string]interface{}{
 			"http://example.com/friend": map[string]interface{}{
