@@ -23,7 +23,7 @@
       "@type": "linkedql:Where",
       "linkedql:from": {
         "@type": "linkedql:Vertex",
-        "linkedql:values": null
+        "linkedql:values": []
       },
       "linkedql:steps": [
         {
@@ -54,7 +54,7 @@
         }
       ]
     },
-    "linkedql:tags": null
+    "linkedql:tags": []
   },
   "results": [
     {

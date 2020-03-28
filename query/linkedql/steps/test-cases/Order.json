@@ -16,7 +16,7 @@
     "@type": "linkedql:Order",
     "linkedql:from": {
       "@type": "linkedql:Vertex",
-      "linkedql:values": null
+      "linkedql:values": []
     }
   },
   "results": [

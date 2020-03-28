@@ -37,7 +37,7 @@
         "linkedql:names": ["http://example.com/likes"]
       }
     },
-    "linkedql:tags": null
+    "linkedql:tags": []
   },
   "results": [
     {

@@ -14,7 +14,7 @@
       "linkedql": "http://cayley.io/linkedql"
     },
     "@type": "linkedql:Vertex",
-    "linkedql:values": null
+    "linkedql:values": []
   },
   "results": [
     {

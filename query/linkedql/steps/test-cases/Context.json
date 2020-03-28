@@ -26,7 +26,7 @@
       "@type": "linkedql:Has",
       "linkedql:from": {
         "@type": "linkedql:Vertex",
-        "linkedql:values": null
+        "linkedql:values": []
       },
       "linkedql:property": "likes",
       "linkedql:values": ["http://example.com/bob"]

@@ -20,13 +20,13 @@
         "@type": "linkedql:As",
         "linkedql:from": {
           "@type": "linkedql:Vertex",
-          "linkedql:values": null
+          "linkedql:values": []
         },
         "linkedql:name": "http://example.com/liker"
       },
       "linkedql:properties": "http://example.com/likes"
     },
-    "linkedql:tags": null
+    "linkedql:tags": []
   },
   "results": [
     {
