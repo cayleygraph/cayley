@@ -29,7 +29,7 @@
         "linkedql:values": []
       },
       "linkedql:property": "likes",
-      "linkedql:values": ["http://example.com/bob"]
+      "linkedql:values": [{ "@id": "http://example.com/bob" }]
     },
     "linkedql:rules": {
       "bob": "http://example.com/bob",

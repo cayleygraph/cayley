@@ -16,12 +16,20 @@
     "@type": "linkedql:Union",
     "linkedql:from": {
       "@type": "linkedql:Vertex",
-      "linkedql:values": ["http://example.com/alice"]
+      "linkedql:values": [
+        {
+          "@id": "http://example.com/alice"
+        }
+      ]
     },
     "linkedql:steps": [
       {
         "@type": "linkedql:Vertex",
-        "linkedql:values": ["http://example.com/bob"]
+        "linkedql:values": [
+          {
+            "@id": "http://example.com/bob"
+          }
+        ]
       }
     ]
   },

@@ -17,14 +17,18 @@
     "linkedql:from": {
       "@type": "linkedql:Vertex",
       "linkedql:values": [
-        "http://example.com/alice",
-        "http://example.com/likes"
+        { "@id": "http://example.com/alice" },
+        { "@id": "http://example.com/likes" }
       ]
     },
     "linkedql:steps": [
       {
         "@type": "linkedql:Vertex",
-        "linkedql:values": ["http://example.com/likes"]
+        "linkedql:values": [
+          {
+            "@id": "http://example.com/likes"
+          }
+        ]
       }
     ]
   },

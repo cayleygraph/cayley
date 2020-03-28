@@ -17,9 +17,9 @@
     "linkedql:from": {
       "@type": "linkedql:Vertex",
       "linkedql:values": [
-        "http://example.com/alice",
-        "http://example.com/alice",
-        "http://example.com/bob"
+        { "@id": "http://example.com/alice" },
+        { "@id": "http://example.com/alice" },
+        { "@id": "http://example.com/bob" }
       ]
     }
   },

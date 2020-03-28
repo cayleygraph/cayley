@@ -18,11 +18,12 @@
       "@type": "linkedql:Vertex",
       "linkedql:values": []
     },
-    "linkedql:property": {
-      "@type": "linkedql:Vertex",
-      "linkedql:values": ["http://example.com/likes"]
-    },
-    "linkedql:values": ["http://example.com/alice"]
+    "linkedql:property": "http://example.com/likes",
+    "linkedql:values": [
+      {
+        "@id": "http://example.com/alice"
+      }
+    ]
   },
   "results": [
     {
