@@ -95,13 +95,18 @@ func (p PropertyIRIs) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.P
 // PropertyIRIStrings is a slice of property IRI strings.
 type PropertyIRIStrings []string
 
-// BuildPath implements PropertyPath.
-func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
+// PropertyIRIs casts PropertyIRIStrings into PropertyIRIs
+func (p PropertyIRIStrings) PropertyIRIs() PropertyIRIs {
 	var iris PropertyIRIs
 	for _, iri := range p {
 		iris = append(iris, PropertyIRI(iri))
 	}
-	return iris.BuildPath(qs, ns)
+	return iris
+}
+
+// BuildPath implements PropertyPath.
+func (p PropertyIRIStrings) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
+	return p.PropertyIRIs().BuildPath(qs, ns)
 }
 
 // PropertyIRI is an IRI of a Property
