@@ -20,8 +20,7 @@ var _ linkedql.PathStep = (*Properties)(nil)
 
 // Properties corresponds to .properties().
 type Properties struct {
-	From linkedql.PathStep `json:"from"`
-	// TODO(iddan): Use linkedql.PropertyPath
+	From  linkedql.PathStep      `json:"from"`
 	Names *linkedql.PropertyPath `json:"names"`
 }
 

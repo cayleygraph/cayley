@@ -18,9 +18,9 @@ var _ linkedql.PathStep = (*Has)(nil)
 
 // Has corresponds to .has().
 type Has struct {
-	From     linkedql.PathStep     `json:"from"`
-	Property linkedql.PropertyPath `json:"property"`
-	Values   []quad.Value          `json:"values"`
+	From     linkedql.PathStep      `json:"from"`
+	Property *linkedql.PropertyPath `json:"property"`
+	Values   []quad.Value           `json:"values"`
 }
 
 // Description implements Step.

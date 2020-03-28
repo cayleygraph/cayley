@@ -21,8 +21,8 @@ type PropertyPath struct {
 }
 
 // NewPropertyPath constructs a new PropertyPath
-func NewPropertyPath(p PropertyPathI) PropertyPath {
-	return PropertyPath{PropertyPathI: p}
+func NewPropertyPath(p PropertyPathI) *PropertyPath {
+	return &PropertyPath{PropertyPathI: p}
 }
 
 // Description implements Step.
