@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/jsonld"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/piprate/json-gold/ld"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,15 +38,20 @@ func readData(data interface{}) ([]quad.Quad, error) {
 	return quads, nil
 }
 
-func normalizeResults(t *testing.T, results interface{}) interface{} {
-	compact, err := ld.NewJsonLdProcessor().Compact(results, nil, ld.NewJsonLdOptions(""))
-	require.NoError(t, err)
-	serialized, err := json.Marshal(compact)
-	require.NoError(t, err)
-	var deserialized interface{}
-	err = json.Unmarshal(serialized, &deserialized)
-	require.NoError(t, err)
-	return deserialized
+func readQuery(raw interface{}) (linkedql.IteratorStep, error) {
+	d, err := json.Marshal(raw)
+	if err != nil {
+		return nil, err
+	}
+	q, err := linkedql.Unmarshal(d)
+	if err != nil {
+		return nil, err
+	}
+	query, ok := q.(linkedql.IteratorStep)
+	if !ok {
+		return nil, fmt.Errorf("Expected linkedql.IteratorStep")
+	}
+	return query, nil
 }
 
 func TestLinkedQL(t *testing.T) {
@@ -67,16 +72,12 @@ func TestLinkedQL(t *testing.T) {
 		require.NoError(t, err)
 
 		data, err := readData(c.Data)
-		require.NoError(t, err)
-		require.NotEmpty(t, data)
+		require.NoError(t, err, fileName)
+		require.NotEmpty(t, data, fileName)
 
-		d, err := json.Marshal(c.Query)
-		require.NoError(t, err)
-		require.NotEmpty(t, d)
-		q, err := linkedql.Unmarshal(d)
-		require.NoError(t, err)
-		query, ok := q.(linkedql.IteratorStep)
-		require.True(t, ok)
+		query, err := readQuery(c.Query)
+		require.NoError(t, err, fileName)
+		require.NotNil(t, query, fileName)
 
 		testName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		t.Run(testName, func(t *testing.T) {
@@ -90,7 +91,7 @@ func TestLinkedQL(t *testing.T) {
 				results = append(results, iterator.Result())
 			}
 			require.NoError(t, iterator.Err())
-			require.Equal(t, normalizeResults(t, c.Results), normalizeResults(t, results))
+			require.Equal(t, nil, isomorphic(c.Results, results))
 		})
 	}
 }

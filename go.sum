@@ -30,6 +30,10 @@ github.com/cayleygraph/quad v1.1.0/go.mod h1:maWODEekEhrO0mdc9h5n/oP7cH1h/OTgqQ2
 github.com/cayleygraph/quad v1.2.0/go.mod h1:maWODEekEhrO0mdc9h5n/oP7cH1h/OTgqQ2qWbuI9M4=
 github.com/cayleygraph/quad v1.2.1 h1:PqqP+F8BLICaAWoGvSlrx1U11pXEc2BBodmTv30uSLM=
 github.com/cayleygraph/quad v1.2.1/go.mod h1:maWODEekEhrO0mdc9h5n/oP7cH1h/OTgqQ2qWbuI9M4=
+github.com/cayleygraph/quad v1.2.2 h1:pYH0CFXZr0ivr6k8yKRLKu5vnEE7sNeHxvC+zqOjiew=
+github.com/cayleygraph/quad v1.2.2/go.mod h1:XOianlRdDK5Upno/6svE6APe/wD8XgYrL9smqK875nU=
+github.com/cayleygraph/quad v1.2.3 h1:2HXwZGElLBuFLz8/6FdfWtil2W2gdfvYxNzS337SOwo=
+github.com/cayleygraph/quad v1.2.3/go.mod h1:XOianlRdDK5Upno/6svE6APe/wD8XgYrL9smqK875nU=
 github.com/cenkalti/backoff v2.1.1+incompatible h1:tKJnvO2kl0zmb/jA5UKAt4VoEVw1qxKWjE/Bpp46npY=
 github.com/cenkalti/backoff v2.1.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=

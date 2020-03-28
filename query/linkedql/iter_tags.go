@@ -22,17 +22,6 @@ func (it *TagsIterator) Next(ctx context.Context) bool {
 	return it.ValueIt.Next(ctx)
 }
 
-// todo(iddan): Move to quad/jsonld. Current done because it serializes quad.String as quad.TypedString
-func normalizeValue(value interface{}) interface{} {
-	if m, ok := value.(map[string]string); ok {
-		if t, _ := m["@type"]; t == "http://www.w3.org/2001/XMLSchema#string" {
-			return m["@value"]
-		}
-		return m
-	}
-	return value
-}
-
 func (it *TagsIterator) getTags() map[string]interface{} {
 	refTags := make(map[string]refs.Ref)
 	it.ValueIt.scanner.TagResults(refTags)
@@ -41,11 +30,11 @@ func (it *TagsIterator) getTags() map[string]interface{} {
 	// FIXME(iddan): only convert when collation is JSON/JSON-LD, leave as Ref otherwise
 	if it.Selected != nil {
 		for _, tag := range it.Selected {
-			tags[tag] = normalizeValue(jsonld.FromValue(it.ValueIt.getName(refTags[tag])))
+			tags[tag] = jsonld.FromValue(it.ValueIt.getName(refTags[tag]))
 		}
 	} else {
 		for tag, ref := range refTags {
-			tags[tag] = normalizeValue(jsonld.FromValue(it.ValueIt.getName(ref)))
+			tags[tag] = jsonld.FromValue(it.ValueIt.getName(ref))
 		}
 	}
 

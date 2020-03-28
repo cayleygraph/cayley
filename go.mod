@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
-	github.com/cayleygraph/quad v1.2.1
+	github.com/cayleygraph/quad v1.2.3
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
@@ -16,7 +16,7 @@ require (
 	github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dop251/goja v0.0.0-20190105122144-6d5bf35058fa
-	github.com/fatih/structs v1.1.0
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flimzy/diff v0.1.6 // indirect
 	github.com/fsouza/go-dockerclient v1.2.2
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
@@ -31,7 +31,6 @@ require (
 	github.com/jackc/pgx v3.3.0+incompatible
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.1.1
-	github.com/linkeddata/gojsonld v0.0.0-20170418210642-4f5db6791326
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/mattn/go-sqlite3 v1.10.0
