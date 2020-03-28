@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/cayleygraph/cayley/query/linkedql"
+	// Steps are imported here so they be registered and documented in the schema
 	_ "github.com/cayleygraph/cayley/query/linkedql/steps"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc/owl"
@@ -26,7 +27,7 @@ var (
 	iteratorStep     = reflect.TypeOf((*linkedql.IteratorStep)(nil)).Elem()
 	entityIdentifier = reflect.TypeOf((*linkedql.EntityIdentifier)(nil)).Elem()
 	value            = reflect.TypeOf((*quad.Value)(nil)).Elem()
-	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil)).Elem()
+	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil))
 	stringMap        = reflect.TypeOf(map[string]string{})
 	graphPattern     = reflect.TypeOf(linkedql.GraphPattern(nil))
 )

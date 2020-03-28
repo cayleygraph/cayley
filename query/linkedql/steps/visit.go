@@ -17,8 +17,8 @@ var _ linkedql.PathStep = (*Visit)(nil)
 
 // Visit corresponds to .view().
 type Visit struct {
-	From       linkedql.PathStep     `json:"from"`
-	Properties linkedql.PropertyPath `json:"properties"`
+	From       linkedql.PathStep      `json:"from"`
+	Properties *linkedql.PropertyPath `json:"properties"`
 }
 
 // Description implements Step.
