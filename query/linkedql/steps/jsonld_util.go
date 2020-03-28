@@ -25,6 +25,9 @@ func isomorphic(source interface{}, target interface{}) error {
 		if !ok {
 			return fmt.Errorf("Expected %#v to be an array but instead received %T", t, t)
 		}
+		if len(s) != len(t) {
+			return fmt.Errorf("Expected %#v and %#v to have the same length", s, t)
+		}
 	items:
 		for _, i := range s {
 			for _, tI := range t {
