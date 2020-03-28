@@ -18,12 +18,13 @@
       "@type": "linkedql:Visit",
       "linkedql:from": {
         "@type": "linkedql:Vertex",
-        "linkedql:values": ["http://example.com/alice"]
+        "linkedql:values": [
+          {
+            "@id": "http://example.com/alice"
+          }
+        ]
       },
-      "linkedql:properties": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": ["http://example.com/likes"]
-      }
+      "linkedql:properties": ["http://example.com/likes"]
     },
     "linkedql:name": ""
   },
