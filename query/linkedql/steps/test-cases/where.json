@@ -1,0 +1,65 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ],
+      "http://example.com/name": ["Alice"]
+    },
+    {
+      "@id": "http://example.com/bob",
+      "http://example.com/name": ["Bob"]
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:Select",
+    "linkedql:from": {
+      "@type": "linkedql:Where",
+      "linkedql:from": {
+        "@type": "linkedql:Vertex",
+        "linkedql:values": []
+      },
+      "linkedql:steps": [
+        {
+          "@type": "linkedql:As",
+          "linkedql:from": {
+            "@type": "linkedql:Visit",
+            "linkedql:from": {
+              "@type": "linkedql:Visit",
+              "linkedql:from": {
+                "@type": "linkedql:Placeholder"
+              },
+              "linkedql:properties": "http://example.com/likes"
+            },
+            "linkedql:properties": "http://example.com/name"
+          },
+          "linkedql:name": "http://example.com/likesName"
+        },
+        {
+          "@type": "linkedql:As",
+          "linkedql:from": {
+            "@type": "linkedql:Visit",
+            "linkedql:from": {
+              "@type": "linkedql:Placeholder"
+            },
+            "linkedql:properties": "http://example.com/name"
+          },
+          "linkedql:name": "http://example.com/name"
+        }
+      ]
+    },
+    "linkedql:tags": []
+  },
+  "results": [
+    {
+      "http://example.com/likesName": "Bob",
+      "http://example.com/name": "Alice"
+    }
+  ]
+}

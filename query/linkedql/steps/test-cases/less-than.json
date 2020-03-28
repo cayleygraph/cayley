@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/name": [0, 1]
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:LessThan",
+    "linkedql:from": {
+      "@type": "linkedql:Vertex",
+      "linkedql:values": []
+    },
+    "linkedql:value": 1
+  },
+  "results": [0]
+}

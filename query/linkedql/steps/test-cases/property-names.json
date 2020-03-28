@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:PropertyNames",
+    "linkedql:from": {
+      "@type": "linkedql:Vertex",
+      "linkedql:values": []
+    }
+  },
+  "results": [
+    {
+      "@id": "http://example.com/likes"
+    }
+  ]
+}
