@@ -1,20 +1,35 @@
 package steps
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ldArray = []interface{}
 type ldMap = map[string]interface{}
+
+func unwrapValue(i interface{}) interface{} {
+	m, ok := i.(map[string]interface{})
+	if ok && len(m) == 1 {
+		v, ok := m["@value"]
+		if ok {
+			return v
+		}
+	}
+	return i
+}
 
 // isomorphic checks whether source and target JSON-LD structures are the same
 // semantically. This function is not complete and is maintained for testing
 // purposes. Hopefully in the future it can be proven sufficient for general
 // purpose use.
 func isomorphic(source interface{}, target interface{}) error {
+	source = unwrapValue(source)
+	target = unwrapValue(target)
 	switch s := source.(type) {
 	case string:
 		t, ok := target.(string)
 		if !ok {
-			return fmt.Errorf("Expected \"%v\" to be a string but instead received %T", t, t)
+			return fmt.Errorf("Expected %v to be a string but instead received %T", target, target)
 		}
 		if s != t {
 			return fmt.Errorf("Expected \"%v\" but instead received \"%v\"", s, t)
@@ -23,7 +38,7 @@ func isomorphic(source interface{}, target interface{}) error {
 	case ldArray:
 		t, ok := target.(ldArray)
 		if !ok {
-			return fmt.Errorf("Expected %#v to be an array but instead received %T", t, t)
+			return fmt.Errorf("Expected %#v to be an array but instead received %T", target, target)
 		}
 		if len(s) != len(t) {
 			return fmt.Errorf("Expected %#v and %#v to have the same length", s, t)
@@ -41,7 +56,7 @@ func isomorphic(source interface{}, target interface{}) error {
 	case ldMap:
 		t, ok := target.(ldMap)
 		if !ok {
-			return fmt.Errorf("Expected %#v to be a map but instead received %T", t, t)
+			return fmt.Errorf("Expected %#v to be a map but instead received %T", target, target)
 		}
 		for k, v := range s {
 			tV, _ := t[k]

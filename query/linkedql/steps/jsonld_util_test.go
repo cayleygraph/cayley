@@ -101,6 +101,18 @@ var testCases = []struct {
 		target:   map[string]interface{}{"http://example.com/name": map[string]interface{}{"@value": "Bob"}},
 		expected: fmt.Errorf("Expected \"Alice\" but instead received \"Bob\""),
 	},
+	{
+		name:     "Single matching properties with @value string and string",
+		source:   map[string]interface{}{"http://example.com/name": map[string]interface{}{"@value": "Alice"}},
+		target:   map[string]interface{}{"http://example.com/name": "Alice"},
+		expected: nil,
+	},
+	{
+		name:     "Single matching properties with string and @value string",
+		source:   map[string]interface{}{"http://example.com/name": "Alice"},
+		target:   map[string]interface{}{"http://example.com/name": map[string]interface{}{"@value": "Alice"}},
+		expected: nil,
+	},
 }
 
 func TestIsomorphic(t *testing.T) {
