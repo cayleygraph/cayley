@@ -17,8 +17,8 @@ var _ linkedql.PathStep = (*Both)(nil)
 
 // Both corresponds to .both().
 type Both struct {
-	From       linkedql.PathStep     `json:"from"`
-	Properties linkedql.PropertyPath `json:"properties"`
+	From       linkedql.PathStep      `json:"from"`
+	Properties *linkedql.PropertyPath `json:"properties"`
 }
 
 // Description implements Step.

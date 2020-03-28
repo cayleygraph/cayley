@@ -376,7 +376,7 @@ var testCases = []struct {
 		query: &Select{
 			From: &Properties{
 				From:  &Vertex{Values: []quad.Value{}},
-				Names: []quad.IRI{likes},
+				Names: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 			},
 		},
 		results: []interface{}{
@@ -419,7 +419,7 @@ var testCases = []struct {
 		query: &Select{
 			From: &ReverseProperties{
 				From:  &Vertex{Values: []quad.Value{}},
-				Names: []quad.IRI{likes},
+				Names: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 			},
 		},
 		results: []interface{}{map[string]interface{}{
@@ -509,11 +509,11 @@ var testCases = []struct {
 			From: &Optional{
 				From: &Properties{
 					From:  &Vertex{Values: []quad.Value{}},
-					Names: []quad.IRI{name},
+					Names: linkedql.NewPropertyPath(linkedql.PropertyIRI(name)),
 				},
 				Step: &Properties{
 					From:  &Placeholder{},
-					Names: []quad.IRI{likes},
+					Names: linkedql.NewPropertyPath(linkedql.PropertyIRI(likes)),
 				},
 			},
 		},
@@ -576,7 +576,7 @@ var testCases = []struct {
 		query: &Documents{
 			From: &Properties{
 				From:  &Vertex{Values: []quad.Value{}},
-				Names: []quad.IRI{name, likes},
+				Names: linkedql.NewPropertyPath(linkedql.PropertyIRIs{linkedql.PropertyIRI(name), linkedql.PropertyIRI(likes)}),
 			},
 		},
 		results: []interface{}{
