@@ -110,6 +110,13 @@ type QuadStore interface {
 	Close() error
 }
 
+// TextSearcher is an optional interface implemented by quad stores that support FTS.
+type TextSearcher interface {
+	// SearchTextValues returns an iterator that lists values that match a given text search query.
+	// The query is implementation-dependent.
+	SearchTextValues(ctx context.Context, query string) (iterator.Shape, error)
+}
+
 type Options map[string]interface{}
 
 var (

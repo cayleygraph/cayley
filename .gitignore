@@ -14,3 +14,7 @@ ui/
 packrd/packed-*
 # The build binary
 /cayley
+# search indexes
+*.bleve
+# Bolt DBs
+*.db

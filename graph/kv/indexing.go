@@ -26,9 +26,10 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/log"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
+	"github.com/cayleygraph/cayley/search"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
 
@@ -302,6 +303,9 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 			if err := tx.Del(k); err != nil {
 				return del, err
 			}
+			if err := qs.removeValue(ctx, d.ID, d.Val); err != nil {
+				return del, err
+			}
 			mNodesDel.Inc()
 			del = append(del, i)
 			continue
@@ -318,6 +322,9 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 		n := binary.PutUvarint(buf[:], uint64(d.RefInc))
 		val := append([]byte{}, buf[:n]...)
 		if err := tx.Put(bucketKeyForHashRefs(d.Hash), val); err != nil {
+			return nil, err
+		}
+		if err := qs.indexValue(ctx, d.ID, d.Val); err != nil {
 			return nil, err
 		}
 		mNodesNew.Inc()
@@ -1234,6 +1241,34 @@ func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
 	defer qs.exists.Unlock()
 	writePrimToBuf(p, qs.exists.buf)
 	qs.exists.Add(qs.exists.buf)
+}
+
+// indexValue is a hook that is called when a new value is added to a quad store.
+// It is used as an integration point to add custom indexing for values of different types.
+func (qs *QuadStore) indexValue(ctx context.Context, id uint64, val quad.Value) error {
+	if qs.search.config != nil {
+		if qs.search.index == nil {
+			return fmt.Errorf("searchIndex should be initialized if qs.searchConfig is not nil")
+		}
+		if err := search.IndexEntities(ctx, qs, qs.search.config, qs.search.index, val); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// removeValue is a hook that is called when a value is removed from a quad store.
+// It is used as an integration point to add custom indexing for values of different types.
+func (qs *QuadStore) removeValue(ctx context.Context, id uint64, val quad.Value) error {
+	if qs.search.config != nil {
+		if qs.search.index == nil {
+			return fmt.Errorf("searchIndex should be initialized if qs.searchConfig is not nil")
+		}
+		if err := search.Delete(ctx, qs, qs.search.config, qs.search.index, val); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func writePrimToBuf(p *proto.Primitive, buf []byte) {

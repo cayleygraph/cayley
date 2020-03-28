@@ -3,11 +3,16 @@ module github.com/cayleygraph/cayley
 go 1.12
 
 require (
+	github.com/RoaringBitmap/roaring v0.4.21 // indirect
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
+	github.com/blevesearch/bleve v0.8.1
+	github.com/blevesearch/go-porterstemmer v1.0.2 // indirect
+	github.com/blevesearch/segment v0.0.0-20160915185041-762005e7a34f // indirect
 	github.com/cayleygraph/quad v1.2.1
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
+	github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd // indirect
 	github.com/cznic/mathutil v0.0.0-20170313102836-1447ad269d64
 	github.com/d4l3k/messagediff v1.2.1 // indirect
 	github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d
@@ -16,6 +21,7 @@ require (
 	github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dop251/goja v0.0.0-20190105122144-6d5bf35058fa
+	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/flimzy/diff v0.1.6 // indirect
 	github.com/fsouza/go-dockerclient v1.2.2
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
@@ -24,7 +30,6 @@ require (
 	github.com/gogo/protobuf v1.3.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/go-cmp v0.3.0 // indirect
-	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 	github.com/jackc/fake v0.0.0-20150926172116-812a484cc733 // indirect
 	github.com/jackc/pgx v3.3.0+incompatible
@@ -46,6 +51,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0
+	github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8
