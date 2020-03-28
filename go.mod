@@ -16,7 +16,6 @@ require (
 	github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dop251/goja v0.0.0-20190105122144-6d5bf35058fa
-	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flimzy/diff v0.1.6 // indirect
 	github.com/fsouza/go-dockerclient v1.2.2
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
@@ -37,7 +36,6 @@ require (
 	github.com/opencontainers/selinux v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/peterh/liner v0.0.0-20170317030525-88609521dc4b
-	github.com/piprate/json-gold v0.3.0
 	github.com/prometheus/client_golang v0.9.3
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
