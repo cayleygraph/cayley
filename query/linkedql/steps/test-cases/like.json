@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/name": ["Alice"]
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:Like",
+    "linkedql:from": {
+      "@type": "linkedql:Vertex",
+      "linkedql:values": []
+    },
+    "linkedql:likePattern": "%ali%"
+  },
+  "results": [
+    {
+      "@id": "http://example.com/alice"
+    }
+  ]
+}

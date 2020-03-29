@@ -13,26 +13,42 @@ var (
 
 // DocumentIterator is an iterator of documents from the graph
 type DocumentIterator struct {
-	tagsIt  *TagsIterator
-	records []interface{}
-	current int
+	tagsIt    *TagsIterator
+	dataset   *ld.RDFDataset
+	err       error
+	exhausted bool
 }
 
 // NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
 func NewDocumentIterator(valueIt *ValueIterator) *DocumentIterator {
 	tagsIt := &TagsIterator{ValueIt: valueIt, Selected: nil}
-	return &DocumentIterator{tagsIt: tagsIt, current: -1}
+	return &DocumentIterator{tagsIt: tagsIt, exhausted: false}
+}
+
+func (it *DocumentIterator) getDataset(ctx context.Context) (*ld.RDFDataset, error) {
+	d := ld.NewRDFDataset()
+	for it.tagsIt.Next(ctx) {
+		t, err := it.tagsIt.getDataset()
+		if err != nil {
+			return nil, err
+		}
+		for g, qs := range t.Graphs {
+			d.Graphs[g] = append(d.Graphs[g], qs...)
+		}
+	}
+	return d, nil
 }
 
 // Next implements query.Iterator.
 func (it *DocumentIterator) Next(ctx context.Context) bool {
-	if it.records == nil {
-		for it.tagsIt.Next(ctx) {
-			it.records = append(it.records, it.tagsIt.Result())
+	if !it.exhausted {
+		d, err := it.getDataset(ctx)
+		if err != nil {
+			it.err = err
+		} else {
+			it.dataset = d
 		}
-	}
-	if it.current < len(it.records)-1 {
-		it.current++
+		it.exhausted = true
 		return true
 	}
 	return false
@@ -40,18 +56,21 @@ func (it *DocumentIterator) Next(ctx context.Context) bool {
 
 // Result implements query.Iterator.
 func (it *DocumentIterator) Result() interface{} {
-	if it.current >= len(it.records) {
-		return nil
-	}
-	input := interface{}(it.records)
 	context := make(map[string]interface{})
+	api := ld.NewJsonLdApi()
 	proc := ld.NewJsonLdProcessor()
 	options := ld.NewJsonLdOptions("")
-	expanded, err := proc.Compact(input, context, options)
+	d, err := api.FromRDF(it.dataset, options)
 	if err != nil {
-		panic(err)
+		it.err = err
+		return nil
 	}
-	return expanded
+	c, err := proc.Compact(d, context, options)
+	if err != nil {
+		it.err = err
+		return nil
+	}
+	return c
 }
 
 // Err implements query.Iterator.

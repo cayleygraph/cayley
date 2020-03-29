@@ -105,7 +105,7 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			if err != nil {
 				return nil, err
 			}
-			value, err := parseValue(v)
+			value, err := parseValue(a)
 			if err != nil {
 				return nil, err
 			}
@@ -247,6 +247,10 @@ func parseLiteral(a interface{}) (quad.Value, error) {
 	case int64:
 		return quad.Int(a), nil
 	case float64:
+		i := int64(a)
+		if a == float64(i) {
+			return quad.Int(i), nil
+		}
 		return quad.Float(a), nil
 	case bool:
 		return quad.Bool(a), nil

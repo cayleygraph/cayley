@@ -4,14 +4,14 @@ go 1.12
 
 require (
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
-	github.com/cayleygraph/quad v1.2.1
+	github.com/cayleygraph/quad v1.2.3
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/cznic/mathutil v0.0.0-20170313102836-1447ad269d64
 	github.com/d4l3k/messagediff v1.2.1 // indirect
 	github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d
-	github.com/dgraph-io/badger v1.5.5
+	github.com/dgraph-io/badger v1.5.5 // indirect
 	github.com/dlclark/regexp2 v1.1.4 // indirect
 	github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b // indirect
 	github.com/docker/go-units v0.4.0 // indirect
@@ -40,7 +40,6 @@ require (
 	github.com/piprate/json-gold v0.3.0
 	github.com/prometheus/client_golang v0.9.3
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
-	github.com/russross/blackfriday v1.5.2
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
@@ -52,7 +51,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8
 	go.etcd.io/bbolt v1.3.3 // indirect
-	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
+	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sys v0.0.0-20191009170203-06d7bd2c5f4f // indirect
 	golang.org/x/tools v0.0.0-20191010075000-0337d82405ff // indirect

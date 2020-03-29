@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/name": ["Alice"]
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:RegExp",
+    "linkedql:from": {
+      "@type": "linkedql:Vertex",
+      "linkedql:values": []
+    },
+    "linkedql:includeIRIs,omitempty": false,
+    "linkedql:expression": "A"
+  },
+  "results": ["Alice"]
+}

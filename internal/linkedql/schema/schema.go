@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/cayleygraph/cayley/query/linkedql"
+	// Steps are imported here so they be registered and documented in the schema
 	_ "github.com/cayleygraph/cayley/query/linkedql/steps"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc/owl"
@@ -26,7 +27,7 @@ var (
 	iteratorStep     = reflect.TypeOf((*linkedql.IteratorStep)(nil)).Elem()
 	entityIdentifier = reflect.TypeOf((*linkedql.EntityIdentifier)(nil)).Elem()
 	value            = reflect.TypeOf((*quad.Value)(nil)).Elem()
-	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil)).Elem()
+	propertyPath     = reflect.TypeOf((*linkedql.PropertyPath)(nil))
 	stringMap        = reflect.TypeOf(map[string]string{})
 	graphPattern     = reflect.TypeOf(linkedql.GraphPattern(nil))
 )
@@ -50,14 +51,14 @@ func typeToRange(t reflect.Type) string {
 	if kind := t.Kind(); kind == reflect.Int64 || kind == reflect.Int {
 		return xsd.Int
 	}
-	if t.Implements(pathStep) {
-		return linkedql.Prefix + "PathStep"
-	}
 	if t.Implements(value) {
 		return rdfs.Resource
 	}
-	if t.Implements(entityIdentifier) {
+	if t == entityIdentifier {
 		return owl.Thing
+	}
+	if t == pathStep {
+		return linkedql.Prefix + "PathStep"
 	}
 	if t == propertyPath {
 		return linkedql.Prefix + "PropertyPath"

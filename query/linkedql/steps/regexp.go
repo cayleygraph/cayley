@@ -10,13 +10,17 @@ import (
 	"github.com/cayleygraph/quad/voc"
 )
 
+func init() {
+	linkedql.Register(&RegExp{})
+}
+
 var _ linkedql.IteratorStep = (*RegExp)(nil)
 var _ linkedql.PathStep = (*RegExp)(nil)
 
 // RegExp corresponds to regex().
 type RegExp struct {
 	From        linkedql.PathStep `json:"from"`
-	Pattern     string            `json:"pattern"`
+	Expression  string            `json:"expression"`
 	IncludeIRIs bool              `json:"includeIRIs,omitempty"`
 }
 
@@ -36,7 +40,7 @@ func (s *RegExp) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, 
 	if err != nil {
 		return nil, err
 	}
-	pattern, err := regexp.Compile(s.Pattern)
+	pattern, err := regexp.Compile(s.Expression)
 	if err != nil {
 		return nil, err
 	}

@@ -95,7 +95,15 @@ func (it *TagsIterator) getDataset() (*ld.RDFDataset, error) {
 
 	scanner.TagResults(refTags)
 
-	if it.Selected != nil {
+	if len(it.Selected) == 0 {
+		for tag, ref := range refTags {
+			q, err := it.createQuad(s, tag, ref)
+			if err != nil {
+				return nil, err
+			}
+			d.Graphs["@default"] = append(d.Graphs["@default"], q)
+		}
+	} else {
 		for _, tag := range it.Selected {
 			q, err := it.createQuad(s, tag, refTags[tag])
 			if err != nil {
@@ -103,16 +111,8 @@ func (it *TagsIterator) getDataset() (*ld.RDFDataset, error) {
 			}
 			d.Graphs["@default"] = append(d.Graphs["@default"], q)
 		}
-		return d, nil
 	}
 
-	for tag, ref := range refTags {
-		q, err := it.createQuad(s, tag, ref)
-		if err != nil {
-			return nil, err
-		}
-		d.Graphs["@default"] = append(d.Graphs["@default"], q)
-	}
 	return d, nil
 }
 
