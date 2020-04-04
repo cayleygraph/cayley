@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:Match",
+    "linkedql:pattern": {
+      "@id": "http://example.com/alice"
+    }
+  },
+  "results": [
+    {
+      "@id": "http://example.com/alice"
+    }
+  ]
+}
