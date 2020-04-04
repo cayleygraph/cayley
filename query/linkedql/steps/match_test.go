@@ -6,7 +6,6 @@ import (
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/cayleygraph/quad/voc/xsd"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,7 +57,7 @@ var patternTestCases = []struct {
 			Out(address).
 			Follow(
 				path.StartMorphism().
-					Has(street, quad.TypedString{Value: "Lafayette", Type: quad.IRI(xsd.String).Full()}),
+					Has(street, quad.String("Lafayette")),
 			).
 			Back(""),
 	},
@@ -79,10 +78,7 @@ var patternTestCases = []struct {
 					Out(country).
 					Follow(
 						path.StartMorphism().
-							Has(name, quad.TypedString{
-								Type:  quad.IRI(xsd.String).Full(),
-								Value: "The United States of America",
-							}),
+							Has(name, quad.String("The United States of America")),
 					).
 					Back(""),
 			).
