@@ -43,6 +43,6 @@ func (s *Collect) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path,
 	if err != nil {
 		return nil, err
 	}
-	m := path.StartMorphism().Save(first, string(first)).Out(rest).Tag(string(rest))
-	return fromPath.FollowRecursive(m, -1, nil), nil
+	p := fromPath.FollowRecursive(rest, -1, nil).Save(first, string(first)).Save(rest, string(rest))
+	return fromPath.Save(first, string(first)).Save(rest, string(rest)).Or(p), nil
 }
