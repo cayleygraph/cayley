@@ -18,8 +18,9 @@ var _ linkedql.IteratorStep = (*Select)(nil)
 
 // Select corresponds to .select().
 type Select struct {
-	Tags []string          `json:"tags"`
-	From linkedql.PathStep `json:"from"`
+	Properties []string          `json:"properties"`
+	From       linkedql.PathStep `json:"from"`
+	ExcludeID  bool              `json:"excludeID"`
 }
 
 // Description implements Step.
@@ -33,15 +34,17 @@ func (s *Select) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.It
 	if err != nil {
 		return nil, err
 	}
-	return &linkedql.TagsIterator{ValueIt: valueIt, Selected: s.Tags}, nil
+	it := linkedql.NewTagsIterator(valueIt, s.Properties, s.ExcludeID)
+	return &it, nil
 }
 
 var _ linkedql.IteratorStep = (*SelectFirst)(nil)
 
 // SelectFirst corresponds to .selectFirst().
 type SelectFirst struct {
-	Tags []string          `json:"tags"`
-	From linkedql.PathStep `json:"from"`
+	Properties []string          `json:"properties"`
+	ExcludeID  bool              `json:"excludeID"`
+	From       linkedql.PathStep `json:"from"`
 }
 
 // Description implements Step.
@@ -63,7 +66,8 @@ func (s *SelectFirst) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (que
 	if err != nil {
 		return nil, err
 	}
-	return &linkedql.TagsIterator{it, s.Tags}, nil
+	tagsIt := linkedql.NewTagsIterator(it, s.Properties, s.ExcludeID)
+	return &tagsIt, nil
 }
 
 var _ linkedql.IteratorStep = (*Value)(nil)

@@ -33,24 +33,26 @@
       "linkedql:names": ["http://example.com/name", "http://example.com/likes"]
     }
   },
-  "results": [
-    {
-      "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ],
-      "http://example.com/name": ["Alice"]
-    },
-    {
-      "@id": "http://example.com/bob",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/alice"
-        }
-      ],
-      "http://example.com/name": ["Bob"]
-    }
-  ]
+  "results": {
+    "@graph": [
+      {
+        "@id": "http://example.com/alice",
+        "http://example.com/likes": [
+          {
+            "@id": "http://example.com/bob"
+          }
+        ],
+        "http://example.com/name": ["Alice"]
+      },
+      {
+        "@id": "http://example.com/bob",
+        "http://example.com/likes": [
+          {
+            "@id": "http://example.com/alice"
+          }
+        ],
+        "http://example.com/name": ["Bob"]
+      }
+    ]
+  }
 }

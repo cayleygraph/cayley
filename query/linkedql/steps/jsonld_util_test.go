@@ -59,7 +59,7 @@ var testCases = []struct {
 		name:     "Single non matching property with multiple values non matching length",
 		source:   map[string]interface{}{"http://example.com/name": []interface{}{"Alice", "Bob"}},
 		target:   map[string]interface{}{"http://example.com/name": []interface{}{"Alice"}},
-		expected: fmt.Errorf("Expected []interface {}{\"Alice\", \"Bob\"} and []interface {}{\"Alice\"} to have the same length"),
+		expected: fmt.Errorf("Expected multiple values but instead received the single value: \"Alice\""),
 	},
 	{
 		name: "Single matching nested",
@@ -111,6 +111,18 @@ var testCases = []struct {
 		name:     "Single matching properties with string and @value string",
 		source:   map[string]interface{}{"http://example.com/name": "Alice"},
 		target:   map[string]interface{}{"http://example.com/name": map[string]interface{}{"@value": "Alice"}},
+		expected: nil,
+	},
+	{
+		name:     "Single matching properties with @value string array string",
+		source:   map[string]interface{}{"http://example.com/name": []interface{}{map[string]interface{}{"@value": "Alice"}}},
+		target:   map[string]interface{}{"http://example.com/name": "Alice"},
+		expected: nil,
+	},
+	{
+		name:     "Single matching properties with string and @value string array",
+		source:   map[string]interface{}{"http://example.com/name": "Alice"},
+		target:   map[string]interface{}{"http://example.com/name": []interface{}{map[string]interface{}{"@value": "Alice"}}},
 		expected: nil,
 	},
 }

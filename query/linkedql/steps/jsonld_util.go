@@ -8,7 +8,7 @@ type ldArray = []interface{}
 type ldMap = map[string]interface{}
 
 func unwrapValue(i interface{}) interface{} {
-	m, ok := i.(map[string]interface{})
+	m, ok := i.(ldMap)
 	if ok && len(m) == 1 {
 		v, ok := m["@value"]
 		if ok {
@@ -18,13 +18,21 @@ func unwrapValue(i interface{}) interface{} {
 	return i
 }
 
+func unwrapSingle(i interface{}) interface{} {
+	a, ok := i.(ldArray)
+	if ok && len(a) == 1 {
+		return a[0]
+	}
+	return i
+}
+
 // isomorphic checks whether source and target JSON-LD structures are the same
 // semantically. This function is not complete and is maintained for testing
 // purposes. Hopefully in the future it can be proven sufficient for general
 // purpose use.
 func isomorphic(source interface{}, target interface{}) error {
-	source = unwrapValue(source)
-	target = unwrapValue(target)
+	source = unwrapValue(unwrapSingle(source))
+	target = unwrapValue(unwrapSingle(target))
 	switch s := source.(type) {
 	case string:
 		t, ok := target.(string)
@@ -38,7 +46,7 @@ func isomorphic(source interface{}, target interface{}) error {
 	case ldArray:
 		t, ok := target.(ldArray)
 		if !ok {
-			return fmt.Errorf("Expected %#v to be an array but instead received %T", target, target)
+			return fmt.Errorf("Expected multiple values but instead received the single value: %#v", target)
 		}
 		if len(s) != len(t) {
 			return fmt.Errorf("Expected %#v and %#v to have the same length", s, t)
