@@ -6,7 +6,8 @@
         {
           "@id": "http://example.com/bob"
         }
-      ]
+      ],
+      "http://example.com/name": "Alice"
     }
   ],
   "query": {
@@ -22,6 +23,9 @@
   "results": [
     {
       "@id": "http://example.com/likes"
+    },
+    {
+      "@id": "http://example.com/name"
     }
   ]
 }

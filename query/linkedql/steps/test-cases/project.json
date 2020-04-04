@@ -1,0 +1,45 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ],
+      "http://example.com/name": "Alice"
+    }
+  ],
+  "query": {
+    "@context": {
+      "linkedql": "http://cayley.io/linkedql"
+    },
+    "@type": "linkedql:Documents",
+    "linkedql:from": {
+      "@type": "linkedql:Project",
+      "linkedql:name": "http://example.com/properties",
+      "linkedql:step": {
+        "@type": "linkedql:PropertyNames",
+        "linkedql:from": {
+          "@type": "linkedql:Placeholder"
+        }
+      },
+      "linkedql:from": {
+        "@type": "linkedql:Vertex",
+        "linkedql:values": []
+      }
+    }
+  },
+  "results": [
+    {
+      "http://example.com/properties": [
+        {
+          "@id": "http://example.com/likes"
+        },
+        {
+          "@id": "http://example.com/name"
+        }
+      ]
+    }
+  ]
+}
