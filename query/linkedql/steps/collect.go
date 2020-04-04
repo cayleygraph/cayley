@@ -19,6 +19,7 @@ var _ linkedql.PathStep = (*Collect)(nil)
 // Collect corresponds to .view().
 type Collect struct {
 	From linkedql.PathStep `json:"from"`
+	Name quad.IRI          `json:"name"`
 }
 
 // Description implements Step.
@@ -43,6 +44,15 @@ func (s *Collect) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path,
 	if err != nil {
 		return nil, err
 	}
-	p := fromPath.FollowRecursive(rest, -1, nil).Save(first, string(first)).Save(rest, string(rest))
-	return fromPath.Save(first, string(first)).Save(rest, string(rest)).Or(p), nil
+	p := fromPath.
+		Out(s.Name).
+		Save(first, string(first)).
+		Save(rest, string(rest)).
+		Or(
+			fromPath.Out(s.Name).FollowRecursive(rest, -1, nil).
+				Save(first, string(first)).
+				Save(rest, string(rest)),
+		).
+		Or(fromPath.Save(s.Name, string(s.Name)))
+	return p, nil
 }
