@@ -66,8 +66,6 @@ var patternTestCases = []struct {
 		name: "Two Level Nested Structure",
 		pattern: map[string]interface{}{
 			string(address): map[string]interface{}{
-				// string(city):   "New York City",
-				// string(street): "Lafayette",
 				string(country): map[string]interface{}{
 					string(name): "The United States of America",
 				},
