@@ -28,12 +28,9 @@ func NewDocumentIterator(valueIt *ValueIterator) *DocumentIterator {
 func (it *DocumentIterator) getDataset(ctx context.Context) (*ld.RDFDataset, error) {
 	d := ld.NewRDFDataset()
 	for it.tagsIt.Next(ctx) {
-		t, err := it.tagsIt.getDataset()
+		err := it.tagsIt.addResultsToDataset(d)
 		if err != nil {
 			return nil, err
-		}
-		for g, qs := range t.Graphs {
-			d.Graphs[g] = append(d.Graphs[g], qs...)
 		}
 	}
 	return d, nil
@@ -57,18 +54,10 @@ func (it *DocumentIterator) Next(ctx context.Context) bool {
 // Result implements query.Iterator.
 func (it *DocumentIterator) Result() interface{} {
 	context := make(map[string]interface{})
-	api := ld.NewJsonLdApi()
-	proc := ld.NewJsonLdProcessor()
-	options := ld.NewJsonLdOptions("")
-	d, err := api.FromRDF(it.dataset, options)
+	opts := ld.NewJsonLdOptions("")
+	c, err := datasetToCompact(it.dataset, context, opts)
 	if err != nil {
 		it.err = err
-		return nil
-	}
-	c, err := proc.Compact(d, context, options)
-	if err != nil {
-		it.err = err
-		return nil
 	}
 	return c
 }
