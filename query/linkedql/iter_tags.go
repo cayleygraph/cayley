@@ -39,7 +39,7 @@ func (it *TagsIterator) Next(ctx context.Context) bool {
 
 func (it *TagsIterator) addQuadFromRef(dataset *ld.RDFDataset, subject ld.Node, tag string, ref refs.Ref) error {
 	p := ld.NewIRI(tag)
-	o, err := jsonld.ToNode(it.ValueIt.getName(ref))
+	o, err := jsonld.ToNode(it.ValueIt.Namer.NameOf(ref))
 	if err != nil {
 		return err
 	}
@@ -48,17 +48,21 @@ func (it *TagsIterator) addQuadFromRef(dataset *ld.RDFDataset, subject ld.Node, 
 	return nil
 }
 
-func getSubject(it *TagsIterator) (ld.Node, error) {
-	r := it.ValueIt.scanner.Result()
-	identifier, ok := it.ValueIt.getName(r).(quad.Identifier)
+func toSubject(namer refs.Namer, result refs.Ref) (ld.Node, error) {
+	v := namer.NameOf(result)
+	id, ok := v.(quad.Identifier)
 	if !ok {
-		return nil, fmt.Errorf("Expected subject to be an entity identifier but instead received: %v", identifier)
+		return nil, fmt.Errorf("Expected subject to be an entity identifier but instead received: %v", v)
 	}
-	return jsonld.ToNode(identifier)
+	return jsonld.ToNode(id)
 }
 
 func (it *TagsIterator) addResultsToDataset(dataset *ld.RDFDataset) error {
-	s, err := getSubject(it)
+	r := it.ValueIt.scanner.Result()
+	if r == nil {
+		return nil
+	}
+	s, err := toSubject(it.ValueIt.Namer, r)
 	if err != nil {
 		return err
 	}
