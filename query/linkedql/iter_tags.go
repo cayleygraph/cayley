@@ -57,12 +57,8 @@ func toSubject(namer refs.Namer, result refs.Ref) (ld.Node, error) {
 	return jsonld.ToNode(id)
 }
 
-func (it *TagsIterator) addResultsToDataset(dataset *ld.RDFDataset) error {
-	r := it.ValueIt.scanner.Result()
-	if r == nil {
-		return nil
-	}
-	s, err := toSubject(it.ValueIt.Namer, r)
+func (it *TagsIterator) addResultsToDataset(dataset *ld.RDFDataset, result refs.Ref) error {
+	s, err := toSubject(it.ValueIt.Namer, result)
 	if err != nil {
 		return err
 	}
@@ -87,23 +83,27 @@ func (it *TagsIterator) addResultsToDataset(dataset *ld.RDFDataset) error {
 // Result implements query.Iterator.
 func (it *TagsIterator) Result() interface{} {
 	// FIXME(iddan): only convert when collation is JSON/JSON-LD, leave as Ref otherwise
+	r := it.ValueIt.scanner.Result()
+	if r == nil {
+		return nil
+	}
 	d := ld.NewRDFDataset()
-	err := it.addResultsToDataset(d)
+	err := it.addResultsToDataset(d, r)
 	if err != nil {
 		it.err = err
 		return nil
 	}
-	r, err := singleDocumentFromRDF(d)
+	doc, err := singleDocumentFromRDF(d)
 	if err != nil {
 		it.err = err
 		return nil
 	}
 	if !it.ExcludeID {
-		m := r.(map[string]interface{})
+		m := doc.(map[string]interface{})
 		delete(m, "@id")
 		return m
 	}
-	return r
+	return doc
 }
 
 // Err implements query.Iterator.
