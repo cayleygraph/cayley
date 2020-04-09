@@ -29,7 +29,7 @@ func (s *Properties) Description() string {
 
 func resolveNames(names *linkedql.PropertyPath) (linkedql.PropertyIRIs, error) {
 	if names == nil {
-		return nil, fmt.Errorf("Not implemented: should tag all properties")
+		return nil, nil
 	}
 	switch n := names.PropertyPathI.(type) {
 	case linkedql.PropertyStep:
@@ -57,6 +57,9 @@ func (s *Properties) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Pa
 	names, err := resolveNames(s.Names)
 	if err != nil {
 		return nil, err
+	}
+	if names == nil {
+		return nil, fmt.Errorf("Not implemented: should tag all properties")
 	}
 	for _, n := range names {
 		name := quad.IRI(n).FullWith(ns)

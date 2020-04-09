@@ -20,12 +20,16 @@
     },
     "linkedql:limit": 2
   },
-  "results": [
-    {
-      "@id": "http://example.com/alice"
-    },
-    {
-      "@id": "http://example.com/likes"
-    }
-  ]
+  "results": {
+    "@graph": [
+      {
+        "@id": "http://example.com/alice",
+        "@type": "http://www.w3.org/2000/01/rdf-schema#Resource"
+      },
+      {
+        "@id": "http://example.com/likes",
+        "@type": "http://www.w3.org/2000/01/rdf-schema#Resource"
+      }
+    ]
+  }
 }

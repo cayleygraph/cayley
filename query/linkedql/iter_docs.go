@@ -3,7 +3,10 @@ package linkedql
 import (
 	"context"
 
+	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query"
+	"github.com/cayleygraph/cayley/query/path"
+	"github.com/cayleygraph/quad"
 	"github.com/piprate/json-gold/ld"
 )
 
@@ -13,46 +16,43 @@ var (
 
 // DocumentIterator is an iterator of documents from the graph
 type DocumentIterator struct {
-	tagsIt    *TagsIterator
-	dataset   *ld.RDFDataset
+	quadIt    *QuadIterator
+	quads     []quad.Quad
 	err       error
 	exhausted bool
 }
 
-// NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
-func NewDocumentIterator(valueIt *ValueIterator) *DocumentIterator {
-	tagsIt := &TagsIterator{ValueIt: valueIt, Selected: nil}
-	return &DocumentIterator{tagsIt: tagsIt, exhausted: false}
+// NewDocumentIterator constructs a DocumentIterator for a Namer and Path
+func NewDocumentIterator(namer refs.Namer, path *path.Path) *DocumentIterator {
+	quadIt := NewQuadIterator(namer, path, nil)
+	return NewDocumentIteratorFromQuadIterator(quadIt)
 }
 
-func (it *DocumentIterator) getDataset(ctx context.Context) (*ld.RDFDataset, error) {
-	d := ld.NewRDFDataset()
-	for it.tagsIt.Next(ctx) {
-		r := it.tagsIt.ValueIt.scanner.Result()
-		if err := it.tagsIt.Err(); err != nil {
-			if err != nil {
-				return nil, err
-			}
-		}
-		if r == nil {
-			continue
-		}
-		err := it.tagsIt.addResultsToDataset(d, r)
+// NewDocumentIteratorFromQuadIterator constructs DocumentIterator from a QuadIterator
+func NewDocumentIteratorFromQuadIterator(quadIt *QuadIterator) *DocumentIterator {
+	return &DocumentIterator{quadIt: quadIt, exhausted: false}
+}
+
+func (it *DocumentIterator) getQuads(ctx context.Context) ([]quad.Quad, error) {
+	var allQuads []quad.Quad
+	for it.quadIt.Next(ctx) {
+		quads, err := it.quadIt.resultQuads()
 		if err != nil {
 			return nil, err
 		}
+		allQuads = append(allQuads, quads...)
 	}
-	return d, nil
+	return allQuads, nil
 }
 
 // Next implements query.Iterator.
 func (it *DocumentIterator) Next(ctx context.Context) bool {
 	if !it.exhausted {
-		d, err := it.getDataset(ctx)
+		quads, err := it.getQuads(ctx)
 		if err != nil {
 			it.err = err
 		} else {
-			it.dataset = d
+			it.quads = quads
 		}
 		it.exhausted = true
 		return true
@@ -64,7 +64,11 @@ func (it *DocumentIterator) Next(ctx context.Context) bool {
 func (it *DocumentIterator) Result() interface{} {
 	context := make(map[string]interface{})
 	opts := ld.NewJsonLdOptions("")
-	c, err := datasetToCompact(it.dataset, context, opts)
+	d, err := quadsToDataset(it.quads)
+	if err != nil {
+		it.err = err
+	}
+	c, err := datasetToCompact(d, context, opts)
 	if err != nil {
 		it.err = err
 	}
@@ -73,19 +77,16 @@ func (it *DocumentIterator) Result() interface{} {
 
 // Err implements query.Iterator.
 func (it *DocumentIterator) Err() error {
-	if it.tagsIt == nil {
-		return nil
-	}
 	if it.err != nil {
 		return it.err
 	}
-	return it.tagsIt.Err()
+	return it.quadIt.Err()
 }
 
 // Close implements query.Iterator.
 func (it *DocumentIterator) Close() error {
-	if it.tagsIt == nil {
+	if it.quadIt == nil {
 		return nil
 	}
-	return it.tagsIt.Close()
+	return it.quadIt.Close()
 }

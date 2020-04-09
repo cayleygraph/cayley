@@ -64,7 +64,11 @@ func BuildIterator(step Step, qs graph.QuadStore, ns *voc.Namespaces) (query.Ite
 	case IteratorStep:
 		return s.BuildIterator(qs, ns)
 	case PathStep:
-		return NewValueIteratorFromPathStep(s, qs, ns)
+		p, err := s.BuildPath(qs, ns)
+		if err != nil {
+			return nil, err
+		}
+		return NewDocumentIterator(qs, p), nil
 	}
 	return nil, errors.New("must execute a IteratorStep or PathStep")
 }

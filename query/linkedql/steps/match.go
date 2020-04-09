@@ -9,8 +9,6 @@ import (
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/jsonld"
 	"github.com/cayleygraph/quad/voc"
-	"github.com/cayleygraph/quad/voc/rdf"
-	"github.com/cayleygraph/quad/voc/rdfs"
 )
 
 func init() {
@@ -92,7 +90,7 @@ func groupEntities(pattern []quad.Quad, ns *voc.Namespaces) (entityProperties, m
 			properties = make(map[quad.Value][]quad.Value)
 			entities[entity] = properties
 		}
-		if isSingleEntityQuad(q) {
+		if linkedql.IsSingleEntityQuad(q) {
 			continue
 		}
 		properties[property] = append(properties[property], value)
@@ -141,7 +139,7 @@ func normalizeQuads(quads []quad.Quad, pattern linkedql.GraphPattern) ([]quad.Qu
 		if !ok {
 			return nil, fmt.Errorf("Unexpected type for @id %T", idString)
 		}
-		quads = append(quads, makeSingleEntityQuad(quad.IRI(idString)))
+		quads = append(quads, linkedql.MakeSingleEntityQuad(quad.IRI(idString)))
 	}
 	return quads, nil
 }
@@ -160,17 +158,4 @@ func parsePattern(pattern linkedql.GraphPattern, ns *voc.Namespaces) ([]quad.Qua
 		return nil, fmt.Errorf("Pattern does not parse to any quad. `{}` is the only pattern allowed to not parse to any quad")
 	}
 	return quads, nil
-}
-
-// makeSingleEntityQuad creates a quad representing a propertyless entity. The
-// quad declares the entity is of type Resource, the base type of all entities
-// in RDF.
-func makeSingleEntityQuad(id quad.IRI) quad.Quad {
-	return quad.Quad{Subject: id, Predicate: quad.IRI(rdf.Type), Object: quad.IRI(rdfs.Resource)}
-}
-
-func isSingleEntityQuad(q quad.Quad) bool {
-	// rdf:type rdfs:Resource is always true but not expressed in the graph.
-	// it is used to specify an entity without specifying a property.
-	return q.Predicate == quad.IRI(rdf.Type) && q.Object == quad.IRI(rdfs.Resource)
 }
