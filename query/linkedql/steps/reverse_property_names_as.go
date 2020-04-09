@@ -2,7 +2,6 @@ package steps
 
 import (
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad/voc"
@@ -12,7 +11,6 @@ func init() {
 	linkedql.Register(&ReversePropertyNamesAs{})
 }
 
-var _ linkedql.IteratorStep = (*ReversePropertyNamesAs)(nil)
 var _ linkedql.PathStep = (*ReversePropertyNamesAs)(nil)
 
 // ReversePropertyNamesAs corresponds to .reversePropertyNamesAs().
@@ -24,11 +22,6 @@ type ReversePropertyNamesAs struct {
 // Description implements Step.
 func (s *ReversePropertyNamesAs) Description() string {
 	return "tags the list of predicates that are pointing in to a node."
-}
-
-// BuildIterator implements linkedql.IteratorStep.
-func (s *ReversePropertyNamesAs) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
-	return linkedql.NewValueIteratorFromPathStep(s, qs, ns)
 }
 
 // BuildPath implements linkedql.PathStep.

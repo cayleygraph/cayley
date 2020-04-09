@@ -50,10 +50,29 @@ func (s *Session) Execute(ctx context.Context, query string, opt query.Options) 
 	if err != nil {
 		return nil, err
 	}
+	ns := voc.Namespaces{}
 	step, ok := item.(IteratorStep)
 	if !ok {
+		pathStep, ok := item.(PathStep)
+		if ok {
+			it, err := NewValueIteratorFromPathStep(pathStep, s.qs, &ns)
+			if err != nil {
+				return nil, err
+			}
+			return it, nil
+		}
 		return nil, errors.New("must execute a valid step")
 	}
-	ns := voc.Namespaces{}
 	return step.BuildIterator(s.qs, &ns)
+}
+
+// BuildIterator for given Step returns a query.Iterator
+func BuildIterator(step Step, qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
+	switch s := step.(type) {
+	case IteratorStep:
+		return s.BuildIterator(qs, ns)
+	case PathStep:
+		return NewValueIteratorFromPathStep(s, qs, ns)
+	}
+	return nil, errors.New("must execute a IteratorStep or PathStep")
 }

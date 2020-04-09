@@ -2,7 +2,6 @@ package steps
 
 import (
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad/voc"
@@ -12,7 +11,6 @@ func init() {
 	linkedql.Register(&Limit{})
 }
 
-var _ linkedql.IteratorStep = (*Limit)(nil)
 var _ linkedql.PathStep = (*Limit)(nil)
 
 // Limit corresponds to .limit().
@@ -24,11 +22,6 @@ type Limit struct {
 // Description implements Step.
 func (s *Limit) Description() string {
 	return "limits a number of nodes for current path."
-}
-
-// BuildIterator implements linkedql.IteratorStep.
-func (s *Limit) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
-	return linkedql.NewValueIteratorFromPathStep(s, qs, ns)
 }
 
 // BuildPath implements linkedql.PathStep.

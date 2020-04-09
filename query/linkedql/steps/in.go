@@ -8,7 +8,6 @@ func init() {
 	linkedql.Register(&In{})
 }
 
-var _ linkedql.IteratorStep = (*In)(nil)
 var _ linkedql.PathStep = (*In)(nil)
 
 // In is an alias for ViewReverse.
