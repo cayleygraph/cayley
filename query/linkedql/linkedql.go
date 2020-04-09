@@ -51,19 +51,11 @@ func (s *Session) Execute(ctx context.Context, query string, opt query.Options) 
 		return nil, err
 	}
 	ns := voc.Namespaces{}
-	step, ok := item.(IteratorStep)
+	step, ok := item.(Step)
 	if !ok {
-		pathStep, ok := item.(PathStep)
-		if ok {
-			it, err := NewValueIteratorFromPathStep(pathStep, s.qs, &ns)
-			if err != nil {
-				return nil, err
-			}
-			return it, nil
-		}
-		return nil, errors.New("must execute a valid step")
+		return nil, errors.New("must execute a Step")
 	}
-	return step.BuildIterator(s.qs, &ns)
+	return BuildIterator(step, s.qs, &ns)
 }
 
 // BuildIterator for given Step returns a query.Iterator
