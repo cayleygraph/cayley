@@ -2,7 +2,6 @@ package steps
 
 import (
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad/voc"
@@ -12,7 +11,6 @@ func init() {
 	linkedql.Register(&Context{})
 }
 
-var _ linkedql.IteratorStep = (*Context)(nil)
 var _ linkedql.PathStep = (*Context)(nil)
 
 // Context corresponds to context().
@@ -37,9 +35,4 @@ func (s *Context) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path,
 		return nil, err
 	}
 	return fromPath, nil
-}
-
-// BuildIterator implements linkedql.IteratorStep.
-func (s *Context) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
-	return linkedql.NewValueIteratorFromPathStep(s, qs, ns)
 }

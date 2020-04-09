@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
@@ -18,7 +17,6 @@ func init() {
 	linkedql.Register(&Match{})
 }
 
-var _ linkedql.IteratorStep = (*Match)(nil)
 var _ linkedql.PathStep = (*Match)(nil)
 
 // Match corresponds to .has().
@@ -30,11 +28,6 @@ type Match struct {
 // Description implements Step.
 func (s *Match) Description() string {
 	return "filters all paths which are, at this point, on the subject for the given predicate and object, but do not follow the path, merely filter the possible paths. Usually useful for starting with all nodes, or limiting to a subset depending on some predicate/value pair."
-}
-
-// BuildIterator implements linkedql.IteratorStep.
-func (s *Match) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
-	return linkedql.NewValueIteratorFromPathStep(s, qs, ns)
 }
 
 // BuildPath implements linkedql.PathStep.

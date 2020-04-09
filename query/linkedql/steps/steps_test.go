@@ -38,7 +38,7 @@ func readData(data interface{}) ([]quad.Quad, error) {
 	return quads, nil
 }
 
-func readQuery(raw interface{}) (linkedql.IteratorStep, error) {
+func readQuery(raw interface{}) (linkedql.Step, error) {
 	d, err := json.Marshal(raw)
 	if err != nil {
 		return nil, err
@@ -47,9 +47,9 @@ func readQuery(raw interface{}) (linkedql.IteratorStep, error) {
 	if err != nil {
 		return nil, err
 	}
-	query, ok := q.(linkedql.IteratorStep)
+	query, ok := q.(linkedql.Step)
 	if !ok {
-		return nil, fmt.Errorf("Expected linkedql.IteratorStep")
+		return nil, fmt.Errorf("Expected linkedql.Step")
 	}
 	return query, nil
 }
@@ -84,7 +84,7 @@ func TestLinkedQL(t *testing.T) {
 			store := memstore.New(data...)
 			voc := voc.Namespaces{}
 			ctx := context.TODO()
-			iterator, err := query.BuildIterator(store, &voc)
+			iterator, err := linkedql.BuildIterator(query, store, &voc)
 			require.NoError(t, err)
 			var results []interface{}
 			for iterator.Next(ctx) {

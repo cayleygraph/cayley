@@ -8,7 +8,6 @@ func init() {
 	linkedql.Register(&Out{})
 }
 
-var _ linkedql.IteratorStep = (*Out)(nil)
 var _ linkedql.PathStep = (*Out)(nil)
 
 // Out is an alias for View.
