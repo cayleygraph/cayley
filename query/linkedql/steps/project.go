@@ -43,5 +43,5 @@ func (s *Project) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path,
 	if err != nil {
 		return nil, err
 	}
-	return fromPath.Follow(step).Tag(string(s.Name)).Back(""), nil
+	return fromPath.Follow(step).Tag(string(s.Name)).And(fromPath), nil
 }
