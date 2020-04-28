@@ -2,15 +2,16 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	// Load all supported quad formats.
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/quad"
 	_ "github.com/cayleygraph/quad/jsonld"
 	_ "github.com/cayleygraph/quad/nquads"
@@ -27,47 +28,63 @@ func main() {
 		Use:   "cayleyimport <file>",
 		Short: "Import data into Cayley. If no file is provided, cayleyimport reads from stdin.",
 		Args:  cobra.MaximumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var format *quad.Format
 			var file *os.File
 			if formatName != "" {
 				format = quad.FormatByName(formatName)
 			}
 			if len(args) == 0 {
+				if !hasStdin() {
+					return errors.New("Either provide file to read from or pipe data")
+				}
 				file = os.Stdin
 			}
 			if len(args) == 1 {
 				fileName := args[0]
 				if formatName == "" {
-					format = quad.FormatByExt(filepath.Ext(fileName))
+					ext := filepath.Ext(fileName)
+					format = quad.FormatByExt(ext)
+					if format == nil {
+						clog.Warningf("Unknown extension %v. Defaulting to %v", ext, defaultFormat)
+					}
 				}
 				var err error
 				file, err = os.Open(fileName)
 				if err != nil {
-					log.Fatal(err)
-					os.Exit(1)
+					return err
 				}
+				defer file.Close()
 			}
 			if format == nil {
-				format = quad.FormatByName("jsonld")
+				format = quad.FormatByName(defaultFormat)
 			}
 			r, err := http.Post(uri+"/api/v2/write", format.Mime[0], file)
 			if err != nil {
-				log.Fatal(err)
-				os.Exit(1)
+				return err
 			}
 			defer r.Body.Close()
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				log.Fatal(err)
-				os.Exit(1)
+				return err
 			}
-			var response struct {
-				Result string `json:"result"`
-				Count  string `json:"count"`
+			if r.StatusCode == http.StatusOK {
+				var response struct {
+					Result string `json:"result"`
+					Count  string `json:"count"`
+				}
+				json.Unmarshal(body, &response)
+				fmt.Println(response.Result)
+			} else {
+				var text string
+				if r.StatusCode == http.StatusNotFound {
+					text = "Database instance does not support write"
+				} else {
+					text = string(body)
+				}
+				return errors.New(text)
 			}
-			json.Unmarshal(body, &response)
-			fmt.Println(response.Result)
+			return nil
 		},
 	}
 
@@ -75,7 +92,11 @@ func main() {
 	cmd.Flags().StringVarP(&formatName, "format", "", "", "format of the provided data (if can not be detected defaults to JSON-LD)")
 
 	if err := cmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func hasStdin() bool {
+	stat, _ := os.Stdin.Stat()
+	return (stat.Mode() & os.ModeCharDevice) == 0
 }

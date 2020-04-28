@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -26,7 +24,7 @@ func main() {
 		Use:   "cayleyexport <file>",
 		Short: "Export data from Cayley. If no file is provided, cayleyexport writes to stdout.",
 		Args:  cobra.MaximumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var format *quad.Format
 			var file *os.File
 			if formatName != "" {
@@ -43,30 +41,29 @@ func main() {
 				var err error
 				file, err = os.Create(fileName)
 				if err != nil {
-					log.Fatal(err)
-					os.Exit(1)
+					return err
 				}
 				defer file.Close()
 			}
 			if format == nil {
-				format = quad.FormatByName("jsonld")
+				format = quad.FormatByName(defaultFormat)
 			}
 			req, err := http.NewRequest("GET", uri+"/api/v2/read", nil)
 			req.Header.Set("Accept", format.Mime[0])
 			if err != nil {
-				log.Fatal(err)
-				os.Exit(1)
+				return err
 			}
 			client := &http.Client{}
 			resp, err := client.Do(req)
-			defer resp.Body.Close()
-
-			_, err = io.Copy(file, resp.Body)
-
 			if err != nil {
-				log.Fatal(err)
-				os.Exit(1)
+				return err
 			}
+			defer resp.Body.Close()
+			_, err = io.Copy(file, resp.Body)
+			if err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 
@@ -74,7 +71,6 @@ func main() {
 	cmd.Flags().StringVarP(&formatName, "format", "", "", "format of the provided data (if can not be detected defaults to JSON-LD)")
 
 	if err := cmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }
