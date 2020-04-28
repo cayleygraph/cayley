@@ -22,6 +22,7 @@ import (
 const defaultFormat = "jsonld"
 
 func main() {
+	var quiet bool
 	var uri, formatName string
 
 	var cmd = &cobra.Command{
@@ -29,6 +30,9 @@ func main() {
 		Short: "Import data into Cayley. If no file is provided, cayleyimport reads from stdin.",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if quiet {
+				clog.SetV(500)
+			}
 			var format *quad.Format
 			var file *os.File
 			if formatName != "" {
@@ -71,17 +75,17 @@ func main() {
 				var response struct {
 					Result string `json:"result"`
 					Count  string `json:"count"`
+					Error  string `json:"error"`
 				}
 				json.Unmarshal(body, &response)
-				fmt.Println(response.Result)
-			} else {
-				var text string
-				if r.StatusCode == http.StatusNotFound {
-					text = "Database instance does not support write"
-				} else {
-					text = string(body)
+				if response.Error != "" {
+					return errors.New(response.Error)
 				}
-				return errors.New(text)
+				if !quiet {
+					fmt.Println(response.Result)
+				}
+			} else if r.StatusCode == http.StatusNotFound {
+				return errors.New("Database instance does not support write")
 			}
 			return nil
 		},
@@ -89,6 +93,7 @@ func main() {
 
 	cmd.Flags().StringVarP(&uri, "uri", "", "http://127.0.0.1:64210", "Cayley URI connection string")
 	cmd.Flags().StringVarP(&formatName, "format", "", "", "format of the provided data (if can not be detected defaults to JSON-LD)")
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "hide all log output")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)

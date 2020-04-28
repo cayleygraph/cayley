@@ -8,6 +8,7 @@ import (
 
 	// Load all supported quad formats.
 
+	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/quad"
 	_ "github.com/cayleygraph/quad/jsonld"
 	_ "github.com/cayleygraph/quad/nquads"
@@ -34,7 +35,11 @@ func main() {
 				file = os.Stdout
 			} else {
 				if formatName == "" {
-					format = quad.FormatByExt(filepath.Ext(out))
+					ext := filepath.Ext(out)
+					format = quad.FormatByExt(ext)
+					if format == nil {
+						clog.Warningf("Unknown extension %v. Defaulting to %v", ext, defaultFormat)
+					}
 				}
 				var err error
 				file, err = os.Create(out)
