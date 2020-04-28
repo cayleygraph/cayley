@@ -39,8 +39,7 @@ func main() {
 					return errors.New("Either provide file to read from or pipe data")
 				}
 				file = os.Stdin
-			}
-			if len(args) == 1 {
+			} else {
 				fileName := args[0]
 				if formatName == "" {
 					ext := filepath.Ext(fileName)

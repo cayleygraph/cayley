@@ -18,28 +18,26 @@ import (
 const defaultFormat = "jsonld"
 
 func main() {
-	var uri, formatName string
+	var uri, formatName, out string
 
 	var cmd = &cobra.Command{
-		Use:   "cayleyexport <file>",
+		Use:   "cayleyexport",
 		Short: "Export data from Cayley. If no file is provided, cayleyexport writes to stdout.",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var format *quad.Format
 			var file *os.File
 			if formatName != "" {
 				format = quad.FormatByName(formatName)
 			}
-			if len(args) == 0 {
+			if out == "" {
 				file = os.Stdout
-			}
-			if len(args) == 1 {
-				fileName := args[0]
+			} else {
 				if formatName == "" {
-					format = quad.FormatByExt(filepath.Ext(fileName))
+					format = quad.FormatByExt(filepath.Ext(out))
 				}
 				var err error
-				file, err = os.Create(fileName)
+				file, err = os.Create(out)
 				if err != nil {
 					return err
 				}
@@ -69,6 +67,7 @@ func main() {
 
 	cmd.Flags().StringVarP(&uri, "uri", "", "http://127.0.0.1:64210", "Cayley URI connection string")
 	cmd.Flags().StringVarP(&formatName, "format", "", "", "format of the provided data (if can not be detected defaults to JSON-LD)")
+	cmd.Flags().StringVarP(&out, "out", "o", "", "output file; if not specified, stdout is used")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
