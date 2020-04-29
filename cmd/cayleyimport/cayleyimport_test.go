@@ -31,7 +31,7 @@ func serve(addr string) {
 func TestCayleyImport(t *testing.T) {
 	port, err := freeport.GetFreePort()
 	require.NoError(t, err)
-	addr := fmt.Sprintf("localhost:%d", port)
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	uri := fmt.Sprintf("http://%s", addr)
 	go serve(addr)
 	cmd := NewCmd()
