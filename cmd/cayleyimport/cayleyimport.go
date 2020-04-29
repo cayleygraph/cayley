@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 
-	// Load all supported quad formats.
-
 	"github.com/cayleygraph/cayley/clog"
+
+	// Load all supported quad formats.
 	"github.com/cayleygraph/quad"
 	_ "github.com/cayleygraph/quad/jsonld"
 	_ "github.com/cayleygraph/quad/nquads"
@@ -21,7 +22,8 @@ import (
 
 const defaultFormat = "jsonld"
 
-func main() {
+// NewCmd creates the command
+func NewCmd() *cobra.Command {
 	var quiet bool
 	var uri, formatName string
 
@@ -34,15 +36,16 @@ func main() {
 				clog.SetV(500)
 			}
 			var format *quad.Format
-			var file *os.File
+			var reader io.Reader
 			if formatName != "" {
 				format = quad.FormatByName(formatName)
 			}
 			if len(args) == 0 {
-				if !hasStdin() {
+				in := cmd.InOrStdin()
+				if !hasIn(in) {
 					return errors.New("Either provide file to read from or pipe data")
 				}
-				file = os.Stdin
+				reader = in
 			} else {
 				fileName := args[0]
 				if formatName == "" {
@@ -52,17 +55,17 @@ func main() {
 						clog.Warningf("Unknown extension %v. Defaulting to %v", ext, defaultFormat)
 					}
 				}
-				var err error
-				file, err = os.Open(fileName)
+				file, err := os.Open(fileName)
 				if err != nil {
 					return err
 				}
 				defer file.Close()
+				reader = file
 			}
 			if format == nil {
 				format = quad.FormatByName(defaultFormat)
 			}
-			r, err := http.Post(uri+"/api/v2/write", format.Mime[0], file)
+			r, err := http.Post(uri+"/api/v2/write", format.Mime[0], reader)
 			if err != nil {
 				return err
 			}
@@ -94,13 +97,20 @@ func main() {
 	cmd.Flags().StringVarP(&uri, "uri", "", "http://127.0.0.1:64210", "Cayley URI connection string")
 	cmd.Flags().StringVarP(&formatName, "format", "", "", "format of the provided data (if can not be detected defaults to JSON-LD)")
 	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "hide all log output")
+	return cmd
+}
 
+func main() {
+	cmd := NewCmd()
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func hasStdin() bool {
-	stat, _ := os.Stdin.Stat()
-	return (stat.Mode() & os.ModeCharDevice) == 0
+func hasIn(in io.Reader) bool {
+	if in == os.Stdin {
+		stat, _ := os.Stdin.Stat()
+		return (stat.Mode() & os.ModeCharDevice) == 0
+	}
+	return true
 }
