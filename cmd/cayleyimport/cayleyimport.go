@@ -49,10 +49,9 @@ func NewCmd() *cobra.Command {
 			} else {
 				fileName := args[0]
 				if formatName == "" {
-					ext := filepath.Ext(fileName)
-					format = quad.FormatByExt(ext)
+					format = formatByFileName(fileName)
 					if format == nil {
-						clog.Warningf("Unknown extension %v. Defaulting to %v", ext, defaultFormat)
+						clog.Warningf("File has unknown extension %v. Defaulting to %v", fileName, defaultFormat)
 					}
 				}
 				file, err := os.Open(fileName)
@@ -113,4 +112,9 @@ func hasIn(in io.Reader) bool {
 		return (stat.Mode() & os.ModeCharDevice) == 0
 	}
 	return true
+}
+
+func formatByFileName(fileName string) *quad.Format {
+	ext := filepath.Ext(fileName)
+	return quad.FormatByExt(ext)
 }

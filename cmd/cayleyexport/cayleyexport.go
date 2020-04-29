@@ -20,6 +20,7 @@ const defaultFormat = "jsonld"
 
 // NewCmd creates the command
 func NewCmd() *cobra.Command {
+	var quiet bool
 	var uri, formatName, out string
 
 	var cmd = &cobra.Command{
@@ -27,6 +28,9 @@ func NewCmd() *cobra.Command {
 		Short: "Export data from Cayley. If no file is provided, cayleyexport writes to stdout.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if quiet {
+				clog.SetV(500)
+			}
 			var format *quad.Format
 			var w io.Writer
 			if formatName != "" {
@@ -36,10 +40,9 @@ func NewCmd() *cobra.Command {
 				w = cmd.OutOrStdout()
 			} else {
 				if formatName == "" {
-					ext := filepath.Ext(out)
-					format = quad.FormatByExt(ext)
+					format = formatByFileName(out)
 					if format == nil {
-						clog.Warningf("Unknown extension %v. Defaulting to %v", ext, defaultFormat)
+						clog.Warningf("File has unknown extension %v. Defaulting to %v", out, defaultFormat)
 					}
 				}
 				file, err := os.Create(out)
@@ -74,6 +77,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&uri, "uri", "", "http://127.0.0.1:64210", "Cayley URI connection string")
 	cmd.Flags().StringVarP(&formatName, "format", "", "", "format of the provided data (if can not be detected defaults to JSON-LD)")
 	cmd.Flags().StringVarP(&out, "out", "o", "", "output file; if not specified, stdout is used")
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "hide all log output")
 
 	return cmd
 }
@@ -83,4 +87,9 @@ func main() {
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func formatByFileName(fileName string) *quad.Format {
+	ext := filepath.Ext(fileName)
+	return quad.FormatByExt(ext)
 }
