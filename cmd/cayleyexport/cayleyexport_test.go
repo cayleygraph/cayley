@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/memstore"
@@ -52,6 +53,7 @@ func TestCayleyExport(t *testing.T) {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	uri := fmt.Sprintf("http://%s", addr)
 	go serve(addr)
+	time.Sleep(3)
 	cmd := NewCmd()
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)
