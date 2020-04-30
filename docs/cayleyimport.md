@@ -6,7 +6,7 @@ cayleyimport <file>
 
 ## Synopsis
 
-The `cayleyimport` tool imports content from an created by [`cayleyexport`](cayleyexport.md), or potentially, another third-party export tool.
+The `cayleyimport` tool imports content created by [`cayleyexport`](cayleyexport.md), or potentially, another third-party export tool.
 
 See the [`cayleyexport`](cayleyexport.md) document for more information regarding [`cayleyexport`](cayleyexport.md), which provides the inverse “exporting” capability.
 
