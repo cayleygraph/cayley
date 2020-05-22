@@ -11,14 +11,11 @@
     "@context": {
       "linkedql": "http://cayley.io/linkedql"
     },
-    "@type": "linkedql:Documents",
+    "@type": "linkedql:Collect",
+    "linkedql:name": "http://example.com/friends",
     "linkedql:from": {
-      "@type": "linkedql:Collect",
-      "linkedql:name": "http://example.com/friends",
-      "linkedql:from": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": []
-      }
+      "@type": "linkedql:Vertex",
+      "linkedql:values": []
     }
   },
   "results": [

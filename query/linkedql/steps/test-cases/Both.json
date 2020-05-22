@@ -28,12 +28,16 @@
     },
     "linkedql:properties": "http://example.com/likes"
   },
-  "results": [
-    {
-      "@id": "http://example.com/dan"
-    },
-    {
-      "@id": "http://example.com/alice"
-    }
-  ]
+  "results": {
+    "@graph": [
+      {
+        "@id": "http://example.com/dan",
+        "@type": "http://www.w3.org/2000/01/rdf-schema#Resource"
+      },
+      {
+        "@id": "http://example.com/alice",
+        "@type": "http://www.w3.org/2000/01/rdf-schema#Resource"
+      }
+    ]
+  }
 }
