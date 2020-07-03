@@ -17,12 +17,10 @@
     "linkedql:from": {
       "@type": "linkedql:Visit",
       "linkedql:from": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": [
-          {
-            "@id": "http://example.com/alice"
-          }
-        ]
+        "@type": "linkedql:Match",
+        "linkedql:pattern": {
+          "@id": "http://example.com/alice"
+        }
       },
       "linkedql:properties": ["http://example.com/likes"]
     },

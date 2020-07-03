@@ -13,8 +13,18 @@
     "@context": {
       "linkedql": "http://cayley.io/linkedql"
     },
-    "@type": "linkedql:Count",
-    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} }
+    "@type": "linkedql:Match",
+    "linkedql:pattern": {}
   },
-  "results": [4]
+  "results": [
+    {
+      "@id": "http://example.com/alice"
+    },
+    {
+      "@id": "http://example.com/likes"
+    },
+    {
+      "@id": "http://example.com/bob"
+    }
+  ]
 }

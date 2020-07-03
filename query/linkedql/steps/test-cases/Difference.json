@@ -23,12 +23,10 @@
     },
     "linkedql:steps": [
       {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": [
-          {
-            "@id": "http://example.com/likes"
-          }
-        ]
+        "@type": "linkedql:Match",
+        "linkedql:pattern": {
+          "@id": "http://example.com/likes"
+        }
       }
     ]
   },

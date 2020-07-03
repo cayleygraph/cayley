@@ -38,7 +38,7 @@
           "@type": "linkedql:Placeholder"
         }
       },
-      "linkedql:name": "liked"
+      "linkedql:name": "http://example.com/liked"
     },
     "linkedql:tags": ["http://example.com/liker"]
   },

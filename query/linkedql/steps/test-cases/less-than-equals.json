@@ -10,10 +10,7 @@
       "linkedql": "http://cayley.io/linkedql"
     },
     "@type": "linkedql:LessThanEquals",
-    "linkedql:from": {
-      "@type": "linkedql:Vertex",
-      "linkedql:values": []
-    },
+    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
     "linkedql:value": 0
   },
   "results": [-1, 0]

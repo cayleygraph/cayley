@@ -14,10 +14,7 @@
       "linkedql": "http://cayley.io/linkedql"
     },
     "@type": "linkedql:HasReverse",
-    "linkedql:from": {
-      "@type": "linkedql:Vertex",
-      "linkedql:values": []
-    },
+    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
     "linkedql:property": "http://example.com/likes",
     "linkedql:values": [
       {

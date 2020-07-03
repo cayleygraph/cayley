@@ -20,51 +20,23 @@
     },
     "@type": "linkedql:Select",
     "linkedql:from": {
-      "@type": "linkedql:Where",
+      "@type": "linkedql:Properties",
+      "linkedql:names": ["http://example.com/name"],
       "linkedql:from": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": []
-      },
-      "linkedql:steps": [
-        {
-          "@type": "linkedql:Project",
-          "linkedql:from": {
-            "@type": "linkedql:Placeholder"
-          },
-          "linkedql:step": {
-            "@type": "linkedql:Visit",
-            "linkedql:from": {
-              "@type": "linkedql:Visit",
-              "linkedql:from": {
-                "@type": "linkedql:Placeholder"
-              },
-              "linkedql:properties": "http://example.com/likes"
-            },
-            "linkedql:properties": "http://example.com/name"
-          },
-          "linkedql:name": "http://example.com/likesName"
-        },
-        {
-          "@type": "linkedql:Project",
-          "linkedql:from": {
-            "@type": "linkedql:Placeholder"
-          },
-          "linkedql:step": {
-            "@type": "linkedql:Visit",
-            "linkedql:from": {
-              "@type": "linkedql:Placeholder"
-            },
-            "linkedql:properties": "http://example.com/name"
-          },
-          "linkedql:name": "http://example.com/name"
+        "@type": "linkedql:Where",
+        "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
+        "linkedql:condition": {
+          "@type": "linkedql:Has",
+          "linkedql:property": "http://example.com/likes",
+          "linkedql:values": [{ "@id": "http://example.com/bob" }],
+          "linkedql:from": { "@type": "linkedql:Placeholder" }
         }
-      ]
+      }
     },
     "linkedql:tags": []
   },
   "results": [
     {
-      "http://example.com/likesName": "Bob",
       "http://example.com/name": "Alice"
     }
   ]
