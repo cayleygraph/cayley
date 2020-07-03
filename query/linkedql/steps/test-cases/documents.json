@@ -26,10 +26,7 @@
     "@type": "linkedql:Documents",
     "linkedql:from": {
       "@type": "linkedql:Properties",
-      "linkedql:from": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": []
-      },
+      "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
       "linkedql:names": ["http://example.com/name", "http://example.com/likes"]
     }
   },

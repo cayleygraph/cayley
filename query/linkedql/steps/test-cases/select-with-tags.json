@@ -21,8 +21,8 @@
         "linkedql:from": {
           "@type": "linkedql:As",
           "linkedql:from": {
-            "@type": "linkedql:Vertex",
-            "linkedql:values": []
+            "@type": "linkedql:Match",
+            "linkedql:pattern": {}
           },
           "linkedql:name": "http://example.com/liker"
         },

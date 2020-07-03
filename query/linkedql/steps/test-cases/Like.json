@@ -10,10 +10,7 @@
       "linkedql": "http://cayley.io/linkedql"
     },
     "@type": "linkedql:Like",
-    "linkedql:from": {
-      "@type": "linkedql:Vertex",
-      "linkedql:values": []
-    },
+    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
     "linkedql:likePattern": "%ali%"
   },
   "results": [

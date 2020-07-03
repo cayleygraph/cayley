@@ -16,10 +16,7 @@
     "@type": "linkedql:Select",
     "linkedql:from": {
       "@type": "linkedql:ReversePropertyNamesAs",
-      "linkedql:from": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": []
-      },
+      "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
       "linkedql:tag": "property"
     },
     "linkedql:tags": []

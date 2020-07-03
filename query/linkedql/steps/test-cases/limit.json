@@ -14,10 +14,7 @@
       "linkedql": "http://cayley.io/linkedql"
     },
     "@type": "linkedql:Limit",
-    "linkedql:from": {
-      "@type": "linkedql:Vertex",
-      "linkedql:values": []
-    },
+    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
     "linkedql:limit": 2
   },
   "results": [

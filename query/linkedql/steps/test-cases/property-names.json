@@ -14,10 +14,7 @@
       "linkedql": "http://cayley.io/linkedql"
     },
     "@type": "linkedql:PropertyNames",
-    "linkedql:from": {
-      "@type": "linkedql:Vertex",
-      "linkedql:values": []
-    }
+    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} }
   },
   "results": [
     {

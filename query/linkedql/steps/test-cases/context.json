@@ -24,10 +24,7 @@
     "@type": "linkedql:Context",
     "linkedql:from": {
       "@type": "linkedql:Has",
-      "linkedql:from": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": []
-      },
+      "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
       "linkedql:property": "likes",
       "linkedql:values": [{ "@id": "http://example.com/bob" }]
     },
