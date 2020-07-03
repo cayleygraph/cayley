@@ -36,6 +36,7 @@ import (
 	// Writer is imported for writers to be registered
 	_ "github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/voc"
 )
 
 const (
@@ -583,4 +584,57 @@ func (api *APIv2) ServeQuery(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(hdrContentType, contentTypeJSON)
 	}
 	writeResults(w, out)
+}
+
+// NamespaceRule defines a prefix for a namespace when prepended to the suffix of a compact IRI, results in an IRI.
+// For example rdfs is a prefix for the namespace http://www.w3.org/2000/01/rdf-schema#.
+type NamespaceRule struct {
+	Prefix    string `json:"prefix"`
+	Namespace string `json:"namespace"`
+}
+
+// getNamespaceRules returns all the registered rules
+func getNamespaceRules() []NamespaceRule {
+	var rules []NamespaceRule
+	for _, n := range voc.List() {
+		rules = append(rules, NamespaceRule{
+			Prefix:    strings.TrimSuffix(n.Prefix, ":"),
+			Namespace: n.Full,
+		})
+	}
+	return rules
+}
+
+// serveGetNamespaceRules responds with all the registered rules encoded to JSON
+func serveGetNamespaceRules(w http.ResponseWriter) {
+	rules := getNamespaceRules()
+	encoder := json.NewEncoder(w)
+	w.Header().Set(hdrContentType, contentTypeJSON)
+	w.WriteHeader(http.StatusOK)
+	encoder.Encode(rules)
+}
+
+// serveGetNamespaceRules registers received rule encoded in JSON
+func servePostNamespaceRules(w http.ResponseWriter, r *http.Request) {
+	var rule NamespaceRule
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&rule)
+	voc.RegisterPrefix(rule.Prefix, rule.Namespace)
+	w.WriteHeader(http.StatusCreated)
+}
+
+// ServeNamespaceRules serves requests for the namespace rules resource.
+// The resource supports getting all registered rules and registering a rule.
+// The resource wraps the quad/voc module.
+func (api *APIv2) ServeNamespaceRules(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		serveGetNamespaceRules(w)
+		return
+	case http.MethodPost:
+		servePostNamespaceRules(w, r)
+		return
+	default:
+		jsonResponse(w, http.StatusMethodNotAllowed, nil)
+	}
 }

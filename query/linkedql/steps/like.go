@@ -2,7 +2,6 @@ package steps
 
 import (
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
@@ -13,7 +12,6 @@ func init() {
 	linkedql.Register(&Like{})
 }
 
-var _ linkedql.IteratorStep = (*Like)(nil)
 var _ linkedql.PathStep = (*Like)(nil)
 
 // Like corresponds to like().
@@ -25,11 +23,6 @@ type Like struct {
 // Description implements Operator.
 func (s *Like) Description() string {
 	return "Like filters out values that do not match given pattern."
-}
-
-// BuildIterator implements linkedql.IteratorStep.
-func (s *Like) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
-	return linkedql.NewValueIteratorFromPathStep(s, qs, ns)
 }
 
 // BuildPath implements PathStep.

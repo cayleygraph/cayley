@@ -39,7 +39,7 @@ func (it *TagsIterator) Next(ctx context.Context) bool {
 
 func (it *TagsIterator) addQuadFromRef(dataset *ld.RDFDataset, subject ld.Node, tag string, ref refs.Ref) error {
 	p := ld.NewIRI(tag)
-	o, err := jsonld.ToNode(it.ValueIt.getName(ref))
+	o, err := jsonld.ToNode(it.ValueIt.Namer.NameOf(ref))
 	if err != nil {
 		return err
 	}
@@ -48,17 +48,17 @@ func (it *TagsIterator) addQuadFromRef(dataset *ld.RDFDataset, subject ld.Node, 
 	return nil
 }
 
-func getSubject(it *TagsIterator) (ld.Node, error) {
-	r := it.ValueIt.scanner.Result()
-	identifier, ok := it.ValueIt.getName(r).(quad.Identifier)
+func toSubject(namer refs.Namer, result refs.Ref) (ld.Node, error) {
+	v := namer.NameOf(result)
+	id, ok := v.(quad.Identifier)
 	if !ok {
-		return nil, fmt.Errorf("Expected subject to be an entity identifier but instead received: %v", identifier)
+		return nil, fmt.Errorf("Expected subject to be an entity identifier but instead received: %v", v)
 	}
-	return jsonld.ToNode(identifier)
+	return jsonld.ToNode(id)
 }
 
-func (it *TagsIterator) addResultsToDataset(dataset *ld.RDFDataset) error {
-	s, err := getSubject(it)
+func (it *TagsIterator) addResultsToDataset(dataset *ld.RDFDataset, result refs.Ref) error {
+	s, err := toSubject(it.ValueIt.Namer, result)
 	if err != nil {
 		return err
 	}
@@ -83,23 +83,27 @@ func (it *TagsIterator) addResultsToDataset(dataset *ld.RDFDataset) error {
 // Result implements query.Iterator.
 func (it *TagsIterator) Result() interface{} {
 	// FIXME(iddan): only convert when collation is JSON/JSON-LD, leave as Ref otherwise
+	r := it.ValueIt.scanner.Result()
+	if r == nil {
+		return nil
+	}
 	d := ld.NewRDFDataset()
-	err := it.addResultsToDataset(d)
+	err := it.addResultsToDataset(d, r)
 	if err != nil {
 		it.err = err
 		return nil
 	}
-	r, err := singleDocumentFromRDF(d)
+	doc, err := singleDocumentFromRDF(d)
 	if err != nil {
 		it.err = err
 		return nil
 	}
 	if !it.ExcludeID {
-		m := r.(map[string]interface{})
+		m := doc.(map[string]interface{})
 		delete(m, "@id")
 		return m
 	}
-	return r
+	return doc
 }
 
 // Err implements query.Iterator.

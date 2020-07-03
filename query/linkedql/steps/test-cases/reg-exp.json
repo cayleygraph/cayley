@@ -14,7 +14,7 @@
       "@type": "linkedql:Vertex",
       "linkedql:values": []
     },
-    "linkedql:includeIRIs,omitempty": false,
+    "linkedql:includeIRIs": false,
     "linkedql:expression": "A"
   },
   "results": ["Alice"]

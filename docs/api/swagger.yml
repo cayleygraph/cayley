@@ -381,6 +381,50 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /api/v2/namespace-rules:
+    get:
+      tags:
+        - "data"
+      summary: "Reads all namespace rules from the database"
+      description: ""
+      operationId: "getNamespaceRules"
+      responses:
+        200:
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    prefix:
+                      description: "Prefix of the namespace"
+                      type: "string"
+                    namespace:
+                      description: "The namespace prefixed"
+                      type: "string"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - "data"
+      summary: "Registers new namespace rule to the database"
+      description: ""
+      operationId: "registerNamespaceRule"
+      responses:
+        201:
+          description: "Success"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /gephi/gs:
     get:
       tags:

@@ -28,7 +28,16 @@ func NewDocumentIterator(valueIt *ValueIterator) *DocumentIterator {
 func (it *DocumentIterator) getDataset(ctx context.Context) (*ld.RDFDataset, error) {
 	d := ld.NewRDFDataset()
 	for it.tagsIt.Next(ctx) {
-		err := it.tagsIt.addResultsToDataset(d)
+		r := it.tagsIt.ValueIt.scanner.Result()
+		if err := it.tagsIt.Err(); err != nil {
+			if err != nil {
+				return nil, err
+			}
+		}
+		if r == nil {
+			continue
+		}
+		err := it.tagsIt.addResultsToDataset(d, r)
 		if err != nil {
 			return nil, err
 		}
@@ -66,6 +75,9 @@ func (it *DocumentIterator) Result() interface{} {
 func (it *DocumentIterator) Err() error {
 	if it.tagsIt == nil {
 		return nil
+	}
+	if it.err != nil {
+		return it.err
 	}
 	return it.tagsIt.Err()
 }
