@@ -64,7 +64,7 @@ func isomorphic(source interface{}, target interface{}) error {
 	case ldMap:
 		t, ok := target.(ldMap)
 		if !ok {
-			return fmt.Errorf("Expected %#v to be a map but instead received %T", target, target)
+			return fmt.Errorf("Expected %#v to be a map or a slice with a single map but instead received %T", target, target)
 		}
 		for k, v := range s {
 			tV, _ := t[k]
