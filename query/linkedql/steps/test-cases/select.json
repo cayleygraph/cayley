@@ -2,11 +2,10 @@
   "data": [
     {
       "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ]
+      "http://example.com/likes": {
+        "@id": "http://example.com/bob"
+      },
+      "http://example.com/name": "Alice"
     }
   ],
   "query": {
@@ -15,24 +14,21 @@
     },
     "@type": "linkedql:Select",
     "linkedql:from": {
-      "@type": "linkedql:Project",
-      "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-      "linkedql:step": {
-        "@type": "linkedql:Visit",
-        "linkedql:properties": "http://example.com/likes",
-        "linkedql:from": {
-          "@type": "linkedql:Placeholder"
-        }
-      },
-      "linkedql:name": "http://example.com/liker"
+      "@type": "linkedql:Properties",
+      "linkedql:names": ["http://example.com/likes", "http://example.com/name"],
+      "linkedql:from": {
+        "@type": "linkedql:Match",
+        "linkedql:pattern": {}
+      }
     },
-    "linkedql:tags": []
+    "linkedql:properties": []
   },
   "results": [
     {
-      "http://example.com/liker": {
-        "@id": "http://example.com/alice"
-      }
+      "http://example.com/likes": {
+        "@id": "http://example.com/bob"
+      },
+      "http://example.com/name": "Alice"
     }
   ]
 }
