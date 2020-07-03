@@ -20,42 +20,23 @@
     },
     "@type": "linkedql:Select",
     "linkedql:from": {
-      "@type": "linkedql:Where",
-      "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-      "linkedql:steps": [
-        {
-          "@type": "linkedql:As",
-          "linkedql:from": {
-            "@type": "linkedql:Visit",
-            "linkedql:from": {
-              "@type": "linkedql:Visit",
-              "linkedql:from": {
-                "@type": "linkedql:Placeholder"
-              },
-              "linkedql:properties": "http://example.com/likes"
-            },
-            "linkedql:properties": "http://example.com/name"
-          },
-          "linkedql:name": "http://example.com/likesName"
-        },
-        {
-          "@type": "linkedql:As",
-          "linkedql:from": {
-            "@type": "linkedql:Visit",
-            "linkedql:from": {
-              "@type": "linkedql:Placeholder"
-            },
-            "linkedql:properties": "http://example.com/name"
-          },
-          "linkedql:name": "http://example.com/name"
+      "@type": "linkedql:Properties",
+      "linkedql:names": ["http://example.com/name"],
+      "linkedql:from": {
+        "@type": "linkedql:Where",
+        "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
+        "linkedql:condition": {
+          "@type": "linkedql:Has",
+          "linkedql:property": "http://example.com/likes",
+          "linkedql:values": [{ "@id": "http://example.com/bob" }],
+          "linkedql:from": { "@type": "linkedql:Placeholder" }
         }
-      ]
+      }
     },
     "linkedql:tags": []
   },
   "results": [
     {
-      "http://example.com/likesName": "Bob",
       "http://example.com/name": "Alice"
     }
   ]
