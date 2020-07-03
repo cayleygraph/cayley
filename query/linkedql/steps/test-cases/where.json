@@ -27,8 +27,11 @@
       },
       "linkedql:steps": [
         {
-          "@type": "linkedql:As",
+          "@type": "linkedql:Project",
           "linkedql:from": {
+            "@type": "linkedql:Placeholder"
+          },
+          "linkedql:step": {
             "@type": "linkedql:Visit",
             "linkedql:from": {
               "@type": "linkedql:Visit",
@@ -42,8 +45,11 @@
           "linkedql:name": "http://example.com/likesName"
         },
         {
-          "@type": "linkedql:As",
+          "@type": "linkedql:Project",
           "linkedql:from": {
+            "@type": "linkedql:Placeholder"
+          },
+          "linkedql:step": {
             "@type": "linkedql:Visit",
             "linkedql:from": {
               "@type": "linkedql:Placeholder"

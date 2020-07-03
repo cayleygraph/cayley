@@ -15,18 +15,28 @@
     },
     "@type": "linkedql:Select",
     "linkedql:from": {
-      "@type": "linkedql:As",
+      "@type": "linkedql:Project",
       "linkedql:from": {
-        "@type": "linkedql:Visit",
+        "@type": "linkedql:Project",
         "linkedql:from": {
-          "@type": "linkedql:As",
-          "linkedql:from": {
-            "@type": "linkedql:Vertex",
-            "linkedql:values": []
-          },
-          "linkedql:name": "http://example.com/liker"
+          "@type": "linkedql:Vertex",
+          "linkedql:values": []
         },
-        "linkedql:properties": "http://example.com/likes"
+        "linkedql:step": {
+          "@type": "linkedql:Visit",
+          "linkedql:properties": "http://example.com/likes",
+          "linkedql:from": {
+            "@type": "linkedql:Placeholder"
+          }
+        },
+        "linkedql:name": "http://example.com/liker"
+      },
+      "linkedql:step": {
+        "@type": "linkedql:Visit",
+        "linkedql:properties": "http://example.com/liked",
+        "linkedql:from": {
+          "@type": "linkedql:Placeholder"
+        }
       },
       "linkedql:name": "liked"
     },
