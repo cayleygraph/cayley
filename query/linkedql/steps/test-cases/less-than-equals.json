@@ -7,11 +7,11 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:LessThanEquals",
-    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-    "linkedql:value": 0
+    "@type": "LessThanEquals",
+    "from": { "@type": "Match", "pattern": {} },
+    "value": 0
   },
   "results": [-1, 0]
 }

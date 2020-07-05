@@ -19,14 +19,14 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Both",
-    "linkedql:from": {
-      "@type": "linkedql:Match",
-      "linkedql:pattern": { "@id": "http://example.com/bob" }
+    "@type": "Both",
+    "from": {
+      "@type": "Match",
+      "pattern": { "@id": "http://example.com/bob" }
     },
-    "linkedql:properties": "http://example.com/likes"
+    "properties": "http://example.com/likes"
   },
   "results": [
     {

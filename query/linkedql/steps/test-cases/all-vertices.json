@@ -11,10 +11,10 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Vertex",
-    "linkedql:values": []
+    "@type": "Vertex",
+    "values": []
   },
   "results": [
     {

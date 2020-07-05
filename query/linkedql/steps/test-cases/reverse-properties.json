@@ -11,15 +11,15 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Select",
-    "linkedql:from": {
-      "@type": "linkedql:ReverseProperties",
-      "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-      "linkedql:names": ["http://example.com/likes"]
+    "@type": "Select",
+    "from": {
+      "@type": "ReverseProperties",
+      "from": { "@type": "Match", "pattern": {} },
+      "names": ["http://example.com/likes"]
     },
-    "linkedql:tags": []
+    "tags": []
   },
   "results": [
     {

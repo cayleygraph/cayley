@@ -11,19 +11,19 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Union",
-    "linkedql:from": {
-      "@type": "linkedql:Match",
-      "linkedql:pattern": {
+    "@type": "Union",
+    "from": {
+      "@type": "Match",
+      "pattern": {
         "@id": "http://example.com/alice"
       }
     },
-    "linkedql:steps": [
+    "steps": [
       {
-        "@type": "linkedql:Match",
-        "linkedql:pattern": {
+        "@type": "Match",
+        "pattern": {
           "@id": "http://example.com/bob"
         }
       }

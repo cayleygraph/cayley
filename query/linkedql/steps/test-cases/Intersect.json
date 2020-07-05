@@ -19,29 +19,29 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Intersect",
-    "linkedql:from": {
-      "@type": "linkedql:Visit",
-      "linkedql:from": {
-        "@type": "linkedql:Match",
-        "linkedql:pattern": {
+    "@type": "Intersect",
+    "from": {
+      "@type": "Visit",
+      "from": {
+        "@type": "Match",
+        "pattern": {
           "@id": "http://example.com/bob"
         }
       },
-      "linkedql:properties": "http://example.com/likes"
+      "properties": "http://example.com/likes"
     },
-    "linkedql:steps": [
+    "steps": [
       {
-        "@type": "linkedql:Visit",
-        "linkedql:from": {
-          "@type": "linkedql:Match",
-          "linkedql:values": {
+        "@type": "Visit",
+        "from": {
+          "@type": "Match",
+          "values": {
             "@id": "http://example.com/bob"
           }
         },
-        "linkedql:properties": "http://example.com/likes"
+        "properties": "http://example.com/likes"
       }
     ]
   },

@@ -7,11 +7,11 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Like",
-    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-    "linkedql:likePattern": "%ali%"
+    "@type": "Like",
+    "from": { "@type": "Match", "pattern": {} },
+    "likePattern": "%ali%"
   },
   "results": [
     {

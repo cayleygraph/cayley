@@ -16,24 +16,24 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql#"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Select",
-    "linkedql:from": {
-      "@type": "linkedql:Properties",
-      "linkedql:names": ["http://example.com/name"],
-      "linkedql:from": {
-        "@type": "linkedql:Where",
-        "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-        "linkedql:condition": {
-          "@type": "linkedql:Has",
-          "linkedql:property": "http://example.com/likes",
-          "linkedql:values": [{ "@id": "http://example.com/bob" }],
-          "linkedql:from": { "@type": "linkedql:Placeholder" }
+    "@type": "Select",
+    "from": {
+      "@type": "Properties",
+      "names": ["http://example.com/name"],
+      "from": {
+        "@type": "Where",
+        "from": { "@type": "Match", "pattern": {} },
+        "condition": {
+          "@type": "Has",
+          "property": "http://example.com/likes",
+          "values": [{ "@id": "http://example.com/bob" }],
+          "from": { "@type": "Placeholder" }
         }
       }
     },
-    "linkedql:tags": []
+    "tags": []
   },
   "results": [
     {
