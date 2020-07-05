@@ -11,7 +11,7 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "linkedql": "http://cayley.io/linkedql#"
     },
     "@type": "linkedql:Limit",
     "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },

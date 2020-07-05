@@ -64,23 +64,23 @@ func TestLinkedQL(t *testing.T) {
 	for _, info := range files {
 		fileName := info.Name()
 		filePath := filepath.Join(direcotry, fileName)
-		file, err := ioutil.ReadFile(filePath)
-		require.NoError(t, err)
-
-		var c TestCase
-		err = json.Unmarshal(file, &c)
-		require.NoError(t, err)
-
-		data, err := readData(c.Data)
-		require.NoError(t, err, fileName)
-		require.NotEmpty(t, data, fileName)
-
-		query, err := readQuery(c.Query)
-		require.NoError(t, err, fileName)
-		require.NotNil(t, query, fileName)
 
 		testName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		t.Run(testName, func(t *testing.T) {
+			file, err := ioutil.ReadFile(filePath)
+			require.NoError(t, err)
+
+			var c TestCase
+			err = json.Unmarshal(file, &c)
+			require.NoError(t, err)
+
+			data, err := readData(c.Data)
+			require.NoError(t, err, fileName)
+			require.NotEmpty(t, data, fileName)
+
+			query, err := readQuery(c.Query)
+			require.NoError(t, err, fileName)
+			require.NotNil(t, query, fileName)
 			store := memstore.New(data...)
 			voc := voc.Namespaces{}
 			ctx := context.TODO()
