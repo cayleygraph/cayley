@@ -12,21 +12,21 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Documents",
-    "linkedql:from": {
-      "@type": "linkedql:Project",
-      "linkedql:name": "http://example.com/properties",
-      "linkedql:step": {
-        "@type": "linkedql:PropertyNames",
-        "linkedql:from": {
-          "@type": "linkedql:Placeholder"
+    "@type": "Documents",
+    "from": {
+      "@type": "Project",
+      "name": "http://example.com/properties",
+      "step": {
+        "@type": "PropertyNames",
+        "from": {
+          "@type": "Placeholder"
         }
       },
-      "linkedql:from": {
-        "@type": "linkedql:Vertex",
-        "linkedql:values": []
+      "from": {
+        "@type": "Vertex",
+        "values": []
       }
     }
   },
