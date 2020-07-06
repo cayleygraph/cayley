@@ -11,12 +11,12 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Has",
-    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-    "linkedql:property": "http://example.com/likes",
-    "linkedql:values": [
+    "@type": "Has",
+    "from": { "@type": "Match", "pattern": {} },
+    "property": "http://example.com/likes",
+    "values": [
       {
         "@id": "http://example.com/bob"
       }

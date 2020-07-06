@@ -11,11 +11,11 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Skip",
-    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-    "linkedql:offset": 2
+    "@type": "Skip",
+    "from": { "@type": "Match", "pattern": {} },
+    "offset": 2
   },
   "results": [
     {
