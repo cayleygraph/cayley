@@ -11,26 +11,26 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Select",
-    "linkedql:from": {
-      "@type": "linkedql:As",
-      "linkedql:from": {
-        "@type": "linkedql:Visit",
-        "linkedql:from": {
-          "@type": "linkedql:As",
-          "linkedql:from": {
-            "@type": "linkedql:Match",
-            "linkedql:pattern": {}
+    "@type": "Select",
+    "from": {
+      "@type": "As",
+      "from": {
+        "@type": "Visit",
+        "from": {
+          "@type": "As",
+          "from": {
+            "@type": "Match",
+            "pattern": {}
           },
-          "linkedql:name": "http://example.com/liker"
+          "name": "http://example.com/liker"
         },
-        "linkedql:properties": "http://example.com/likes"
+        "properties": "http://example.com/likes"
       },
-      "linkedql:name": "liked"
+      "name": "liked"
     },
-    "linkedql:tags": ["http://example.com/liker"]
+    "tags": ["http://example.com/liker"]
   },
   "results": [
     {

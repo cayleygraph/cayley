@@ -11,20 +11,20 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Difference",
-    "linkedql:from": {
-      "@type": "linkedql:Vertex",
-      "linkedql:values": [
+    "@type": "Difference",
+    "from": {
+      "@type": "Vertex",
+      "values": [
         { "@id": "http://example.com/alice" },
         { "@id": "http://example.com/likes" }
       ]
     },
-    "linkedql:steps": [
+    "steps": [
       {
-        "@type": "linkedql:Match",
-        "linkedql:pattern": {
+        "@type": "Match",
+        "pattern": {
           "@id": "http://example.com/likes"
         }
       }

@@ -7,12 +7,12 @@
   ],
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:RegExp",
-    "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} },
-    "linkedql:includeIRIs": false,
-    "linkedql:expression": "A"
+    "@type": "RegExp",
+    "from": { "@type": "Match", "pattern": {} },
+    "includeIRIs": false,
+    "expression": "A"
   },
   "results": ["Alice"]
 }

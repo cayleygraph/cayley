@@ -9,13 +9,13 @@
   },
   "query": {
     "@context": {
-      "linkedql": "http://cayley.io/linkedql"
+      "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "linkedql:Documents",
-    "linkedql:from": {
-      "@type": "linkedql:Collect",
-      "linkedql:name": "http://example.com/friends",
-      "linkedql:from": { "@type": "linkedql:Match", "linkedql:pattern": {} }
+    "@type": "Documents",
+    "from": {
+      "@type": "Collect",
+      "name": "http://example.com/friends",
+      "from": { "@type": "Match", "pattern": {} }
     }
   },
   "results": [
