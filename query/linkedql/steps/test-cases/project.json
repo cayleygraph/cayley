@@ -14,32 +14,22 @@
     "@context": {
       "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "Documents",
-    "from": {
-      "@type": "Project",
-      "name": "http://example.com/properties",
-      "step": {
-        "@type": "PropertyNames",
-        "from": {
-          "@type": "Placeholder"
-        }
-      },
+    "@type": "Project",
+    "name": "http://example.com/total",
+    "step": {
+      "@type": "Count",
       "from": {
-        "@type": "Vertex",
-        "values": []
+        "@type": "Placeholder"
       }
+    },
+    "from": {
+      "@type": "Match",
+      "pattern": {}
     }
   },
   "results": [
     {
-      "http://example.com/properties": [
-        {
-          "@id": "http://example.com/likes"
-        },
-        {
-          "@id": "http://example.com/name"
-        }
-      ]
+      "http://example.com/total": 7
     }
   ]
 }
