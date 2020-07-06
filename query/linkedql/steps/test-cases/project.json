@@ -14,15 +14,22 @@
     "@context": {
       "@vocab": "http://cayley.io/linkedql#"
     },
-    "@type": "PropertyNames",
-    "from": { "@type": "Match", "pattern": {} }
+    "@type": "Project",
+    "name": "http://example.com/total",
+    "step": {
+      "@type": "Count",
+      "from": {
+        "@type": "Placeholder"
+      }
+    },
+    "from": {
+      "@type": "Match",
+      "pattern": {}
+    }
   },
   "results": [
     {
-      "@id": "http://example.com/likes"
-    },
-    {
-      "@id": "http://example.com/name"
+      "http://example.com/total": 7
     }
   ]
 }

@@ -90,6 +90,9 @@ func TestLinkedQL(t *testing.T) {
 			for iterator.Next(ctx) {
 				results = append(results, iterator.Result())
 			}
+			if testName == "project" {
+				fmt.Printf("Results: %#v\n", results)
+			}
 			require.NoError(t, iterator.Err())
 			require.Equal(t, nil, isomorphic(c.Results, results))
 		})

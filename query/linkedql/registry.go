@@ -187,34 +187,36 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			}
 			fv.Set(reflect.ValueOf(s))
 		case reflect.Slice:
-			el := f.Type.Elem()
-			if el.Kind() != reflect.Interface {
-				err := json.Unmarshal(v, fv.Addr().Interface())
-				if err != nil {
+			var arr []json.RawMessage
+			err := json.Unmarshal(v, &arr)
+			if err != nil {
+				var i json.RawMessage
+				iErr := json.Unmarshal(v, &i)
+				if iErr != nil {
 					return nil, err
 				}
-			} else {
-				var arr []json.RawMessage
-				err := json.Unmarshal(v, &arr)
-				if err != nil {
-					var i json.RawMessage
-					iErr := json.Unmarshal(v, &i)
-					if iErr != nil {
-						return nil, err
-					}
-					arr = []json.RawMessage{i}
-				}
-				if arr != nil {
-					va := reflect.MakeSlice(f.Type, len(arr), len(arr))
-					for i, v := range arr {
+				arr = []json.RawMessage{i}
+			}
+			if arr != nil {
+				el := f.Type.Elem()
+				va := reflect.MakeSlice(f.Type, len(arr), len(arr))
+				for i, v := range arr {
+					if el.Kind() != reflect.Interface {
+						new := reflect.New(el)
+						err := json.Unmarshal(v, new.Interface())
+						if err != nil {
+							return nil, err
+						}
+						va.Index(i).Set(new.Elem())
+					} else {
 						s, err := Unmarshal(v)
 						if err != nil {
 							return nil, err
 						}
 						va.Index(i).Set(reflect.ValueOf(s))
 					}
-					fv.Set(va)
 				}
+				fv.Set(va)
 			}
 		default:
 			err := json.Unmarshal(v, fv.Addr().Interface())

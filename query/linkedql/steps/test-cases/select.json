@@ -2,11 +2,10 @@
   "data": [
     {
       "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ]
+      "http://example.com/likes": {
+        "@id": "http://example.com/bob"
+      },
+      "http://example.com/name": "Alice"
     }
   ],
   "query": {
@@ -15,21 +14,21 @@
     },
     "@type": "Select",
     "from": {
-      "@type": "Visit",
+      "@type": "Properties",
+      "names": ["http://example.com/likes", "http://example.com/name"],
       "from": {
-        "@type": "As",
-        "from": { "@type": "Match", "pattern": {} },
-        "name": "http://example.com/liker"
-      },
-      "properties": "http://example.com/likes"
+        "@type": "Match",
+        "pattern": {}
+      }
     },
-    "tags": []
+    "properties": []
   },
   "results": [
     {
-      "http://example.com/liker": {
-        "@id": "http://example.com/alice"
-      }
+      "http://example.com/likes": {
+        "@id": "http://example.com/bob"
+      },
+      "http://example.com/name": "Alice"
     }
   ]
 }

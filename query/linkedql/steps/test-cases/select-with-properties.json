@@ -21,14 +21,13 @@
         "pattern": {}
       }
     },
-    "properties": []
+    "properties": ["http://example.com/likes"]
   },
   "results": [
     {
       "http://example.com/likes": {
         "@id": "http://example.com/bob"
-      },
-      "http://example.com/name": "Alice"
+      }
     }
   ]
 }
