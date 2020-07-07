@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Where)(nil)
 
 // Where corresponds to .where().
 type Where struct {
-	From      linkedql.PathStep `json:"from" minCardinality:"0"`
+	From      linkedql.PathStep `json:"from"`
 	Condition linkedql.PathStep `json:"condition"`
 }
 
@@ -26,7 +26,7 @@ func (s *Where) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Where) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

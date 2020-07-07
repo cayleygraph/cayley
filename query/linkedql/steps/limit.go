@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Limit)(nil)
 
 // Limit corresponds to .limit().
 type Limit struct {
-	From  linkedql.PathStep `json:"from" minCardinality:"0"`
+	From  linkedql.PathStep `json:"from"`
 	Limit int64             `json:"limit"`
 }
 
@@ -26,7 +26,7 @@ func (s *Limit) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Limit) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

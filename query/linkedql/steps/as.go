@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*As)(nil)
 
 // As corresponds to .tag().
 type As struct {
-	From linkedql.PathStep `json:"from" minCardinality:"0"`
+	From linkedql.PathStep `json:"from"`
 	Name string            `json:"name"`
 }
 
@@ -26,7 +26,7 @@ func (s *As) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *As) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

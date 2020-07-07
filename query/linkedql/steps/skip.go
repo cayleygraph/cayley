@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Skip)(nil)
 
 // Skip corresponds to .skip().
 type Skip struct {
-	From   linkedql.PathStep `json:"from" minCardinality:"0"`
+	From   linkedql.PathStep `json:"from"`
 	Offset int64             `json:"offset"`
 }
 
@@ -26,7 +26,7 @@ func (s *Skip) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Skip) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

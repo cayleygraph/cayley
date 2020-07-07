@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Intersect)(nil)
 
 // Intersect represents .intersect() and .and().
 type Intersect struct {
-	From  linkedql.PathStep   `json:"from" minCardinality:"0"`
+	From  linkedql.PathStep   `json:"from"`
 	Steps []linkedql.PathStep `json:"steps"`
 }
 
@@ -26,7 +26,7 @@ func (s *Intersect) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Intersect) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}
