@@ -1,21 +1,18 @@
 {
   "data": {
-    "http://example.com/friends": {
-      "@list": [
-        { "@id": "http://example.com/alice" },
-        { "@id": "http://example.com/bob" }
-      ]
-    }
+    "@context": {
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
+    },
+    "friends": { "@list": [{ "@id": "alice" }, { "@id": "bob" }] }
   },
   "query": {
-    "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
-    },
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
     "@type": "Documents",
     "from": {
       "@type": "Collect",
-      "name": "http://example.com/friends",
-      "from": { "@type": "Match", "pattern": {} }
+      "from": { "@type": "Match", "pattern": {} },
+      "name": "http://example.com/friends"
     }
   },
   "results": [

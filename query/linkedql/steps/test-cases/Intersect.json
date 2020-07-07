@@ -1,34 +1,22 @@
 {
-  "data": [
-    {
-      "@id": "http://example.com/bob",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/alice"
-        }
-      ]
-    },
-    {
-      "@id": "http://example.com/dan",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/alice"
-        }
-      ]
-    }
-  ],
-  "query": {
+  "data": {
     "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
     },
+    "@graph": [
+      { "@id": "bob", "likes": { "@id": "alice" } },
+      { "@id": "dan", "likes": { "@id": "alice" } }
+    ]
+  },
+  "query": {
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
     "@type": "Intersect",
     "from": {
       "@type": "Visit",
       "from": {
         "@type": "Match",
-        "pattern": {
-          "@id": "http://example.com/bob"
-        }
+        "pattern": { "@id": "http://example.com/bob" }
       },
       "properties": "http://example.com/likes"
     },
@@ -37,17 +25,11 @@
         "@type": "Visit",
         "from": {
           "@type": "Match",
-          "values": {
-            "@id": "http://example.com/bob"
-          }
+          "values": { "@id": "http://example.com/bob" }
         },
         "properties": "http://example.com/likes"
       }
     ]
   },
-  "results": [
-    {
-      "@id": "http://example.com/alice"
-    }
-  ]
+  "results": [{ "@id": "http://example.com/alice" }]
 }
