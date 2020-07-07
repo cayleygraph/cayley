@@ -1,0 +1,24 @@
+{
+  "@context": {
+    "ex": "http://example.com/",
+    "@vocab": "http://xmlns.com/foaf/0.1/"
+  },
+  "@graph": [
+    {
+      "@id": "ex:alice",
+      "@type": "Person",
+      "name": "Alice",
+      "knows": {
+        "@id": "ex:bob"
+      }
+    },
+    {
+      "@id": "ex:bob",
+      "@type": "Person",
+      "name": "Bob",
+      "knows": {
+        "@id": "ex:alice"
+      }
+    }
+  ]
+}

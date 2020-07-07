@@ -23,30 +23,33 @@ var unmarshalCases = []struct {
 	{
 		name: "simple",
 		data: `{
-	"@type": "linkedql:TestStep",
-	"linkedql:limit": 10
+	"@context": { "@vocab": "http://cayley.io/linkedql#" },
+	"@type": "TestStep",
+	"limit": 10
 }`,
 		exp: &TestStep{Limit: 10},
 	},
 	{
 		name: "simple",
 		data: `{
-	"@type": "linkedql:TestStep",
-	"linkedql:tags": ["a", "b"]
+	"@context": { "@vocab": "http://cayley.io/linkedql#" },
+	"@type": "TestStep",
+	"tags": ["a", "b"]
 }`,
 		exp: &TestStep{Tags: []string{"a", "b"}},
 	},
 	{
 		name: "nested",
 		data: `{
-	"@type": "linkedql:TestStep",
-	"linkedql:limit": 10,
-	"linkedql:from": {
-		"@type": "linkedql:TestStep",
-		"linkedql:limit": 15,
-		"linkedql:from": {
-			"@type": "linkedql:TestStep",
-			"linkedql:limit": 20
+	"@context": { "@vocab": "http://cayley.io/linkedql#" },
+	"@type": "TestStep",
+	"limit": 10,
+	"from": {
+		"@type": "TestStep",
+		"limit": 15,
+		"from": {
+			"@type": "TestStep",
+			"limit": 20
 		}
 	}
 }`,
@@ -63,16 +66,17 @@ var unmarshalCases = []struct {
 	{
 		name: "nested slice",
 		data: `{
-	"@type": "linkedql:TestStep",
-	"linkedql:limit": 10,
-	"linkedql:sub": [
+	"@context": { "@vocab": "http://cayley.io/linkedql#" },
+	"@type": "TestStep",
+	"limit": 10,
+	"sub": [
 		{
-			"@type": "linkedql:TestStep",
-			"linkedql:limit": 15
+			"@type": "TestStep",
+			"limit": 15
 		},
 		{
-			"@type": "linkedql:TestStep",
-			"linkedql:limit": 20
+			"@type": "TestStep",
+			"limit": 20
 		}
 	]
 }`,

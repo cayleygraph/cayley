@@ -7,22 +7,22 @@ info:
     name: "Apache 2.0"
     url: "http://www.apache.org/licenses/LICENSE-2.0.html"
 servers:
-- url: "http://{host}:{port}"
-  variables:
-    'host':
-      default: "localhost"
-    'port':
-      default: "64210"
+  - url: "http://{host}:{port}"
+    variables:
+      "host":
+        default: "localhost"
+      "port":
+        default: "64210"
 tags:
-- name: "data"
-  description: "Reading and writing data"
-- name: "queries"
-  description: "Querying the graph"
+  - name: "data"
+    description: "Reading and writing data"
+  - name: "queries"
+    description: "Querying the graph"
 paths:
   /api/v2/formats:
     get:
       tags:
-      - "data"
+        - "data"
       summary: "Returns a list of supported data formats"
       description: ""
       operationId: "listFormats"
@@ -30,7 +30,7 @@ paths:
         200:
           description: "success"
           content:
-            'application/json':
+            "application/json":
               schema:
                 type: "object"
                 properties:
@@ -64,91 +64,91 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /api/v2/read:
     get:
       tags:
-      - "data"
+        - "data"
       summary: "Reads all quads from the database"
       description: ""
       operationId: "readQuads"
       parameters:
-      - name: "format"
-        in: "query"
-        description: "Data encoder to use for response. Overrides Accept header."
-        required: false
-        schema:
-          type: "string"
-          enum:
-          - "nquads"
-          - "jsonld"
-          - "json"
-          - "json-stream"
-          - "pquads"
-          - "graphviz"
-          - "gml"
-          - "graphml"
-          default: "nquads"
-      - name: "sub"
-        in: "query"
-        description: "Subjects to filter quads by"
-        required: false
-        schema:
-          type: "string"
-      - name: "pred"
-        in: "query"
-        description: "Predicates to filter quads by"
-        required: false
-        schema:
-          type: "string"
-      - name: "obj"
-        in: "query"
-        description: "Objects to filter quads by"
-        required: false
-        schema:
-          type: "string"
-      - name: "label"
-        in: "query"
-        description: "Labels to filter quads by"
-        required: false
-        schema:
-          type: "string"
-      - name: "iri"
-        in: "query"
-        description: "IRI format to use"
-        required: false
-        schema:
-          type: "string"
-          enum: ["short", "full"]
+        - name: "format"
+          in: "query"
+          description: "Data encoder to use for response. Overrides Accept header."
+          required: false
+          schema:
+            type: "string"
+            enum:
+              - "nquads"
+              - "jsonld"
+              - "json"
+              - "json-stream"
+              - "pquads"
+              - "graphviz"
+              - "gml"
+              - "graphml"
+            default: "nquads"
+        - name: "sub"
+          in: "query"
+          description: "Subjects to filter quads by"
+          required: false
+          schema:
+            type: "string"
+        - name: "pred"
+          in: "query"
+          description: "Predicates to filter quads by"
+          required: false
+          schema:
+            type: "string"
+        - name: "obj"
+          in: "query"
+          description: "Objects to filter quads by"
+          required: false
+          schema:
+            type: "string"
+        - name: "label"
+          in: "query"
+          description: "Labels to filter quads by"
+          required: false
+          schema:
+            type: "string"
+        - name: "iri"
+          in: "query"
+          description: "IRI format to use"
+          required: false
+          schema:
+            type: "string"
+            enum: ["short", "full"]
       responses:
         200:
           description: "read successful"
           content:
-            'application/n-quads':
+            "application/n-quads":
               schema:
-                $ref: '#/components/schemas/NQuads'
-            'application/ld+json':
+                $ref: "#/components/schemas/NQuads"
+            "application/ld+json":
               schema:
-                $ref: '#/components/schemas/JSONLD'
-            'application/json':
+                $ref: "#/components/schemas/JSONLD"
+            "application/json":
               schema:
-                $ref: '#/components/schemas/JsonQuads'
-            'application/x-json-stream':
+                $ref: "#/components/schemas/JsonQuads"
+            "application/x-json-stream":
               schema:
-                $ref: '#/components/schemas/JsonQuadsStream'
-            'application/x-protobuf':
+                $ref: "#/components/schemas/JsonQuadsStream"
+            "application/x-protobuf":
               schema:
-                $ref: '#/components/schemas/PQuads'
+                $ref: "#/components/schemas/PQuads"
         default:
           description: "Unexpected error"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /api/v2/write:
     post:
       tags:
-      - "data"
+        - "data"
       summary: "Writes quads to the database"
       description: ""
       operationId: "writeQuads"
@@ -156,28 +156,28 @@ paths:
         description: "File in one of formats specified in Content-Type."
         required: true
         content:
-          'application/n-quads':
+          "application/n-quads":
             schema:
-              $ref: '#/components/schemas/NQuads'
-          'application/ld+json':
+              $ref: "#/components/schemas/NQuads"
+          "application/ld+json":
             schema:
-              $ref: '#/components/schemas/JSONLD'
-          'application/json':
+              $ref: "#/components/schemas/JSONLD"
+          "application/json":
             schema:
-              $ref: '#/components/schemas/JsonQuads'
-          'application/x-json-stream':
+              $ref: "#/components/schemas/JsonQuads"
+          "application/x-json-stream":
             schema:
-              $ref: '#/components/schemas/JsonQuadsStream'
-          'application/x-protobuf':
+              $ref: "#/components/schemas/JsonQuadsStream"
+          "application/x-protobuf":
             schema:
-              $ref: '#/components/schemas/PQuads'
+              $ref: "#/components/schemas/PQuads"
       parameters:
-      - name: "format"
-        in: "query"
-        description: "Data decoder to use for request. Overrides Content-Type."
-        required: false
-        schema:
-          type: "string"
+        - name: "format"
+          in: "query"
+          description: "Data decoder to use for request. Overrides Content-Type."
+          required: false
+          schema:
+            type: "string"
       responses:
         200:
           description: "write successful"
@@ -197,11 +197,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /api/v2/node/delete:
     post:
       tags:
-      - "data"
+        - "data"
       summary: "Removes a node add all associated quads"
       description: ""
       operationId: "deleteNode"
@@ -209,22 +209,22 @@ paths:
         description: "File in one of formats specified in Content-Type."
         required: true
         content:
-          'application/n-quads':
+          "application/n-quads":
             schema:
-              $ref: '#/components/schemas/NQuadsNode'
-          'application/json':
+              $ref: "#/components/schemas/NQuadsNode"
+          "application/json":
             schema:
-              $ref: '#/components/schemas/JsonNode'
-          'application/x-protobuf':
+              $ref: "#/components/schemas/JsonNode"
+          "application/x-protobuf":
             schema:
-              $ref: '#/components/schemas/PNode'
+              $ref: "#/components/schemas/PNode"
       parameters:
-      - name: "format"
-        in: "query"
-        description: "Data decoder to use for request. Overrides Content-Type."
-        required: false
-        schema:
-          type: "string"
+        - name: "format"
+          in: "query"
+          description: "Data decoder to use for request. Overrides Content-Type."
+          required: false
+          schema:
+            type: "string"
       responses:
         200:
           description: "delete successful"
@@ -244,11 +244,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /api/v2/delete:
     post:
       tags:
-      - "data"
+        - "data"
       summary: "Delete quads from the database"
       description: ""
       operationId: "deleteQuads"
@@ -256,28 +256,28 @@ paths:
         description: "File in one of formats specified in Content-Type."
         required: true
         content:
-          'application/n-quads':
+          "application/n-quads":
             schema:
-              $ref: '#/components/schemas/NQuads'
-          'application/ld+json':
+              $ref: "#/components/schemas/NQuads"
+          "application/ld+json":
             schema:
-              $ref: '#/components/schemas/JSONLD'
-          'application/json':
+              $ref: "#/components/schemas/JSONLD"
+          "application/json":
             schema:
-              $ref: '#/components/schemas/JsonQuads'
-          'application/x-json-stream':
+              $ref: "#/components/schemas/JsonQuads"
+          "application/x-json-stream":
             schema:
-              $ref: '#/components/schemas/JsonQuadsStream'
-          'application/x-protobuf':
+              $ref: "#/components/schemas/JsonQuadsStream"
+          "application/x-protobuf":
             schema:
-              $ref: '#/components/schemas/PQuads'
+              $ref: "#/components/schemas/PQuads"
       parameters:
-      - name: "format"
-        in: "query"
-        description: "Data decoder to use for request. Overrides Content-Type."
-        required: false
-        schema:
-          type: "string"
+        - name: "format"
+          in: "query"
+          description: "Data decoder to use for request. Overrides Content-Type."
+          required: false
+          schema:
+            type: "string"
       responses:
         200:
           description: "write successful"
@@ -297,11 +297,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /api/v2/query:
     get:
       tags:
-      - "queries"
+        - "queries"
       summary: "Query the graph"
       description: ""
       operationId: "query-get"
@@ -327,15 +327,15 @@ paths:
         200:
           description: "query succesful"
           content:
-            'application/json':
+            "application/json":
               schema:
-                $ref: '#/components/schemas/QueryResult'
+                $ref: "#/components/schemas/QueryResult"
         default:
           description: "Unexpected error"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
     post:
       tags:
         - "queries"
@@ -343,22 +343,22 @@ paths:
       description: ""
       operationId: "query"
       parameters:
-      - name: "lang"
-        in: "query"
-        description: "Query language to use"
-        required: true
-        schema:
-          type: "string"
-          enum:
-          - "gizmo"
-          - "graphql"
-          - "mql"
-          - "sexp"
+        - name: "lang"
+          in: "query"
+          description: "Query language to use"
+          required: true
+          schema:
+            type: "string"
+            enum:
+              - "gizmo"
+              - "graphql"
+              - "mql"
+              - "sexp"
       requestBody:
         description: "Query text"
         required: true
         content:
-          '*/*':
+          "*/*":
             schema:
               type: "string"
             examples:
@@ -372,68 +372,112 @@ paths:
         200:
           description: "query succesful"
           content:
-            'application/json':
+            "application/json":
               schema:
-                $ref: '#/components/schemas/QueryResult'
+                $ref: "#/components/schemas/QueryResult"
         default:
           description: "Unexpected error"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
+  /api/v2/namespace-rules:
+    get:
+      tags:
+        - "data"
+      summary: "Reads all namespace rules from the database"
+      description: ""
+      operationId: "getNamespaceRules"
+      responses:
+        200:
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    prefix:
+                      description: "Prefix of the namespace"
+                      type: "string"
+                    namespace:
+                      description: "The namespace prefixed"
+                      type: "string"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - "data"
+      summary: "Registers new namespace rule to the database"
+      description: ""
+      operationId: "registerNamespaceRule"
+      responses:
+        201:
+          description: "Success"
+        default:
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /gephi/gs:
     get:
       tags:
-      - "queries"
+        - "queries"
       summary: "Gephi GraphStream endpoint"
       description: ""
       operationId: "gephiGraphStream"
       parameters:
-      - name: "mode"
-        in: "query"
-        description: "Streamer mode"
-        required: false
-        schema:
-          type: "string"
-          enum:
-          - "raw"
-          - "nodes"
-          default: "raw"
-      - name: "limit"
-        in: "query"
-        description: "Limit the number of nodes or quads"
-        required: false
-        schema:
-          type: "integer"
-      - name: "sub"
-        in: "query"
-        description: "Subjects to filter quads by"
-        required: false
-        schema:
-          type: "string"
-      - name: "pred"
-        in: "query"
-        description: "Predicates to filter quads by"
-        required: false
-        schema:
-          type: "string"
-      - name: "obj"
-        in: "query"
-        description: "Objects to filter quads by"
-        required: false
-        schema:
-          type: "string"
-      - name: "label"
-        in: "query"
-        description: "Labels to filter quads by"
-        required: false
-        schema:
-          type: "string"
+        - name: "mode"
+          in: "query"
+          description: "Streamer mode"
+          required: false
+          schema:
+            type: "string"
+            enum:
+              - "raw"
+              - "nodes"
+            default: "raw"
+        - name: "limit"
+          in: "query"
+          description: "Limit the number of nodes or quads"
+          required: false
+          schema:
+            type: "integer"
+        - name: "sub"
+          in: "query"
+          description: "Subjects to filter quads by"
+          required: false
+          schema:
+            type: "string"
+        - name: "pred"
+          in: "query"
+          description: "Predicates to filter quads by"
+          required: false
+          schema:
+            type: "string"
+        - name: "obj"
+          in: "query"
+          description: "Objects to filter quads by"
+          required: false
+          schema:
+            type: "string"
+        - name: "label"
+          in: "query"
+          description: "Labels to filter quads by"
+          required: false
+          schema:
+            type: "string"
       responses:
         200:
           description: "success"
           content:
-            'application/stream+json':
+            "application/stream+json":
               schema:
                 type: "string"
                 format: "binary"
@@ -443,7 +487,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     QueryResult:
@@ -480,16 +524,17 @@ components:
     JSONLD:
       type: "string"
       format: "binary"
-      example: {
+      example:
+        {
           "@context": "http://schema.org/",
           "@type": "Person",
           "name": "Jane Doe",
           "jobTitle": "Professor",
           "telephone": "(425) 123-4567",
-          "url": "http://www.janedoe.com"
+          "url": "http://www.janedoe.com",
         }
       externalDocs:
-        url: 'https://json-ld.org'
+        url: "https://json-ld.org"
     JsonQuad:
       type: "object"
       properties:

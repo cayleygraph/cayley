@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "Skip",
+    "from": { "@type": "Match", "pattern": {} },
+    "offset": 2
+  },
+  "results": [
+    {
+      "@id": "http://example.com/bob"
+    }
+  ]
+}

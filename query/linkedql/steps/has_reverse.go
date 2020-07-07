@@ -2,7 +2,6 @@ package steps
 
 import (
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query"
 	"github.com/cayleygraph/cayley/query/linkedql"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
@@ -13,24 +12,18 @@ func init() {
 	linkedql.Register(&HasReverse{})
 }
 
-var _ linkedql.IteratorStep = (*HasReverse)(nil)
 var _ linkedql.PathStep = (*HasReverse)(nil)
 
 // HasReverse corresponds to .hasR().
 type HasReverse struct {
-	From     linkedql.PathStep     `json:"from" minCardinality:"0"`
-	Property linkedql.PropertyPath `json:"property"`
-	Values   []quad.Value          `json:"values"`
+	From     linkedql.PathStep      `json:"from" minCardinality:"0"`
+	Property *linkedql.PropertyPath `json:"property"`
+	Values   []quad.Value           `json:"values"`
 }
 
 // Description implements Step.
 func (s *HasReverse) Description() string {
 	return "is the same as Has, but sets constraint in reverse direction."
-}
-
-// BuildIterator implements linkedql.IteratorStep.
-func (s *HasReverse) BuildIterator(qs graph.QuadStore, ns *voc.Namespaces) (query.Iterator, error) {
-	return linkedql.NewValueIteratorFromPathStep(s, qs, ns)
 }
 
 // BuildPath implements linkedql.PathStep.

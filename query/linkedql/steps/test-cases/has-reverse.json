@@ -1,0 +1,30 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "HasReverse",
+    "from": { "@type": "Match", "pattern": {} },
+    "property": "http://example.com/likes",
+    "values": [
+      {
+        "@id": "http://example.com/alice"
+      }
+    ]
+  },
+  "results": [
+    {
+      "@id": "http://example.com/bob"
+    }
+  ]
+}

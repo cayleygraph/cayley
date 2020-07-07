@@ -4,49 +4,57 @@ import (
 	"context"
 
 	"github.com/cayleygraph/cayley/query"
-	"github.com/cayleygraph/quad"
+	"github.com/piprate/json-gold/ld"
 )
 
-var _ query.Iterator = (*DocumentIterator)(nil)
-
-type document = map[string]interface{}
-type properties = map[string][]interface{}
-type idToProperties = map[quad.Value]properties
+var (
+	_ query.Iterator = (*DocumentIterator)(nil)
+)
 
 // DocumentIterator is an iterator of documents from the graph
 type DocumentIterator struct {
-	tagsIt     *TagsIterator
-	ids        []quad.Value
-	properties idToProperties
-	current    int
+	tagsIt    *TagsIterator
+	dataset   *ld.RDFDataset
+	err       error
+	exhausted bool
 }
 
 // NewDocumentIterator returns a new DocumentIterator for a QuadStore and Path.
 func NewDocumentIterator(valueIt *ValueIterator) *DocumentIterator {
 	tagsIt := &TagsIterator{ValueIt: valueIt, Selected: nil}
-	return &DocumentIterator{tagsIt: tagsIt, current: -1}
+	return &DocumentIterator{tagsIt: tagsIt, exhausted: false}
+}
+
+func (it *DocumentIterator) getDataset(ctx context.Context) (*ld.RDFDataset, error) {
+	d := ld.NewRDFDataset()
+	for it.tagsIt.Next(ctx) {
+		r := it.tagsIt.ValueIt.scanner.Result()
+		if err := it.tagsIt.Err(); err != nil {
+			if err != nil {
+				return nil, err
+			}
+		}
+		if r == nil {
+			continue
+		}
+		err := it.tagsIt.addResultsToDataset(d, r)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return d, nil
 }
 
 // Next implements query.Iterator.
 func (it *DocumentIterator) Next(ctx context.Context) bool {
-	if it.properties == nil {
-		it.properties = make(idToProperties)
-		for it.tagsIt.Next(ctx) {
-			id := it.tagsIt.ValueIt.Value()
-			tags := it.tagsIt.getTags()
-			it.ids = append(it.ids, id)
-			for k, v := range tags {
-				m, ok := it.properties[id]
-				if !ok {
-					m = make(properties)
-					it.properties[id] = m
-				}
-				m[k] = append(m[k], v)
-			}
+	if !it.exhausted {
+		d, err := it.getDataset(ctx)
+		if err != nil {
+			it.err = err
+		} else {
+			it.dataset = d
 		}
-	}
-	if it.current < len(it.ids)-1 {
-		it.current++
+		it.exhausted = true
 		return true
 	}
 	return false
@@ -54,31 +62,22 @@ func (it *DocumentIterator) Next(ctx context.Context) bool {
 
 // Result implements query.Iterator.
 func (it *DocumentIterator) Result() interface{} {
-	if it.current >= len(it.ids) {
-		return nil
+	context := make(map[string]interface{})
+	opts := ld.NewJsonLdOptions("")
+	c, err := datasetToCompact(it.dataset, context, opts)
+	if err != nil {
+		it.err = err
 	}
-	id := it.ids[it.current]
-	// FIXME(iddan): don't cast to string when collation is Raw
-	var sid string
-	switch val := id.(type) {
-	case quad.IRI:
-		sid = string(val)
-	case quad.BNode:
-		sid = val.String()
-	}
-	d := document{
-		"@id": sid,
-	}
-	for k, v := range it.properties[id] {
-		d[k] = v
-	}
-	return d
+	return c
 }
 
 // Err implements query.Iterator.
 func (it *DocumentIterator) Err() error {
 	if it.tagsIt == nil {
 		return nil
+	}
+	if it.err != nil {
+		return it.err
 	}
 	return it.tagsIt.Err()
 }

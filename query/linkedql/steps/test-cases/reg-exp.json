@@ -1,0 +1,18 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/name": ["Alice"]
+    }
+  ],
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "RegExp",
+    "from": { "@type": "Match", "pattern": {} },
+    "includeIRIs": false,
+    "expression": "A"
+  },
+  "results": ["Alice"]
+}

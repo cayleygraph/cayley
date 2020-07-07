@@ -17,14 +17,14 @@ var _ query.Iterator = (*ValueIterator)(nil)
 
 // ValueIterator is an iterator of values from the graph.
 type ValueIterator struct {
-	namer   refs.Namer
+	Namer   refs.Namer
 	path    *path.Path
 	scanner iterator.Scanner
 }
 
 // NewValueIterator returns a new ValueIterator for a path and namer.
 func NewValueIterator(p *path.Path, namer refs.Namer) *ValueIterator {
-	return &ValueIterator{namer: namer, path: p}
+	return &ValueIterator{Namer: namer, path: p}
 }
 
 // NewValueIteratorFromPathStep attempts to build a path from PathStep and return a new ValueIterator of it.
@@ -45,17 +45,12 @@ func (it *ValueIterator) Next(ctx context.Context) bool {
 	return it.scanner.Next(ctx)
 }
 
-func (it *ValueIterator) getName(ref refs.Ref) quad.Value {
-	name := it.namer.NameOf(ref)
-	return name
-}
-
 // Value returns the current value
 func (it *ValueIterator) Value() quad.Value {
 	if it.scanner == nil {
 		return nil
 	}
-	return it.getName(it.scanner.Result())
+	return it.Namer.NameOf(it.scanner.Result())
 }
 
 // Result implements query.Iterator.

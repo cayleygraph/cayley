@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cayleygraph/quad"
+	"github.com/piprate/json-gold/ld"
 )
 
 var (
@@ -20,7 +21,7 @@ func TypeByName(name string) (reflect.Type, bool) {
 	return t, ok
 }
 
-// Registered types returns type names of all registered types.
+// RegisteredTypes returns type names of all registered types.
 func RegisteredTypes() []string {
 	out := make([]string, 0, len(typeByName))
 	for k := range typeByName {
@@ -43,7 +44,7 @@ func Register(typ RegistryItem) {
 	if tp.Kind() != reflect.Struct {
 		panic("only structs are allowed")
 	}
-	name := Prefix + tp.Name()
+	name := Namespace + tp.Name()
 	if _, ok := typeByName[name]; ok {
 		panic("this name was already registered")
 	}
@@ -62,6 +63,12 @@ var (
 // Unmarshal attempts to unmarshal an Item or returns error.
 func Unmarshal(data []byte) (RegistryItem, error) {
 	// TODO: make it a part of quad/jsonld package.
+	data, err := normalizeQuery(data)
+
+	if err != nil {
+		return nil, err
+	}
+
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(data, &m); err != nil {
 		return nil, err
@@ -83,7 +90,7 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 		if tag == "-" {
 			continue
 		} else if tag != "" {
-			name = Prefix + tag
+			name = Namespace + tag
 		}
 		v, ok := m[name]
 		if !ok {
@@ -105,20 +112,24 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			if err != nil {
 				return nil, err
 			}
-			value, err := parseValue(v)
+			value, err := parseValue(a)
 			if err != nil {
 				return nil, err
 			}
 			fv.Set(reflect.ValueOf(value))
 			continue
 		case quadSliceValue:
-			var a []interface{}
+			var a interface{}
 			err := json.Unmarshal(v, &a)
 			if err != nil {
 				return nil, err
 			}
+			arr, ok := a.([]interface{})
+			if !ok {
+				arr = []interface{}{a}
+			}
 			var values []quad.Value
-			for _, item := range a {
+			for _, item := range arr {
 				value, err := parseValue(item)
 				if err != nil {
 					return nil, err
@@ -144,13 +155,17 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 			fv.Set(reflect.ValueOf(val))
 			continue
 		case quadSliceIRI:
-			var a []interface{}
+			var a interface{}
 			err := json.Unmarshal(v, &a)
 			if err != nil {
 				return nil, err
 			}
+			arr, ok := a.([]interface{})
+			if !ok {
+				arr = []interface{}{a}
+			}
 			var values []quad.IRI
-			for _, item := range a {
+			for _, item := range arr {
 				s, ok := item.(string)
 				if !ok {
 					return nil, fmt.Errorf("Expected a string but received %v instead", item)
@@ -180,8 +195,14 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 				}
 			} else {
 				var arr []json.RawMessage
-				if err := json.Unmarshal(v, &arr); err != nil {
-					return nil, err
+				err := json.Unmarshal(v, &arr)
+				if err != nil {
+					var i json.RawMessage
+					iErr := json.Unmarshal(v, &i)
+					if iErr != nil {
+						return nil, err
+					}
+					arr = []json.RawMessage{i}
 				}
 				if arr != nil {
 					va := reflect.MakeSlice(f.Type, len(arr), len(arr))
@@ -203,6 +224,20 @@ func Unmarshal(data []byte) (RegistryItem, error) {
 		}
 	}
 	return item.Addr().Interface().(RegistryItem), nil
+}
+
+func normalizeQuery(data []byte) ([]byte, error) {
+	var query interface{}
+	json.Unmarshal(data, &query)
+	processor := ld.NewJsonLdProcessor()
+	opts := ld.NewJsonLdOptions("")
+	compact, err := processor.Compact(query, nil, opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(compact)
 }
 
 func parseBNode(s string) (quad.BNode, error) {
@@ -247,6 +282,10 @@ func parseLiteral(a interface{}) (quad.Value, error) {
 	case int64:
 		return quad.Int(a), nil
 	case float64:
+		i := int64(a)
+		if a == float64(i) {
+			return quad.Int(i), nil
+		}
 		return quad.Float(a), nil
 	case bool:
 		return quad.Bool(a), nil

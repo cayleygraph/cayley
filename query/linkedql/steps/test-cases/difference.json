@@ -1,0 +1,38 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "Difference",
+    "from": {
+      "@type": "Vertex",
+      "values": [
+        { "@id": "http://example.com/alice" },
+        { "@id": "http://example.com/likes" }
+      ]
+    },
+    "steps": [
+      {
+        "@type": "Match",
+        "pattern": {
+          "@id": "http://example.com/likes"
+        }
+      }
+    ]
+  },
+  "results": [
+    {
+      "@id": "http://example.com/alice"
+    }
+  ]
+}

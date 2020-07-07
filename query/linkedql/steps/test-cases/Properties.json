@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "Select",
+    "from": {
+      "@type": "Properties",
+      "from": { "@type": "Match", "pattern": {} },
+      "names": ["http://example.com/likes"]
+    },
+    "tags": []
+  },
+  "results": [
+    {
+      "http://example.com/likes": {
+        "@id": "http://example.com/bob"
+      }
+    }
+  ]
+}

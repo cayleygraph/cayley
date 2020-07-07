@@ -169,11 +169,11 @@ func New(kv kv.KV, opt graph.Options) (graph.QuadStore, error) {
 	} else if vers != latestDataVersion {
 		return nil, errors.New("kv: data version is out of date. Run cayleyupgrade for your config to update the data")
 	}
-	if list, err := qs.readIndexesMeta(ctx); err != nil {
+	list, err := qs.readIndexesMeta(ctx)
+	if err != nil {
 		return nil, err
-	} else {
-		qs.indexes.all = list
 	}
+	qs.indexes.all = list
 	qs.valueLRU = lru.New(2000)
 	qs.exists.disabled, _ = opt.BoolKey(OptNoBloom, false)
 	if err := qs.initBloomFilter(ctx); err != nil {

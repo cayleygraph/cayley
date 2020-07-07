@@ -1,0 +1,31 @@
+{
+  "data": {
+    "http://example.com/friends": {
+      "@list": [
+        { "@id": "http://example.com/alice" },
+        { "@id": "http://example.com/bob" }
+      ]
+    }
+  },
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "Documents",
+    "from": {
+      "@type": "Collect",
+      "name": "http://example.com/friends",
+      "from": { "@type": "Match", "pattern": {} }
+    }
+  },
+  "results": [
+    {
+      "http://example.com/friends": {
+        "@list": [
+          { "@id": "http://example.com/alice" },
+          { "@id": "http://example.com/bob" }
+        ]
+      }
+    }
+  ]
+}

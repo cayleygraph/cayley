@@ -1,0 +1,28 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "Limit",
+    "from": { "@type": "Match", "pattern": {} },
+    "limit": 2
+  },
+  "results": [
+    {
+      "@id": "http://example.com/alice"
+    },
+    {
+      "@id": "http://example.com/likes"
+    }
+  ]
+}

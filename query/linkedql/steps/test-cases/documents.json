@@ -1,0 +1,55 @@
+{
+  "data": [
+    {
+      "@id": "http://example.com/alice",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/bob"
+        }
+      ],
+      "http://example.com/name": ["Alice"]
+    },
+    {
+      "@id": "http://example.com/bob",
+      "http://example.com/likes": [
+        {
+          "@id": "http://example.com/alice"
+        }
+      ],
+      "http://example.com/name": ["Bob"]
+    }
+  ],
+  "query": {
+    "@context": {
+      "@vocab": "http://cayley.io/linkedql#"
+    },
+    "@type": "Documents",
+    "from": {
+      "@type": "Properties",
+      "from": { "@type": "Match", "pattern": {} },
+      "names": ["http://example.com/name", "http://example.com/likes"]
+    }
+  },
+  "results": {
+    "@graph": [
+      {
+        "@id": "http://example.com/alice",
+        "http://example.com/likes": [
+          {
+            "@id": "http://example.com/bob"
+          }
+        ],
+        "http://example.com/name": ["Alice"]
+      },
+      {
+        "@id": "http://example.com/bob",
+        "http://example.com/likes": [
+          {
+            "@id": "http://example.com/alice"
+          }
+        ],
+        "http://example.com/name": ["Bob"]
+      }
+    ]
+  }
+}

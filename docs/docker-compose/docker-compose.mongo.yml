@@ -1,0 +1,11 @@
+version: "2.2"
+services:
+  cayley:
+    image: cayleygraph/cayley
+    command: http --db mongo --dbpath mongodb://mongo:27017
+    ports:
+      - 64210:64210
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017

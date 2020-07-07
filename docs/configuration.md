@@ -90,14 +90,14 @@ No special options.
 
 #### LevelDB
 
-**write\_buffer\_mb**
+**`write_buffer_mb`**
 
 * Type: Integer
 * Default: 20
 
 The size in MiB of the LevelDB write cache. Increasing this number allows for more/faster writes before syncing to disk. Default is 20, for large loads, a recommended value is 200+.
 
-**cache\_size\_mb**
+**`cache_size_mb`**
 
 * Type: Integer
 * Default: 2
@@ -106,7 +106,7 @@ The size in MiB of the LevelDB block cache. Increasing this number uses more mem
 
 #### Bolt
 
-**nosync**
+**`nosync`**
 
 * Type: Boolean
 * Default: false
@@ -115,7 +115,7 @@ Optionally disable syncing to disk per transaction. Nosync being true means much
 
 #### Mongo
 
-**database\_name**
+**`database_name`**
 
 * Type: String
 * Default: "cayley"
@@ -126,14 +126,14 @@ The name of the database within MongoDB to connect to. Manages its own collectio
 
 Postgres version 9.5 or greater is required.
 
-**db\_fill\_factor**
+**`db_fill_factor`**
 
 * Type: Integer
 * Default: 50
 
 Amount of empty space as a percentage to leave in the database when creating a table and inserting rows. See [PostgreSQL CreateTable](http://www.postgresql.org/docs/current/static/sql-createtable.html).
 
-**local\_optimize**
+**`local_optimize`**
 
 * Type: Boolean
 * Default: true
@@ -142,17 +142,17 @@ Whether to skip checking quad store size.
 
 Connection pooling options used to configure the Go sql connection. Go defaults will be used when not specified.
 
-**maxopenconnections**
+**`maxopenconnections`**
 
 * Type: Integer
 * Default: -1.
 
-**maxidleconnections**
+**`maxidleconnections`**
 
 * Type: Integer
 * Default: -1.
 
-**connmaxlifetime**
+**`connmaxlifetime`**
 
 * Type: String
 * Default: "".
