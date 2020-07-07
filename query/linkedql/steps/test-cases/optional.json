@@ -1,23 +1,16 @@
 {
-  "data": [
-    {
-      "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ],
-      "http://example.com/name": ["Alice"]
-    },
-    {
-      "@id": "http://example.com/bob",
-      "http://example.com/name": ["Bob"]
-    }
-  ],
-  "query": {
+  "data": {
     "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
     },
+    "@graph": [
+      { "@id": "alice", "likes": { "@id": "bob" }, "name": "Alice" },
+      { "@id": "bob", "name": "Bob" }
+    ]
+  },
+  "query": {
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
     "@type": "Select",
     "from": {
       "@type": "Optional",
@@ -28,9 +21,7 @@
       },
       "step": {
         "@type": "Properties",
-        "from": {
-          "@type": "Placeholder"
-        },
+        "from": { "@type": "Placeholder" },
         "names": ["http://example.com/likes"]
       }
     },
@@ -38,13 +29,9 @@
   },
   "results": [
     {
-      "http://example.com/likes": {
-        "@id": "http://example.com/bob"
-      },
+      "http://example.com/likes": { "@id": "http://example.com/bob" },
       "http://example.com/name": "Alice"
     },
-    {
-      "http://example.com/name": "Bob"
-    }
+    { "http://example.com/name": "Bob" }
   ]
 }

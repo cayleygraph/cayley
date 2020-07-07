@@ -1,26 +1,16 @@
 {
-  "data": [
-    {
-      "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ]
-    }
-  ],
-  "query": {
+  "data": {
     "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
     },
-    "@type": "Match",
-    "pattern": {
-      "@id": "http://example.com/alice"
-    }
+    "@id": "alice",
+    "likes": { "@id": "bob" }
   },
-  "results": [
-    {
-      "@id": "http://example.com/alice"
-    }
-  ]
+  "query": {
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
+    "@type": "Match",
+    "pattern": { "@id": "http://example.com/alice" }
+  },
+  "results": [{ "@id": "http://example.com/alice" }]
 }

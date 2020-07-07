@@ -1,14 +1,14 @@
 {
-  "data": [
-    {
-      "@id": "http://example.com/alice",
-      "http://example.com/name": [0, 1]
-    }
-  ],
-  "query": {
+  "data": {
     "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
     },
+    "@id": "alice",
+    "name": [0, 1]
+  },
+  "query": {
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
     "@type": "LessThan",
     "from": { "@type": "Match", "pattern": {} },
     "value": 1

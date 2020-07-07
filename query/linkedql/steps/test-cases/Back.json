@@ -1,34 +1,24 @@
 {
-  "data": [
-    {
-      "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ]
-    }
-  ],
-  "query": {
+  "data": {
     "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
     },
+    "@id": "alice",
+    "likes": { "@id": "bob" }
+  },
+  "query": {
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
     "@type": "Back",
     "from": {
       "@type": "Visit",
       "from": {
         "@type": "Match",
-        "pattern": {
-          "@id": "http://example.com/alice"
-        }
+        "pattern": { "@id": "http://example.com/alice" }
       },
       "properties": ["http://example.com/likes"]
     },
     "name": ""
   },
-  "results": [
-    {
-      "@id": "http://example.com/alice"
-    }
-  ]
+  "results": [{ "@id": "http://example.com/alice" }]
 }

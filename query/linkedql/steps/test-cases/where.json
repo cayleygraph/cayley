@@ -1,43 +1,32 @@
 {
-  "data": [
-    {
-      "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ],
-      "http://example.com/name": ["Alice"]
-    },
-    {
-      "@id": "http://example.com/bob",
-      "http://example.com/name": ["Bob"]
-    }
-  ],
-  "query": {
+  "data": {
     "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
     },
+    "@graph": [
+      { "@id": "alice", "likes": { "@id": "bob" }, "name": "Alice" },
+      { "@id": "bob", "name": "Bob" }
+    ]
+  },
+  "query": {
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
     "@type": "Select",
     "from": {
       "@type": "Properties",
-      "names": ["http://example.com/name"],
       "from": {
         "@type": "Where",
-        "from": { "@type": "Match", "pattern": {} },
         "condition": {
           "@type": "Has",
+          "from": { "@type": "Placeholder" },
           "property": "http://example.com/likes",
-          "values": [{ "@id": "http://example.com/bob" }],
-          "from": { "@type": "Placeholder" }
-        }
-      }
+          "values": [{ "@id": "http://example.com/bob" }]
+        },
+        "from": { "@type": "Match", "pattern": {} }
+      },
+      "names": ["http://example.com/name"]
     },
     "tags": []
   },
-  "results": [
-    {
-      "http://example.com/name": "Alice"
-    }
-  ]
+  "results": [{ "http://example.com/name": "Alice" }]
 }

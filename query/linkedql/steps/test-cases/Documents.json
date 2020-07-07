@@ -1,28 +1,16 @@
 {
-  "data": [
-    {
-      "@id": "http://example.com/alice",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/bob"
-        }
-      ],
-      "http://example.com/name": ["Alice"]
-    },
-    {
-      "@id": "http://example.com/bob",
-      "http://example.com/likes": [
-        {
-          "@id": "http://example.com/alice"
-        }
-      ],
-      "http://example.com/name": ["Bob"]
-    }
-  ],
-  "query": {
+  "data": {
     "@context": {
-      "@vocab": "http://cayley.io/linkedql#"
+      "@base": "http://example.com/",
+      "@vocab": "http://example.com/"
     },
+    "@graph": [
+      { "@id": "alice", "likes": { "@id": "bob" }, "name": "Alice" },
+      { "@id": "bob", "likes": { "@id": "alice" }, "name": "Bob" }
+    ]
+  },
+  "query": {
+    "@context": { "@vocab": "http://cayley.io/linkedql#" },
     "@type": "Documents",
     "from": {
       "@type": "Properties",
@@ -34,20 +22,12 @@
     "@graph": [
       {
         "@id": "http://example.com/alice",
-        "http://example.com/likes": [
-          {
-            "@id": "http://example.com/bob"
-          }
-        ],
+        "http://example.com/likes": [{ "@id": "http://example.com/bob" }],
         "http://example.com/name": ["Alice"]
       },
       {
         "@id": "http://example.com/bob",
-        "http://example.com/likes": [
-          {
-            "@id": "http://example.com/alice"
-          }
-        ],
+        "http://example.com/likes": [{ "@id": "http://example.com/alice" }],
         "http://example.com/name": ["Bob"]
       }
     ]
