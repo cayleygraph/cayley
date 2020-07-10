@@ -1,78 +1,150 @@
+// Vendored from https://github.com/piprate/json-gold/blob/master/ld/rdf_compare_test.go
+
 package steps
 
 import (
-	"fmt"
+	"log"
+	"sort"
+	"strconv"
+	"strings"
+
+	. "github.com/piprate/json-gold/ld"
 )
 
-type ldArray = []interface{}
-type ldMap = map[string]interface{}
-
-func unwrapValue(i interface{}) interface{} {
-	m, ok := i.(ldMap)
-	if ok && len(m) == 1 {
-		v, ok := m["@value"]
-		if ok {
-			return v
-		}
-	}
-	return i
+// Perm calls f with each permutation of a.
+func Perm(a []string, f func([]string) bool) {
+	perm(a, f, 0)
 }
 
-func unwrapSingle(i interface{}) interface{} {
-	a, ok := i.(ldArray)
-	if ok && len(a) == 1 {
-		return a[0]
+// Permute the values at index i to len(a)-1.
+func perm(a []string, f func([]string) bool, i int) bool {
+	if i > len(a) {
+		return f(a)
 	}
-	return i
+	if perm(a, f, i+1) {
+		// stop
+		return true
+	}
+	for j := i + 1; j < len(a); j++ {
+		a[i], a[j] = a[j], a[i]
+		if perm(a, f, i+1) {
+			// stop
+			return true
+		}
+		a[i], a[j] = a[j], a[i]
+	}
+	return false
 }
 
-// isomorphic checks whether source and target JSON-LD structures are the same
-// semantically. This function is not complete and is maintained for testing
-// purposes. Hopefully in the future it can be proven sufficient for general
-// purpose use.
-func isomorphic(source interface{}, target interface{}) error {
-	source = unwrapValue(unwrapSingle(source))
-	target = unwrapValue(unwrapSingle(target))
-	switch s := source.(type) {
-	case string:
-		t, ok := target.(string)
-		if !ok {
-			return fmt.Errorf("Expected %v to be a string but instead received %T", target, target)
-		}
-		if s != t {
-			return fmt.Errorf("Expected \"%v\" but instead received \"%v\"", s, t)
-		}
-		return nil
-	case ldArray:
-		t, ok := target.(ldArray)
-		if !ok {
-			return fmt.Errorf("Expected multiple values but instead received the single value: %#v", target)
-		}
-		if len(s) != len(t) {
-			return fmt.Errorf("Expected %#v and %#v to have the same length", s, t)
-		}
-	items:
-		for _, i := range s {
-			for _, tI := range t {
-				if isomorphic(i, tI) == nil {
-					continue items
-				}
-			}
-			return fmt.Errorf("No matching values for the item %#v in %#v", i, t)
-		}
-		return nil
-	case ldMap:
-		t, ok := target.(ldMap)
-		if !ok {
-			return fmt.Errorf("Expected %#v to be a map or a slice with a single map but instead received %T", target, target)
-		}
-		for k, v := range s {
-			tV, _ := t[k]
-			err := isomorphic(v, tV)
-			if err != nil {
-				return err
-			}
+func getBlankNodes(quads []*Quad) []string {
+	blankNodeSet := make(map[string]interface{})
+	for _, quad := range quads {
+		if IsBlankNode(quad.Object) {
+			blankNodeSet[quad.Object.GetValue()] = nil
+			blankNodeSet[quad.Subject.GetValue()] = nil
 		}
 	}
-	return nil
+	return GetKeys(blankNodeSet)
+}
+
+func mapBlankNodes(quads []*Quad, actualBlankNodes []string, mappedBlankNodes []string) []*Quad {
+	nodeMap := make(map[string]string, len(actualBlankNodes))
+	for i := 0; i < len(actualBlankNodes); i++ {
+		nodeMap[actualBlankNodes[i]] = mappedBlankNodes[i]
+	}
+	res := make([]*Quad, 0, len(quads))
+	for _, q := range quads {
+		obj := q.Object
+		if IsBlankNode(q.Object) {
+			obj = NewBlankNode(nodeMap[q.Object.GetValue()])
+		}
+		subj := q.Subject
+		if IsBlankNode(q.Subject) {
+			subj = NewBlankNode(nodeMap[q.Subject.GetValue()])
+		}
+		graph := ""
+		if q.Graph != nil {
+			graph = q.Graph.GetValue()
+		}
+		res = append(res, NewQuad(subj, q.Predicate, obj, graph))
+	}
+	return res
+}
+
+func sortNQuads(input string) string {
+	temp := strings.Split(input, "\n")
+	temp = temp[:len(temp)-1]
+	sort.Strings(temp)
+	temp = append(temp, "")
+	return strings.Join(temp, "\n")
+}
+
+// Isomorphic returns true if two given sets of n-quads are isomorphic.
+// This is a lazy implementation and it should only be used for testing.
+// We build all possible permutations of blank node IDs and try them one
+// by one. Minimal optimisations are applied.
+func Isomorphic(expectedStr, actualStr string) bool {
+	expected := sortNQuads(expectedStr)
+	actual := sortNQuads(actualStr)
+
+	// if quads are identical, exit early
+	if DeepCompare(expected, actual, true) {
+		return true
+	}
+
+	serializer := &NQuadRDFSerializer{}
+
+	expectedStr, _ = strconv.Unquote(expectedStr)
+	actualStr, _ = strconv.Unquote(actualStr)
+	expectedDS, _ := serializer.Parse(expectedStr)
+	actualDS, _ := serializer.Parse(actualStr)
+
+	if len(expectedDS.Graphs) != len(actualDS.Graphs) {
+		log.Println("Number of graphs doesn't match")
+		return false
+	}
+
+	for graphName, quads := range expectedDS.Graphs {
+		actualQuads := actualDS.Graphs[graphName]
+		if len(quads) != len(actualQuads) {
+			log.Printf("Number of quads doesn't match in graph %s\n", graphName)
+			return false
+		}
+		expectedBlankNodes := getBlankNodes(quads)
+		actualBlankNodes := getBlankNodes(actualQuads)
+		if len(expectedBlankNodes) != len(actualBlankNodes) {
+			log.Printf("Number of blank nodes doesn't match in graph %s\n", graphName)
+			return false
+		}
+
+		expectedGraphDS := &RDFDataset{
+			Graphs: map[string][]*Quad{
+				graphName: quads,
+			},
+		}
+		expectedObj, _ := serializer.Serialize(expectedGraphDS)
+		expectedGraph := sortNQuads(expectedObj.(string))
+
+		isomorphic := false
+		Perm(expectedBlankNodes, func(perm []string) bool {
+			permutedDS := &RDFDataset{
+				Graphs: map[string][]*Quad{
+					graphName: mapBlankNodes(actualQuads, actualBlankNodes, perm),
+				},
+			}
+			permutedObj, _ := serializer.Serialize(permutedDS)
+			permutedGraph := sortNQuads(permutedObj.(string))
+
+			if DeepCompare(expectedGraph, permutedGraph, true) {
+				isomorphic = true
+				return true
+			}
+			return false
+		})
+		if isomorphic {
+			return true
+		}
+	}
+
+	return false
 }

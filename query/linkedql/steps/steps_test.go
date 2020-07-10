@@ -91,7 +91,11 @@ func TestLinkedQL(t *testing.T) {
 				results = append(results, iterator.Result())
 			}
 			require.NoError(t, iterator.Err())
-			require.Equal(t, nil, isomorphic(c.Results, results))
+			expectedStr, err := json.Marshal(c.Results)
+			require.NoError(t, err)
+			actualStr, err := json.Marshal(results)
+			require.NoError(t, err)
+			require.True(t, Isomorphic(string(expectedStr), string(actualStr)))
 		})
 	}
 }
