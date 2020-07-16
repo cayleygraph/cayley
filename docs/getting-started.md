@@ -15,7 +15,7 @@ cayley http
 You should see:
 
 ```text
-Cayley version: 0.7.5 (dev snapshot)
+Cayley version: 0.7.7 (dev snapshot)
 using backend "memstore"
 listening on 127.0.0.1:64210, web interface at http://127.0.0.1:64210
 ```
@@ -24,7 +24,7 @@ You can now open the web-interface on: [localhost:64210](http://localhost:64210/
 
 Cayley is configured by default to run in memory \(That's what `backend memstore` means\). To change the configuration see the documentation for [Configuration File](configuration.md) or run `cayley http --help`.
 
-For more information about the UI see: [UI Overview](ui-overview.md)
+For more information about the UI see: [UI Overview](usage/ui-overview.md)
 
 ## Run with sample data
 
@@ -94,5 +94,5 @@ g.V()
   .all();
 ```
 
-To learn more about querying see [Gizmo Documentation](gizmoapi.md)
+To learn more about querying see [Gizmo Documentation](query-languages/gizmoapi.md)
 

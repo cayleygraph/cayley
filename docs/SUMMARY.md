@@ -3,27 +3,37 @@
 * [Cayley Documentation](README.md)
 * [Getting Started](getting-started.md)
 * [Install Cayley](installation.md)
-* [Gizmo API](gizmoapi.md)
-* [MQL Guide](mql.md)
 * [Configuration](configuration.md)
-* [Frequently Asked Questiones](faq.md)
-* [Contributing](contributing.md)
-* [UI Overview](ui-overview.md)
-* [3rd-Party-APIs](3rd-party-apis.md)
-* [HTTP Methods](http.md)
-* [TODOs](todo.md)
-* [Migration](migration.md)
-* [Quickstart-As-Application](quickstart-as-application.md)
-* [GraphQL Guide](graphql.md)
-* [Glossary of Terms](glossary.md)
-* [Advanced Use](advanced-use.md)
-* [Gephi GraphStream](gephigraphstream.md)
-* [GremlinAPI](gremlinapi.md)
-* [Quickstart as Library](quickstart-as-lib.md)
-* [Container](container.md)
-* [HACKING](hacking.md)
-* [Locations of parts of Cayley](locations.md)
-* [k8s](k8s/README.md)
-  * [Running in Kubernetes](k8s/k8s.md)
-* [Convert Linked Data files](convert-linked-data-files.md)
+
+## Usage
+
+* [Quickstart as Library](usage/quickstart-as-lib.md)
+* [Advanced Use](usage/advanced-use.md)
+* [HTTP Methods](usage/http.md)
+* [3rd-Party-APIs](usage/3rd-party-apis.md)
+* [UI Overview](usage/ui-overview.md)
+* [Migration](usage/migration.md)
+
+## Query Languages
+
+* [Gizmo API](query-languages/gizmoapi.md)
+* [GraphQL Guide](query-languages/graphql.md)
+* [MQL Guide](query-languages/mql.md)
+* [Gephi GraphStream](query-languages/gephigraphstream.md)
+
+## Getting Involved
+
+* [Glossary of Terms](getting-involved/glossary.md)
+* [Contributing](getting-involved/contributing.md)
+* [TODOs](getting-involved/todo.md)
+* [Locations of parts of Cayley](getting-involved/locations.md)
+
+## Deployment
+
+* [Running in Docker](deployment/container.md)
+* [Running in Kubernetes](deployment/k8s-1.md)
+
+## Tools
+
+* [Convert Linked Data files](tools/convert-linked-data-files.md)
 

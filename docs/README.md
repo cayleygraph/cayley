@@ -6,29 +6,29 @@ Welcome to the Cayley Manual! Cayley is an open-source graph database designed f
 
 * [Getting Started](getting-started.md)
 * [Installation](installation.md)
-* [Advanced Use](advanced-use.md)
-* [UI Overview](ui-overview.md)
-* [Project Locations](locations.md)
+* [Advanced Use](usage/advanced-use.md)
+* [UI Overview](usage/ui-overview.md)
+* [Project Locations](getting-involved/locations.md)
 
 ## Reference
 
-* [Glossary](glossary.md)
-* [Gizmo API](gizmoapi.md)
-* [GraphQL](graphql.md)
-* [MQL](mql.md)
-* [HTTP](http.md)
-* [GephiGraphStream](gephigraphstream.md)
+* [Glossary](getting-involved/glossary.md)
+* [Gizmo API](query-languages/gizmoapi.md)
+* [GraphQL](query-languages/graphql.md)
+* [MQL](query-languages/mql.md)
+* [HTTP](usage/http.md)
+* [GephiGraphStream](query-languages/gephigraphstream.md)
 
 ## Administrators
 
 * [Configuration](configuration.md)
-* [Migration](migration.md)
-* [Usage as Container](container.md)
+* [Migration](usage/migration.md)
+* [Usage as Container](deployment/container.md)
 * [Usage in Kubernetes](https://github.com/cayleygraph/cayley/tree/06f7114d4ad1725d58f16fc5fdc9394f293c3539/docs/k8s.md)
 
 ## Developers
 
-* [Libraries \(3rd party\)](3rd-party-apis.md)
-* [Contributing](contributing.md)
-* [Quick Start As Go Library](quickstart-as-lib.md)
+* [Libraries \(3rd party\)](usage/3rd-party-apis.md)
+* [Contributing](getting-involved/contributing.md)
+* [Quick Start As Go Library](usage/quickstart-as-lib.md)
 

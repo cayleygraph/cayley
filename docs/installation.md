@@ -24,9 +24,9 @@ brew install cayley
 docker run -p 64210:64210 cayleygraph/cayley
 ```
 
-For more information see [Container Documentation](container.md)
+For more information see [Container Documentation](deployment/container.md)
 
 ## Build from Source
 
-See instructions in [Contributing](contributing.md)
+See instructions in [Contributing](getting-involved/contributing.md)
 
