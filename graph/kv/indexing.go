@@ -26,7 +26,7 @@ import (
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/log"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/quad"
@@ -686,7 +686,7 @@ func (qs *QuadStore) indexNode(tx kv.Tx, p *proto.Primitive, val quad.Value) err
 		qs.valueLRU.Put(string(iri), p.ID)
 	}
 	if qs.mapNodes != nil {
-		qs.mapNodes.Add(hash[:])
+		qs.mapNodes.Add(hash)
 	}
 	return qs.addToLog(tx, p)
 }
