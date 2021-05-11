@@ -35,7 +35,7 @@ func TestCayleyImport(t *testing.T) {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	uri := fmt.Sprintf("http://%s", addr)
 	go serve(addr)
-	time.Sleep(3)
+	time.Sleep(3 * time.Nanosecond)
 	cmd := NewCmd()
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)
