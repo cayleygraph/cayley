@@ -56,14 +56,19 @@ func readQuery(raw interface{}) (linkedql.Step, error) {
 
 func TestLinkedQL(t *testing.T) {
 	// Using files
-	direcotry := "test-cases"
-	files, err := ioutil.ReadDir(direcotry)
+	directory := "test-cases"
+	files, err := ioutil.ReadDir(directory)
 	if err != nil {
 		require.NoError(t, err)
 	}
 	for _, info := range files {
 		fileName := info.Name()
-		filePath := filepath.Join(direcotry, fileName)
+		filePath := filepath.Join(directory, fileName)
+
+		if !strings.HasSuffix(fileName, ".json") {
+			// skip non-JSON files
+			continue
+		}
 
 		testName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		t.Run(testName, func(t *testing.T) {
