@@ -26,8 +26,13 @@ script:
   - CGO_ENABLED=0 go build -o /tmp/cayley ./cmd/cayley
   - go run github.com/gobuffalo/packr/v2/packr2
   - git checkout -- ./packrd/dummy.go
-  - go get -u golang.org/x/lint/golint
-  - bash lint.sh
+  - |
+    if [[ $TRAVIS_GO_VERSION =~ ^1\.13 ]]; then
+      go get -u golang.org/x/lint/golint && bash lint.sh
+    else
+      # run go vet for other go versions, but do not fail
+      go vet ./... || true
+    fi
   - go test -v ./...
 
 after_success:
