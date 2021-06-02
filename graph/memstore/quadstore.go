@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -44,7 +45,7 @@ type bnode int64
 func (n bnode) Key() interface{} { return n }
 
 type qprim struct {
-	p *Primitive
+	p *primitive
 }
 
 func (n qprim) Key() interface{} { return n.p.ID }
@@ -60,7 +61,7 @@ type QuadDirectionIndex struct {
 }
 
 func NewQuadDirectionIndex() QuadDirectionIndex {
-	return QuadDirectionIndex{[...]map[int64]*Tree{
+	return QuadDirectionIndex{index: [...]map[int64]*Tree{
 		quad.Subject - 1:   make(map[int64]*Tree),
 		quad.Predicate - 1: make(map[int64]*Tree),
 		quad.Object - 1:    make(map[int64]*Tree),
@@ -72,6 +73,7 @@ func (qdi QuadDirectionIndex) Tree(d quad.Direction, id int64) *Tree {
 	if d < quad.Subject || d > quad.Label {
 		panic("illegal direction")
 	}
+
 	tree, ok := qdi.index[d-1][id]
 	if !ok {
 		tree = TreeNew(cmp)
@@ -88,7 +90,7 @@ func (qdi QuadDirectionIndex) Get(d quad.Direction, id int64) (*Tree, bool) {
 	return tree, ok
 }
 
-type Primitive struct {
+type primitive struct {
 	ID    int64
 	Quad  internalQuad
 	Value quad.Value
@@ -137,12 +139,17 @@ type QuadStore struct {
 	// TODO: string -> quad.Value once Raw -> typed resolution is unnecessary
 	vals    map[string]int64
 	quads   map[internalQuad]int64
-	prim    map[int64]*Primitive
-	all     []*Primitive // might not be sorted by id
+	prim    map[int64]*primitive
+	all     []*primitive // might not be sorted by id
 	reading bool         // someone else might be reading "all" slice - next insert/delete should clone it
 	index   QuadDirectionIndex
 	horizon int64 // used only to assign ids to tx
 	// vip_index map[string]map[int64]map[string]map[int64]*b.Tree
+
+	vrw sync.RWMutex
+	qrw sync.RWMutex
+	prw sync.RWMutex
+	irw sync.RWMutex
 }
 
 // New creates a new in-memory quad store and loads provided quads.
@@ -158,17 +165,17 @@ func newQuadStore() *QuadStore {
 	return &QuadStore{
 		vals:  make(map[string]int64),
 		quads: make(map[internalQuad]int64),
-		prim:  make(map[int64]*Primitive),
+		prim:  make(map[int64]*primitive),
 		index: NewQuadDirectionIndex(),
 	}
 }
 
-func (qs *QuadStore) cloneAll() []*Primitive {
+func (qs *QuadStore) cloneAll() []*primitive {
 	qs.reading = true
 	return qs.all
 }
 
-func (qs *QuadStore) addPrimitive(p *Primitive) int64 {
+func (qs *QuadStore) addPrimitive(p *primitive) int64 {
 	qs.last++
 	id := qs.last
 	p.ID = id
@@ -177,8 +184,11 @@ func (qs *QuadStore) addPrimitive(p *Primitive) int64 {
 	return id
 }
 
-func (qs *QuadStore) appendPrimitive(p *Primitive) {
+func (qs *QuadStore) appendPrimitive(p *primitive) {
+	qs.prw.Lock()
 	qs.prim[p.ID] = p
+	qs.prw.Unlock()
+
 	if !qs.reading {
 		qs.all = append(qs.all, p)
 	} else {
@@ -198,24 +208,36 @@ func (qs *QuadStore) resolveVal(v quad.Value, add bool) (int64, bool) {
 		n = n[len(internalBNodePrefix):]
 		id, err := strconv.ParseInt(string(n), 10, 64)
 		if err == nil && id != 0 {
+			qs.prw.RLock()
 			if p, ok := qs.prim[id]; ok || !add {
+				qs.prw.RUnlock()
 				if add {
 					p.refs++
 				}
 				return id, ok
 			}
-			qs.appendPrimitive(&Primitive{ID: id, refs: 1})
+			qs.prw.RUnlock()
+			qs.appendPrimitive(&primitive{ID: id, refs: 1})
 			return id, true
 		}
 	}
 	vs := v.String()
+	qs.vrw.RLock()
 	if id, exists := qs.vals[vs]; exists || !add {
+		qs.vrw.RUnlock()
 		if exists && add {
+			qs.prw.Lock()
 			qs.prim[id].refs++
+			qs.prw.Unlock()
 		}
 		return id, exists
 	}
-	id := qs.addPrimitive(&Primitive{Value: v})
+	qs.vrw.RUnlock()
+
+	id := qs.addPrimitive(&primitive{Value: v})
+
+	qs.vrw.Lock()
+	defer qs.vrw.Unlock()
 	qs.vals[vs] = id
 	return id, true
 }
@@ -237,7 +259,9 @@ func (qs *QuadStore) resolveQuad(q quad.Quad, add bool) (internalQuad, bool) {
 }
 
 func (qs *QuadStore) lookupVal(id int64) quad.Value {
+	qs.prw.RLock()
 	pv := qs.prim[id]
+	qs.prw.RUnlock()
 	if pv == nil || pv.Value == nil {
 		return quad.BNode(internalBNodePrefix + strconv.FormatInt(id, 10))
 	}
@@ -259,7 +283,7 @@ func (qs *QuadStore) lookupQuadDirs(p internalQuad) quad.Quad {
 
 // AddNode adds a blank node (with no value) to quad store. It returns an id of the node.
 func (qs *QuadStore) AddBNode() int64 {
-	return qs.addPrimitive(&Primitive{})
+	return qs.addPrimitive(&primitive{})
 }
 
 // AddNode adds a value to quad store. It returns an id of the value.
@@ -270,6 +294,9 @@ func (qs *QuadStore) AddValue(v quad.Value) (int64, bool) {
 }
 
 func (qs *QuadStore) indexesForQuad(q internalQuad) []*Tree {
+	qs.irw.Lock()
+	defer qs.irw.Unlock()
+
 	trees := make([]*Tree, 0, 4)
 	for dir := quad.Subject; dir <= quad.Label; dir++ {
 		v := q.Dir(dir)
@@ -285,13 +312,20 @@ func (qs *QuadStore) indexesForQuad(q internalQuad) []*Tree {
 // False is returned as a second parameter if quad exists already.
 func (qs *QuadStore) AddQuad(q quad.Quad) (int64, bool) {
 	p, _ := qs.resolveQuad(q, false)
+	qs.qrw.RLock()
 	if id := qs.quads[p]; id != 0 {
+		qs.qrw.RUnlock()
 		return id, false
 	}
+	qs.qrw.RUnlock()
 	p, _ = qs.resolveQuad(q, true)
-	pr := &Primitive{Quad: p}
+	pr := &primitive{Quad: p}
 	id := qs.addPrimitive(pr)
+
+	qs.qrw.Lock()
 	qs.quads[p] = id
+	qs.qrw.Unlock()
+
 	for _, t := range qs.indexesForQuad(p) {
 		t.Set(id, pr)
 	}
@@ -345,32 +379,44 @@ func (qs *QuadStore) deleteQuadNodes(q internalQuad) {
 		if id == 0 {
 			continue
 		}
+		qs.prw.RLock()
 		if p := qs.prim[id]; p != nil {
+			qs.prw.RUnlock()
 			p.refs--
 			if p.refs < 0 {
 				panic("remove of deleted node")
 			} else if p.refs == 0 {
 				qs.Delete(id)
 			}
+		} else {
+			qs.prw.RUnlock()
 		}
 	}
 }
 func (qs *QuadStore) Delete(id int64) bool {
+	qs.prw.RLock()
 	p := qs.prim[id]
+	qs.prw.RUnlock()
 	if p == nil {
 		return false
 	}
 	// remove from value index
 	if p.Value != nil {
+		qs.vrw.Lock()
 		delete(qs.vals, p.Value.String())
+		qs.vrw.Unlock()
 	}
 	// remove from quad indexes
 	for _, t := range qs.indexesForQuad(p.Quad) {
 		t.Delete(id)
 	}
+	qs.qrw.Lock()
 	delete(qs.quads, p.Quad)
+	qs.qrw.Unlock()
 	// remove primitive
+	qs.prw.Lock()
 	delete(qs.prim, id)
+	qs.prw.Unlock()
 	di := -1
 	for i, p2 := range qs.all {
 		if p == p2 {
@@ -382,7 +428,7 @@ func (qs *QuadStore) Delete(id int64) bool {
 		if !qs.reading {
 			qs.all = append(qs.all[:di], qs.all[di+1:]...)
 		} else {
-			all := make([]*Primitive, 0, len(qs.all)-1)
+			all := make([]*primitive, 0, len(qs.all)-1)
 			all = append(all, qs.all[:di]...)
 			all = append(all, qs.all[di+1:]...)
 			qs.all = all
@@ -398,6 +444,8 @@ func (qs *QuadStore) findQuad(q quad.Quad) (int64, internalQuad, bool) {
 	if !ok {
 		return 0, p, false
 	}
+	qs.qrw.Lock()
+	defer qs.qrw.Unlock()
 	id := qs.quads[p]
 	return id, p, id != 0
 }
@@ -456,7 +504,9 @@ func asID(v graph.Ref) (int64, bool) {
 func (qs *QuadStore) quad(v graph.Ref) (q internalQuad, ok bool) {
 	switch v := v.(type) {
 	case bnode:
+		qs.prw.RLock()
 		p := qs.prim[int64(v)]
+		qs.prw.RUnlock()
 		if p == nil {
 			return
 		}
@@ -482,7 +532,9 @@ func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) iterator.Sh
 	if !ok {
 		return iterator.NewNull()
 	}
+	qs.irw.RLock()
 	index, ok := qs.index.Get(d, id)
+	qs.irw.RUnlock()
 	if ok && index.Len() != 0 {
 		return qs.newIterator(index, d, id)
 	}
@@ -494,7 +546,9 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v g
 	if !ok {
 		return refs.Size{Value: 0, Exact: true}, nil
 	}
+	qs.irw.RLock()
 	index, ok := qs.index.Get(d, id)
+	qs.irw.RUnlock()
 	if !ok {
 		return refs.Size{Value: 0, Exact: true}, nil
 	}
@@ -502,6 +556,10 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, v g
 }
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
+	qs.vrw.RLock()
+	defer qs.vrw.RUnlock()
+	qs.qrw.RLock()
+	defer qs.qrw.RUnlock()
 	return graph.Stats{
 		Nodes: refs.Size{
 			Value: int64(len(qs.vals)),
@@ -518,7 +576,10 @@ func (qs *QuadStore) ValueOf(name quad.Value) graph.Ref {
 	if name == nil {
 		return nil
 	}
+
+	qs.vrw.Lock()
 	id := qs.vals[name.String()]
+	qs.vrw.Unlock()
 	if id == 0 {
 		return nil
 	}
@@ -535,9 +596,12 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	if !ok {
 		return nil
 	}
+	qs.prw.RLock()
 	if _, ok = qs.prim[n]; !ok {
+		qs.prw.RUnlock()
 		return nil
 	}
+	qs.prw.RUnlock()
 	return qs.lookupVal(n)
 }
 
