@@ -16,10 +16,10 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
-	"fmt"
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -28,9 +28,9 @@ import (
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/cayley/writer"
-	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 
 	"github.com/RyouZhang/async-go"
@@ -263,12 +263,12 @@ func TestMultiThreadQuery(t *testing.T) {
 
 	// we make 50 insert, 50 query
 	funcs := make([]async.LambdaMethod, 100)
-	for i:=0; i<100; i++ {
-		if i % 2 == 0 {
+	for i := 0; i < 100; i++ {
+		if i%2 == 0 {
 			index := i
 			funcs[i] = func() (interface{}, error) {
 				id, flag := qs.AddQuad(quad.Make(
-					fmt.Sprintf("E_%d",index), "follows", "G", nil),
+					fmt.Sprintf("E_%d", index), "follows", "G", nil),
 				)
 				if !flag {
 					return nil, fmt.Errorf("quard exist:%d", id)
@@ -283,12 +283,12 @@ func TestMultiThreadQuery(t *testing.T) {
 				if err != nil {
 					return nil, err
 				}
-				return followers, nil				
+				return followers, nil
 			}
 		}
 	}
 
-	results := async.All(funcs, 1* time.Second)
+	results := async.All(funcs, 1*time.Second)
 	for _, result := range results {
 		switch result.(type) {
 		case error:
