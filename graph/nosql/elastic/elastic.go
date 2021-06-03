@@ -6,7 +6,6 @@ import (
 	"github.com/hidal-go/hidalgo/legacy/nosql/elastic"
 	//import hidal-go first so the registration of the no sql stores occurs before quadstore iterates for registration
 	gnosql "github.com/cayleygraph/cayley/graph/nosql"
-	
 )
 
 const Type = elastic.Name

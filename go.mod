@@ -3,6 +3,7 @@ module github.com/cayleygraph/cayley
 go 1.12
 
 require (
+	github.com/RyouZhang/async-go v0.2.2 // indirect
 	github.com/badgerodon/peg v0.0.0-20130729175151-9e5f7f4d07ca
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cockroachdb/apd v1.1.0 // indirect
