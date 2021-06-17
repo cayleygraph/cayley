@@ -97,6 +97,7 @@ type results struct {
 	col      query.Collation
 	it       iterator.Scanner
 	nextPath bool
+	err      error
 }
 
 func (it *results) Next(ctx context.Context) bool {
@@ -129,7 +130,12 @@ func (it *results) Result() interface{} {
 		if k == "$_" {
 			continue
 		}
-		out += fmt.Sprintf("%s : %s\n", k, it.s.qs.NameOf(m[k]))
+		knv, err := it.s.qs.NameOf(m[k])
+		if err != nil {
+			it.err = err
+			return nil
+		}
+		out += fmt.Sprintf("%s : %s\n", k, knv)
 	}
 	return out
 }

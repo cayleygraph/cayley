@@ -154,7 +154,10 @@ func getSortedValues(ctx context.Context, namer refs.Namer, it Scanner) (sortByS
 	for it.Next(ctx) {
 		id := it.Result()
 		// TODO(dennwc): batch and use refs.ValuesOf
-		name := namer.NameOf(id)
+		name, err := namer.NameOf(id)
+		if err != nil {
+			return nil, err
+		}
 		str := name.String()
 		tags := make(map[string]refs.Ref)
 		it.TagResults(tags)

@@ -20,6 +20,7 @@ type ValueIterator struct {
 	Namer   refs.Namer
 	path    *path.Path
 	scanner iterator.Scanner
+	err     error
 }
 
 // NewValueIterator returns a new ValueIterator for a path and namer.
@@ -50,7 +51,11 @@ func (it *ValueIterator) Value() quad.Value {
 	if it.scanner == nil {
 		return nil
 	}
-	return it.Namer.NameOf(it.scanner.Result())
+	rname, err := it.Namer.NameOf(it.scanner.Result())
+	if err != nil {
+		it.err = err
+	}
+	return rname
 }
 
 // Result implements query.Iterator.
@@ -61,6 +66,9 @@ func (it *ValueIterator) Result() interface{} {
 
 // Err implements query.Iterator.
 func (it *ValueIterator) Err() error {
+	if it.err != nil {
+		return it.err
+	}
 	if it.scanner == nil {
 		return nil
 	}

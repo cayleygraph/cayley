@@ -148,7 +148,9 @@ func TestValueComparison(t *testing.T) {
 
 		var got []quad.Value
 		for vc.Next(ctx) {
-			got = append(got, qs.NameOf(vc.Result()))
+			qsv, err := qs.NameOf(vc.Result())
+			require.NoError(t, err)
+			got = append(got, qsv)
 		}
 		if !reflect.DeepEqual(got, test.expect) {
 			t.Errorf("Failed to show %s, got:%q expect:%q", test.message, got, test.expect)

@@ -35,10 +35,13 @@ func TestLinksTo(t *testing.T) {
 	}
 	fixed := iterator.NewFixed()
 
-	val := qs.ValueOf(object)
+	val, err := qs.ValueOf(object)
+	require.NoError(t, err)
 
 	fixed.Add(val)
 	lto := graph.NewLinksTo(qs, fixed, quad.Object).Iterate()
 	require.True(t, lto.Next(ctx))
-	require.Equal(t, q, qs.Quad(lto.Result()))
+	qv, err := qs.Quad(lto.Result())
+	require.NoError(t, err)
+	require.Equal(t, q, qv)
 }

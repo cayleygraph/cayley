@@ -190,7 +190,7 @@ func getIdentString(tree *peg.ExpressionTree) string {
 		}
 	} else {
 		if tree.Value != '"' {
-			out += string(tree.Value)
+			out += string([]rune{rune(tree.Value)})
 		}
 	}
 	return out

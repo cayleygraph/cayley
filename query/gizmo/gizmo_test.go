@@ -710,7 +710,11 @@ func runQueryGetTag(rec func(), g []quad.Quad, qu string, tag string, limit int)
 		data := it.Result().(*Result)
 		if data.Val == nil {
 			if val := data.Tags[tag]; val != nil {
-				results = append(results, quadValueToString(js.qs.NameOf(val)))
+				nv, err := js.qs.NameOf(val)
+				if err != nil {
+					return nil, err
+				}
+				results = append(results, quadValueToString(nv))
 			}
 		} else {
 			switch v := data.Val.(type) {
