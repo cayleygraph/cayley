@@ -89,7 +89,12 @@ func (it *Iterator) Optimize(ctx context.Context) (iterator.Shape, bool) { retur
 func (it *Iterator) String() string {
 	name := ""
 	if it.t != nil {
-		name = quad.StringOf(it.qs.NameOf(it.t)) + "/" + it.t.Hash
+		tn, err := it.qs.NameOf(it.t)
+		if err != nil {
+			name = "ERROR(" + err.Error() + ")"
+		} else {
+			name = quad.StringOf(tn) + "/" + it.t.Hash
+		}
 	}
 	return fmt.Sprintf("GAE(%s)", name)
 }
@@ -171,7 +176,12 @@ func newIteratorNext(qs *QuadStore, k string, d quad.Direction, t *Token) *itera
 		clog.Errorf("Cannot create iterator without a valid context")
 		return &iteratorNext{done: true}
 	}
-	name := quad.StringOf(qs.NameOf(t))
+	tn, err := qs.NameOf(t)
+	if err != nil {
+		clog.Errorf("Creating iterator token lookup error: %v", err)
+		return &iteratorNext{done: true}
+	}
+	name := quad.StringOf(tn)
 	return &iteratorNext{
 		name:  name,
 		dir:   d,
@@ -330,7 +340,12 @@ func newIteratorContains(qs *QuadStore, k string, d quad.Direction, t *Token) *i
 		clog.Errorf("Cannot create iterator without a valid context")
 		return &iteratorContains{done: true}
 	}
-	name := quad.StringOf(qs.NameOf(t))
+	tn, err := qs.NameOf(t)
+	if err != nil {
+		clog.Errorf("Creating iterator token lookup error: %v", err)
+		return &iteratorContains{done: true}
+	}
+	name := quad.StringOf(tn)
 	return &iteratorContains{
 		name:  name,
 		dir:   d,

@@ -51,7 +51,10 @@ type resolveValues struct {
 
 func (r resolveValues) OptimizeShape(ctx context.Context, s Shape) (Shape, bool) {
 	if l, ok := s.(Lookup); ok {
-		return l.resolve(r.qs), true
+		lv, err := l.resolve(r.qs)
+		if err == nil {
+			return lv, true
+		}
 	}
 	return s, false
 }
@@ -818,24 +821,31 @@ func (s *Lookup) Add(v ...quad.Value) {
 var _ valueResolver = graph.QuadStore(nil)
 
 type valueResolver interface {
-	ValueOf(v quad.Value) refs.Ref
+	ValueOf(v quad.Value) (refs.Ref, error)
 }
 
-func (s Lookup) resolve(qs valueResolver) Shape {
+func (s Lookup) resolve(qs valueResolver) (Shape, error) {
 	// TODO: check if QS supports batch lookup
 	vals := make([]refs.Ref, 0, len(s))
 	for _, v := range s {
-		if gv := qs.ValueOf(v); gv != nil {
+		gv, err := qs.ValueOf(v)
+		if err != nil {
+			return nil, err
+		}
+		if gv != nil {
 			vals = append(vals, gv)
 		}
 	}
 	if len(vals) == 0 {
-		return nil
+		return nil, nil
 	}
-	return Fixed(vals)
+	return Fixed(vals), nil
 }
 func (s Lookup) BuildIterator(qs graph.QuadStore) iterator.Shape {
-	f := s.resolve(qs)
+	f, err := s.resolve(qs)
+	if err != nil {
+		return iterator.NewError(err)
+	}
 	if IsNull(f) {
 		return iterator.NewNull()
 	}
@@ -850,7 +860,10 @@ func (s Lookup) Optimize(ctx context.Context, r Optimizer) (Shape, bool) {
 		return ns, true
 	}
 	if qs, ok := r.(valueResolver); ok {
-		ns, opt = s.resolve(qs), true
+		res, err := s.resolve(qs)
+		if err == nil {
+			ns, opt = res, true
+		}
 	}
 	return ns, opt
 }

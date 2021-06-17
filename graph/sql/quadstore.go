@@ -17,6 +17,7 @@ import (
 	"github.com/cayleygraph/cayley/internal/lru"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
+	"github.com/pkg/errors"
 )
 
 func registerQuadStore(name, typ string) {
@@ -509,14 +510,24 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, opts graph.IgnoreOpts) error 
 	return tx.Commit()
 }
 
-func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
+func (qs *QuadStore) Quad(val graph.Ref) (quad.Quad, error) {
 	h := val.(QuadHashes)
-	return quad.Quad{
-		Subject:   qs.NameOf(h.Get(quad.Subject)),
-		Predicate: qs.NameOf(h.Get(quad.Predicate)),
-		Object:    qs.NameOf(h.Get(quad.Object)),
-		Label:     qs.NameOf(h.Get(quad.Label)),
+	var q quad.Quad
+	var err error
+	q.Subject, err = qs.NameOf(h.Get(quad.Subject))
+	if err != nil {
+		return q, err
 	}
+	q.Predicate, err = qs.NameOf(h.Get(quad.Predicate))
+	if err != nil {
+		return q, err
+	}
+	q.Object, err = qs.NameOf(h.Get(quad.Object))
+	if err != nil {
+		return q, err
+	}
+	q.Label, err = qs.NameOf(h.Get(quad.Label))
+	return q, err
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) iterator.Shape {
@@ -562,8 +573,8 @@ func (qs *QuadStore) QuadsAllIterator() iterator.Shape {
 	return qs.newIterator(AllQuads(""))
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
-	return NodeHash(HashOf(s))
+func (qs *QuadStore) ValueOf(s quad.Value) (graph.Ref, error) {
+	return NodeHash(HashOf(s)), nil
 }
 
 // NullTime represents a time.Time that may be null. NullTime implements the
@@ -603,19 +614,16 @@ func (nt NullTime) Value() (driver.Value, error) {
 	return nt.Time, nil
 }
 
-func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) (quad.Value, error) {
 	if v == nil {
-		if clog.V(2) {
-			clog.Infof("NameOf was nil")
-		}
-		return nil
+		return nil, nil
 	} else if v, ok := v.(refs.PreFetchedValue); ok {
-		return v.NameOf()
+		return v.NameOf(), nil
 	}
 	var hash NodeHash
 	switch h := v.(type) {
 	case refs.PreFetchedValue:
-		return h.NameOf()
+		return h.NameOf(), nil
 	case NodeHash:
 		hash = h
 	case refs.ValueHash:
@@ -624,13 +632,10 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 		panic(fmt.Errorf("unexpected token: %T", v))
 	}
 	if !hash.Valid() {
-		if clog.V(2) {
-			clog.Infof("NameOf was nil")
-		}
-		return nil
+		return nil, nil
 	}
 	if val, ok := qs.ids.Get(hash.String()); ok {
-		return val.(quad.Value)
+		return val.(quad.Value), nil
 	}
 	query := `SELECT
 		value,
@@ -670,9 +675,8 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 		&vtime,
 	); err != nil {
 		if err != sql.ErrNoRows {
-			clog.Errorf("Couldn't execute value lookup: %v", err)
+			return nil, errors.Wrap(err, "error executing value lookup")
 		}
-		return nil
 	}
 	var val quad.Value
 	if str.Valid {
@@ -704,15 +708,14 @@ func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
 	} else {
 		qv, err := pquads.UnmarshalValue(data)
 		if err != nil {
-			clog.Errorf("Couldn't unmarshal value: %v", err)
-			return nil
+			return nil, errors.Wrap(err, "unmarshal value")
 		}
 		val = qv
 	}
 	if val != nil {
 		qs.ids.Put(hash.String(), val)
 	}
-	return val
+	return val, nil
 }
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
@@ -756,8 +759,8 @@ func (qs *QuadStore) Close() error {
 	return qs.db.Close()
 }
 
-func (qs *QuadStore) QuadDirection(in graph.Ref, d quad.Direction) graph.Ref {
-	return NodeHash{in.(QuadHashes).Get(d)}
+func (qs *QuadStore) QuadDirection(in graph.Ref, d quad.Direction) (graph.Ref, error) {
+	return NodeHash{in.(QuadHashes).Get(d)}, nil
 }
 
 func (qs *QuadStore) sizeForIterator(dir quad.Direction, hash NodeHash) int64 {

@@ -97,7 +97,7 @@ func (c *Chain) UnOptimized() *Chain {
 }
 
 // Each will run a provided callback for each result of the iterator.
-func (c *Chain) Each(fnc func(refs.Ref)) error {
+func (c *Chain) Each(fnc func(refs.Ref) error) error {
 	c.start()
 	defer c.end()
 	done := c.ctx.Done()
@@ -108,7 +108,10 @@ func (c *Chain) Each(fnc func(refs.Ref)) error {
 			return c.ctx.Err()
 		default:
 		}
-		fnc(c.it.Result())
+		err := fnc(c.it.Result())
+		if err != nil {
+			return err
+		}
 		for c.nextPath() {
 			select {
 			case <-done:
@@ -220,7 +223,7 @@ func (c *Chain) Send(out chan<- refs.Ref) error {
 }
 
 // TagEach will run a provided tag map callback for each result of the iterator.
-func (c *Chain) TagEach(fnc func(map[string]refs.Ref)) error {
+func (c *Chain) TagEach(fnc func(map[string]refs.Ref) error) error {
 	c.start()
 	defer c.end()
 	done := c.ctx.Done()
@@ -237,7 +240,10 @@ func (c *Chain) TagEach(fnc func(map[string]refs.Ref)) error {
 		if n := len(tags); n > mn {
 			mn = n
 		}
-		fnc(tags)
+		err := fnc(tags)
+		if err != nil {
+			return err
+		}
 		for c.nextPath() {
 			select {
 			case <-done:
@@ -249,7 +255,10 @@ func (c *Chain) TagEach(fnc func(map[string]refs.Ref)) error {
 			if n := len(tags); n > mn {
 				mn = n
 			}
-			fnc(tags)
+			err = fnc(tags)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return c.it.Err()
@@ -259,7 +268,7 @@ var errNoQuadStore = fmt.Errorf("no quad store in Iterate")
 
 // EachValue is an analog of Each, but it will additionally call NameOf
 // for each graph.Ref before passing it to a callback.
-func (c *Chain) EachValue(qs refs.Namer, fnc func(quad.Value)) error {
+func (c *Chain) EachValue(qs refs.Namer, fnc func(quad.Value) error) error {
 	if qs != nil {
 		c.qs = qs
 	}
@@ -267,16 +276,18 @@ func (c *Chain) EachValue(qs refs.Namer, fnc func(quad.Value)) error {
 		return errNoQuadStore
 	}
 	// TODO(dennwc): batch NameOf?
-	return c.Each(func(v refs.Ref) {
-		if nv := c.qs.NameOf(v); nv != nil {
-			fnc(nv)
+	return c.Each(func(v refs.Ref) error {
+		nv, err := c.qs.NameOf(v)
+		if err == nil && nv != nil {
+			err = fnc(nv)
 		}
+		return err
 	})
 }
 
 // EachValuePair is an analog of Each, but it will additionally call NameOf
 // for each graph.Ref before passing it to a callback. Original value will be passed as well.
-func (c *Chain) EachValuePair(qs refs.Namer, fnc func(refs.Ref, quad.Value)) error {
+func (c *Chain) EachValuePair(qs refs.Namer, fnc func(refs.Ref, quad.Value) error) error {
 	if qs != nil {
 		c.qs = qs
 	}
@@ -284,10 +295,12 @@ func (c *Chain) EachValuePair(qs refs.Namer, fnc func(refs.Ref, quad.Value)) err
 		return errNoQuadStore
 	}
 	// TODO(dennwc): batch NameOf?
-	return c.Each(func(v refs.Ref) {
-		if nv := c.qs.NameOf(v); nv != nil {
-			fnc(v, nv)
+	return c.Each(func(v refs.Ref) error {
+		nv, err := c.qs.NameOf(v)
+		if err == nil && nv != nil {
+			err = fnc(v, nv)
 		}
+		return err
 	})
 }
 
@@ -295,8 +308,9 @@ func (c *Chain) EachValuePair(qs refs.Namer, fnc func(refs.Ref, quad.Value)) err
 // for each graph.Ref before returning the results slice.
 func (c *Chain) AllValues(qs refs.Namer) ([]quad.Value, error) {
 	var out []quad.Value
-	err := c.EachValue(qs, func(v quad.Value) {
+	err := c.EachValue(qs, func(v quad.Value) error {
 		out = append(out, v)
+		return nil
 	})
 	return out, err
 }
@@ -313,8 +327,7 @@ func (c *Chain) FirstValue(qs refs.Namer) (quad.Value, error) {
 	if err != nil || v == nil {
 		return nil, err
 	}
-	// TODO: return an error from NameOf once we have it exposed
-	return c.qs.NameOf(v), nil
+	return c.qs.NameOf(v)
 }
 
 // SendValues is an analog of Send, but it will additionally call NameOf
@@ -330,14 +343,18 @@ func (c *Chain) SendValues(qs refs.Namer, out chan<- quad.Value) error {
 	defer c.end()
 	done := c.ctx.Done()
 	send := func(v refs.Ref) error {
-		nv := c.qs.NameOf(c.it.Result())
-		if nv == nil {
-			return nil
+		nv, err := c.qs.NameOf(c.it.Result())
+		if err != nil || nv == nil {
+			return err
+		}
+		nvResult, err := c.qs.NameOf(c.it.Result())
+		if err != nil {
+			return err
 		}
 		select {
 		case <-done:
 			return c.ctx.Err()
-		case out <- c.qs.NameOf(c.it.Result()):
+		case out <- nvResult:
 		}
 		return nil
 	}
@@ -356,18 +373,23 @@ func (c *Chain) SendValues(qs refs.Namer, out chan<- quad.Value) error {
 
 // TagValues is an analog of TagEach, but it will additionally call NameOf
 // for each graph.Ref before passing the map to a callback.
-func (c *Chain) TagValues(qs refs.Namer, fnc func(map[string]quad.Value)) error {
+func (c *Chain) TagValues(qs refs.Namer, fnc func(map[string]quad.Value) error) error {
 	if qs != nil {
 		c.qs = qs
 	}
 	if c.qs == nil {
 		return errNoQuadStore
 	}
-	return c.TagEach(func(m map[string]refs.Ref) {
+	return c.TagEach(func(m map[string]refs.Ref) error {
 		vm := make(map[string]quad.Value, len(m))
 		for k, v := range m {
-			vm[k] = c.qs.NameOf(v) // TODO(dennwc): batch NameOf?
+			var err error
+			vm[k], err = c.qs.NameOf(v) // TODO(dennwc): batch NameOf?
+			if err != nil {
+				return err
+			}
 		}
 		fnc(vm)
+		return nil
 	})
 }

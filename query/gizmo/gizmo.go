@@ -135,28 +135,35 @@ func (s *Session) quadValueToNative(v quad.Value) interface{} {
 	return out
 }
 
-func (s *Session) tagsToValueMap(m map[string]graph.Ref) map[string]interface{} {
+func (s *Session) tagsToValueMap(m map[string]graph.Ref) (map[string]interface{}, error) {
 	outputMap := make(map[string]interface{})
 	for k, v := range m {
-		if o := s.quadValueToNative(s.qs.NameOf(v)); o != nil {
+		nv, err := s.qs.NameOf(v)
+		if err != nil {
+			return nil, err
+		}
+		if o := s.quadValueToNative(nv); o != nil {
 			outputMap[k] = o
 		}
 	}
 	if len(outputMap) == 0 {
-		return nil
+		return nil, nil
 	}
-	return outputMap
+	return outputMap, nil
 }
 func (s *Session) runIteratorToArray(it iterator.Shape, limit int) ([]map[string]interface{}, error) {
 	ctx := s.context()
 
 	output := make([]map[string]interface{}, 0)
-	err := iterator.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
-		tm := s.tagsToValueMap(tags)
-		if tm == nil {
-			return
+	err := iterator.Iterate(ctx, it).Limit(limit).TagEach(func(tags map[string]graph.Ref) error {
+		tm, err := s.tagsToValueMap(tags)
+		if err != nil {
+			return err
 		}
-		output = append(output, tm)
+		if tm != nil {
+			output = append(output, tm)
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -168,10 +175,11 @@ func (s *Session) runIteratorToArrayNoTags(it iterator.Shape, limit int) ([]inte
 	ctx := s.context()
 
 	output := make([]interface{}, 0)
-	err := iterator.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(s.qs, func(v quad.Value) {
+	err := iterator.Iterate(ctx, it).Paths(false).Limit(limit).EachValue(s.qs, func(v quad.Value) error {
 		if o := s.quadValueToNative(v); o != nil {
 			output = append(output, o)
 		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -186,21 +194,17 @@ func (s *Session) runIteratorWithCallback(it iterator.Shape, callback goja.Value
 	}
 	ctx, cancel := context.WithCancel(s.context())
 	defer cancel()
-	var gerr error
-	err := iterator.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Ref) {
-		tm := s.tagsToValueMap(tags)
-		if tm == nil {
-			return
+	return iterator.Iterate(ctx, it).Paths(true).Limit(limit).TagEach(func(tags map[string]graph.Ref) error {
+		tm, err := s.tagsToValueMap(tags)
+		if err != nil || tm == nil {
+			return err
 		}
-		if _, err := fnc(this.This, s.vm.ToValue(tm)); err != nil {
-			gerr = err
+		_, err = fnc(this.This, s.vm.ToValue(tm))
+		if err != nil {
 			cancel()
 		}
+		return err
 	})
-	if gerr != nil {
-		err = gerr
-	}
-	return err
 }
 
 func (s *Session) send(ctx context.Context, r *Result) bool {
@@ -226,11 +230,12 @@ func (s *Session) runIterator(it iterator.Shape) error {
 	ctx, cancel := context.WithCancel(s.context())
 	defer cancel()
 	stop := false
-	err := iterator.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Ref) {
+	err := iterator.Iterate(ctx, it).Paths(true).TagEach(func(tags map[string]graph.Ref) error {
 		if !s.send(ctx, &Result{Tags: tags}) {
 			cancel()
 			stop = true
 		}
+		return nil
 	})
 	if stop {
 		err = nil
@@ -386,7 +391,12 @@ func (it *results) jsonResult() interface{} {
 	}
 	sort.Strings(tagKeys)
 	for _, k := range tagKeys {
-		if name := it.s.qs.NameOf(tags[k]); name != nil {
+		name, err := it.s.qs.NameOf(tags[k])
+		if err != nil {
+			it.err = err
+			return nil
+		}
+		if name != nil {
 			obj[k] = it.s.quadValueToNative(name)
 		} else {
 			delete(obj, k)
@@ -423,7 +433,12 @@ func (it *results) replResult() interface{} {
 			if k == "$_" {
 				continue
 			}
-			out += fmt.Sprintf("%s : %s\n", k, quadValueToString(it.s.qs.NameOf(tags[k])))
+			knv, err := it.s.qs.NameOf(tags[k])
+			if err != nil {
+				// ignore
+				continue
+			}
+			out += fmt.Sprintf("%s : %s\n", k, quadValueToString(knv))
 		}
 	} else {
 		switch export := data.Val.(type) {

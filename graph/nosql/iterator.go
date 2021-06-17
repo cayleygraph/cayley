@@ -283,7 +283,11 @@ func (it *iteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
 		it.result = v
 		return true
 	}
-	qv := it.qs.NameOf(v)
+	qv, err := it.qs.NameOf(v)
+	if err != nil {
+		it.err = err
+		return false
+	}
 	if qv == nil {
 		return false
 	}

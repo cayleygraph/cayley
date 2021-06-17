@@ -18,14 +18,13 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"sync"
 
 	"github.com/hidal-go/hidalgo/kv"
+	"github.com/pkg/errors"
 
-	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
@@ -364,21 +363,19 @@ func (qs *QuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Re
 	return values, nil
 }
 
-func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) (quad.Value, error) {
 	ctx := context.TODO()
 	vals, err := qs.ValuesOf(ctx, []graph.Ref{v})
 	if err != nil {
-		clog.Errorf("error getting NameOf %d: %s", v, err)
-		return nil
+		return nil, errors.Errorf("error getting NameOf %d: %s", v, err)
 	}
-	return vals[0]
+	return vals[0], nil
 }
 
-func (qs *QuadStore) Quad(k graph.Ref) quad.Quad {
+func (qs *QuadStore) Quad(k graph.Ref) (quad.Quad, error) {
 	key, ok := k.(*proto.Primitive)
 	if !ok {
-		clog.Errorf("passed value was not a quad primitive: %T", k)
-		return quad.Quad{}
+		return quad.Quad{}, errors.Errorf("passed value was not a quad primitive: %T", k)
 	}
 	ctx := context.TODO()
 	var v quad.Quad
@@ -387,13 +384,13 @@ func (qs *QuadStore) Quad(k graph.Ref) quad.Quad {
 		v, err = qs.primitiveToQuad(ctx, tx, key)
 		return err
 	})
-	if err != nil {
-		if err != kv.ErrNotFound {
-			clog.Errorf("error fetching quad %#v: %s", key, err)
-		}
-		return quad.Quad{}
+	if err == kv.ErrNotFound {
+		err = nil
 	}
-	return v
+	if err != nil {
+		err = errors.Errorf("error fetching quad %#v: %s", key, err)
+	}
+	return v, err
 }
 
 func (qs *QuadStore) primitiveToQuad(ctx context.Context, tx kv.Tx, p *proto.Primitive) (quad.Quad, error) {
@@ -420,39 +417,42 @@ func (qs *QuadStore) getValFromLog(ctx context.Context, tx kv.Tx, k uint64) (qua
 	return pquads.UnmarshalValue(p.Value)
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
+func (qs *QuadStore) ValueOf(s quad.Value) (graph.Ref, error) {
 	ctx := context.TODO()
 	var out Int64Value
-	_ = kv.View(qs.db, func(tx kv.Tx) error {
+	err := kv.View(qs.db, func(tx kv.Tx) error {
 		v, err := qs.resolveQuadValue(ctx, tx, s)
 		out = Int64Value(v)
 		return err
 	})
-	if out == 0 {
-		return nil
+	if err != nil {
+		return nil, err
 	}
-	return out
+	if out == 0 {
+		return nil, nil
+	}
+	return out, nil
 }
 
-func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) graph.Ref {
+func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) (graph.Ref, error) {
 	p, ok := val.(*proto.Primitive)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	switch d {
 	case quad.Subject:
-		return Int64Value(p.Subject)
+		return Int64Value(p.Subject), nil
 	case quad.Predicate:
-		return Int64Value(p.Predicate)
+		return Int64Value(p.Predicate), nil
 	case quad.Object:
-		return Int64Value(p.Object)
+		return Int64Value(p.Object), nil
 	case quad.Label:
 		if p.Label == 0 {
-			return nil
+			return nil, nil
 		}
-		return Int64Value(p.Label)
+		return Int64Value(p.Label), nil
 	}
-	return nil
+	return nil, nil
 }
 
 func (qs *QuadStore) getPrimitives(ctx context.Context, vals []uint64) ([]*proto.Primitive, error) {

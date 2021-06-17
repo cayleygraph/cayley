@@ -225,19 +225,25 @@ func iterateObject(ctx context.Context, qs graph.QuadStore, f *field, p *path.Pa
 			}
 			nv := it.Result()
 			obj := make(map[string]interface{})
-			obj[ValueKey] = qs.NameOf(nv)
-			func() {
-				sit := qs.QuadIterator(quad.Subject, nv).Iterate()
-				defer sit.Close()
-				for sit.Next(ctx) {
-					q := qs.Quad(sit.Result())
-					if p, ok := q.Predicate.(quad.IRI); ok {
-						obj[string(p)] = q.Object
-					} else {
-						obj[quad.ToString(q.Predicate)] = q.Object
-					}
+			var err error
+			obj[ValueKey], err = qs.NameOf(nv)
+			if err != nil {
+				return nil, err
+			}
+			sit := qs.QuadIterator(quad.Subject, nv).Iterate()
+			for sit.Next(ctx) {
+				q, err := qs.Quad(sit.Result())
+				if err != nil {
+					sit.Close()
+					return nil, err
 				}
-			}()
+				if p, ok := q.Predicate.(quad.IRI); ok {
+					obj[string(p)] = q.Object
+				} else {
+					obj[quad.ToString(q.Predicate)] = q.Object
+				}
+			}
+			sit.Close()
 			out = append(out, obj)
 		}
 		return out, it.Err()

@@ -53,8 +53,11 @@ func main() {
 
 	// While we have items
 	for it.Next(ctx) {
-		token := it.Result()                // get a ref to a node (backend-specific)
-		value := store.NameOf(token)        // get the value in the node (RDF)
+		token := it.Result()              // get a ref to a node (backend-specific)
+		value, err := store.NameOf(token) // get the value in the node (RDF)
+		if err != nil {
+			log.Fatalln(err)
+		}
 		nativeValue := quad.NativeOf(value) // convert value to normal Go type
 
 		fmt.Println(nativeValue) // print it!

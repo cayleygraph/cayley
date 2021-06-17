@@ -223,7 +223,11 @@ func (s *GraphStreamHandler) serveRawQuads(ctx context.Context, gs *GraphStream,
 		if qv == nil {
 			continue
 		}
-		q := s.QS.Quad(qv)
+		q, err := s.QS.Quad(qv)
+		if err != nil {
+			// TODO: no error handling
+			continue
+		}
 		quad.HashTo(q.Subject, sh[:])
 		quad.HashTo(q.Object, oh[:])
 		s, o := gs.addNode(q.Subject, sh, nil), gs.addNode(q.Object, oh, nil)
@@ -250,8 +254,9 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 
 	// list of predicates marked as inline properties for gephi
 	inline := make(map[quad.Value]struct{})
-	err := propsPath.Iterate(ctx).EachValue(s.QS, func(v quad.Value) {
+	err := propsPath.Iterate(ctx).EachValue(s.QS, func(v quad.Value) error {
 		inline[v] = struct{}{}
+		return nil
 	})
 	if err != nil {
 		clog.Errorf("cannot iterate over properties: %v", err)
@@ -273,9 +278,9 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 	itc := iterator.Iterate(ictx, nodes).On(s.QS).Limit(limit)
 
 	qi := 0
-	_ = itc.EachValuePair(s.QS, func(v graph.Ref, nv quad.Value) {
+	_ = itc.EachValuePair(s.QS, func(v graph.Ref, nv quad.Value) error {
 		if _, skip := ignore[nv]; skip {
-			return
+			return nil
 		}
 		// list of inline properties
 		props := make(map[quad.Value]quad.Value)
@@ -293,7 +298,10 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 			if sid == "" {
 				sid = gs.addNode(nv, h, props)
 			}
-			q := s.QS.Quad(predIt.Result())
+			q, err := s.QS.Quad(predIt.Result())
+			if err != nil {
+				continue
+			}
 			if _, ok := inline[q.Predicate]; ok {
 				props[q.Predicate] = q.Object
 				ignore[q.Object] = struct{}{}
@@ -309,23 +317,23 @@ func (s *GraphStreamHandler) serveNodesWithProps(ctx context.Context, gs *GraphS
 				qi++
 				if err := gs.Flush(); err != nil {
 					cancel()
-					return
+					return nil
 				}
 			}
 		}
 		if err := predIt.Err(); err != nil {
 			cancel()
-			return
+			return nil
 		} else if sid == "" {
-			return
+			return nil
 		}
 		if len(props) != 0 {
 			gs.ChangeNode(nv, sid, props)
 		}
 		if err := gs.Flush(); err != nil {
 			cancel()
-			return
 		}
+		return nil
 	})
 }
 

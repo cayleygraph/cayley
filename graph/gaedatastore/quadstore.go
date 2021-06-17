@@ -450,24 +450,22 @@ func (qs *QuadStore) QuadsAllIterator() iterator.Shape {
 	return qs.newAllIterator(quadKind)
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
+func (qs *QuadStore) ValueOf(s quad.Value) (graph.Ref, error) {
 	id := hashOf(s)
-	return &Token{Kind: nodeKind, Hash: id}
+	return &Token{Kind: nodeKind, Hash: id}, nil
 }
 
-func (qs *QuadStore) NameOf(val graph.Ref) quad.Value {
+func (qs *QuadStore) NameOf(val graph.Ref) (quad.Value, error) {
 	if qs.context == nil {
-		clog.Errorf("Error in NameOf, context is nil, graph not correctly initialised")
-		return nil
+		return nil, errors.New("context is nil, graph is not initialized")
 	} else if v, ok := val.(refs.PreFetchedValue); ok {
-		return v.NameOf()
+		return v.NameOf(), nil
 	}
 	var key *datastore.Key
 	if t, ok := val.(*Token); ok && t.Kind == nodeKind {
 		key = qs.createKeyFromToken(t)
 	} else {
-		clog.Errorf("Token not valid")
-		return nil
+		return nil, errors.New("token not valid")
 	}
 
 	// TODO (panamafrancis) implement a cache
@@ -475,23 +473,20 @@ func (qs *QuadStore) NameOf(val graph.Ref) quad.Value {
 	node := new(NodeEntry)
 	err := datastore.Get(qs.context, key, node)
 	if err != nil {
-		clog.Errorf("Error: %v", err)
-		return nil
+		return nil, err
 	}
-	return quad.Raw(node.Name)
+	return quad.Raw(node.Name), nil
 }
 
-func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
+func (qs *QuadStore) Quad(val graph.Ref) (quad.Quad, error) {
 	if qs.context == nil {
-		clog.Errorf("Error fetching quad, context is nil, graph not correctly initialised")
-		return quad.Quad{}
+		return quad.Quad{}, errors.New("context is nil, graph is not correctly initialized")
 	}
 	var key *datastore.Key
 	if t, ok := val.(*Token); ok && t.Kind == quadKind {
 		key = qs.createKeyFromToken(t)
 	} else {
-		clog.Errorf("Token not valid")
-		return quad.Quad{}
+		return quad.Quad{}, errors.New("gae quad: token not valid")
 	}
 
 	q := new(QuadEntry)
@@ -499,7 +494,7 @@ func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 	if err != nil {
 		// Red herring error : ErrFieldMismatch can happen when a quad exists but a field is empty
 		if _, ok := err.(*datastore.ErrFieldMismatch); !ok {
-			clog.Errorf("Error: %v", err)
+			return quad.Quad{}, err
 		}
 	}
 	var label interface{}
@@ -511,7 +506,7 @@ func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
 		q.Predicate,
 		q.Object,
 		label,
-	)
+	), nil
 }
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
@@ -557,15 +552,13 @@ func (qs *QuadStore) Close() error {
 	return nil
 }
 
-func (qs *QuadStore) QuadDirection(val graph.Ref, dir quad.Direction) graph.Ref {
+func (qs *QuadStore) QuadDirection(val graph.Ref, dir quad.Direction) (graph.Ref, error) {
 	t, ok := val.(*Token)
 	if !ok {
-		clog.Errorf("Token not valid")
-		return nil
+		return nil, errors.New("token not valid")
 	}
 	if t.Kind == nodeKind {
-		clog.Errorf("Node tokens not valid")
-		return nil
+		return nil, errors.New("node tokens not valid")
 	}
 	var offset int
 	switch dir {
@@ -579,5 +572,5 @@ func (qs *QuadStore) QuadDirection(val graph.Ref, dir quad.Direction) graph.Ref 
 		offset = (quad.HashSize * 2) * 3
 	}
 	sub := t.Hash[offset : offset+(quad.HashSize*2)]
-	return &Token{Kind: nodeKind, Hash: sub}
+	return &Token{Kind: nodeKind, Hash: sub}, nil
 }

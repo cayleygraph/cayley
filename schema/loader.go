@@ -103,7 +103,11 @@ func (c *Config) LoadToDepth(ctx context.Context, qs graph.QuadStore, dst interf
 	if len(ids) != 0 {
 		fixed := iterator.NewFixed()
 		for _, id := range ids {
-			fixed.Add(qs.ValueOf(id))
+			idv, err := qs.ValueOf(id)
+			if err != nil {
+				return err
+			}
+			fixed.Add(idv)
 		}
 		it = fixed
 	}
@@ -360,7 +364,10 @@ func (l *loader) loadToValue(ctx context.Context, dst reflect.Value, depth int, 
 			var sv reflect.Value
 			if recursive {
 				if ptr {
-					fv := l.qs.NameOf(fv)
+					fv, err := l.qs.NameOf(fv)
+					if err != nil {
+						return err
+					}
 					var ok bool
 					sv, ok = l.seen[fv]
 					if ok && sv.Type().AssignableTo(f.Type) {
@@ -376,7 +383,10 @@ func (l *loader) loadToValue(ctx context.Context, dst reflect.Value, depth int, 
 					return err
 				}
 			} else {
-				fv := l.qs.NameOf(fv)
+				fv, err := l.qs.NameOf(fv)
+				if err != nil {
+					return err
+				}
 				if fv == nil {
 					continue
 				}
@@ -459,7 +469,10 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 		if ctxDone() {
 			return ctx.Err()
 		}
-		id := l.qs.NameOf(it.Result())
+		id, err := l.qs.NameOf(it.Result())
+		if err != nil {
+			return err
+		}
 		if id != nil {
 			if sv, ok := l.seen[id]; ok {
 				if slice {
@@ -508,7 +521,7 @@ func (l *loader) loadIteratorToDepth(ctx context.Context, dst reflect.Value, dep
 			}
 			l.seen[id] = sv
 		}
-		err := l.loadToValue(ctx, cur, depth, mo, "")
+		err = l.loadToValue(ctx, cur, depth, mo, "")
 		if err == errRequiredFieldIsMissing {
 			if !slice && !chanl {
 				return err

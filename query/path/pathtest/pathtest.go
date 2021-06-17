@@ -77,12 +77,17 @@ func runTag(qs graph.QuadStore, path *path.Path, tag string, opt, keepEmpty bool
 	if !opt {
 		pb = pb.UnOptimized()
 	}
-	err := pb.Paths(true).TagEach(func(tags map[string]graph.Ref) {
+	err := pb.Paths(true).TagEach(func(tags map[string]graph.Ref) error {
 		if t, ok := tags[tag]; ok {
-			out = append(out, qs.NameOf(t))
+			tv, err := qs.NameOf(t)
+			if err != nil {
+				return err
+			}
+			out = append(out, tv)
 		} else if keepEmpty {
 			out = append(out, vEmpty)
 		}
+		return nil
 	})
 	return out, err
 }
@@ -93,8 +98,9 @@ func runAllTags(qs graph.QuadStore, path *path.Path, opt bool) ([]map[string]qua
 	if !opt {
 		pb = pb.UnOptimized()
 	}
-	err := pb.Paths(true).TagValues(qs, func(tags map[string]quad.Value) {
+	err := pb.Paths(true).TagValues(qs, func(tags map[string]quad.Value) error {
 		out = append(out, tags)
+		return nil
 	})
 	return out, err
 }
