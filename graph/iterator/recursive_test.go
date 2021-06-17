@@ -63,7 +63,9 @@ func TestRecursiveNext(t *testing.T) {
 	expected := []string{"bob", "charlie", "dani", "emily"}
 	var got []string
 	for r.Next(ctx) {
-		got = append(got, quad.ToString(qs.NameOf(r.Result())))
+		qn, err := qs.NameOf(r.Result())
+		require.NoError(t, err)
+		got = append(got, quad.ToString(qn))
 	}
 	sort.Strings(expected)
 	sort.Strings(got)
@@ -80,7 +82,9 @@ func TestRecursiveContains(t *testing.T) {
 	expected := []bool{true, true, false}
 
 	for i, v := range values {
-		ok := r.Contains(ctx, qs.ValueOf(quad.Raw(v)))
+		vn, err := qs.ValueOf(quad.Raw(v))
+		require.NoError(t, err)
+		ok := r.Contains(ctx, vn)
 		require.Equal(t, expected[i], ok)
 	}
 }
@@ -103,11 +107,15 @@ func TestRecursiveNextPath(t *testing.T) {
 	for r.Next(ctx) {
 		res := make(map[string]refs.Ref)
 		r.TagResults(res)
-		got = append(got, quad.ToString(qs.NameOf(res["person"])))
+		vn, err := qs.NameOf(res["person"])
+		require.NoError(t, err)
+		got = append(got, quad.ToString(vn))
 		for r.NextPath(ctx) {
 			res := make(map[string]refs.Ref)
 			r.TagResults(res)
-			got = append(got, quad.ToString(qs.NameOf(res["person"])))
+			vn, err := qs.NameOf(res["person"])
+			require.NoError(t, err)
+			got = append(got, quad.ToString(vn))
 		}
 	}
 	sort.Strings(expected)

@@ -127,6 +127,7 @@ type hasANext struct {
 	primary iterator.Scanner
 	dir     quad.Direction
 	result  refs.Ref
+	err     error
 }
 
 // Construct a new HasA iterator, given the quad subiterator, and the quad
@@ -163,11 +164,19 @@ func (it *hasANext) Next(ctx context.Context) bool {
 	if !it.primary.Next(ctx) {
 		return false
 	}
-	it.result = it.qs.QuadDirection(it.primary.Result(), it.dir)
+	var err error
+	it.result, err = it.qs.QuadDirection(it.primary.Result(), it.dir)
+	if err != nil {
+		it.err = err
+		return false
+	}
 	return true
 }
 
 func (it *hasANext) Err() error {
+	if it.err != nil {
+		return it.err
+	}
 	return it.primary.Err()
 }
 
@@ -244,10 +253,20 @@ func (it *hasAContains) nextContains(ctx context.Context) bool {
 	for it.results.Next(ctx) {
 		link := it.results.Result()
 		if clog.V(4) {
-			clog.Infof("Quad is %v", it.qs.Quad(link))
+			qlv, err := it.qs.Quad(link)
+			if err == nil {
+				clog.Infof("Quad is %v", qlv)
+			} else {
+				clog.Warningf("Error looking up result quad: %v", err)
+			}
 		}
 		if it.primary.Contains(ctx, link) {
-			it.result = it.qs.QuadDirection(link, it.dir)
+			var err error
+			it.result, err = it.qs.QuadDirection(link, it.dir)
+			if err != nil {
+				it.err = err
+				return false
+			}
 			return true
 		}
 	}

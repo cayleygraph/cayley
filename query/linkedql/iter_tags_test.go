@@ -63,7 +63,8 @@ func TestToSubject(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			store := memstore.New(testCase.data)
-			r := store.ValueOf(testCase.value)
+			r, err := store.ValueOf(testCase.value)
+			require.NoError(t, err)
 			s, err := toSubject(store, r)
 			if testCase.err == nil {
 				require.NoError(t, err)

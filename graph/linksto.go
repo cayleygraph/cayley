@@ -237,6 +237,7 @@ type linksToContains struct {
 	primary iterator.Index
 	dir     quad.Direction
 	result  refs.Ref
+	err     error
 }
 
 // Construct a new LinksTo iterator around a direction and a subiterator of
@@ -264,7 +265,11 @@ func (it *linksToContains) String() string {
 // If it checks in the right direction for the subiterator, it is a valid link
 // for the LinksTo.
 func (it *linksToContains) Contains(ctx context.Context, val refs.Ref) bool {
-	node := it.qs.QuadDirection(val, it.dir)
+	node, err := it.qs.QuadDirection(val, it.dir)
+	if err != nil {
+		it.err = err
+		return false
+	}
 	if it.primary.Contains(ctx, node) {
 		it.result = val
 		return true
@@ -273,6 +278,9 @@ func (it *linksToContains) Contains(ctx context.Context, val refs.Ref) bool {
 }
 
 func (it *linksToContains) Err() error {
+	if it.err != nil {
+		return it.err
+	}
 	return it.primary.Err()
 }
 

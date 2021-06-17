@@ -137,7 +137,9 @@ func IteratedQuadsNext(t testing.TB, qs graph.QuadStore, it iterator.Scanner) []
 	ctx := context.TODO()
 	var res quad.ByQuadString
 	for it.Next(ctx) {
-		res = append(res, qs.Quad(it.Result()))
+		qsq, err := qs.Quad(it.Result())
+		require.NoError(t, err)
+		res = append(res, qsq)
 	}
 	require.Nil(t, it.Err())
 	sort.Sort(res)
@@ -191,7 +193,9 @@ func IteratedStrings(t testing.TB, qs graph.QuadStore, s iterator.Shape) []strin
 	defer it.Close()
 	var res []string
 	for it.Next(ctx) {
-		res = append(res, quad.ToString(qs.NameOf(it.Result())))
+		qsn, err := qs.NameOf(it.Result())
+		require.Nil(t, err)
+		res = append(res, quad.ToString(qsn))
 	}
 	require.Nil(t, it.Err())
 	sort.Strings(res)
@@ -203,7 +207,9 @@ func IteratedValues(t testing.TB, qs graph.QuadStore, s iterator.Shape) []quad.V
 	it := s.Iterate()
 	var res []quad.Value
 	for it.Next(ctx) {
-		res = append(res, qs.NameOf(it.Result()))
+		itn, err := qs.NameOf(it.Result())
+		require.Nil(t, err)
+		res = append(res, itn)
 	}
 	require.Nil(t, it.Err())
 	sort.Sort(quad.ByValueString(res))
@@ -226,9 +232,11 @@ func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 	err := w.AddQuad(q)
 	require.NoError(t, err)
 	for _, pq := range []quad.String{"Something", "points_to", "Something Else", "context"} {
-		tok := qs.ValueOf(pq)
+		tok, err := qs.ValueOf(pq)
+		require.Nil(t, err)
 		require.NotNil(t, tok, "quad store failed to find value: %q", pq)
-		val := qs.NameOf(tok)
+		val, err := qs.NameOf(tok)
+		require.Nil(t, err)
 		require.NotNil(t, val, "quad store failed to decode value: %q", pq)
 		require.Equal(t, pq, val, "quad store failed to roundtrip value: %q", pq)
 	}
@@ -490,7 +498,9 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	if qss, ok := qs.(ValueSizer); ok {
-		s := qss.SizeOf(qs.ValueOf(quad.String("B")))
+		sn, err := qs.ValueOf(quad.String("B"))
+		require.Nil(t, err)
+		s := qss.SizeOf(sn)
 		require.Equal(t, int64(5), s, "Unexpected quadstore value size")
 	}
 
@@ -527,7 +537,9 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	}
 
 	if qss, ok := qs.(ValueSizer); ok {
-		s := qss.SizeOf(qs.ValueOf(quad.String("B")))
+		vn, err := qs.ValueOf(quad.String("B"))
+		require.NoError(t, err)
+		s := qss.SizeOf(vn)
 		require.Equal(t, int64(4), s, "Unexpected quadstore value size")
 	}
 }
@@ -574,7 +586,9 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	itc := it.Lookup()
 	defer itc.Close()
 	for _, pq := range expect {
-		ok := itc.Contains(ctx, qs.ValueOf(quad.Raw(pq)))
+		qsv, err := qs.ValueOf(quad.Raw(pq))
+		require.NoError(t, err)
+		ok := itc.Contains(ctx, qsv)
 		require.NoError(t, itc.Err())
 		require.True(t, ok, "Failed to find and check %q correctly", pq)
 
@@ -596,7 +610,8 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	defer itn.Close()
 	require.True(t, itn.Next(ctx))
 
-	q := qs.Quad(itn.Result())
+	q, err := qs.Quad(itn.Result())
+	require.NoError(t, err)
 	require.Nil(t, itn.Err())
 	require.True(t, q.IsValid(), "Invalid quad returned: %q", q)
 	set := MakeQuadSet()
@@ -643,7 +658,9 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	}
 
 	// Subject iterator.
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.String("C")))
+	qsv, err := qs.ValueOf(quad.String("C"))
+	require.NoError(t, err)
+	it := qs.QuadIterator(quad.Subject, qsv)
 
 	expectIteratedQuads(it, []quad.Quad{
 		quad.Make("C", "follows", "B", nil),
@@ -661,15 +678,19 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	})
 
 	// Object iterator.
-	it = qs.QuadIterator(quad.Object, qs.ValueOf(quad.String("F")))
+	qsv, err = qs.ValueOf(quad.String("F"))
+	require.NoError(t, err)
+	it = qs.QuadIterator(quad.Object, qsv)
 
 	expectIteratedQuads(it, []quad.Quad{
 		quad.Make("B", "follows", "F", nil),
 		quad.Make("E", "follows", "F", nil),
 	})
 
+	qsv, err = qs.ValueOf(quad.String("B"))
+	require.NoError(t, err)
 	and = iterator.NewAnd(
-		qs.QuadIterator(quad.Subject, qs.ValueOf(quad.String("B"))),
+		qs.QuadIterator(quad.Subject, qsv),
 		it,
 	)
 
@@ -678,7 +699,9 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	})
 
 	// Predicate iterator.
-	it = qs.QuadIterator(quad.Predicate, qs.ValueOf(quad.String("status")))
+	qsv, err = qs.ValueOf(quad.String("status"))
+	require.NoError(t, err)
+	it = qs.QuadIterator(quad.Predicate, qsv)
 
 	expectIteratedQuads(it, []quad.Quad{
 		quad.Make("B", "status", "cool", "status_graph"),
@@ -687,7 +710,9 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	})
 
 	// Label iterator.
-	it = qs.QuadIterator(quad.Label, qs.ValueOf(quad.String("status_graph")))
+	qsv, err = qs.ValueOf(quad.String("status_graph"))
+	require.NoError(t, err)
+	it = qs.QuadIterator(quad.Label, qsv)
 
 	expectIteratedQuads(it, []quad.Quad{
 		quad.Make("B", "status", "cool", "status_graph"),
@@ -696,8 +721,10 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	})
 
 	// Order is important
+	qsv, err = qs.ValueOf(quad.String("B"))
+	require.NoError(t, err)
 	and = iterator.NewAnd(
-		qs.QuadIterator(quad.Subject, qs.ValueOf(quad.String("B"))),
+		qs.QuadIterator(quad.Subject, qsv),
 		it,
 	)
 
@@ -706,9 +733,11 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	})
 
 	// Order is important
+	qsv, err = qs.ValueOf(quad.String("B"))
+	require.NoError(t, err)
 	and = iterator.NewAnd(
 		it,
-		qs.QuadIterator(quad.Subject, qs.ValueOf(quad.String("B"))),
+		qs.QuadIterator(quad.Subject, qsv),
 	)
 
 	expectIteratedQuads(and, []quad.Quad{
@@ -722,7 +751,8 @@ func TestDeleteQuad(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
-	vn := qs.ValueOf(quad.Raw("E"))
+	vn, err := qs.ValueOf(quad.Raw("E"))
+	require.NoError(t, err)
 	require.NotNil(t, vn)
 
 	it := qs.QuadIterator(quad.Subject, vn)
@@ -730,10 +760,12 @@ func TestDeleteQuad(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 		quad.Make("E", "follows", "F", nil),
 	}, false)
 
-	err := w.RemoveQuad(quad.Make("E", "follows", "F", nil))
+	err = w.RemoveQuad(quad.Make("E", "follows", "F", nil))
 	require.NoError(t, err)
 
-	it = qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
+	qsv, err := qs.ValueOf(quad.Raw("E"))
+	require.NoError(t, err)
+	it = qs.QuadIterator(quad.Subject, qsv)
 	ExpectIteratedQuads(t, qs, it, nil, false)
 
 	it = qs.QuadsAllIterator()
@@ -761,7 +793,9 @@ func TestDeletedFromIterator(t testing.TB, gen testutil.DatabaseFunc, conf *Conf
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
 	// Subject iterator.
-	it := qs.QuadIterator(quad.Subject, qs.ValueOf(quad.Raw("E")))
+	qsv, err := qs.ValueOf(quad.Raw("E"))
+	require.NoError(t, err)
+	it := qs.QuadIterator(quad.Subject, qsv)
 
 	ExpectIteratedQuads(t, qs, it, []quad.Quad{
 		quad.Make("E", "follows", "F", nil),
@@ -800,7 +834,10 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	})
 	require.NoError(t, err)
 	for _, pq := range values {
-		got := qs.NameOf(qs.ValueOf(pq))
+		qsv, err := qs.ValueOf(pq)
+		require.NoError(t, err)
+		got, err := qs.NameOf(qsv)
+		require.NoError(t, err)
 		if !conf.UnTyped {
 			if pt, ok := pq.(quad.Time); ok {
 				var trim int64
@@ -827,7 +864,10 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 				assert.Equal(t, pq, got, "Failed to roundtrip %q (%T)", pq, pq)
 			}
 			// check if we can get received value again (hash roundtrip)
-			got2 := qs.NameOf(qs.ValueOf(got))
+			gotv, err := qs.ValueOf(got)
+			require.NoError(t, err)
+			got2, err := qs.NameOf(gotv)
+			require.NoError(t, err)
 			assert.Equal(t, got, got2, "Failed to use returned value to get it again")
 		} else {
 			assert.Equal(t, quad.StringOf(pq), quad.StringOf(got), "Failed to roundtrip raw %q (%T)", pq, pq)
@@ -953,9 +993,13 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	require.NoError(t, err)
 	require.Equal(t, exp, st, "Unexpected quadstore size")
 
-	fixed := iterator.NewFixed(qs.ValueOf(quad.Raw("C")))
+	qsv, err := qs.ValueOf(quad.Raw("C"))
+	require.NoError(t, err)
+	fixed := iterator.NewFixed(qsv)
 
-	fixed2 := iterator.NewFixed(qs.ValueOf(quad.Raw("follows")))
+	qsv, err = qs.ValueOf(quad.Raw("follows"))
+	require.NoError(t, err)
+	fixed2 := iterator.NewFixed(qsv)
 
 	all := qs.NodesAllIterator()
 
@@ -971,7 +1015,9 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	require.True(t, outerAnd.Next(ctx), "Expected one matching subtree")
 
 	val := outerAnd.Result()
-	require.Equal(t, quad.Raw("C"), qs.NameOf(val))
+	qsn, err := qs.NameOf(val)
+	require.NoError(t, err)
+	require.Equal(t, quad.Raw("C"), qsn)
 
 	var (
 		got    []string
@@ -980,7 +1026,9 @@ func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, c
 	for {
 		m := make(map[string]graph.Ref, 1)
 		outerAnd.TagResults(m)
-		got = append(got, quad.ToString(qs.NameOf(m[allTag])))
+		qsn, err = qs.NameOf(m[allTag])
+		require.NoError(t, err)
+		got = append(got, quad.ToString(qsn))
 		if !outerAnd.NextPath(ctx) {
 			break
 		}

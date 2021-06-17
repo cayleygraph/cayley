@@ -139,15 +139,21 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 			)
 		}
 	}
-	err := p.Iterate(ictx).Each(func(s graph.Ref) {
+	err := p.Iterate(ictx).Each(func(s graph.Ref) error {
 		cnt++
 		it := qs.QuadIterator(quad.Subject, s).Iterate()
 		defer it.Close()
 		m := make(map[interface{}]property)
 		for it.Next(ictx) {
 			q := it.Result()
-			p := qs.QuadDirection(q, quad.Predicate)
-			o := qs.QuadDirection(q, quad.Object)
+			p, err := qs.QuadDirection(q, quad.Predicate)
+			if err != nil {
+				return err
+			}
+			o, err := qs.QuadDirection(q, quad.Object)
+			if err != nil {
+				return err
+			}
 			k := refs.ToKey(p)
 			prop := m[k]
 			prop.Pred = p
@@ -161,7 +167,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 		id, ok := seen[ph]
 		if !ok {
 			seen[ph] = s
-			return
+			return nil
 		}
 		if gerr = dedupValueTx(ictx, h, tx, s, id); gerr != nil {
 			cancel()
@@ -170,6 +176,7 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 		if txn >= batch { // TODO(dennwc): flag
 			flush()
 		}
+		return nil
 	})
 	flush()
 	clog.Infof("deduplicated %d/%d nodes in %v", dedup, cnt, time.Since(start))
@@ -180,12 +187,18 @@ func dedupProperties(ctx context.Context, h *graph.Handle, pred, typ quad.IRI) e
 }
 
 func dedupValueTx(ctx context.Context, h *graph.Handle, tx *graph.Transaction, a, b graph.Ref) error {
-	v := h.NameOf(b)
+	v, err := h.NameOf(b)
+	if err != nil {
+		return err
+	}
 	it := h.QuadIterator(quad.Object, a).Iterate()
 	defer it.Close()
 	for it.Next(ctx) {
 		// TODO(dennwc): we should be able to add "raw" quads without getting values for directions
-		q := h.Quad(it.Result())
+		q, err := h.Quad(it.Result())
+		if err != nil {
+			return err
+		}
 		tx.RemoveQuad(q)
 		q.Object = v
 		tx.AddQuad(q)
@@ -198,7 +211,10 @@ func dedupValueTx(ctx context.Context, h *graph.Handle, tx *graph.Transaction, a
 	it = h.QuadIterator(quad.Subject, a).Iterate()
 	defer it.Close()
 	for it.Next(ctx) {
-		q := h.Quad(it.Result())
+		q, err := h.Quad(it.Result())
+		if err != nil {
+			return err
+		}
 		tx.RemoveQuad(q)
 	}
 	if err := it.Err(); err != nil {

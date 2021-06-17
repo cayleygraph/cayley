@@ -31,7 +31,9 @@ func TestResolverIteratorIterate(t *testing.T) {
 	}
 	expected := make(map[quad.Value]refs.Ref)
 	for _, node := range nodes {
-		expected[node] = qs.ValueOf(node)
+		var err error
+		expected[node], err = qs.ValueOf(node)
+		require.NoError(t, err)
 	}
 	it := iterator.NewResolver(qs, nodes...).Iterate()
 	for _, node := range nodes {

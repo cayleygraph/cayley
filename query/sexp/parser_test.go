@@ -174,12 +174,15 @@ func TestSexp(t *testing.T) {
 				t.Errorf("Failed to %s", test.message)
 			}
 			if test.expect != "" {
-				require.Equal(t, qs.ValueOf(quad.StringToValue(test.expect)), it.Result())
+				qv, err := qs.ValueOf(quad.StringToValue(test.expect))
+				require.NoError(t, err)
+				require.Equal(t, qv, it.Result())
 
 				tags := make(map[string]graph.Ref)
 				it.TagResults(tags)
 				for k, v := range test.tags {
-					name := qs.NameOf(tags[k])
+					name, err := qs.NameOf(tags[k])
+					require.NoError(t, err)
 					require.Equal(t, v, quad.ToString(name))
 				}
 				if it.Next(ctx) {

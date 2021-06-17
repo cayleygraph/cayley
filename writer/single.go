@@ -82,7 +82,10 @@ func (s *Single) RemoveQuad(q quad.Quad) error {
 //
 // It returns ErrNodeNotExists if node is missing.
 func (s *Single) RemoveNode(v quad.Value) error {
-	gv := s.qs.ValueOf(v)
+	gv, err := s.qs.ValueOf(v)
+	if err != nil {
+		return err
+	}
 	if gv == nil {
 		return graph.ErrNodeNotExists
 	}

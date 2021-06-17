@@ -8,6 +8,7 @@ import (
 	"github.com/cayleygraph/cayley/graph/memstore"
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/quad"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadLoop(t *testing.T) {
@@ -86,7 +87,9 @@ func TestLoadIteratorTo(t *testing.T) {
 			if c.from != nil {
 				fixed := iterator.NewFixed()
 				for _, id := range c.from {
-					fixed.Add(qs.ValueOf(id))
+					qsv, err := qs.ValueOf(id)
+					require.NoError(t, err)
+					fixed.Add(qsv)
 				}
 				it = fixed
 			}

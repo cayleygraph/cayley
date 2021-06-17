@@ -54,7 +54,7 @@ func RefsOf(ctx context.Context, qs refs.Namer, nodes []quad.Value) ([]Ref, erro
 
 type QuadIndexer interface {
 	// Given an opaque token, returns the quad for that token from the store.
-	Quad(Ref) quad.Quad
+	Quad(Ref) (quad.Quad, error)
 
 	// Given a direction and a token, creates an iterator of links which have
 	// that node token in that directional field.
@@ -72,7 +72,7 @@ type QuadIndexer interface {
 	//
 	//  qs.ValueOf(qs.Quad(id).Get(dir))
 	//
-	QuadDirection(id Ref, d quad.Direction) Ref
+	QuadDirection(id Ref, d quad.Direction) (Ref, error)
 
 	// Stats returns the number of nodes and quads currently stored.
 	// Exact flag controls the correctness of the value. It can be an estimation, or a precise calculation.

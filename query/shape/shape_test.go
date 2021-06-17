@@ -42,8 +42,8 @@ type ValLookup map[quad.Value]refs.Ref
 func (qs ValLookup) OptimizeShape(ctx context.Context, s Shape) (Shape, bool) {
 	return s, false // emulate dumb quad store
 }
-func (qs ValLookup) ValueOf(v quad.Value) refs.Ref {
-	return qs[v]
+func (qs ValLookup) ValueOf(v quad.Value) (refs.Ref, error) {
+	return qs[v], nil
 }
 
 func (ValLookup) NewQuadWriter() (quad.WriteCloser, error) {
@@ -52,7 +52,7 @@ func (ValLookup) NewQuadWriter() (quad.WriteCloser, error) {
 func (ValLookup) ApplyDeltas(_ []graph.Delta, _ graph.IgnoreOpts) error {
 	panic("not implemented")
 }
-func (ValLookup) Quad(_ refs.Ref) quad.Quad {
+func (ValLookup) Quad(_ refs.Ref) (quad.Quad, error) {
 	panic("not implemented")
 }
 func (ValLookup) QuadIterator(_ quad.Direction, _ refs.Ref) iterator.Shape {
@@ -67,7 +67,7 @@ func (ValLookup) NodesAllIterator() iterator.Shape {
 func (ValLookup) QuadsAllIterator() iterator.Shape {
 	panic("not implemented")
 }
-func (ValLookup) NameOf(_ refs.Ref) quad.Value {
+func (ValLookup) NameOf(_ refs.Ref) (quad.Value, error) {
 	panic("not implemented")
 }
 func (ValLookup) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
@@ -76,7 +76,7 @@ func (ValLookup) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 func (ValLookup) Close() error {
 	panic("not implemented")
 }
-func (ValLookup) QuadDirection(_ refs.Ref, _ quad.Direction) refs.Ref {
+func (ValLookup) QuadDirection(_ refs.Ref, _ quad.Direction) (refs.Ref, error) {
 	panic("not implemented")
 }
 func (ValLookup) Type() string {
