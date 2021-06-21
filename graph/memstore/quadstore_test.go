@@ -273,7 +273,7 @@ func TestMultiThreadQuery(t *testing.T) {
 				if !flag {
 					return nil, fmt.Errorf("quard exist:%d", id)
 				}
-				return id, nil				
+				return id, nil
 			}
 		} else {
 			funcs[i] = func() (interface{}, error) {
