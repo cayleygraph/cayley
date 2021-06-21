@@ -41,16 +41,16 @@ func (qs *Oldstore) valueAt(i int) quad.Value {
 	return quad.String(qs.Data[i])
 }
 
-func (qs *Oldstore) ValueOf(s quad.Value) graph.Ref {
+func (qs *Oldstore) ValueOf(s quad.Value) (graph.Ref, error) {
 	if s == nil {
-		return nil
+		return nil, nil
 	}
 	for i := range qs.Data {
 		if va := qs.valueAt(i); va != nil && s.String() == va.String() {
-			return iterator.Int64Node(i)
+			return iterator.Int64Node(i), nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (qs *Oldstore) NewQuadWriter() (quad.WriteCloser, error) {
@@ -88,21 +88,21 @@ func (qs *Oldstore) NodesAllIterator() iterator.Shape { return &iterator.Null{} 
 
 func (qs *Oldstore) QuadsAllIterator() iterator.Shape { return &iterator.Null{} }
 
-func (qs *Oldstore) NameOf(v graph.Ref) quad.Value {
+func (qs *Oldstore) NameOf(v graph.Ref) (quad.Value, error) {
 	switch v := v.(type) {
 	case iterator.Int64Node:
 		i := int(v)
 		if i < 0 || i >= len(qs.Data) {
-			return nil
+			return nil, nil
 		}
-		return qs.valueAt(i)
+		return qs.valueAt(i), nil
 	case StringNode:
 		if qs.Parse {
-			return quad.String(v)
+			return quad.String(v), nil
 		}
-		return quad.Raw(string(v))
+		return quad.Raw(string(v)), nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
@@ -130,13 +130,13 @@ type Store struct {
 
 var _ graph.QuadStore = &Store{}
 
-func (qs *Store) ValueOf(s quad.Value) graph.Ref {
+func (qs *Store) ValueOf(s quad.Value) (graph.Ref, error) {
 	for _, q := range qs.Data {
 		if q.Subject == s || q.Object == s {
-			return refs.PreFetched(s)
+			return refs.PreFetched(s), nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (qs *Store) ApplyDeltas([]graph.Delta, graph.IgnoreOpts) error { return nil }
@@ -153,21 +153,27 @@ func (q quadValue) Key() interface{} {
 	return q.q.String()
 }
 
-func (qs *Store) Quad(v graph.Ref) quad.Quad { return v.(quadValue).q }
+func (qs *Store) Quad(v graph.Ref) (quad.Quad, error) {
+	return v.(quadValue).q, nil
+}
 
-func (qs *Store) NameOf(v graph.Ref) quad.Value {
+func (qs *Store) NameOf(v graph.Ref) (quad.Value, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
-	return v.(refs.PreFetchedValue).NameOf()
+	return v.(refs.PreFetchedValue).NameOf(), nil
 }
 
 func (qs *Store) RemoveQuad(t quad.Quad) {}
 
 func (qs *Store) Type() string { return "mockstore" }
 
-func (qs *Store) QuadDirection(v graph.Ref, d quad.Direction) graph.Ref {
-	return refs.PreFetched(qs.Quad(v).Get(d))
+func (qs *Store) QuadDirection(v graph.Ref, d quad.Direction) (graph.Ref, error) {
+	qv, err := qs.Quad(v)
+	if err != nil {
+		return nil, err
+	}
+	return refs.PreFetched(qv.Get(d)), nil
 }
 
 func (qs *Store) Close() error { return nil }
@@ -200,7 +206,10 @@ func (qs *Store) NodesAllIterator() iterator.Shape {
 	set := make(map[string]bool)
 	for _, q := range qs.Data {
 		for _, d := range quad.Directions {
-			n := qs.NameOf(refs.PreFetched(q.Get(d)))
+			n, err := qs.NameOf(refs.PreFetched(q.Get(d)))
+			if err != nil {
+				return iterator.NewError(err)
+			}
 			if n != nil {
 				set[n.String()] = true
 			}
@@ -225,7 +234,10 @@ func (qs *Store) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
 	set := make(map[string]struct{})
 	for _, q := range qs.Data {
 		for _, d := range quad.Directions {
-			n := qs.NameOf(refs.PreFetched(q.Get(d)))
+			n, err := qs.NameOf(refs.PreFetched(q.Get(d)))
+			if err != nil {
+				return graph.Stats{}, err
+			}
 			if n != nil {
 				set[n.String()] = struct{}{}
 			}

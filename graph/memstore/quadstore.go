@@ -519,12 +519,12 @@ func (qs *QuadStore) quad(v graph.Ref) (q internalQuad, ok bool) {
 	return q, !q.Zero()
 }
 
-func (qs *QuadStore) Quad(index graph.Ref) quad.Quad {
+func (qs *QuadStore) Quad(index graph.Ref) (quad.Quad, error) {
 	q, ok := qs.quad(index)
 	if !ok {
-		return quad.Quad{}
+		return quad.Quad{}, nil
 	}
-	return qs.lookupQuadDirs(q)
+	return qs.lookupQuadDirs(q), nil
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, value graph.Ref) iterator.Shape {
@@ -572,53 +572,53 @@ func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error)
 	}, nil
 }
 
-func (qs *QuadStore) ValueOf(name quad.Value) graph.Ref {
+func (qs *QuadStore) ValueOf(name quad.Value) (graph.Ref, error) {
 	if name == nil {
-		return nil
+		return nil, nil
 	}
 
 	qs.valsMu.Lock()
 	id := qs.vals[name.String()]
 	qs.valsMu.Unlock()
 	if id == 0 {
-		return nil
+		return nil, nil
 	}
-	return bnode(id)
+	return bnode(id), nil
 }
 
-func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) (quad.Value, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	} else if v, ok := v.(refs.PreFetchedValue); ok {
-		return v.NameOf()
+		return v.NameOf(), nil
 	}
 	n, ok := asID(v)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	qs.primMu.RLock()
 	if _, ok = qs.prim[n]; !ok {
 		qs.primMu.RUnlock()
-		return nil
+		return nil, nil
 	}
 	qs.primMu.RUnlock()
-	return qs.lookupVal(n)
+	return qs.lookupVal(n), nil
 }
 
 func (qs *QuadStore) QuadsAllIterator() iterator.Shape {
 	return qs.newAllIterator(false, qs.last)
 }
 
-func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) graph.Ref {
+func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) (graph.Ref, error) {
 	q, ok := qs.quad(val)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	id := q.Dir(d)
 	if id == 0 {
-		return nil
+		return nil, nil
 	}
-	return bnode(id)
+	return bnode(id), nil
 }
 
 func (qs *QuadStore) NodesAllIterator() iterator.Shape {

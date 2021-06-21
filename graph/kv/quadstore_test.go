@@ -53,7 +53,7 @@ func be(v ...uint64) []byte {
 	for i, vi := range v {
 		binary.BigEndian.PutUint64(b[i*8:], vi)
 	}
-	return b[:]
+	return b
 }
 func le(v uint64) []byte {
 	var b [8]byte

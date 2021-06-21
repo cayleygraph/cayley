@@ -610,14 +610,24 @@ func toQuadValue(opt *Traits, d nosql.Document) (quad.Value, error) {
 	return nil, fmt.Errorf("unsupported value: %#v", d)
 }
 
-func (qs *QuadStore) Quad(val graph.Ref) quad.Quad {
+func (qs *QuadStore) Quad(val graph.Ref) (quad.Quad, error) {
 	h := val.(QuadHash)
-	return quad.Quad{
-		Subject:   qs.NameOf(NodeHash(h.Get(quad.Subject))),
-		Predicate: qs.NameOf(NodeHash(h.Get(quad.Predicate))),
-		Object:    qs.NameOf(NodeHash(h.Get(quad.Object))),
-		Label:     qs.NameOf(NodeHash(h.Get(quad.Label))),
+	var q quad.Quad
+	var err error
+	q.Subject, err = qs.NameOf(NodeHash(h.Get(quad.Subject)))
+	if err != nil {
+		return q, err
 	}
+	q.Predicate, err = qs.NameOf(NodeHash(h.Get(quad.Predicate)))
+	if err != nil {
+		return q, err
+	}
+	q.Object, err = qs.NameOf(NodeHash(h.Get(quad.Object)))
+	if err != nil {
+		return q, err
+	}
+	q.Label, err = qs.NameOf(NodeHash(h.Get(quad.Label)))
+	return q, err
 }
 
 func (qs *QuadStore) QuadIterator(d quad.Direction, val graph.Ref) iterator.Shape {
@@ -655,41 +665,41 @@ func (qs *QuadStore) hashOf(s quad.Value) NodeHash {
 	return NodeHash(hashOf(s))
 }
 
-func (qs *QuadStore) ValueOf(s quad.Value) graph.Ref {
+func (qs *QuadStore) ValueOf(s quad.Value) (graph.Ref, error) {
 	if s == nil {
-		return nil
+		return nil, nil
 	}
-	return qs.hashOf(s)
+	return qs.hashOf(s), nil
 }
 
-func (qs *QuadStore) NameOf(v graph.Ref) quad.Value {
+func (qs *QuadStore) NameOf(v graph.Ref) (quad.Value, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	} else if v, ok := v.(refs.PreFetchedValue); ok {
-		return v.NameOf()
+		return v.NameOf(), nil
 	}
 	hash := v.(NodeHash)
 	if hash == "" {
-		return nil
+		return nil, nil
 	}
 	if val, ok := qs.ids.Get(string(hash)); ok {
-		return val.(quad.Value)
+		return val.(quad.Value), nil
 	}
 	nd, err := qs.db.FindByKey(context.TODO(), colNodes, hash.key())
 	if err != nil {
 		clog.Errorf("couldn't retrieve node %v: %v", v, err)
-		return nil
+		return nil, err
 	}
 	dv, _ := nd[fldValue].(nosql.Document)
 	qv, err := toQuadValue(&qs.opt, dv)
 	if err != nil {
 		clog.Errorf("couldn't convert node %v: %v", v, err)
-		return nil
+		return nil, err
 	}
 	if id, _ := nd[fldHash].(nosql.String); id == nosql.String(hash) && qv != nil {
 		qs.ids.Put(string(hash), qv)
 	}
-	return qv
+	return qv, nil
 }
 
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
@@ -727,8 +737,8 @@ func (qs *QuadStore) Close() error {
 	return qs.db.Close()
 }
 
-func (qs *QuadStore) QuadDirection(in graph.Ref, d quad.Direction) graph.Ref {
-	return NodeHash(in.(QuadHash).Get(d))
+func (qs *QuadStore) QuadDirection(in graph.Ref, d quad.Direction) (graph.Ref, error) {
+	return NodeHash(in.(QuadHash).Get(d)), nil
 }
 
 func (qs *QuadStore) getSize(col string, constraints []nosql.FieldFilter) (int64, error) {

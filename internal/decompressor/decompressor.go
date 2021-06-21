@@ -36,9 +36,9 @@ func New(r io.Reader) (io.Reader, error) {
 		return nil, err
 	}
 	switch {
-	case bytes.Compare(buf[:2], []byte(gzipMagic)) == 0:
+	case bytes.Equal(buf[:2], []byte(gzipMagic)):
 		return gzip.NewReader(br)
-	case bytes.Compare(buf[:3], []byte(b2zipMagic)) == 0:
+	case bytes.Equal(buf[:3], []byte(b2zipMagic)):
 		return bzip2.NewReader(br), nil
 	default:
 		return br, nil

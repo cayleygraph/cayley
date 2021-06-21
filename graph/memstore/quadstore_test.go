@@ -119,7 +119,8 @@ func TestMemstoreValueOf(t *testing.T) {
 	require.Equal(t, exp, st, "Unexpected quadstore size")
 
 	for _, test := range index {
-		v := qs.ValueOf(quad.Raw(test.query))
+		v, err := qs.ValueOf(quad.Raw(test.query))
+		require.NoError(t, err)
 		switch v := v.(type) {
 		default:
 			t.Errorf("ValueOf(%q) returned unexpected type, got:%T expected int64", test.query, v)
@@ -134,10 +135,14 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	qs, _, _ := makeTestStore(simpleGraph)
 
 	fixed := iterator.NewFixed()
-	fixed.Add(qs.ValueOf(quad.Raw("C")))
+	qsv, err := qs.ValueOf(quad.Raw("C"))
+	require.NoError(t, err)
+	fixed.Add(qsv)
 
 	fixed2 := iterator.NewFixed()
-	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
+	qsv, err = qs.ValueOf(quad.Raw("follows"))
+	require.NoError(t, err)
+	fixed2.Add(qsv)
 
 	all := qs.NodesAllIterator()
 
@@ -154,8 +159,10 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 		t.Error("Expected one matching subtree")
 	}
 	val := outerAnd.Result()
-	if qs.NameOf(val) != quad.Raw("C") {
-		t.Errorf("Matching subtree should be %s, got %s", "barak", qs.NameOf(val))
+	vn, err := qs.NameOf(val)
+	require.NoError(t, err)
+	if vn != quad.Raw("C") {
+		t.Errorf("Matching subtree should be %s, got %s", "barak", vn)
 	}
 
 	var (
@@ -165,7 +172,9 @@ func TestIteratorsAndNextResultOrderA(t *testing.T) {
 	for {
 		m := make(map[string]graph.Ref, 1)
 		outerAnd.TagResults(m)
-		got = append(got, quad.ToString(qs.NameOf(m[allTag])))
+		mv, err := qs.NameOf(m[allTag])
+		require.NoError(t, err)
+		got = append(got, quad.ToString(mv))
 		if !outerAnd.NextPath(ctx) {
 			break
 		}
@@ -213,10 +222,14 @@ func TestRemoveQuad(t *testing.T) {
 	}
 
 	fixed := iterator.NewFixed()
-	fixed.Add(qs.ValueOf(quad.Raw("E")))
+	qsv, err := qs.ValueOf(quad.Raw("E"))
+	require.NoError(t, err)
+	fixed.Add(qsv)
 
 	fixed2 := iterator.NewFixed()
-	fixed2.Add(qs.ValueOf(quad.Raw("follows")))
+	qsv, err = qs.ValueOf(quad.Raw("follows"))
+	require.NoError(t, err)
+	fixed2.Add(qsv)
 
 	innerAnd := iterator.NewAnd(
 		graph.NewLinksTo(qs, fixed, quad.Subject),

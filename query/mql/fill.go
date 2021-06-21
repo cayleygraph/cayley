@@ -22,14 +22,18 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-func (q *Query) treeifyResult(tags map[string]graph.Ref) map[ResultPath]string {
+func (q *Query) treeifyResult(tags map[string]graph.Ref) (map[ResultPath]string, error) {
 	// Transform the map into something a little more interesting.
 	results := make(map[Path]string)
 	for k, v := range tags {
 		if v == nil {
 			continue
 		}
-		results[Path(k)] = quadValueToNative(q.ses.qs.NameOf(v))
+		nv, err := q.ses.qs.NameOf(v)
+		if err != nil {
+			return nil, err
+		}
+		results[Path(k)] = quadValueToNative(nv)
 	}
 	resultPaths := make(map[ResultPath]string)
 	for k, v := range results {
@@ -110,7 +114,7 @@ func (q *Query) treeifyResult(tags map[string]graph.Ref) map[ResultPath]string {
 		}
 	}
 
-	return resultPaths
+	return resultPaths, nil
 }
 
 func (q *Query) buildResults() {

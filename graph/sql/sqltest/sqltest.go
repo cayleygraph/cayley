@@ -89,5 +89,9 @@ func testZeroRune(t testing.TB, create testutil.DatabaseFunc) {
 		Object:    obj,
 	})
 	require.NoError(t, err)
-	require.Equal(t, obj, qs.NameOf(qs.ValueOf(quad.Raw(obj.String()))))
+	qsv, err := qs.ValueOf(quad.Raw(obj.String()))
+	require.NoError(t, err)
+	qsn, err := qs.NameOf(qsv)
+	require.NoError(t, err)
+	require.Equal(t, obj, qsn)
 }

@@ -90,7 +90,11 @@ func newValueFilterNext(qs refs.Namer, sub Scanner, filter ValueFilterFunc) *val
 }
 
 func (it *valueFilterNext) doFilter(val refs.Ref) bool {
-	qval := it.qs.NameOf(val)
+	qval, err := it.qs.NameOf(val)
+	if err != nil {
+		it.err = err
+		return false
+	}
 	ok, err := it.filter(qval)
 	if err != nil {
 		it.err = err
@@ -153,7 +157,11 @@ func newValueFilterContains(qs refs.Namer, sub Index, filter ValueFilterFunc) *v
 }
 
 func (it *valueFilterContains) doFilter(val refs.Ref) bool {
-	qval := it.qs.NameOf(val)
+	qval, err := it.qs.NameOf(val)
+	if err != nil {
+		it.err = err
+		return false
+	}
 	ok, err := it.filter(qval)
 	if err != nil {
 		it.err = err

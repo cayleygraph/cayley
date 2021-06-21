@@ -124,8 +124,9 @@ func (it *countNext) String() string { return "CountNext" }
 
 // Count iterator returns one element with size of underlying iterator.
 type countContains struct {
-	it *countNext
-	qs refs.Namer
+	it  *countNext
+	qs  refs.Namer
+	err error
 }
 
 // NewCount creates a new iterator to count a number of results from a provided subiterator.
@@ -140,6 +141,9 @@ func newCountContains(it Shape, qs refs.Namer) *countContains {
 func (it *countContains) TagResults(dst map[string]refs.Ref) {}
 
 func (it *countContains) Err() error {
+	if it.err != nil {
+		return it.err
+	}
 	return it.it.Err()
 }
 
@@ -155,7 +159,12 @@ func (it *countContains) Contains(ctx context.Context, val refs.Ref) bool {
 		return v.NameOf() == it.it.result
 	}
 	if it.qs != nil {
-		return it.qs.NameOf(val) == it.it.result
+		valName, err := it.qs.NameOf(val)
+		if err != nil {
+			it.err = err
+			return false
+		}
+		return valName == it.it.result
 	}
 	return false
 }

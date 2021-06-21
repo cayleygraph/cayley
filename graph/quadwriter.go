@@ -322,7 +322,7 @@ type quadReader struct {
 
 func (r *quadReader) ReadQuad() (quad.Quad, error) {
 	if r.it.Next(context.TODO()) {
-		return r.qs.Quad(r.it.Result()), nil
+		return r.qs.Quad(r.it.Result())
 	}
 	err := r.it.Err()
 	if err == nil {
