@@ -9,8 +9,6 @@
 
 Cayley is an open-source database for [Linked Data](https://www.w3.org/standards/semanticweb/data). It is inspired by the graph database behind Google's [Knowledge Graph](https://en.wikipedia.org/wiki/Knowledge_Graph) (formerly [Freebase](https://en.wikipedia.org/wiki/Freebase_(database))).
 
-**WARNING!** The project is not actively developed anymore. We are seeking for a new maintainer, see [#963](https://github.com/cayleygraph/cayley/issues/963).
-
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-white.svg)](https://snapcraft.io/cayley)
 
 ## [Documentation](https://cayley.gitbook.io/cayley/)
