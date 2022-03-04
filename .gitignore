@@ -8,6 +8,7 @@ cayley.json
 .cayley_history
 .DS_Store
 
+db/
 dist/
 vendor/
 ui/
