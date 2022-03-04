@@ -29,8 +29,7 @@ script:
   - git checkout -- ./packrd/dummy.go
   - |
     if [[ $TRAVIS_GO_VERSION =~ ^1\.17 ]]; then
-      go vet ./...
-
+      bash vet.sh
     fi
   - go test -v ./...
 
