@@ -127,7 +127,7 @@ func (c *Config) toIRI(s string) quad.IRI {
 
 var reflEmptyStruct = reflect.TypeOf(struct{}{})
 
-func (c Config) fieldRule(fld reflect.StructField) (rule, error) {
+func (c *Config) fieldRule(fld reflect.StructField) (rule, error) {
 	tag := fld.Tag.Get("quad")
 	sub := strings.Split(tag, ",")
 	tag, sub = sub[0], sub[1:]
