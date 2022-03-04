@@ -6,11 +6,8 @@
 
 # Patterns to be ignored from the go lint output
 IGNORED_PATTERNS=(
-    " comment "
-    "graph\/proto\/primitive.pb.go"
-    "func name will be used as refs.RefsOf by other packages, and that stutters; consider calling this Of"
-    "method CapitalizedUri should be CapitalizedURI"
-    "func name will be used as path.PathFromIterator by other packages, and that stutters; consider calling this FromIterator"
+    "^# "
+    "/quad\.Quad composite literal uses unkeyed fields"
 )
 
 # Patterns joined into a regular expression
@@ -18,7 +15,7 @@ REGEX=$(printf "|(%s)" "${IGNORED_PATTERNS[@]}")
 REGEX=${REGEX:1}
 
 # Execute go lint on all the files and filter output by the regualr expression
-output=$( ( (golint ./... | egrep -v "$REGEX") 2>&1 ) | tee /dev/fd/2);
+output=$( (go vet ./... 2>&1 | egrep -v "$REGEX") | tee /dev/fd/2);
 if [ -z "$output" ]
 then
     exit 0
