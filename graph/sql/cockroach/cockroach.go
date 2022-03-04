@@ -134,7 +134,7 @@ func runTxCockroach(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.Qu
 		if n.RefInc < 0 {
 			panic("unexpected node update")
 		}
-		nodeType, values, err := csql.NodeValues(csql.NodeHash{n.Hash}, n.Val)
+		nodeType, values, err := csql.NodeValues(csql.NodeHash{ValueHash: n.Hash}, n.Val)
 		if err != nil {
 			return err
 		}
@@ -199,10 +199,10 @@ func runTxCockroach(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.Qu
 		}
 		fmt.Fprintf(&query, "($%d, $%d, $%d, $%d, now())", 4*i+1, 4*i+2, 4*i+3, 4*i+4)
 		allValues = append(allValues,
-			csql.NodeHash{d.Quad.Subject}.SQLValue(),
-			csql.NodeHash{d.Quad.Predicate}.SQLValue(),
-			csql.NodeHash{d.Quad.Object}.SQLValue(),
-			csql.NodeHash{d.Quad.Label}.SQLValue())
+			csql.NodeHash{ValueHash: d.Quad.Subject}.SQLValue(),
+			csql.NodeHash{ValueHash: d.Quad.Predicate}.SQLValue(),
+			csql.NodeHash{ValueHash: d.Quad.Object}.SQLValue(),
+			csql.NodeHash{ValueHash: d.Quad.Label}.SQLValue())
 	}
 	if opts.IgnoreDup {
 		fmt.Fprint(&query, " ON CONFLICT (subject_hash, predicate_hash, object_hash) DO NOTHING")

@@ -350,7 +350,7 @@ func uniqueMorphism() morphism {
 	return morphism{
 		Reversal: func(ctx *pathContext) (morphism, *pathContext) { return uniqueMorphism(), ctx },
 		Apply: func(in shape.Shape, ctx *pathContext) (shape.Shape, *pathContext) {
-			return shape.Unique{in}, ctx
+			return shape.Unique{From: in}, ctx
 		},
 	}
 }

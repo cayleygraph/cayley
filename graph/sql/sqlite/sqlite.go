@@ -62,7 +62,7 @@ func runTxSqlite(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadU
 	)
 	for _, n := range nodes {
 		if n.RefInc >= 0 {
-			nodeKey, values, err := csql.NodeValues(csql.NodeHash{n.Hash}, n.Val)
+			nodeKey, values, err := csql.NodeValues(csql.NodeHash{ValueHash: n.Hash}, n.Val)
 			if err != nil {
 				return err
 			}
@@ -115,7 +115,7 @@ func runTxSqlite(tx *sql.Tx, nodes []graphlog.NodeUpdate, quads []graphlog.QuadU
 	for _, d := range quads {
 		dirs := make([]interface{}, 0, len(quad.Directions))
 		for _, h := range d.Quad.Dirs() {
-			dirs = append(dirs, csql.NodeHash{h}.SQLValue())
+			dirs = append(dirs, csql.NodeHash{ValueHash: h}.SQLValue())
 		}
 		if !d.Del {
 			if insertQuad == nil {
