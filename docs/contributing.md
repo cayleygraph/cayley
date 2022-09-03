@@ -24,6 +24,10 @@ go mod download
 
 # Install packr 2
 
+Go version 1.19:
+go install github.com/gobuffalo/packr/v2/packr2@v2.7.1
+
+Go version < 1.19: 
 go get -u github.com/gobuffalo/packr/v2/packr2
 ```
 

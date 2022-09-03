@@ -1,7 +1,7 @@
-FROM golang:1.13 as builder
+FROM golang:1.19 as builder
 
 # Install packr
-RUN go get -u github.com/gobuffalo/packr/v2/packr2
+RUN go install github.com/gobuffalo/packr/v2/packr2@latest
 
 # Create filesystem for minimal image
 WORKDIR /fs
