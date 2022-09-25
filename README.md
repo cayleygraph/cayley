@@ -4,7 +4,7 @@
   </a>
 </div>
 
-[![Build Status](https://travis-ci.com/cayleygraph/cayley.svg?branch=master)](https://travis-ci.com/cayleygraph/cayley)
+[![Build Status](https://api.travis-ci.com/cayleygraph/cayley.svg?branch=master)](https://app.travis-ci.com/github/cayleygraph/cayley)
 [![Container Repository](https://img.shields.io/docker/cloud/build/cayleygraph/cayley "Container Repository")](https://hub.docker.com/r/cayleygraph/cayley)
 
 Cayley is an open-source database for [Linked Data](https://www.w3.org/standards/semanticweb/data). It is inspired by the graph database behind Google's [Knowledge Graph](https://en.wikipedia.org/wiki/Knowledge_Graph) (formerly [Freebase](https://en.wikipedia.org/wiki/Freebase_(database))).
