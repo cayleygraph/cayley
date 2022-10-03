@@ -17,7 +17,7 @@ Cayley is an open-source database for [Linked Data](https://www.w3.org/standards
 
 - Built-in query editor, visualizer and REPL
 - Multiple query languages:
-  - [Gizmo](./docs/gizmoapi.md): query language inspired by [Gremlin](http://gremlindocs.com/)
+  - [Gizmo](./docs/gizmoapi.md): query language inspired by [Gremlin](https://tinkerpop.apache.org/gremlin.html)
   - [GraphQL](./docs/graphql.md)-inspired query language
   - [MQL](./docs/mql.md): simplified version for [Freebase](https://en.wikipedia.org/wiki/Freebase_(database)) fans
 - Modular: easy to connect to your favorite programming languages and back-end stores
