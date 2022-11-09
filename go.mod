@@ -13,7 +13,7 @@ require (
 	github.com/dennwc/graphql v0.0.0-20180603144102-12cfed44bc5d
 	github.com/dgraph-io/badger v1.5.5 // indirect
 	github.com/dlclark/regexp2 v1.1.4 // indirect
-	github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b // indirect
+	github.com/docker/docker v1.6.1 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dop251/goja v0.0.0-20190105122144-6d5bf35058fa
 	github.com/flimzy/diff v0.1.6 // indirect
