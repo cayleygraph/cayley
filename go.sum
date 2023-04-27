@@ -68,6 +68,8 @@ github.com/dlclark/regexp2 v1.1.4 h1:1udHhhGkIMplSrLeMJpPN7BHz1Iq2wVBUcb+3fxzhQM
 github.com/dlclark/regexp2 v1.1.4/go.mod h1:2pZnwuY/m+8K6iRw6wQdMtk+rH5tNGR1i55kozfMjCc=
 github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b h1:zlYHASK/UP+Fs28TyQhgUlOubRKCQ+38o/aa6GgouTs=
 github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v1.6.1 h1:4xYASHy5cScPkLD7PO0uTmnVc860m9NarPN1X8zeMe8=
+github.com/docker/docker v1.6.1/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKohAFqRJQ=
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
 github.com/docker/go-units v0.3.3/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
