@@ -123,6 +123,9 @@ func (it *quadIteratorNext) TagResults(dst map[string]graph.Ref) {}
 
 func (it *quadIteratorNext) Close() error {
 	if it.it != nil {
+		if err := it.it.Err(); err != nil && it.err == nil {
+			it.err = err
+		}
 		if err := it.it.Close(); err != nil && it.err == nil {
 			it.err = err
 		}
@@ -180,7 +183,8 @@ func (it *quadIteratorNext) Next(ctx context.Context) bool {
 				it.ids = nil
 				it.buf = nil
 				if !it.it.Next(ctx) {
-					it.Close()
+					// note: it.Err() is checked in Close()
+					_ = it.Close()
 					it.done = true
 					return false
 				}
