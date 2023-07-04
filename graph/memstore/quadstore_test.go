@@ -16,9 +16,11 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -26,9 +28,12 @@ import (
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
+
+	"github.com/RyouZhang/async-go"
 )
 
 // This is a simple test graph.
@@ -263,4 +268,43 @@ func TestTransaction(t *testing.T) {
 	st2, err := qs.Stats(context.Background(), true)
 	require.NoError(t, err)
 	require.Equal(t, st, st2, "Appended a new quad in a failed transaction")
+}
+
+// test multi thread insert and query
+func TestMultiThreadQuery(t *testing.T) {
+	qs, _, _ := makeTestStore(simpleGraph)
+
+	// we make 50 insert, 50 query
+	funcs := make([]async.LambdaMethod, 100)
+	for i := 0; i < 100; i++ {
+		if i%2 == 0 {
+			index := i
+			funcs[i] = func() (interface{}, error) {
+				id, flag := qs.AddQuad(quad.Make(
+					fmt.Sprintf("E_%d", index), "follows", "G", nil),
+				)
+				if !flag {
+					return nil, fmt.Errorf("quard exist:%d", id)
+				}
+				return id, nil
+			}
+		} else {
+			funcs[i] = func() (interface{}, error) {
+				ctx := context.Background()
+				followers, err := path.StartPath(qs, quad.Raw("G")).In("follows").Iterate(ctx).AllValues(qs)
+				if err != nil {
+					return nil, err
+				}
+				return followers, nil
+			}
+		}
+	}
+
+	results := async.All(funcs, 1*time.Second)
+	for _, result := range results {
+		switch result.(type) {
+		case error:
+			require.NoError(t, result.(error))
+		}
+	}
 }

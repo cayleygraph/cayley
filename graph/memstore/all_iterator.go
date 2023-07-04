@@ -178,7 +178,9 @@ func (it *allIteratorContains) Contains(ctx context.Context, v graph.Ref) bool {
 	if !ok {
 		return false
 	}
+	it.qs.primMu.RLock()
 	p := it.qs.prim[id]
+	it.qs.primMu.RUnlock()
 	if p.ID > it.maxid {
 		return false
 	}
