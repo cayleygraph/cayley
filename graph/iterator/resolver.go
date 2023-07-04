@@ -115,9 +115,7 @@ func (it *resolverNext) resolve(ctx context.Context) error {
 		return err
 	}
 	it.values = make([]refs.Ref, len(it.order))
-	for i, value := range values {
-		it.values[i] = value
-	}
+	copy(it.values, values)
 	it.order = nil
 	it.cached = true
 	return nil
