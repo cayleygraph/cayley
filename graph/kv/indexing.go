@@ -24,13 +24,15 @@ import (
 	"sort"
 	"time"
 
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/pquads"
+	"github.com/hidal-go/hidalgo/kv/options"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/pquads"
 
 	"github.com/hidal-go/hidalgo/kv"
 	"github.com/prometheus/client_golang/prometheus"
@@ -1183,9 +1185,9 @@ func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
 	}
 	qs.exists.buf = make([]byte, 3*8)
 	qs.exists.DeletableBloomFilter = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
-	return kv.View(qs.db, func(tx kv.Tx) error {
+	return kv.View(ctx, qs.db, func(tx kv.Tx) error {
 		p := proto.Primitive{}
-		it := tx.Scan(logIndex)
+		it := tx.Scan(options.PrefixKV{Pref: logIndex})
 		defer it.Close()
 		for it.Next(ctx) {
 			v := it.Val()

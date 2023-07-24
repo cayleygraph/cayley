@@ -169,7 +169,7 @@ func (tx *mTx) Del(k kv.Key) error {
 	return tx.tx.Del(k)
 }
 
-func (tx *mTx) Scan(pref kv.Key) kv.Iterator {
+func (tx *mTx) Scan(opts ...kv.IteratorOption) kv.Iterator {
 	mKVScan.Inc()
-	return tx.tx.Scan(pref)
+	return tx.tx.Scan(opts...)
 }

@@ -13,12 +13,13 @@ import (
 	hkv "github.com/hidal-go/hidalgo/kv"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cayleygraph/quad"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/kv/btree"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/writer"
-	"github.com/cayleygraph/quad"
 )
 
 func hex(s string) []byte {
@@ -305,6 +306,18 @@ func (h *kvHook) Tx(rw bool) (hkv.Tx, error) {
 	return txHook{h: h, tx: tx}, nil
 }
 
+func (h *kvHook) View(ctx context.Context, fn func(tx hkv.Tx) error) error {
+	return h.db.View(ctx, func(tx hkv.Tx) error {
+		return fn(txHook{h: h, tx: tx})
+	})
+}
+
+func (h *kvHook) Update(ctx context.Context, fn func(tx hkv.Tx) error) error {
+	return h.db.Update(ctx, func(tx hkv.Tx) error {
+		return fn(txHook{h: h, tx: tx})
+	})
+}
+
 type txHook struct {
 	h  *kvHook
 	tx hkv.Tx
@@ -363,6 +376,6 @@ func (h txHook) Del(k hkv.Key) error {
 	return err
 }
 
-func (h txHook) Scan(pref hkv.Key) hkv.Iterator {
-	return h.tx.Scan(pref)
+func (h txHook) Scan(opts ...hkv.IteratorOption) hkv.Iterator {
+	return h.tx.Scan(opts...)
 }
