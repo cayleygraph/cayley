@@ -298,8 +298,8 @@ func (h *kvHook) Close() error {
 	return h.db.Close()
 }
 
-func (h *kvHook) Tx(rw bool) (hkv.Tx, error) {
-	tx, err := h.db.Tx(rw)
+func (h *kvHook) Tx(ctx context.Context, rw bool) (hkv.Tx, error) {
+	tx, err := h.db.Tx(ctx, rw)
 	if err != nil {
 		return nil, err
 	}
@@ -355,8 +355,8 @@ func (h txHook) Get(ctx context.Context, k hkv.Key) (hkv.Value, error) {
 	return v, err
 }
 
-func (h txHook) Put(k hkv.Key, v hkv.Value) error {
-	err := h.tx.Put(k, v)
+func (h txHook) Put(ctx context.Context, k hkv.Key, v hkv.Value) error {
+	err := h.tx.Put(ctx, k, v)
 	h.h.addOp(kvOp{
 		typ: opPut,
 		key: k.Clone(),
@@ -366,8 +366,8 @@ func (h txHook) Put(k hkv.Key, v hkv.Value) error {
 	return err
 }
 
-func (h txHook) Del(k hkv.Key) error {
-	err := h.tx.Del(k)
+func (h txHook) Del(ctx context.Context, k hkv.Key) error {
+	err := h.tx.Del(ctx, k)
 	h.h.addOp(kvOp{
 		typ: opDel,
 		key: k.Clone(),
@@ -376,6 +376,6 @@ func (h txHook) Del(k hkv.Key) error {
 	return err
 }
 
-func (h txHook) Scan(opts ...hkv.IteratorOption) hkv.Iterator {
-	return h.tx.Scan(opts...)
+func (h txHook) Scan(ctx context.Context, opts ...hkv.IteratorOption) hkv.Iterator {
+	return h.tx.Scan(ctx, opts...)
 }

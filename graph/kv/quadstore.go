@@ -193,7 +193,7 @@ func setVersion(ctx context.Context, db kv.KV, version int64) error {
 	return kv.Update(ctx, db, func(tx kv.Tx) error {
 		var buf [8]byte
 		binary.LittleEndian.PutUint64(buf[:], uint64(version))
-		if err := tx.Put(metaBucket.AppendBytes([]byte("version")), buf[:]); err != nil {
+		if err := tx.Put(ctx, metaBucket.AppendBytes([]byte("version")), buf[:]); err != nil {
 			return fmt.Errorf("couldn't write version: %v", err)
 		}
 		return nil
@@ -456,7 +456,7 @@ func (qs *QuadStore) QuadDirection(val graph.Ref, d quad.Direction) (graph.Ref, 
 }
 
 func (qs *QuadStore) getPrimitives(ctx context.Context, vals []uint64) ([]*proto.Primitive, error) {
-	tx, err := qs.db.Tx(false)
+	tx, err := qs.db.Tx(ctx, false)
 	if err != nil {
 		return nil, err
 	}

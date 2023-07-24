@@ -20,11 +20,12 @@ import (
 
 	"github.com/hidal-go/hidalgo/legacy/nosql"
 
+	"github.com/cayleygraph/quad"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
-	"github.com/cayleygraph/quad"
 )
 
 type Linkage struct {
@@ -142,7 +143,7 @@ func (qs *QuadStore) newIteratorNext(collection string, constraints []nosql.Fiel
 	}
 }
 
-func (it *iteratorNext) makeIterator() nosql.DocIterator {
+func (it *iteratorNext) makeIterator(ctx context.Context) nosql.DocIterator {
 	q := it.qs.db.Query(it.collection)
 	if len(it.constraint) != 0 {
 		q = q.WithFields(it.constraint...)
@@ -150,7 +151,7 @@ func (it *iteratorNext) makeIterator() nosql.DocIterator {
 	if it.limit > 0 {
 		q = q.Limit(int(it.limit))
 	}
-	return q.Iterate()
+	return q.Iterate(ctx)
 }
 
 func (it *iteratorNext) Close() error {
@@ -164,7 +165,7 @@ func (it *iteratorNext) TagResults(dst map[string]graph.Ref) {}
 
 func (it *iteratorNext) Next(ctx context.Context) bool {
 	if it.iter == nil {
-		it.iter = it.makeIterator()
+		it.iter = it.makeIterator(ctx)
 	}
 	var doc nosql.Document
 	for {
@@ -236,7 +237,7 @@ func (qs *QuadStore) newIteratorContains(collection string, constraints []nosql.
 	}
 }
 
-func (it *iteratorContains) makeIterator() nosql.DocIterator {
+func (it *iteratorContains) makeIterator(ctx context.Context) nosql.DocIterator {
 	q := it.qs.db.Query(it.collection)
 	if len(it.constraint) != 0 {
 		q = q.WithFields(it.constraint...)
@@ -244,7 +245,7 @@ func (it *iteratorContains) makeIterator() nosql.DocIterator {
 	if it.limit > 0 {
 		q = q.Limit(int(it.limit))
 	}
-	return q.Iterate()
+	return q.Iterate(ctx)
 }
 
 func (it *iteratorContains) Close() error {
