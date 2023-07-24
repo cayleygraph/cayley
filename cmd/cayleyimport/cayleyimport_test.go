@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/phayes/freeport"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/memstore"
 	chttp "github.com/cayleygraph/cayley/internal/http"
-	"github.com/phayes/freeport"
-	"github.com/stretchr/testify/require"
 )
 
 func serve(addr string) {
@@ -35,7 +36,7 @@ func TestCayleyImport(t *testing.T) {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	uri := fmt.Sprintf("http://%s", addr)
 	go serve(addr)
-	time.Sleep(3 * time.Nanosecond)
+	time.Sleep(time.Second / 2)
 	cmd := NewCmd()
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)

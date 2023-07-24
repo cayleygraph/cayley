@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/memstore"
-	chttp "github.com/cayleygraph/cayley/internal/http"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/jsonld"
 	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/graph/memstore"
+	chttp "github.com/cayleygraph/cayley/internal/http"
 )
 
 var testData = []quad.Quad{
@@ -53,7 +54,7 @@ func TestCayleyExport(t *testing.T) {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	uri := fmt.Sprintf("http://%s", addr)
 	go serve(addr)
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(time.Second / 2)
 	cmd := NewCmd()
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)
