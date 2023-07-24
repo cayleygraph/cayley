@@ -9,7 +9,8 @@ IGNORED_PATTERNS=(
     "^# "
 
     # Field order is well-defined
-    "/quad\.Quad struct literal uses unkeyed fields"
+    "/quad\.Quad composite literal uses unkeyed fields" # 1.19
+    "/quad\.Quad struct literal uses unkeyed fields"    # 1.20
 
     # Code imported from b
     " method Seek\(k int64\) .* should have signature "
