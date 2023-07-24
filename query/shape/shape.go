@@ -7,11 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cayleygraph/quad"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
-	"github.com/cayleygraph/quad"
 )
 
 var (
@@ -176,7 +177,7 @@ func (q InternalQuad) Get(d quad.Direction) refs.Ref {
 }
 
 // Set assigns a specified direction of the quad to a given value.
-func (q InternalQuad) Set(d quad.Direction, v refs.Ref) {
+func (q *InternalQuad) Set(d quad.Direction, v refs.Ref) {
 	switch d {
 	case quad.Subject:
 		q.Subject = v
@@ -362,8 +363,8 @@ var _ ValueFilter = Wildcard{}
 
 // Wildcard is a filter for string patterns.
 //
-//   % - zero or more characters
-//   ? - exactly one character
+//	% - zero or more characters
+//	? - exactly one character
 type Wildcard struct {
 	Pattern string // allowed wildcards are: % and ?
 }
