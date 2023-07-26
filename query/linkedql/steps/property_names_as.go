@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*PropertyNamesAs)(nil)
 
 // PropertyNamesAs corresponds to .propertyNamesAs().
 type PropertyNamesAs struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 	Tag  string            `json:"tag"`
 }
 
@@ -26,7 +26,7 @@ func (s *PropertyNamesAs) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *PropertyNamesAs) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

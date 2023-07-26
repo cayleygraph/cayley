@@ -16,7 +16,7 @@ var _ linkedql.PathStep = (*HasReverse)(nil)
 
 // HasReverse corresponds to .hasR().
 type HasReverse struct {
-	From     linkedql.PathStep      `json:"from"`
+	From     linkedql.PathStep      `json:"from" minCardinality:"0"`
 	Property *linkedql.PropertyPath `json:"property"`
 	Values   []quad.Value           `json:"values"`
 }
@@ -28,7 +28,7 @@ func (s *HasReverse) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *HasReverse) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

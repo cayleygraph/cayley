@@ -26,7 +26,7 @@ func (s *Skip) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Skip) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

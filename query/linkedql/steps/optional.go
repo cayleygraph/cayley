@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Optional)(nil)
 
 // Optional corresponds to .optional().
 type Optional struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 	Step linkedql.PathStep `json:"step"`
 }
 
@@ -26,7 +26,7 @@ func (s *Optional) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Optional) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

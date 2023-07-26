@@ -97,7 +97,7 @@ var unmarshalCases = []struct {
 type TestStep struct {
 	Limit int        `json:"limit"`
 	Tags  []string   `json:"tags"`
-	From  PathStep   `json:"from"`
+	From  PathStep   `json:"from" minCardinality:"0"`
 	Sub   []PathStep `json:"sub"`
 }
 

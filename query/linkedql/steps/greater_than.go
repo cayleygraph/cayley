@@ -17,7 +17,7 @@ var _ linkedql.PathStep = (*GreaterThan)(nil)
 
 // GreaterThan corresponds to gt().
 type GreaterThan struct {
-	From  linkedql.PathStep `json:"from"`
+	From  linkedql.PathStep `json:"from" minCardinality:"0"`
 	Value quad.Value        `json:"value"`
 }
 
@@ -28,7 +28,7 @@ func (s *GreaterThan) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *GreaterThan) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

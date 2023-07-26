@@ -16,8 +16,8 @@ var _ linkedql.IteratorStep = (*Select)(nil)
 
 // Select corresponds to .select().
 type Select struct {
+	From       linkedql.PathStep `json:"from" minCardinality:"0"`
 	Properties []string          `json:"properties"`
-	From       linkedql.PathStep `json:"from"`
 	ExcludeID  bool              `json:"excludeID"`
 }
 
@@ -40,7 +40,7 @@ var _ linkedql.IteratorStep = (*Documents)(nil)
 
 // Documents corresponds to .documents().
 type Documents struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.

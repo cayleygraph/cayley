@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Visit)(nil)
 
 // Visit corresponds to .view().
 type Visit struct {
-	From       linkedql.PathStep      `json:"from"`
+	From       linkedql.PathStep      `json:"from" minCardinality:"0"`
 	Properties *linkedql.PropertyPath `json:"properties"`
 }
 
@@ -26,7 +26,7 @@ func (s *Visit) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Visit) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}
