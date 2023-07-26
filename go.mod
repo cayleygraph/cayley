@@ -20,7 +20,6 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/peterh/liner v1.2.2
-	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/piprate/json-gold v0.3.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/spf13/cobra v1.7.0

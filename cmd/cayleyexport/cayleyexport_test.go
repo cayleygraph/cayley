@@ -3,13 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/jsonld"
-	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cayleygraph/cayley/graph"
@@ -27,40 +26,37 @@ var testData = []quad.Quad{
 }
 
 func serializeTestData() string {
-	buffer := bytes.NewBuffer(nil)
-	writer := jsonld.NewWriter(buffer)
-	writer.WriteQuads(testData)
-	writer.Close()
-	return buffer.String()
-}
-
-func serve(addr string) {
-	qs := memstore.New(testData...)
-	qw, err := graph.NewQuadWriter("single", qs, graph.Options{})
-	if err != nil {
-		panic(err)
-	}
-	h := &graph.Handle{QuadStore: qs, QuadWriter: qw}
-	chttp.SetupRoutes(h, &chttp.Config{})
-	err = http.ListenAndServe(addr, nil)
-	if err != nil {
-		panic(err)
-	}
+	buf := bytes.NewBuffer(nil)
+	w := jsonld.NewWriter(buf)
+	w.WriteQuads(testData)
+	w.Close()
+	return buf.String()
 }
 
 func TestCayleyExport(t *testing.T) {
-	port, err := freeport.GetFreePort()
+	qs := memstore.New(testData...)
+	qw, err := graph.NewQuadWriter("single", qs, graph.Options{})
 	require.NoError(t, err)
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
-	uri := fmt.Sprintf("http://%s", addr)
-	go serve(addr)
-	time.Sleep(time.Second / 2)
+	h := &graph.Handle{QuadStore: qs, QuadWriter: qw}
+	chttp.SetupRoutes(h, &chttp.Config{})
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		lis.Close()
+	})
+
+	srv := &http.Server{
+		Addr: lis.Addr().String(),
+	}
+	go srv.Serve(lis)
+
 	cmd := NewCmd()
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)
 	cmd.SetArgs([]string{
 		"--uri",
-		uri,
+		fmt.Sprintf("http://%s", lis.Addr().String()),
 	})
 	err = cmd.Execute()
 	require.NoError(t, err)
