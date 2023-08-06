@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
       - name: cayley-init
-        image: cayleygraph/cayley:v0.7.5
+        image: ghcr.io/cayleygraph/cayley:v0.7.8
         command:
         - cayley
         - init
@@ -54,7 +54,7 @@ spec:
           name: database
       containers:
       - name: cayley
-        image: cayleygraph/cayley:v0.7.5
+        image: ghcr.io/cayleygraph/cayley:v0.7.8
         command:
         - cayley
         - http

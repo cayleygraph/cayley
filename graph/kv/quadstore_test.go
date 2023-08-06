@@ -13,12 +13,13 @@ import (
 	hkv "github.com/hidal-go/hidalgo/kv"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cayleygraph/quad"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/graph/kv/btree"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/writer"
-	"github.com/cayleygraph/quad"
 )
 
 func hex(s string) []byte {
@@ -297,12 +298,24 @@ func (h *kvHook) Close() error {
 	return h.db.Close()
 }
 
-func (h *kvHook) Tx(rw bool) (hkv.Tx, error) {
-	tx, err := h.db.Tx(rw)
+func (h *kvHook) Tx(ctx context.Context, rw bool) (hkv.Tx, error) {
+	tx, err := h.db.Tx(ctx, rw)
 	if err != nil {
 		return nil, err
 	}
 	return txHook{h: h, tx: tx}, nil
+}
+
+func (h *kvHook) View(ctx context.Context, fn func(tx hkv.Tx) error) error {
+	return h.db.View(ctx, func(tx hkv.Tx) error {
+		return fn(txHook{h: h, tx: tx})
+	})
+}
+
+func (h *kvHook) Update(ctx context.Context, fn func(tx hkv.Tx) error) error {
+	return h.db.Update(ctx, func(tx hkv.Tx) error {
+		return fn(txHook{h: h, tx: tx})
+	})
 }
 
 type txHook struct {
@@ -342,8 +355,8 @@ func (h txHook) Get(ctx context.Context, k hkv.Key) (hkv.Value, error) {
 	return v, err
 }
 
-func (h txHook) Put(k hkv.Key, v hkv.Value) error {
-	err := h.tx.Put(k, v)
+func (h txHook) Put(ctx context.Context, k hkv.Key, v hkv.Value) error {
+	err := h.tx.Put(ctx, k, v)
 	h.h.addOp(kvOp{
 		typ: opPut,
 		key: k.Clone(),
@@ -353,8 +366,8 @@ func (h txHook) Put(k hkv.Key, v hkv.Value) error {
 	return err
 }
 
-func (h txHook) Del(k hkv.Key) error {
-	err := h.tx.Del(k)
+func (h txHook) Del(ctx context.Context, k hkv.Key) error {
+	err := h.tx.Del(ctx, k)
 	h.h.addOp(kvOp{
 		typ: opDel,
 		key: k.Clone(),
@@ -363,6 +376,6 @@ func (h txHook) Del(k hkv.Key) error {
 	return err
 }
 
-func (h txHook) Scan(pref hkv.Key) hkv.Iterator {
-	return h.tx.Scan(pref)
+func (h txHook) Scan(ctx context.Context, opts ...hkv.IteratorOption) hkv.Iterator {
+	return h.tx.Scan(ctx, opts...)
 }

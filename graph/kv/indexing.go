@@ -24,13 +24,15 @@ import (
 	"sort"
 	"time"
 
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/pquads"
+	"github.com/hidal-go/hidalgo/kv/options"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/pquads"
 
 	"github.com/hidal-go/hidalgo/kv"
 	"github.com/prometheus/client_golang/prometheus"
@@ -157,14 +159,14 @@ func (qs *QuadStore) writeIndexesMeta(ctx context.Context) error {
 		return err
 	}
 	return kv.Update(ctx, qs.db, func(tx kv.Tx) error {
-		return tx.Put(keyMetaIndexes, data)
+		return tx.Put(ctx, keyMetaIndexes, data)
 	})
 }
 
 // readIndexesMeta read metadata about current indexes from the KV database.
 // If no indexes are set, it returns a list of legacy indexes to preserve backward compatibility.
 func (qs *QuadStore) readIndexesMeta(ctx context.Context) ([]QuadIndex, error) {
-	tx, err := qs.db.Tx(false)
+	tx, err := qs.db.Tx(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +255,7 @@ func (qs *QuadStore) incMetaInt(ctx context.Context, tx kv.Tx, key string, n int
 	buf := make([]byte, 8) // bolt needs all slices available on Commit
 	binary.LittleEndian.PutUint64(buf, uint64(v))
 
-	err = tx.Put(metaBucket.AppendBytes([]byte(key)), buf)
+	err = tx.Put(ctx, metaBucket.AppendBytes([]byte(key)), buf)
 	if err != nil {
 		return 0, fmt.Errorf("cannot inc %s: %v", key, err)
 	}
@@ -299,7 +301,7 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 		}
 		sz += int64(d.RefInc)
 		if sz <= 0 {
-			if err := tx.Del(k); err != nil {
+			if err := tx.Del(ctx, k); err != nil {
 				return del, err
 			}
 			mNodesDel.Inc()
@@ -308,7 +310,7 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 		}
 		n := binary.PutUvarint(buf[:], uint64(sz))
 		val := append([]byte{}, buf[:n]...)
-		if err := tx.Put(k, val); err != nil {
+		if err := tx.Put(ctx, k, val); err != nil {
 			return del, err
 		}
 		mNodesUpd.Inc()
@@ -317,7 +319,7 @@ func (qs *QuadStore) incNodesCnt(ctx context.Context, tx kv.Tx, deltas, newDelta
 	for _, d := range newDeltas {
 		n := binary.PutUvarint(buf[:], uint64(d.RefInc))
 		val := append([]byte{}, buf[:n]...)
-		if err := tx.Put(bucketKeyForHashRefs(d.Hash), val); err != nil {
+		if err := tx.Put(ctx, bucketKeyForHashRefs(d.Hash), val); err != nil {
 			return nil, err
 		}
 		mNodesNew.Inc()
@@ -365,7 +367,7 @@ func (qs *QuadStore) incNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.N
 
 			node.ID = id
 			ids[iv.Hash] = resolvedNode{ID: id, New: true}
-			if err := qs.indexNode(tx, node, iv.Val); err != nil {
+			if err := qs.indexNode(ctx, tx, node, iv.Val); err != nil {
 				return ids, err
 			}
 			ins[i].ID = id
@@ -390,13 +392,13 @@ func (qs *QuadStore) decNodes(ctx context.Context, tx kv.Tx, deltas []graphlog.N
 	for _, i := range del {
 		d := upds[i]
 		key := bucketForVal(d.Hash[0], d.Hash[1]).AppendBytes(d.Hash[:])
-		if err = tx.Del(key); err != nil {
+		if err = tx.Del(ctx, key); err != nil {
 			return err
 		}
 		if iri, ok := d.Val.(quad.IRI); ok {
 			qs.valueLRU.Del(string(iri))
 		}
-		if err := qs.delLog(tx, d.ID); err != nil {
+		if err := qs.delLog(ctx, tx, d.ID); err != nil {
 			return err
 		}
 	}
@@ -419,9 +421,8 @@ func (w *quadWriter) WriteQuad(q quad.Quad) error {
 	return err
 }
 
-func (w *quadWriter) flush() error {
+func (w *quadWriter) flush(ctx context.Context) error {
 	w.n = 0
-	ctx := context.TODO()
 	if err := w.qs.flushMapBucket(ctx, w.tx); err != nil {
 		w.err = err
 		return err
@@ -432,7 +433,7 @@ func (w *quadWriter) flush() error {
 		w.err = err
 		return err
 	}
-	tx, err := w.qs.db.Tx(true)
+	tx, err := w.qs.db.Tx(ctx, true)
 	if err != nil {
 		w.qs.writer.Unlock()
 		w.err = err
@@ -446,9 +447,10 @@ func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
 	mApplyBatch.Observe(float64(len(buf)))
 	defer prometheus.NewTimer(mApplySeconds).ObserveDuration()
 
+	ctx := context.TODO()
 	if w.tx == nil {
 		w.qs.writer.Lock()
-		tx, err := w.qs.db.Tx(true)
+		tx, err := w.qs.db.Tx(ctx, true)
 		if err != nil {
 			w.qs.writer.Unlock()
 			w.err = err
@@ -457,13 +459,13 @@ func (w *quadWriter) WriteQuads(buf []quad.Quad) (int, error) {
 		w.tx = wrapTx(tx)
 	}
 	deltas := graphlog.InsertQuads(buf)
-	if _, err := w.qs.applyAddDeltas(w.tx, nil, deltas, graph.IgnoreOpts{IgnoreDup: true}); err != nil {
+	if _, err := w.qs.applyAddDeltas(ctx, w.tx, nil, deltas, graph.IgnoreOpts{IgnoreDup: true}); err != nil {
 		w.err = err
 		return 0, err
 	}
 	w.n += len(buf)
 	if w.n >= quad.DefaultBatch*20 {
-		if err := w.flush(); err != nil {
+		if err := w.flush(ctx); err != nil {
 			return 0, err
 		}
 	}
@@ -495,9 +497,7 @@ func (w *quadWriter) Close() error {
 	return err
 }
 
-func (qs *QuadStore) applyAddDeltas(tx kv.Tx, in []graph.Delta, deltas *graphlog.Deltas, ignoreOpts graph.IgnoreOpts) (map[refs.ValueHash]resolvedNode, error) {
-	ctx := context.TODO()
-
+func (qs *QuadStore) applyAddDeltas(ctx context.Context, tx kv.Tx, in []graph.Delta, deltas *graphlog.Deltas, ignoreOpts graph.IgnoreOpts) (map[refs.ValueHash]resolvedNode, error) {
 	// first add all new nodes
 	nodes, err := qs.incNodes(ctx, tx, deltas.IncNode)
 	if err != nil {
@@ -566,7 +566,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	ctx := context.TODO()
 	qs.writer.Lock()
 	defer qs.writer.Unlock()
-	tx, err := qs.db.Tx(true)
+	tx, err := qs.db.Tx(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -578,7 +578,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		qs.mapNodes = nil
 	}
 
-	nodes, err := qs.applyAddDeltas(tx, in, deltas, ignoreOpts)
+	nodes, err := qs.applyAddDeltas(ctx, tx, in, deltas, ignoreOpts)
 	if err != nil {
 		return err
 	}
@@ -669,7 +669,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	return tx.Commit(ctx)
 }
 
-func (qs *QuadStore) indexNode(tx kv.Tx, p *proto.Primitive, val quad.Value) error {
+func (qs *QuadStore) indexNode(ctx context.Context, tx kv.Tx, p *proto.Primitive, val quad.Value) error {
 	var err error
 	if val == nil {
 		val, err = pquads.UnmarshalValue(p.Value)
@@ -678,7 +678,7 @@ func (qs *QuadStore) indexNode(tx kv.Tx, p *proto.Primitive, val quad.Value) err
 		}
 	}
 	hash := quad.HashOf(val)
-	err = tx.Put(bucketForVal(hash[0], hash[1]).AppendBytes(hash), uint64toBytes(p.ID))
+	err = tx.Put(ctx, bucketForVal(hash[0], hash[1]).AppendBytes(hash), uint64toBytes(p.ID))
 	if err != nil {
 		return err
 	}
@@ -688,18 +688,18 @@ func (qs *QuadStore) indexNode(tx kv.Tx, p *proto.Primitive, val quad.Value) err
 	if qs.mapNodes != nil {
 		qs.mapNodes.Add(hash)
 	}
-	return qs.addToLog(tx, p)
+	return qs.addToLog(ctx, tx, p)
 }
 
 func (qs *QuadStore) indexLinks(ctx context.Context, tx kv.Tx, links []proto.Primitive) error {
 	for _, p := range links {
-		if err := qs.indexLink(tx, &p); err != nil {
+		if err := qs.indexLink(ctx, tx, &p); err != nil {
 			return err
 		}
 	}
 	return qs.incSize(ctx, tx, int64(len(links)))
 }
-func (qs *QuadStore) indexLink(tx kv.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) indexLink(ctx context.Context, tx kv.Tx, p *proto.Primitive) error {
 	var err error
 	qs.indexes.RLock()
 	all := qs.indexes.all
@@ -715,23 +715,23 @@ func (qs *QuadStore) indexLink(tx kv.Tx, p *proto.Primitive) error {
 	if err != nil {
 		return err
 	}
-	return qs.addToLog(tx, p)
+	return qs.addToLog(ctx, tx, p)
 }
 
-func (qs *QuadStore) markAsDead(tx kv.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) markAsDead(ctx context.Context, tx kv.Tx, p *proto.Primitive) error {
 	p.Deleted = true
 	//TODO(barakmich): Add tombstone?
 	qs.bloomRemove(p)
-	return qs.addToLog(tx, p)
+	return qs.addToLog(ctx, tx, p)
 }
 
-func (qs *QuadStore) delLog(tx kv.Tx, id uint64) error {
-	return tx.Del(logIndex.Append(uint64KeyBytes(id)))
+func (qs *QuadStore) delLog(ctx context.Context, tx kv.Tx, id uint64) error {
+	return tx.Del(ctx, logIndex.Append(uint64KeyBytes(id)))
 }
 
 func (qs *QuadStore) markLinksDead(ctx context.Context, tx kv.Tx, links []proto.Primitive) error {
 	for _, p := range links {
-		if err := qs.markAsDead(tx, &p); err != nil {
+		if err := qs.markAsDead(ctx, tx, &p); err != nil {
 			return err
 		}
 	}
@@ -1014,7 +1014,7 @@ func (qs *QuadStore) flushMapBucket(ctx context.Context, tx kv.Tx) error {
 		}
 		for _, k := range keysPut {
 			l := m[string(k[1])]
-			err = tx.Put(k, appendIndex(nil, l))
+			err = tx.Put(ctx, k, appendIndex(nil, l))
 			if err != nil {
 				return err
 			}
@@ -1026,7 +1026,7 @@ func (qs *QuadStore) flushMapBucket(ctx context.Context, tx kv.Tx) error {
 			l := m[string(k[1])]
 			buf := appendIndex(vals[i], l)
 			entryBytes.Observe(float64(len(buf)))
-			err = tx.Put(k, buf)
+			err = tx.Put(ctx, k, buf)
 			if err != nil {
 				return err
 			}
@@ -1044,12 +1044,12 @@ func (qs *QuadStore) indexSchema(tx kv.Tx, p *proto.Primitive) error {
 	return nil
 }
 
-func (qs *QuadStore) addToLog(tx kv.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) addToLog(ctx context.Context, tx kv.Tx, p *proto.Primitive) error {
 	buf, err := p.Marshal()
 	if err != nil {
 		return err
 	}
-	if err := tx.Put(logIndex.Append(uint64KeyBytes(p.ID)), buf); err != nil {
+	if err := tx.Put(ctx, logIndex.Append(uint64KeyBytes(p.ID)), buf); err != nil {
 		return err
 	}
 	mPrimitiveAppend.Inc()
@@ -1183,9 +1183,9 @@ func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
 	}
 	qs.exists.buf = make([]byte, 3*8)
 	qs.exists.DeletableBloomFilter = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
-	return kv.View(qs.db, func(tx kv.Tx) error {
+	return kv.View(ctx, qs.db, func(tx kv.Tx) error {
 		p := proto.Primitive{}
-		it := tx.Scan(logIndex)
+		it := tx.Scan(ctx, options.WithPrefixKV(logIndex))
 		defer it.Close()
 		for it.Next(ctx) {
 			v := it.Val()

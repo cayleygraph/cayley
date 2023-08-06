@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/hidal-go/hidalgo/kv"
+	"github.com/hidal-go/hidalgo/kv/options"
 
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -146,11 +147,11 @@ func (it *quadIteratorNext) Result() graph.Ref {
 	return it.prim
 }
 
-func (it *quadIteratorNext) ensureTx() bool {
+func (it *quadIteratorNext) ensureTx(ctx context.Context) bool {
 	if it.tx != nil {
 		return true
 	}
-	it.tx, it.err = it.qs.db.Tx(false)
+	it.tx, it.err = it.qs.db.Tx(ctx, false)
 	if it.err != nil {
 		return false
 	}
@@ -164,10 +165,10 @@ func (it *quadIteratorNext) Next(ctx context.Context) bool {
 		return false
 	}
 	if it.it == nil {
-		if !it.ensureTx() {
+		if !it.ensureTx(ctx) {
 			return false
 		}
-		it.it = it.tx.Scan(it.ind.Key(it.vals))
+		it.it = it.tx.Scan(ctx, options.WithPrefixKV(it.ind.Key(it.vals)))
 		if err := it.Err(); err != nil {
 			it.err = err
 			return false

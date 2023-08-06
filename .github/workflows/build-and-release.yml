@@ -1,0 +1,113 @@
+name: Test and release
+
+on:
+  push:
+    branches:
+      - master
+      - ci_tests
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+env:
+  DOCKER_IMAGE_NAME: ghcr.io/cayleygraph/cayley
+
+jobs:
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.19'
+
+    - name: Dependencies
+      run: go mod download
+
+    - name: Vet
+      run: ./vet.sh
+
+    - name: Build
+      run: go build -v ./cmd/cayley
+
+    - name: Test
+      run: go test -v ./...
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || (github.ref == 'refs/heads/ci_tests')
+    needs:
+      - tests
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+
+      - name: Dependencies
+        run: go mod download
+
+      - name: Download UI
+        run: go run cmd/download_ui/download_ui.go
+
+      - name: Run Packr
+        run: |
+          go run github.com/gobuffalo/packr/v2/packr2
+          git checkout -- ./packrd/dummy.go
+
+      - name: Release
+        uses: goreleaser/goreleaser-action@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || (github.ref == 'refs/heads/master') || (github.ref == 'refs/heads/ci_tests')
+    needs:
+      - tests
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Docker build
+        run: |
+          docker build -t $DOCKER_IMAGE_NAME:dev --build-arg VERSION=${{ github.ref_name }} .
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        if: startsWith(github.ref, 'refs/tags/') || (github.ref == 'refs/heads/master')
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push latest
+        if: (github.ref == 'refs/heads/master')
+        run: |
+          docker push $DOCKER_IMAGE_NAME:dev
+
+      - name: Push tagged
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          docker tag $DOCKER_IMAGE_NAME:dev $DOCKER_IMAGE_NAME:${{ github.ref_name }}
+          docker push $DOCKER_IMAGE_NAME:${{ github.ref_name }}
+
+      - name: Push latest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          docker tag $DOCKER_IMAGE_NAME:dev $DOCKER_IMAGE_NAME:latest
+          docker push $DOCKER_IMAGE_NAME:latest

@@ -158,18 +158,18 @@ func (tx *mTx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) 
 	return vals, err
 }
 
-func (tx *mTx) Put(k kv.Key, v kv.Value) error {
+func (tx *mTx) Put(ctx context.Context, k kv.Key, v kv.Value) error {
 	mKVPut.Inc()
 	mKVPutSize.Observe(float64(len(v)))
-	return tx.tx.Put(k, v)
+	return tx.tx.Put(ctx, k, v)
 }
 
-func (tx *mTx) Del(k kv.Key) error {
+func (tx *mTx) Del(ctx context.Context, k kv.Key) error {
 	mKVDel.Inc()
-	return tx.tx.Del(k)
+	return tx.tx.Del(ctx, k)
 }
 
-func (tx *mTx) Scan(pref kv.Key) kv.Iterator {
+func (tx *mTx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
 	mKVScan.Inc()
-	return tx.tx.Scan(pref)
+	return tx.tx.Scan(ctx, opts...)
 }

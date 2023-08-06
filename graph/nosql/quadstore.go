@@ -22,13 +22,14 @@ import (
 
 	"github.com/hidal-go/hidalgo/legacy/nosql"
 
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/pquads"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/internal/lru"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/pquads"
 )
 
 const DefaultDBName = "cayley"
@@ -46,10 +47,10 @@ func init() {
 	for _, reg := range nosql.List() {
 		Register(reg.Name, Registration{
 			NewFunc: func(addr string, options graph.Options) (nosql.Database, error) {
-				return reg.Open(addr, DefaultDBName, nosql.Options(options))
+				return reg.Open(context.TODO(), addr, DefaultDBName, nosql.Options(options))
 			},
 			InitFunc: func(addr string, options graph.Options) (nosql.Database, error) {
-				return reg.New(addr, DefaultDBName, nosql.Options(options))
+				return reg.New(context.TODO(), addr, DefaultDBName, nosql.Options(options))
 			},
 			IsPersistent: !reg.Volatile, Traits: reg.Traits,
 		})

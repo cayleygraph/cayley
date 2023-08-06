@@ -1,7 +1,9 @@
-FROM golang:1.13 as builder
+FROM golang:1.19 as builder
+
+ARG VERSION=v0.8.x-dev
 
 # Install packr
-RUN go get -u github.com/gobuffalo/packr/v2/packr2
+RUN go install github.com/gobuffalo/packr/v2/packr2@latest
 
 # Create filesystem for minimal image
 WORKDIR /fs
@@ -10,7 +12,7 @@ RUN mkdir -p etc/ssl/certs lib/x86_64-linux-gnu tmp bin data; \
     # Copy CA Certificates
     cp /etc/ssl/certs/ca-certificates.crt etc/ssl/certs/ca-certificates.crt; \
     # Copy C standard library
-    cp /lib/x86_64-linux-gnu/libc-* lib/x86_64-linux-gnu/
+    cp /lib/x86_64-linux-gnu/libc.* lib/x86_64-linux-gnu/
 
 # Set up workdir for compiling
 WORKDIR /src
@@ -30,9 +32,9 @@ ADD . .
 RUN packr2
 
 # Pass a Git short SHA as build information to be used for displaying version
-RUN SHORT_SHA=$(git rev-parse --short=12 HEAD); \
+RUN GIT_SHA=$(git rev-parse --short=12 HEAD); \
     go build \
-    -ldflags="-linkmode external -extldflags -static -X github.com/cayleygraph/cayley/version.GitHash=$SHORT_SHA" \
+    -ldflags="-linkmode external -extldflags -static -X github.com/cayleygraph/cayley/version.Version=$VERSION -X github.com/cayleygraph/cayley/version.GitHash=$GIT_SHA" \
     -a \
     -installsuffix cgo \
     -o /fs/bin/cayley \
