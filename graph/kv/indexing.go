@@ -506,7 +506,7 @@ func (qs *QuadStore) applyAddDeltas(ctx context.Context, tx kv.Tx, in []graph.De
 	}
 	deltas.IncNode = nil
 	// resolve and insert all new quads
-	links := make([]cproto.Primitive, 0, len(deltas.QuadAdd))
+	links := make([]*cproto.Primitive, 0, len(deltas.QuadAdd))
 	qadd := make(map[[4]uint64]struct{}, len(deltas.QuadAdd))
 	for _, q := range deltas.QuadAdd {
 		var link cproto.Primitive
@@ -541,7 +541,7 @@ func (qs *QuadStore) applyAddDeltas(ctx context.Context, tx kv.Tx, in []graph.De
 				return nil, err
 			}
 		}
-		links = append(links, link)
+		links = append(links, &link)
 	}
 	qadd = nil
 	deltas.QuadAdd = nil
@@ -585,7 +585,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	}
 
 	if len(deltas.QuadDel) != 0 || len(deltas.DecNode) != 0 {
-		links := make([]cproto.Primitive, 0, len(deltas.QuadDel))
+		links := make([]*cproto.Primitive, 0, len(deltas.QuadDel))
 		// resolve all nodes that will be removed
 		dnodes := make(map[refs.ValueHash]uint64, len(deltas.DecNode))
 		if err := qs.resolveValDeltas(ctx, tx, deltas.DecNode, func(i int, id uint64) {
@@ -597,7 +597,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		// check for existence and delete quads
 		fixNodes := make(map[refs.ValueHash]int)
 		for _, q := range deltas.QuadDel {
-			var link cproto.Primitive
+			link := new(cproto.Primitive)
 			exists := true
 			// resolve values of all quad directions
 			// if any of the direction does not exists, the quad does not exists as well
@@ -616,13 +616,13 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 				link.SetDirection(dir, n.ID)
 			}
 			if exists {
-				p, err := qs.hasPrimitive(ctx, tx, &link, true)
+				p, err := qs.hasPrimitive(ctx, tx, link, true)
 				if err != nil {
 					return err
 				} else if p == nil || p.Deleted {
 					exists = false
 				} else {
-					link = *p
+					link = p
 				}
 			}
 			if !exists {
@@ -692,9 +692,9 @@ func (qs *QuadStore) indexNode(ctx context.Context, tx kv.Tx, p *cproto.Primitiv
 	return qs.addToLog(ctx, tx, p)
 }
 
-func (qs *QuadStore) indexLinks(ctx context.Context, tx kv.Tx, links []cproto.Primitive) error {
+func (qs *QuadStore) indexLinks(ctx context.Context, tx kv.Tx, links []*cproto.Primitive) error {
 	for _, p := range links {
-		if err := qs.indexLink(ctx, tx, &p); err != nil {
+		if err := qs.indexLink(ctx, tx, p); err != nil {
 			return err
 		}
 	}
@@ -730,9 +730,9 @@ func (qs *QuadStore) delLog(ctx context.Context, tx kv.Tx, id uint64) error {
 	return tx.Del(ctx, logIndex.Append(uint64KeyBytes(id)))
 }
 
-func (qs *QuadStore) markLinksDead(ctx context.Context, tx kv.Tx, links []cproto.Primitive) error {
+func (qs *QuadStore) markLinksDead(ctx context.Context, tx kv.Tx, links []*cproto.Primitive) error {
 	for _, p := range links {
-		if err := qs.markAsDead(ctx, tx, &p); err != nil {
+		if err := qs.markAsDead(ctx, tx, p); err != nil {
 			return err
 		}
 	}

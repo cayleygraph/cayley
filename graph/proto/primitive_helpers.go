@@ -4,7 +4,7 @@ import "github.com/cayleygraph/quad"
 
 //go:generate protoc --go_opt=paths=source_relative --proto_path=. --go_out=. primitive.proto
 
-func (p Primitive) GetDirection(d quad.Direction) uint64 {
+func (p *Primitive) GetDirection(d quad.Direction) uint64 {
 	switch d {
 	case quad.Subject:
 		return p.Subject
@@ -31,11 +31,11 @@ func (p *Primitive) SetDirection(d quad.Direction, v uint64) {
 	}
 }
 
-func (p Primitive) IsNode() bool {
+func (p *Primitive) IsNode() bool {
 	return len(p.Value) != 0
 }
 
-func (p Primitive) Key() interface{} {
+func (p *Primitive) Key() interface{} {
 	return p.ID
 }
 
