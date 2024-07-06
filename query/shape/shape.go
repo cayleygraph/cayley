@@ -1231,7 +1231,6 @@ func (s IntersectOpt) Optimize(ctx context.Context, r Optimizer) (_ Shape, opt b
 		case Intersect:
 			s.Sub = sub
 		case IntersectOpt:
-			sub.Opt = append(sub.Opt)
 			s = sub
 			opt = true
 		default:
