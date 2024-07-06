@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"sort"
 	"testing"
 
 	"github.com/cayleygraph/quad"
@@ -38,6 +39,7 @@ func allQuads(t testing.TB, qs graph.QuadStore) []quad.Quad {
 		out = append(out, q)
 	}
 	require.NoError(t, it.Err())
+	sort.Sort(quad.ByQuadString(out))
 	return out
 }
 
@@ -71,5 +73,6 @@ func TestCayleyImport(t *testing.T) {
 	err = cmd.Execute()
 	require.NoError(t, err)
 	require.Empty(t, b.String())
+	sort.Sort(quad.ByQuadString(expectData))
 	require.Equal(t, expectData, allQuads(t, qs))
 }
