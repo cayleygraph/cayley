@@ -1,4 +1,4 @@
-FROM golang:1.21 as builder
+FROM golang:1.22 AS builder
 
 ARG VERSION=v0.8.x-dev
 
