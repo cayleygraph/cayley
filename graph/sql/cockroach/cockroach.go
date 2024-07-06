@@ -3,15 +3,18 @@ package cockroach
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	graphlog "github.com/cayleygraph/cayley/graph/log"
 	csql "github.com/cayleygraph/cayley/graph/sql"
-	"github.com/jackc/pgx"
-	_ "github.com/jackc/pgx/stdlib" // registers "pgx" driver
 )
 
 const Type = "cockroach"
@@ -52,7 +55,15 @@ func init() {
 // AmbiguousCommitError represents an error that left a transaction in an
 // ambiguous state: unclear if it committed or not.
 type AmbiguousCommitError struct {
-	error
+	Err error
+}
+
+func (e *AmbiguousCommitError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *AmbiguousCommitError) Unwrap() error {
+	return e.Err
 }
 
 // retryTxCockroach runs the transaction and will retry in case of a retryable error.
@@ -81,8 +92,11 @@ func retryTxCockroach(tx *sql.Tx, stmts func() error) error {
 		// for either the standard PG errcode SerializationFailureError:40001 or the Cockroach extension
 		// errcode RetriableError:CR000. The Cockroach extension has been removed server-side, but support
 		// for it has been left here for now to maintain backwards compatibility.
-		pgErr, ok := err.(pgx.PgError)
-		if retryable := ok && (pgErr.Code == "CR000" || pgErr.Code == "40001"); !retryable {
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) {
+			return err
+		}
+		if retryable := pgErr.Code == "CR000" || pgErr.Code == "40001"; !retryable {
 			if released {
 				err = &AmbiguousCommitError{err}
 			}
@@ -95,8 +109,8 @@ func retryTxCockroach(tx *sql.Tx, stmts func() error) error {
 }
 
 func convError(err error) error {
-	e, ok := err.(pgx.PgError)
-	if !ok {
+	var e *pgconn.PgError
+	if !errors.As(err, &e) {
 		return err
 	}
 	switch e.Code {
@@ -108,9 +122,10 @@ func convError(err error) error {
 
 func convInsertError(err error) error {
 	if err == nil {
-		return err
+		return nil
 	}
-	if pe, ok := err.(pgx.PgError); ok {
+	var pe *pgconn.PgError
+	if errors.As(err, &pe) {
 		if pe.Code == "23505" {
 			// TODO: reference to delta
 			return &graph.DeltaError{Err: graph.ErrQuadExists}

@@ -22,28 +22,28 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cayleygraph/quad"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/cayley/writer"
-	"github.com/cayleygraph/quad"
 )
 
 // This is a simple test graph.
 //
-//    +---+                        +---+
-//    | A |-------               ->| F |<--
-//    +---+       \------>+---+-/  +---+   \--+---+
-//                 ------>|#B#|      |        | E |
-//    +---+-------/      >+---+      |        +---+
-//    | C |             /            v
-//    +---+           -/           +---+
-//      ----    +---+/             |#G#|
-//          \-->|#D#|------------->+---+
-//              +---+
-//
+//	+---+                        +---+
+//	| A |-------               ->| F |<--
+//	+---+       \------>+---+-/  +---+   \--+---+
+//	             ------>|#B#|      |        | E |
+//	+---+-------/      >+---+      |        +---+
+//	| C |             /            v
+//	+---+           -/           +---+
+//	  ----    +---+/             |#G#|
+//	      \-->|#D#|------------->+---+
+//	          +---+
 var simpleGraph = []quad.Quad{
 	quad.MakeRaw("A", "follows", "B", ""),
 	quad.MakeRaw("C", "follows", "B", ""),
@@ -83,16 +83,16 @@ func makeTestStore(data []quad.Quad) (*QuadStore, graph.QuadWriter, []pair) {
 }
 
 func TestMemstore(t *testing.T) {
-	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-		return New(), nil, func() {}
+	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options) {
+		return New(), nil
 	}, &graphtest.Config{
 		AlwaysRunIntegration: true,
 	})
 }
 
 func BenchmarkMemstore(b *testing.B) {
-	graphtest.BenchmarkAll(b, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-		return New(), nil, func() {}
+	graphtest.BenchmarkAll(b, func(t testing.TB) (graph.QuadStore, graph.Options) {
+		return New(), nil
 	}, &graphtest.Config{
 		AlwaysRunIntegration: true,
 	})

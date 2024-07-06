@@ -23,7 +23,7 @@ func toConfig(c nosql.Traits) graphtest.Config {
 	}
 }
 
-func NewQuadStore(t testing.TB, gen nosqltest.Database) (graph.QuadStore, graph.Options, func()) {
+func NewQuadStore(t testing.TB, gen nosqltest.Database) (graph.QuadStore, graph.Options) {
 	db := gen.Run(t)
 	err := gnosql.Init(db, nil)
 	if err != nil {
@@ -36,21 +36,22 @@ func NewQuadStore(t testing.TB, gen nosqltest.Database) (graph.QuadStore, graph.
 		db.Close()
 		require.Fail(t, "create failed", "%v", err)
 	}
-	return kdb, nil, func() {
+	t.Cleanup(func() {
 		kdb.Close()
-	}
+	})
+	return kdb, nil
 }
 
 func TestAll(t *testing.T, gen nosqltest.Database) {
 	c := toConfig(gen.Traits)
-	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+	graphtest.TestAll(t, func(t testing.TB) (graph.QuadStore, graph.Options) {
 		return NewQuadStore(t, gen)
 	}, &c)
 }
 
 func BenchmarkAll(t *testing.B, gen nosqltest.Database) {
 	c := toConfig(gen.Traits)
-	graphtest.BenchmarkAll(t, func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+	graphtest.BenchmarkAll(t, func(t testing.TB) (graph.QuadStore, graph.Options) {
 		return NewQuadStore(t, gen)
 	}, &c)
 }

@@ -22,14 +22,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cayleygraph/quad"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/cayley/query/shape"
 	_ "github.com/cayleygraph/cayley/writer"
-	"github.com/cayleygraph/quad"
-	"github.com/stretchr/testify/require"
 )
 
 // This is a simple test graph.
@@ -45,22 +46,21 @@ import (
 //        \-->| #dani# |------------>+--------+
 //            +--------+
 
-func makeTestStore(t testing.TB, fnc testutil.DatabaseFunc, quads ...quad.Quad) (graph.QuadStore, func()) {
+func makeTestStore(t testing.TB, fnc testutil.DatabaseFunc, quads ...quad.Quad) graph.QuadStore {
 	if len(quads) == 0 {
 		quads = testutil.LoadGraph(t, "data/testdata.nq")
 	}
 	var (
-		qs     graph.QuadStore
-		opts   graph.Options
-		closer = func() {}
+		qs   graph.QuadStore
+		opts graph.Options
 	)
 	if fnc != nil {
-		qs, opts, closer = fnc(t)
+		qs, opts = fnc(t)
 	} else {
 		qs, _ = graph.NewQuadStore("memstore", "", nil)
 	}
 	_ = testutil.MakeWriter(t, qs, opts, quads...)
-	return qs, closer
+	return qs
 }
 
 func runTopLevel(qs graph.QuadStore, path *path.Path, opt bool) ([]quad.Value, error) {
@@ -533,8 +533,7 @@ func RunTestMorphisms(t *testing.T, fnc testutil.DatabaseFunc) {
 	} {
 		ftest(t, fnc)
 	}
-	qs, closer := makeTestStore(t, fnc)
-	defer closer()
+	qs := makeTestStore(t, fnc)
 
 	for _, test := range testSet(qs) {
 		for _, opt := range []bool{true, false} {
@@ -594,7 +593,7 @@ func RunTestMorphisms(t *testing.T, fnc testutil.DatabaseFunc) {
 }
 
 func testFollowRecursive(t *testing.T, fnc testutil.DatabaseFunc) {
-	qs, closer := makeTestStore(t, fnc, []quad.Quad{
+	qs := makeTestStore(t, fnc, []quad.Quad{
 		quad.MakeIRI("a", "parent", "b", ""),
 		quad.MakeIRI("b", "parent", "c", ""),
 		quad.MakeIRI("c", "parent", "d", ""),
@@ -602,7 +601,6 @@ func testFollowRecursive(t *testing.T, fnc testutil.DatabaseFunc) {
 		quad.MakeIRI("d", "parent", "e", ""),
 		quad.MakeIRI("d", "labels", "tag", ""),
 	}...)
-	defer closer()
 
 	qu := path.StartPath(qs, quad.IRI("a")).FollowRecursive(
 		path.StartMorphism().Out(quad.IRI("parent")), 0, nil,
@@ -660,7 +658,7 @@ func (b byTags) Swap(i, j int) {
 }
 
 func testFollowRecursiveHas(t *testing.T, fnc testutil.DatabaseFunc) {
-	qs, closer := makeTestStore(t, fnc, []quad.Quad{
+	qs := makeTestStore(t, fnc, []quad.Quad{
 		quad.MakeIRI("1", "relatesTo", "x", ""),
 		quad.MakeIRI("2", "relatesTo", "x", ""),
 		quad.MakeIRI("3", "relatesTo", "y", ""),
@@ -668,7 +666,6 @@ func testFollowRecursiveHas(t *testing.T, fnc testutil.DatabaseFunc) {
 		quad.MakeIRI("2", "knows", "3", ""),
 		quad.MakeIRI("2", "knows", "1", ""),
 	}...)
-	defer closer()
 
 	qu := path.StartPath(qs, quad.IRI("1")).FollowRecursive(
 		path.StartMorphism().Tag("pid").Out(quad.IRI("knows")), 2, nil,

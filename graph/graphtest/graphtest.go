@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cayleygraph/quad"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/iterator"
@@ -16,9 +20,6 @@ import (
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/cayley/schema"
 	"github.com/cayleygraph/cayley/writer"
-	"github.com/cayleygraph/quad"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type Config struct {
@@ -100,17 +101,16 @@ func BenchmarkAll(b *testing.B, gen testutil.DatabaseFunc, conf *Config) {
 
 // MakeQuadSet makes a simple test graph.
 //
-//    +---+                        +---+
-//    | A |-------               ->| F |<--
-//    +---+       \------>+---+-/  +---+   \--+---+
-//                 ------>|#B#|      |        | E |
-//    +---+-------/      >+---+      |        +---+
-//    | C |             /            v
-//    +---+           -/           +---+
-//      ----    +---+/             |#G#|
-//          \-->|#D#|------------->+---+
-//              +---+
-//
+//	+---+                        +---+
+//	| A |-------               ->| F |<--
+//	+---+       \------>+---+-/  +---+   \--+---+
+//	             ------>|#B#|      |        | E |
+//	+---+-------/      >+---+      |        +---+
+//	| C |             /            v
+//	+---+           -/           +---+
+//	  ----    +---+/             |#G#|
+//	      \-->|#D#|------------->+---+
+//	          +---+
 func MakeQuadSet() []quad.Quad {
 	return []quad.Quad{
 		quad.Make("A", "follows", "B", nil),
@@ -217,8 +217,7 @@ func IteratedValues(t testing.TB, qs graph.QuadStore, s iterator.Shape) []quad.V
 }
 
 func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts)
 
@@ -252,8 +251,7 @@ func TestLoadOneQuad(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 }
 
 func testLoadDup(t testing.TB, gen testutil.DatabaseFunc, c *Config, single bool) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts)
 
@@ -294,8 +292,7 @@ func TestLoadDupSingle(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 }
 
 func TestLoadDupRaw(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
-	qs, _, closer := gen(t)
-	defer closer()
+	qs, _ := gen(t)
 
 	q := quad.Make(
 		"Something",
@@ -323,8 +320,7 @@ func TestLoadDupRaw(t testing.TB, gen testutil.DatabaseFunc, c *Config) {
 
 func TestWriters(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
 	t.Run("batch", func(t *testing.T) {
-		qs, _, closer := gen(t)
-		defer closer()
+		qs, _ := gen(t)
 
 		w, err := qs.NewQuadWriter()
 		require.NoError(t, err)
@@ -357,8 +353,7 @@ func TestWriters(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
 				name[1] = 'm'
 			}
 			t.Run(string(name), func(t *testing.T) {
-				qs, _, closer := gen(t)
-				defer closer()
+				qs, _ := gen(t)
 
 				w, err := writer.NewSingle(qs, graph.IgnoreOpts{
 					IgnoreDup: dup, IgnoreMissing: mis,
@@ -421,8 +416,7 @@ func TestWriters(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
 }
 
 func Test1K(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
-	qs, _, closer := gen(t)
-	defer closer()
+	qs, _ := gen(t)
 
 	pg := c.PageSize
 	if pg == 0 {
@@ -447,8 +441,7 @@ func Test1K(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
 }
 
 func Test1KBatch(t *testing.T, gen testutil.DatabaseFunc, c *Config) {
-	qs, _, closer := gen(t)
-	defer closer()
+	qs, _ := gen(t)
 
 	pg := c.PageSize
 	if pg == 0 {
@@ -481,8 +474,7 @@ type ValueSizer interface {
 }
 
 func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts)
 
@@ -546,8 +538,7 @@ func TestSizes(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 
 func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 	ctx := context.TODO()
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -626,8 +617,7 @@ func TestIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 }
 
 func TestHasA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -648,8 +638,7 @@ func TestHasA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 }
 
 func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -746,8 +735,7 @@ func TestSetIterator(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 }
 
 func TestDeleteQuad(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -787,8 +775,7 @@ func TestDeletedFromIterator(t testing.TB, gen testutil.DatabaseFunc, conf *Conf
 	if conf.SkipDeletedFromIterator {
 		t.SkipNow()
 	}
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -807,8 +794,7 @@ func TestDeletedFromIterator(t testing.TB, gen testutil.DatabaseFunc, conf *Conf
 }
 
 func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts)
 
@@ -886,8 +872,7 @@ func TestLoadTypedQuads(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 // TODO(dennwc): add tests to verify that QS behaves in a right way with IgnoreOptions,
 // returns ErrQuadExists, ErrQuadNotExists is doing rollback.
 func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	if opts == nil {
 		opts = make(graph.Options)
@@ -980,8 +965,7 @@ func TestAddRemove(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 
 func TestIteratorsAndNextResultOrderA(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 	ctx := context.TODO()
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -1110,8 +1094,7 @@ func TestCompareTypedValues(t testing.TB, gen testutil.DatabaseFunc, conf *Confi
 	if conf.UnTyped {
 		t.SkipNow()
 	}
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts)
 
@@ -1165,8 +1148,7 @@ func TestCompareTypedValues(t testing.TB, gen testutil.DatabaseFunc, conf *Confi
 }
 
 func TestNodeDelete(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -1202,8 +1184,7 @@ func TestNodeDelete(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 }
 
 func TestSchema(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -1234,8 +1215,7 @@ func TestSchema(t testing.TB, gen testutil.DatabaseFunc, conf *Config) {
 }
 
 func TestDeleteReinserted(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -1265,8 +1245,7 @@ func TestDeleteReinserted(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
 }
 
 func TestDeleteReinsertedDup(t testing.TB, gen testutil.DatabaseFunc, _ *Config) {
-	qs, opts, closer := gen(t)
-	defer closer()
+	qs, opts := gen(t)
 
 	w := testutil.MakeWriter(t, qs, opts, MakeQuadSet()...)
 
@@ -1315,8 +1294,7 @@ func irif(format string, args ...interface{}) quad.IRI {
 func BenchmarkImport(b *testing.B, gen testutil.DatabaseFunc) {
 	b.StopTimer()
 
-	qs, _, closer := gen(b)
-	defer closer()
+	qs, _ := gen(b)
 
 	w, err := qs.NewQuadWriter()
 	require.NoError(b, err)

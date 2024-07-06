@@ -24,13 +24,9 @@ cd cayley
 # Download dependencies
 go mod download
 
-# Download web files (optional)
+# Update web files (optional)
 
 go run cmd/download_ui/download_ui.go
-
-# Install packr 2
-
-go get -u github.com/gobuffalo/packr/v2/packr2
 ```
 
 ## Generate static files go modules
@@ -117,7 +113,7 @@ export GO111MODULE=on
 First, `cd` into the `cayley` project folder and run:
 
 ```text
-packr && go test ./...
+go test ./...
 ```
 
 If you have a Docker installed, you can also run tests for remote backend implementations:

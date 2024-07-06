@@ -16,11 +16,7 @@ syntax = "proto3";
 
 package proto;
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-//import "google/protobuf/timestamp.proto";
-option (gogoproto.protosizer_all) = true;
-option (gogoproto.marshaler_all) = true;
-option (gogoproto.unmarshaler_all) =  true;
+option go_package = "github.com/cayleygraph/cayley/graph/proto";
 
 message Primitive {
   uint64 ID = 1;

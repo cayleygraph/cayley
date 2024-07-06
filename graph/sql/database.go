@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/quad"
+
+	"github.com/cayleygraph/cayley/graph"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
 )
 
 var types = make(map[string]Registration)
@@ -31,6 +32,7 @@ type Registration struct {
 	ConditionalIndexes bool   // database supports conditional indexes
 	FillFactor         bool   // database supports fill percent on indexes
 	NoForeignKeys      bool   // database has no support for FKs
+	CustomNullTime     bool   // driver doesn't support sql.NullTime
 
 	QueryDialect
 	NoOffsetWithoutLimit bool // SELECT ... OFFSET can be used only with LIMIT

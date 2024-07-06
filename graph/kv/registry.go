@@ -3,14 +3,15 @@ package kv
 import (
 	"strings"
 
-	"github.com/cayleygraph/cayley/graph"
 	"github.com/hidal-go/hidalgo/kv"
+
+	"github.com/cayleygraph/cayley/graph"
 )
 
 func init() {
 	for _, r := range kv.List() {
 		switch r.Name {
-		case "bolt":
+		case "bolt", "bbolt":
 			continue // legacy: register manually; see comments in the bolt package
 		}
 		r := r

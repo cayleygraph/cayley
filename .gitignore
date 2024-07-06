@@ -1,3 +1,8 @@
+.idea/
+db/
+dist/
+vendor/
+
 *.swp
 main
 *.test
@@ -8,10 +13,6 @@ cayley.json
 .cayley_history
 .DS_Store
 
-db/
-dist/
-vendor/
-ui/
 packrd/packed-*
 # The build binary
 /cayley

@@ -5,14 +5,15 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/cayleygraph/quad"
+	hkv "github.com/hidal-go/hidalgo/kv"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/kv"
 	"github.com/cayleygraph/cayley/query/shape"
-	"github.com/cayleygraph/quad"
-	hkv "github.com/hidal-go/hidalgo/kv"
-	"github.com/stretchr/testify/require"
 )
 
 type DatabaseFunc func(t testing.TB) (hkv.KV, graph.Options, func())
@@ -29,7 +30,7 @@ func (c Config) quadStore() *graphtest.Config {
 }
 
 func newQuadStoreFunc(gen DatabaseFunc, bloom bool) testutil.DatabaseFunc {
-	return func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
+	return func(t testing.TB) (graph.QuadStore, graph.Options) {
 		return newQuadStore(t, gen, bloom)
 	}
 }
@@ -38,7 +39,7 @@ func NewQuadStoreFunc(gen DatabaseFunc) testutil.DatabaseFunc {
 	return newQuadStoreFunc(gen, true)
 }
 
-func newQuadStore(t testing.TB, gen DatabaseFunc, bloom bool) (graph.QuadStore, graph.Options, func()) {
+func newQuadStore(t testing.TB, gen DatabaseFunc, bloom bool) (graph.QuadStore, graph.Options) {
 	db, opt, closer := gen(t)
 	if opt == nil {
 		opt = make(graph.Options)
@@ -58,13 +59,13 @@ func newQuadStore(t testing.TB, gen DatabaseFunc, bloom bool) (graph.QuadStore, 
 		closer()
 		require.Fail(t, "create failed", "%v", err)
 	}
-	return kdb, opt, func() {
+	t.Cleanup(func() {
 		kdb.Close()
-		closer()
-	}
+	})
+	return kdb, opt
 }
 
-func NewQuadStore(t testing.TB, gen DatabaseFunc) (graph.QuadStore, graph.Options, func()) {
+func NewQuadStore(t testing.TB, gen DatabaseFunc) (graph.QuadStore, graph.Options) {
 	return newQuadStore(t, gen, true)
 }
 
@@ -87,8 +88,7 @@ func TestAll(t *testing.T, gen DatabaseFunc, conf *Config) {
 
 func testOptimize(t *testing.T, gen DatabaseFunc, _ *Config) {
 	ctx := context.TODO()
-	qs, opts, closer := NewQuadStore(t, gen)
-	defer closer()
+	qs, opts := NewQuadStore(t, gen)
 
 	testutil.MakeWriter(t, qs, opts, graphtest.MakeQuadSet()...)
 

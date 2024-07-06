@@ -26,8 +26,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/cayleygraph/cayley/graph/iterator"
 	"github.com/cayleygraph/quad"
+
+	"github.com/cayleygraph/cayley/graph/iterator"
 )
 
 type Procedure int8
@@ -98,34 +99,26 @@ func (e *DeltaError) Error() string {
 	return e.Delta.Action.String() + " " + e.Delta.Quad.String() + ": " + e.Err.Error()
 }
 
+func (e *DeltaError) Unwrap() error {
+	return e.Err
+}
+
 // IsQuadExist returns whether an error is a DeltaError
 // with the Err field equal to ErrQuadExists.
 func IsQuadExist(err error) bool {
-	if err == ErrQuadExists {
-		return true
-	}
-	de, ok := err.(*DeltaError)
-	return ok && de.Err == ErrQuadExists
+	return errors.Is(err, ErrQuadExists)
 }
 
 // IsQuadNotExist returns whether an error is a DeltaError
 // with the Err field equal to ErrQuadNotExist.
 func IsQuadNotExist(err error) bool {
-	if err == ErrQuadNotExist {
-		return true
-	}
-	de, ok := err.(*DeltaError)
-	return ok && de.Err == ErrQuadNotExist
+	return errors.Is(err, ErrQuadNotExist)
 }
 
 // IsInvalidAction returns whether an error is a DeltaError
 // with the Err field equal to ErrInvalidAction.
 func IsInvalidAction(err error) bool {
-	if err == ErrInvalidAction {
-		return true
-	}
-	de, ok := err.(*DeltaError)
-	return ok && de.Err == ErrInvalidAction
+	return errors.Is(err, ErrInvalidAction)
 }
 
 var (

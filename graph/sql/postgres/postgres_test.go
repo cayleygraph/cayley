@@ -1,3 +1,4 @@
+//go:build docker
 // +build docker
 
 package postgres
@@ -5,21 +6,22 @@ package postgres
 import (
 	"testing"
 
+	"github.com/lib/pq"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/sql/sqltest"
 	"github.com/cayleygraph/cayley/internal/dock"
-	"github.com/lib/pq"
 )
 
-func makePostgres(t testing.TB) (string, graph.Options, func()) {
+func makePostgres(t testing.TB) (string, graph.Options) {
 	var conf dock.Config
 
-	conf.Image = "postgres:9.5"
+	conf.Image = "postgres:16"
 	conf.OpenStdin = true
 	conf.Tty = true
 	conf.Env = []string{`POSTGRES_PASSWORD=postgres`}
 
-	addr, closer := dock.RunAndWait(t, conf, "5432", func(addr string) bool {
+	addr := dock.RunAndWait(t, conf, "5432", func(addr string) bool {
 		conn, err := pq.Open(`postgres://postgres:postgres@` + addr + `/postgres?sslmode=disable`)
 		if err != nil {
 			return false
@@ -28,9 +30,7 @@ func makePostgres(t testing.TB) (string, graph.Options, func()) {
 		return true
 	})
 	addr = `postgres://postgres:postgres@` + addr + `/postgres?sslmode=disable`
-	return addr, nil, func() {
-		closer()
-	}
+	return addr, nil
 }
 
 var conf = &sqltest.Config{

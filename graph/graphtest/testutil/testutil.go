@@ -5,14 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/writer"
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/nquads"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/cayley/writer"
 )
 
-type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options, func())
+type DatabaseFunc func(t testing.TB) (graph.QuadStore, graph.Options)
 
 func LoadGraph(t testing.TB, path string) []quad.Quad {
 	var (

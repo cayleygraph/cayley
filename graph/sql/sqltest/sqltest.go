@@ -4,12 +4,13 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/cayleygraph/quad"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/graphtest"
 	"github.com/cayleygraph/cayley/graph/graphtest/testutil"
 	"github.com/cayleygraph/cayley/graph/sql"
-	"github.com/cayleygraph/quad"
-	"github.com/stretchr/testify/require"
 )
 
 type Config struct {
@@ -51,30 +52,27 @@ func BenchmarkAll(t *testing.B, typ string, fnc DatabaseFunc, c *Config) {
 	})
 }
 
-type DatabaseFunc func(t testing.TB) (string, graph.Options, func())
+type DatabaseFunc func(t testing.TB) (string, graph.Options)
 
 func makeDatabaseFunc(typ string, create DatabaseFunc) testutil.DatabaseFunc {
-	return func(t testing.TB) (graph.QuadStore, graph.Options, func()) {
-		addr, opts, closer := create(t)
+	return func(t testing.TB) (graph.QuadStore, graph.Options) {
+		addr, opts := create(t)
 		if err := sql.Init(typ, addr, opts); err != nil {
-			closer()
 			t.Fatal(err)
 		}
 		qs, err := sql.New(typ, addr, opts)
 		if err != nil {
-			closer()
 			t.Fatal(err)
 		}
-		return qs, nil, func() {
+		t.Cleanup(func() {
 			qs.Close()
-			closer()
-		}
+		})
+		return qs, nil
 	}
 }
 
 func testZeroRune(t testing.TB, create testutil.DatabaseFunc) {
-	qs, opts, closer := create(t)
-	defer closer()
+	qs, opts := create(t)
 
 	w := testutil.MakeWriter(t, qs, opts)
 

@@ -15,7 +15,7 @@ const (
 	version       = "v0.8.0"
 	fileURL       = "https://github.com/cayleygraph/web/releases/download/" + version + "/web.zip"
 	fileName      = "web.zip"
-	directoryName = "ui"
+	directoryName = "ui/web"
 )
 
 func main() {

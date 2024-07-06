@@ -27,11 +27,12 @@ import (
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/pquads"
 	"github.com/hidal-go/hidalgo/kv/options"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	graphlog "github.com/cayleygraph/cayley/graph/log"
-	"github.com/cayleygraph/cayley/graph/proto"
+	cproto "github.com/cayleygraph/cayley/graph/proto"
 	"github.com/cayleygraph/cayley/graph/refs"
 
 	"github.com/hidal-go/hidalgo/kv"
@@ -86,7 +87,7 @@ func (ind QuadIndex) Key(vals []uint64) kv.Key {
 	// TODO(dennwc): split into parts?
 	return ind.bucket().AppendBytes(key)
 }
-func (ind QuadIndex) KeyFor(p *proto.Primitive) kv.Key {
+func (ind QuadIndex) KeyFor(p *cproto.Primitive) kv.Key {
 	key := make([]byte, 8*len(ind.Dirs))
 	n := 0
 	for _, d := range ind.Dirs {
@@ -505,10 +506,10 @@ func (qs *QuadStore) applyAddDeltas(ctx context.Context, tx kv.Tx, in []graph.De
 	}
 	deltas.IncNode = nil
 	// resolve and insert all new quads
-	links := make([]proto.Primitive, 0, len(deltas.QuadAdd))
+	links := make([]cproto.Primitive, 0, len(deltas.QuadAdd))
 	qadd := make(map[[4]uint64]struct{}, len(deltas.QuadAdd))
 	for _, q := range deltas.QuadAdd {
-		var link proto.Primitive
+		var link cproto.Primitive
 		mustBeNew := false
 		var qkey [4]uint64
 		for i, dir := range quad.Directions {
@@ -584,7 +585,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	}
 
 	if len(deltas.QuadDel) != 0 || len(deltas.DecNode) != 0 {
-		links := make([]proto.Primitive, 0, len(deltas.QuadDel))
+		links := make([]cproto.Primitive, 0, len(deltas.QuadDel))
 		// resolve all nodes that will be removed
 		dnodes := make(map[refs.ValueHash]uint64, len(deltas.DecNode))
 		if err := qs.resolveValDeltas(ctx, tx, deltas.DecNode, func(i int, id uint64) {
@@ -596,7 +597,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 		// check for existence and delete quads
 		fixNodes := make(map[refs.ValueHash]int)
 		for _, q := range deltas.QuadDel {
-			var link proto.Primitive
+			var link cproto.Primitive
 			exists := true
 			// resolve values of all quad directions
 			// if any of the direction does not exists, the quad does not exists as well
@@ -669,7 +670,7 @@ func (qs *QuadStore) ApplyDeltas(in []graph.Delta, ignoreOpts graph.IgnoreOpts) 
 	return tx.Commit(ctx)
 }
 
-func (qs *QuadStore) indexNode(ctx context.Context, tx kv.Tx, p *proto.Primitive, val quad.Value) error {
+func (qs *QuadStore) indexNode(ctx context.Context, tx kv.Tx, p *cproto.Primitive, val quad.Value) error {
 	var err error
 	if val == nil {
 		val, err = pquads.UnmarshalValue(p.Value)
@@ -691,7 +692,7 @@ func (qs *QuadStore) indexNode(ctx context.Context, tx kv.Tx, p *proto.Primitive
 	return qs.addToLog(ctx, tx, p)
 }
 
-func (qs *QuadStore) indexLinks(ctx context.Context, tx kv.Tx, links []proto.Primitive) error {
+func (qs *QuadStore) indexLinks(ctx context.Context, tx kv.Tx, links []cproto.Primitive) error {
 	for _, p := range links {
 		if err := qs.indexLink(ctx, tx, &p); err != nil {
 			return err
@@ -699,7 +700,7 @@ func (qs *QuadStore) indexLinks(ctx context.Context, tx kv.Tx, links []proto.Pri
 	}
 	return qs.incSize(ctx, tx, int64(len(links)))
 }
-func (qs *QuadStore) indexLink(ctx context.Context, tx kv.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) indexLink(ctx context.Context, tx kv.Tx, p *cproto.Primitive) error {
 	var err error
 	qs.indexes.RLock()
 	all := qs.indexes.all
@@ -718,7 +719,7 @@ func (qs *QuadStore) indexLink(ctx context.Context, tx kv.Tx, p *proto.Primitive
 	return qs.addToLog(ctx, tx, p)
 }
 
-func (qs *QuadStore) markAsDead(ctx context.Context, tx kv.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) markAsDead(ctx context.Context, tx kv.Tx, p *cproto.Primitive) error {
 	p.Deleted = true
 	//TODO(barakmich): Add tombstone?
 	qs.bloomRemove(p)
@@ -729,7 +730,7 @@ func (qs *QuadStore) delLog(ctx context.Context, tx kv.Tx, id uint64) error {
 	return tx.Del(ctx, logIndex.Append(uint64KeyBytes(id)))
 }
 
-func (qs *QuadStore) markLinksDead(ctx context.Context, tx kv.Tx, links []proto.Primitive) error {
+func (qs *QuadStore) markLinksDead(ctx context.Context, tx kv.Tx, links []cproto.Primitive) error {
 	for _, p := range links {
 		if err := qs.markAsDead(ctx, tx, &p); err != nil {
 			return err
@@ -875,7 +876,7 @@ func (qs *QuadStore) bestIndexes(dirs []quad.Direction) []QuadIndex {
 	return []QuadIndex{best}
 }
 
-func (qs *QuadStore) hasPrimitive(ctx context.Context, tx kv.Tx, p *proto.Primitive, get bool) (*proto.Primitive, error) {
+func (qs *QuadStore) hasPrimitive(ctx context.Context, tx kv.Tx, p *cproto.Primitive, get bool) (*cproto.Primitive, error) {
 	if !qs.testBloom(p) {
 		mQuadsBloomHit.Inc()
 		return nil, nil
@@ -1040,12 +1041,12 @@ func (qs *QuadStore) flushMapBucket(ctx context.Context, tx kv.Tx) error {
 	return nil
 }
 
-func (qs *QuadStore) indexSchema(tx kv.Tx, p *proto.Primitive) error {
+func (qs *QuadStore) indexSchema(tx kv.Tx, p *cproto.Primitive) error {
 	return nil
 }
 
-func (qs *QuadStore) addToLog(ctx context.Context, tx kv.Tx, p *proto.Primitive) error {
-	buf, err := p.Marshal()
+func (qs *QuadStore) addToLog(ctx context.Context, tx kv.Tx, p *cproto.Primitive) error {
+	buf, err := proto.Marshal(p)
 	if err != nil {
 		return err
 	}
@@ -1056,8 +1057,8 @@ func (qs *QuadStore) addToLog(ctx context.Context, tx kv.Tx, p *proto.Primitive)
 	return nil
 }
 
-func createNodePrimitive(v quad.Value) (*proto.Primitive, error) {
-	p := &proto.Primitive{}
+func createNodePrimitive(v quad.Value) (*cproto.Primitive, error) {
+	p := &cproto.Primitive{}
 	b, err := pquads.MarshalValue(v)
 	if err != nil {
 		return p, err
@@ -1140,7 +1141,7 @@ func uint64KeyBytes(x uint64) kv.Key {
 	return kv.Key{k}
 }
 
-func (qs *QuadStore) getPrimitivesFromLog(ctx context.Context, tx kv.Tx, keys []uint64) ([]*proto.Primitive, error) {
+func (qs *QuadStore) getPrimitivesFromLog(ctx context.Context, tx kv.Tx, keys []uint64) ([]*cproto.Primitive, error) {
 	bkeys := make([]kv.Key, len(keys))
 	for i, k := range keys {
 		bkeys[i] = logIndex.Append(uint64KeyBytes(k))
@@ -1150,15 +1151,15 @@ func (qs *QuadStore) getPrimitivesFromLog(ctx context.Context, tx kv.Tx, keys []
 		return nil, err
 	}
 	mPrimitiveFetch.Add(float64(len(vals)))
-	out := make([]*proto.Primitive, len(keys))
+	out := make([]*cproto.Primitive, len(keys))
 	var last error
 	for i, v := range vals {
 		if v == nil {
 			mPrimitiveFetchMiss.Inc()
 			continue
 		}
-		var p proto.Primitive
-		if err = p.Unmarshal(v); err != nil {
+		var p cproto.Primitive
+		if err = proto.Unmarshal(v, &p); err != nil {
 			last = err
 		} else {
 			out[i] = &p
@@ -1167,7 +1168,7 @@ func (qs *QuadStore) getPrimitivesFromLog(ctx context.Context, tx kv.Tx, keys []
 	return out, last
 }
 
-func (qs *QuadStore) getPrimitiveFromLog(ctx context.Context, tx kv.Tx, k uint64) (*proto.Primitive, error) {
+func (qs *QuadStore) getPrimitiveFromLog(ctx context.Context, tx kv.Tx, k uint64) (*cproto.Primitive, error) {
 	out, err := qs.getPrimitivesFromLog(ctx, tx, []uint64{k})
 	if err != nil {
 		return nil, err
@@ -1184,13 +1185,13 @@ func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
 	qs.exists.buf = make([]byte, 3*8)
 	qs.exists.DeletableBloomFilter = boom.NewDeletableBloomFilter(100*1000*1000, 120, 0.05)
 	return kv.View(ctx, qs.db, func(tx kv.Tx) error {
-		p := proto.Primitive{}
+		p := cproto.Primitive{}
 		it := tx.Scan(ctx, options.WithPrefixKV(logIndex))
 		defer it.Close()
 		for it.Next(ctx) {
 			v := it.Val()
-			p = proto.Primitive{}
-			err := p.Unmarshal(v)
+			p = cproto.Primitive{}
+			err := proto.Unmarshal(v, &p)
 			if err != nil {
 				return err
 			}
@@ -1206,7 +1207,7 @@ func (qs *QuadStore) initBloomFilter(ctx context.Context) error {
 	})
 }
 
-func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
+func (qs *QuadStore) testBloom(p *cproto.Primitive) bool {
 	if qs.exists.disabled {
 		return true // false positives are expected
 	}
@@ -1216,7 +1217,7 @@ func (qs *QuadStore) testBloom(p *proto.Primitive) bool {
 	return qs.exists.Test(qs.exists.buf)
 }
 
-func (qs *QuadStore) bloomRemove(p *proto.Primitive) {
+func (qs *QuadStore) bloomRemove(p *cproto.Primitive) {
 	if qs.exists.disabled {
 		return
 	}
@@ -1226,7 +1227,7 @@ func (qs *QuadStore) bloomRemove(p *proto.Primitive) {
 	qs.exists.TestAndRemove(qs.exists.buf)
 }
 
-func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
+func (qs *QuadStore) bloomAdd(p *cproto.Primitive) {
 	if qs.exists.disabled {
 		return
 	}
@@ -1236,7 +1237,7 @@ func (qs *QuadStore) bloomAdd(p *proto.Primitive) {
 	qs.exists.Add(qs.exists.buf)
 }
 
-func writePrimToBuf(p *proto.Primitive, buf []byte) {
+func writePrimToBuf(p *cproto.Primitive, buf []byte) {
 	quadKeyEnc.PutUint64(buf[0:8], p.Subject)
 	quadKeyEnc.PutUint64(buf[8:16], p.Predicate)
 	quadKeyEnc.PutUint64(buf[16:24], p.Object)

@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cayleygraph/cayley/clog"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/log"
-	csql "github.com/cayleygraph/cayley/graph/sql"
 	"github.com/cayleygraph/quad"
 	"github.com/go-sql-driver/mysql"
+
+	"github.com/cayleygraph/cayley/clog"
+	"github.com/cayleygraph/cayley/graph"
+	graphlog "github.com/cayleygraph/cayley/graph/log"
+	csql "github.com/cayleygraph/cayley/graph/sql"
 )
 
 const Type = "mysql"
@@ -32,6 +33,7 @@ func init() {
 		TimeType:             `DATETIME(6)`,
 		QueryDialect:         QueryDialect,
 		NoOffsetWithoutLimit: true,
+		CustomNullTime:       true,
 		Error: func(err error) error {
 			return err
 		},

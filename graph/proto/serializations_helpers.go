@@ -5,7 +5,8 @@ import (
 	"github.com/cayleygraph/quad/pquads"
 )
 
-//go:generate protoc --proto_path=$GOPATH/src:. --gogo_out=. serializations.proto
+//go:generate curl -LO https://github.com/cayleygraph/quad/raw/v1.3.0/pquads/quads.proto
+//go:generate protoc --go_opt=paths=source_relative --proto_path=. --go_out=. serializations.proto
 
 // GetNativeValue returns the value stored in Node.
 func (m *NodeData) GetNativeValue() quad.Value {

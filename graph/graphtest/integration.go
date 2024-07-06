@@ -58,8 +58,7 @@ func checkIntegration(t testing.TB, force bool) {
 
 func TestIntegration(t *testing.T, gen testutil.DatabaseFunc, force bool) {
 	checkIntegration(t, force)
-	qs, closer := prepare(t, gen)
-	defer closer()
+	qs := prepare(t, gen)
 
 	checkQueries(t, qs, timeout)
 }
@@ -460,14 +459,13 @@ var m1_actors = movie1.save("<name>","movie1").follow(filmToActor)
 var m2_actors = movie2.save("<name>","movie2").follow(filmToActor)
 `
 
-func prepare(t testing.TB, gen testutil.DatabaseFunc) (graph.QuadStore, func()) {
-	qs, _, closer := gen(t)
+func prepare(t testing.TB, gen testutil.DatabaseFunc) graph.QuadStore {
+	qs, _ := gen(t)
 
 	const needsLoad = true // TODO: support local setup
 	if needsLoad {
 		qw, err := qs.NewQuadWriter()
 		if err != nil {
-			closer()
 			require.NoError(t, err)
 		}
 
@@ -480,17 +478,15 @@ func prepare(t testing.TB, gen testutil.DatabaseFunc) (graph.QuadStore, func()) 
 		}
 		if err != nil {
 			qw.Close()
-			closer()
 			require.NoError(t, err)
 		}
 		err = qw.Close()
 		if err != nil {
-			closer()
 			require.NoError(t, err)
 		}
 		t.Logf("loaded data in %v", time.Since(start))
 	}
-	return qs, closer
+	return qs
 }
 
 func checkQueries(t *testing.T, qs graph.QuadStore, timeout time.Duration) {
@@ -565,8 +561,7 @@ func convertToStringList(in []interface{}) []string {
 }
 
 func benchmarkQueries(b *testing.B, gen testutil.DatabaseFunc) {
-	qs, closer := prepare(b, gen)
-	defer closer()
+	qs := prepare(b, gen)
 
 	for _, bench := range queries {
 		b.Run(bench.message, func(b *testing.B) {

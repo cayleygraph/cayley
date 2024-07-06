@@ -1,9 +1,6 @@
-FROM golang:1.19 as builder
+FROM golang:1.21 as builder
 
 ARG VERSION=v0.8.x-dev
-
-# Install packr
-RUN go install github.com/gobuffalo/packr/v2/packr2@latest
 
 # Create filesystem for minimal image
 WORKDIR /fs
@@ -21,15 +18,8 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy UI download script and execute
-COPY cmd/download_ui/ ./cmd/download_ui/
-RUN go run cmd/download_ui/download_ui.go
-
 # Add all the other files
 ADD . .
-
-# Run packr to generate .go files that pack the static files into bytes that can be bundled into the Go binary.
-RUN packr2
 
 # Pass a Git short SHA as build information to be used for displaying version
 RUN GIT_SHA=$(git rev-parse --short=12 HEAD); \

@@ -1,10 +1,9 @@
-//+build cgo
+//go:build cgo
 
 package sqlite
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -12,14 +11,15 @@ import (
 	"github.com/cayleygraph/cayley/graph/sql/sqltest"
 )
 
-func makeSqlite(t testing.TB) (string, graph.Options, func()) {
-	tmpFile, err := ioutil.TempFile("", fmt.Sprintf("cayley_test_%s*", Type))
+func makeSqlite(t testing.TB) (string, graph.Options) {
+	tmpFile, err := os.CreateTemp("", fmt.Sprintf("cayley_test_%s*", Type))
 	if err != nil {
 		t.Fatalf("Could not create working directory: %v", err)
 	}
-	return fmt.Sprintf("file:%s?_loc=UTC", tmpFile.Name()), nil, func() {
+	t.Cleanup(func() {
 		os.RemoveAll(tmpFile.Name())
-	}
+	})
+	return fmt.Sprintf("file:%s?_loc=UTC", tmpFile.Name()), nil
 }
 
 var conf = &sqltest.Config{

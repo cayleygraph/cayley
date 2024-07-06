@@ -1,3 +1,4 @@
+//go:build docker
 // +build docker
 
 package dock
@@ -11,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 var (
@@ -27,7 +28,7 @@ type fullConfig struct {
 	docker.HostConfig
 }
 
-func run(t testing.TB, conf fullConfig) (addr string, closer func()) {
+func run(t testing.TB, conf fullConfig) (addr string) {
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -54,22 +55,19 @@ func run(t testing.TB, conf fullConfig) (addr string, closer func()) {
 	if err != nil {
 		t.Skip(err)
 	}
-
-	closer = func() {
+	t.Cleanup(func() {
 		cli.RemoveContainer(docker.RemoveContainerOptions{
 			ID:    cont.ID,
 			Force: true,
 		})
-	}
+	})
 
 	if err := cli.StartContainer(cont.ID, &conf.HostConfig); err != nil {
-		closer()
 		t.Skip(err)
 	}
 
 	info, err := cli.InspectContainer(cont.ID)
 	if err != nil {
-		closer()
 		t.Skip(err)
 	}
 	addr = info.NetworkSettings.IPAddress
@@ -96,7 +94,7 @@ func randPort() int {
 
 const localhost = "127.0.0.1"
 
-func RunAndWait(t testing.TB, conf Config, port string, check func(string) bool) (addr string, closer func()) {
+func RunAndWait(t testing.TB, conf Config, port string, check func(string) bool) (addr string) {
 	fconf := fullConfig{Config: conf.Config}
 	if runtime.GOOS != "linux" {
 		lport := strconv.Itoa(randPort())
@@ -110,7 +108,7 @@ func RunAndWait(t testing.TB, conf Config, port string, check func(string) bool)
 		}
 		port = lport
 	}
-	addr, closer = run(t, fconf)
+	addr = run(t, fconf)
 	if runtime.GOOS != "linux" {
 		// VM ports are automatically exposed on localhost
 		addr = localhost
@@ -127,10 +125,9 @@ func RunAndWait(t testing.TB, conf Config, port string, check func(string) bool)
 		}
 	}
 	if !ok {
-		closer()
 		t.Fatal("Container check fails.")
 	}
-	return addr, closer
+	return addr
 }
 
 const wait = time.Second * 5

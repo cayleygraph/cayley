@@ -1,3 +1,4 @@
+//go:build docker
 // +build docker
 
 package mysql
@@ -11,7 +12,7 @@ import (
 )
 
 func makeMysqlVersion(image string) sqltest.DatabaseFunc {
-	return func(t testing.TB) (string, graph.Options, func()) {
+	return func(t testing.TB) (string, graph.Options) {
 		var conf dock.Config
 
 		conf.Image = image
@@ -21,17 +22,15 @@ func makeMysqlVersion(image string) sqltest.DatabaseFunc {
 			`MYSQL_DATABASE=testdb`,
 		}
 
-		addr, closer := dock.RunAndWait(t, conf, "3306", nil)
+		addr := dock.RunAndWait(t, conf, "3306", nil)
 		addr = `root:root@tcp(` + addr + `)/testdb`
-		return addr, nil, func() {
-			closer()
-		}
+		return addr, nil
 	}
 }
 
 const (
-	mysqlImage   = "mysql:5.7"
-	mariadbImage = "mariadb:10"
+	mysqlImage   = "mysql:8"
+	mariadbImage = "mariadb:11"
 )
 
 func TestMysql(t *testing.T) {

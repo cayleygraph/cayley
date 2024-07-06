@@ -18,11 +18,12 @@ import (
 	"os"
 	"path/filepath"
 
+	hkv "github.com/hidal-go/hidalgo/kv"
+	bolt "github.com/hidal-go/hidalgo/kv/bbolt"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/kv"
-	hkv "github.com/hidal-go/hidalgo/kv"
-	bolt "github.com/hidal-go/hidalgo/kv/bbolt"
 )
 
 func init() {

@@ -9,14 +9,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cayleygraph/quad"
+	"github.com/cayleygraph/quad/pquads"
+
 	"github.com/cayleygraph/cayley/clog"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"
 	graphlog "github.com/cayleygraph/cayley/graph/log"
 	"github.com/cayleygraph/cayley/graph/refs"
 	"github.com/cayleygraph/cayley/internal/lru"
-	"github.com/cayleygraph/quad"
-	"github.com/cayleygraph/quad/pquads"
 )
 
 func registerQuadStore(name, typ string) {
@@ -650,17 +651,32 @@ func (qs *QuadStore) NameOf(v graph.Ref) (quad.Value, error) {
 	FROM nodes WHERE hash = ` + qs.flavor.Placeholder(1) + ` LIMIT 1;`
 	c := qs.db.QueryRow(query, hash.SQLValue())
 	var (
-		data   []byte
-		str    sql.NullString
-		typ    sql.NullString
-		lang   sql.NullString
-		iri    sql.NullBool
-		bnode  sql.NullBool
-		vint   sql.NullInt64
-		vbool  sql.NullBool
-		vfloat sql.NullFloat64
-		vtime  NullTime
+		data        []byte
+		str         sql.NullString
+		typ         sql.NullString
+		lang        sql.NullString
+		iri         sql.NullBool
+		bnode       sql.NullBool
+		vint        sql.NullInt64
+		vbool       sql.NullBool
+		vfloat      sql.NullFloat64
+		vtimeStd    sql.NullTime
+		vtimeCustom NullTime
 	)
+	var (
+		vtimeScan  any
+		vtimeTime  *time.Time
+		vtimeValid *bool
+	)
+	if qs.flavor.CustomNullTime {
+		vtimeScan = &vtimeCustom
+		vtimeTime = &vtimeCustom.Time
+		vtimeValid = &vtimeCustom.Valid
+	} else {
+		vtimeScan = &vtimeStd
+		vtimeTime = &vtimeStd.Time
+		vtimeValid = &vtimeStd.Valid
+	}
 	if err := c.Scan(
 		&data,
 		&str,
@@ -671,7 +687,7 @@ func (qs *QuadStore) NameOf(v graph.Ref) (quad.Value, error) {
 		&vint,
 		&vbool,
 		&vfloat,
-		&vtime,
+		vtimeScan,
 	); err != nil {
 		if err != sql.ErrNoRows {
 			return nil, fmt.Errorf("error executing value lookup: %w", err)
@@ -702,8 +718,8 @@ func (qs *QuadStore) NameOf(v graph.Ref) (quad.Value, error) {
 		val = quad.Bool(vbool.Bool)
 	} else if vfloat.Valid {
 		val = quad.Float(vfloat.Float64)
-	} else if vtime.Valid {
-		val = quad.Time(vtime.Time)
+	} else if *vtimeValid {
+		val = quad.Time(vtimeTime.UTC())
 	} else {
 		qv, err := pquads.UnmarshalValue(data)
 		if err != nil {
