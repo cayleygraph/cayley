@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Both)(nil)
 
 // Both corresponds to .both().
 type Both struct {
-	From       linkedql.PathStep      `json:"from"`
+	From       linkedql.PathStep      `json:"from" minCardinality:"0"`
 	Properties *linkedql.PropertyPath `json:"properties"`
 }
 
@@ -26,7 +26,7 @@ func (s *Both) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Both) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

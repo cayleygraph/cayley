@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Union)(nil)
 
 // Union corresponds to .union() and .or().
 type Union struct {
-	From  linkedql.PathStep   `json:"from"`
+	From  linkedql.PathStep   `json:"from" minCardinality:"0"`
 	Steps []linkedql.PathStep `json:"steps"`
 }
 
@@ -26,7 +26,7 @@ func (s *Union) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Union) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

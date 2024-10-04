@@ -18,7 +18,7 @@ var _ linkedql.PathStep = (*Properties)(nil)
 
 // Properties corresponds to .properties().
 type Properties struct {
-	From  linkedql.PathStep      `json:"from"`
+	From  linkedql.PathStep      `json:"from" minCardinality:"0"`
 	Names *linkedql.PropertyPath `json:"names"`
 }
 
@@ -49,7 +49,7 @@ func resolveNames(names *linkedql.PropertyPath) (linkedql.PropertyIRIs, error) {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Properties) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

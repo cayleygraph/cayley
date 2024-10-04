@@ -16,7 +16,7 @@ var _ linkedql.PathStep = (*Like)(nil)
 
 // Like corresponds to like().
 type Like struct {
-	From    linkedql.PathStep `json:"from"`
+	From    linkedql.PathStep `json:"from" minCardinality:"0"`
 	Pattern string            `json:"likePattern"`
 }
 
@@ -27,7 +27,7 @@ func (s *Like) Description() string {
 
 // BuildPath implements PathStep.
 func (s *Like) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

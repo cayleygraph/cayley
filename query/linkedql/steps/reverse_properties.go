@@ -16,7 +16,7 @@ var _ linkedql.PathStep = (*ReverseProperties)(nil)
 
 // ReverseProperties corresponds to .reverseProperties().
 type ReverseProperties struct {
-	From  linkedql.PathStep      `json:"from"`
+	From  linkedql.PathStep      `json:"from" minCardinality:"0"`
 	Names *linkedql.PropertyPath `json:"names"`
 }
 
@@ -27,7 +27,7 @@ func (s *ReverseProperties) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *ReverseProperties) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}

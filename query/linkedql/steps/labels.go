@@ -15,7 +15,7 @@ var _ linkedql.PathStep = (*Labels)(nil)
 
 // Labels corresponds to .labels().
 type Labels struct {
-	From linkedql.PathStep `json:"from"`
+	From linkedql.PathStep `json:"from" minCardinality:"0"`
 }
 
 // Description implements Step.
@@ -25,7 +25,7 @@ func (s *Labels) Description() string {
 
 // BuildPath implements linkedql.PathStep.
 func (s *Labels) BuildPath(qs graph.QuadStore, ns *voc.Namespaces) (*path.Path, error) {
-	fromPath, err := s.From.BuildPath(qs, ns)
+	fromPath, err := linkedql.BuildFromPath(qs, ns, s.From)
 	if err != nil {
 		return nil, err
 	}
