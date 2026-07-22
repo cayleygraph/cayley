@@ -213,6 +213,21 @@ func testSet(qs graph.QuadStore) []test {
 			expect: []quad.Value{vBob, vGreg},
 		},
 		{
+			message: "Or of overlapping branches keeps a value reachable via either branch",
+			path: path.StartPath(qs, vAlice).Out(vFollows).Or(
+				path.StartPath(qs, vDani).Out(vFollows)),
+			// Or is a union without deduplication: bob is reachable via both
+			// alice->follows and dani->follows, so it appears from each branch.
+			expect: []quad.Value{vBob, vBob, vGreg},
+		},
+		{
+			message: "Or preserves the Save tag of whichever branch produced the value",
+			path: path.StartPath(qs, vBob).Save(vStatus, "statustag").Or(
+				path.StartPath(qs, vDani).Save(vStatus, "statustag")),
+			tag:    "statustag",
+			expect: []quad.Value{vCool, vCool},
+		},
+		{
 			message: "implicit All",
 			path:    path.StartPath(qs),
 			expect:  []quad.Value{vAlice, vBob, vCharlie, vDani, vEmily, vFred, vGreg, vFollows, vStatus, vCool, vPredicate, vAre, vSmartGraph, vSmart},
@@ -436,6 +451,21 @@ func testSet(qs graph.QuadStore) []test {
 			path:    path.StartPath(qs, vBob, vCharlie).Out(vFollows).SaveOptional(vStatus, "statustag"),
 			tag:     "statustag",
 			expect:  []quad.Value{vCool, vCool},
+		},
+		{
+			message: "SaveOptional keeps unmatched starts with an empty tag",
+			path:    path.StartPath(qs, vAlice, vBob, vFred).SaveOptional(vStatus, "statustag"),
+			tag:     "statustag",
+			empty:   true,
+			// alice and fred have no status quad, bob has "cool_person".
+			expect: []quad.Value{vEmpty, vEmpty, vCool},
+		},
+		{
+			message: "optional branch that never matches still returns every top-level node",
+			path:    path.StartPath(qs, vAlice, vFred).Optional(path.StartMorphism().Save(vStatus, "statustag")),
+			tag:     "statustag",
+			empty:   true,
+			expect:  []quad.Value{vEmpty, vEmpty},
 		},
 		{
 			message: "composite paths (clone paths)",
